@@ -1,3 +1,4 @@
+
 body {
     min-width: 600px;
     width: 600px;
@@ -15,7 +16,7 @@ body,div,span,td,p,h2,h3,h4,h5,h6,a,ul,li {
 
 a,a:hover,a:visited,a:active {
     color: #5A5A5A;
-    text-decoration: underline;
+    /* text-decoration: underline; */
 }
 
 /* main layout */
@@ -84,6 +85,15 @@ a,a:hover,a:visited,a:active {
     border: none;
     height: 15px;
 }
+
+/*
+    workaround for bug in the Doxia docbook renderer that opens
+    anchors (e.g. <a name="index">), but doesn't ever close them
+*/
+#section a,a:hover,a:visited,a:active {
+    text-decoration: none;
+}
+
 
 #breadcrumbs a {
     color: #fff;
@@ -160,11 +170,13 @@ h3 {
 }
 
 #navcolumn strong {
-    font-weight: normal;
+    color: #000000;
+    font-weight: bold;
 }
 
 #navcolumn strong a {
-    color: #FE1100;
+    color: #000000;
+    font-weight: bold;
 }
 
 #navcolumn a {
@@ -209,7 +221,13 @@ h3 {
 }
 
 #navcolumn li {
-    color: #fff;
+    color: #000000;
+}
+
+#navcolumn strong {
+    color: #000000;
+    font-weight: bold;
+    margin-left: 15px;
 }
 
 div.source {

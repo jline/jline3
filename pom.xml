@@ -10,9 +10,9 @@ To run tests, run:
 
 	mvn test
 
-To run one particular test, e.g. jline.bytecode.TestBCClass, run:
+To run one particular test, e.g. TestSomeTest, run:
 
-	mvn test -Dtest=TestBCClass
+	mvn test -Dtest=TestSomeTest
 
 To build the jars, run:
 
@@ -28,7 +28,7 @@ To build the site and upload it, run:
 
 To perform a complete release, run:
 
-	mvn clean compile package assembly:assembly deploy site site:deploy
+	mvn clean compile package site assembly:assembly deploy site:deploy
 
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
@@ -126,8 +126,9 @@ To perform a complete release, run:
       <plugin>
         <artifactId>maven-assembly-plugin</artifactId>
         <configuration>
-          <descriptorId>bin</descriptorId>
-          <finalName>jline-${pom.version}</finalName>
+          <descriptors>
+            <descriptor>src/assembly/assembly.xml</descriptor>
+          </descriptors>
         </configuration>
       </plugin>
     </plugins>

@@ -48,12 +48,12 @@
 			<title>Obtaining JLine</title>
 			<para>
 				JLine is hosted on SourceForge, and is located at
-				<ulink url="http://jline.sf.net"/>.
+				<ulink url="http://jline.sf.net">http://jline.sf.net</ulink>.
 				The latest release can be downloaded from 
 				<ulink url=
-				"http://sourceforge.net/project/showfiles.php?group_id=64033"/>.
-				API documentation can be found in the <ulink url="javadoc"/>
-				directory.
+				"http://sourceforge.net/project/showfiles.php?group_id=64033">http://sourceforge.net/project/showfiles.php?group_id=64033</ulink>.
+				API documentation can be found in the
+                <ulink url="javadoc">javadoc/</ulink> directory.
 			</para>
 		</chapter>
 
@@ -185,7 +185,7 @@
 			<para>
 				This section discusses some common usages of the JLine API.
 				For in-depth usage of the JLine API, see the
-				<ulink url="javadoc"/>.
+				<ulink url="javadoc">javadoc</ulink>.
 			</para>
 			<section id="reading_password">
 				<title>Reading a password from the console</title>
