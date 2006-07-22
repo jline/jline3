@@ -72,9 +72,9 @@ To perform a complete release, run:
     </license>
   </licenses>
   <scm>
-    <connection>scm:cvs:pserver:anonymous@jline.cvs.sourceforge.net:/cvsroot/jline:jline/jline</connection>
-    <developerConnection>scm:cvs:ext:${maven.username}@jline.cvs.sourceforge.net:/cvsroot/jline:jline/jline</developerConnection>
-    <url>http://jline.cvs.sourceforge.net/jline/jline</url>
+    <connection>scm:cvs:pserver:anonymous@jline.cvs.sourceforge.net:/cvsroot/jline:jline</connection>
+    <developerConnection>scm:cvs:ext:${maven.username}@jline.cvs.sourceforge.net:/cvsroot/jline:jline</developerConnection>
+    <url>http://jline.cvs.sourceforge.net/jline</url>
   </scm>
   <dependencies>
     <dependency>
