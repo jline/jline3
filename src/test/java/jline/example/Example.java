@@ -55,14 +55,12 @@ public class Example {
             } else if (args[0].equals("classes")) {
                 completors.add(new ClassNameCompletor());
             } else if (args[0].equals("dictionary")) {
-                completors.add(new SimpleCompletor(new GZIPInputStream(Example.class
-                                                                       .getResourceAsStream("english.gz"))));
+                completors.add(new SimpleCompletor
+                    (new GZIPInputStream(Example.class.
+                        getResourceAsStream("english.gz"))));
             } else if (args[0].equals("simple")) {
-                completors.add(new SimpleCompletor(new String[] {
-                                                       "foo",
-                                                       "bar",
-                                                       "baz"
-                                                   }));
+                completors.add(new SimpleCompletor
+                    (new String[] { "foo", "bar", "baz" }));
             } else {
                 usage();
 

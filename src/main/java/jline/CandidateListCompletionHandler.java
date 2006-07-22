@@ -18,11 +18,18 @@ import java.util.*;
  *  <a href="http://www.gnu.org/directory/readline.html">readline</a>
  *  library.
  *  </p>
- *   @author  <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ *
+ *  <strong>TODO:</strong>
+ *  <ul>
+ *        <li>handle quotes and escaped quotes</li>
+ *        <li>enable automatic escaping of whitespace</li>
+ *  </ul>
+ *
+ *  @author  <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
 public class CandidateListCompletionHandler implements CompletionHandler {
-    private static ResourceBundle loc =
-        ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName());
+    private static ResourceBundle loc = ResourceBundle.
+        getBundle(CandidateListCompletionHandler.class.getName());
 
     public boolean complete(final ConsoleReader reader, final List candidates,
                             final int pos) throws IOException {
@@ -44,6 +51,9 @@ public class CandidateListCompletionHandler implements CompletionHandler {
             String value = getUnambiguousCompletions(candidates);
             String bufString = buf.toString();
             setBuffer(reader, value, pos);
+
+            if (bufString.length() - pos != value.length())
+                return true;
         }
 
         reader.printNewline();
@@ -57,7 +67,7 @@ public class CandidateListCompletionHandler implements CompletionHandler {
 
     private static void setBuffer(ConsoleReader reader, String value, int offset)
                            throws IOException {
-        while ((reader.getCursorBuffer().cursor >= offset)
+        while ((reader.getCursorBuffer().cursor > offset)
                    && reader.backspace()) {
             ;
         }

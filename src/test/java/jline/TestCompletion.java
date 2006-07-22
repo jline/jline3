@@ -25,11 +25,8 @@ public class TestCompletion extends JLineTestCase {
             ;
         }
 
-        console.addCompletor(new SimpleCompletor(new String[] {
-                                                     "foo",
-                                                     "bar",
-                                                     "baz"
-                                                 }));
+        console.addCompletor
+            (new SimpleCompletor(new String[] { "foo", "bar", "baz" }));
 
         assertBuffer("foo ", new Buffer("f").op(ConsoleReader.COMPLETE));
         // single tab completes to unabbiguous "ba"
@@ -45,30 +42,30 @@ public class TestCompletion extends JLineTestCase {
             ;
         }
 
-        console.addCompletor(new ArgumentCompletor(new SimpleCompletor(new String[] {
-                                                                           "foo",
-                                                                           "bar",
-                                                                           "baz"
-                                                                       })));
+        console.addCompletor(new ArgumentCompletor
+            (new SimpleCompletor(new String[] { "foo", "bar", "baz" })));
 
-        assertBuffer("foo foo ", new Buffer("foo f").op(ConsoleReader.COMPLETE));
-        assertBuffer("foo ba", new Buffer("foo b").op(ConsoleReader.COMPLETE));
-        assertBuffer("foo ba", new Buffer("foo ba").op(ConsoleReader.COMPLETE));
-        assertBuffer("foo baz ",
-                     new Buffer("foo baz").op(ConsoleReader.COMPLETE));
+        assertBuffer("foo foo ", new Buffer("foo f").
+            op(ConsoleReader.COMPLETE));
+        assertBuffer("foo ba", new Buffer("foo b").
+            op(ConsoleReader.COMPLETE));
+        assertBuffer("foo ba", new Buffer("foo ba").
+            op(ConsoleReader.COMPLETE));
+        assertBuffer("foo baz ", new Buffer("foo baz").
+            op(ConsoleReader.COMPLETE));
 
         // test completion in the mid range
         assertBuffer("foo baz",
-                     new Buffer("f baz").left().left().left().left()
-                                        .op(ConsoleReader.COMPLETE));
+            new Buffer("f baz").left().left().left().left().
+                op(ConsoleReader.COMPLETE));
         assertBuffer("ba foo",
-                     new Buffer("b foo").left().left().left().left()
-                                        .op(ConsoleReader.COMPLETE));
+            new Buffer("b foo").left().left().left().left().
+                op(ConsoleReader.COMPLETE));
         assertBuffer("foo ba baz",
-                     new Buffer("foo b baz").left().left().left().left()
-                                            .op(ConsoleReader.COMPLETE));
+            new Buffer("foo b baz").left().left().left().left().
+                op(ConsoleReader.COMPLETE));
         assertBuffer("foo foo baz",
-                     new Buffer("foo f baz").left().left().left().left()
-                                            .op(ConsoleReader.COMPLETE));
+            new Buffer("foo f baz").left().left().left().left().
+                op(ConsoleReader.COMPLETE));
     }
 }

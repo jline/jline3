@@ -6,8 +6,13 @@
  */
 package jline;
 
+import java.awt.*;
+import java.awt.datatransfer.*;
+
 import java.io.*;
 import java.util.*;
+import java.util.List;
+
 
 /**
  *  A reader for console applications. It supports custom tab-completion,
@@ -21,6 +26,7 @@ import java.util.*;
  */
 public class ConsoleReader implements ConsoleOperations {
     String prompt;
+    private boolean useHistory = true;
     public static final String CR = System.getProperty("line.separator");
 
     /**
@@ -103,8 +109,8 @@ public class ConsoleReader implements ConsoleOperations {
      *  The number of tab-completion candidates above which a warning
      *  will be prompted before showing all the candidates.
      */
-    private int autoprintThreshhold =
-        Integer.getInteger("jline.completion.threshold", 100).intValue(); // same default as bash
+    private int autoprintThreshhold = Integer.getInteger
+        ("jline.completion.threshold", 100).intValue(); // same default as bash
 
     /**
      *  The Terminal to use.
@@ -126,7 +132,8 @@ public class ConsoleReader implements ConsoleOperations {
      *  used because it has a better chance of being unbuffered.
      */
     public ConsoleReader() throws IOException {
-        this(new FileInputStream(FileDescriptor.in), new PrintWriter(System.out));
+        this(new FileInputStream(FileDescriptor.in),
+            new PrintWriter(System.out));
     }
 
     /**
@@ -391,6 +398,20 @@ public class ConsoleReader implements ConsoleOperations {
         return readLine(prompt, null);
     }
 
+    /** 
+     *  The default prompt that will be issued. 
+     */
+    public void setDefaultPrompt(String prompt) {
+        this.prompt = prompt;
+    }
+
+    /** 
+     *  The default prompt that will be issued. 
+     */
+    public String getDefaultPrompt() {
+        return prompt;
+    }
+
     /**
      *  Read a line from the <i>in</i> {@link InputStream}, and
      *  return the line (without any trailing newlines).
@@ -400,9 +421,10 @@ public class ConsoleReader implements ConsoleOperations {
      *                 was null input (e.g., <i>CTRL-D</i> was pressed).
      */
     public String readLine(final String prompt, final Character mask)
-                    throws IOException {
+        throws IOException {
         this.mask = mask;
-        this.prompt = prompt;
+        if (prompt != null)
+            this.prompt = prompt;
 
         try {
             terminal.beforeReadLine(this, prompt, mask);
@@ -585,23 +607,22 @@ public class ConsoleReader implements ConsoleOperations {
      *  @return  true if clipboard contents pasted
      */
     public boolean paste() throws IOException {
-        java.awt.datatransfer.Clipboard clipboard =
-            java.awt.Toolkit.getDefaultToolkit().getSystemClipboard();
+        Clipboard clipboard = Toolkit.
+            getDefaultToolkit().getSystemClipboard();
 
         if (clipboard == null) {
             return false;
         }
 
-        java.awt.datatransfer.Transferable transferable =
-            clipboard.getContents(null);
+        Transferable transferable = clipboard.getContents(null);
 
         if (transferable == null) {
             return false;
         }
 
         try {
-            Object content =
-                transferable.getTransferData(java.awt.datatransfer.DataFlavor.plainTextFlavor);
+            Object content = transferable.
+                getTransferData(DataFlavor.plainTextFlavor);
 
             /*
              * This fix was suggested in bug #1060649 at
@@ -611,8 +632,7 @@ public class ConsoleReader implements ConsoleOperations {
              */
             if (content == null) {
                 try {
-                    content = new java.awt.datatransfer.DataFlavor().
-                        getReaderForText(transferable);
+                    content = new DataFlavor().getReaderForText(transferable);
                 } catch (Exception e) {
                 }
             }
@@ -649,8 +669,9 @@ public class ConsoleReader implements ConsoleOperations {
             putString(value);
 
             return true;
-        } catch (java.awt.datatransfer.UnsupportedFlavorException ufe) {
-            ufe.printStackTrace();
+        } catch (UnsupportedFlavorException ufe) {
+            if (debugger != null)
+                debug(ufe + "");
 
             return false;
         }
@@ -921,7 +942,7 @@ public class ConsoleReader implements ConsoleOperations {
         // and if mask is null, since having a mask typically means
         // the string was a password. We clear the mask after this call
         if (str.length() > 0) {
-            if (mask == null) {
+            if (mask == null && useHistory) {
                 history.addToHistory(str);
             } else {
                 mask = null;
@@ -1281,9 +1302,7 @@ public class ConsoleReader implements ConsoleOperations {
 
         Arrays.sort(allowed); // always need to sort before binarySearch
 
-        while (Arrays.binarySearch(allowed, c = (char) readVirtualKey()) == -1) {
-            ;
-        }
+        while (Arrays.binarySearch(allowed, c = (char) readVirtualKey()) == -1);
 
         return c;
     }
@@ -1296,7 +1315,8 @@ public class ConsoleReader implements ConsoleOperations {
         return this.history;
     }
 
-    public void setCompletionHandler(final CompletionHandler completionHandler) {
+    public void setCompletionHandler
+        (final CompletionHandler completionHandler) {
         this.completionHandler = completionHandler;
     }
 
@@ -1350,5 +1370,21 @@ public class ConsoleReader implements ConsoleOperations {
      */
     private boolean isDelimiter(char c) {
         return !Character.isLetterOrDigit(c);
+    }
+
+
+    /** 
+     *  Whether or not to add new commands to the history buffer. 
+     */
+    public void setUseHistory(boolean useHistory) {
+        this.useHistory = useHistory;
+    }
+
+
+    /** 
+     *  Whether or not to add new commands to the history buffer. 
+     */
+    public boolean getUseHistory() {
+        return useHistory;
     }
 }

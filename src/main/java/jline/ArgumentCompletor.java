@@ -176,24 +176,24 @@ public class ArgumentCompletor implements Completor {
             return -1;
         }
 
-        int pos = ret + (list.getBufferPosition() - argpos) + 1;
+        int pos = ret + (list.getBufferPosition() - argpos);
 
         /**
-         *        Special case: when completing in the middle of a line, and the
-         *        area under the cursor is a delimiter, then trim any delimiters
-         *        from the candidates, since we do not need to have an extra
-         *        delimiter.
+         *  Special case: when completing in the middle of a line, and the
+         *  area under the cursor is a delimiter, then trim any delimiters
+         *  from the candidates, since we do not need to have an extra
+         *  delimiter.
          *
-         *        E.g., if we have a completion for "foo", and we
-         *        enter "f bar" into the buffer, and move to after the "f"
-         *        and hit TAB, we want "foo bar" instead of "foo  bar".
+         *  E.g., if we have a completion for "foo", and we
+         *  enter "f bar" into the buffer, and move to after the "f"
+         *  and hit TAB, we want "foo bar" instead of "foo  bar".
          */
         if ((cursor != buffer.length()) && delim.isDelimiter(buffer, cursor)) {
             for (int i = 0; i < candidates.size(); i++) {
                 String val = candidates.get(i).toString();
 
                 while ((val.length() > 0)
-                           && delim.isDelimiter(val, val.length() - 1)) {
+                    && delim.isDelimiter(val, val.length() - 1)) {
                     val = val.substring(0, val.length() - 1);
                 }
 
@@ -202,7 +202,7 @@ public class ArgumentCompletor implements Completor {
         }
 
         ConsoleReader.debug("Completing " + buffer + "(pos=" + cursor + ") "
-                            + "with: " + candidates + ": offset=" + pos);
+            + "with: " + candidates + ": offset=" + pos);
 
         return pos;
     }
@@ -246,13 +246,8 @@ public class ArgumentCompletor implements Completor {
      */
     public abstract static class AbstractArgumentDelimiter
         implements ArgumentDelimiter {
-        private char[] quoteChars = new char[] {
-                                        '\'',
-                                        '"'
-                                    };
-        private char[] escapeChars = new char[] {
-                                         '\\'
-                                     };
+        private char[] quoteChars = new char[] { '\'', '"' };
+        private char[] escapeChars = new char[] { '\\' };
 
         public void setQuoteChars(final char[] quoteChars) {
             this.quoteChars = quoteChars;
@@ -296,8 +291,8 @@ public class ArgumentCompletor implements Completor {
                 }
             }
 
-            return new ArgumentList((String[]) args.toArray(new String[args.size()]),
-                                    bindex, argpos, cursor);
+            return new ArgumentList((String[]) args.
+                toArray(new String[args.size()]), bindex, argpos, cursor);
         }
 
         /**
@@ -393,7 +388,7 @@ public class ArgumentCompletor implements Completor {
          *                              the whole buffer
          */
         public ArgumentList(String[] arguments, int cursorArgumentIndex,
-                            int argumentPosition, int bufferPosition) {
+            int argumentPosition, int bufferPosition) {
             this.arguments = arguments;
             this.cursorArgumentIndex = cursorArgumentIndex;
             this.argumentPosition = argumentPosition;
@@ -410,7 +405,7 @@ public class ArgumentCompletor implements Completor {
 
         public String getCursorArgument() {
             if ((cursorArgumentIndex < 0)
-                    || (cursorArgumentIndex >= arguments.length)) {
+                || (cursorArgumentIndex >= arguments.length)) {
                 return null;
             }
 

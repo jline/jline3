@@ -39,24 +39,24 @@ public class ConsoleRunner {
         ConsoleReader reader = new ConsoleReader();
 
         if (historyFileName != null) {
-            reader.setHistory(new History(new File(System.getProperty("user.home"),
-                                                   ".jline-" + mainClass + "."
-                                                   + historyFileName
-                                                   + ".history")));
+            reader.setHistory(new History (new File
+                (System.getProperty("user.home"),
+                    ".jline-" + mainClass
+                        + "." + historyFileName + ".history")));
         } else {
-            reader.setHistory(new History(new File(System.getProperty("user.home"),
-                                                   ".jline-" + mainClass
-                                                   + ".history")));
+            reader.setHistory(new History(new File
+                (System.getProperty("user.home"),
+                    ".jline-" + mainClass + ".history")));
         }
 
-        String completors =
-            System.getProperty(ConsoleRunner.class.getName() + ".completors", "");
+        String completors = System.getProperty
+            (ConsoleRunner.class.getName() + ".completors", "");
         List completorList = new ArrayList();
 
         for (StringTokenizer tok = new StringTokenizer(completors, ",");
-                 tok.hasMoreTokens();) {
-            completorList.add((Completor) Class.forName(tok.nextToken())
-                                               .newInstance());
+            tok.hasMoreTokens();) {
+            completorList.add
+                ((Completor) Class.forName(tok.nextToken()).newInstance());
         }
 
         if (completorList.size() > 0) {
@@ -66,13 +66,9 @@ public class ConsoleRunner {
         ConsoleReaderInputStream.setIn(reader);
 
         try {
-            Class.forName(mainClass)
-                 .getMethod("main", new Class[] {
-                                String[].class
-                            })
-                 .invoke(null, new Object[] {
-                             argList.toArray(new String[0])
-                         });
+            Class.forName(mainClass).
+                getMethod("main", new Class[] { String[].class }).
+                invoke(null, new Object[] { argList.toArray(new String[0]) });
         } finally {
             // just in case this main method is called from another program
             ConsoleReaderInputStream.restoreIn();
@@ -81,10 +77,10 @@ public class ConsoleRunner {
 
     private static void usage() {
         System.out.println("Usage: \n   java " + "[-Djline.history='name'] "
-                           + ConsoleRunner.class.getName()
-                           + " <target class name> [args]"
-                           + "\n\nThe -Djline.history option will avoid history"
-                           + "\nmangling when running ConsoleRunner on the same application."
-                           + "\n\nargs will be passed directly to the target class name.");
+            + ConsoleRunner.class.getName()
+            + " <target class name> [args]"
+            + "\n\nThe -Djline.history option will avoid history"
+            + "\nmangling when running ConsoleRunner on the same application."
+            + "\n\nargs will be passed directly to the target class name.");
     }
 }

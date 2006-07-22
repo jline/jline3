@@ -11,12 +11,6 @@ import java.util.*;
 /**
  *  A Completor is the mechanism by which tab-completion candidates
  *  will be resolved.
- *  <p>
- *  <strong>TODO:</strong>
- *  <ul>
- *        <li>handle quotes and escaped quotes</li>
- *        <li>enable automatic escaping of whitespace</li>
- *  </ul>
  *
  *  @author  <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */

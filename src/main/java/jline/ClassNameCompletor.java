@@ -19,6 +19,7 @@ import java.util.jar.JarFile;
  *  @author  <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
 public class ClassNameCompletor extends SimpleCompletor {
+
     /**
      *  Complete candidates using all the classes available in the
      *  java <em>CLASSPATH</em>.
@@ -28,7 +29,7 @@ public class ClassNameCompletor extends SimpleCompletor {
     }
 
     public ClassNameCompletor(final SimpleCompletorFilter filter)
-                       throws IOException {
+        throws IOException {
         super(getClassNames(), filter);
         setDelimiter(".");
     }
@@ -37,7 +38,7 @@ public class ClassNameCompletor extends SimpleCompletor {
         Set urls = new HashSet();
 
         for (ClassLoader loader = ClassNameCompletor.class
-                                        .getClassLoader(); loader != null;
+            .getClassLoader(); loader != null;
                  loader = loader.getParent()) {
             if (!(loader instanceof URLClassLoader)) {
                 continue;
@@ -49,18 +50,13 @@ public class ClassNameCompletor extends SimpleCompletor {
         // Now add the URL that holds java.lang.String. This is because
         // some JVMs do not report the core classes jar in the list of
         // class loaders.
-        Class[] systemClasses =
-            new Class[] {
-                            String.class,
-                            javax.swing.JFrame.class
+        Class[] systemClasses = new Class[] {
+            String.class, javax.swing.JFrame.class
             };
 
         for (int i = 0; i < systemClasses.length; i++) {
-            URL classURL =
-                systemClasses[i].getResource("/"
-                                             + systemClasses[i].getName()
-                                                               .replace('.', '/')
-                                             + ".class");
+            URL classURL = systemClasses[i].getResource("/"
+                + systemClasses[i].getName() .replace('.', '/') + ".class");
 
             if (classURL != null) {
                 URLConnection uc = (URLConnection) classURL.openConnection();
@@ -78,11 +74,8 @@ public class ClassNameCompletor extends SimpleCompletor {
             File file = new File(url.getFile());
 
             if (file.isDirectory()) {
-                Set files =
-                    getClassFiles(file.getAbsolutePath(), new HashSet(), file,
-                                  new int[] {
-                                      200
-                                  });
+                Set files = getClassFiles(file.getAbsolutePath(),
+                    new HashSet(), file, new int[] { 200 });
                 classes.addAll(files);
 
                 continue;
@@ -95,8 +88,8 @@ public class ClassNameCompletor extends SimpleCompletor {
 
             JarFile jf = new JarFile(file);
 
-            for (Enumeration entries = jf.entries(); entries.hasMoreElements();) {
-                JarEntry entry = (JarEntry) entries.nextElement();
+            for (Enumeration e = jf.entries(); e.hasMoreElements();) {
+                JarEntry entry = (JarEntry) e.nextElement();
 
                 if (entry == null) {
                     continue;
@@ -119,15 +112,15 @@ public class ClassNameCompletor extends SimpleCompletor {
 
         for (Iterator i = classes.iterator(); i.hasNext();) {
             String name = (String) i.next();
-            classNames.add(name.replace('/', '.').substring(0, name.length()
-                                                            - 6));
+            classNames.add(name.replace('/', '.').
+                substring(0, name.length() - 6));
         }
 
         return (String[]) classNames.toArray(new String[classNames.size()]);
     }
 
     private static Set getClassFiles(String root, Set holder, File directory,
-                                     int[] maxDirectories) {
+        int[] maxDirectories) {
         // we have passed the maximum number of directories to scan
         if (maxDirectories[0]-- < 0) {
             return holder;
@@ -143,8 +136,8 @@ public class ClassNameCompletor extends SimpleCompletor {
             } else if (files[i].isDirectory()) {
                 getClassFiles(root, holder, files[i], maxDirectories);
             } else if (files[i].getName().endsWith(".class")) {
-                holder.add(files[i].getAbsolutePath()
-                                   .substring(root.length() + 1));
+                holder.add(files[i].getAbsolutePath().
+                    substring(root.length() + 1));
             }
         }
 

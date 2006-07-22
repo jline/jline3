@@ -18,13 +18,13 @@ public class TestHistory extends JLineTestCase {
     }
 
     public void testSingleHistory() throws Exception {
-        Buffer b =
-            new Buffer().append("test line 1").op(ConsoleReader.NEWLINE)
-                        .append("test line 2").op(ConsoleReader.NEWLINE)
-                        .append("test line 3").op(ConsoleReader.NEWLINE)
-                        .append("test line 4").op(ConsoleReader.NEWLINE)
-                        .append("test line 5").op(ConsoleReader.NEWLINE)
-                        .append("");
+        Buffer b = new Buffer().
+            append("test line 1").op(ConsoleReader.NEWLINE).
+            append("test line 2").op(ConsoleReader.NEWLINE).
+            append("test line 3").op(ConsoleReader.NEWLINE).
+            append("test line 4").op(ConsoleReader.NEWLINE).
+            append("test line 5").op(ConsoleReader.NEWLINE).
+            append("");
 
         assertBuffer("", b);
 
@@ -64,17 +64,13 @@ public class TestHistory extends JLineTestCase {
         assertBuffer("", b = b.op(ConsoleReader.NEXT_HISTORY));
 
         assertBuffer("XXXtest line 4", b = b.op(ConsoleReader.PREV_HISTORY));
-        assertBuffer("XXXtest line 4",
-                     b = b.op(ConsoleReader.NEWLINE)
-                          .op(ConsoleReader.PREV_HISTORY));
-        assertBuffer("XXXtest line 4",
-                     b = b.op(ConsoleReader.NEWLINE)
-                          .op(ConsoleReader.PREV_HISTORY));
-        assertBuffer("XXXtest line 4",
-                     b = b.op(ConsoleReader.NEWLINE)
-                          .op(ConsoleReader.PREV_HISTORY));
-        assertBuffer("XXXtest line 4",
-                     b = b.op(ConsoleReader.NEWLINE)
-                          .op(ConsoleReader.PREV_HISTORY));
+        assertBuffer("XXXtest line 4", b = b.op(ConsoleReader.NEWLINE).
+            op(ConsoleReader.PREV_HISTORY));
+        assertBuffer("XXXtest line 4", b = b.op(ConsoleReader.NEWLINE).
+            op(ConsoleReader.PREV_HISTORY));
+        assertBuffer("XXXtest line 4", b = b.op(ConsoleReader.NEWLINE).
+            op(ConsoleReader.PREV_HISTORY));
+        assertBuffer("XXXtest line 4", b = b.op(ConsoleReader.NEWLINE).
+            op(ConsoleReader.PREV_HISTORY));
     }
 }

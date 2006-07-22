@@ -94,13 +94,11 @@ public class ConsoleReaderInputStream extends SequenceInputStream {
 
             if (line == null) {
                 wasNull = true;
-
                 return -1;
             }
 
             if (index >= line.length()) {
                 eol = true;
-
                 return '\n'; // lines are ended with a newline
             }
 
