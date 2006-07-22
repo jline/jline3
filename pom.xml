@@ -4,31 +4,35 @@ To build, you need to have Maven 2 installed.
 
 To compile, run:
 
-	mvn compile
+    mvn compile
 
 To run tests, run:
 
-	mvn test
+    mvn test
 
 To run one particular test, e.g. TestSomeTest, run:
 
-	mvn test -Dtest=TestSomeTest
+    mvn test -Dtest=TestSomeTest
 
 To build the jars, run:
 
-	mvn package
+    mvn package
 
 To create and upload a release, run:
 
-	mvn deploy
+    mvn deploy
 
 To build the site and upload it, run:
 
-	mvn site:deploy
+    mvn site:deploy
 
 To perform a complete release, run:
 
-	mvn clean compile package site assembly:assembly deploy site:deploy
+    mvn clean compile package site assembly:assembly deploy site:deploy
+
+To actually upload the artifact to sourceforge, it must be manually ftp'd:
+
+    lftp ftp://upload.sourceforge.net/incoming/ -e 'put target/jline-0.9.9.zip'
 
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
