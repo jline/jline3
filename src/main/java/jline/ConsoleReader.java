@@ -427,10 +427,10 @@ public class ConsoleReader implements ConsoleOperations {
             this.prompt = prompt;
 
         try {
-            terminal.beforeReadLine(this, prompt, mask);
+            terminal.beforeReadLine(this, this.prompt, mask);
 
-            if ((prompt != null) && (prompt.length() > 0)) {
-                out.write(prompt);
+            if ((this.prompt != null) && (this.prompt.length() > 0)) {
+                out.write(this.prompt);
                 out.flush();
             }
 
@@ -540,7 +540,7 @@ public class ConsoleReader implements ConsoleOperations {
                 flushConsole();
             }
         } finally {
-            terminal.afterReadLine(this, prompt, mask);
+            terminal.afterReadLine(this, this.prompt, mask);
         }
     }
 
