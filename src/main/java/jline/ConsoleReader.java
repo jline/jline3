@@ -1011,6 +1011,9 @@ public class ConsoleReader implements ConsoleOperations {
     private final void drawBuffer(final int clear) throws IOException {
         // debug ("drawBuffer: " + clear);
         char[] chars = buf.buffer.substring(buf.cursor).toCharArray();
+        if (mask != null)
+            Arrays.fill(chars, mask.charValue());
+
         printCharacters(chars);
 
         clearAhead(clear);
@@ -1264,6 +1267,8 @@ public class ConsoleReader implements ConsoleOperations {
             c = BACKSPACE;
         } else if (buf.cursor == 0) {
             return;
+        } else if (mask != null) {
+            c = mask.charValue();
         } else {
             c = buf.buffer.charAt(buf.cursor - 1); // draw replacement
         }
