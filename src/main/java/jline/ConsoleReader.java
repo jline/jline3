@@ -179,7 +179,7 @@ public class ConsoleReader implements ConsoleOperations {
             }
         }
 
-        this.keybindings = new short[Byte.MAX_VALUE * 2];
+        this.keybindings = new short[Character.MAX_VALUE * 2];
 
         Arrays.fill(this.keybindings, UNKNOWN);
 
@@ -1299,8 +1299,7 @@ public class ConsoleReader implements ConsoleOperations {
         return c;
     }
 
-    public final int readCharacter(final char[] allowed)
-                            throws IOException {
+    public final int readCharacter(final char[] allowed) throws IOException {
         // if we restrict to a limited set and the current character
         // is not in the set, then try again.
         char c;
