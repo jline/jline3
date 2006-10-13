@@ -92,7 +92,7 @@ public abstract class Terminal implements ConsoleOperations {
     public int readCharacter(final InputStream in) throws IOException {
         // wrap the stream in a InputStreamReader so we can read
         // UTF-8 characters
-        return new InputStreamReader(in).read();
+        return new new InputStreamReader(in).read();
     }
 
     /**
