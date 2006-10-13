@@ -45,7 +45,7 @@ To actually upload the artifact to sourceforge, it must be manually ftp'd:
   <artifactId>jline</artifactId>
   <packaging>jar</packaging>
   <name>JLine</name>
-  <version>0.9.9</version>
+  <version>0.9.91-SNAPSHOT</version>
   <description>JLine is a java library for reading and editing user input in console applications. It features tab-completion, command history, password masking, customizable keybindings, and pass-through handlers to use to chain to other console applications.</description>
   <url>http://jline.sourceforge.net</url>
   <issueManagement>
