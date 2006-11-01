@@ -30,7 +30,13 @@ import java.util.*;
 public class CandidateListCompletionHandler implements CompletionHandler {
     private static ResourceBundle loc = ResourceBundle.
         getBundle(CandidateListCompletionHandler.class.getName());
-
+    
+    private boolean eagerNewlines = true;
+    
+    public void setAlwaysIncludeNewline(boolean eagerNewlines) {
+        this.eagerNewlines = eagerNewlines;
+    }
+    
     public boolean complete(final ConsoleReader reader, final List candidates,
                             final int pos) throws IOException {
         CursorBuffer buf = reader.getCursorBuffer();
@@ -51,12 +57,10 @@ public class CandidateListCompletionHandler implements CompletionHandler {
             String value = getUnambiguousCompletions(candidates);
             String bufString = buf.toString();
             setBuffer(reader, value, pos);
-
-            if (bufString.length() - pos != value.length())
-                return true;
         }
-
-        reader.printNewline();
+        
+        if (eagerNewlines)
+            reader.printNewline();
         printCandidates(reader, candidates);
 
         // redraw the current console buffer
@@ -89,6 +93,8 @@ public class CandidateListCompletionHandler implements CompletionHandler {
         Set distinct = new HashSet(candidates);
 
         if (distinct.size() > reader.getAutoprintThreshhold()) {
+            if (!eagerNewlines)
+                reader.printNewline();
             reader.printString(MessageFormat.format
                 (loc.getString("display-candidates"), new Object[] {
                     new Integer(candidates .size())

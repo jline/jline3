@@ -920,6 +920,9 @@ public class ConsoleReader implements ConsoleOperations {
         }
 
         printString(buf.buffer.toString());
+        
+        if (buf.length() != buf.cursor) // not at end of line
+            back(buf.length() - buf.cursor); // sync
     }
 
     /**
