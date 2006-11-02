@@ -204,6 +204,10 @@ To actually upload the artifact to sourceforge, it must be manually ftp'd:
       <id>jline</id>
       <url>scp://shell.sourceforge.net/home/groups/j/jl/jline/htdocs/m2repo</url>
     </repository>
+    <snapshotRepository>
+      <id>jline</id>
+      <url>scp://shell.sourceforge.net/home/groups/j/jl/jline/htdocs/m2snapshot</url>
+    </snapshotRepository>
     <site>
       <id>jline</id>
       <name>jline</name>
