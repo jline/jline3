@@ -27,8 +27,10 @@ import java.util.List;
 public class ConsoleReader implements ConsoleOperations {
     String prompt;
     private boolean useHistory = true;
+    private boolean usePagination = false;
     public static final String CR = System.getProperty("line.separator");
-
+    private static ResourceBundle loc = ResourceBundle.
+        getBundle(CandidateListCompletionHandler.class.getName());
     /**
      *  Map that contains the operation name to keymay operation mapping.
      */
@@ -778,6 +780,13 @@ public class ConsoleReader implements ConsoleOperations {
         }
 
         StringBuffer line = new StringBuffer();
+        
+        int showLines;
+            
+        if (usePagination)
+            showLines = getTermheight() - 1; // page limit
+        else
+            showLines = Integer.MAX_VALUE;
 
         for (Iterator i = stuff.iterator(); i.hasNext();) {
             String cur = (String) i.next();
@@ -786,6 +795,18 @@ public class ConsoleReader implements ConsoleOperations {
                 printString(line.toString().trim());
                 printNewline();
                 line.setLength(0);
+                if (--showLines == 0) { // Overflow
+                    printString(loc.getString("display-more"));
+                    flushConsole();
+                    int c = readVirtualKey();
+                    if (c == '\r' || c == '\n')
+                        showLines = 1; // one step forward
+                    else if (c != 'q')
+                        showLines = getTermheight() - 1; // page forward
+
+                    back(loc.getString("display-more").length());
+                    if (c == 'q') break; // cancel
+                }
             }
 
             pad(cur, maxwidth + 3, line);
@@ -1394,4 +1415,23 @@ public class ConsoleReader implements ConsoleOperations {
     public boolean getUseHistory() {
         return useHistory;
     }
+
+
+    /** 
+     *  Whether to use pagination when the number of rows of candidates
+     *  exceeds the height of the temrinal.
+     */
+    public void setUsePagination(boolean usePagination) {
+        this.usePagination = usePagination;
+    }
+
+
+    /** 
+     *  Whether to use pagination when the number of rows of candidates
+     *  exceeds the height of the temrinal.
+     */
+    public boolean getUsePagination() {
+        return this.usePagination;
+    }
+
 }
