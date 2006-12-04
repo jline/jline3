@@ -325,6 +325,28 @@ java <classname>jline.ConsoleRunner</classname> com.sun.tools.example.debug.tty.
 		</itemizedlist>
 	</appendix>
 
+	<appendix id="contributors">
+		<title>Contributors</title>	
+        <para>
+        The following people have contributed to improving JLine over the
+        years:
+        </para>
+		<itemizedlist>
+			<listitem><para>
+            Damian Steer
+			</para></listitem>
+			<listitem><para>
+            Dale Kemp
+			</para></listitem>
+			<listitem><para>
+            Jun Liu
+			</para></listitem>
+			<listitem><para>
+            malcolm@epcc.ed.ac.uk
+			</para></listitem>
+		</itemizedlist>
+	</appendix>
+
 	<appendix id="todo">
 		<title>Future enhancements</title>	
 		<itemizedlist>
@@ -339,6 +361,15 @@ java <classname>jline.ConsoleRunner</classname> com.sun.tools.example.debug.tty.
 
 	<appendix id="changelog">
 		<title>Change Log</title>
+		<itemizedlist>
+			<title>0.9.91 ???</title>
+			<listitem><para>
+                Added ConsoleReader.setUsePagination() method which allows
+                configuration of pagination when the number of rows of
+                candidates exceeds the height of the detected terminal, thanks
+                to a patch by Damian Steer.
+			</para></listitem>
+		</itemizedlist>
 		<itemizedlist>
 			<title>0.9.5 2006-03-08</title>
 			<listitem><para>

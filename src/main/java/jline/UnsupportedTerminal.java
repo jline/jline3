@@ -24,6 +24,20 @@ public class UnsupportedTerminal extends Terminal {
         return true;
     }
 
+
+    public boolean isEchoEnabled() {
+        return true;
+    }
+
+
+    public void enableEcho() {
+    }
+    
+
+    public void disableEcho() {
+    }
+
+
     /**
      *  Always returng 80, since we can't access this info on Windows.
      */

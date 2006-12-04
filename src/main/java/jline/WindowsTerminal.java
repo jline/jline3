@@ -103,6 +103,8 @@ public class WindowsTerminal extends Terminal {
      */
     private static final int ENABLE_WRAP_AT_EOL_OUTPUT = 2;
     private Boolean directConsole;
+    private boolean echoEnabled;
+
 
     public WindowsTerminal() {
         String dir = System.getProperty("jline.WindowsTerminal.directConsole");
@@ -152,6 +154,7 @@ public class WindowsTerminal extends Terminal {
             originalMode
             & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT | ENABLE_PROCESSED_INPUT
             | ENABLE_WINDOW_INPUT);
+        echoEnabled = false;
         setConsoleMode(newMode);
 
         // at exit, restore the original tty configuration (for JDK 1.3+)
@@ -290,4 +293,28 @@ public class WindowsTerminal extends Terminal {
     public Boolean getDirectConsole() {
         return this.directConsole;
     }
+
+
+    public synchronized boolean isEchoEnabled() {
+        return echoEnabled;
+    }
+
+    
+    public synchronized void enableEcho() {
+    	// Must set these four modes at the same time to make it work fine.
+    	setConsoleMode( getConsoleMode() 
+            | ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT |
+                ENABLE_PROCESSED_INPUT | ENABLE_WINDOW_INPUT);
+        echoEnabled = true;
+    }
+
+
+    public synchronized void disableEcho() {
+    	// Must set these four modes at the same time to make it work fine.
+    	setConsoleMode( getConsoleMode() 
+            & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT |
+                ENABLE_PROCESSED_INPUT | ENABLE_WINDOW_INPUT));
+        echoEnabled = true;
+    }
+    
 }

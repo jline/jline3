@@ -32,6 +32,7 @@ public class UnixTerminal extends Terminal {
     public static final short HOME_CODE = 72;
     public static final short END_CODE = 70;
     private Map terminfo;
+    private boolean echoEnabled;
     private static String sttyCommand =
         System.getProperty("jline.sttyCommand", "stty");
 
@@ -55,6 +56,7 @@ public class UnixTerminal extends Terminal {
 
         // disable character echoing
         stty("-echo");
+        echoEnabled = false;
 
         // at exit, restore the original tty configuration (for JDK 1.3+)
         try {
@@ -257,6 +259,30 @@ public class UnixTerminal extends Terminal {
      */
     public static String getSttyCommand() {
         return sttyCommand;
+    }
+    
+
+    public synchronized boolean isEchoEnabled() {
+        return echoEnabled;
+    }
+
+
+    public synchronized void enableEcho() {
+    	try {
+			stty("echo");
+            echoEnabled = true;
+		} catch (Exception e) {
+			consumeException(e);
+		}
+    }
+    
+    public synchronized void disableEcho() {
+    	try {
+			stty("-echo");
+            echoEnabled = false;
+		} catch (Exception e) {
+			consumeException(e);
+		}
     }
 
     public static void main(String[] args) {

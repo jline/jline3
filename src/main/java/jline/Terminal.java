@@ -148,4 +148,23 @@ public abstract class Terminal implements ConsoleOperations {
     public void afterReadLine(ConsoleReader reader, String prompt,
                               Character mask) {
     }
+    
+    /** 
+     *  Returns false if character echoing is disabled. 
+     */
+    public abstract boolean isEchoEnabled();
+
+
+    /** 
+     *  Enable character echoing. This can be used to re-enable character
+     *  if the ConsoleReader is no longer being used.
+     */
+    public abstract void enableEcho();
+
+
+    /** 
+     *  Disable character echoing. This can be used to manually re-enable
+     *  character if the ConsoleReader has been disabled.
+     */
+    public abstract void disableEcho();
 }
