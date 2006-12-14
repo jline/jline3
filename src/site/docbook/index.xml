@@ -344,6 +344,9 @@ java <classname>jline.ConsoleRunner</classname> com.sun.tools.example.debug.tty.
 			<listitem><para>
             malcolm@epcc.ed.ac.uk
 			</para></listitem>
+			<listitem><para>
+            Simon Patarin
+			</para></listitem>
 		</itemizedlist>
 	</appendix>
 
