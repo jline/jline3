@@ -347,6 +347,9 @@ java <classname>jline.ConsoleRunner</classname> com.sun.tools.example.debug.tty.
 			<listitem><para>
             Simon Patarin
 			</para></listitem>
+			<listitem><para>
+            Amy Isard
+			</para></listitem>
 		</itemizedlist>
 	</appendix>
 

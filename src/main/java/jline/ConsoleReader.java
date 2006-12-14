@@ -181,7 +181,7 @@ public class ConsoleReader implements ConsoleOperations {
             }
         }
 
-        this.keybindings = new short[Byte.MAX_VALUE * 2];
+        this.keybindings = new short[Character.MAX_VALUE * 2];
 
         Arrays.fill(this.keybindings, UNKNOWN);
 

@@ -103,6 +103,14 @@ public class UnixTerminal extends Terminal {
             }
         }
 
+        // handle unicode characters, thanks for a patch from amyi@inf.ed.ac.uk
+	    if (c > 128) {
+	        int g = in.read();
+	        byte[] cg = {(byte)c,(byte)g};
+	        c = new InputStreamReader(new ByteArrayInputStream(cg), "UTF-8").
+                read();
+	    }
+
         return c;
     }
 
