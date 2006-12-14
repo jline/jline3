@@ -80,12 +80,11 @@ public class UnsupportedTerminal extends Terminal {
                     }
                 }
             };
+
+            maskThread.setPriority(Thread.MAX_PRIORITY);
+            maskThread.setDaemon(true);
+            maskThread.start();
         }
-
-        maskThread.setPriority(Thread.MAX_PRIORITY);
-        maskThread.setDaemon(true);
-
-        maskThread.start();
     }
 
     public void afterReadLine(final ConsoleReader reader, final String prompt,
