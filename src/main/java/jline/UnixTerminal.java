@@ -104,12 +104,11 @@ public class UnixTerminal extends Terminal {
         }
 
         // handle unicode characters, thanks for a patch from amyi@inf.ed.ac.uk
-	    if (c > 128) {
-	        int g = in.read();
-	        byte[] cg = {(byte)c,(byte)g};
-	        c = new InputStreamReader(new ByteArrayInputStream(cg), "UTF-8").
+        if (c > 128)          
+          // handle unicode characters longer than 2 bytes,
+          // thanks to Marc.Herbert@continuent.com
+          c = new InputStreamReader(new ReplayPrefixOneCharInputStream(c, in), "UTF-8").
                 read();
-	    }
 
         return c;
     }
@@ -293,6 +292,66 @@ public class UnixTerminal extends Terminal {
 		}
     }
 
+    /**
+     * This is awkward and inefficient, but probably the minimal way to add
+     * UTF-8 support to JLine
+     * 
+     * @author <a href="mailto:Marc.Herbert@continuent.com">Marc Herbert</a>
+     */
+  static class ReplayPrefixOneCharInputStream extends InputStream
+  {
+    final byte        firstByte;
+    final int         byteLength;
+    final InputStream wrappedStream;
+    int               byteRead;
+
+    public ReplayPrefixOneCharInputStream(int recorded, InputStream wrapped)
+        throws IOException
+    {
+      this.wrappedStream = wrapped;
+      this.byteRead = 0;
+
+      this.firstByte = (byte) recorded;
+
+      // 110yyyyy 10zzzzzz
+      if ((firstByte & (byte) 0xE0) == (byte) 0xC0)
+        this.byteLength = 2;
+      // 1110xxxx 10yyyyyy 10zzzzzz
+      else if ((firstByte & (byte) 0xF0) == (byte) 0xE0)
+        this.byteLength = 3;
+      // 11110www 10xxxxxx 10yyyyyy 10zzzzzz
+      else if ((firstByte & (byte) 0xF8) == (byte) 0xF0)
+        this.byteLength = 4;
+      else
+        throw new IOException("invalid UTF-8 first byte: " + firstByte);
+
+    }
+
+    public int read() throws IOException
+    {
+      if (available() == 0)
+        return -1;
+
+      byteRead++;
+
+      if (byteRead == 1)
+        return firstByte;
+
+      return wrappedStream.read();
+    }
+
+    /**
+     * InputStreamReader is greedy and will try to read bytes in advance. We do
+     * NOT want this to happen since we use a temporary/"losing bytes"
+     * InputStreamReader above, that's why we hide the real
+     * wrappedStream.available() here.
+     */
+    public int available()
+    {
+      return byteLength - byteRead;
+    }
+  }
+    
     public static void main(String[] args) {
         System.out.println("width: " + new UnixTerminal().getTerminalWidth());
         System.out.println("height: " + new UnixTerminal().getTerminalHeight());
