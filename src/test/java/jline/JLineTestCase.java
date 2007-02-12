@@ -19,17 +19,17 @@ public abstract class JLineTestCase extends TestCase {
 
     public void setUp() throws Exception {
         super.setUp();
-        console = new ConsoleReader(null,
-                                    new PrintWriter(new OutputStreamWriter(new ByteArrayOutputStream())));
+        console = new ConsoleReader(null, new PrintWriter(
+                new OutputStreamWriter(new ByteArrayOutputStream())), null,
+                new UnixTerminal());
     }
 
-    public void assertBuffer(String expected, Buffer buffer)
-                      throws IOException {
+    public void assertBuffer(String expected, Buffer buffer) throws IOException {
         assertBuffer(expected, buffer, true);
     }
 
     public void assertBuffer(String expected, Buffer buffer, boolean clear)
-                      throws IOException {
+            throws IOException {
         // clear current buffer, if any
         if (clear) {
             console.finishBuffer();
@@ -51,12 +51,18 @@ public abstract class JLineTestCase extends TestCase {
 
         if (action == -1) {
             fail("Keystroke for logical action " + logicalAction
-                 + " was not bound in the console");
+                    + " was not bound in the console");
         }
 
         return action;
     }
 
+    /**
+     * TODO: Fix this so tests don't break on windows machines.
+     *
+     * @author Ryan
+     *
+     */
     class Buffer {
         private final ByteArrayOutputStream bout = new ByteArrayOutputStream();
 
@@ -92,27 +98,23 @@ public abstract class JLineTestCase extends TestCase {
         }
 
         public Buffer left() {
-            return append(UnixTerminal.ARROW_START)
-                       .append(UnixTerminal.ARROW_PREFIX)
-                       .append(UnixTerminal.ARROW_LEFT);
+            return append(UnixTerminal.ARROW_START).append(
+                    UnixTerminal.ARROW_PREFIX).append(UnixTerminal.ARROW_LEFT);
         }
 
         public Buffer right() {
-            return append(UnixTerminal.ARROW_START)
-                       .append(UnixTerminal.ARROW_PREFIX)
-                       .append(UnixTerminal.ARROW_RIGHT);
+            return append(UnixTerminal.ARROW_START).append(
+                    UnixTerminal.ARROW_PREFIX).append(UnixTerminal.ARROW_RIGHT);
         }
 
         public Buffer up() {
-            return append(UnixTerminal.ARROW_START)
-                       .append(UnixTerminal.ARROW_PREFIX)
-                       .append(UnixTerminal.ARROW_UP);
+            return append(UnixTerminal.ARROW_START).append(
+                    UnixTerminal.ARROW_PREFIX).append(UnixTerminal.ARROW_UP);
         }
 
         public Buffer down() {
-            return append(UnixTerminal.ARROW_START)
-                       .append(UnixTerminal.ARROW_PREFIX)
-                       .append(UnixTerminal.ARROW_DOWN);
+            return append(UnixTerminal.ARROW_START).append(
+                    UnixTerminal.ARROW_PREFIX).append(UnixTerminal.ARROW_DOWN);
         }
 
         public Buffer append(String str) {

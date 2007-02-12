@@ -25,8 +25,12 @@ public interface ConsoleOperations {
     final char CTRL_D = 4;
     final char CTRL_E = 5;
     final char CTRL_F = 6;
+    final static char CTRL_K = 11;
+    final static char CTRL_L = 12;
     final char CTRL_N = 14;
     final char CTRL_P = 16;
+    final static char CTRL_OB = 27;
+    final static char CTRL_QM = 127;
 
     /**
      *        Logical constants for key operations.
@@ -188,7 +192,7 @@ public interface ConsoleOperations {
     final short END_WORD = -46;
 
     /**
-     *  Operation that
+     *  Operation that toggles insert/overtype
      */
     final short INSERT = -48;
 
@@ -248,7 +252,23 @@ public interface ConsoleOperations {
     final short EXIT = -59;
 
     /**
-     *  Operation that pastes the contents of the cliboard into the line
+     *  Operation that pastes the contents of the clipboard into the line
      */
     final short PASTE = -60;
+
+    /**
+     * Operation that moves the current History to the beginning.
+     */
+    final static short START_OF_HISTORY = -61;
+
+    /**
+     * Operation that moves the current History to the end.
+     */
+    final static short END_OF_HISTORY = -62;
+
+    /**
+     * Operation that clears whatever text is on the current line.
+     */
+    final static short CLEAR_LINE = -63;
+
 }

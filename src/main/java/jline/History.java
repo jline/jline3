@@ -10,32 +10,34 @@ import java.io.*;
 import java.util.*;
 
 /**
- *  A command history buffer.
+ * A command history buffer.
  *
- *  @author  <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
 public class History {
     private List history = new ArrayList();
+
     private PrintWriter output = null;
+
     private int maxSize = 500;
+
     private int currentIndex = 0;
 
     /**
-     *  Construstor: initialize a blank history.
+     * Construstor: initialize a blank history.
      */
     public History() {
     }
 
     /**
-     *  Construstor: initialize History object the the specified
-     *  {@link File} for storage.
+     * Construstor: initialize History object the the specified {@link File} for
+     * storage.
      */
     public History(final File historyFile) throws IOException {
         setHistoryFile(historyFile);
     }
 
-    public void setHistoryFile(final File historyFile)
-                        throws IOException {
+    public void setHistoryFile(final File historyFile) throws IOException {
         if (historyFile.isFile()) {
             load(new FileInputStream(historyFile));
         }
@@ -45,14 +47,14 @@ public class History {
     }
 
     /**
-     *  Load the history buffer from the specified InputStream.
+     * Load the history buffer from the specified InputStream.
      */
     public void load(final InputStream in) throws IOException {
         load(new InputStreamReader(in));
     }
 
     /**
-     *  Load the history buffer from the specified Reader.
+     * Load the history buffer from the specified Reader.
      */
     public void load(final Reader reader) throws IOException {
         BufferedReader breader = new BufferedReader(reader);
@@ -73,7 +75,7 @@ public class History {
     }
 
     /**
-     *  Clear the history buffer
+     * Clear the history buffer
      */
     public void clear() {
         history.clear();
@@ -81,8 +83,8 @@ public class History {
     }
 
     /**
-     *  Add the specified buffer to the end of the history. The pointer is
-     *  set to the end of the history buffer.
+     * Add the specified buffer to the end of the history. The pointer is set to
+     * the end of the history buffer.
      */
     public void addToHistory(final String buffer) {
         // don't append duplicates to the end of the buffer
@@ -106,12 +108,12 @@ public class History {
     }
 
     /**
-     *  Flush the entire history buffer to the output PrintWriter.
+     * Flush the entire history buffer to the output PrintWriter.
      */
     public void flushBuffer() throws IOException {
         if (getOutput() != null) {
-            for (Iterator i = history.iterator(); i.hasNext();
-                     getOutput().println((String) i.next())) {
+            for (Iterator i = history.iterator(); i.hasNext(); getOutput()
+                    .println((String) i.next())) {
                 ;
             }
 
@@ -120,50 +122,68 @@ public class History {
     }
 
     /**
-     *  Move to the end of the history buffer.
+     * This moves the history to the last entry. This entry is one position
+     * before the moveToEnd() position.
+     *
+     * @return Returns false if there were no history entries or the history
+     *         index was already at the last entry.
+     */
+    public boolean moveToLastEntry() {
+        int lastEntry = history.size() - 1;
+        if (lastEntry >= 0 && lastEntry != currentIndex) {
+            currentIndex = history.size() - 1;
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Move to the end of the history buffer. This will be a blank entry, after
+     * all of the other entries.
      */
     public void moveToEnd() {
         currentIndex = history.size();
     }
 
     /**
-     *  Set the maximum size that the history buffer will store.
+     * Set the maximum size that the history buffer will store.
      */
     public void setMaxSize(final int maxSize) {
         this.maxSize = maxSize;
     }
 
     /**
-     *  Get the maximum size that the history buffer will store.
+     * Get the maximum size that the history buffer will store.
      */
     public int getMaxSize() {
         return this.maxSize;
     }
 
     /**
-     *  The output to which all history elements will be written (or null
-     *  of history is not saved to a buffer).
+     * The output to which all history elements will be written (or null of
+     * history is not saved to a buffer).
      */
     public void setOutput(final PrintWriter output) {
         this.output = output;
     }
 
     /**
-     *  Returns the PrintWriter that is used to store history elements.
+     * Returns the PrintWriter that is used to store history elements.
      */
     public PrintWriter getOutput() {
         return this.output;
     }
 
     /**
-     *  Returns the current history index.
+     * Returns the current history index.
      */
     public int getCurrentIndex() {
         return this.currentIndex;
     }
 
     /**
-     *  Return the content of the current buffer.
+     * Return the content of the current buffer.
      */
     public String current() {
         if (currentIndex >= history.size()) {
@@ -174,9 +194,9 @@ public class History {
     }
 
     /**
-     *  Move the pointer to the previous element in the buffer.
+     * Move the pointer to the previous element in the buffer.
      *
-     *  @return  true if we successfully went to the previous element
+     * @return true if we successfully went to the previous element
      */
     public boolean previous() {
         if (currentIndex <= 0) {
@@ -189,9 +209,9 @@ public class History {
     }
 
     /**
-     *  Move the pointer to the next element in the buffer.
+     * Move the pointer to the next element in the buffer.
      *
-     *  @return  true if we successfully went to the next element
+     * @return true if we successfully went to the next element
      */
     public boolean next() {
         if (currentIndex >= history.size()) {
@@ -204,17 +224,32 @@ public class History {
     }
 
     /**
-     *  Returns an immutable list of the history buffer.
+     * Returns an immutable list of the history buffer.
      */
     public List getHistoryList() {
         return Collections.unmodifiableList(history);
     }
 
     /**
-     *  Returns the standard {@link AbstractCollection#toString} representation
-     *  of the history list.
+     * Returns the standard {@link AbstractCollection#toString} representation
+     * of the history list.
      */
     public String toString() {
         return history.toString();
+    }
+
+    /**
+     * Moves the history index to the first entry.
+     *
+     * @return Return false if there are no entries in the history or if the
+     *         history is already at the beginning.
+     */
+    public boolean moveToFirstEntry() {
+        if (history.size() > 0 && currentIndex != 0) {
+            currentIndex = 0;
+            return true;
+        }
+
+        return false;
     }
 }

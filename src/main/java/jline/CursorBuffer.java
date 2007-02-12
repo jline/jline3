@@ -6,16 +6,18 @@
  */
 package jline;
 
-
 /**
- *  A CursorBuffer is a holder for a {@link StringBuffer} that
- *  also contains the current cursor position.
+ * A CursorBuffer is a holder for a {@link StringBuffer} that also contains the
+ * current cursor position.
  *
- *  @author  <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
 public class CursorBuffer {
     public int cursor = 0;
+
     public final StringBuffer buffer = new StringBuffer();
+
+    private boolean overtyping = false;
 
     public int length() {
         return buffer.length();
@@ -29,23 +31,39 @@ public class CursorBuffer {
         return buffer.charAt(cursor - 1);
     }
 
-    /**
-     *  Insert the specific character into the buffer, setting the
-     *  cursor position ahead one.
-     *
-     *  @param  c  the character to insert
-     */
-    public void insert(final char c) {
-        buffer.insert(cursor++, c);
+    public boolean clearBuffer() {
+        if (buffer.length() == 0) {
+            return false;
+        }
+
+        buffer.delete(0, buffer.length());
+        cursor = 0;
+        return true;
     }
 
     /**
-     *  Insert the specified {@link String} into the buffer, setting
-     *  the cursor to the end of the insertion point.
+     * Write the specific character into the buffer, setting the cursor position
+     * ahead one. The text may overwrite or insert based on the current setting
+     * of isOvertyping().
      *
-     *  @param  str  the String to insert. Must not be null.
+     * @param c
+     *            the character to insert
      */
-    public void insert(final String str) {
+    public void write(final char c) {
+        buffer.insert(cursor++, c);
+        if (isOvertyping() && cursor < buffer.length()) {
+            buffer.deleteCharAt(cursor);
+        }
+    }
+
+    /**
+     * Insert the specified {@link String} into the buffer, setting the cursor
+     * to the end of the insertion point.
+     *
+     * @param str
+     *            the String to insert. Must not be null.
+     */
+    public void write(final String str) {
         if (buffer.length() == 0) {
             buffer.append(str);
         } else {
@@ -53,9 +71,21 @@ public class CursorBuffer {
         }
 
         cursor += str.length();
+
+        if (isOvertyping() && cursor < buffer.length()) {
+            buffer.delete(cursor, (cursor + str.length()));
+        }
     }
 
     public String toString() {
         return buffer.toString();
+    }
+
+    public boolean isOvertyping() {
+        return overtyping;
+    }
+
+    public void setOvertyping(boolean b) {
+        overtyping = b;
     }
 }

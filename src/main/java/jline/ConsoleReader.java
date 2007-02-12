@@ -13,26 +13,29 @@ import java.io.*;
 import java.util.*;
 import java.util.List;
 
-
 /**
- *  A reader for console applications. It supports custom tab-completion,
- *  saveable command history, and command line editing. On some
- *  platforms, platform-specific commands will need to be
- *  issued before the reader will function properly. See
- *  {@link Terminal#initializeTerminal} for convenience methods for
- *  issuing platform-specific setup commands.
+ * A reader for console applications. It supports custom tab-completion,
+ * saveable command history, and command line editing. On some platforms,
+ * platform-specific commands will need to be issued before the reader will
+ * function properly. See {@link Terminal#initializeTerminal} for convenience
+ * methods for issuing platform-specific setup commands.
  *
- *  @author  <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
 public class ConsoleReader implements ConsoleOperations {
     String prompt;
+
     private boolean useHistory = true;
+
     private boolean usePagination = false;
+
     public static final String CR = System.getProperty("line.separator");
-    private static ResourceBundle loc = ResourceBundle.
-        getBundle(CandidateListCompletionHandler.class.getName());
+
+    private static ResourceBundle loc = ResourceBundle
+            .getBundle(CandidateListCompletionHandler.class.getName());
+
     /**
-     *  Map that contains the operation name to keymay operation mapping.
+     * Map that contains the operation name to keymay operation mapping.
      */
     public static SortedMap KEYMAP_NAMES;
 
@@ -48,6 +51,8 @@ public class ConsoleReader implements ConsoleOperations {
         names.put("CLEAR_SCREEN", new Short(CLEAR_SCREEN));
         names.put("NEXT_HISTORY", new Short(NEXT_HISTORY));
         names.put("PREV_HISTORY", new Short(PREV_HISTORY));
+        names.put("START_OF_HISTORY", new Short(START_OF_HISTORY));
+        names.put("END_OF_HISTORY", new Short(END_OF_HISTORY));
         names.put("REDISPLAY", new Short(REDISPLAY));
         names.put("KILL_LINE_PREV", new Short(KILL_LINE_PREV));
         names.put("DELETE_PREV_WORD", new Short(DELETE_PREV_WORD));
@@ -83,99 +88,110 @@ public class ConsoleReader implements ConsoleOperations {
         names.put("CHANGE_CASE", new Short(CHANGE_CASE));
         names.put("COMPLETE", new Short(COMPLETE));
         names.put("EXIT", new Short(EXIT));
+        names.put("CLEAR_LINE", new Short(CLEAR_LINE));
 
         KEYMAP_NAMES = new TreeMap(Collections.unmodifiableMap(names));
     }
 
     /**
-     *  The map for logical operations.
+     * The map for logical operations.
      */
     private final short[] keybindings;
 
     /**
-     *  If true, issue an audible keyboard bell when appropriate.
+     * If true, issue an audible keyboard bell when appropriate.
      */
     private boolean bellEnabled = true;
 
     /**
-     *  The current character mask.
+     * The current character mask.
      */
     private Character mask = null;
 
     /**
-     *  The null mask.
+     * The null mask.
      */
     private static final Character NULL_MASK = new Character((char) 0);
 
     /**
-     *  The number of tab-completion candidates above which a warning
-     *  will be prompted before showing all the candidates.
+     * The number of tab-completion candidates above which a warning will be
+     * prompted before showing all the candidates.
      */
-    private int autoprintThreshhold = Integer.getInteger
-        ("jline.completion.threshold", 100).intValue(); // same default as bash
+    private int autoprintThreshhold = Integer.getInteger(
+            "jline.completion.threshold", 100).intValue(); // same default as
+
+    // bash
 
     /**
-     *  The Terminal to use.
+     * The Terminal to use.
      */
     private final Terminal terminal;
-    private CompletionHandler completionHandler =
-        new CandidateListCompletionHandler();
+
+    private CompletionHandler completionHandler = new CandidateListCompletionHandler();
+
     InputStream in;
+
     final Writer out;
+
     final CursorBuffer buf = new CursorBuffer();
+
     static PrintWriter debugger;
+
     History history = new History();
+
     final List completors = new LinkedList();
+
     private Character echoCharacter = null;
 
     /**
-     *  Create a new reader using {@link FileDescriptor#in} for input
-     *  and {@link System#out} for output. {@link FileDescriptor#in} is
-     *  used because it has a better chance of being unbuffered.
+     * Create a new reader using {@link FileDescriptor#in} for input and
+     * {@link System#out} for output. {@link FileDescriptor#in} is used because
+     * it has a better chance of being unbuffered.
      */
     public ConsoleReader() throws IOException {
         this(new FileInputStream(FileDescriptor.in),
-            new PrintWriter(System.out));
+                new PrintWriter(System.out));
     }
 
     /**
-     *  Create a new reader using the specified {@link InputStream}
-     *  for input and the specific writer for output, using the
-     *  default keybindings resource.
+     * Create a new reader using the specified {@link InputStream} for input and
+     * the specific writer for output, using the default keybindings resource.
      */
     public ConsoleReader(final InputStream in, final Writer out)
-                  throws IOException {
+            throws IOException {
         this(in, out, null);
     }
 
     public ConsoleReader(final InputStream in, final Writer out,
-                         final InputStream bindings) throws IOException {
+            final InputStream bindings) throws IOException {
         this(in, out, bindings, Terminal.getTerminal());
     }
 
     /**
-     *  Create a new reader.
+     * Create a new reader.
      *
-     *  @param  in       the input
-     *  @param  out      the output
-     *  @param  bindings the key bindings to use
-     *  @param  term     the terminal to use
+     * @param in
+     *            the input
+     * @param out
+     *            the output
+     * @param bindings
+     *            the key bindings to use
+     * @param term
+     *            the terminal to use
      */
     public ConsoleReader(InputStream in, Writer out, InputStream bindings,
-                         Terminal term) throws IOException {
+            Terminal term) throws IOException {
         this.terminal = term;
         setInput(in);
         this.out = out;
 
         if (bindings == null) {
-            String bindingFile =
-                System.getProperty("jline.keybindings",
-                   new File(System.getProperty("user.home",
-                       ".jlinebindings.properties")).getAbsolutePath());
+            String bindingFile = System.getProperty("jline.keybindings",
+                    new File(System.getProperty("user.home",
+                            ".jlinebindings.properties")).getAbsolutePath());
 
             if (!(new File(bindingFile).isFile())) {
-                bindings = ConsoleReader.class.
-                    getResourceAsStream("keybindings.properties");
+                bindings = terminal.getDefaultBindings();
             } else {
                 bindings = new FileInputStream(new File(bindingFile));
             }
@@ -186,9 +202,9 @@ public class ConsoleReader implements ConsoleOperations {
         Arrays.fill(this.keybindings, UNKNOWN);
 
         /**
-         *  Loads the key bindings. Bindings file is in the format:
+         * Loads the key bindings. Bindings file is in the format:
          *
-         *  keycode: operation name
+         * keycode: operation name
          */
         if (bindings != null) {
             Properties p = new Properties();
@@ -225,87 +241,88 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Set the stream for debugging. Development use only.
+     * Set the stream for debugging. Development use only.
      */
     public void setDebug(final PrintWriter debugger) {
         ConsoleReader.debugger = debugger;
     }
 
     /**
-     *  Set the stream to be used for console input.
+     * Set the stream to be used for console input.
      */
     public void setInput(final InputStream in) {
         this.in = in;
     }
 
     /**
-     *  Returns the stream used for console input.
+     * Returns the stream used for console input.
      */
     public InputStream getInput() {
         return this.in;
     }
 
     /**
-     *  Read the next line and return the contents of the buffer.
+     * Read the next line and return the contents of the buffer.
      */
     public String readLine() throws IOException {
         return readLine((String) null);
     }
 
     /**
-     *  Read the next line with the specified character mask. If null, then
-     *  characters will be echoed. If 0, then no characters will be echoed.
+     * Read the next line with the specified character mask. If null, then
+     * characters will be echoed. If 0, then no characters will be echoed.
      */
     public String readLine(final Character mask) throws IOException {
         return readLine(null, mask);
     }
 
     /**
-     *  @param  bellEnabled  if true, enable audible keyboard bells if
-     *                                          an alert is required.
+     * @param bellEnabled
+     *            if true, enable audible keyboard bells if an alert is
+     *            required.
      */
     public void setBellEnabled(final boolean bellEnabled) {
         this.bellEnabled = bellEnabled;
     }
 
     /**
-     *  @return  true is audible keyboard bell is enabled.
+     * @return true is audible keyboard bell is enabled.
      */
     public boolean getBellEnabled() {
         return this.bellEnabled;
     }
 
     /**
-     *  Query the terminal to find the current width;
+     * Query the terminal to find the current width;
      *
-     *  @see         Terminal#getTerminalWidth
-     *  @return  the width of the current terminal.
+     * @see Terminal#getTerminalWidth
+     * @return the width of the current terminal.
      */
     public int getTermwidth() {
         return Terminal.setupTerminal().getTerminalWidth();
     }
 
     /**
-     *  Query the terminal to find the current width;
+     * Query the terminal to find the current width;
      *
-     *  @see         Terminal#getTerminalHeight
+     * @see Terminal#getTerminalHeight
      *
-     *  @return  the height of the current terminal.
+     * @return the height of the current terminal.
      */
     public int getTermheight() {
         return Terminal.setupTerminal().getTerminalHeight();
     }
 
     /**
-     *  @param  autoprintThreshhold  the number of candidates to print
-     *                               without issuing a warning.
+     * @param autoprintThreshhold
+     *            the number of candidates to print without issuing a warning.
      */
     public void setAutoprintThreshhold(final int autoprintThreshhold) {
         this.autoprintThreshhold = autoprintThreshhold;
     }
 
     /**
-     *  @return  the number of candidates to print without issing a warning.
+     * @return the number of candidates to print without issing a warning.
      */
     public int getAutoprintThreshhold() {
         return this.autoprintThreshhold;
@@ -322,7 +339,7 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Clear the echoed characters for the specified character code.
+     * Clear the echoed characters for the specified character code.
      */
     int clearEcho(int c) throws IOException {
         // if the terminal is not echoing, then just return...
@@ -352,10 +369,9 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Return the number of characters that will be printed when the
-     *  specified character is echoed to the screen. Adapted from
-     *  cat by Torbjorn Granlund, as repeated in stty by
-     *  David MacKenzie.
+     * Return the number of characters that will be printed when the specified
+     * character is echoed to the screen. Adapted from cat by Torbjorn Granlund,
+     * as repeated in stty by David MacKenzie.
      */
     StringBuffer getPrintableCharacters(char ch) {
         StringBuffer sbuff = new StringBuffer();
@@ -400,30 +416,31 @@ public class ConsoleReader implements ConsoleOperations {
         return readLine(prompt, null);
     }
 
-    /** 
-     *  The default prompt that will be issued. 
+    /**
+     * The default prompt that will be issued.
      */
     public void setDefaultPrompt(String prompt) {
         this.prompt = prompt;
     }
 
-    /** 
-     *  The default prompt that will be issued. 
+    /**
+     * The default prompt that will be issued.
      */
     public String getDefaultPrompt() {
         return prompt;
     }
 
     /**
-     *  Read a line from the <i>in</i> {@link InputStream}, and
-     *  return the line (without any trailing newlines).
+     * Read a line from the <i>in</i> {@link InputStream}, and return the line
+     * (without any trailing newlines).
      *
-     *  @param  prompt the prompt to issue to the console, may be null.
-     *  @return        a line that is read from the terminal, or null if there
-     *                 was null input (e.g., <i>CTRL-D</i> was pressed).
+     * @param prompt
+     *            the prompt to issue to the console, may be null.
+     * @return a line that is read from the terminal, or null if there was null
+     *         input (e.g., <i>CTRL-D</i> was pressed).
      */
     public String readLine(final String prompt, final Character mask)
-        throws IOException {
+            throws IOException {
         this.mask = mask;
         if (prompt != null)
             this.prompt = prompt;
@@ -458,81 +475,110 @@ public class ConsoleReader implements ConsoleOperations {
                 boolean success = true;
 
                 switch (code) {
-                    case EXIT: // ctrl-d
+                case EXIT: // ctrl-d
 
-                        if (buf.buffer.length() == 0) {
-                            return null;
-                        }
+                    if (buf.buffer.length() == 0) {
+                        return null;
+                    }
 
-                    case COMPLETE: // tab
-                        success = complete();
-                        break;
+                case COMPLETE: // tab
+                    success = complete();
+                    break;
 
-                    case MOVE_TO_BEG:
-                        success = setCursorPosition(0);
-                        break;
+                case MOVE_TO_BEG:
+                    success = setCursorPosition(0);
+                    break;
 
-                    case KILL_LINE: // CTRL-K
-                        success = killLine();
-                        break;
+                case KILL_LINE: // CTRL-K
+                    success = killLine();
+                    break;
 
-                    case CLEAR_SCREEN: // CTRL-L
-                        success = clearScreen();
-                        break;
+                case CLEAR_SCREEN: // CTRL-L
+                    success = clearScreen();
+                    break;
 
-                    case KILL_LINE_PREV: // CTRL-U
-                        success = resetLine();
-                        break;
+                case KILL_LINE_PREV: // CTRL-U
+                    success = resetLine();
+                    break;
 
-                    case NEWLINE: // enter
-                        printNewline(); // output newline
-                        return finishBuffer();
+                case NEWLINE: // enter
+                    printNewline(); // output newline
+                    return finishBuffer();
 
-                    case DELETE_PREV_CHAR: // backspace
-                        success = backspace();
-                        break;
+                case DELETE_PREV_CHAR: // backspace
+                    success = backspace();
+                    break;
 
-                    case MOVE_TO_END:
-                        success = moveToEnd();
-                        break;
+                case DELETE_NEXT_CHAR: // delete
+                    success = deleteCurrentCharacter();
+                    break;
 
-                    case PREV_CHAR:
-                        success = moveCursor(-1) != 0;
-                        break;
+                case MOVE_TO_END:
+                    success = moveToEnd();
+                    break;
 
-                    case NEXT_CHAR:
-                        success = moveCursor(1) != 0;
-                        break;
+                case PREV_CHAR:
+                    success = moveCursor(-1) != 0;
+                    break;
 
-                    case NEXT_HISTORY:
-                        success = moveHistory(true);
-                        break;
+                case NEXT_CHAR:
+                    success = moveCursor(1) != 0;
+                    break;
 
-                    case PREV_HISTORY:
-                        success = moveHistory(false);
-                        break;
+                case NEXT_HISTORY:
+                    success = moveHistory(true);
+                    break;
 
-                    case REDISPLAY:
-                        break;
+                case PREV_HISTORY:
+                    success = moveHistory(false);
+                    break;
 
-                    case PASTE:
-                        success = paste();
-                        break;
+                case REDISPLAY:
+                    break;
 
-                    case DELETE_PREV_WORD:
-                        success = deletePreviousWord();
-                        break;
+                case PASTE:
+                    success = paste();
+                    break;
 
-                    case PREV_WORD:
-                        success = previousWord();
-                        break;
+                case DELETE_PREV_WORD:
+                    success = deletePreviousWord();
+                    break;
 
-                    case NEXT_WORD:
-                        success = nextWord();
-                        break;
+                case PREV_WORD:
+                    success = previousWord();
+                    break;
 
-                    case UNKNOWN:default:
+                case NEXT_WORD:
+                    success = nextWord();
+                    break;
+
+                case START_OF_HISTORY:
+                    success = history.moveToFirstEntry();
+                    if (success)
+                        setBuffer(history.current());
+                    break;
+
+                case END_OF_HISTORY:
+                    success = history.moveToLastEntry();
+                    if (success)
+                        setBuffer(history.current());
+                    break;
+
+                case CLEAR_LINE:
+                    moveInternal(-(buf.buffer.length()));
+                    killLine();
+                    break;
+
+                case INSERT:
+                    buf.setOvertyping(!buf.isOvertyping());
+                    break;
+
+                case UNKNOWN:
+                default:
+                    if (c != 0) // ignore null chars
                         putChar(c, true);
+                    else
+                        success = false;
                 }
 
                 if (!(success)) {
@@ -563,8 +609,8 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Reads the console input and returns an array of the form
-     *  [raw, key binding].
+     * Reads the console input and returns an array of the form [raw, key
+     * binding].
      */
     private int[] readBinding() throws IOException {
         int c = readVirtualKey();
@@ -580,16 +626,14 @@ public class ConsoleReader implements ConsoleOperations {
             debug("    translated: " + (int) c + ": " + code);
         }
 
-        return new int[] {
-                   c,
-                   code
-               };
+        return new int[] { c, code };
     }
 
     /**
-     *  Move up or down the history tree.
+     * Move up or down the history tree.
      *
-     *  @param  direction  less than 0 to move up the tree, down otherwise
+     * @param direction
+     *            less than 0 to move up the tree, down otherwise
      */
     private final boolean moveHistory(final boolean next) throws IOException {
         if (next && !history.next()) {
@@ -604,13 +648,12 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Paste the contents of the clipboard into the console buffer
+     * Paste the contents of the clipboard into the console buffer
      *
-     *  @return  true if clipboard contents pasted
+     * @return true if clipboard contents pasted
      */
     public boolean paste() throws IOException {
-        Clipboard clipboard = Toolkit.
-            getDefaultToolkit().getSystemClipboard();
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 
         if (clipboard == null) {
             return false;
@@ -623,14 +666,14 @@ public class ConsoleReader implements ConsoleOperations {
         }
 
         try {
-            Object content = transferable.
-                getTransferData(DataFlavor.plainTextFlavor);
+            Object content = transferable
+                    .getTransferData(DataFlavor.plainTextFlavor);
 
             /*
              * This fix was suggested in bug #1060649 at
              * http://sourceforge.net/tracker/index.php?func=detail&aid=1060649&group_id=64033&atid=506056
-             * to get around the deprecated DataFlavor.plainTextFlavor, but
-             * it raises a UnsupportedFlavorException on Mac OS X
+             * to get around the deprecated DataFlavor.plainTextFlavor, but it
+             * raises a UnsupportedFlavorException on Mac OS X
              */
             if (content == null) {
                 try {
@@ -652,8 +695,8 @@ public class ConsoleReader implements ConsoleOperations {
 
                 String line = null;
 
-                for (BufferedReader read = new BufferedReader((Reader) content);
-                         (line = read.readLine()) != null;) {
+                for (BufferedReader read = new BufferedReader((Reader) content); (line = read
+                        .readLine()) != null;) {
                     if (value.length() > 0) {
                         value += "\n";
                     }
@@ -680,9 +723,9 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Kill the buffer ahead of the current cursor position.
+     * Kill the buffer ahead of the current cursor position.
      *
-     *  @return  true if successful
+     * @return true if successful
      */
     public boolean killLine() throws IOException {
         int cp = buf.cursor;
@@ -703,7 +746,7 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Clear the screen by issuing the ANSI "clear screen" code.
+     * Clear the screen by issuing the ANSI "clear screen" code.
      */
     public boolean clearScreen() throws IOException {
         if (!terminal.isANSISupported()) {
@@ -724,10 +767,9 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Use the completors to modify the buffer with the
-     *  appropriate completions.
+     * Use the completors to modify the buffer with the appropriate completions.
      *
-     *  @return  true if successful
+     * @return true if successful
      */
     private final boolean complete() throws IOException {
         // debug ("tab for (" + buf + ")");
@@ -762,9 +804,10 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Output the specified {@link Collection} in proper columns.
+     * Output the specified {@link Collection} in proper columns.
      *
-     *  @param  stuff  the stuff to print
+     * @param stuff
+     *            the stuff to print
      */
     public void printColumns(final Collection stuff) throws IOException {
         if ((stuff == null) || (stuff.size() == 0)) {
@@ -774,15 +817,15 @@ public class ConsoleReader implements ConsoleOperations {
         int width = getTermwidth();
         int maxwidth = 0;
 
-        for (Iterator i = stuff.iterator(); i.hasNext();
-                 maxwidth = Math.max(maxwidth, i.next().toString().length())) {
+        for (Iterator i = stuff.iterator(); i.hasNext(); maxwidth = Math.max(
+                maxwidth, i.next().toString().length())) {
             ;
         }
 
         StringBuffer line = new StringBuffer();
-        
+
         int showLines;
-            
+
         if (usePagination)
             showLines = getTermheight() - 1; // page limit
         else
@@ -805,7 +848,8 @@ public class ConsoleReader implements ConsoleOperations {
                         showLines = getTermheight() - 1; // page forward
 
                     back(loc.getString("display-more").length());
-                    if (c == 'q') break; // cancel
+                    if (c == 'q')
+                        break; // cancel
                 }
             }
 
@@ -820,57 +864,61 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Append <i>toPad</i> to the specified <i>appendTo</i>, as
-     *  well as (<i>toPad.length () - len</i>) spaces.
+     * Append <i>toPad</i> to the specified <i>appendTo</i>, as well as (<i>toPad.length () -
+     * len</i>) spaces.
      *
-     *  @param  toPad    the {@link String} to pad
-     *  @param  len      the target length
-     *  @param  appendTo the {@link StringBuffer} to which to append the
-     *                   padded {@link String}.
+     * @param toPad
+     *            the {@link String} to pad
+     * @param len
+     *            the target length
+     * @param appendTo
+     *            the {@link StringBuffer} to which to append the padded
+     *            {@link String}.
      */
     private final void pad(final String toPad, final int len,
-                           final StringBuffer appendTo) {
+            final StringBuffer appendTo) {
         appendTo.append(toPad);
 
-        for (int i = 0; i < (len - toPad.length());
-                 i++, appendTo.append(' ')) {
+        for (int i = 0; i < (len - toPad.length()); i++, appendTo.append(' ')) {
             ;
         }
     }
 
     /**
-     *  Add the specified {@link Completor} to the list of handlers
-     *  for tab-completion.
+     * Add the specified {@link Completor} to the list of handlers for
+     * tab-completion.
      *
-     *  @param  completor  the {@link Completor} to add
-     *  @return        true if it was successfully added
+     * @param completor
+     *            the {@link Completor} to add
+     * @return true if it was successfully added
      */
     public boolean addCompletor(final Completor completor) {
         return completors.add(completor);
     }
 
     /**
-     *  Remove the specified {@link Completor} from the list of handlers
-     *  for tab-completion.
+     * Remove the specified {@link Completor} from the list of handlers for
+     * tab-completion.
      *
-     *  @param  completor  the {@link Completor} to remove
-     *  @return        true if it was successfully removed
+     * @param completor
+     *            the {@link Completor} to remove
+     * @return true if it was successfully removed
      */
     public boolean removeCompletor(final Completor completor) {
         return completors.remove(completor);
     }
 
     /**
-     *  Returns an unmodifiable list of all the completors.
+     * Returns an unmodifiable list of all the completors.
      */
     public Collection getCompletors() {
         return Collections.unmodifiableList(completors);
     }
 
     /**
-     *  Erase the current line.
+     * Erase the current line.
      *
-     *  @return  false if we failed (e.g., the buffer was empty)
+     * @return false if we failed (e.g., the buffer was empty)
      */
     final boolean resetLine() throws IOException {
         if (buf.cursor == 0) {
@@ -883,19 +931,19 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Move the cursor position to the specified absolute index.
+     * Move the cursor position to the specified absolute index.
      */
     public final boolean setCursorPosition(final int position)
-                                    throws IOException {
+            throws IOException {
         return moveCursor(position - buf.cursor) != 0;
     }
 
     /**
-     *  Set the current buffer's content to the specified
-     *  {@link String}. The visual console will be modified
-     *  to show the current buffer.
+     * Set the current buffer's content to the specified {@link String}. The
+     * visual console will be modified to show the current buffer.
      *
-     *  @param  buffer  the new contents of the buffer.
+     * @param buffer
+     *            the new contents of the buffer.
      */
     private final void setBuffer(final String buffer) throws IOException {
         // don't bother modifying it if it is unchanged
@@ -906,8 +954,8 @@ public class ConsoleReader implements ConsoleOperations {
         // obtain the difference between the current buffer and the new one
         int sameIndex = 0;
 
-        for (int i = 0, l1 = buffer.length(), l2 = buf.buffer.length();
-                 (i < l1) && (i < l2); i++) {
+        for (int i = 0, l1 = buffer.length(), l2 = buf.buffer.length(); (i < l1)
+                && (i < l2); i++) {
             if (buffer.charAt(i) == buf.buffer.charAt(i)) {
                 sameIndex++;
             } else {
@@ -924,7 +972,7 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Clear the line and redraw it.
+     * Clear the line and redraw it.
      */
     public final void redrawLine() throws IOException {
         printCharacter(RESET_LINE);
@@ -933,7 +981,7 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Output put the prompt + the current buffer
+     * Output put the prompt + the current buffer
      */
     public final void drawLine() throws IOException {
         if (prompt != null) {
@@ -941,13 +989,13 @@ public class ConsoleReader implements ConsoleOperations {
         }
 
         printString(buf.buffer.toString());
-        
+
         if (buf.length() != buf.cursor) // not at end of line
             back(buf.length() - buf.cursor); // sync
     }
 
     /**
-     *  Output a platform-dependant newline.
+     * Output a platform-dependant newline.
      */
     public final void printNewline() throws IOException {
         printString(CR);
@@ -955,9 +1003,9 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Clear the buffer and add its contents to the history.
+     * Clear the buffer and add its contents to the history.
      *
-     *  @return  the former contents of the buffer.
+     * @return the former contents of the buffer.
      */
     final String finishBuffer() {
         String str = buf.buffer.toString();
@@ -982,30 +1030,27 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Write out the specified string to the buffer and the
-     *  output stream.
+     * Write out the specified string to the buffer and the output stream.
      */
     public final void putString(final String str) throws IOException {
-        buf.insert(str);
+        buf.write(str);
         printString(str);
         drawBuffer();
     }
 
     /**
-     *  Output the specified string to the output stream (but not the
-     *  buffer).
+     * Output the specified string to the output stream (but not the buffer).
      */
     public final void printString(final String str) throws IOException {
         printCharacters(str.toCharArray());
     }
 
     /**
-     *  Output the specified character, both to the buffer
-     *  and the output stream.
+     * Output the specified character, both to the buffer and the output stream.
      */
     private final void putChar(final int c, final boolean print)
-                        throws IOException {
-        buf.insert((char) c);
+            throws IOException {
+        buf.write((char) c);
 
         if (print) {
             // no masking...
@@ -1026,11 +1071,11 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Redraw the rest of the buffer from the cursor onwards. This
-     *  is necessary for inserting text into the buffer.
+     * Redraw the rest of the buffer from the cursor onwards. This is necessary
+     * for inserting text into the buffer.
      *
-     *  @param clear  the number of characters to clear after the
-     *                end of the buffer
+     * @param clear
+     *            the number of characters to clear after the end of the buffer
      */
     private final void drawBuffer(final int clear) throws IOException {
         // debug ("drawBuffer: " + clear);
@@ -1046,16 +1091,15 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Redraw the rest of the buffer from the cursor onwards. This
-     *  is necessary for inserting text into the buffer.
+     * Redraw the rest of the buffer from the cursor onwards. This is necessary
+     * for inserting text into the buffer.
      */
     private final void drawBuffer() throws IOException {
         drawBuffer(0);
     }
 
     /**
-     *  Clear ahead the specified number of characters
-     *  without moving the cursor.
+     * Clear ahead the specified number of characters without moving the cursor.
      */
     private final void clearAhead(final int num) throws IOException {
         if (num == 0) {
@@ -1079,8 +1123,7 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Move the visual cursor backwards without modifying the
-     *  buffer cursor.
+     * Move the visual cursor backwards without modifying the buffer cursor.
      */
     private final void back(final int num) throws IOException {
         printCharacters(BACKSPACE, num);
@@ -1088,8 +1131,7 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Issue an audible keyboard bell, if
-     *  {@link #getBellEnabled} return true.
+     * Issue an audible keyboard bell, if {@link #getBellEnabled} return true.
      */
     public final void beep() throws IOException {
         if (!(getBellEnabled())) {
@@ -1102,24 +1144,23 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Output the specified character to the output stream
-     *  without manipulating the current buffer.
+     * Output the specified character to the output stream without manipulating
+     * the current buffer.
      */
     private final void printCharacter(final int c) throws IOException {
         out.write(c);
     }
 
     /**
-     *  Output the specified characters to the output stream
-     *  without manipulating the current buffer.
+     * Output the specified characters to the output stream without manipulating
+     * the current buffer.
      */
-    private final void printCharacters(final char[] c)
-                                throws IOException {
+    private final void printCharacters(final char[] c) throws IOException {
         out.write(c);
     }
 
     private final void printCharacters(final char c, final int num)
-                                throws IOException {
+            throws IOException {
         if (num == 1) {
             printCharacter(c);
         } else {
@@ -1130,9 +1171,9 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Flush the console output stream. This is important for
-     *  printout out single characters (like a backspace or keyboard)
-     *  that we want the console to handle immedately.
+     * Flush the console output stream. This is important for printout out
+     * single characters (like a backspace or keyboard) that we want the console
+     * to handle immedately.
      */
     public final void flushConsole() throws IOException {
         out.flush();
@@ -1143,9 +1184,9 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Issue <em>num</em> backspaces.
+     * Issue <em>num</em> backspaces.
      *
-     *  @return  the number of characters backed up
+     * @return the number of characters backed up
      */
     private final int backspace(final int num) throws IOException {
         if (buf.cursor == 0) {
@@ -1163,9 +1204,9 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Issue a backspace.
+     * Issue a backspace.
      *
-     *  @return  true if successful
+     * @return true if successful
      */
     public final boolean backspace() throws IOException {
         return backspace(1) == 1;
@@ -1184,13 +1225,17 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Delete the character at the current position and
-     *  redraw the remainder of the buffer.
+     * Delete the character at the current position and redraw the remainder of
+     * the buffer.
      */
     private final boolean deleteCurrentCharacter() throws IOException {
+        boolean success = buf.buffer.length() > 0;
+        if (!success) {
+            return false;
+        }
+
         buf.buffer.deleteCharAt(buf.cursor);
         drawBuffer(1);
-
         return true;
     }
 
@@ -1231,12 +1276,13 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Move the cursor <i>where</i> characters.
+     * Move the cursor <i>where</i> characters.
      *
-     *  @param  where  if less than 0, move abs(<i>where</i>) to the left,
-     *                 otherwise move <i>where</i> to the right.
+     * @param where
+     *            if less than 0, move abs(<i>where</i>) to the left,
+     *            otherwise move <i>where</i> to the right.
      *
-     *  @return  the number of spaces we moved
+     * @return the number of spaces we moved
      */
     private final int moveCursor(final int num) throws IOException {
         int where = num;
@@ -1261,9 +1307,10 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  debug.
+     * debug.
      *
-     *  @param  str  the message to issue.
+     * @param str
+     *            the message to issue.
      */
     public static void debug(final String str) {
         if (debugger != null) {
@@ -1273,12 +1320,13 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Move the cursor <i>where</i> characters, withough checking
-     *  the current buffer.
+     * Move the cursor <i>where</i> characters, withough checking the current
+     * buffer.
      *
-     *  @see        #where
+     * @see #where
      *
-     *  @param  where  the number of characters to move to the right or left.
+     * @param where
+     *            the number of characters to move to the right or left.
      */
     private final void moveInternal(final int where) throws IOException {
         // debug ("move cursor " + where + " ("
@@ -1306,9 +1354,9 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Read a character from the console.
+     * Read a character from the console.
      *
-     *  @return  the character, or -1 if an EOF is received.
+     * @return the character, or -1 if an EOF is received.
      */
     public final int readVirtualKey() throws IOException {
         int c = terminal.readVirtualKey(in);
@@ -1330,7 +1378,8 @@ public class ConsoleReader implements ConsoleOperations {
 
         Arrays.sort(allowed); // always need to sort before binarySearch
 
-        while (Arrays.binarySearch(allowed, c = (char) readVirtualKey()) == -1);
+        while (Arrays.binarySearch(allowed, c = (char) readVirtualKey()) == -1)
+            ;
 
         return c;
     }
@@ -1343,8 +1392,7 @@ public class ConsoleReader implements ConsoleOperations {
         return this.history;
     }
 
-    public void setCompletionHandler
-        (final CompletionHandler completionHandler) {
+    public void setCompletionHandler(final CompletionHandler completionHandler) {
         this.completionHandler = completionHandler;
     }
 
@@ -1353,82 +1401,89 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  <p>
-     *  Set the echo character. For example, to have "*" entered
-     *  when a password is typed:
-     *  </p>
+     * <p>
+     * Set the echo character. For example, to have "*" entered when a password
+     * is typed:
+     * </p>
      *
-     *  <pre>
-     *    myConsoleReader.setEchoCharacter (new Character ('*'));
-     *  </pre>
+     * <pre>
+     * myConsoleReader.setEchoCharacter(new Character('*'));
+     * </pre>
      *
-     *  <p>
-     *  Setting the character to <pre>null</pre> will restore normal
-     *  character echoing. Setting the character to
-     *  <pre>new Character (0)</pre> will cause nothing to be echoed.
-     *  </p>
+     * <p>
+     * Setting the character to
      *
-     *  @param  echoCharacter the character to echo to the console in
-     *                        place of the typed character.
+     * <pre>
+     * null
+     * </pre>
+     *
+     * will restore normal character echoing. Setting the character to
+     *
+     * <pre>
+     * new Character(0)
+     * </pre>
+     *
+     * will cause nothing to be echoed.
+     * </p>
+     *
+     * @param echoCharacter
+     *            the character to echo to the console in place of the typed
+     *            character.
      */
     public void setEchoCharacter(final Character echoCharacter) {
         this.echoCharacter = echoCharacter;
     }
 
     /**
-     *  Returns the echo character.
+     * Returns the echo character.
      */
     public Character getEchoCharacter() {
         return this.echoCharacter;
     }
 
     /**
-     *  No-op for exceptions we want to silently consume.
+     * No-op for exceptions we want to silently consume.
      */
     private void consumeException(final Throwable e) {
     }
 
     /**
-     *  Checks to see if the specified character is a delimiter. We
-     *  consider a character a delimiter if it is anything but a letter or
-     *  digit.
+     * Checks to see if the specified character is a delimiter. We consider a
+     * character a delimiter if it is anything but a letter or digit.
      *
-     *  @param  c the character to test
-     *  @return   true if it is a delimiter
+     * @param c
+     *            the character to test
+     * @return true if it is a delimiter
      */
     private boolean isDelimiter(char c) {
         return !Character.isLetterOrDigit(c);
     }
 
-
-    /** 
-     *  Whether or not to add new commands to the history buffer. 
+    /**
+     * Whether or not to add new commands to the history buffer.
      */
     public void setUseHistory(boolean useHistory) {
         this.useHistory = useHistory;
     }
 
-
-    /** 
-     *  Whether or not to add new commands to the history buffer. 
+    /**
+     * Whether or not to add new commands to the history buffer.
      */
     public boolean getUseHistory() {
         return useHistory;
     }
 
-
-    /** 
-     *  Whether to use pagination when the number of rows of candidates
-     *  exceeds the height of the temrinal.
+    /**
+     * Whether to use pagination when the number of rows of candidates exceeds
+     * the height of the temrinal.
      */
     public void setUsePagination(boolean usePagination) {
         this.usePagination = usePagination;
     }
 
-
-    /** 
-     *  Whether to use pagination when the number of rows of candidates
-     *  exceeds the height of the temrinal.
+    /**
+     * Whether to use pagination when the number of rows of candidates exceeds
+     * the height of the temrinal.
      */
     public boolean getUsePagination() {
         return this.usePagination;

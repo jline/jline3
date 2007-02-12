@@ -8,6 +8,8 @@ package jline;
 
 import java.io.*;
 
+import com.sun.jmx.snmp.ThreadContext;
+
 /**
  *  Representation of the input terminal for a platform. Handles
  *  any initialization that the platform may need to perform
@@ -36,8 +38,8 @@ public abstract class Terminal implements ConsoleOperations {
      *  <p>This class will use the Terminal implementation specified in the
      *  <em>jline.terminal</em> system property, or, if it is unset, by
      *  detecting the operating system from the <em>os.name</em>
-     *  system property and instantiateing either the
-     *  {@link WindowsTerminal} or {@link UnixTerminal}.
+     *  system property and instantiating either the
+     *  {@link WindowsTerminalTest} or {@link UnixTerminal}.
      *
      *  @see #initializeTerminal
      */
@@ -148,23 +150,27 @@ public abstract class Terminal implements ConsoleOperations {
     public void afterReadLine(ConsoleReader reader, String prompt,
                               Character mask) {
     }
-    
-    /** 
-     *  Returns false if character echoing is disabled. 
+
+    /**
+     *  Returns false if character echoing is disabled.
      */
     public abstract boolean isEchoEnabled();
 
 
-    /** 
+    /**
      *  Enable character echoing. This can be used to re-enable character
      *  if the ConsoleReader is no longer being used.
      */
     public abstract void enableEcho();
 
 
-    /** 
+    /**
      *  Disable character echoing. This can be used to manually re-enable
      *  character if the ConsoleReader has been disabled.
      */
     public abstract void disableEcho();
+
+    public InputStream getDefaultBindings() {
+        return getClass().getResourceAsStream("keybindings.properties");
+    }
 }
