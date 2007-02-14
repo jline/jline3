@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2006, Marc Prud'hommeaux. All rights reserved.
+ * Copyright (c) 2002-2007, Marc Prud'hommeaux. All rights reserved.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -298,62 +298,52 @@ public class UnixTerminal extends Terminal {
      * 
      * @author <a href="mailto:Marc.Herbert@continuent.com">Marc Herbert</a>
      */
-  static class ReplayPrefixOneCharInputStream extends InputStream
-  {
-    final byte        firstByte;
-    final int         byteLength;
-    final InputStream wrappedStream;
-    int               byteRead;
-
-    public ReplayPrefixOneCharInputStream(int recorded, InputStream wrapped)
-        throws IOException
-    {
-      this.wrappedStream = wrapped;
-      this.byteRead = 0;
-
-      this.firstByte = (byte) recorded;
-
-      // 110yyyyy 10zzzzzz
-      if ((firstByte & (byte) 0xE0) == (byte) 0xC0)
-        this.byteLength = 2;
-      // 1110xxxx 10yyyyyy 10zzzzzz
-      else if ((firstByte & (byte) 0xF0) == (byte) 0xE0)
-        this.byteLength = 3;
-      // 11110www 10xxxxxx 10yyyyyy 10zzzzzz
-      else if ((firstByte & (byte) 0xF8) == (byte) 0xF0)
-        this.byteLength = 4;
-      else
-        throw new IOException("invalid UTF-8 first byte: " + firstByte);
-
-    }
-
-    public int read() throws IOException
-    {
-      if (available() == 0)
-        return -1;
-
-      byteRead++;
-
-      if (byteRead == 1)
-        return firstByte;
-
-      return wrappedStream.read();
-    }
-
-    /**
-     * InputStreamReader is greedy and will try to read bytes in advance. We do
-     * NOT want this to happen since we use a temporary/"losing bytes"
-     * InputStreamReader above, that's why we hide the real
-     * wrappedStream.available() here.
-     */
-    public int available()
-    {
-      return byteLength - byteRead;
-    }
-  }
+    static class ReplayPrefixOneCharInputStream extends InputStream {
+        final byte firstByte;
+        final int byteLength;
+        final InputStream wrappedStream;
+        int byteRead;
     
-    public static void main(String[] args) {
-        System.out.println("width: " + new UnixTerminal().getTerminalWidth());
-        System.out.println("height: " + new UnixTerminal().getTerminalHeight());
+        public ReplayPrefixOneCharInputStream(int recorded, InputStream wrapped)
+            throws IOException {
+            this.wrappedStream = wrapped;
+            this.byteRead = 0;
+        
+            this.firstByte = (byte) recorded;
+        
+            // 110yyyyy 10zzzzzz
+            if ((firstByte & (byte) 0xE0) == (byte) 0xC0)
+                this.byteLength = 2;
+            // 1110xxxx 10yyyyyy 10zzzzzz
+            else if ((firstByte & (byte) 0xF0) == (byte) 0xE0)
+                this.byteLength = 3;
+            // 11110www 10xxxxxx 10yyyyyy 10zzzzzz
+            else if ((firstByte & (byte) 0xF8) == (byte) 0xF0)
+                this.byteLength = 4;
+            else
+                throw new IOException("invalid UTF-8 first byte: " + firstByte);
+        }
+    
+        public int read() throws IOException {
+            if (available() == 0)
+                return -1;
+        
+            byteRead++;
+        
+            if (byteRead == 1)
+                return firstByte;
+        
+            return wrappedStream.read();
+        }
+    
+        /**
+        * InputStreamReader is greedy and will try to read bytes in advance. We
+        * do NOT want this to happen since we use a temporary/"losing bytes"
+        * InputStreamReader above, that's why we hide the real
+        * wrappedStream.available() here.
+        */
+        public int available() {
+            return byteLength - byteRead;
+        }
     }
 }

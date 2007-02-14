@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2006, Marc Prud'hommeaux. All rights reserved.
+ * Copyright (c) 2002-2007, Marc Prud'hommeaux. All rights reserved.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -109,68 +109,77 @@ public class WindowsTerminal extends Terminal {
     public static final int NUMPAD_KEY_INDICATOR = 0;
 
     /**
-     * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR, this character indicates an
-     * left arrow key press.
+     * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR,
+     * this character indicates an left arrow key press.
      */
     public static final int LEFT_ARROW_KEY = 75;
 
     /**
-     * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR, this character indicates an
+     * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR
+     * this character indicates an
      * right arrow key press.
      */
     public static final int RIGHT_ARROW_KEY = 77;
 
     /**
-     * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR, this character indicates an up
+     * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR
+     * this character indicates an up
      * arrow key press.
      */
     public static final int UP_ARROW_KEY = 72;
 
     /**
-     * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR, this character indicates an
+     * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR
+     * this character indicates an
      * down arrow key press.
      */
     public static final int DOWN_ARROW_KEY = 80;
 
     /**
-     * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR, this character indicates that
+     * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR
+     * this character indicates that
      * the delete key was pressed.
      */
     public static final int DELETE_KEY = 83;
 
     /**
-     * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR, this character indicates that
+     * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR
+     * this character indicates that
      * the home key was pressed.
      */
     public static final int HOME_KEY = 71;
 
     /**
-     * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR, this character indicates that
+     * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR
+     * this character indicates that
      * the end key was pressed.
      */
     public static final char END_KEY = 79;
 
     /**
-     * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR, this character indicates that
+     * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR
+     * this character indicates that
      * the page up key was pressed.
      */
     public static final char PAGE_UP_KEY = 73;
 
     /**
-     * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR, this character indicates that
+     * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR
+     * this character indicates that
      * the page down key was pressed.
      */
     public static final char PAGE_DOWN_KEY = 81;
 
     /**
-     * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR, this character indicates that
+     * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR
+     * this character indicates that
      * the insert key was pressed.
      */
     public static final char INSERT_KEY = 82;
 
     /**
-     * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR, this character indicates that
-     * the escape key was pressed.
+     * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR,
+     * this character indicates that the escape key was pressed.
      */
     public static final char ESCAPE_KEY = 0;
 
@@ -206,8 +215,8 @@ public class WindowsTerminal extends Terminal {
         if (directConsole == Boolean.FALSE) {
             return super.readCharacter(in);
         } else if ((directConsole == Boolean.TRUE)
-                || ((in == System.in) || (in instanceof FileInputStream && (((FileInputStream) in)
-                        .getFD() == FileDescriptor.in)))) {
+            || ((in == System.in) || (in instanceof FileInputStream
+                && (((FileInputStream) in).getFD() == FileDescriptor.in)))) {
             return readByte();
         } else {
             return super.readCharacter(in);
@@ -223,8 +232,8 @@ public class WindowsTerminal extends Terminal {
 
         // set the console to raw mode
         int newMode = originalMode
-                & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT
-                        | ENABLE_PROCESSED_INPUT | ENABLE_WINDOW_INPUT);
+            & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT
+                | ENABLE_PROCESSED_INPUT | ENABLE_WINDOW_INPUT);
         echoEnabled = false;
         setConsoleMode(newMode);
 
@@ -388,20 +397,19 @@ public class WindowsTerminal extends Terminal {
     public synchronized void enableEcho() {
         // Must set these four modes at the same time to make it work fine.
         setConsoleMode(getConsoleMode() | ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT
-                | ENABLE_PROCESSED_INPUT | ENABLE_WINDOW_INPUT);
+            | ENABLE_PROCESSED_INPUT | ENABLE_WINDOW_INPUT);
         echoEnabled = true;
     }
 
     public synchronized void disableEcho() {
         // Must set these four modes at the same time to make it work fine.
         setConsoleMode(getConsoleMode()
-                & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT
-                        | ENABLE_PROCESSED_INPUT | ENABLE_WINDOW_INPUT));
+            & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT
+                | ENABLE_PROCESSED_INPUT | ENABLE_WINDOW_INPUT));
         echoEnabled = true;
     }
 
     public InputStream getDefaultBindings() {
         return getClass().getResourceAsStream("windowsbindings.properties");
     }
-
 }

@@ -111,7 +111,9 @@ To actually upload the artifact to sourceforge, it must be manually ftp'd:
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
-          <testFailureIgnore>true</testFailureIgnore>
+          <!-- <testFailureIgnore>true</testFailureIgnore> -->
+          <useFile>false</useFile>
+          <trimStackTrace>false</trimStackTrace>
         </configuration>
       </plugin>
       <plugin>
