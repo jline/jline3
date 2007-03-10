@@ -82,7 +82,7 @@ public class UnixTerminal extends Terminal {
      * shutting down the console reader. The ConsoleReader cannot be
      * used after calling this method.
      */
-    public void restoreTerminal() {
+    public void restoreTerminal() throws IOException {
         if (ttyConfig != null) {
             stty(ttyConfig);
             ttyConfig = null;
