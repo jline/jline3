@@ -104,8 +104,8 @@ public class UnixTerminal extends Terminal {
         if (c > 128)
           // handle unicode characters longer than 2 bytes,
           // thanks to Marc.Herbert@continuent.com
-          c = new InputStreamReader(new ReplayPrefixOneCharInputStream(c, in), "UTF-8").
-                read();
+          c = new InputStreamReader(new ReplayPrefixOneCharInputStream(c, in),
+              "UTF-8").read();
 
         return c;
     }
