@@ -34,6 +34,7 @@ public class UnixTerminal extends Terminal {
     public static final short END_CODE = 70;
     private Map terminfo;
     private boolean echoEnabled;
+    private String ttyConfig;
     private static String sttyCommand =
         System.getProperty("jline.sttyCommand", "stty");
 
@@ -43,7 +44,7 @@ public class UnixTerminal extends Terminal {
      */
     public void initializeTerminal() throws IOException, InterruptedException {
         // save the initial tty configuration
-        final String ttyConfig = stty("-g");
+        ttyConfig = stty("-g");
 
         // sanity check
         if ((ttyConfig.length() == 0)
@@ -82,7 +83,10 @@ public class UnixTerminal extends Terminal {
      * used after calling this method.
      */
     public void restoreTerminal() {
-        stty(ttyConfig);
+        if (ttyConfig != null) {
+            stty(ttyConfig);
+            ttyConfig = null;
+        }
         resetTerminal();
     }
 
