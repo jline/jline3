@@ -30,13 +30,13 @@ import java.util.*;
 public class CandidateListCompletionHandler implements CompletionHandler {
     private static ResourceBundle loc = ResourceBundle.
         getBundle(CandidateListCompletionHandler.class.getName());
-    
+
     private boolean eagerNewlines = true;
-    
+
     public void setAlwaysIncludeNewline(boolean eagerNewlines) {
         this.eagerNewlines = eagerNewlines;
     }
-    
+
     public boolean complete(final ConsoleReader reader, final List candidates,
                             final int pos) throws IOException {
         CursorBuffer buf = reader.getCursorBuffer();
@@ -58,7 +58,7 @@ public class CandidateListCompletionHandler implements CompletionHandler {
             String bufString = buf.toString();
             setBuffer(reader, value, pos);
         }
-        
+
         if (eagerNewlines)
             reader.printNewline();
         printCandidates(reader, candidates);

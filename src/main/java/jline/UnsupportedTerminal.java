@@ -32,7 +32,7 @@ public class UnsupportedTerminal extends Terminal {
 
     public void enableEcho() {
     }
-    
+
 
     public void disableEcho() {
     }
