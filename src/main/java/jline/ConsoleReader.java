@@ -1382,7 +1382,7 @@ public class ConsoleReader implements ConsoleOperations {
 
         Arrays.sort(allowed); // always need to sort before binarySearch
 
-        while (Arrays.binarySearch(allowed, c = (char) readVirtualKey()) == -1)
+        while (Arrays.binarySearch(allowed, c = (char) readVirtualKey()) < 0)
             ;
 
         return c;
