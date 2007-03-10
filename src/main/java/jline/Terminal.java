@@ -28,6 +28,13 @@ public abstract class Terminal implements ConsoleOperations {
         return setupTerminal();
     }
 
+    /** 
+     *  Reset the current terminal to null. 
+     */
+    public static void resetTerminal() {
+        term = null;
+    }
+
     /**
      *  <p>Configure and return the {@link Terminal} instance for the
      *  current platform. This will initialize any system settings
@@ -58,8 +65,7 @@ public abstract class Terminal implements ConsoleOperations {
                 t = (Terminal) Class.forName(termProp).newInstance();
             } catch (Exception e) {
                 throw (IllegalArgumentException) new IllegalArgumentException(e
-                                                                              .toString())
-                      .fillInStackTrace();
+                    .toString()).fillInStackTrace();
             }
         } else if (os.indexOf("windows") != -1) {
             t = new WindowsTerminal();
