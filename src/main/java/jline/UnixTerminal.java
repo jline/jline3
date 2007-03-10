@@ -75,6 +75,7 @@ public class UnixTerminal extends Terminal {
             consumeException(ame);
         }
     }
+
     public int readVirtualKey(InputStream in) throws IOException {
         int c = readCharacter(in);
 
