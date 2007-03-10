@@ -29,6 +29,7 @@ public class UnixTerminal extends Terminal {
     public static final short ARROW_RIGHT = 67;
     public static final short ARROW_UP = 65;
     public static final short ARROW_DOWN = 66;
+    public static final short O_PREFIX = 79;
     public static final short HOME_CODE = 72;
     public static final short END_CODE = 70;
     private Map terminfo;
@@ -74,7 +75,6 @@ public class UnixTerminal extends Terminal {
             consumeException(ame);
         }
     }
-
     public int readVirtualKey(InputStream in) throws IOException {
         int c = readCharacter(in);
 
@@ -83,10 +83,8 @@ public class UnixTerminal extends Terminal {
         // key yields 27, 91, 68
         if (c == ARROW_START) {
             c = readCharacter(in);
-
-            if (c == ARROW_PREFIX) {
+            if (c == ARROW_PREFIX || c == O_PREFIX) {
                 c = readCharacter(in);
-
                 if (c == ARROW_UP) {
                     return CTRL_P;
                 } else if (c == ARROW_DOWN) {
@@ -102,7 +100,6 @@ public class UnixTerminal extends Terminal {
                 }
             }
         }
-
         // handle unicode characters, thanks for a patch from amyi@inf.ed.ac.uk
         if (c > 128)          
           // handle unicode characters longer than 2 bytes,
