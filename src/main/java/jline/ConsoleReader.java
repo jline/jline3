@@ -1234,6 +1234,10 @@ public class ConsoleReader implements ConsoleOperations {
             return false;
         }
 
+        if (buf.cursor == buf.buffer.length()) {
+            return false;
+        }
+
         buf.buffer.deleteCharAt(buf.cursor);
         drawBuffer(1);
         return true;
