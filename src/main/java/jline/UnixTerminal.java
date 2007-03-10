@@ -64,7 +64,7 @@ public class UnixTerminal extends Terminal {
             Runtime.getRuntime().addShutdownHook(new Thread() {
                     public void start() {
                         try {
-                            stty(ttyConfig);
+                            restoreTerminal();
                         } catch (Exception e) {
                             consumeException(e);
                         }
@@ -74,6 +74,16 @@ public class UnixTerminal extends Terminal {
             // JDK 1.3+ only method. Bummer.
             consumeException(ame);
         }
+    }
+
+    /** 
+     * Restore the original terminal configuration, which can be used when
+     * shutting down the console reader. The ConsoleReader cannot be
+     * used after calling this method.
+     */
+    public void restoreTerminal() {
+        stty(ttyConfig);
+        resetTerminal();
     }
 
     public int readVirtualKey(InputStream in) throws IOException {
