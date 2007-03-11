@@ -377,7 +377,7 @@ java <classname>jline.ConsoleRunner</classname> com.sun.tools.example.debug.tty.
 	<appendix id="changelog">
 		<title>Change Log</title>
 		<itemizedlist>
-			<title>0.9.91 ???</title>
+			<title>0.9.91 2007-03-11</title>
 			<listitem><para>
                 Added ConsoleReader.setUsePagination() method which allows
                 configuration of pagination when the number of rows of
