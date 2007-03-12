@@ -147,12 +147,6 @@ To make a bundle and request that ibilio upload it, do:
       </plugin>
     </plugins>
   </build>
-  <repositories>
-    <repository>
-      <id>jline</id>
-      <url>http://jline.sourceforge.net/m2repo</url>
-    </repository>
-  </repositories>
 
   <pluginRepositories>
       <pluginRepository>
