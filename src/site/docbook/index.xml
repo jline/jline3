@@ -359,6 +359,9 @@ java <classname>jline.ConsoleRunner</classname> com.sun.tools.example.debug.tty.
 			<listitem><para>
             Marc Herbert
 			</para></listitem>
+			<listitem><para>
+            Christian Salm
+			</para></listitem>
 		</itemizedlist>
 	</appendix>
 
@@ -376,6 +379,12 @@ java <classname>jline.ConsoleRunner</classname> com.sun.tools.example.debug.tty.
 
 	<appendix id="changelog">
 		<title>Change Log</title>
+		<itemizedlist>
+			<title>0.9.92</title>
+			<listitem><para>
+                JLine now works with 64-bit Windows systems.
+			</para></listitem>
+		</itemizedlist>
 		<itemizedlist>
 			<title>0.9.91 2007-03-11</title>
 			<listitem><para>

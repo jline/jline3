@@ -267,8 +267,14 @@ public class WindowsTerminal extends Terminal {
 
         // extract the embedded jline.dll file from the jar and save
         // it to the current directory
+        int bits = 32;
+
+        // check for 64-bit systems and use to appropriate DLL
+        if (System.getProperty("os.arch").indexOf("64") != -1)
+            bits = 64;
+
         InputStream in = new BufferedInputStream(getClass()
-                .getResourceAsStream(name + ".dll"));
+            .getResourceAsStream(name + bits + ".dll"));
 
         try {
             OutputStream fout = new BufferedOutputStream(
