@@ -186,15 +186,24 @@ public class ConsoleReader implements ConsoleOperations {
         this.out = out;
 
         if (bindings == null) {
-            String bindingFile = System.getProperty("jline.keybindings",
+            try {
+                String bindingFile = System.getProperty("jline.keybindings",
                     new File(System.getProperty("user.home",
-                            ".jlinebindings.properties")).getAbsolutePath());
+                        ".jlinebindings.properties")).getAbsolutePath());
 
-            if (!(new File(bindingFile).isFile())) {
-                bindings = terminal.getDefaultBindings();
-            } else {
-                bindings = new FileInputStream(new File(bindingFile));
+                if (new File(bindingFile).isFile()) {
+                    bindings = new FileInputStream(new File(bindingFile));
+                } 
+            } catch (Exception e) {
+                // swallow exceptions with option debugging
+                if (debugger != null) {
+                    e.printStackTrace(debugger);
+                }
             }
+        }
+
+        if (bindings == null) {
+            bindings = terminal.getDefaultBindings();
         }
 
         this.keybindings = new short[Character.MAX_VALUE * 2];
@@ -502,6 +511,7 @@ public class ConsoleReader implements ConsoleOperations {
                     break;
 
                 case NEWLINE: // enter
+                    moveToEnd();
                     printNewline(); // output newline
                     return finishBuffer();
 

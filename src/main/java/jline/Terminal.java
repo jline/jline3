@@ -177,6 +177,6 @@ public abstract class Terminal implements ConsoleOperations {
     public abstract void disableEcho();
 
     public InputStream getDefaultBindings() {
-        return getClass().getResourceAsStream("keybindings.properties");
+        return Terminal.class.getResourceAsStream("keybindings.properties");
     }
 }
