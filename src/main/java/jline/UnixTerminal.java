@@ -32,12 +32,29 @@ public class UnixTerminal extends Terminal {
     public static final short O_PREFIX = 79;
     public static final short HOME_CODE = 72;
     public static final short END_CODE = 70;
+
+    public static final short DEL_THIRD = 51;
+    public static final short DEL_SECOND = 126;
+
     private Map terminfo;
     private boolean echoEnabled;
     private String ttyConfig;
     private static String sttyCommand =
         System.getProperty("jline.sttyCommand", "stty");
 
+    
+    String encoding = System.getProperty("input.encoding", "UTF-8");
+    ReplayPrefixOneCharInputStream replayStream = new ReplayPrefixOneCharInputStream(encoding);
+    InputStreamReader replayReader;
+
+    public UnixTerminal() {
+        try {
+            replayReader = new InputStreamReader(replayStream, encoding);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
     /**
      *  Remove line-buffered input by invoking "stty -icanon min 1"
      *  against the current terminal.
@@ -90,6 +107,8 @@ public class UnixTerminal extends Terminal {
         resetTerminal();
     }
 
+    
+    
     public int readVirtualKey(InputStream in) throws IOException {
         int c = readCharacter(in);
 
@@ -112,15 +131,21 @@ public class UnixTerminal extends Terminal {
                     return CTRL_A;
                 } else if (c == END_CODE) {
                     return CTRL_E;
+                } else if (c == DEL_THIRD) {
+                    c = readCharacter(in); // read 4th
+                    return DELETE;
                 }
-            }
-        }
+            } 
+        } 
         // handle unicode characters, thanks for a patch from amyi@inf.ed.ac.uk
-        if (c > 128)
+        if (c > 128) {
           // handle unicode characters longer than 2 bytes,
           // thanks to Marc.Herbert@continuent.com
-          c = new InputStreamReader(new ReplayPrefixOneCharInputStream(c, in),
-              "UTF-8").read();
+            replayStream.setInput(c, in);
+//            replayReader = new InputStreamReader(replayStream, encoding);
+            c = replayReader.read();
+            
+        }
 
         return c;
     }
@@ -310,18 +335,33 @@ public class UnixTerminal extends Terminal {
      * @author <a href="mailto:Marc.Herbert@continuent.com">Marc Herbert</a>
      */
     static class ReplayPrefixOneCharInputStream extends InputStream {
-        final byte firstByte;
-        final int byteLength;
-        final InputStream wrappedStream;
+        byte firstByte;
+        int byteLength;
+        InputStream wrappedStream;
         int byteRead;
 
-        public ReplayPrefixOneCharInputStream(int recorded, InputStream wrapped)
-            throws IOException {
-            this.wrappedStream = wrapped;
+        final String encoding;
+        
+        public ReplayPrefixOneCharInputStream(String encoding) {
+            this.encoding = encoding;
+        }
+        
+        public void setInput(int recorded, InputStream wrapped) throws IOException {
             this.byteRead = 0;
-
             this.firstByte = (byte) recorded;
+            this.wrappedStream = wrapped;
 
+            byteLength = 1;
+            if (encoding.equalsIgnoreCase("UTF-8"))
+                setInputUTF8(recorded, wrapped);
+            else if (encoding.equalsIgnoreCase("UTF-16"))
+                byteLength = 2;
+            else if (encoding.equalsIgnoreCase("UTF-32"))
+                byteLength = 4;
+        }
+            
+            
+        public void setInputUTF8(int recorded, InputStream wrapped) throws IOException {
             // 110yyyyy 10zzzzzz
             if ((firstByte & (byte) 0xE0) == (byte) 0xC0)
                 this.byteLength = 2;
