@@ -8,6 +8,7 @@ package jline;
 
 import java.awt.*;
 import java.awt.datatransfer.*;
+import java.awt.event.ActionListener;
 
 import java.io.*;
 import java.util.*;
@@ -143,6 +144,23 @@ public class ConsoleReader implements ConsoleOperations {
 
     private Character echoCharacter = null;
 
+	private Map triggeredActions = new HashMap();
+
+	/**
+	 * Adding a triggered Action allows to give another curse of action
+	 * if a character passed the preprocessing.
+	 * 
+	 * Say you want to close the application if the user enter q.
+	 * addTriggerAction('q', new ActionListener(){ System.exit(0); });
+	 * would do the trick.
+	 * 
+	 * @param c
+	 * @param listener
+	 */
+	public void addTriggeredAction(char c, ActionListener listener){
+		triggeredActions.put(c, listener);
+	}
+	
     /**
      * Create a new reader using {@link FileDescriptor#in} for input and
      * {@link System#out} for output. {@link FileDescriptor#in} is used because
@@ -585,9 +603,13 @@ public class ConsoleReader implements ConsoleOperations {
 
                 case UNKNOWN:
                 default:
-                    if (c != 0) // ignore null chars
-                        putChar(c, true);
-                    else
+                    if (c != 0) { // ignore null chars
+                    	ActionListener action = (ActionListener) triggeredActions.get((char)c);
+                    	if (action != null)
+                    		action.actionPerformed(null);
+                    	else
+                    		putChar(c, true);
+                    } else
                         success = false;
                 }
 
@@ -1298,7 +1320,7 @@ public class ConsoleReader implements ConsoleOperations {
      *
      * @return the number of spaces we moved
      */
-    private final int moveCursor(final int num) throws IOException {
+    public final int moveCursor(final int num) throws IOException {
         int where = num;
 
         if ((buf.cursor == 0) && (where < 0)) {
@@ -1356,7 +1378,8 @@ public class ConsoleReader implements ConsoleOperations {
         } else if (mask != null) {
             c = mask.charValue();
         } else {
-            c = buf.buffer.charAt(buf.cursor - 1); // draw replacement
+            printCharacters(buf.buffer.substring(buf.cursor - where, buf.cursor).toCharArray());
+            return;
         }
 
         // null character mask: don't output anything
@@ -1397,6 +1420,50 @@ public class ConsoleReader implements ConsoleOperations {
 
         return c;
     }
+
+   
+    /**
+     *  Issue <em>num</em> deletes.
+     *
+     *  @return  the number of characters backed up
+     */
+    private final int delete (final int num)
+    throws IOException
+    {
+    	/* Commented out beacuse of DWA-2949:
+           if (buf.cursor == 0)
+                       return 0;*/
+
+        buf.buffer.delete (buf.cursor, buf.cursor + 1);
+        drawBuffer (1);
+
+        return 1;
+    }
+
+    public final boolean replace(int num, String replacement) {
+        buf.buffer.replace(buf.cursor - num, num, replacement);
+        try {
+            moveCursor(-num);
+            drawBuffer(Math.max(0, num - replacement.length()));
+            moveCursor(replacement.length());
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     *  Issue a delete.
+     *
+     *  @return  true if successful
+     */
+    public final boolean delete ()
+    throws IOException
+    {
+        return delete (1) == 1;
+    }
+
 
     public void setHistory(final History history) {
         this.history = history;

@@ -61,7 +61,7 @@ public class CandidateListCompletionHandler implements CompletionHandler {
 
         if (eagerNewlines)
             reader.printNewline();
-        printCandidates(reader, candidates);
+        printCandidates(reader, candidates, eagerNewlines);
 
         // redraw the current console buffer
         reader.drawLine();
@@ -69,7 +69,7 @@ public class CandidateListCompletionHandler implements CompletionHandler {
         return true;
     }
 
-    private static void setBuffer(ConsoleReader reader, String value, int offset)
+    public static void setBuffer(ConsoleReader reader, String value, int offset)
                            throws IOException {
         while ((reader.getCursorBuffer().cursor > offset)
                    && reader.backspace()) {
@@ -87,8 +87,8 @@ public class CandidateListCompletionHandler implements CompletionHandler {
      *
      *  @param  candidates  the list of candidates to print
      */
-    private final void printCandidates(ConsoleReader reader,
-                                       Collection candidates)
+    public static final void printCandidates(ConsoleReader reader,
+                                       Collection candidates, boolean eagerNewlines)
                                 throws IOException {
         Set distinct = new HashSet(candidates);
 
