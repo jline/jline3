@@ -158,7 +158,7 @@ public class ConsoleReader implements ConsoleOperations {
 	 * @param listener
 	 */
 	public void addTriggeredAction(char c, ActionListener listener){
-		triggeredActions.put(c, listener);
+		triggeredActions.put(new Character(c), listener);
 	}
 	
     /**
@@ -604,7 +604,7 @@ public class ConsoleReader implements ConsoleOperations {
                 case UNKNOWN:
                 default:
                     if (c != 0) { // ignore null chars
-                    	ActionListener action = (ActionListener) triggeredActions.get((char)c);
+                    	ActionListener action = (ActionListener) triggeredActions.get(new Character((char)c));
                     	if (action != null)
                     		action.actionPerformed(null);
                     	else
@@ -1441,7 +1441,7 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     public final boolean replace(int num, String replacement) {
-        buf.buffer.replace(buf.cursor - num, num, replacement);
+        buf.buffer.replace(buf.cursor - num, buf.cursor, replacement);
         try {
             moveCursor(-num);
             drawBuffer(Math.max(0, num - replacement.length()));
