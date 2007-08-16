@@ -39,6 +39,7 @@ public class UnixTerminal extends Terminal {
     private Map terminfo;
     private boolean echoEnabled;
     private String ttyConfig;
+    private boolean backspaceDeleteSwitched;
     private static String sttyCommand =
         System.getProperty("jline.sttyCommand", "stty");
 
@@ -69,6 +70,8 @@ public class UnixTerminal extends Terminal {
                        && (ttyConfig.indexOf(":") == -1))) {
             throw new IOException("Unrecognized stty code: " + ttyConfig);
         }
+
+        backspaceDeleteSwitched = ttyConfig.split(":|=")[6].equals("7f");
 
         // set the console to be character-buffered instead of line-buffered
         stty("-icanon min 1");
@@ -111,6 +114,12 @@ public class UnixTerminal extends Terminal {
     
     public int readVirtualKey(InputStream in) throws IOException {
         int c = readCharacter(in);
+
+        if (backspaceDeleteSwitched)
+            if (c == DELETE)
+                c = '\b';
+            else if (c == '\b')
+                c = DELETE;
 
         // in Unix terminals, arrow keys are represented by
         // a sequence of 3 characters. E.g., the up arrow

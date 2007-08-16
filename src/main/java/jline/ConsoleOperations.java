@@ -25,12 +25,12 @@ public interface ConsoleOperations {
     final char CTRL_D = 4;
     final char CTRL_E = 5;
     final char CTRL_F = 6;
-    final static char DELETE = 8;
     final static char CTRL_K = 11;
     final static char CTRL_L = 12;
     final char CTRL_N = 14;
     final char CTRL_P = 16;
     final static char CTRL_OB = 27;
+    final static char DELETE = 127;
     final static char CTRL_QM = 127;
 
 

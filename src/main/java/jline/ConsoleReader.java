@@ -685,7 +685,12 @@ public class ConsoleReader implements ConsoleOperations {
      * @return true if clipboard contents pasted
      */
     public boolean paste() throws IOException {
-        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        Clipboard clipboard;
+        try { // May throw ugly exception on system without X
+            clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        } catch (Exception e) {
+            return false;
+        }
 
         if (clipboard == null) {
             return false;
