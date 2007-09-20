@@ -39,7 +39,7 @@ public class UnixTerminal extends Terminal {
     private Map terminfo;
     private boolean echoEnabled;
     private String ttyConfig;
-    private boolean backspaceDeleteSwitched;
+    private boolean backspaceDeleteSwitched = false;
     private static String sttyCommand =
         System.getProperty("jline.sttyCommand", "stty");
 
@@ -54,6 +54,18 @@ public class UnixTerminal extends Terminal {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+   
+    protected void checkBackspace(){
+        String[] ttyConfigSplit = ttyConfig.split(":|=");
+
+        if (ttyConfigSplit.length < 7)
+            return;
+        
+        if (ttyConfigSplit[6] == null)
+            return;
+	
+        backspaceDeleteSwitched = ttyConfigSplit[6].equals("7f");
     }
     
     /**
@@ -71,7 +83,7 @@ public class UnixTerminal extends Terminal {
             throw new IOException("Unrecognized stty code: " + ttyConfig);
         }
 
-        backspaceDeleteSwitched = ttyConfig.split(":|=")[6].equals("7f");
+        checkBackspace();
 
         // set the console to be character-buffered instead of line-buffered
         stty("-icanon min 1");

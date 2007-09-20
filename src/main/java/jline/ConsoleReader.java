@@ -24,6 +24,9 @@ import java.util.List;
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
 public class ConsoleReader implements ConsoleOperations {
+
+    final static int TAB_WIDTH = 4;
+
     String prompt;
 
     private boolean useHistory = true;
@@ -1185,6 +1188,13 @@ public class ConsoleReader implements ConsoleOperations {
      * the current buffer.
      */
     private final void printCharacter(final int c) throws IOException {
+        if (c == '\t') {
+            char cbuf[] = new char[TAB_WIDTH];
+            Arrays.fill(cbuf, ' ');
+            out.write(cbuf);
+            return;
+        }
+	    
         out.write(c);
     }
 
@@ -1193,7 +1203,31 @@ public class ConsoleReader implements ConsoleOperations {
      * the current buffer.
      */
     private final void printCharacters(final char[] c) throws IOException {
-        out.write(c);
+        int len = 0;
+        for (int i = 0; i < c.length; i++)
+            if (c[i] == '\t')
+                len += TAB_WIDTH;
+            else
+                len++;
+
+        char cbuf[];        
+        if (len == c.length)
+            cbuf = c;
+        else {
+            cbuf = new char[len];
+            int pos = 0;
+            for (int i = 0; i < c.length; i++){
+                if (c[i] == '\t') {
+                    Arrays.fill(cbuf, pos, pos + TAB_WIDTH, ' ');
+                    pos += TAB_WIDTH;
+	        } else {
+                    cbuf[pos] = c[i];
+                    pos++;
+                }
+	    }
+        }
+            
+        out.write(cbuf);
     }
 
     private final void printCharacters(final char c, final int num)
@@ -1377,7 +1411,19 @@ public class ConsoleReader implements ConsoleOperations {
         char c;
 
         if (where < 0) {
-            c = BACKSPACE;
+	    int len = 0;
+            for (int i = buf.cursor; i < buf.cursor - where; i++){
+                if (buf.getBuffer().charAt(i) == '\t')
+                    len += TAB_WIDTH;
+                else
+                    len++;
+	    }
+
+	    char cbuf[] = new char[len];
+	    Arrays.fill(cbuf, BACKSPACE);
+	    out.write(cbuf);
+		
+	    return;
         } else if (buf.cursor == 0) {
             return;
         } else if (mask != null) {
