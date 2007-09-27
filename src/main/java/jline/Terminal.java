@@ -8,8 +8,6 @@ package jline;
 
 import java.io.*;
 
-import com.sun.jmx.snmp.ThreadContext;
-
 /**
  *  Representation of the input terminal for a platform. Handles
  *  any initialization that the platform may need to perform
