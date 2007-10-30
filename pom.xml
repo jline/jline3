@@ -32,13 +32,13 @@ To perform a complete release, run:
 
 To actually upload the artifact to sourceforge, it must be manually ftp'd:
 
-    lftp ftp://upload.sourceforge.net/incoming/ -e 'put target/jline-VERSION.zip'
+    lftp ftp://upload.sourceforge.net/incoming/ -e "put `ls target/jline-*.zip`"
 
 To make a bundle and request that ibilio upload it, do:
 
     mvn source:jar javadoc:jar repository:bundle-create
 
-    scp target/jline-VERSION-bundle.jar shell.sourceforge.net:/home/groups/j/jl/jline/htdocs
+    scp target/jline-*-bundle.jar shell.sourceforge.net:/home/groups/j/jl/jline/htdocs
 
     Make a request like at http://jira.codehaus.org/browse/MAVENUPLOAD-1003
 
@@ -53,7 +53,7 @@ To make a bundle and request that ibilio upload it, do:
   <artifactId>jline</artifactId>
   <packaging>jar</packaging>
   <name>JLine</name>
-  <version>0.9.92</version>
+  <version>0.9.93-SNAPSHOT</version>
   <description>JLine is a java library for reading and editing user input in console applications. It features tab-completion, command history, password masking, customizable keybindings, and pass-through handlers to use to chain to other console applications.</description>
   <url>http://jline.sourceforge.net</url>
   <issueManagement>
