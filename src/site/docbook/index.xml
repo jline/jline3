@@ -8,7 +8,7 @@
 			JLine
 		</title>
 		<copyright>
-	   		<year>2002, 2003,  2004, 2005, 2006</year>
+	   		<year>2002, 2003,  2004, 2005, 2006, 2007</year>
 			<holder>Marc Prud'hommeaux</holder>
 		</copyright>
 	</bookinfo>
@@ -380,7 +380,7 @@ java <classname>jline.ConsoleRunner</classname> com.sun.tools.example.debug.tty.
 	<appendix id="changelog">
 		<title>Change Log</title>
 		<itemizedlist>
-			<title>0.9.92</title>
+			<title>0.9.92 2007-10-30</title>
 			<listitem><para>
                 JLine now works with 64-bit Windows systems.
 			</para></listitem>
