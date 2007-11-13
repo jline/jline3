@@ -380,6 +380,12 @@ java <classname>jline.ConsoleRunner</classname> com.sun.tools.example.debug.tty.
 	<appendix id="changelog">
 		<title>Change Log</title>
 		<itemizedlist>
+			<title>0.9.93 2007-11-13</title>
+			<listitem><para>
+                Fixed backspace handling on Unix/OS X.
+			</para></listitem>
+		</itemizedlist>
+		<itemizedlist>
 			<title>0.9.92 2007-10-30</title>
 			<listitem><para>
                 JLine now works with 64-bit Windows systems.

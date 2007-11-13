@@ -53,7 +53,7 @@ To make a bundle and request that ibilio upload it, do:
   <artifactId>jline</artifactId>
   <packaging>jar</packaging>
   <name>JLine</name>
-  <version>0.9.93-SNAPSHOT</version>
+  <version>0.9.93</version>
   <description>JLine is a java library for reading and editing user input in console applications. It features tab-completion, command history, password masking, customizable keybindings, and pass-through handlers to use to chain to other console applications.</description>
   <url>http://jline.sourceforge.net</url>
   <issueManagement>
@@ -147,15 +147,6 @@ To make a bundle and request that ibilio upload it, do:
       </plugin>
     </plugins>
   </build>
-
-  <pluginRepositories>
-      <pluginRepository>
-        <id>Maven Snapshots</id>
-        <url>http://snapshots.repository.codehaus.org</url>
-        <snapshots><enabled>true</enabled></snapshots>
-        <releases><enabled>false</enabled></releases>
-      </pluginRepository>
-  </pluginRepositories>
 
   <reporting>
     <plugins>
