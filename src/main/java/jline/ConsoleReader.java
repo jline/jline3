@@ -149,6 +149,7 @@ public class ConsoleReader implements ConsoleOperations {
 
 	private Map triggeredActions = new HashMap();
 
+
 	/**
 	 * Adding a triggered Action allows to give another curse of action
 	 * if a character passed the preprocessing.
@@ -169,9 +170,11 @@ public class ConsoleReader implements ConsoleOperations {
      * {@link System#out} for output. {@link FileDescriptor#in} is used because
      * it has a better chance of being unbuffered.
      */
-    public ConsoleReader() throws IOException {
-        this(new FileInputStream(FileDescriptor.in),
-                new PrintWriter(System.out));
+    public ConsoleReader() throws IOException {	
+        this(new FileInputStream(FileDescriptor.in), 
+        		new PrintWriter(
+        				new OutputStreamWriter(System.out,
+        						System.getProperty("jline.WindowsTerminal.output.encoding",System.getProperty("file.encoding")))));
     }
 
     /**
@@ -205,7 +208,6 @@ public class ConsoleReader implements ConsoleOperations {
         this.terminal = term;
         setInput(in);
         this.out = out;
-
         if (bindings == null) {
             try {
                 String bindingFile = System.getProperty("jline.keybindings",
