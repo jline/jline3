@@ -15,7 +15,7 @@ package jline;
 public class CursorBuffer {
     public int cursor = 0;
 
-    JLineBuffer buffer = new JLineStringBuilder();
+    StringBuffer buffer = new StringBuffer();
 
     private boolean overtyping = false;
 
@@ -89,11 +89,11 @@ public class CursorBuffer {
         overtyping = b;
     }
 
-	public JLineBuffer getBuffer() {
+	public StringBuffer getBuffer() {
 		return buffer;
 	}
 
-	public void setBuffer(JLineBuffer buffer) {
+	public void setBuffer(StringBuffer buffer) {
 		buffer.setLength(0);
 		buffer.append(this.buffer.toString());
 		
