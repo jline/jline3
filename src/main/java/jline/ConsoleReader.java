@@ -512,6 +512,7 @@ public class ConsoleReader implements ConsoleOperations {
                     if (buf.buffer.length() == 0) {
                         return null;
                     }
+		    break;
 
                 case COMPLETE: // tab
                     success = complete();
