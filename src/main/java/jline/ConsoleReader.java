@@ -669,9 +669,6 @@ public class ConsoleReader implements ConsoleOperations {
 
     /**
      * Move up or down the history tree.
-     *
-     * @param direction
-     *            less than 0 to move up the tree, down otherwise
      */
     private final boolean moveHistory(final boolean next) throws IOException {
         if (next && !history.next()) {
