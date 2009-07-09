@@ -284,7 +284,7 @@ public class UnixTerminal extends Terminal {
      *  Execute the stty command with the specified arguments
      *  against the current active terminal.
      */
-    private static String stty(final String args)
+    protected static String stty(final String args)
                         throws IOException, InterruptedException {
         return exec("stty " + args + " < /dev/tty").trim();
     }
