@@ -331,7 +331,7 @@ public class ConsoleReader implements ConsoleOperations {
      * @return the width of the current terminal.
      */
     public int getTermwidth() {
-        return Terminal.setupTerminal().getTerminalWidth();
+        return getTerminal().getTerminalWidth();
     }
 
     /**
@@ -342,7 +342,7 @@ public class ConsoleReader implements ConsoleOperations {
      * @return the height of the current terminal.
      */
     public int getTermheight() {
-        return Terminal.setupTerminal().getTerminalHeight();
+        return getTerminal().getTerminalHeight();
     }
 
     /**
