@@ -188,6 +188,10 @@ public class WindowsTerminal extends Terminal {
     private Boolean directConsole;
 
     private boolean echoEnabled;
+
+    private int originalMode;
+
+    private Thread shutdownHook;
     
     String encoding = System.getProperty("jline.WindowsTerminal.input.encoding", System.getProperty("file.encoding"));
     ReplayPrefixOneCharInputStream replayStream = new ReplayPrefixOneCharInputStream(encoding);
@@ -239,7 +243,7 @@ public class WindowsTerminal extends Terminal {
     public void initializeTerminal() throws Exception {
         loadLibrary("jline");
 
-        final int originalMode = getConsoleMode();
+        originalMode = getConsoleMode();
 
         setConsoleMode(originalMode & ~ENABLE_ECHO_INPUT);
 
@@ -252,15 +256,44 @@ public class WindowsTerminal extends Terminal {
 
         // at exit, restore the original tty configuration (for JDK 1.3+)
         try {
-            Runtime.getRuntime().addShutdownHook(new Thread() {
+            Thread thread = new Thread() {
                 public void start() {
-                    // restore the old console mode
-                    setConsoleMode(originalMode);
+                    try {
+                        restoreTerminal();
+                    } catch (Exception e) {
+                        consumeException(e);
+                    }
                 }
-            });
+            };
+            Runtime.getRuntime().addShutdownHook(thread);
+            shutdownHook = thread;
         } catch (AbstractMethodError ame) {
             // JDK 1.3+ only method. Bummer.
             consumeException(ame);
+        }
+    }
+
+    /**
+     * Restore the original terminal configuration, which can be used when
+     * shutting down the console reader. The ConsoleReader cannot be
+     * used after calling this method.
+     */
+    public void restoreTerminal() throws Exception {
+        // restore the old console mode
+        setConsoleMode(originalMode);
+        resetTerminalIfThis();
+        // Remove shutdown hook
+        if (shutdownHook != null) {
+            try {
+                Runtime.getRuntime().removeShutdownHook(shutdownHook);
+            } catch (AbstractMethodError ame) {
+                // JDK 1.3+ only method. Bummer.
+                consumeException(ame);
+            } catch (IllegalStateException e) {
+                // The VM is shutting down, not a big deal
+                consumeException(e);
+            }
+            shutdownHook = null;
         }
     }
 

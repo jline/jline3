@@ -42,6 +42,7 @@ public class UnixTerminal extends Terminal {
     private boolean backspaceDeleteSwitched = false;
     private static String sttyCommand =
         System.getProperty("jline.sttyCommand", "stty");
+    private Thread shutdownHook;
 
     
     String encoding = System.getProperty("input.encoding", "UTF-8");
@@ -94,15 +95,17 @@ public class UnixTerminal extends Terminal {
 
         // at exit, restore the original tty configuration (for JDK 1.3+)
         try {
-            Runtime.getRuntime().addShutdownHook(new Thread() {
-                    public void start() {
-                        try {
-                            restoreTerminal();
-                        } catch (Exception e) {
-                            consumeException(e);
-                        }
+            Thread thread = new Thread() {
+                public void start() {
+                    try {
+                        restoreTerminal();
+                    } catch (Exception e) {
+                        consumeException(e);
                     }
-                });
+                }
+            };
+            Runtime.getRuntime().addShutdownHook(thread);
+            shutdownHook = thread;
         } catch (AbstractMethodError ame) {
             // JDK 1.3+ only method. Bummer.
             consumeException(ame);
@@ -119,7 +122,20 @@ public class UnixTerminal extends Terminal {
             stty(ttyConfig);
             ttyConfig = null;
         }
-        resetTerminal();
+        resetTerminalIfThis();
+        // Remove shutdown hook
+        if (shutdownHook != null) {
+            try {
+                Runtime.getRuntime().removeShutdownHook(shutdownHook);
+            } catch (AbstractMethodError ame) {
+                // JDK 1.3+ only method. Bummer.
+                consumeException(ame);
+            } catch (IllegalStateException e) {
+                // The VM is shutting down, not a big deal
+                consumeException(e);
+            }
+            shutdownHook = null;
+        }
     }
 
     

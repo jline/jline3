@@ -44,7 +44,7 @@ public abstract class Terminal implements ConsoleOperations {
      *  <em>jline.terminal</em> system property, or, if it is unset, by
      *  detecting the operating system from the <em>os.name</em>
      *  system property and instantiating either the
-     *  {@link WindowsTerminalTest} or {@link UnixTerminal}.
+     *  {@link WindowsTerminal} or {@link UnixTerminal}.
      *
      *  @see #initializeTerminal
      */
@@ -121,6 +121,13 @@ public abstract class Terminal implements ConsoleOperations {
     public abstract void initializeTerminal() throws Exception;
 
     /**
+     * Restore the original terminal configuration, which can be used when
+     * shutting down the console reader. The ConsoleReader cannot be
+     * used after calling this method.
+     */
+    public abstract void restoreTerminal() throws Exception;
+
+    /**
      *  Returns the current width of the terminal (in characters)
      */
     public abstract int getTerminalWidth();
@@ -176,5 +183,11 @@ public abstract class Terminal implements ConsoleOperations {
 
     public InputStream getDefaultBindings() {
         return Terminal.class.getResourceAsStream("keybindings.properties");
+    }
+
+    protected void resetTerminalIfThis() {
+        if (term == this) {
+            resetTerminal();
+        }
     }
 }

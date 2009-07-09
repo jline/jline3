@@ -20,6 +20,9 @@ public class UnsupportedTerminal extends Terminal {
         // nothing we need to do (or can do) for windows.
     }
 
+    public void restoreTerminal() throws Exception {
+    }
+
     public boolean getEcho() {
         return true;
     }
