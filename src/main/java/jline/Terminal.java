@@ -22,8 +22,7 @@ import java.io.InputStream;
 public interface Terminal
 {
     /**
-     * Returns true if the current console supports ANSI
-     * codes.
+     * Returns true if the current console supports ANSI codes.
      */
     boolean isANSISupported();
 
@@ -83,16 +82,6 @@ public interface Terminal
     boolean getEcho();
 
     /**
-     * Invokes before the console reads a line with the prompt and mask.
-     */
-    void beforeReadLine(ConsoleReader reader, String prompt, Character mask);
-
-    /**
-     * Invokes after the console reads a line with the prompt and mask.
-     */
-    void afterReadLine(ConsoleReader reader, String prompt, Character mask);
-
-    /**
      * Returns false if character echoing is disabled.
      */
     boolean isEchoEnabled();
@@ -108,6 +97,16 @@ public interface Terminal
      * character if the ConsoleReader has been disabled.
      */
     void disableEcho();
+
+    /**
+     * Invokes before the console reads a line with the prompt and mask.
+     */
+    void beforeReadLine(ConsoleReader reader, String prompt, Character mask);
+
+    /**
+     * Invokes after the console reads a line with the prompt and mask.
+     */
+    void afterReadLine(ConsoleReader reader, String prompt, Character mask);
 
     InputStream getDefaultBindings();
 }

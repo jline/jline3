@@ -642,7 +642,7 @@ public class ConsoleReader
                         break;
 
                     case INSERT:
-                        buf.setOvertyping(!buf.isOvertyping());
+                        buf.setOverTyping(!buf.isOverTyping());
                         break;
 
                     case UNKNOWN:
@@ -751,8 +751,7 @@ public class ConsoleReader
         }
 
         try {
-            Object content = transferable
-                .getTransferData(DataFlavor.plainTextFlavor);
+            Object content = transferable.getTransferData(DataFlavor.plainTextFlavor);
 
             /*
              * This fix was suggested in bug #1060649 at
@@ -1681,5 +1680,4 @@ if (buf.cursor == 0)
     public boolean getUsePagination() {
         return this.usePagination;
     }
-
 }

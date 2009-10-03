@@ -16,9 +16,9 @@ public class CursorBuffer
 {
     public int cursor = 0;
 
-    StringBuffer buffer = new StringBuffer();
+    StringBuilder buffer = new StringBuilder();
 
-    private boolean overtyping = false;
+    private boolean overTyping = false;
 
     public int length() {
         return buffer.length();
@@ -51,7 +51,7 @@ public class CursorBuffer
      */
     public void write(final char c) {
         buffer.insert(cursor++, c);
-        if (isOvertyping() && cursor < buffer.length()) {
+        if (isOverTyping() && cursor < buffer.length()) {
             buffer.deleteCharAt(cursor);
         }
     }
@@ -72,7 +72,7 @@ public class CursorBuffer
 
         cursor += str.length();
 
-        if (isOvertyping() && cursor < buffer.length()) {
+        if (isOverTyping() && cursor < buffer.length()) {
             buffer.delete(cursor, (cursor + str.length()));
         }
     }
@@ -81,24 +81,22 @@ public class CursorBuffer
         return buffer.toString();
     }
 
-    public boolean isOvertyping() {
-        return overtyping;
+    public boolean isOverTyping() {
+        return overTyping;
     }
 
-    public void setOvertyping(boolean b) {
-        overtyping = b;
+    public void setOverTyping(boolean b) {
+        overTyping = b;
     }
 
-    public StringBuffer getBuffer() {
+    public StringBuilder getBuffer() {
         return buffer;
     }
 
-    public void setBuffer(StringBuffer buffer) {
+    public void setBuffer(StringBuilder buffer) {
         buffer.setLength(0);
         buffer.append(this.buffer.toString());
 
         this.buffer = buffer;
     }
-
-
 }
