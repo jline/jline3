@@ -27,7 +27,7 @@ import java.util.StringTokenizer;
  * @author Updates <a href="mailto:dwkemp@gmail.com">Dale Kemp</a> 2005-12-03
  */
 public class UnixTerminal
-    extends Terminal
+    extends TerminalSupport
 {
     public static final short ARROW_START = 27;
     public static final short ARROW_PREFIX = 91;

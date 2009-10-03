@@ -45,7 +45,7 @@ import java.io.OutputStream;
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
 public class WindowsTerminal
-    extends Terminal
+    extends TerminalSupport
 {
     // constants copied from wincon.h
 

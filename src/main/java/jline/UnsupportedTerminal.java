@@ -17,12 +17,11 @@ import java.io.Writer;
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
 public class UnsupportedTerminal
-    extends Terminal
+    extends TerminalSupport
 {
     private Thread maskThread = null;
 
     public void initializeTerminal() {
-        // nothing we need to do (or can do) for windows.
     }
 
     public void restoreTerminal() throws Exception {
@@ -37,25 +36,16 @@ public class UnsupportedTerminal
         return true;
     }
 
-
     public void enableEcho() {
     }
-
 
     public void disableEcho() {
     }
 
-
-    /**
-     * Always returng 80, since we can't access this info on Windows.
-     */
     public int getTerminalWidth() {
         return 80;
     }
 
-    /**
-     * Always returng 24, since we can't access this info on Windows.
-     */
     public int getTerminalHeight() {
         return 80;
     }
@@ -64,9 +54,7 @@ public class UnsupportedTerminal
         return false;
     }
 
-    public void beforeReadLine(final ConsoleReader reader, final String prompt,
-                               final Character mask)
-    {
+    public void beforeReadLine(final ConsoleReader reader, final String prompt, final Character mask) {
         if ((mask != null) && (maskThread == null)) {
             final String fullPrompt = "\r" + prompt
                 + "                 "
@@ -100,9 +88,7 @@ public class UnsupportedTerminal
         }
     }
 
-    public void afterReadLine(final ConsoleReader reader, final String prompt,
-                              final Character mask)
-    {
+    public void afterReadLine(final ConsoleReader reader, final String prompt, final Character mask) {
         if ((maskThread != null) && maskThread.isAlive()) {
             maskThread.interrupt();
         }
