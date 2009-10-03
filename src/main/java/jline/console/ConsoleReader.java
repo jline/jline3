@@ -542,7 +542,6 @@ public class ConsoleReader
 
                 switch (code) {
                     case EXIT: // ctrl-d
-
                         if (buf.buffer.length() == 0) {
                             return null;
                         }
