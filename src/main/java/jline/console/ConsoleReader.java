@@ -8,9 +8,9 @@ package jline.console;
 
 import jline.Terminal;
 import jline.TerminalFactory;
-import jline.console.completer.CandidateListCompletionHandler;
+import jline.console.completionhandler.CandidateListCompletionHandler;
 import jline.console.completer.Completer;
-import jline.console.completer.CompletionHandler;
+import jline.console.completionhandler.CompletionHandler;
 
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
