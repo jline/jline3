@@ -10,11 +10,13 @@ import jline.console.ConsoleReader;
 
 
 /**
- *  Tests command history.
+ * Tests command history.
  *
- *  @author  <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class TestHistory extends JLineTestCase {
+public class TestHistory
+    extends JLineTestCase
+{
     public TestHistory(String test) {
         super(test);
     }
@@ -57,7 +59,7 @@ public class TestHistory extends JLineTestCase {
         assertBuffer("test line 5", b = b.op(ConsoleReader.PREV_HISTORY));
         assertBuffer("test line 4", b = b.op(ConsoleReader.PREV_HISTORY));
         b = b.op(ConsoleReader.MOVE_TO_BEG).append("XXX")
-             .op(ConsoleReader.NEWLINE);
+            .op(ConsoleReader.NEWLINE);
         assertBuffer("XXXtest line 4", b = b.op(ConsoleReader.PREV_HISTORY));
         assertBuffer("test line 5", b = b.op(ConsoleReader.PREV_HISTORY));
         assertBuffer("test line 4", b = b.op(ConsoleReader.PREV_HISTORY));

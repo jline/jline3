@@ -4,13 +4,20 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  */
-package jline.completer;
+package jline.console.completer;
 
-import jline.completer.SimpleCompleter;
-
-import java.io.*;
-import java.net.*;
-import java.util.*;
+import java.io.File;
+import java.io.IOException;
+import java.net.JarURLConnection;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.net.URLConnection;
+import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -20,7 +27,9 @@ import java.util.jar.JarFile;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class ClassNameCompleter extends SimpleCompleter {
+public class ClassNameCompleter
+    extends SimpleCompleter
+{
 
     /**
      * Complete candidates using all the classes available in the
@@ -31,7 +40,8 @@ public class ClassNameCompleter extends SimpleCompleter {
     }
 
     public ClassNameCompleter(final SimpleCompletorFilter filter)
-            throws IOException {
+        throws IOException
+    {
         super(getClassNames(), filter);
         setDelimiter(".");
     }
@@ -40,7 +50,7 @@ public class ClassNameCompleter extends SimpleCompleter {
         Set urls = new HashSet();
 
         for (ClassLoader loader = ClassNameCompleter.class
-                .getClassLoader(); loader != null;
+            .getClassLoader(); loader != null;
              loader = loader.getParent()) {
             if (!(loader instanceof URLClassLoader)) {
                 continue;
@@ -53,12 +63,12 @@ public class ClassNameCompleter extends SimpleCompleter {
         // some JVMs do not report the core classes jar in the list of
         // class loaders.
         Class[] systemClasses = new Class[]{
-                String.class, javax.swing.JFrame.class
+            String.class, javax.swing.JFrame.class
         };
 
         for (int i = 0; i < systemClasses.length; i++) {
             URL classURL = systemClasses[i].getResource("/"
-                    + systemClasses[i].getName().replace('.', '/') + ".class");
+                + systemClasses[i].getName().replace('.', '/') + ".class");
 
             if (classURL != null) {
                 URLConnection uc = (URLConnection) classURL.openConnection();
@@ -77,7 +87,7 @@ public class ClassNameCompleter extends SimpleCompleter {
 
             if (file.isDirectory()) {
                 Set files = getClassFiles(file.getAbsolutePath(),
-                        new HashSet(), file, new int[]{200});
+                    new HashSet(), file, new int[]{200});
                 classes.addAll(files);
 
                 continue;
@@ -115,14 +125,14 @@ public class ClassNameCompleter extends SimpleCompleter {
         for (Iterator i = classes.iterator(); i.hasNext();) {
             String name = (String) i.next();
             classNames.add(name.replace('/', '.').
-                    substring(0, name.length() - 6));
+                substring(0, name.length() - 6));
         }
 
         return (String[]) classNames.toArray(new String[classNames.size()]);
     }
 
-    private static Set getClassFiles(String root, Set holder, File directory,
-                                     int[] maxDirectories) {
+    private static Set getClassFiles(String root, Set holder, File directory, int[] maxDirectories)
+    {
         // we have passed the maximum number of directories to scan
         if (maxDirectories[0]-- < 0) {
             return holder;
@@ -135,11 +145,12 @@ public class ClassNameCompleter extends SimpleCompleter {
 
             if (!(name.startsWith(root))) {
                 continue;
-            } else if (files[i].isDirectory()) {
+            }
+            else if (files[i].isDirectory()) {
                 getClassFiles(root, holder, files[i], maxDirectories);
-            } else if (files[i].getName().endsWith(".class")) {
-                holder.add(files[i].getAbsolutePath().
-                        substring(root.length() + 1));
+            }
+            else if (files[i].getName().endsWith(".class")) {
+                holder.add(files[i].getAbsolutePath().substring(root.length() + 1));
             }
         }
 

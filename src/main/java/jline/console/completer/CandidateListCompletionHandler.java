@@ -4,14 +4,20 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  */
-package jline.console;
+package jline.console.completer;
 
-import jline.console.CursorBuffer;
 import jline.console.ConsoleReader;
+import jline.console.CursorBuffer;
 
-import java.io.*;
+import java.io.IOException;
 import java.text.MessageFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ResourceBundle;
+import java.util.Set;
 
 /**
  * <p>
@@ -30,9 +36,11 @@ import java.util.*;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class CandidateListCompletionHandler implements CompletionHandler {
+public class CandidateListCompletionHandler
+    implements CompletionHandler
+{
     private static ResourceBundle loc = ResourceBundle.
-            getBundle(CandidateListCompletionHandler.class.getName());
+        getBundle(CandidateListCompletionHandler.class.getName());
 
     private boolean eagerNewlines = true;
 
@@ -41,7 +49,8 @@ public class CandidateListCompletionHandler implements CompletionHandler {
     }
 
     public boolean complete(final ConsoleReader reader, final List candidates,
-                            final int pos) throws IOException {
+                            final int pos) throws IOException
+    {
         CursorBuffer buf = reader.getCursorBuffer();
 
         // if there is only one completion, then fill in the buffer
@@ -56,14 +65,16 @@ public class CandidateListCompletionHandler implements CompletionHandler {
             setBuffer(reader, value, pos);
 
             return true;
-        } else if (candidates.size() > 1) {
+        }
+        else if (candidates.size() > 1) {
             String value = getUnambiguousCompletions(candidates);
             String bufString = buf.toString();
             setBuffer(reader, value, pos);
         }
 
-        if (eagerNewlines)
+        if (eagerNewlines) {
             reader.printNewline();
+        }
         printCandidates(reader, candidates, eagerNewlines);
 
         // redraw the current console buffer
@@ -73,9 +84,10 @@ public class CandidateListCompletionHandler implements CompletionHandler {
     }
 
     public static void setBuffer(ConsoleReader reader, String value, int offset)
-            throws IOException {
+        throws IOException
+    {
         while ((reader.getCursorBuffer().cursor > offset)
-                && reader.backspace()) {
+            && reader.backspace()) {
             ;
         }
 
@@ -92,16 +104,18 @@ public class CandidateListCompletionHandler implements CompletionHandler {
      */
     public static final void printCandidates(ConsoleReader reader,
                                              Collection candidates, boolean eagerNewlines)
-            throws IOException {
+        throws IOException
+    {
         Set distinct = new HashSet(candidates);
 
         if (distinct.size() > reader.getAutoprintThreshhold()) {
-            if (!eagerNewlines)
+            if (!eagerNewlines) {
                 reader.printNewline();
+            }
             reader.printString(MessageFormat.format
-                    (loc.getString("display-candidates"), new Object[]{
-                            new Integer(candidates.size())
-                    }) + " ");
+                (loc.getString("display-candidates"), new Object[]{
+                    new Integer(candidates.size())
+                }) + " ");
 
             reader.flushConsole();
 
@@ -111,15 +125,17 @@ public class CandidateListCompletionHandler implements CompletionHandler {
             String yesOpt = loc.getString("display-candidates-yes");
 
             while ((c = reader.readCharacter(new char[]{
-                    yesOpt.charAt(0), noOpt.charAt(0)})) != -1) {
+                yesOpt.charAt(0), noOpt.charAt(0)})) != -1) {
                 if (noOpt.startsWith
-                        (new String(new char[]{(char) c}))) {
+                    (new String(new char[]{(char) c}))) {
                     reader.printNewline();
                     return;
-                } else if (yesOpt.startsWith
-                        (new String(new char[]{(char) c}))) {
+                }
+                else if (yesOpt.startsWith
+                    (new String(new char[]{(char) c}))) {
                     break;
-                } else {
+                }
+                else {
                     reader.beep();
                 }
             }
@@ -159,7 +175,7 @@ public class CandidateListCompletionHandler implements CompletionHandler {
 
         // convert to an array for speed
         String[] strings =
-                (String[]) candidates.toArray(new String[candidates.size()]);
+            (String[]) candidates.toArray(new String[candidates.size()]);
 
         String first = strings[0];
         StringBuffer candidate = new StringBuffer();
@@ -167,7 +183,8 @@ public class CandidateListCompletionHandler implements CompletionHandler {
         for (int i = 0; i < first.length(); i++) {
             if (startsWith(first.substring(0, i + 1), strings)) {
                 candidate.append(first.charAt(i));
-            } else {
+            }
+            else {
                 break;
             }
         }
@@ -180,7 +197,8 @@ public class CandidateListCompletionHandler implements CompletionHandler {
      *         start with <i>starts</i>
      */
     private final boolean startsWith(final String starts,
-                                     final String[] candidates) {
+                                     final String[] candidates)
+    {
         for (int i = 0; i < candidates.length; i++) {
             if (!candidates[i].startsWith(starts)) {
                 return false;

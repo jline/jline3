@@ -15,7 +15,9 @@ import java.io.IOException;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class UnsupportedTerminal extends Terminal {
+public class UnsupportedTerminal
+    extends Terminal
+{
     private Thread maskThread = null;
 
     public void initializeTerminal() {
@@ -62,24 +64,28 @@ public class UnsupportedTerminal extends Terminal {
     }
 
     public void beforeReadLine(final ConsoleReader reader, final String prompt,
-                               final Character mask) {
+                               final Character mask)
+    {
         if ((mask != null) && (maskThread == null)) {
             final String fullPrompt = "\r" + prompt
-                    + "                 "
-                    + "                 "
-                    + "                 "
-                    + "\r" + prompt;
+                + "                 "
+                + "                 "
+                + "                 "
+                + "\r" + prompt;
 
-            maskThread = new Thread("JLine Mask Thread") {
+            maskThread = new Thread("JLine Mask Thread")
+            {
                 public void run() {
                     while (!interrupted()) {
                         try {
                             reader.out.write(fullPrompt);
                             reader.out.flush();
                             sleep(3);
-                        } catch (IOException ioe) {
+                        }
+                        catch (IOException ioe) {
                             return;
-                        } catch (InterruptedException ie) {
+                        }
+                        catch (InterruptedException ie) {
                             return;
                         }
                     }
@@ -93,7 +99,8 @@ public class UnsupportedTerminal extends Terminal {
     }
 
     public void afterReadLine(final ConsoleReader reader, final String prompt,
-                              final Character mask) {
+                              final Character mask)
+    {
         if ((maskThread != null) && maskThread.isAlive()) {
             maskThread.interrupt();
         }

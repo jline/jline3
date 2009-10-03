@@ -10,7 +10,8 @@ import jline.console.ConsoleReader;
 
 import java.io.*;
 
-public class PasswordReader {
+public class PasswordReader
+{
     public static void usage() {
         System.out.println("Usage: java "
             + PasswordReader.class.getName() + " [mask]");
@@ -27,6 +28,7 @@ public class PasswordReader {
         do {
             line = reader.readLine("enter password> ", mask);
             System.out.println("Got password: " + line);
-        } while(line != null && line.length() > 0);
+        }
+        while (line != null && line.length() > 0);
     }
 }

@@ -6,9 +6,16 @@
  */
 package jline;
 
-import java.io.*;
-
-import jline.UnixTerminal.ReplayPrefixOneCharInputStream;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 
 /**
  * <p>
@@ -37,7 +44,9 @@ import jline.UnixTerminal.ReplayPrefixOneCharInputStream;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class WindowsTerminal extends Terminal {
+public class WindowsTerminal
+    extends Terminal
+{
     // constants copied from wincon.h
 
     /**
@@ -202,13 +211,15 @@ public class WindowsTerminal extends Terminal {
 
         if ("true".equals(dir)) {
             directConsole = Boolean.TRUE;
-        } else if ("false".equals(dir)) {
+        }
+        else if ("false".equals(dir)) {
             directConsole = Boolean.FALSE;
         }
 
         try {
             replayReader = new InputStreamReader(replayStream, encoding);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             throw new RuntimeException(e);
         }
 
@@ -231,11 +242,13 @@ public class WindowsTerminal extends Terminal {
         // the arrow keys)
         if (directConsole == Boolean.FALSE) {
             return super.readCharacter(in);
-        } else if ((directConsole == Boolean.TRUE)
-                || ((in == System.in) || (in instanceof FileInputStream
-                && (((FileInputStream) in).getFD() == FileDescriptor.in)))) {
+        }
+        else if ((directConsole == Boolean.TRUE)
+            || ((in == System.in) || (in instanceof FileInputStream
+            && (((FileInputStream) in).getFD() == FileDescriptor.in)))) {
             return readByte();
-        } else {
+        }
+        else {
             return super.readCharacter(in);
         }
     }
@@ -249,25 +262,28 @@ public class WindowsTerminal extends Terminal {
 
         // set the console to raw mode
         int newMode = originalMode
-                & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT
-                | ENABLE_PROCESSED_INPUT | ENABLE_WINDOW_INPUT);
+            & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT
+            | ENABLE_PROCESSED_INPUT | ENABLE_WINDOW_INPUT);
         echoEnabled = false;
         setConsoleMode(newMode);
 
         // at exit, restore the original tty configuration (for JDK 1.3+)
         try {
-            Thread thread = new Thread() {
+            Thread thread = new Thread()
+            {
                 public void start() {
                     try {
                         restoreTerminal();
-                    } catch (Exception e) {
+                    }
+                    catch (Exception e) {
                         consumeException(e);
                     }
                 }
             };
             Runtime.getRuntime().addShutdownHook(thread);
             shutdownHook = thread;
-        } catch (AbstractMethodError ame) {
+        }
+        catch (AbstractMethodError ame) {
             // JDK 1.3+ only method. Bummer.
             consumeException(ame);
         }
@@ -286,10 +302,12 @@ public class WindowsTerminal extends Terminal {
         if (shutdownHook != null) {
             try {
                 Runtime.getRuntime().removeShutdownHook(shutdownHook);
-            } catch (AbstractMethodError ame) {
+            }
+            catch (AbstractMethodError ame) {
                 // JDK 1.3+ only method. Bummer.
                 consumeException(ame);
-            } catch (IllegalStateException e) {
+            }
+            catch (IllegalStateException e) {
                 // The VM is shutting down, not a big deal
                 consumeException(e);
             }
@@ -308,7 +326,7 @@ public class WindowsTerminal extends Terminal {
         version = version.replace('.', '_');
 
         File f = new File(System.getProperty("java.io.tmpdir"), name + "_"
-                + version + ".dll");
+            + version + ".dll");
         boolean exists = f.isFile(); // check if it already exists
 
         // extract the embedded jline.dll file from the jar and save
@@ -316,15 +334,16 @@ public class WindowsTerminal extends Terminal {
         int bits = 32;
 
         // check for 64-bit systems and use to appropriate DLL
-        if (System.getProperty("os.arch").indexOf("64") != -1)
+        if (System.getProperty("os.arch").indexOf("64") != -1) {
             bits = 64;
+        }
 
         InputStream in = new BufferedInputStream(getClass()
-                .getResourceAsStream(name + bits + ".dll"));
+            .getResourceAsStream(name + bits + ".dll"));
 
         try {
             OutputStream fout = new BufferedOutputStream(
-                    new FileOutputStream(f));
+                new FileOutputStream(f));
             byte[] bytes = new byte[1024 * 10];
 
             for (int n = 0; n != -1; n = in.read(bytes)) {
@@ -332,7 +351,8 @@ public class WindowsTerminal extends Terminal {
             }
 
             fout.close();
-        } catch (IOException ioe) {
+        }
+        catch (IOException ioe) {
             // We might get an IOException trying to overwrite an existing
             // jline.dll file if there is another process using the DLL.
             // If this happens, ignore errors.
@@ -355,7 +375,7 @@ public class WindowsTerminal extends Terminal {
         // a sequence of 2 characters. E.g., the up arrow
         // key yields 224, 72
         if (indicator == SPECIAL_KEY_INDICATOR
-                || indicator == NUMPAD_KEY_INDICATOR) {
+            || indicator == NUMPAD_KEY_INDICATOR) {
             int key = readCharacter(in);
 
             switch (key) {
@@ -384,7 +404,8 @@ public class WindowsTerminal extends Terminal {
                 default:
                     return 0;
             }
-        } else if (indicator > 128) {
+        }
+        else if (indicator > 128) {
             // handle unicode characters longer than 2 bytes,
             // thanks to Marc.Herbert@continuent.com
             replayStream.setInput(indicator, in);
@@ -457,15 +478,15 @@ public class WindowsTerminal extends Terminal {
     public synchronized void enableEcho() {
         // Must set these four modes at the same time to make it work fine.
         setConsoleMode(getConsoleMode() | ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT
-                | ENABLE_PROCESSED_INPUT | ENABLE_WINDOW_INPUT);
+            | ENABLE_PROCESSED_INPUT | ENABLE_WINDOW_INPUT);
         echoEnabled = true;
     }
 
     public synchronized void disableEcho() {
         // Must set these four modes at the same time to make it work fine.
         setConsoleMode(getConsoleMode()
-                & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT
-                | ENABLE_PROCESSED_INPUT | ENABLE_WINDOW_INPUT));
+            & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT
+            | ENABLE_PROCESSED_INPUT | ENABLE_WINDOW_INPUT));
         echoEnabled = true;
     }
 
@@ -479,7 +500,9 @@ public class WindowsTerminal extends Terminal {
      *
      * @author <a href="mailto:Marc.Herbert@continuent.com">Marc Herbert</a>
      */
-    static class ReplayPrefixOneCharInputStream extends InputStream {
+    static class ReplayPrefixOneCharInputStream
+        extends InputStream
+    {
         byte firstByte;
         int byteLength;
         InputStream wrappedStream;
@@ -497,37 +520,46 @@ public class WindowsTerminal extends Terminal {
             this.wrappedStream = wrapped;
 
             byteLength = 1;
-            if (encoding.equalsIgnoreCase("UTF-8"))
+            if (encoding.equalsIgnoreCase("UTF-8")) {
                 setInputUTF8(recorded, wrapped);
-            else if (encoding.equalsIgnoreCase("UTF-16"))
+            }
+            else if (encoding.equalsIgnoreCase("UTF-16")) {
                 byteLength = 2;
-            else if (encoding.equalsIgnoreCase("UTF-32"))
+            }
+            else if (encoding.equalsIgnoreCase("UTF-32")) {
                 byteLength = 4;
+            }
         }
 
 
         public void setInputUTF8(int recorded, InputStream wrapped) throws IOException {
             // 110yyyyy 10zzzzzz
-            if ((firstByte & (byte) 0xE0) == (byte) 0xC0)
+            if ((firstByte & (byte) 0xE0) == (byte) 0xC0) {
                 this.byteLength = 2;
-                // 1110xxxx 10yyyyyy 10zzzzzz
-            else if ((firstByte & (byte) 0xF0) == (byte) 0xE0)
+            }
+            // 1110xxxx 10yyyyyy 10zzzzzz
+            else if ((firstByte & (byte) 0xF0) == (byte) 0xE0) {
                 this.byteLength = 3;
-                // 11110www 10xxxxxx 10yyyyyy 10zzzzzz
-            else if ((firstByte & (byte) 0xF8) == (byte) 0xF0)
+            }
+            // 11110www 10xxxxxx 10yyyyyy 10zzzzzz
+            else if ((firstByte & (byte) 0xF8) == (byte) 0xF0) {
                 this.byteLength = 4;
-            else
+            }
+            else {
                 throw new IOException("invalid UTF-8 first byte: " + firstByte);
+            }
         }
 
         public int read() throws IOException {
-            if (available() == 0)
+            if (available() == 0) {
                 return -1;
+            }
 
             byteRead++;
 
-            if (byteRead == 1)
+            if (byteRead == 1) {
                 return firstByte;
+            }
 
             return wrappedStream.read();
         }

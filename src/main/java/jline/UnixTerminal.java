@@ -6,8 +6,12 @@
  */
 package jline;
 
-import java.io.*;
-import java.util.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.Map;
+import java.util.StringTokenizer;
 
 /**
  * <p>
@@ -22,7 +26,9 @@ import java.util.*;
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author Updates <a href="mailto:dwkemp@gmail.com">Dale Kemp</a> 2005-12-03
  */
-public class UnixTerminal extends Terminal {
+public class UnixTerminal
+    extends Terminal
+{
     public static final short ARROW_START = 27;
     public static final short ARROW_PREFIX = 91;
     public static final short ARROW_LEFT = 68;
@@ -41,7 +47,7 @@ public class UnixTerminal extends Terminal {
     private String ttyConfig;
     private boolean backspaceDeleteSwitched = false;
     private static String sttyCommand =
-            System.getProperty("jline.sttyCommand", "stty");
+        System.getProperty("jline.sttyCommand", "stty");
     private Thread shutdownHook;
 
 
@@ -52,7 +58,8 @@ public class UnixTerminal extends Terminal {
     public UnixTerminal() {
         try {
             replayReader = new InputStreamReader(replayStream, encoding);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
@@ -60,11 +67,13 @@ public class UnixTerminal extends Terminal {
     protected void checkBackspace() {
         String[] ttyConfigSplit = ttyConfig.split(":|=");
 
-        if (ttyConfigSplit.length < 7)
+        if (ttyConfigSplit.length < 7) {
             return;
+        }
 
-        if (ttyConfigSplit[6] == null)
+        if (ttyConfigSplit[6] == null) {
             return;
+        }
 
         backspaceDeleteSwitched = ttyConfigSplit[6].equals("7f");
     }
@@ -79,8 +88,8 @@ public class UnixTerminal extends Terminal {
 
         // sanity check
         if ((ttyConfig.length() == 0)
-                || ((ttyConfig.indexOf("=") == -1)
-                && (ttyConfig.indexOf(":") == -1))) {
+            || ((ttyConfig.indexOf("=") == -1)
+            && (ttyConfig.indexOf(":") == -1))) {
             throw new IOException("Unrecognized stty code: " + ttyConfig);
         }
 
@@ -95,18 +104,21 @@ public class UnixTerminal extends Terminal {
 
         // at exit, restore the original tty configuration (for JDK 1.3+)
         try {
-            Thread thread = new Thread() {
+            Thread thread = new Thread()
+            {
                 public void start() {
                     try {
                         restoreTerminal();
-                    } catch (Exception e) {
+                    }
+                    catch (Exception e) {
                         consumeException(e);
                     }
                 }
             };
             Runtime.getRuntime().addShutdownHook(thread);
             shutdownHook = thread;
-        } catch (AbstractMethodError ame) {
+        }
+        catch (AbstractMethodError ame) {
             // JDK 1.3+ only method. Bummer.
             consumeException(ame);
         }
@@ -127,10 +139,12 @@ public class UnixTerminal extends Terminal {
         if (shutdownHook != null) {
             try {
                 Runtime.getRuntime().removeShutdownHook(shutdownHook);
-            } catch (AbstractMethodError ame) {
+            }
+            catch (AbstractMethodError ame) {
                 // JDK 1.3+ only method. Bummer.
                 consumeException(ame);
-            } catch (IllegalStateException e) {
+            }
+            catch (IllegalStateException e) {
                 // The VM is shutting down, not a big deal
                 consumeException(e);
             }
@@ -142,11 +156,14 @@ public class UnixTerminal extends Terminal {
     public int readVirtualKey(InputStream in) throws IOException {
         int c = readCharacter(in);
 
-        if (backspaceDeleteSwitched)
-            if (c == DELETE)
+        if (backspaceDeleteSwitched) {
+            if (c == DELETE) {
                 c = '\b';
-            else if (c == '\b')
+            }
+            else if (c == '\b') {
                 c = DELETE;
+            }
+        }
 
         // in Unix terminals, arrow keys are represented by
         // a sequence of 3 characters. E.g., the up arrow
@@ -158,23 +175,30 @@ public class UnixTerminal extends Terminal {
             //this is a bugfix, because otherwise
             //pressing escape and than an arrow key
             //was an undefined state
-            while (c == ARROW_START)
+            while (c == ARROW_START) {
                 c = readCharacter(in);
+            }
             if (c == ARROW_PREFIX || c == O_PREFIX) {
                 c = readCharacter(in);
                 if (c == ARROW_UP) {
                     return CTRL_P;
-                } else if (c == ARROW_DOWN) {
+                }
+                else if (c == ARROW_DOWN) {
                     return CTRL_N;
-                } else if (c == ARROW_LEFT) {
+                }
+                else if (c == ARROW_LEFT) {
                     return CTRL_B;
-                } else if (c == ARROW_RIGHT) {
+                }
+                else if (c == ARROW_RIGHT) {
                     return CTRL_F;
-                } else if (c == HOME_CODE) {
+                }
+                else if (c == HOME_CODE) {
                     return CTRL_A;
-                } else if (c == END_CODE) {
+                }
+                else if (c == END_CODE) {
                     return CTRL_E;
-                } else if (c == DEL_THIRD) {
+                }
+                else if (c == DEL_THIRD) {
                     c = readCharacter(in); // read 4th
                     return DELETE;
                 }
@@ -220,7 +244,8 @@ public class UnixTerminal extends Terminal {
 
         try {
             val = getTerminalProperty("columns");
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
         }
 
         if (val == -1) {
@@ -243,7 +268,8 @@ public class UnixTerminal extends Terminal {
 
         try {
             val = getTerminalProperty("rows");
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
         }
 
         if (val == -1) {
@@ -254,7 +280,8 @@ public class UnixTerminal extends Terminal {
     }
 
     private static int getTerminalProperty(String prop)
-            throws IOException, InterruptedException {
+        throws IOException, InterruptedException
+    {
         // need to be able handle both output formats:
         // speed 9600 baud; 24 rows; 140 columns;
         // and:
@@ -269,7 +296,8 @@ public class UnixTerminal extends Terminal {
                 int index = str.lastIndexOf(" ");
 
                 return Integer.parseInt(str.substring(index).trim());
-            } else if (str.endsWith(prop)) {
+            }
+            else if (str.endsWith(prop)) {
                 int index = str.indexOf(" ");
 
                 return Integer.parseInt(str.substring(0, index).trim());
@@ -284,7 +312,8 @@ public class UnixTerminal extends Terminal {
      * against the current active terminal.
      */
     protected static String stty(final String args)
-            throws IOException, InterruptedException {
+        throws IOException, InterruptedException
+    {
         return exec("stty " + args + " < /dev/tty").trim();
     }
 
@@ -293,11 +322,12 @@ public class UnixTerminal extends Terminal {
      * (both stdout and stderr).
      */
     private static String exec(final String cmd)
-            throws IOException, InterruptedException {
+        throws IOException, InterruptedException
+    {
         return exec(new String[]{
-                "sh",
-                "-c",
-                cmd
+            "sh",
+            "-c",
+            cmd
         });
     }
 
@@ -306,7 +336,8 @@ public class UnixTerminal extends Terminal {
      * (both stdout and stderr).
      */
     private static String exec(final String[] cmd)
-            throws IOException, InterruptedException {
+        throws IOException, InterruptedException
+    {
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
 
         Process p = Runtime.getRuntime().exec(cmd);
@@ -357,7 +388,8 @@ public class UnixTerminal extends Terminal {
         try {
             stty("echo");
             echoEnabled = true;
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             consumeException(e);
         }
     }
@@ -366,7 +398,8 @@ public class UnixTerminal extends Terminal {
         try {
             stty("-echo");
             echoEnabled = false;
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             consumeException(e);
         }
     }
@@ -377,7 +410,9 @@ public class UnixTerminal extends Terminal {
      *
      * @author <a href="mailto:Marc.Herbert@continuent.com">Marc Herbert</a>
      */
-    static class ReplayPrefixOneCharInputStream extends InputStream {
+    static class ReplayPrefixOneCharInputStream
+        extends InputStream
+    {
         byte firstByte;
         int byteLength;
         InputStream wrappedStream;
@@ -395,37 +430,46 @@ public class UnixTerminal extends Terminal {
             this.wrappedStream = wrapped;
 
             byteLength = 1;
-            if (encoding.equalsIgnoreCase("UTF-8"))
+            if (encoding.equalsIgnoreCase("UTF-8")) {
                 setInputUTF8(recorded, wrapped);
-            else if (encoding.equalsIgnoreCase("UTF-16"))
+            }
+            else if (encoding.equalsIgnoreCase("UTF-16")) {
                 byteLength = 2;
-            else if (encoding.equalsIgnoreCase("UTF-32"))
+            }
+            else if (encoding.equalsIgnoreCase("UTF-32")) {
                 byteLength = 4;
+            }
         }
 
 
         public void setInputUTF8(int recorded, InputStream wrapped) throws IOException {
             // 110yyyyy 10zzzzzz
-            if ((firstByte & (byte) 0xE0) == (byte) 0xC0)
+            if ((firstByte & (byte) 0xE0) == (byte) 0xC0) {
                 this.byteLength = 2;
-                // 1110xxxx 10yyyyyy 10zzzzzz
-            else if ((firstByte & (byte) 0xF0) == (byte) 0xE0)
+            }
+            // 1110xxxx 10yyyyyy 10zzzzzz
+            else if ((firstByte & (byte) 0xF0) == (byte) 0xE0) {
                 this.byteLength = 3;
-                // 11110www 10xxxxxx 10yyyyyy 10zzzzzz
-            else if ((firstByte & (byte) 0xF8) == (byte) 0xF0)
+            }
+            // 11110www 10xxxxxx 10yyyyyy 10zzzzzz
+            else if ((firstByte & (byte) 0xF8) == (byte) 0xF0) {
                 this.byteLength = 4;
-            else
+            }
+            else {
                 throw new IOException("invalid UTF-8 first byte: " + firstByte);
+            }
         }
 
         public int read() throws IOException {
-            if (available() == 0)
+            if (available() == 0) {
                 return -1;
+            }
 
             byteRead++;
 
-            if (byteRead == 1)
+            if (byteRead == 1) {
                 return firstByte;
+            }
 
             return wrappedStream.read();
         }

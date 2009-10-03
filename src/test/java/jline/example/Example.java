@@ -6,36 +6,37 @@
  */
 package jline.example;
 
-import jline.completer.*;
-import jline.completer.FileNameCompleter;
-import jline.completer.SimpleCompleter;
+import jline.console.completer.*;
+import jline.console.completer.FileNameCompleter;
+import jline.console.completer.SimpleCompleter;
 import jline.console.ConsoleReader;
 
 import java.io.*;
 import java.util.*;
 import java.util.zip.*;
 
-public class Example {
+public class Example
+{
     public static void usage() {
         System.out.println("Usage: java " + Example.class.getName()
-                + " [none/simple/files/dictionary [trigger mask]]");
+            + " [none/simple/files/dictionary [trigger mask]]");
         System.out.println("  none - no completors");
         System.out.println("  simple - a simple completor that comples "
-                + "\"foo\", \"bar\", and \"baz\"");
+            + "\"foo\", \"bar\", and \"baz\"");
         System.out
-                .println("  files - a completor that comples " + "file names");
+            .println("  files - a completor that comples " + "file names");
         System.out.println("  dictionary - a completor that comples "
-                + "english dictionary words");
+            + "english dictionary words");
         System.out.println("  classes - a completor that comples "
-                + "java class names");
+            + "java class names");
         System.out
-                .println("  trigger - a special word which causes it to assume "
-                        + "the next line is a password");
+            .println("  trigger - a special word which causes it to assume "
+                + "the next line is a password");
         System.out.println("  mask - is the character to print in place of "
-                + "the actual password character");
+            + "the actual password character");
         System.out.println("\n  E.g - java Example simple su '*'\n"
-                + "will use the simple compleator with 'su' triggering\n"
-                + "the use of '*' as a password mask.");
+            + "will use the simple compleator with 'su' triggering\n"
+            + "the use of '*' as a password mask.");
     }
 
     public static void main(String[] args) throws IOException {
@@ -56,17 +57,22 @@ public class Example {
 
         if (args.length > 0) {
             if (args[0].equals("none")) {
-            } else if (args[0].equals("files")) {
+            }
+            else if (args[0].equals("files")) {
                 completors.add(new FileNameCompleter());
-            } else if (args[0].equals("classes")) {
+            }
+            else if (args[0].equals("classes")) {
                 completors.add(new ClassNameCompleter());
-            } else if (args[0].equals("dictionary")) {
+            }
+            else if (args[0].equals("dictionary")) {
                 completors.add(new SimpleCompleter(new GZIPInputStream(
-                        Example.class.getResourceAsStream("english.gz"))));
-            } else if (args[0].equals("simple")) {
-                completors.add(new SimpleCompleter(new String[] { "foo", "bar",
-                        "baz" }));
-            } else {
+                    Example.class.getResourceAsStream("english.gz"))));
+            }
+            else if (args[0].equals("simple")) {
+                completors.add(new SimpleCompleter(new String[]{"foo", "bar",
+                    "baz"}));
+            }
+            else {
                 usage();
 
                 return;

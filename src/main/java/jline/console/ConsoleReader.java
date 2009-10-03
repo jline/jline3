@@ -6,16 +6,39 @@
  */
 package jline.console;
 
-import jline.*;
-import jline.completer.Completer;
+import jline.Terminal;
+import jline.console.completer.CandidateListCompletionHandler;
+import jline.console.completer.Completer;
+import jline.console.completer.CompletionHandler;
 
 import java.awt.*;
-import java.awt.datatransfer.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionListener;
-
-import java.io.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.io.Reader;
+import java.io.Writer;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.ResourceBundle;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 /**
  * A reader for console applications. It supports custom tab-completion,
@@ -26,7 +49,9 @@ import java.util.List;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class ConsoleReader implements ConsoleOperations {
+public class ConsoleReader
+    implements ConsoleOperations
+{
 
     final static int TAB_WIDTH = 4;
 
@@ -39,7 +64,7 @@ public class ConsoleReader implements ConsoleOperations {
     public static final String CR = System.getProperty("line.separator");
 
     private static ResourceBundle loc = ResourceBundle
-            .getBundle(CandidateListCompletionHandler.class.getName());
+        .getBundle(CandidateListCompletionHandler.class.getName());
 
     /**
      * Map that contains the operation name to keymay operation mapping.
@@ -125,7 +150,7 @@ public class ConsoleReader implements ConsoleOperations {
      * prompted before showing all the candidates.
      */
     private int autoprintThreshhold = Integer.getInteger(
-            "jline.completion.threshold", 100).intValue(); // same default as
+        "jline.completion.threshold", 100).intValue(); // same default as
 
     // bash
 
@@ -175,9 +200,9 @@ public class ConsoleReader implements ConsoleOperations {
      */
     public ConsoleReader() throws IOException {
         this(new FileInputStream(FileDescriptor.in),
-                new PrintWriter(
-                        new OutputStreamWriter(System.out,
-                                System.getProperty("jline.WindowsTerminal.output.encoding", System.getProperty("file.encoding")))));
+            new PrintWriter(
+                new OutputStreamWriter(System.out,
+                    System.getProperty("jline.WindowsTerminal.output.encoding", System.getProperty("file.encoding")))));
     }
 
     /**
@@ -185,12 +210,14 @@ public class ConsoleReader implements ConsoleOperations {
      * the specific writer for output, using the default keybindings resource.
      */
     public ConsoleReader(final InputStream in, final Writer out)
-            throws IOException {
+        throws IOException
+    {
         this(in, out, null);
     }
 
     public ConsoleReader(final InputStream in, final Writer out,
-                         final InputStream bindings) throws IOException {
+                         final InputStream bindings) throws IOException
+    {
         this(in, out, bindings, Terminal.getTerminal());
     }
 
@@ -203,20 +230,22 @@ public class ConsoleReader implements ConsoleOperations {
      * @param term     the terminal to use
      */
     public ConsoleReader(InputStream in, Writer out, InputStream bindings,
-                         Terminal term) throws IOException {
+                         Terminal term) throws IOException
+    {
         this.terminal = term;
         setInput(in);
         this.out = out;
         if (bindings == null) {
             try {
                 String bindingFile = System.getProperty("jline.keybindings",
-                        new File(System.getProperty("user.home",
-                                ".jlinebindings.properties")).getAbsolutePath());
+                    new File(System.getProperty("user.home",
+                        ".jlinebindings.properties")).getAbsolutePath());
 
                 if (new File(bindingFile).isFile()) {
                     bindings = new FileInputStream(new File(bindingFile));
                 }
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 // swallow exceptions with option debugging
                 if (debugger != null) {
                     e.printStackTrace(debugger);
@@ -254,7 +283,8 @@ public class ConsoleReader implements ConsoleOperations {
                     if (opval != null) {
                         keybindings[code.shortValue()] = opval.shortValue();
                     }
-                } catch (NumberFormatException nfe) {
+                }
+                catch (NumberFormatException nfe) {
                     consumeException(nfe);
                 }
             }
@@ -407,26 +437,31 @@ public class ConsoleReader implements ConsoleOperations {
         if (ch >= 32) {
             if (ch < 127) {
                 sbuff.append(ch);
-            } else if (ch == 127) {
+            }
+            else if (ch == 127) {
                 sbuff.append('^');
                 sbuff.append('?');
-            } else {
+            }
+            else {
                 sbuff.append('M');
                 sbuff.append('-');
 
                 if (ch >= (128 + 32)) {
                     if (ch < (128 + 127)) {
                         sbuff.append((char) (ch - 128));
-                    } else {
+                    }
+                    else {
                         sbuff.append('^');
                         sbuff.append('?');
                     }
-                } else {
+                }
+                else {
                     sbuff.append('^');
                     sbuff.append((char) (ch - 128 + 64));
                 }
             }
-        } else {
+        }
+        else {
             sbuff.append('^');
             sbuff.append((char) (ch + 64));
         }
@@ -467,10 +502,12 @@ public class ConsoleReader implements ConsoleOperations {
      *         input (e.g., <i>CTRL-D</i> was pressed).
      */
     public String readLine(final String prompt, final Character mask)
-            throws IOException {
+        throws IOException
+    {
         this.mask = mask;
-        if (prompt != null)
+        if (prompt != null) {
             this.prompt = prompt;
+        }
 
         try {
             terminal.beforeReadLine(this, this.prompt, mask);
@@ -583,14 +620,16 @@ public class ConsoleReader implements ConsoleOperations {
 
                     case START_OF_HISTORY:
                         success = history.moveToFirstEntry();
-                        if (success)
+                        if (success) {
                             setBuffer(history.current());
+                        }
                         break;
 
                     case END_OF_HISTORY:
                         success = history.moveToLastEntry();
-                        if (success)
+                        if (success) {
                             setBuffer(history.current());
+                        }
                         break;
 
                     case CLEAR_LINE:
@@ -606,12 +645,16 @@ public class ConsoleReader implements ConsoleOperations {
                     default:
                         if (c != 0) { // ignore null chars
                             ActionListener action = (ActionListener) triggeredActions.get(new Character((char) c));
-                            if (action != null)
+                            if (action != null) {
                                 action.actionPerformed(null);
-                            else
+                            }
+                            else {
                                 putChar(c, true);
-                        } else
+                            }
+                        }
+                        else {
                             success = false;
+                        }
                 }
 
                 if (!(success)) {
@@ -620,7 +663,8 @@ public class ConsoleReader implements ConsoleOperations {
 
                 flushConsole();
             }
-        } finally {
+        }
+        finally {
             terminal.afterReadLine(this, this.prompt, mask);
         }
     }
@@ -668,7 +712,8 @@ public class ConsoleReader implements ConsoleOperations {
     private final boolean moveHistory(final boolean next) throws IOException {
         if (next && !history.next()) {
             return false;
-        } else if (!next && !history.previous()) {
+        }
+        else if (!next && !history.previous()) {
             return false;
         }
 
@@ -686,7 +731,8 @@ public class ConsoleReader implements ConsoleOperations {
         Clipboard clipboard;
         try { // May throw ugly exception on system without X
             clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             return false;
         }
 
@@ -702,7 +748,7 @@ public class ConsoleReader implements ConsoleOperations {
 
         try {
             Object content = transferable
-                    .getTransferData(DataFlavor.plainTextFlavor);
+                .getTransferData(DataFlavor.plainTextFlavor);
 
             /*
              * This fix was suggested in bug #1060649 at
@@ -713,7 +759,8 @@ public class ConsoleReader implements ConsoleOperations {
             if (content == null) {
                 try {
                     content = new DataFlavor().getReaderForText(transferable);
-                } catch (Exception e) {
+                }
+                catch (Exception e) {
                 }
             }
 
@@ -731,14 +778,15 @@ public class ConsoleReader implements ConsoleOperations {
                 String line = null;
 
                 for (BufferedReader read = new BufferedReader((Reader) content); (line = read
-                        .readLine()) != null;) {
+                    .readLine()) != null;) {
                     if (value.length() > 0) {
                         value += "\n";
                     }
 
                     value += line;
                 }
-            } else {
+            }
+            else {
                 value = content.toString();
             }
 
@@ -749,9 +797,11 @@ public class ConsoleReader implements ConsoleOperations {
             putString(value);
 
             return true;
-        } catch (UnsupportedFlavorException ufe) {
-            if (debugger != null)
+        }
+        catch (UnsupportedFlavorException ufe) {
+            if (debugger != null) {
                 debug(ufe + "");
+            }
 
             return false;
         }
@@ -852,7 +902,7 @@ public class ConsoleReader implements ConsoleOperations {
         int maxwidth = 0;
 
         for (Iterator i = stuff.iterator(); i.hasNext(); maxwidth = Math.max(
-                maxwidth, i.next().toString().length())) {
+            maxwidth, i.next().toString().length())) {
             ;
         }
 
@@ -860,10 +910,12 @@ public class ConsoleReader implements ConsoleOperations {
 
         int showLines;
 
-        if (usePagination)
+        if (usePagination) {
             showLines = getTermheight() - 1; // page limit
-        else
+        }
+        else {
             showLines = Integer.MAX_VALUE;
+        }
 
         for (Iterator i = stuff.iterator(); i.hasNext();) {
             String cur = (String) i.next();
@@ -876,14 +928,17 @@ public class ConsoleReader implements ConsoleOperations {
                     printString(loc.getString("display-more"));
                     flushConsole();
                     int c = readVirtualKey();
-                    if (c == '\r' || c == '\n')
+                    if (c == '\r' || c == '\n') {
                         showLines = 1; // one step forward
-                    else if (c != 'q')
-                        showLines = getTermheight() - 1; // page forward
+                    }
+                    else if (c != 'q') {
+                        showLines = getTermheight() - 1;
+                    } // page forward
 
                     back(loc.getString("display-more").length());
-                    if (c == 'q')
-                        break; // cancel
+                    if (c == 'q') {
+                        break;
+                    } // cancel
                 }
             }
 
@@ -907,7 +962,8 @@ public class ConsoleReader implements ConsoleOperations {
      *                 {@link String}.
      */
     private final void pad(final String toPad, final int len,
-                           final StringBuffer appendTo) {
+                           final StringBuffer appendTo)
+    {
         appendTo.append(toPad);
 
         for (int i = 0; i < (len - toPad.length()); i++, appendTo.append(' ')) {
@@ -916,10 +972,10 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     * Add the specified {@link jline.completer.Completer} to the list of handlers for
+     * Add the specified {@link jline.console.completer.Completer} to the list of handlers for
      * tab-completion.
      *
-     * @param completer the {@link jline.completer.Completer} to add
+     * @param completer the {@link jline.console.completer.Completer} to add
      * @return true if it was successfully added
      */
     public boolean addCompletor(final Completer completer) {
@@ -927,10 +983,10 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     * Remove the specified {@link jline.completer.Completer} from the list of handlers for
+     * Remove the specified {@link jline.console.completer.Completer} from the list of handlers for
      * tab-completion.
      *
-     * @param completer the {@link jline.completer.Completer} to remove
+     * @param completer the {@link jline.console.completer.Completer} to remove
      * @return true if it was successfully removed
      */
     public boolean removeCompletor(final Completer completer) {
@@ -963,7 +1019,8 @@ public class ConsoleReader implements ConsoleOperations {
      * Move the cursor position to the specified absolute index.
      */
     public final boolean setCursorPosition(final int position)
-            throws IOException {
+        throws IOException
+    {
         return moveCursor(position - buf.cursor) != 0;
     }
 
@@ -983,10 +1040,11 @@ public class ConsoleReader implements ConsoleOperations {
         int sameIndex = 0;
 
         for (int i = 0, l1 = buffer.length(), l2 = buf.buffer.length(); (i < l1)
-                && (i < l2); i++) {
+            && (i < l2); i++) {
             if (buffer.charAt(i) == buf.buffer.charAt(i)) {
                 sameIndex++;
-            } else {
+            }
+            else {
                 break;
             }
         }
@@ -1019,7 +1077,9 @@ public class ConsoleReader implements ConsoleOperations {
         printString(buf.buffer.toString());
 
         if (buf.length() != buf.cursor) // not at end of line
-            back(buf.length() - buf.cursor); // sync
+        {
+            back(buf.length() - buf.cursor);
+        } // sync
     }
 
     /**
@@ -1044,7 +1104,8 @@ public class ConsoleReader implements ConsoleOperations {
         if (str.length() > 0) {
             if (mask == null && useHistory) {
                 history.addToHistory(str);
-            } else {
+            }
+            else {
                 mask = null;
             }
         }
@@ -1077,7 +1138,8 @@ public class ConsoleReader implements ConsoleOperations {
      * Output the specified character, both to the buffer and the output stream.
      */
     private final void putChar(final int c, final boolean print)
-            throws IOException {
+        throws IOException
+    {
         buf.write((char) c);
 
         if (print) {
@@ -1107,8 +1169,9 @@ public class ConsoleReader implements ConsoleOperations {
     private final void drawBuffer(final int clear) throws IOException {
         // debug ("drawBuffer: " + clear);
         char[] chars = buf.buffer.substring(buf.cursor).toCharArray();
-        if (mask != null)
+        if (mask != null) {
             Arrays.fill(chars, mask.charValue());
+        }
 
         printCharacters(chars);
 
@@ -1191,15 +1254,19 @@ public class ConsoleReader implements ConsoleOperations {
      */
     private final void printCharacters(final char[] c) throws IOException {
         int len = 0;
-        for (int i = 0; i < c.length; i++)
-            if (c[i] == '\t')
+        for (int i = 0; i < c.length; i++) {
+            if (c[i] == '\t') {
                 len += TAB_WIDTH;
-            else
+            }
+            else {
                 len++;
+            }
+        }
 
         char cbuf[];
-        if (len == c.length)
+        if (len == c.length) {
             cbuf = c;
+        }
         else {
             cbuf = new char[len];
             int pos = 0;
@@ -1207,7 +1274,8 @@ public class ConsoleReader implements ConsoleOperations {
                 if (c[i] == '\t') {
                     Arrays.fill(cbuf, pos, pos + TAB_WIDTH, ' ');
                     pos += TAB_WIDTH;
-                } else {
+                }
+                else {
                     cbuf[pos] = c[i];
                     pos++;
                 }
@@ -1218,10 +1286,12 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     private final void printCharacters(final char c, final int num)
-            throws IOException {
+        throws IOException
+    {
         if (num == 1) {
             printCharacter(c);
-        } else {
+        }
+        else {
             char[] chars = new char[num];
             Arrays.fill(chars, c);
             printCharacters(chars);
@@ -1357,7 +1427,8 @@ public class ConsoleReader implements ConsoleOperations {
 
         if ((buf.cursor + where) < 0) {
             where = -buf.cursor;
-        } else if ((buf.cursor + where) > buf.buffer.length()) {
+        }
+        else if ((buf.cursor + where) > buf.buffer.length()) {
             where = buf.buffer.length() - buf.cursor;
         }
 
@@ -1395,10 +1466,12 @@ public class ConsoleReader implements ConsoleOperations {
         if (where < 0) {
             int len = 0;
             for (int i = buf.cursor; i < buf.cursor - where; i++) {
-                if (buf.getBuffer().charAt(i) == '\t')
+                if (buf.getBuffer().charAt(i) == '\t') {
                     len += TAB_WIDTH;
-                else
+                }
+                else {
                     len++;
+                }
             }
 
             char cbuf[] = new char[len];
@@ -1406,11 +1479,14 @@ public class ConsoleReader implements ConsoleOperations {
             out.write(cbuf);
 
             return;
-        } else if (buf.cursor == 0) {
+        }
+        else if (buf.cursor == 0) {
             return;
-        } else if (mask != null) {
+        }
+        else if (mask != null) {
             c = mask.charValue();
-        } else {
+        }
+        else {
             printCharacters(buf.buffer.substring(buf.cursor - where, buf.cursor).toCharArray());
             return;
         }
@@ -1448,8 +1524,9 @@ public class ConsoleReader implements ConsoleOperations {
 
         Arrays.sort(allowed); // always need to sort before binarySearch
 
-        while (Arrays.binarySearch(allowed, c = (char) readVirtualKey()) < 0)
+        while (Arrays.binarySearch(allowed, c = (char) readVirtualKey()) < 0) {
             ;
+        }
 
         return c;
     }
@@ -1461,7 +1538,8 @@ public class ConsoleReader implements ConsoleOperations {
      * @return the number of characters backed up
      */
     private final int delete(final int num)
-            throws IOException {
+        throws IOException
+    {
         /* Commented out beacuse of DWA-2949:
 if (buf.cursor == 0)
        return 0;*/
@@ -1478,7 +1556,8 @@ if (buf.cursor == 0)
             moveCursor(-num);
             drawBuffer(Math.max(0, num - replacement.length()));
             moveCursor(replacement.length());
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             e.printStackTrace();
             return false;
         }
@@ -1491,7 +1570,8 @@ if (buf.cursor == 0)
      * @return true if successful
      */
     public final boolean delete()
-            throws IOException {
+        throws IOException
+    {
         return delete(1) == 1;
     }
 

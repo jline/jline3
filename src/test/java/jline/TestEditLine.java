@@ -10,11 +10,13 @@ import jline.console.ConsoleReader;
 
 
 /**
- *  Tests various features of editing lines.
+ * Tests various features of editing lines.
  *
- *  @author  <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class TestEditLine extends JLineTestCase {
+public class TestEditLine
+    extends JLineTestCase
+{
     public TestEditLine(String test) {
         super(test);
     }
@@ -34,68 +36,68 @@ public class TestEditLine extends JLineTestCase {
         Buffer b = new Buffer("This is a test");
 
         assertBuffer("This is a XtestX",
-                     new Buffer("This is a test").op(ConsoleReader.PREV_WORD)
-                                                 .append('X')
-                                                 .op(ConsoleReader.MOVE_TO_END)
-                                                 .append('X'));
+            new Buffer("This is a test").op(ConsoleReader.PREV_WORD)
+                .append('X')
+                .op(ConsoleReader.MOVE_TO_END)
+                .append('X'));
 
         assertBuffer("This is Xa testX",
-                     new Buffer("This is a test").op(ConsoleReader.PREV_WORD)
-                                                 .op(ConsoleReader.PREV_WORD)
-                                                 .append('X')
-                                                 .op(ConsoleReader.MOVE_TO_END)
-                                                 .append('X'));
+            new Buffer("This is a test").op(ConsoleReader.PREV_WORD)
+                .op(ConsoleReader.PREV_WORD)
+                .append('X')
+                .op(ConsoleReader.MOVE_TO_END)
+                .append('X'));
 
         assertBuffer("This Xis a testX",
-                     new Buffer("This is a test").op(ConsoleReader.PREV_WORD)
-                                                 .op(ConsoleReader.PREV_WORD)
-                                                 .op(ConsoleReader.PREV_WORD)
-                                                 .append('X')
-                                                 .op(ConsoleReader.MOVE_TO_END)
-                                                 .append('X'));
+            new Buffer("This is a test").op(ConsoleReader.PREV_WORD)
+                .op(ConsoleReader.PREV_WORD)
+                .op(ConsoleReader.PREV_WORD)
+                .append('X')
+                .op(ConsoleReader.MOVE_TO_END)
+                .append('X'));
     }
 
     public void testPreviousWord() throws Exception {
         assertBuffer("This is a Xtest",
-                     new Buffer("This is a test").op(ConsoleReader.PREV_WORD)
-                                                 .append('X'));
+            new Buffer("This is a test").op(ConsoleReader.PREV_WORD)
+                .append('X'));
         assertBuffer("This is Xa test",
-                     new Buffer("This is a test").op(ConsoleReader.PREV_WORD)
-                                                 .op(ConsoleReader.PREV_WORD)
-                                                 .append('X'));
+            new Buffer("This is a test").op(ConsoleReader.PREV_WORD)
+                .op(ConsoleReader.PREV_WORD)
+                .append('X'));
         assertBuffer("This Xis a test",
-                     new Buffer("This is a test").op(ConsoleReader.PREV_WORD)
-                                                 .op(ConsoleReader.PREV_WORD)
-                                                 .op(ConsoleReader.PREV_WORD)
-                                                 .append('X'));
+            new Buffer("This is a test").op(ConsoleReader.PREV_WORD)
+                .op(ConsoleReader.PREV_WORD)
+                .op(ConsoleReader.PREV_WORD)
+                .append('X'));
         assertBuffer("XThis is a test",
-                     new Buffer("This is a test").op(ConsoleReader.PREV_WORD)
-                                                 .op(ConsoleReader.PREV_WORD)
-                                                 .op(ConsoleReader.PREV_WORD)
-                                                 .op(ConsoleReader.PREV_WORD)
-                                                 .append('X'));
+            new Buffer("This is a test").op(ConsoleReader.PREV_WORD)
+                .op(ConsoleReader.PREV_WORD)
+                .op(ConsoleReader.PREV_WORD)
+                .op(ConsoleReader.PREV_WORD)
+                .append('X'));
         assertBuffer("XThis is a test",
-                     new Buffer("This is a test").op(ConsoleReader.PREV_WORD)
-                                                 .op(ConsoleReader.PREV_WORD)
-                                                 .op(ConsoleReader.PREV_WORD)
-                                                 .op(ConsoleReader.PREV_WORD)
-                                                 .op(ConsoleReader.PREV_WORD)
-                                                 .append('X'));
+            new Buffer("This is a test").op(ConsoleReader.PREV_WORD)
+                .op(ConsoleReader.PREV_WORD)
+                .op(ConsoleReader.PREV_WORD)
+                .op(ConsoleReader.PREV_WORD)
+                .op(ConsoleReader.PREV_WORD)
+                .append('X'));
         assertBuffer("XThis is a test",
-                     new Buffer("This is a test").op(ConsoleReader.PREV_WORD)
-                                                 .op(ConsoleReader.PREV_WORD)
-                                                 .op(ConsoleReader.PREV_WORD)
-                                                 .op(ConsoleReader.PREV_WORD)
-                                                 .op(ConsoleReader.PREV_WORD)
-                                                 .op(ConsoleReader.PREV_WORD)
-                                                 .append('X'));
+            new Buffer("This is a test").op(ConsoleReader.PREV_WORD)
+                .op(ConsoleReader.PREV_WORD)
+                .op(ConsoleReader.PREV_WORD)
+                .op(ConsoleReader.PREV_WORD)
+                .op(ConsoleReader.PREV_WORD)
+                .op(ConsoleReader.PREV_WORD)
+                .append('X'));
     }
 
     public void testLineStart() throws Exception {
         assertBuffer("XThis is a test",
-                     new Buffer("This is a test").ctrlA().append('X'));
+            new Buffer("This is a test").ctrlA().append('X'));
         assertBuffer("TXhis is a test",
-                     new Buffer("This is a test").ctrlA().right().append('X'));
+            new Buffer("This is a test").ctrlA().right().append('X'));
     }
 
     public void testClearLine() throws Exception {

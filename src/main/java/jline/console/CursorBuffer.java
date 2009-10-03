@@ -12,7 +12,8 @@ package jline.console;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class CursorBuffer {
+public class CursorBuffer
+{
     public int cursor = 0;
 
     StringBuffer buffer = new StringBuffer();
@@ -64,7 +65,8 @@ public class CursorBuffer {
     public void write(final String str) {
         if (buffer.length() == 0) {
             buffer.append(str);
-        } else {
+        }
+        else {
             buffer.insert(cursor, str);
         }
 

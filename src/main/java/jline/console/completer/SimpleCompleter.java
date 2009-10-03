@@ -4,12 +4,21 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  */
-package jline.completer;
+package jline.console.completer;
 
-import jline.completer.Completer;
-
-import java.io.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.SortedSet;
+import java.util.StringTokenizer;
+import java.util.TreeSet;
 
 /**
  * <p>
@@ -26,7 +35,9 @@ import java.util.*;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class SimpleCompleter implements Completer, Cloneable {
+public class SimpleCompleter
+    implements Completer, Cloneable
+{
     /**
      * The list of candidates that will be completed.
      */
@@ -44,7 +55,7 @@ public class SimpleCompleter implements Completer, Cloneable {
      */
     public SimpleCompleter(final String candidateString) {
         this(new String[]{
-                candidateString
+            candidateString
         });
     }
 
@@ -57,7 +68,8 @@ public class SimpleCompleter implements Completer, Cloneable {
     }
 
     public SimpleCompleter(final String[] strings,
-                           final SimpleCompletorFilter filter) {
+                           final SimpleCompletorFilter filter)
+    {
         this.filter = filter;
         setCandidateStrings(strings);
     }
@@ -78,9 +90,10 @@ public class SimpleCompleter implements Completer, Cloneable {
     }
 
     private static String[] getStrings(final Reader in)
-            throws IOException {
+        throws IOException
+    {
         final Reader reader =
-                (in instanceof BufferedReader) ? in : new BufferedReader(in);
+            (in instanceof BufferedReader) ? in : new BufferedReader(in);
 
         List words = new LinkedList();
         String line;
@@ -149,7 +162,8 @@ public class SimpleCompleter implements Completer, Cloneable {
             }
 
             this.candidates = filtered;
-        } else {
+        }
+        else {
             this.candidates = candidates;
         }
     }
@@ -164,7 +178,7 @@ public class SimpleCompleter implements Completer, Cloneable {
 
     public void addCandidateString(final String candidateString) {
         final String string =
-                (filter == null) ? candidateString : filter.filter(candidateString);
+            (filter == null) ? candidateString : filter.filter(candidateString);
 
         if (string != null) {
             candidates.add(string);
@@ -180,7 +194,8 @@ public class SimpleCompleter implements Completer, Cloneable {
      *
      * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
      */
-    public static interface SimpleCompletorFilter {
+    public static interface SimpleCompletorFilter
+    {
         /**
          * Filter the specified String. To not filter it, return the
          * same String as the parameter. To exclude it, return null.
@@ -188,7 +203,9 @@ public class SimpleCompleter implements Completer, Cloneable {
         public String filter(String element);
     }
 
-    public static class NoOpFilter implements SimpleCompletorFilter {
+    public static class NoOpFilter
+        implements SimpleCompletorFilter
+    {
         public String filter(final String element) {
             return element;
         }

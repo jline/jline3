@@ -6,8 +6,10 @@
  */
 package jline.console;
 
-import java.io.*;
-import java.util.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.SequenceInputStream;
+import java.util.Enumeration;
 
 /**
  * An {@link InputStream} implementation that wraps a {@link ConsoleReader}.
@@ -16,7 +18,9 @@ import java.util.*;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class ConsoleReaderInputStream extends SequenceInputStream {
+public class ConsoleReaderInputStream
+    extends SequenceInputStream
+{
     private static InputStream systemIn = System.in;
 
     public static void setIn() throws IOException {
@@ -38,7 +42,9 @@ public class ConsoleReaderInputStream extends SequenceInputStream {
         super(new ConsoleEnumeration(reader));
     }
 
-    private static class ConsoleEnumeration implements Enumeration {
+    private static class ConsoleEnumeration
+        implements Enumeration
+    {
         private final ConsoleReader reader;
         private ConsoleLineInputStream next = null;
         private ConsoleLineInputStream prev = null;
@@ -73,7 +79,9 @@ public class ConsoleReaderInputStream extends SequenceInputStream {
         }
     }
 
-    private static class ConsoleLineInputStream extends InputStream {
+    private static class ConsoleLineInputStream
+        extends InputStream
+    {
         private final ConsoleReader reader;
         private String line = null;
         private int index = 0;

@@ -6,19 +6,21 @@
  */
 package jline;
 
-import jline.completer.ArgumentCompleter;
-import jline.completer.Completer;
-import jline.completer.SimpleCompleter;
+import jline.console.completer.ArgumentCompleter;
+import jline.console.completer.Completer;
+import jline.console.completer.SimpleCompleter;
 import jline.console.ConsoleReader;
 
 import java.util.*;
 
 /**
- *  Tests command history.
+ * Tests command history.
  *
- *  @author  <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class TestCompletion extends JLineTestCase {
+public class TestCompletion
+    extends JLineTestCase
+{
     public TestCompletion(String test) {
         super(test);
     }
@@ -26,12 +28,12 @@ public class TestCompletion extends JLineTestCase {
     public void testSimpleCompletor() throws Exception {
         // clear any current completors
         for (Iterator i = console.getCompletors().iterator(); i.hasNext();
-                 console.removeCompletor((Completer) i.next())) {
+             console.removeCompletor((Completer) i.next())) {
             ;
         }
 
         console.addCompletor
-            (new SimpleCompleter(new String[] { "foo", "bar", "baz" }));
+            (new SimpleCompleter(new String[]{"foo", "bar", "baz"}));
 
         assertBuffer("foo ", new Buffer("f").op(ConsoleReader.COMPLETE));
         // single tab completes to unabbiguous "ba"
@@ -43,12 +45,12 @@ public class TestCompletion extends JLineTestCase {
     public void testArgumentCompletor() throws Exception {
         // clear any current completors
         for (Iterator i = console.getCompletors().iterator(); i.hasNext();
-                 console.removeCompletor((Completer) i.next())) {
+             console.removeCompletor((Completer) i.next())) {
             ;
         }
 
         console.addCompletor(new ArgumentCompleter
-            (new SimpleCompleter(new String[] { "foo", "bar", "baz" })));
+            (new SimpleCompleter(new String[]{"foo", "bar", "baz"})));
 
         assertBuffer("foo foo ", new Buffer("foo f").
             op(ConsoleReader.COMPLETE));

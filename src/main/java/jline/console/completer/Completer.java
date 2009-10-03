@@ -4,9 +4,9 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  */
-package jline.completer;
+package jline.console.completer;
 
-import java.util.*;
+import java.util.List;
 
 /**
  * A Completor is the mechanism by which tab-completion candidates
@@ -14,7 +14,8 @@ import java.util.*;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public interface Completer {
+public interface Completer
+{
     /**
      * Populates <i>candidates</i> with a list of possible
      * completions for the <i>buffer</i>. The <i>candidates</i>

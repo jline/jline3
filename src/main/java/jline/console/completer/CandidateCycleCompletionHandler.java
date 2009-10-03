@@ -4,12 +4,12 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  */
-package jline.console;
+package jline.console.completer;
 
 import jline.console.ConsoleReader;
 
-import java.io.*;
-import java.util.*;
+import java.io.IOException;
+import java.util.List;
 
 /**
  * <p>
@@ -23,9 +23,12 @@ import java.util.*;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class CandidateCycleCompletionHandler implements CompletionHandler {
+public class CandidateCycleCompletionHandler
+    implements CompletionHandler
+{
     public boolean complete(final ConsoleReader reader, final List candidates,
-                            final int position) throws IOException {
+                            final int position) throws IOException
+    {
         throw new IllegalStateException("CandidateCycleCompletionHandler unimplemented");
     }
 }

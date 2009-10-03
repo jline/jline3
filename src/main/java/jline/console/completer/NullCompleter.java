@@ -4,11 +4,9 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  */
-package jline.completer;
+package jline.console.completer;
 
-import jline.completer.Completer;
-
-import java.util.*;
+import java.util.List;
 
 /**
  * <p>
@@ -18,7 +16,9 @@ import java.util.*;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class NullCompleter implements Completer {
+public class NullCompleter
+    implements Completer
+{
     /**
      * Returns -1 always, indicating that the the buffer is never
      * handled.

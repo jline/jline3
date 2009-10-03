@@ -9,7 +9,8 @@ package jline;
 import jline.console.ConsoleOperations;
 import jline.console.ConsoleReader;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * Representation of the input terminal for a platform. Handles
@@ -19,7 +20,9 @@ import java.io.*;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public abstract class Terminal implements ConsoleOperations {
+public abstract class Terminal
+    implements ConsoleOperations
+{
     private static Terminal term;
 
     /**
@@ -64,19 +67,23 @@ public abstract class Terminal implements ConsoleOperations {
         if ((termProp != null) && (termProp.length() > 0)) {
             try {
                 t = (Terminal) Class.forName(termProp).newInstance();
-            } catch (Exception e) {
-                throw (IllegalArgumentException) new IllegalArgumentException(e
-                        .toString()).fillInStackTrace();
             }
-        } else if (os.indexOf("windows") != -1) {
+            catch (Exception e) {
+                throw (IllegalArgumentException) new IllegalArgumentException(e
+                    .toString()).fillInStackTrace();
+            }
+        }
+        else if (os.indexOf("windows") != -1) {
             t = new WindowsTerminal();
-        } else {
+        }
+        else {
             t = new UnixTerminal();
         }
 
         try {
             t.initializeTerminal();
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
 
             return term = new UnsupportedTerminal();
@@ -155,14 +162,16 @@ public abstract class Terminal implements ConsoleOperations {
      * Invokes before the console reads a line with the prompt and mask.
      */
     public void beforeReadLine(ConsoleReader reader, String prompt,
-                               Character mask) {
+                               Character mask)
+    {
     }
 
     /**
      * Invokes after the console reads a line with the prompt and mask.
      */
     public void afterReadLine(ConsoleReader reader, String prompt,
-                              Character mask) {
+                              Character mask)
+    {
     }
 
     /**

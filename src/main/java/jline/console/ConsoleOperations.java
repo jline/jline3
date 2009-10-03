@@ -14,7 +14,8 @@ import java.awt.event.KeyEvent;
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @see KeyEvent
  */
-public interface ConsoleOperations {
+public interface ConsoleOperations
+{
     final String CR = System.getProperty("line.separator");
     final char BACKSPACE = '\b';
     final char RESET_LINE = '\r';

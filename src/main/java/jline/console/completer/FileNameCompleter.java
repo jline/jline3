@@ -4,12 +4,11 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  */
-package jline.completer;
+package jline.console.completer;
 
-import jline.completer.Completer;
-
-import java.io.*;
-import java.util.*;
+import java.io.File;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * A file name completor takes the buffer and issues a list of
@@ -36,9 +35,12 @@ import java.util.*;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class FileNameCompleter implements Completer {
+public class FileNameCompleter
+    implements Completer
+{
     public int complete(final String buf, final int cursor,
-                        final List candidates) {
+                        final List candidates)
+    {
         String buffer = (buf == null) ? "" : buf;
 
         String translated = buffer;
@@ -46,13 +48,15 @@ public class FileNameCompleter implements Completer {
         // special character: ~ maps to the user's home directory
         if (translated.startsWith("~" + File.separator)) {
             translated = System.getProperty("user.home")
-                    + translated.substring(1);
-        } else if (translated.startsWith("~")) {
+                + translated.substring(1);
+        }
+        else if (translated.startsWith("~")) {
             translated = new File(System.getProperty("user.home")).getParentFile()
-                    .getAbsolutePath();
-        } else if (!(translated.startsWith(File.separator))) {
+                .getAbsolutePath();
+        }
+        else if (!(translated.startsWith(File.separator))) {
             translated = new File("").getAbsolutePath() + File.separator
-                    + translated;
+                + translated;
         }
 
         File f = new File(translated);
@@ -61,7 +65,8 @@ public class FileNameCompleter implements Completer {
 
         if (translated.endsWith(File.separator)) {
             dir = f;
-        } else {
+        }
+        else {
             dir = f.getParentFile();
         }
 
@@ -69,7 +74,8 @@ public class FileNameCompleter implements Completer {
 
         try {
             return matchFiles(buffer, translated, entries, candidates);
-        } finally {
+        }
+        finally {
             // we want to output a sorted list of files
             sortFileNames(candidates);
         }
@@ -92,7 +98,8 @@ public class FileNameCompleter implements Completer {
      * @return the offset of the match
      */
     public int matchFiles(String buffer, String translated, File[] entries,
-                          List candidates) {
+                          List candidates)
+    {
         if (entries == null) {
             return -1;
         }
@@ -113,9 +120,9 @@ public class FileNameCompleter implements Completer {
         for (int i = 0; i < entries.length; i++) {
             if (entries[i].getAbsolutePath().startsWith(translated)) {
                 String name =
-                        entries[i].getName()
-                                + (((matches == 1) && entries[i].isDirectory())
-                                ? File.separator : " ");
+                    entries[i].getName()
+                        + (((matches == 1) && entries[i].isDirectory())
+                        ? File.separator : " ");
 
                 /*
                 if (entries [i].isDirectory ())

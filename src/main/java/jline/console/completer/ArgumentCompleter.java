@@ -4,12 +4,12 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  */
-package jline.completer;
+package jline.console.completer;
 
-import jline.completer.Completer;
 import jline.console.ConsoleReader;
 
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * A {@link Completer} implementation that invokes a child completor
@@ -55,7 +55,9 @@ import java.util.*;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class ArgumentCompleter implements Completer {
+public class ArgumentCompleter
+    implements Completer
+{
     final Completer[] completers;
     final ArgumentDelimiter delim;
     boolean strict = true;
@@ -68,7 +70,7 @@ public class ArgumentCompleter implements Completer {
      */
     public ArgumentCompleter(final Completer completer) {
         this(new Completer[]{
-                completer
+            completer
         });
     }
 
@@ -100,9 +102,10 @@ public class ArgumentCompleter implements Completer {
      * @param delim     the delimiter for parsing arguments
      */
     public ArgumentCompleter(final Completer completer,
-                             final ArgumentDelimiter delim) {
+                             final ArgumentDelimiter delim)
+    {
         this(new Completer[]{
-                completer
+            completer
         }, delim);
     }
 
@@ -114,7 +117,8 @@ public class ArgumentCompleter implements Completer {
      * @param delim      the delimiter for parsing arguments
      */
     public ArgumentCompleter(final Completer[] completers,
-                             final ArgumentDelimiter delim) {
+                             final ArgumentDelimiter delim)
+    {
         this.completers = completers;
         this.delim = delim;
     }
@@ -136,7 +140,8 @@ public class ArgumentCompleter implements Completer {
     }
 
     public int complete(final String buffer, final int cursor,
-                        final List candidates) {
+                        final List candidates)
+    {
         ArgumentList list = delim.delimit(buffer, cursor);
         int argpos = list.getArgumentPosition();
         int argIndex = list.getCursorArgumentIndex();
@@ -150,7 +155,8 @@ public class ArgumentCompleter implements Completer {
         // if we are beyond the end of the completers, just use the last one
         if (argIndex >= completers.length) {
             comp = completers[completers.length - 1];
-        } else {
+        }
+        else {
             comp = completers[argIndex];
         }
 
@@ -158,7 +164,7 @@ public class ArgumentCompleter implements Completer {
         // allowing this completor to pass (only if strict is true).
         for (int i = 0; getStrict() && (i < argIndex); i++) {
             Completer sub =
-                    completers[(i >= completers.length) ? (completers.length - 1) : i];
+                completers[(i >= completers.length) ? (completers.length - 1) : i];
             String[] args = list.getArguments();
             String arg = ((args == null) || (i >= args.length)) ? "" : args[i];
 
@@ -196,7 +202,7 @@ public class ArgumentCompleter implements Completer {
                 String val = candidates.get(i).toString();
 
                 while ((val.length() > 0)
-                        && delim.isDelimiter(val, val.length() - 1)) {
+                    && delim.isDelimiter(val, val.length() - 1)) {
                     val = val.substring(0, val.length() - 1);
                 }
 
@@ -205,7 +211,7 @@ public class ArgumentCompleter implements Completer {
         }
 
         ConsoleReader.debug("Completing " + buffer + "(pos=" + cursor + ") "
-                + "with: " + candidates + ": offset=" + pos);
+            + "with: " + candidates + ": offset=" + pos);
 
         return pos;
     }
@@ -217,7 +223,8 @@ public class ArgumentCompleter implements Completer {
      *
      * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
      */
-    public static interface ArgumentDelimiter {
+    public static interface ArgumentDelimiter
+    {
         /**
          * Break the specified buffer into individual tokens
          * that can be completed on their own.
@@ -248,7 +255,8 @@ public class ArgumentCompleter implements Completer {
      * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
      */
     public abstract static class AbstractArgumentDelimiter
-            implements ArgumentDelimiter {
+        implements ArgumentDelimiter
+    {
         private char[] quoteChars = new char[]{'\'', '"'};
         private char[] escapeChars = new char[]{'\\'};
 
@@ -289,13 +297,14 @@ public class ArgumentCompleter implements Completer {
                         args.add(arg.toString());
                         arg.setLength(0); // reset the arg
                     }
-                } else {
+                }
+                else {
                     arg.append(buffer.charAt(i));
                 }
             }
 
             return new ArgumentList((String[]) args.
-                    toArray(new String[args.size()]), bindex, argpos, cursor);
+                toArray(new String[args.size()]), bindex, argpos, cursor);
         }
 
         /**
@@ -361,7 +370,8 @@ public class ArgumentCompleter implements Completer {
      * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
      */
     public static class WhitespaceArgumentDelimiter
-            extends AbstractArgumentDelimiter {
+        extends AbstractArgumentDelimiter
+    {
         /**
          * The character is a delimiter if it is whitespace, and the
          * preceeding character is not an escape character.
@@ -376,7 +386,8 @@ public class ArgumentCompleter implements Completer {
      *
      * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
      */
-    public static class ArgumentList {
+    public static class ArgumentList
+    {
         private String[] arguments;
         private int cursorArgumentIndex;
         private int argumentPosition;
@@ -391,7 +402,8 @@ public class ArgumentCompleter implements Completer {
          *                            the whole buffer
          */
         public ArgumentList(String[] arguments, int cursorArgumentIndex,
-                            int argumentPosition, int bufferPosition) {
+                            int argumentPosition, int bufferPosition)
+        {
             this.arguments = arguments;
             this.cursorArgumentIndex = cursorArgumentIndex;
             this.argumentPosition = argumentPosition;
@@ -408,7 +420,7 @@ public class ArgumentCompleter implements Completer {
 
         public String getCursorArgument() {
             if ((cursorArgumentIndex < 0)
-                    || (cursorArgumentIndex >= arguments.length)) {
+                || (cursorArgumentIndex >= arguments.length)) {
                 return null;
             }
 
