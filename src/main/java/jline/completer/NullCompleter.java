@@ -4,22 +4,24 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  */
-package jline;
+package jline.completer;
+
+import jline.completer.Completer;
 
 import java.util.*;
 
 /**
- *  <p>
- *  A completor that does nothing. Useful as the last item in an
- *  {@link ArgumentCompletor}.
- *  </p>
+ * <p>
+ * A completor that does nothing. Useful as the last item in an
+ * {@link ArgumentCompleter}.
+ * </p>
  *
- *  @author  <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class NullCompletor implements Completor {
+public class NullCompleter implements Completer {
     /**
-     *  Returns -1 always, indicating that the the buffer is never
-     *  handled.
+     * Returns -1 always, indicating that the the buffer is never
+     * handled.
      */
     public int complete(final String buffer, int cursor, List candidates) {
         return -1;

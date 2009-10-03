@@ -4,32 +4,35 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  */
-package jline;
+package jline.console;
+
+import jline.console.CursorBuffer;
+import jline.console.ConsoleReader;
 
 import java.io.*;
 import java.text.MessageFormat;
 import java.util.*;
 
 /**
- *  <p>
- *  A {@link CompletionHandler} that deals with multiple distinct completions
- *  by outputting the complete list of possibilities to the console. This
- *  mimics the behavior of the
- *  <a href="http://www.gnu.org/directory/readline.html">readline</a>
- *  library.
- *  </p>
+ * <p>
+ * A {@link CompletionHandler} that deals with multiple distinct completions
+ * by outputting the complete list of possibilities to the console. This
+ * mimics the behavior of the
+ * <a href="http://www.gnu.org/directory/readline.html">readline</a>
+ * library.
+ * </p>
+ * <p/>
+ * <strong>TODO:</strong>
+ * <ul>
+ * <li>handle quotes and escaped quotes</li>
+ * <li>enable automatic escaping of whitespace</li>
+ * </ul>
  *
- *  <strong>TODO:</strong>
- *  <ul>
- *        <li>handle quotes and escaped quotes</li>
- *        <li>enable automatic escaping of whitespace</li>
- *  </ul>
- *
- *  @author  <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
 public class CandidateListCompletionHandler implements CompletionHandler {
     private static ResourceBundle loc = ResourceBundle.
-        getBundle(CandidateListCompletionHandler.class.getName());
+            getBundle(CandidateListCompletionHandler.class.getName());
 
     private boolean eagerNewlines = true;
 
@@ -70,9 +73,9 @@ public class CandidateListCompletionHandler implements CompletionHandler {
     }
 
     public static void setBuffer(ConsoleReader reader, String value, int offset)
-                           throws IOException {
+            throws IOException {
         while ((reader.getCursorBuffer().cursor > offset)
-                   && reader.backspace()) {
+                && reader.backspace()) {
             ;
         }
 
@@ -81,23 +84,23 @@ public class CandidateListCompletionHandler implements CompletionHandler {
     }
 
     /**
-     *  Print out the candidates. If the size of the candidates
-     *  is greated than the {@link getAutoprintThreshhold},
-     *  they prompt with aq warning.
+     * Print out the candidates. If the size of the candidates
+     * is greated than the {@link getAutoprintThreshhold},
+     * they prompt with aq warning.
      *
-     *  @param  candidates  the list of candidates to print
+     * @param candidates the list of candidates to print
      */
     public static final void printCandidates(ConsoleReader reader,
-                                       Collection candidates, boolean eagerNewlines)
-                                throws IOException {
+                                             Collection candidates, boolean eagerNewlines)
+            throws IOException {
         Set distinct = new HashSet(candidates);
 
         if (distinct.size() > reader.getAutoprintThreshhold()) {
             if (!eagerNewlines)
                 reader.printNewline();
             reader.printString(MessageFormat.format
-                (loc.getString("display-candidates"), new Object[] {
-                    new Integer(candidates .size())
+                    (loc.getString("display-candidates"), new Object[]{
+                            new Integer(candidates.size())
                     }) + " ");
 
             reader.flushConsole();
@@ -107,14 +110,14 @@ public class CandidateListCompletionHandler implements CompletionHandler {
             String noOpt = loc.getString("display-candidates-no");
             String yesOpt = loc.getString("display-candidates-yes");
 
-            while ((c = reader.readCharacter(new char[] {
-                yesOpt.charAt(0), noOpt.charAt(0) })) != -1) {
+            while ((c = reader.readCharacter(new char[]{
+                    yesOpt.charAt(0), noOpt.charAt(0)})) != -1) {
                 if (noOpt.startsWith
-                    (new String(new char[] { (char) c }))) {
+                        (new String(new char[]{(char) c}))) {
                     reader.printNewline();
                     return;
                 } else if (yesOpt.startsWith
-                    (new String(new char[] { (char) c }))) {
+                        (new String(new char[]{(char) c}))) {
                     break;
                 } else {
                     reader.beep();
@@ -143,11 +146,11 @@ public class CandidateListCompletionHandler implements CompletionHandler {
     }
 
     /**
-     *  Returns a root that matches all the {@link String} elements
-     *  of the specified {@link List}, or null if there are
-     *  no commalities. For example, if the list contains
-     *  <i>foobar</i>, <i>foobaz</i>, <i>foobuz</i>, the
-     *  method will return <i>foob</i>.
+     * Returns a root that matches all the {@link String} elements
+     * of the specified {@link List}, or null if there are
+     * no commalities. For example, if the list contains
+     * <i>foobar</i>, <i>foobaz</i>, <i>foobuz</i>, the
+     * method will return <i>foob</i>.
      */
     private final String getUnambiguousCompletions(final List candidates) {
         if ((candidates == null) || (candidates.size() == 0)) {
@@ -156,7 +159,7 @@ public class CandidateListCompletionHandler implements CompletionHandler {
 
         // convert to an array for speed
         String[] strings =
-            (String[]) candidates.toArray(new String[candidates.size()]);
+                (String[]) candidates.toArray(new String[candidates.size()]);
 
         String first = strings[0];
         StringBuffer candidate = new StringBuffer();
@@ -173,8 +176,8 @@ public class CandidateListCompletionHandler implements CompletionHandler {
     }
 
     /**
-     *  @return  true is all the elements of <i>candidates</i>
-     *                          start with <i>starts</i>
+     * @return true is all the elements of <i>candidates</i>
+     *         start with <i>starts</i>
      */
     private final boolean startsWith(final String starts,
                                      final String[] candidates) {

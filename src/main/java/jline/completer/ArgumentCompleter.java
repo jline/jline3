@@ -4,129 +4,132 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  */
-package jline;
+package jline.completer;
+
+import jline.completer.Completer;
+import jline.console.ConsoleReader;
 
 import java.util.*;
 
 /**
- *  A {@link Completor} implementation that invokes a child completor
- *  using the appropriate <i>separator</i> argument. This
- *  can be used instead of the individual completors having to
- *  know about argument parsing semantics.
- *  <p>
- *  <strong>Example 1</strong>: Any argument of the command line can
- *  use file completion.
- *  <p>
- *  <pre>
+ * A {@link Completer} implementation that invokes a child completor
+ * using the appropriate <i>separator</i> argument. This
+ * can be used instead of the individual completors having to
+ * know about argument parsing semantics.
+ * <p>
+ * <strong>Example 1</strong>: Any argument of the command line can
+ * use file completion.
+ * <p>
+ * <pre>
  *        consoleReader.addCompletor (new ArgumentCompletor (
- *                new {@link FileNameCompletor} ()))
+ *                new {@link FileNameCompleter} ()))
  *  </pre>
- *  <p>
- *  <strong>Example 2</strong>: The first argument of the command line
- *  can be completed with any of "foo", "bar", or "baz", and remaining
- *  arguments can be completed with a file name.
- *  <p>
- *  <pre>
+ * <p>
+ * <strong>Example 2</strong>: The first argument of the command line
+ * can be completed with any of "foo", "bar", or "baz", and remaining
+ * arguments can be completed with a file name.
+ * <p>
+ * <pre>
  *        consoleReader.addCompletor (new ArgumentCompletor (
- *                new {@link SimpleCompletor} (new String [] { "foo", "bar", "baz"})));
+ *                new {@link SimpleCompleter} (new String [] { "foo", "bar", "baz"})));
  *        consoleReader.addCompletor (new ArgumentCompletor (
- *                new {@link FileNameCompletor} ()));
+ *                new {@link FileNameCompleter} ()));
  *  </pre>
- *
- *  <p>
- *        When the argument index is past the last embedded completors, the last
- *        completors is always used. To disable this behavior, have the last
- *        completor be a {@link NullCompletor}. For example:
- *        </p>
- *
- *        <pre>
+ * <p/>
+ * <p>
+ * When the argument index is past the last embedded completors, the last
+ * completors is always used. To disable this behavior, have the last
+ * completor be a {@link NullCompleter}. For example:
+ * </p>
+ * <p/>
+ * <pre>
  *        consoleReader.addCompletor (new ArgumentCompletor (
- *                new {@link SimpleCompletor} (new String [] { "foo", "bar", "baz"}),
- *                new {@link SimpleCompletor} (new String [] { "xxx", "yyy", "xxx"}),
- *                new {@link NullCompletor}
+ *                new {@link SimpleCompleter} (new String [] { "foo", "bar", "baz"}),
+ *                new {@link SimpleCompleter} (new String [] { "xxx", "yyy", "xxx"}),
+ *                new {@link NullCompleter}
  *                ));
  *        </pre>
- *  <p>
- *  TODO: handle argument quoting and escape characters
- *  </p>
+ * <p>
+ * TODO: handle argument quoting and escape characters
+ * </p>
  *
- *  @author  <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class ArgumentCompletor implements Completor {
-    final Completor[] completors;
+public class ArgumentCompleter implements Completer {
+    final Completer[] completers;
     final ArgumentDelimiter delim;
     boolean strict = true;
 
     /**
-     *  Constuctor: create a new completor with the default
-     *  argument separator of " ".
+     * Constuctor: create a new completor with the default
+     * argument separator of " ".
      *
-     *  @param  completor  the embedded completor
+     * @param completer the embedded completor
      */
-    public ArgumentCompletor(final Completor completor) {
-        this(new Completor[] {
-                 completor
-             });
+    public ArgumentCompleter(final Completer completer) {
+        this(new Completer[]{
+                completer
+        });
     }
 
     /**
-     *  Constuctor: create a new completor with the default
-     *  argument separator of " ".
+     * Constuctor: create a new completor with the default
+     * argument separator of " ".
      *
-     *  @param  completors  the List of completors to use
+     * @param completors the List of completors to use
      */
-    public ArgumentCompletor(final List completors) {
-        this((Completor[]) completors.toArray(new Completor[completors.size()]));
+    public ArgumentCompleter(final List completors) {
+        this((Completer[]) completors.toArray(new Completer[completors.size()]));
     }
 
     /**
-     *  Constuctor: create a new completor with the default
-     *  argument separator of " ".
+     * Constuctor: create a new completor with the default
+     * argument separator of " ".
      *
-     *  @param  completors  the embedded argument completors
+     * @param completers the embedded argument completors
      */
-    public ArgumentCompletor(final Completor[] completors) {
-        this(completors, new WhitespaceArgumentDelimiter());
+    public ArgumentCompleter(final Completer[] completers) {
+        this(completers, new WhitespaceArgumentDelimiter());
     }
 
     /**
-     *  Constuctor: create a new completor with the specified
-     *  argument delimiter.
+     * Constuctor: create a new completor with the specified
+     * argument delimiter.
      *
-     *  @param  completor the embedded completor
-     *  @param  delim     the delimiter for parsing arguments
+     * @param completer the embedded completor
+     * @param delim     the delimiter for parsing arguments
      */
-    public ArgumentCompletor(final Completor completor,
+    public ArgumentCompleter(final Completer completer,
                              final ArgumentDelimiter delim) {
-        this(new Completor[] {
-                 completor
-             }, delim);
+        this(new Completer[]{
+                completer
+        }, delim);
     }
 
     /**
-     *  Constuctor: create a new completor with the specified
-     *  argument delimiter.
+     * Constuctor: create a new completor with the specified
+     * argument delimiter.
      *
-     *  @param  completors the embedded completors
-     *  @param  delim      the delimiter for parsing arguments
+     * @param completers the embedded completors
+     * @param delim      the delimiter for parsing arguments
      */
-    public ArgumentCompletor(final Completor[] completors,
+    public ArgumentCompleter(final Completer[] completers,
                              final ArgumentDelimiter delim) {
-        this.completors = completors;
+        this.completers = completers;
         this.delim = delim;
     }
 
     /**
-     *  If true, a completion at argument index N will only succeed
-     *  if all the completions from 0-(N-1) also succeed.
+     * If true, a completion at argument index N will only succeed
+     * if all the completions from 0-(N-1) also succeed.
      */
     public void setStrict(final boolean strict) {
         this.strict = strict;
     }
 
     /**
-     *  Returns whether a completion at argument index N will succees
-     *  if all the completions from arguments 0-(N-1) also succeed.
+     * Returns whether a completion at argument index N will succees
+     * if all the completions from arguments 0-(N-1) also succeed.
      */
     public boolean getStrict() {
         return this.strict;
@@ -142,20 +145,20 @@ public class ArgumentCompletor implements Completor {
             return -1;
         }
 
-        final Completor comp;
+        final Completer comp;
 
-        // if we are beyond the end of the completors, just use the last one
-        if (argIndex >= completors.length) {
-            comp = completors[completors.length - 1];
+        // if we are beyond the end of the completers, just use the last one
+        if (argIndex >= completers.length) {
+            comp = completers[completers.length - 1];
         } else {
-            comp = completors[argIndex];
+            comp = completers[argIndex];
         }
 
-        // ensure that all the previous completors are successful before
+        // ensure that all the previous completers are successful before
         // allowing this completor to pass (only if strict is true).
         for (int i = 0; getStrict() && (i < argIndex); i++) {
-            Completor sub =
-                completors[(i >= completors.length) ? (completors.length - 1) : i];
+            Completer sub =
+                    completers[(i >= completers.length) ? (completers.length - 1) : i];
             String[] args = list.getArguments();
             String arg = ((args == null) || (i >= args.length)) ? "" : args[i];
 
@@ -193,7 +196,7 @@ public class ArgumentCompletor implements Completor {
                 String val = candidates.get(i).toString();
 
                 while ((val.length() > 0)
-                    && delim.isDelimiter(val, val.length() - 1)) {
+                        && delim.isDelimiter(val, val.length() - 1)) {
                     val = val.substring(0, val.length() - 1);
                 }
 
@@ -202,52 +205,52 @@ public class ArgumentCompletor implements Completor {
         }
 
         ConsoleReader.debug("Completing " + buffer + "(pos=" + cursor + ") "
-            + "with: " + candidates + ": offset=" + pos);
+                + "with: " + candidates + ": offset=" + pos);
 
         return pos;
     }
 
     /**
-     *  The {@link ArgumentCompletor.ArgumentDelimiter} allows custom
-     *  breaking up of a {@link String} into individual arguments in
-     *  order to dispatch the arguments to the nested {@link Completor}.
+     * The {@link ArgumentCompleter.ArgumentDelimiter} allows custom
+     * breaking up of a {@link String} into individual arguments in
+     * order to dispatch the arguments to the nested {@link Completer}.
      *
-     *  @author  <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+     * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
      */
     public static interface ArgumentDelimiter {
         /**
-         *  Break the specified buffer into individual tokens
-         *  that can be completed on their own.
+         * Break the specified buffer into individual tokens
+         * that can be completed on their own.
          *
-         *  @param  buffer           the buffer to split
-         *  @param  argumentPosition the current position of the
-         *                           cursor in the buffer
-         *  @return                  the tokens
+         * @param buffer           the buffer to split
+         * @param argumentPosition the current position of the
+         *                         cursor in the buffer
+         * @return the tokens
          */
         ArgumentList delimit(String buffer, int argumentPosition);
 
         /**
-         *  Returns true if the specified character is a whitespace
-         *  parameter.
+         * Returns true if the specified character is a whitespace
+         * parameter.
          *
-         *  @param  buffer the complete command buffer
-         *  @param  pos    the index of the character in the buffer
-         *  @return        true if the character should be a delimiter
+         * @param buffer the complete command buffer
+         * @param pos    the index of the character in the buffer
+         * @return true if the character should be a delimiter
          */
         boolean isDelimiter(String buffer, int pos);
     }
 
     /**
-     *  Abstract implementation of a delimiter that uses the
-     *  {@link #isDelimiter} method to determine if a particular
-     *  character should be used as a delimiter.
+     * Abstract implementation of a delimiter that uses the
+     * {@link #isDelimiter} method to determine if a particular
+     * character should be used as a delimiter.
      *
-     *  @author  <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+     * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
      */
     public abstract static class AbstractArgumentDelimiter
-        implements ArgumentDelimiter {
-        private char[] quoteChars = new char[] { '\'', '"' };
-        private char[] escapeChars = new char[] { '\\' };
+            implements ArgumentDelimiter {
+        private char[] quoteChars = new char[]{'\'', '"'};
+        private char[] escapeChars = new char[]{'\\'};
 
         public void setQuoteChars(final char[] quoteChars) {
             this.quoteChars = quoteChars;
@@ -292,20 +295,20 @@ public class ArgumentCompletor implements Completor {
             }
 
             return new ArgumentList((String[]) args.
-                toArray(new String[args.size()]), bindex, argpos, cursor);
+                    toArray(new String[args.size()]), bindex, argpos, cursor);
         }
 
         /**
-         *  Returns true if the specified character is a whitespace
-         *  parameter. Check to ensure that the character is not
-         *  escaped by any of
-         *  {@link #getQuoteChars}, and is not escaped by ant of the
-         *  {@link #getEscapeChars}, and returns true from
-         *  {@link #isDelimiterChar}.
+         * Returns true if the specified character is a whitespace
+         * parameter. Check to ensure that the character is not
+         * escaped by any of
+         * {@link #getQuoteChars}, and is not escaped by ant of the
+         * {@link #getEscapeChars}, and returns true from
+         * {@link #isDelimiterChar}.
          *
-         *  @param  buffer the complete command buffer
-         *  @param  pos    the index of the character in the buffer
-         *  @return        true if the character should be a delimiter
+         * @param buffer the complete command buffer
+         * @param pos    the index of the character in the buffer
+         * @return true if the character should be a delimiter
          */
         public boolean isDelimiter(final String buffer, final int pos) {
             if (isQuoted(buffer, pos)) {
@@ -329,7 +332,7 @@ public class ArgumentCompletor implements Completor {
             }
 
             for (int i = 0; (escapeChars != null) && (i < escapeChars.length);
-                     i++) {
+                 i++) {
                 if (buffer.charAt(pos) == escapeChars[i]) {
                     return !isEscaped(buffer, pos - 1); // escape escape
                 }
@@ -339,29 +342,29 @@ public class ArgumentCompletor implements Completor {
         }
 
         /**
-         *  Returns true if the character at the specified position
-         *  if a delimiter. This method will only be called if the
-         *  character is not enclosed in any of the
-         *  {@link #getQuoteChars}, and is not escaped by ant of the
-         *  {@link #getEscapeChars}. To perform escaping manually,
-         *  override {@link #isDelimiter} instead.
+         * Returns true if the character at the specified position
+         * if a delimiter. This method will only be called if the
+         * character is not enclosed in any of the
+         * {@link #getQuoteChars}, and is not escaped by ant of the
+         * {@link #getEscapeChars}. To perform escaping manually,
+         * override {@link #isDelimiter} instead.
          */
         public abstract boolean isDelimiterChar(String buffer, int pos);
     }
 
     /**
-     *  {@link ArgumentCompletor.ArgumentDelimiter}
-     *  implementation that counts all
-     *  whitespace (as reported by {@link Character#isWhitespace})
-     *  as being a delimiter.
+     * {@link ArgumentCompleter.ArgumentDelimiter}
+     * implementation that counts all
+     * whitespace (as reported by {@link Character#isWhitespace})
+     * as being a delimiter.
      *
-     *  @author  <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+     * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
      */
     public static class WhitespaceArgumentDelimiter
-        extends AbstractArgumentDelimiter {
+            extends AbstractArgumentDelimiter {
         /**
-         *  The character is a delimiter if it is whitespace, and the
-         *  preceeding character is not an escape character.
+         * The character is a delimiter if it is whitespace, and the
+         * preceeding character is not an escape character.
          */
         public boolean isDelimiterChar(String buffer, int pos) {
             return Character.isWhitespace(buffer.charAt(pos));
@@ -369,9 +372,9 @@ public class ArgumentCompletor implements Completor {
     }
 
     /**
-     *  The result of a delimited buffer.
+     * The result of a delimited buffer.
      *
-     *  @author  <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+     * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
      */
     public static class ArgumentList {
         private String[] arguments;
@@ -380,15 +383,15 @@ public class ArgumentCompletor implements Completor {
         private int bufferPosition;
 
         /**
-         *  @param  arguments           the array of tokens
-         *  @param  cursorArgumentIndex the token index of the cursor
-         *  @param  argumentPosition    the position of the cursor in the
-         *                              current token
-         *  @param  bufferPosition      the position of the cursor in
-         *                              the whole buffer
+         * @param arguments           the array of tokens
+         * @param cursorArgumentIndex the token index of the cursor
+         * @param argumentPosition    the position of the cursor in the
+         *                            current token
+         * @param bufferPosition      the position of the cursor in
+         *                            the whole buffer
          */
         public ArgumentList(String[] arguments, int cursorArgumentIndex,
-            int argumentPosition, int bufferPosition) {
+                            int argumentPosition, int bufferPosition) {
             this.arguments = arguments;
             this.cursorArgumentIndex = cursorArgumentIndex;
             this.argumentPosition = argumentPosition;
@@ -405,7 +408,7 @@ public class ArgumentCompletor implements Completor {
 
         public String getCursorArgument() {
             if ((cursorArgumentIndex < 0)
-                || (cursorArgumentIndex >= arguments.length)) {
+                    || (cursorArgumentIndex >= arguments.length)) {
                 return null;
             }
 

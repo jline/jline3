@@ -4,16 +4,17 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  */
-package jline;
+package jline.console;
 
 import java.io.*;
 import java.util.*;
 
 /**
- *  An {@link InputStream} implementation that wraps a {@link ConsoleReader}.
- *  It is useful for setting up the {@link System#in} for a generic
- *  console.
- *  @author  <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ * An {@link InputStream} implementation that wraps a {@link ConsoleReader}.
+ * It is useful for setting up the {@link System#in} for a generic
+ * console.
+ *
+ * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
 public class ConsoleReaderInputStream extends SequenceInputStream {
     private static InputStream systemIn = System.in;
@@ -27,7 +28,7 @@ public class ConsoleReaderInputStream extends SequenceInputStream {
     }
 
     /**
-     *  Restore the original {@link System#in} input stream.
+     * Restore the original {@link System#in} input stream.
      */
     public static void restoreIn() {
         System.setIn(systemIn);

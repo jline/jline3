@@ -6,6 +6,11 @@
  */
 package jline;
 
+import jline.completer.ArgumentCompleter;
+import jline.completer.Completer;
+import jline.completer.SimpleCompleter;
+import jline.console.ConsoleReader;
+
 import java.util.*;
 
 /**
@@ -21,12 +26,12 @@ public class TestCompletion extends JLineTestCase {
     public void testSimpleCompletor() throws Exception {
         // clear any current completors
         for (Iterator i = console.getCompletors().iterator(); i.hasNext();
-                 console.removeCompletor((Completor) i.next())) {
+                 console.removeCompletor((Completer) i.next())) {
             ;
         }
 
         console.addCompletor
-            (new SimpleCompletor(new String[] { "foo", "bar", "baz" }));
+            (new SimpleCompleter(new String[] { "foo", "bar", "baz" }));
 
         assertBuffer("foo ", new Buffer("f").op(ConsoleReader.COMPLETE));
         // single tab completes to unabbiguous "ba"
@@ -38,12 +43,12 @@ public class TestCompletion extends JLineTestCase {
     public void testArgumentCompletor() throws Exception {
         // clear any current completors
         for (Iterator i = console.getCompletors().iterator(); i.hasNext();
-                 console.removeCompletor((Completor) i.next())) {
+                 console.removeCompletor((Completer) i.next())) {
             ;
         }
 
-        console.addCompletor(new ArgumentCompletor
-            (new SimpleCompletor(new String[] { "foo", "bar", "baz" })));
+        console.addCompletor(new ArgumentCompleter
+            (new SimpleCompleter(new String[] { "foo", "bar", "baz" })));
 
         assertBuffer("foo foo ", new Buffer("foo f").
             op(ConsoleReader.COMPLETE));

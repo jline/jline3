@@ -6,12 +6,14 @@
  */
 package jline;
 
+import jline.console.ConsoleReader;
+
 import java.io.IOException;
 
 /**
- *  A no-op unsupported terminal.
+ * A no-op unsupported terminal.
  *
- *  @author  <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
 public class UnsupportedTerminal extends Terminal {
     private Thread maskThread = null;
@@ -42,14 +44,14 @@ public class UnsupportedTerminal extends Terminal {
 
 
     /**
-     *  Always returng 80, since we can't access this info on Windows.
+     * Always returng 80, since we can't access this info on Windows.
      */
     public int getTerminalWidth() {
         return 80;
     }
 
     /**
-     *  Always returng 24, since we can't access this info on Windows.
+     * Always returng 24, since we can't access this info on Windows.
      */
     public int getTerminalHeight() {
         return 80;
@@ -60,13 +62,13 @@ public class UnsupportedTerminal extends Terminal {
     }
 
     public void beforeReadLine(final ConsoleReader reader, final String prompt,
-       final Character mask) {
+                               final Character mask) {
         if ((mask != null) && (maskThread == null)) {
             final String fullPrompt = "\r" + prompt
-                + "                 "
-                + "                 "
-                + "                 "
-                + "\r" + prompt;
+                    + "                 "
+                    + "                 "
+                    + "                 "
+                    + "\r" + prompt;
 
             maskThread = new Thread("JLine Mask Thread") {
                 public void run() {
@@ -91,7 +93,7 @@ public class UnsupportedTerminal extends Terminal {
     }
 
     public void afterReadLine(final ConsoleReader reader, final String prompt,
-        final Character mask) {
+                              final Character mask) {
         if ((maskThread != null) && maskThread.isAlive()) {
             maskThread.interrupt();
         }

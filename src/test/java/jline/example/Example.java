@@ -6,7 +6,10 @@
  */
 package jline.example;
 
-import jline.*;
+import jline.completer.*;
+import jline.completer.FileNameCompleter;
+import jline.completer.SimpleCompleter;
+import jline.console.ConsoleReader;
 
 import java.io.*;
 import java.util.*;
@@ -54,14 +57,14 @@ public class Example {
         if (args.length > 0) {
             if (args[0].equals("none")) {
             } else if (args[0].equals("files")) {
-                completors.add(new FileNameCompletor());
+                completors.add(new FileNameCompleter());
             } else if (args[0].equals("classes")) {
-                completors.add(new ClassNameCompletor());
+                completors.add(new ClassNameCompleter());
             } else if (args[0].equals("dictionary")) {
-                completors.add(new SimpleCompletor(new GZIPInputStream(
+                completors.add(new SimpleCompleter(new GZIPInputStream(
                         Example.class.getResourceAsStream("english.gz"))));
             } else if (args[0].equals("simple")) {
-                completors.add(new SimpleCompletor(new String[] { "foo", "bar",
+                completors.add(new SimpleCompleter(new String[] { "foo", "bar",
                         "baz" }));
             } else {
                 usage();
@@ -75,7 +78,7 @@ public class Example {
             trigger = args[1];
         }
 
-        reader.addCompletor(new ArgumentCompletor(completors));
+        reader.addCompletor(new ArgumentCompleter(completors));
 
         String line;
         PrintWriter out = new PrintWriter(System.out);

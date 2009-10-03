@@ -6,6 +6,8 @@
  */
 package jline;
 
+import jline.console.ConsoleReader;
+
 
 /**
  *  Tests command history.

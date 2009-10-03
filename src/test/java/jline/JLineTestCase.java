@@ -6,6 +6,7 @@
  */
 package jline;
 
+import jline.console.ConsoleReader;
 import junit.framework.*;
 
 import java.io.*;

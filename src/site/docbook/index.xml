@@ -199,7 +199,7 @@
 				<para>
 					JLine can read a password with the following code:
 					<programlisting>
-String password = new <classname>jline.ConsoleReader</classname>().readLine(new Character('*'));
+String password = new <classname>jline.console.ConsoleReader</classname>().readLine(new Character('*'));
 					</programlisting>
 					This will replace every character types on the console
 					with a star character.
@@ -208,7 +208,7 @@ String password = new <classname>jline.ConsoleReader</classname>().readLine(new 
 					Alternately, you can have it not echo password
 					character at all:
 					<programlisting>
-String password = new <classname>jline.ConsoleReader</classname>().readLine(new Character(0));
+String password = new <classname>jline.console.ConsoleReader</classname>().readLine(new Character(0));
 					</programlisting>
 				</para>
 				<para>
@@ -254,14 +254,14 @@ java -Djline.terminal=jline.UnsupportedTerminal jline.example.Example simple
 				all applications?
 				</title>
 				<para>
-				No, but you can use the <classname>jline.ConsoleRunner</classname> application
+				No, but you can use the <classname>jline.console.ConsoleRunner</classname> application
 				to set up the system input stream and continue on
 				the launch another program. For example, to use JLine
 				as the input handler for the popular 
 				<ulink url="http://www.beanshell.org">BeanShell</ulink>
 				console application, you can run:
 				<programlisting>
-java <classname>jline.ConsoleRunner</classname> <ulink url="http://www.beanshell.org/manual/standalonemode.html">bsh.Interpreter</ulink>
+java <classname>jline.console.ConsoleRunner</classname> <ulink url="http://www.beanshell.org/manual/standalonemode.html">bsh.Interpreter</ulink>
 				</programlisting>
 				</para>
 			</section>
@@ -271,7 +271,7 @@ java <classname>jline.ConsoleRunner</classname> <ulink url="http://www.beanshell
 				<para>
 				Yes. Try running:
 				<programlisting>
-java <classname>jline.ConsoleRunner</classname> <ulink url="http://www.beanshell.org/manual/standalonemode.html">bsh.Interpreter</ulink>
+java <classname>jline.console.ConsoleRunner</classname> <ulink url="http://www.beanshell.org/manual/standalonemode.html">bsh.Interpreter</ulink>
 				</programlisting>
 				</para>
 			</section>
@@ -281,7 +281,7 @@ java <classname>jline.ConsoleRunner</classname> <ulink url="http://www.beanshell
 				<para>
 				Yes. Try running:
 				<programlisting>
-java <classname>jline.ConsoleRunner</classname> com.sun.tools.example.debug.tty.TTY <emphasis>args</emphasis>
+java <classname>jline.console.ConsoleRunner</classname> com.sun.tools.example.debug.tty.TTY <emphasis>args</emphasis>
 				</programlisting>
 				</para>
 			</section>

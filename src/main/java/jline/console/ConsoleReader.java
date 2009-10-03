@@ -4,7 +4,10 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  */
-package jline;
+package jline.console;
+
+import jline.*;
+import jline.completer.Completer;
 
 import java.awt.*;
 import java.awt.datatransfer.*;
@@ -18,7 +21,7 @@ import java.util.List;
  * A reader for console applications. It supports custom tab-completion,
  * saveable command history, and command line editing. On some platforms,
  * platform-specific commands will need to be issued before the reader will
- * function properly. See {@link Terminal#initializeTerminal} for convenience
+ * function properly. See {@link jline.Terminal#initializeTerminal} for convenience
  * methods for issuing platform-specific setup commands.
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
@@ -147,34 +150,34 @@ public class ConsoleReader implements ConsoleOperations {
 
     private Character echoCharacter = null;
 
-	private Map triggeredActions = new HashMap();
+    private Map triggeredActions = new HashMap();
 
 
-	/**
-	 * Adding a triggered Action allows to give another curse of action
-	 * if a character passed the preprocessing.
-	 * 
-	 * Say you want to close the application if the user enter q.
-	 * addTriggerAction('q', new ActionListener(){ System.exit(0); });
-	 * would do the trick.
-	 * 
-	 * @param c
-	 * @param listener
-	 */
-	public void addTriggeredAction(char c, ActionListener listener){
-		triggeredActions.put(new Character(c), listener);
-	}
-	
+    /**
+     * Adding a triggered Action allows to give another curse of action
+     * if a character passed the preprocessing.
+     * <p/>
+     * Say you want to close the application if the user enter q.
+     * addTriggerAction('q', new ActionListener(){ System.exit(0); });
+     * would do the trick.
+     *
+     * @param c
+     * @param listener
+     */
+    public void addTriggeredAction(char c, ActionListener listener) {
+        triggeredActions.put(new Character(c), listener);
+    }
+
     /**
      * Create a new reader using {@link FileDescriptor#in} for input and
      * {@link System#out} for output. {@link FileDescriptor#in} is used because
      * it has a better chance of being unbuffered.
      */
-    public ConsoleReader() throws IOException {	
-        this(new FileInputStream(FileDescriptor.in), 
-        		new PrintWriter(
-        				new OutputStreamWriter(System.out,
-        						System.getProperty("jline.WindowsTerminal.output.encoding",System.getProperty("file.encoding")))));
+    public ConsoleReader() throws IOException {
+        this(new FileInputStream(FileDescriptor.in),
+                new PrintWriter(
+                        new OutputStreamWriter(System.out,
+                                System.getProperty("jline.WindowsTerminal.output.encoding", System.getProperty("file.encoding")))));
     }
 
     /**
@@ -187,36 +190,32 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     public ConsoleReader(final InputStream in, final Writer out,
-            final InputStream bindings) throws IOException {
+                         final InputStream bindings) throws IOException {
         this(in, out, bindings, Terminal.getTerminal());
     }
 
     /**
      * Create a new reader.
      *
-     * @param in
-     *            the input
-     * @param out
-     *            the output
-     * @param bindings
-     *            the key bindings to use
-     * @param term
-     *            the terminal to use
+     * @param in       the input
+     * @param out      the output
+     * @param bindings the key bindings to use
+     * @param term     the terminal to use
      */
     public ConsoleReader(InputStream in, Writer out, InputStream bindings,
-            Terminal term) throws IOException {
+                         Terminal term) throws IOException {
         this.terminal = term;
         setInput(in);
         this.out = out;
         if (bindings == null) {
             try {
                 String bindingFile = System.getProperty("jline.keybindings",
-                    new File(System.getProperty("user.home",
-                        ".jlinebindings.properties")).getAbsolutePath());
+                        new File(System.getProperty("user.home",
+                                ".jlinebindings.properties")).getAbsolutePath());
 
                 if (new File(bindingFile).isFile()) {
                     bindings = new FileInputStream(new File(bindingFile));
-                } 
+                }
             } catch (Exception e) {
                 // swallow exceptions with option debugging
                 if (debugger != null) {
@@ -309,9 +308,8 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     * @param bellEnabled
-     *            if true, enable audible keyboard bells if an alert is
-     *            required.
+     * @param bellEnabled if true, enable audible keyboard bells if an alert is
+     *                    required.
      */
     public void setBellEnabled(final boolean bellEnabled) {
         this.bellEnabled = bellEnabled;
@@ -327,8 +325,8 @@ public class ConsoleReader implements ConsoleOperations {
     /**
      * Query the terminal to find the current width;
      *
-     * @see Terminal#getTerminalWidth
      * @return the width of the current terminal.
+     * @see Terminal#getTerminalWidth
      */
     public int getTermwidth() {
         return getTerminal().getTerminalWidth();
@@ -337,17 +335,15 @@ public class ConsoleReader implements ConsoleOperations {
     /**
      * Query the terminal to find the current width;
      *
-     * @see Terminal#getTerminalHeight
-     *
      * @return the height of the current terminal.
+     * @see Terminal#getTerminalHeight
      */
     public int getTermheight() {
         return getTerminal().getTerminalHeight();
     }
 
     /**
-     * @param autoprintThreshhold
-     *            the number of candidates to print without issuing a warning.
+     * @param autoprintThreshhold the number of candidates to print without issuing a warning.
      */
     public void setAutoprintThreshhold(final int autoprintThreshhold) {
         this.autoprintThreshhold = autoprintThreshhold;
@@ -466,8 +462,7 @@ public class ConsoleReader implements ConsoleOperations {
      * Read a line from the <i>in</i> {@link InputStream}, and return the line
      * (without any trailing newlines).
      *
-     * @param prompt
-     *            the prompt to issue to the console, may be null.
+     * @param prompt the prompt to issue to the console, may be null.
      * @return a line that is read from the terminal, or null if there was null
      *         input (e.g., <i>CTRL-D</i> was pressed).
      */
@@ -507,116 +502,116 @@ public class ConsoleReader implements ConsoleOperations {
                 boolean success = true;
 
                 switch (code) {
-                case EXIT: // ctrl-d
+                    case EXIT: // ctrl-d
 
-                    if (buf.buffer.length() == 0) {
-                        return null;
-                    }
-		    break;
+                        if (buf.buffer.length() == 0) {
+                            return null;
+                        }
+                        break;
 
-                case COMPLETE: // tab
-                    success = complete();
-                    break;
+                    case COMPLETE: // tab
+                        success = complete();
+                        break;
 
-                case MOVE_TO_BEG:
-                    success = setCursorPosition(0);
-                    break;
+                    case MOVE_TO_BEG:
+                        success = setCursorPosition(0);
+                        break;
 
-                case KILL_LINE: // CTRL-K
-                    success = killLine();
-                    break;
+                    case KILL_LINE: // CTRL-K
+                        success = killLine();
+                        break;
 
-                case CLEAR_SCREEN: // CTRL-L
-                    success = clearScreen();
-                    break;
+                    case CLEAR_SCREEN: // CTRL-L
+                        success = clearScreen();
+                        break;
 
-                case KILL_LINE_PREV: // CTRL-U
-                    success = resetLine();
-                    break;
+                    case KILL_LINE_PREV: // CTRL-U
+                        success = resetLine();
+                        break;
 
-                case NEWLINE: // enter
-                    moveToEnd();
-                    printNewline(); // output newline
-                    return finishBuffer();
+                    case NEWLINE: // enter
+                        moveToEnd();
+                        printNewline(); // output newline
+                        return finishBuffer();
 
-                case DELETE_PREV_CHAR: // backspace
-                    success = backspace();
-                    break;
+                    case DELETE_PREV_CHAR: // backspace
+                        success = backspace();
+                        break;
 
-                case DELETE_NEXT_CHAR: // delete
-                    success = deleteCurrentCharacter();
-                    break;
+                    case DELETE_NEXT_CHAR: // delete
+                        success = deleteCurrentCharacter();
+                        break;
 
-                case MOVE_TO_END:
-                    success = moveToEnd();
-                    break;
+                    case MOVE_TO_END:
+                        success = moveToEnd();
+                        break;
 
-                case PREV_CHAR:
-                    success = moveCursor(-1) != 0;
-                    break;
+                    case PREV_CHAR:
+                        success = moveCursor(-1) != 0;
+                        break;
 
-                case NEXT_CHAR:
-                    success = moveCursor(1) != 0;
-                    break;
+                    case NEXT_CHAR:
+                        success = moveCursor(1) != 0;
+                        break;
 
-                case NEXT_HISTORY:
-                    success = moveHistory(true);
-                    break;
+                    case NEXT_HISTORY:
+                        success = moveHistory(true);
+                        break;
 
-                case PREV_HISTORY:
-                    success = moveHistory(false);
-                    break;
+                    case PREV_HISTORY:
+                        success = moveHistory(false);
+                        break;
 
-                case REDISPLAY:
-                    break;
+                    case REDISPLAY:
+                        break;
 
-                case PASTE:
-                    success = paste();
-                    break;
+                    case PASTE:
+                        success = paste();
+                        break;
 
-                case DELETE_PREV_WORD:
-                    success = deletePreviousWord();
-                    break;
+                    case DELETE_PREV_WORD:
+                        success = deletePreviousWord();
+                        break;
 
-                case PREV_WORD:
-                    success = previousWord();
-                    break;
+                    case PREV_WORD:
+                        success = previousWord();
+                        break;
 
-                case NEXT_WORD:
-                    success = nextWord();
-                    break;
+                    case NEXT_WORD:
+                        success = nextWord();
+                        break;
 
-                case START_OF_HISTORY:
-                    success = history.moveToFirstEntry();
-                    if (success)
-                        setBuffer(history.current());
-                    break;
+                    case START_OF_HISTORY:
+                        success = history.moveToFirstEntry();
+                        if (success)
+                            setBuffer(history.current());
+                        break;
 
-                case END_OF_HISTORY:
-                    success = history.moveToLastEntry();
-                    if (success)
-                        setBuffer(history.current());
-                    break;
+                    case END_OF_HISTORY:
+                        success = history.moveToLastEntry();
+                        if (success)
+                            setBuffer(history.current());
+                        break;
 
-                case CLEAR_LINE:
-                    moveInternal(-(buf.buffer.length()));
-                    killLine();
-                    break;
+                    case CLEAR_LINE:
+                        moveInternal(-(buf.buffer.length()));
+                        killLine();
+                        break;
 
-                case INSERT:
-                    buf.setOvertyping(!buf.isOvertyping());
-                    break;
+                    case INSERT:
+                        buf.setOvertyping(!buf.isOvertyping());
+                        break;
 
-                case UNKNOWN:
-                default:
-                    if (c != 0) { // ignore null chars
-                    	ActionListener action = (ActionListener) triggeredActions.get(new Character((char)c));
-                    	if (action != null)
-                    		action.actionPerformed(null);
-                    	else
-                    		putChar(c, true);
-                    } else
-                        success = false;
+                    case UNKNOWN:
+                    default:
+                        if (c != 0) { // ignore null chars
+                            ActionListener action = (ActionListener) triggeredActions.get(new Character((char) c));
+                            if (action != null)
+                                action.actionPerformed(null);
+                            else
+                                putChar(c, true);
+                        } else
+                            success = false;
                 }
 
                 if (!(success)) {
@@ -664,7 +659,7 @@ public class ConsoleReader implements ConsoleOperations {
             debug("    translated: " + (int) c + ": " + code);
         }
 
-        return new int[] { c, code };
+        return new int[]{c, code};
     }
 
     /**
@@ -824,7 +819,7 @@ public class ConsoleReader implements ConsoleOperations {
         int position = -1;
 
         for (Iterator i = completors.iterator(); i.hasNext();) {
-            Completor comp = (Completor) i.next();
+            Completer comp = (Completer) i.next();
 
             if ((position = comp.complete(bufstr, cursor, candidates)) != -1) {
                 break;
@@ -846,8 +841,7 @@ public class ConsoleReader implements ConsoleOperations {
     /**
      * Output the specified {@link Collection} in proper columns.
      *
-     * @param stuff
-     *            the stuff to print
+     * @param stuff the stuff to print
      */
     public void printColumns(final Collection stuff) throws IOException {
         if ((stuff == null) || (stuff.size() == 0)) {
@@ -907,16 +901,13 @@ public class ConsoleReader implements ConsoleOperations {
      * Append <i>toPad</i> to the specified <i>appendTo</i>, as well as (<i>toPad.length () -
      * len</i>) spaces.
      *
-     * @param toPad
-     *            the {@link String} to pad
-     * @param len
-     *            the target length
-     * @param appendTo
-     *            the {@link StringBuffer} to which to append the padded
-     *            {@link String}.
+     * @param toPad    the {@link String} to pad
+     * @param len      the target length
+     * @param appendTo the {@link StringBuffer} to which to append the padded
+     *                 {@link String}.
      */
     private final void pad(final String toPad, final int len,
-            final StringBuffer appendTo) {
+                           final StringBuffer appendTo) {
         appendTo.append(toPad);
 
         for (int i = 0; i < (len - toPad.length()); i++, appendTo.append(' ')) {
@@ -925,27 +916,25 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     * Add the specified {@link Completor} to the list of handlers for
+     * Add the specified {@link jline.completer.Completer} to the list of handlers for
      * tab-completion.
      *
-     * @param completor
-     *            the {@link Completor} to add
+     * @param completer the {@link jline.completer.Completer} to add
      * @return true if it was successfully added
      */
-    public boolean addCompletor(final Completor completor) {
-        return completors.add(completor);
+    public boolean addCompletor(final Completer completer) {
+        return completors.add(completer);
     }
 
     /**
-     * Remove the specified {@link Completor} from the list of handlers for
+     * Remove the specified {@link jline.completer.Completer} from the list of handlers for
      * tab-completion.
      *
-     * @param completor
-     *            the {@link Completor} to remove
+     * @param completer the {@link jline.completer.Completer} to remove
      * @return true if it was successfully removed
      */
-    public boolean removeCompletor(final Completor completor) {
-        return completors.remove(completor);
+    public boolean removeCompletor(final Completer completer) {
+        return completors.remove(completer);
     }
 
     /**
@@ -982,8 +971,7 @@ public class ConsoleReader implements ConsoleOperations {
      * Set the current buffer's content to the specified {@link String}. The
      * visual console will be modified to show the current buffer.
      *
-     * @param buffer
-     *            the new contents of the buffer.
+     * @param buffer the new contents of the buffer.
      */
     private final void setBuffer(final String buffer) throws IOException {
         // don't bother modifying it if it is unchanged
@@ -1114,8 +1102,7 @@ public class ConsoleReader implements ConsoleOperations {
      * Redraw the rest of the buffer from the cursor onwards. This is necessary
      * for inserting text into the buffer.
      *
-     * @param clear
-     *            the number of characters to clear after the end of the buffer
+     * @param clear the number of characters to clear after the end of the buffer
      */
     private final void drawBuffer(final int clear) throws IOException {
         // debug ("drawBuffer: " + clear);
@@ -1194,7 +1181,7 @@ public class ConsoleReader implements ConsoleOperations {
             out.write(cbuf);
             return;
         }
-	    
+
         out.write(c);
     }
 
@@ -1210,23 +1197,23 @@ public class ConsoleReader implements ConsoleOperations {
             else
                 len++;
 
-        char cbuf[];        
+        char cbuf[];
         if (len == c.length)
             cbuf = c;
         else {
             cbuf = new char[len];
             int pos = 0;
-            for (int i = 0; i < c.length; i++){
+            for (int i = 0; i < c.length; i++) {
                 if (c[i] == '\t') {
                     Arrays.fill(cbuf, pos, pos + TAB_WIDTH, ' ');
                     pos += TAB_WIDTH;
-	        } else {
+                } else {
                     cbuf[pos] = c[i];
                     pos++;
                 }
-	    }
+            }
         }
-            
+
         out.write(cbuf);
     }
 
@@ -1353,10 +1340,8 @@ public class ConsoleReader implements ConsoleOperations {
     /**
      * Move the cursor <i>where</i> characters.
      *
-     * @param where
-     *            if less than 0, move abs(<i>where</i>) to the left,
-     *            otherwise move <i>where</i> to the right.
-     *
+     * @param where if less than 0, move abs(<i>where</i>) to the left,
+     *              otherwise move <i>where</i> to the right.
      * @return the number of spaces we moved
      */
     public final int moveCursor(final int num) throws IOException {
@@ -1384,8 +1369,7 @@ public class ConsoleReader implements ConsoleOperations {
     /**
      * debug.
      *
-     * @param str
-     *            the message to issue.
+     * @param str the message to issue.
      */
     public static void debug(final String str) {
         if (debugger != null) {
@@ -1398,10 +1382,8 @@ public class ConsoleReader implements ConsoleOperations {
      * Move the cursor <i>where</i> characters, withough checking the current
      * buffer.
      *
+     * @param where the number of characters to move to the right or left.
      * @see #where
-     *
-     * @param where
-     *            the number of characters to move to the right or left.
      */
     private final void moveInternal(final int where) throws IOException {
         // debug ("move cursor " + where + " ("
@@ -1411,19 +1393,19 @@ public class ConsoleReader implements ConsoleOperations {
         char c;
 
         if (where < 0) {
-	    int len = 0;
-            for (int i = buf.cursor; i < buf.cursor - where; i++){
+            int len = 0;
+            for (int i = buf.cursor; i < buf.cursor - where; i++) {
                 if (buf.getBuffer().charAt(i) == '\t')
                     len += TAB_WIDTH;
                 else
                     len++;
-	    }
+            }
 
-	    char cbuf[] = new char[len];
-	    Arrays.fill(cbuf, BACKSPACE);
-	    out.write(cbuf);
-		
-	    return;
+            char cbuf[] = new char[len];
+            Arrays.fill(cbuf, BACKSPACE);
+            out.write(cbuf);
+
+            return;
         } else if (buf.cursor == 0) {
             return;
         } else if (mask != null) {
@@ -1472,21 +1454,20 @@ public class ConsoleReader implements ConsoleOperations {
         return c;
     }
 
-   
-    /**
-     *  Issue <em>num</em> deletes.
-     *
-     *  @return  the number of characters backed up
-     */
-    private final int delete (final int num)
-    throws IOException
-    {
-    	/* Commented out beacuse of DWA-2949:
-           if (buf.cursor == 0)
-                       return 0;*/
 
-        buf.buffer.delete (buf.cursor, buf.cursor + 1);
-        drawBuffer (1);
+    /**
+     * Issue <em>num</em> deletes.
+     *
+     * @return the number of characters backed up
+     */
+    private final int delete(final int num)
+            throws IOException {
+        /* Commented out beacuse of DWA-2949:
+if (buf.cursor == 0)
+       return 0;*/
+
+        buf.buffer.delete(buf.cursor, buf.cursor + 1);
+        drawBuffer(1);
 
         return 1;
     }
@@ -1505,14 +1486,13 @@ public class ConsoleReader implements ConsoleOperations {
     }
 
     /**
-     *  Issue a delete.
+     * Issue a delete.
      *
-     *  @return  true if successful
+     * @return true if successful
      */
-    public final boolean delete ()
-    throws IOException
-    {
-        return delete (1) == 1;
+    public final boolean delete()
+            throws IOException {
+        return delete(1) == 1;
     }
 
 
@@ -1537,30 +1517,29 @@ public class ConsoleReader implements ConsoleOperations {
      * Set the echo character. For example, to have "*" entered when a password
      * is typed:
      * </p>
-     *
+     * <p/>
      * <pre>
      * myConsoleReader.setEchoCharacter(new Character('*'));
      * </pre>
-     *
+     * <p/>
      * <p>
      * Setting the character to
-     *
+     * <p/>
      * <pre>
      * null
      * </pre>
-     *
+     * <p/>
      * will restore normal character echoing. Setting the character to
-     *
+     * <p/>
      * <pre>
      * new Character(0)
      * </pre>
-     *
+     * <p/>
      * will cause nothing to be echoed.
      * </p>
      *
-     * @param echoCharacter
-     *            the character to echo to the console in place of the typed
-     *            character.
+     * @param echoCharacter the character to echo to the console in place of the typed
+     *                      character.
      */
     public void setEchoCharacter(final Character echoCharacter) {
         this.echoCharacter = echoCharacter;
@@ -1583,8 +1562,7 @@ public class ConsoleReader implements ConsoleOperations {
      * Checks to see if the specified character is a delimiter. We consider a
      * character a delimiter if it is anything but a letter or digit.
      *
-     * @param c
-     *            the character to test
+     * @param c the character to test
      * @return true if it is a delimiter
      */
     private boolean isDelimiter(char c) {

@@ -4,37 +4,39 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  */
-package jline;
+package jline.completer;
+
+import jline.completer.Completer;
 
 import java.io.*;
 import java.util.*;
 
 /**
- *  A file name completor takes the buffer and issues a list of
- *  potential completions.
+ * A file name completor takes the buffer and issues a list of
+ * potential completions.
+ * <p/>
+ * <p>
+ * This completor tries to behave as similar as possible to
+ * <i>bash</i>'s file name completion (using GNU readline)
+ * with the following exceptions:
+ * <p/>
+ * <ul>
+ * <li>Candidates that are directories will end with "/"</li>
+ * <li>Wildcard regular expressions are not evaluated or replaced</li>
+ * <li>The "~" character can be used to represent the user's home,
+ * but it cannot complete to other users' homes, since java does
+ * not provide any way of determining that easily</li>
+ * </ul>
+ * <p/>
+ * <p>TODO</p>
+ * <ul>
+ * <li>Handle files with spaces in them</li>
+ * <li>Have an option for file type color highlighting</li>
+ * </ul>
  *
- *  <p>
- *  This completor tries to behave as similar as possible to
- *  <i>bash</i>'s file name completion (using GNU readline)
- *  with the following exceptions:
- *
- *  <ul>
- *  <li>Candidates that are directories will end with "/"</li>
- *  <li>Wildcard regular expressions are not evaluated or replaced</li>
- *  <li>The "~" character can be used to represent the user's home,
- *  but it cannot complete to other users' homes, since java does
- *  not provide any way of determining that easily</li>
- *  </ul>
- *
- *  <p>TODO</p>
- *  <ul>
- *  <li>Handle files with spaces in them</li>
- *  <li>Have an option for file type color highlighting</li>
- *  </ul>
- *
- *  @author  <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class FileNameCompletor implements Completor {
+public class FileNameCompleter implements Completer {
     public int complete(final String buf, final int cursor,
                         final List candidates) {
         String buffer = (buf == null) ? "" : buf;
@@ -44,13 +46,13 @@ public class FileNameCompletor implements Completor {
         // special character: ~ maps to the user's home directory
         if (translated.startsWith("~" + File.separator)) {
             translated = System.getProperty("user.home")
-                         + translated.substring(1);
+                    + translated.substring(1);
         } else if (translated.startsWith("~")) {
             translated = new File(System.getProperty("user.home")).getParentFile()
-                                                                  .getAbsolutePath();
+                    .getAbsolutePath();
         } else if (!(translated.startsWith(File.separator))) {
             translated = new File("").getAbsolutePath() + File.separator
-                         + translated;
+                    + translated;
         }
 
         File f = new File(translated);
@@ -78,17 +80,16 @@ public class FileNameCompletor implements Completor {
     }
 
     /**
-     *  Match the specified <i>buffer</i> to the array of <i>entries</i>
-     *  and enter the matches into the list of <i>candidates</i>. This method
-     *  can be overridden in a subclass that wants to do more
-     *  sophisticated file name completion.
+     * Match the specified <i>buffer</i> to the array of <i>entries</i>
+     * and enter the matches into the list of <i>candidates</i>. This method
+     * can be overridden in a subclass that wants to do more
+     * sophisticated file name completion.
      *
-     *  @param        buffer                the untranslated buffer
-     *  @param        translated        the buffer with common characters replaced
-     *  @param        entries                the list of files to match
-     *  @param        candidates        the list of candidates to populate
-     *
-     *  @return  the offset of the match
+     * @param buffer     the untranslated buffer
+     * @param translated the buffer with common characters replaced
+     * @param entries    the list of files to match
+     * @param candidates the list of candidates to populate
+     * @return the offset of the match
      */
     public int matchFiles(String buffer, String translated, File[] entries,
                           List candidates) {
@@ -112,9 +113,9 @@ public class FileNameCompletor implements Completor {
         for (int i = 0; i < entries.length; i++) {
             if (entries[i].getAbsolutePath().startsWith(translated)) {
                 String name =
-                    entries[i].getName()
-                    + (((matches == 1) && entries[i].isDirectory())
-                       ? File.separator : " ");
+                        entries[i].getName()
+                                + (((matches == 1) && entries[i].isDirectory())
+                                ? File.separator : " ");
 
                 /*
                 if (entries [i].isDirectory ())

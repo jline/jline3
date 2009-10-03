@@ -6,7 +6,7 @@
  */
 package jline.example;
 
-import jline.*;
+import jline.console.ConsoleReader;
 
 import java.io.*;
 

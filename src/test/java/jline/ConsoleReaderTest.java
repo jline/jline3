@@ -5,6 +5,8 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.io.Writer;
 
+import jline.console.ConsoleReader;
+import jline.console.History;
 import junit.framework.TestCase;
 
 public class ConsoleReaderTest extends TestCase {

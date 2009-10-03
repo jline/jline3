@@ -6,6 +6,8 @@
  */
 package jline;
 
+import jline.console.ConsoleReader;
+
 
 /**
  *  Tests various features of editing lines.

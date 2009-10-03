@@ -10,17 +10,17 @@ import java.io.*;
 import java.util.*;
 
 /**
- *  <p>
- *  Terminal that is used for unix platforms. Terminal initialization
- *  is handled by issuing the <em>stty</em> command against the
- *  <em>/dev/tty</em> file to disable character echoing and enable
- *  character input. All known unix systems (including
- *  Linux and Macintosh OS X) support the <em>stty</em>), so this
- *  implementation should work for an reasonable POSIX system.
- *        </p>
+ * <p>
+ * Terminal that is used for unix platforms. Terminal initialization
+ * is handled by issuing the <em>stty</em> command against the
+ * <em>/dev/tty</em> file to disable character echoing and enable
+ * character input. All known unix systems (including
+ * Linux and Macintosh OS X) support the <em>stty</em>), so this
+ * implementation should work for an reasonable POSIX system.
+ * </p>
  *
- *  @author  <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
- *  @author  Updates <a href="mailto:dwkemp@gmail.com">Dale Kemp</a> 2005-12-03
+ * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ * @author Updates <a href="mailto:dwkemp@gmail.com">Dale Kemp</a> 2005-12-03
  */
 public class UnixTerminal extends Terminal {
     public static final short ARROW_START = 27;
@@ -41,10 +41,10 @@ public class UnixTerminal extends Terminal {
     private String ttyConfig;
     private boolean backspaceDeleteSwitched = false;
     private static String sttyCommand =
-        System.getProperty("jline.sttyCommand", "stty");
+            System.getProperty("jline.sttyCommand", "stty");
     private Thread shutdownHook;
 
-    
+
     String encoding = System.getProperty("input.encoding", "UTF-8");
     ReplayPrefixOneCharInputStream replayStream = new ReplayPrefixOneCharInputStream(encoding);
     InputStreamReader replayReader;
@@ -56,22 +56,22 @@ public class UnixTerminal extends Terminal {
             throw new RuntimeException(e);
         }
     }
-   
-    protected void checkBackspace(){
+
+    protected void checkBackspace() {
         String[] ttyConfigSplit = ttyConfig.split(":|=");
 
         if (ttyConfigSplit.length < 7)
             return;
-        
+
         if (ttyConfigSplit[6] == null)
             return;
-	
+
         backspaceDeleteSwitched = ttyConfigSplit[6].equals("7f");
     }
-    
+
     /**
-     *  Remove line-buffered input by invoking "stty -icanon min 1"
-     *  against the current terminal.
+     * Remove line-buffered input by invoking "stty -icanon min 1"
+     * against the current terminal.
      */
     public void initializeTerminal() throws IOException, InterruptedException {
         // save the initial tty configuration
@@ -80,7 +80,7 @@ public class UnixTerminal extends Terminal {
         // sanity check
         if ((ttyConfig.length() == 0)
                 || ((ttyConfig.indexOf("=") == -1)
-                       && (ttyConfig.indexOf(":") == -1))) {
+                && (ttyConfig.indexOf(":") == -1))) {
             throw new IOException("Unrecognized stty code: " + ttyConfig);
         }
 
@@ -112,7 +112,7 @@ public class UnixTerminal extends Terminal {
         }
     }
 
-    /** 
+    /**
      * Restore the original terminal configuration, which can be used when
      * shutting down the console reader. The ConsoleReader cannot be
      * used after calling this method.
@@ -138,8 +138,7 @@ public class UnixTerminal extends Terminal {
         }
     }
 
-    
-    
+
     public int readVirtualKey(InputStream in) throws IOException {
         int c = readCharacter(in);
 
@@ -153,14 +152,14 @@ public class UnixTerminal extends Terminal {
         // a sequence of 3 characters. E.g., the up arrow
         // key yields 27, 91, 68
         if (c == ARROW_START) {
-		//also the escape key is 27
-		//thats why we read until we
-		//have something different than 27
-		//this is a bugfix, because otherwise
-		//pressing escape and than an arrow key
-		//was an undefined state
-		while (c == ARROW_START)
-            		c = readCharacter(in);
+            //also the escape key is 27
+            //thats why we read until we
+            //have something different than 27
+            //this is a bugfix, because otherwise
+            //pressing escape and than an arrow key
+            //was an undefined state
+            while (c == ARROW_START)
+                c = readCharacter(in);
             if (c == ARROW_PREFIX || c == O_PREFIX) {
                 c = readCharacter(in);
                 if (c == ARROW_UP) {
@@ -179,23 +178,23 @@ public class UnixTerminal extends Terminal {
                     c = readCharacter(in); // read 4th
                     return DELETE;
                 }
-            } 
-        } 
+            }
+        }
         // handle unicode characters, thanks for a patch from amyi@inf.ed.ac.uk
         if (c > 128) {
-          // handle unicode characters longer than 2 bytes,
-          // thanks to Marc.Herbert@continuent.com
+            // handle unicode characters longer than 2 bytes,
+            // thanks to Marc.Herbert@continuent.com
             replayStream.setInput(c, in);
 //            replayReader = new InputStreamReader(replayStream, encoding);
             c = replayReader.read();
-            
+
         }
 
         return c;
     }
 
     /**
-     *  No-op for exceptions we want to silently consume.
+     * No-op for exceptions we want to silently consume.
      */
     private void consumeException(Throwable e) {
     }
@@ -209,12 +208,12 @@ public class UnixTerminal extends Terminal {
     }
 
     /**
-     *  Returns the value of "stty size" width param.
-     *
-     *  <strong>Note</strong>: this method caches the value from the
-     *  first time it is called in order to increase speed, which means
-     *  that changing to size of the terminal will not be reflected
-     *  in the console.
+     * Returns the value of "stty size" width param.
+     * <p/>
+     * <strong>Note</strong>: this method caches the value from the
+     * first time it is called in order to increase speed, which means
+     * that changing to size of the terminal will not be reflected
+     * in the console.
      */
     public int getTerminalWidth() {
         int val = -1;
@@ -232,12 +231,12 @@ public class UnixTerminal extends Terminal {
     }
 
     /**
-     *  Returns the value of "stty size" height param.
-     *
-     *  <strong>Note</strong>: this method caches the value from the
-     *  first time it is called in order to increase speed, which means
-     *  that changing to size of the terminal will not be reflected
-     *  in the console.
+     * Returns the value of "stty size" height param.
+     * <p/>
+     * <strong>Note</strong>: this method caches the value from the
+     * first time it is called in order to increase speed, which means
+     * that changing to size of the terminal will not be reflected
+     * in the console.
      */
     public int getTerminalHeight() {
         int val = -1;
@@ -255,7 +254,7 @@ public class UnixTerminal extends Terminal {
     }
 
     private static int getTerminalProperty(String prop)
-                                    throws IOException, InterruptedException {
+            throws IOException, InterruptedException {
         // need to be able handle both output formats:
         // speed 9600 baud; 24 rows; 140 columns;
         // and:
@@ -263,7 +262,7 @@ public class UnixTerminal extends Terminal {
         String props = stty("-a");
 
         for (StringTokenizer tok = new StringTokenizer(props, ";\n");
-                 tok.hasMoreTokens();) {
+             tok.hasMoreTokens();) {
             String str = tok.nextToken().trim();
 
             if (str.startsWith(prop)) {
@@ -281,33 +280,33 @@ public class UnixTerminal extends Terminal {
     }
 
     /**
-     *  Execute the stty command with the specified arguments
-     *  against the current active terminal.
+     * Execute the stty command with the specified arguments
+     * against the current active terminal.
      */
     protected static String stty(final String args)
-                        throws IOException, InterruptedException {
+            throws IOException, InterruptedException {
         return exec("stty " + args + " < /dev/tty").trim();
     }
 
     /**
-     *  Execute the specified command and return the output
-     *  (both stdout and stderr).
+     * Execute the specified command and return the output
+     * (both stdout and stderr).
      */
     private static String exec(final String cmd)
-                        throws IOException, InterruptedException {
-        return exec(new String[] {
-                        "sh",
-                        "-c",
-                        cmd
-                    });
+            throws IOException, InterruptedException {
+        return exec(new String[]{
+                "sh",
+                "-c",
+                cmd
+        });
     }
 
     /**
-     *  Execute the specified command and return the output
-     *  (both stdout and stderr).
+     * Execute the specified command and return the output
+     * (both stdout and stderr).
      */
     private static String exec(final String[] cmd)
-                        throws IOException, InterruptedException {
+            throws IOException, InterruptedException {
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
 
         Process p = Runtime.getRuntime().exec(cmd);
@@ -334,16 +333,16 @@ public class UnixTerminal extends Terminal {
     }
 
     /**
-     *  The command to use to set the terminal options. Defaults
-     *  to "stty", or the value of the system property "jline.sttyCommand".
+     * The command to use to set the terminal options. Defaults
+     * to "stty", or the value of the system property "jline.sttyCommand".
      */
     public static void setSttyCommand(String cmd) {
         sttyCommand = cmd;
     }
 
     /**
-     *  The command to use to set the terminal options. Defaults
-     *  to "stty", or the value of the system property "jline.sttyCommand".
+     * The command to use to set the terminal options. Defaults
+     * to "stty", or the value of the system property "jline.sttyCommand".
      */
     public static String getSttyCommand() {
         return sttyCommand;
@@ -355,21 +354,21 @@ public class UnixTerminal extends Terminal {
 
 
     public synchronized void enableEcho() {
-    	try {
-			stty("echo");
+        try {
+            stty("echo");
             echoEnabled = true;
-		} catch (Exception e) {
-			consumeException(e);
-		}
+        } catch (Exception e) {
+            consumeException(e);
+        }
     }
 
     public synchronized void disableEcho() {
-    	try {
-			stty("-echo");
+        try {
+            stty("-echo");
             echoEnabled = false;
-		} catch (Exception e) {
-			consumeException(e);
-		}
+        } catch (Exception e) {
+            consumeException(e);
+        }
     }
 
     /**
@@ -385,11 +384,11 @@ public class UnixTerminal extends Terminal {
         int byteRead;
 
         final String encoding;
-        
+
         public ReplayPrefixOneCharInputStream(String encoding) {
             this.encoding = encoding;
         }
-        
+
         public void setInput(int recorded, InputStream wrapped) throws IOException {
             this.byteRead = 0;
             this.firstByte = (byte) recorded;
@@ -403,16 +402,16 @@ public class UnixTerminal extends Terminal {
             else if (encoding.equalsIgnoreCase("UTF-32"))
                 byteLength = 4;
         }
-            
-            
+
+
         public void setInputUTF8(int recorded, InputStream wrapped) throws IOException {
             // 110yyyyy 10zzzzzz
             if ((firstByte & (byte) 0xE0) == (byte) 0xC0)
                 this.byteLength = 2;
-            // 1110xxxx 10yyyyyy 10zzzzzz
+                // 1110xxxx 10yyyyyy 10zzzzzz
             else if ((firstByte & (byte) 0xF0) == (byte) 0xE0)
                 this.byteLength = 3;
-            // 11110www 10xxxxxx 10yyyyyy 10zzzzzz
+                // 11110www 10xxxxxx 10yyyyyy 10zzzzzz
             else if ((firstByte & (byte) 0xF8) == (byte) 0xF0)
                 this.byteLength = 4;
             else
@@ -432,11 +431,11 @@ public class UnixTerminal extends Terminal {
         }
 
         /**
-        * InputStreamReader is greedy and will try to read bytes in advance. We
-        * do NOT want this to happen since we use a temporary/"losing bytes"
-        * InputStreamReader above, that's why we hide the real
-        * wrappedStream.available() here.
-        */
+         * InputStreamReader is greedy and will try to read bytes in advance. We
+         * do NOT want this to happen since we use a temporary/"losing bytes"
+         * InputStreamReader above, that's why we hide the real
+         * wrappedStream.available() here.
+         */
         public int available() {
             return byteLength - byteRead;
         }

@@ -4,7 +4,7 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  */
-package jline;
+package jline.console;
 
 /**
  * A CursorBuffer is a holder for a {@link StringBuffer} that also contains the
@@ -46,8 +46,7 @@ public class CursorBuffer {
      * ahead one. The text may overwrite or insert based on the current setting
      * of isOvertyping().
      *
-     * @param c
-     *            the character to insert
+     * @param c the character to insert
      */
     public void write(final char c) {
         buffer.insert(cursor++, c);
@@ -60,8 +59,7 @@ public class CursorBuffer {
      * Insert the specified {@link String} into the buffer, setting the cursor
      * to the end of the insertion point.
      *
-     * @param str
-     *            the String to insert. Must not be null.
+     * @param str the String to insert. Must not be null.
      */
     public void write(final String str) {
         if (buffer.length() == 0) {
@@ -89,16 +87,16 @@ public class CursorBuffer {
         overtyping = b;
     }
 
-	public StringBuffer getBuffer() {
-		return buffer;
-	}
+    public StringBuffer getBuffer() {
+        return buffer;
+    }
 
-	public void setBuffer(StringBuffer buffer) {
-		buffer.setLength(0);
-		buffer.append(this.buffer.toString());
-		
-		this.buffer = buffer;
-	}
-    
-    
+    public void setBuffer(StringBuffer buffer) {
+        buffer.setLength(0);
+        buffer.append(this.buffer.toString());
+
+        this.buffer = buffer;
+    }
+
+
 }

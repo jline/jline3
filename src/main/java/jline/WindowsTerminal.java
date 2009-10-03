@@ -23,7 +23,7 @@ import jline.UnixTerminal.ReplayPrefixOneCharInputStream;
  * url=/library/en-us/dllproc/base/getconsolemode.asp">GetConsoleMode</a> to
  * disable character echoing.
  * </p>
- *
+ * <p/>
  * <p>
  * By default, the {@link #readCharacter} method will attempt to test to see if
  * the specified {@link InputStream} is {@link System#in} or a wrapper around
@@ -192,11 +192,11 @@ public class WindowsTerminal extends Terminal {
     private int originalMode;
 
     private Thread shutdownHook;
-    
+
     String encoding = System.getProperty("jline.WindowsTerminal.input.encoding", System.getProperty("file.encoding"));
     ReplayPrefixOneCharInputStream replayStream = new ReplayPrefixOneCharInputStream(encoding);
     InputStreamReader replayReader;
-    
+
     public WindowsTerminal() {
         String dir = System.getProperty("jline.WindowsTerminal.directConsole");
 
@@ -205,13 +205,13 @@ public class WindowsTerminal extends Terminal {
         } else if ("false".equals(dir)) {
             directConsole = Boolean.FALSE;
         }
-        
+
         try {
             replayReader = new InputStreamReader(replayStream, encoding);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        
+
     }
 
     private native int getConsoleMode();
@@ -232,7 +232,7 @@ public class WindowsTerminal extends Terminal {
         if (directConsole == Boolean.FALSE) {
             return super.readCharacter(in);
         } else if ((directConsole == Boolean.TRUE)
-            || ((in == System.in) || (in instanceof FileInputStream
+                || ((in == System.in) || (in instanceof FileInputStream
                 && (((FileInputStream) in).getFD() == FileDescriptor.in)))) {
             return readByte();
         } else {
@@ -249,7 +249,7 @@ public class WindowsTerminal extends Terminal {
 
         // set the console to raw mode
         int newMode = originalMode
-            & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT
+                & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT
                 | ENABLE_PROCESSED_INPUT | ENABLE_WINDOW_INPUT);
         echoEnabled = false;
         setConsoleMode(newMode);
@@ -320,7 +320,7 @@ public class WindowsTerminal extends Terminal {
             bits = 64;
 
         InputStream in = new BufferedInputStream(getClass()
-            .getResourceAsStream(name + bits + ".dll"));
+                .getResourceAsStream(name + bits + ".dll"));
 
         try {
             OutputStream fout = new BufferedOutputStream(
@@ -359,43 +359,43 @@ public class WindowsTerminal extends Terminal {
             int key = readCharacter(in);
 
             switch (key) {
-            case UP_ARROW_KEY:
-                return CTRL_P; // translate UP -> CTRL-P
-            case LEFT_ARROW_KEY:
-                return CTRL_B; // translate LEFT -> CTRL-B
-            case RIGHT_ARROW_KEY:
-                return CTRL_F; // translate RIGHT -> CTRL-F
-            case DOWN_ARROW_KEY:
-                return CTRL_N; // translate DOWN -> CTRL-N
-            case DELETE_KEY:
-                return CTRL_QM; // translate DELETE -> CTRL-?
-            case HOME_KEY:
-                return CTRL_A;
-            case END_KEY:
-                return CTRL_E;
-            case PAGE_UP_KEY:
-                return CTRL_K;
-            case PAGE_DOWN_KEY:
-                return CTRL_L;
-            case ESCAPE_KEY:
-                return CTRL_OB; // translate ESCAPE -> CTRL-[
-            case INSERT_KEY:
-                return CTRL_C;
-            default:
-                return 0;
+                case UP_ARROW_KEY:
+                    return CTRL_P; // translate UP -> CTRL-P
+                case LEFT_ARROW_KEY:
+                    return CTRL_B; // translate LEFT -> CTRL-B
+                case RIGHT_ARROW_KEY:
+                    return CTRL_F; // translate RIGHT -> CTRL-F
+                case DOWN_ARROW_KEY:
+                    return CTRL_N; // translate DOWN -> CTRL-N
+                case DELETE_KEY:
+                    return CTRL_QM; // translate DELETE -> CTRL-?
+                case HOME_KEY:
+                    return CTRL_A;
+                case END_KEY:
+                    return CTRL_E;
+                case PAGE_UP_KEY:
+                    return CTRL_K;
+                case PAGE_DOWN_KEY:
+                    return CTRL_L;
+                case ESCAPE_KEY:
+                    return CTRL_OB; // translate ESCAPE -> CTRL-[
+                case INSERT_KEY:
+                    return CTRL_C;
+                default:
+                    return 0;
             }
         } else if (indicator > 128) {
-            	// handle unicode characters longer than 2 bytes,
-            	// thanks to Marc.Herbert@continuent.com
-                replayStream.setInput(indicator, in);
-                // replayReader = new InputStreamReader(replayStream, encoding);
-                indicator = replayReader.read();
-                
+            // handle unicode characters longer than 2 bytes,
+            // thanks to Marc.Herbert@continuent.com
+            replayStream.setInput(indicator, in);
+            // replayReader = new InputStreamReader(replayStream, encoding);
+            indicator = replayReader.read();
+
         }
-        
+
         return indicator;
-        
-	}
+
+    }
 
     public boolean isSupported() {
         return true;
@@ -457,14 +457,14 @@ public class WindowsTerminal extends Terminal {
     public synchronized void enableEcho() {
         // Must set these four modes at the same time to make it work fine.
         setConsoleMode(getConsoleMode() | ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT
-            | ENABLE_PROCESSED_INPUT | ENABLE_WINDOW_INPUT);
+                | ENABLE_PROCESSED_INPUT | ENABLE_WINDOW_INPUT);
         echoEnabled = true;
     }
 
     public synchronized void disableEcho() {
         // Must set these four modes at the same time to make it work fine.
         setConsoleMode(getConsoleMode()
-            & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT
+                & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT
                 | ENABLE_PROCESSED_INPUT | ENABLE_WINDOW_INPUT));
         echoEnabled = true;
     }
@@ -472,7 +472,7 @@ public class WindowsTerminal extends Terminal {
     public InputStream getDefaultBindings() {
         return getClass().getResourceAsStream("windowsbindings.properties");
     }
-    
+
     /**
      * This is awkward and inefficient, but probably the minimal way to add
      * UTF-8 support to JLine
@@ -486,11 +486,11 @@ public class WindowsTerminal extends Terminal {
         int byteRead;
 
         final String encoding;
-        
+
         public ReplayPrefixOneCharInputStream(String encoding) {
             this.encoding = encoding;
         }
-        
+
         public void setInput(int recorded, InputStream wrapped) throws IOException {
             this.byteRead = 0;
             this.firstByte = (byte) recorded;
@@ -504,16 +504,16 @@ public class WindowsTerminal extends Terminal {
             else if (encoding.equalsIgnoreCase("UTF-32"))
                 byteLength = 4;
         }
-            
-            
+
+
         public void setInputUTF8(int recorded, InputStream wrapped) throws IOException {
             // 110yyyyy 10zzzzzz
             if ((firstByte & (byte) 0xE0) == (byte) 0xC0)
                 this.byteLength = 2;
-            // 1110xxxx 10yyyyyy 10zzzzzz
+                // 1110xxxx 10yyyyyy 10zzzzzz
             else if ((firstByte & (byte) 0xF0) == (byte) 0xE0)
                 this.byteLength = 3;
-            // 11110www 10xxxxxx 10yyyyyy 10zzzzzz
+                // 11110www 10xxxxxx 10yyyyyy 10zzzzzz
             else if ((firstByte & (byte) 0xF8) == (byte) 0xF0)
                 this.byteLength = 4;
             else
@@ -533,14 +533,14 @@ public class WindowsTerminal extends Terminal {
         }
 
         /**
-        * InputStreamReader is greedy and will try to read bytes in advance. We
-        * do NOT want this to happen since we use a temporary/"losing bytes"
-        * InputStreamReader above, that's why we hide the real
-        * wrappedStream.available() here.
-        */
+         * InputStreamReader is greedy and will try to read bytes in advance. We
+         * do NOT want this to happen since we use a temporary/"losing bytes"
+         * InputStreamReader above, that's why we hide the real
+         * wrappedStream.available() here.
+         */
         public int available() {
             return byteLength - byteRead;
         }
     }
-    
+
 }
