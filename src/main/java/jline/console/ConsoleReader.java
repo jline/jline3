@@ -7,6 +7,7 @@
 package jline.console;
 
 import jline.Terminal;
+import jline.TerminalFactory;
 import jline.console.completer.CandidateListCompletionHandler;
 import jline.console.completer.Completer;
 import jline.console.completer.CompletionHandler;
@@ -221,7 +222,7 @@ public class ConsoleReader
     public ConsoleReader(final InputStream in, final Writer out,
                          final InputStream bindings) throws IOException
     {
-        this(in, out, bindings, Terminal.getTerminal());
+        this(in, out, bindings, TerminalFactory.getTerminal());
     }
 
     /**
@@ -1413,7 +1414,7 @@ public class ConsoleReader
     /**
      * Move the cursor <i>where</i> characters.
      *
-     * @param where if less than 0, move abs(<i>where</i>) to the left,
+     * @param num if less than 0, move abs(<i>where</i>) to the left,
      *              otherwise move <i>where</i> to the right.
      * @return the number of spaces we moved
      */
@@ -1457,7 +1458,6 @@ public class ConsoleReader
      * buffer.
      *
      * @param where the number of characters to move to the right or left.
-     * @see #where
      */
     private final void moveInternal(final int where) throws IOException {
         // debug ("move cursor " + where + " ("

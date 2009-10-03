@@ -297,7 +297,7 @@ public class WindowsTerminal
     public void restoreTerminal() throws Exception {
         // restore the old console mode
         setConsoleMode(originalMode);
-        resetTerminalIfThis();
+        TerminalFactory.resetTerminal(this);
         // Remove shutdown hook
         if (shutdownHook != null) {
             try {

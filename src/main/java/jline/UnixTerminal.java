@@ -134,7 +134,7 @@ public class UnixTerminal
             stty(ttyConfig);
             ttyConfig = null;
         }
-        resetTerminalIfThis();
+        TerminalFactory.resetTerminal(this);
         // Remove shutdown hook
         if (shutdownHook != null) {
             try {
