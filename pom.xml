@@ -1,48 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-To build, you need to have Maven 2 installed.
-
-To compile, run:
-
-    mvn compile
-
-To run tests, run:
-
-    mvn test
-
-To run one particular test, e.g. TestSomeTest, run:
-
-    mvn test -Dtest=TestSomeTest
-
-To build the jars, run:
-
-    mvn package
-
-To create and upload a release, run:
-
-    mvn deploy
-
-To build the site and upload it, run:
-
-    mvn site:deploy
-
-To perform a complete release, run:
-
-    mvn clean compile package site assembly:assembly deploy site:deploy
-
-To actually upload the artifact to sourceforge, it must be manually ftp'd:
-
-    lftp ftp://upload.sourceforge.net/incoming/ -e "put `ls target/jline-*.zip`"
-
-To make a bundle and request that ibilio upload it, do:
-
-    mvn source:jar javadoc:jar repository:bundle-create
-
-    scp target/jline-*-bundle.jar shell.sourceforge.net:/home/groups/j/jl/jline/htdocs
-
-    Make a request like at http://jira.codehaus.org/browse/MAVENUPLOAD-1003
-
--->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
@@ -53,11 +9,8 @@ To make a bundle and request that ibilio upload it, do:
     <artifactId>jline</artifactId>
     <packaging>jar</packaging>
     <name>JLine</name>
-    <version>0.9.95-SNAPSHOT</version>
-    <description>JLine is a java library for reading and editing user input in console applications. It features
-        tab-completion, command history, password masking, customizable keybindings, and pass-through handlers to use to
-        chain to other console applications.
-    </description>
+    <version>2.0-SNAPSHOT</version>
+    
     <url>http://jline.sourceforge.net</url>
     <issueManagement>
         <system>sourceforge</system>
@@ -103,24 +56,6 @@ To make a bundle and request that ibilio upload it, do:
 
     <build>
         <plugins>
-            <!--
-            <plugin>
-              <groupId>org.codehaus.mojo</groupId>
-              <artifactId>jalopy-maven-plugin</artifactId>
-              <version>1.0-SNAPSHOT</version>
-              <configuration>
-                <fileFormat>UNIX</fileFormat>
-                <convention>codestyle.xml</convention>
-              </configuration>
-              <executions>
-                <execution>
-                  <goals>
-                    <goal>format</goal>
-                  </goals>
-                </execution>
-              </executions>
-            </plugin>
-            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -134,8 +69,8 @@ To make a bundle and request that ibilio upload it, do:
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>1.3</source>
-                    <target>1.3</target>
+                    <source>1.5</source>
+                    <target>1.5</target>
                 </configuration>
             </plugin>
             <plugin>
