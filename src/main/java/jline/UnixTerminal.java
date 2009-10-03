@@ -46,8 +46,7 @@ public class UnixTerminal
     private boolean echoEnabled;
     private String ttyConfig;
     private boolean backspaceDeleteSwitched = false;
-    private static String sttyCommand =
-        System.getProperty("jline.sttyCommand", "stty");
+    private static String sttyCommand = System.getProperty("jline.sttyCommand", "stty");
     private Thread shutdownHook;
 
 

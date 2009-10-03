@@ -334,7 +334,7 @@ public class WindowsTerminal
         int bits = 32;
 
         // check for 64-bit systems and use to appropriate DLL
-        if (System.getProperty("os.arch").indexOf("64") != -1) {
+        if (System.getProperty("os.arch").contains("64")) {
             bits = 64;
         }
 

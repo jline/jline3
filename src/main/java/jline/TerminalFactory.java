@@ -13,33 +13,14 @@ public abstract class TerminalFactory
 {
     private static Terminal term;
 
-    /**
-     * @see #setupTerminal
-     */
     public static Terminal getTerminal() {
         return setupTerminal();
     }
 
-    /**
-     * Reset the current terminal to null.
-     */
     public static void resetTerminal() {
         term = null;
     }
 
-    /**
-     * <p>Configure and return the {@link TerminalFactory} instance for the
-     * current platform. This will initialize any system settings
-     * that are required for the console to be able to handle
-     * input correctly, such as setting tabtop, buffered input, and
-     * character echo.</p>
-     * <p/>
-     * <p>This class will use the Terminal implementation specified in the
-     * <em>jline.terminal</em> system property, or, if it is unset, by
-     * detecting the operating system from the <em>os.name</em>
-     * system property and instantiating either the
-     * {@link jline.WindowsTerminal} or {@link jline.UnixTerminal}.
-     */
     public static synchronized Terminal setupTerminal() {
         if (term != null) {
             return term;
@@ -55,11 +36,10 @@ public abstract class TerminalFactory
                 t = (Terminal) Class.forName(termProp).newInstance();
             }
             catch (Exception e) {
-                throw (IllegalArgumentException) new IllegalArgumentException(e
-                    .toString()).fillInStackTrace();
+                throw new IllegalArgumentException(e);
             }
         }
-        else if (os.indexOf("windows") != -1) {
+        else if (os.contains("windows")) {
             t = new WindowsTerminal();
         }
         else {

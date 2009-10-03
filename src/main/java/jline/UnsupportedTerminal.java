@@ -31,7 +31,6 @@ public class UnsupportedTerminal
         return true;
     }
 
-
     public boolean isEchoEnabled() {
         return true;
     }
