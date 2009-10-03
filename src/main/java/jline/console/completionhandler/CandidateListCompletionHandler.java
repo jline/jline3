@@ -178,7 +178,7 @@ public class CandidateListCompletionHandler
             (String[]) candidates.toArray(new String[candidates.size()]);
 
         String first = strings[0];
-        StringBuffer candidate = new StringBuffer();
+        StringBuilder candidate = new StringBuilder();
 
         for (int i = 0; i < first.length(); i++) {
             if (startsWith(first.substring(0, i + 1), strings)) {

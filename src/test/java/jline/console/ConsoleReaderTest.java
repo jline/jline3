@@ -153,7 +153,7 @@ public class ConsoleReaderTest
     private void assertWindowsKeyBehavior(String expected, char[] input)
         throws Exception
     {
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder buffer = new StringBuilder();
         buffer.append(input);
         ConsoleReader reader = createConsole(buffer.toString().getBytes());
         assertNotNull(reader);

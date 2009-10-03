@@ -278,7 +278,7 @@ public class ArgumentCompleter
 
         public ArgumentList delimit(final String buffer, final int cursor) {
             List args = new LinkedList();
-            StringBuffer arg = new StringBuffer();
+            StringBuilder arg = new StringBuilder();
             int argpos = -1;
             int bindex = -1;
 

@@ -435,8 +435,8 @@ public class ConsoleReader
      * character is echoed to the screen. Adapted from cat by Torbjorn Granlund,
      * as repeated in stty by David MacKenzie.
      */
-    StringBuffer getPrintableCharacters(char ch) {
-        StringBuffer sbuff = new StringBuffer();
+    StringBuilder getPrintableCharacters(char ch) {
+        StringBuilder sbuff = new StringBuilder();
 
         if (ch >= 32) {
             if (ch < 127) {
@@ -674,7 +674,7 @@ public class ConsoleReader
     }
 
     private String readLine(InputStream in) throws IOException {
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
 
         while (true) {
             int i = in.read();
@@ -909,7 +909,7 @@ public class ConsoleReader
             ;
         }
 
-        StringBuffer line = new StringBuffer();
+        StringBuilder line = new StringBuilder();
 
         int showLines;
 
@@ -961,11 +961,11 @@ public class ConsoleReader
      *
      * @param toPad    the {@link String} to pad
      * @param len      the target length
-     * @param appendTo the {@link StringBuffer} to which to append the padded
+     * @param appendTo the {@link StringBuilder} to which to append the padded
      *                 {@link String}.
      */
     private final void pad(final String toPad, final int len,
-                           final StringBuffer appendTo)
+                           final StringBuilder appendTo)
     {
         appendTo.append(toPad);
 

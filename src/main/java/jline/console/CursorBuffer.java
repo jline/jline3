@@ -7,7 +7,7 @@
 package jline.console;
 
 /**
- * A CursorBuffer is a holder for a {@link StringBuffer} that also contains the
+ * A CursorBuffer is a holder for a {@link StringBuilder} that also contains the
  * current cursor position.
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
