@@ -8,6 +8,7 @@ package jline.console.runner;
 
 import jline.console.ConsoleReader;
 import jline.console.History;
+import jline.console.SimpleHistory;
 import jline.console.completer.ArgumentCompleter;
 import jline.console.completer.Completer;
 
@@ -49,13 +50,13 @@ public class ConsoleRunner
         ConsoleReader reader = new ConsoleReader();
 
         if (historyFileName != null) {
-            reader.setHistory(new History(new File
+            reader.setHistory(new SimpleHistory(new File
                 (System.getProperty("user.home"),
                     ".jline-" + mainClass
                         + "." + historyFileName + ".history")));
         }
         else {
-            reader.setHistory(new History(new File
+            reader.setHistory(new SimpleHistory(new File
                 (System.getProperty("user.home"),
                     ".jline-" + mainClass + ".history")));
         }

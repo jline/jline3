@@ -9,10 +9,9 @@ package jline.console.completer;
 import java.util.List;
 
 /**
- * <p>
- * A completor that does nothing. Useful as the last item in an
- * {@link ArgumentCompleter}.
- * </p>
+ * A completer that does nothing.
+ *
+ * <p>Useful as the last item in an {@link ArgumentCompleter}.
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
@@ -20,10 +19,9 @@ public class NullCompleter
     implements Completer
 {
     /**
-     * Returns -1 always, indicating that the the buffer is never
-     * handled.
+     * Returns -1 always, indicating that the the buffer is never handled.
      */
-    public int complete(final String buffer, int cursor, List candidates) {
+    public int complete(final String buffer, int cursor, List<String> candidates) {
         return -1;
     }
 }

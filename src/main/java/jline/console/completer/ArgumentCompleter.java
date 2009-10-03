@@ -140,7 +140,7 @@ public class ArgumentCompleter
     }
 
     public int complete(final String buffer, final int cursor,
-                        final List candidates)
+                        final List<String> candidates)
     {
         ArgumentList list = delim.delimit(buffer, cursor);
         int argpos = list.getArgumentPosition();

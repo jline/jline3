@@ -108,7 +108,7 @@ public class SimpleCompleter
         return (String[]) words.toArray(new String[words.size()]);
     }
 
-    public int complete(final String buffer, final int cursor, final List clist) {
+    public int complete(final String buffer, final int cursor, final List<String> clist) {
         String start = (buffer == null) ? "" : buffer;
 
         SortedSet matches = candidates.tailSet(start);

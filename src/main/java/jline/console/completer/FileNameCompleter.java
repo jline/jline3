@@ -38,25 +38,20 @@ import java.util.List;
 public class FileNameCompleter
     implements Completer
 {
-    public int complete(final String buf, final int cursor,
-                        final List candidates)
-    {
+    public int complete(final String buf, final int cursor, final List<String> candidates) {
         String buffer = (buf == null) ? "" : buf;
 
         String translated = buffer;
 
         // special character: ~ maps to the user's home directory
         if (translated.startsWith("~" + File.separator)) {
-            translated = System.getProperty("user.home")
-                + translated.substring(1);
+            translated = System.getProperty("user.home") + translated.substring(1);
         }
         else if (translated.startsWith("~")) {
-            translated = new File(System.getProperty("user.home")).getParentFile()
-                .getAbsolutePath();
+            translated = new File(System.getProperty("user.home")).getParentFile() .getAbsolutePath();
         }
         else if (!(translated.startsWith(File.separator))) {
-            translated = new File("").getAbsolutePath() + File.separator
-                + translated;
+            translated = new File("").getAbsolutePath() + File.separator + translated;
         }
 
         File f = new File(translated);
@@ -76,13 +71,8 @@ public class FileNameCompleter
             return matchFiles(buffer, translated, entries, candidates);
         }
         finally {
-            // we want to output a sorted list of files
-            sortFileNames(candidates);
+            Collections.sort(candidates);
         }
-    }
-
-    protected void sortFileNames(final List fileNames) {
-        Collections.sort(fileNames);
     }
 
     /**
@@ -97,9 +87,7 @@ public class FileNameCompleter
      * @param candidates the list of candidates to populate
      * @return the offset of the match
      */
-    public int matchFiles(String buffer, String translated, File[] entries,
-                          List candidates)
-    {
+    public int matchFiles(String buffer, String translated, File[] entries, List<String> candidates) {
         if (entries == null) {
             return -1;
         }

@@ -53,7 +53,6 @@ import java.util.TreeMap;
 public class ConsoleReader
     implements ConsoleOperations
 {
-
     final static int TAB_WIDTH = 4;
 
     String prompt;
@@ -64,8 +63,7 @@ public class ConsoleReader
 
     public static final String CR = System.getProperty("line.separator");
 
-    private static ResourceBundle loc = ResourceBundle
-        .getBundle(CandidateListCompletionHandler.class.getName());
+    private static ResourceBundle loc = ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName());
 
     /**
      * Map that contains the operation name to keymay operation mapping.
@@ -73,7 +71,7 @@ public class ConsoleReader
     public static SortedMap KEYMAP_NAMES;
 
     static {
-        Map names = new TreeMap();
+        Map<String,Short> names = new TreeMap<String,Short>();
 
         names.put("MOVE_TO_BEG", new Short(MOVE_TO_BEG));
         names.put("MOVE_TO_END", new Short(MOVE_TO_END));
@@ -123,7 +121,9 @@ public class ConsoleReader
         names.put("EXIT", new Short(EXIT));
         names.put("CLEAR_LINE", new Short(CLEAR_LINE));
 
-        KEYMAP_NAMES = new TreeMap(Collections.unmodifiableMap(names));
+
+        // FIXME: Why new TreeMap here?
+        KEYMAP_NAMES = new TreeMap<String,Short>(Collections.unmodifiableMap(names));
     }
 
     /**
@@ -150,8 +150,7 @@ public class ConsoleReader
      * The number of tab-completion candidates above which a warning will be
      * prompted before showing all the candidates.
      */
-    private int autoprintThreshhold = Integer.getInteger(
-        "jline.completion.threshold", 100).intValue(); // same default as
+    private int autoprintThreshhold = Integer.getInteger("jline.completion.threshold", 100).intValue(); // same default as
 
     // bash
 
@@ -170,7 +169,7 @@ public class ConsoleReader
 
     static PrintWriter debugger;
 
-    History history = new History();
+    History history = new SimpleHistory();
 
     final List completors = new LinkedList();
 

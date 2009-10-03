@@ -9,8 +9,7 @@ package jline.console.completer;
 import java.util.List;
 
 /**
- * A Completor is the mechanism by which tab-completion candidates
- * will be resolved.
+ * A completer is the mechanism by which tab-completion candidates will be resolved.
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
@@ -23,10 +22,10 @@ public interface Completer
      * user: thus, the complete method should sort the
      * {@link List} before returning.
      *
-     * @param buffer     the buffer
-     * @param candidates the {@link List} of candidates to populate
-     * @return the index of the <i>buffer</i> for which
-     *         the completion will be relative
+     * @param buffer        the buffer
+     * @param cursor        ???
+     * @param candidates    the {@link List} of candidates to populate
+     * @return              the index of the <i>buffer</i> for which the completion will be relative
      */
-    int complete(String buffer, int cursor, List candidates);
+    int complete(String buffer, int cursor, List<String> candidates);
 }
