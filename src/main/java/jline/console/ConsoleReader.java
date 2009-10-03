@@ -177,6 +177,9 @@ public class ConsoleReader
 
     private Map triggeredActions = new HashMap();
 
+    public Writer getOutput() {
+        return out;
+    }
 
     /**
      * Adding a triggered Action allows to give another curse of action

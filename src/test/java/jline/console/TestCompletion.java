@@ -4,8 +4,9 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  */
-package jline;
+package jline.console;
 
+import jline.console.JLineTestCase;
 import jline.console.completer.ArgumentCompleter;
 import jline.console.completer.Completer;
 import jline.console.completer.SimpleCompleter;

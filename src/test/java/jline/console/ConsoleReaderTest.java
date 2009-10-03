@@ -1,10 +1,12 @@
-package jline;
+package jline.console;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.io.Writer;
 
+import jline.Terminal;
+import jline.WindowsTerminal;
 import jline.console.ConsoleReader;
 import jline.console.History;
 import junit.framework.TestCase;

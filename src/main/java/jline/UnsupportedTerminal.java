@@ -9,6 +9,7 @@ package jline;
 import jline.console.ConsoleReader;
 
 import java.io.IOException;
+import java.io.Writer;
 
 /**
  * A no-op unsupported terminal.
@@ -78,8 +79,9 @@ public class UnsupportedTerminal
                 public void run() {
                     while (!interrupted()) {
                         try {
-                            reader.out.write(fullPrompt);
-                            reader.out.flush();
+                            Writer out = reader.getOutput();
+                            out.write(fullPrompt);
+                            out.flush();
                             sleep(3);
                         }
                         catch (IOException ioe) {
