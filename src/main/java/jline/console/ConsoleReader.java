@@ -73,54 +73,53 @@ public class ConsoleReader
     static {
         Map<String,Short> names = new TreeMap<String,Short>();
 
-        names.put("MOVE_TO_BEG", new Short(MOVE_TO_BEG));
-        names.put("MOVE_TO_END", new Short(MOVE_TO_END));
-        names.put("PREV_CHAR", new Short(PREV_CHAR));
-        names.put("NEWLINE", new Short(NEWLINE));
-        names.put("KILL_LINE", new Short(KILL_LINE));
-        names.put("PASTE", new Short(PASTE));
-        names.put("CLEAR_SCREEN", new Short(CLEAR_SCREEN));
-        names.put("NEXT_HISTORY", new Short(NEXT_HISTORY));
-        names.put("PREV_HISTORY", new Short(PREV_HISTORY));
-        names.put("START_OF_HISTORY", new Short(START_OF_HISTORY));
-        names.put("END_OF_HISTORY", new Short(END_OF_HISTORY));
-        names.put("REDISPLAY", new Short(REDISPLAY));
-        names.put("KILL_LINE_PREV", new Short(KILL_LINE_PREV));
-        names.put("DELETE_PREV_WORD", new Short(DELETE_PREV_WORD));
-        names.put("NEXT_CHAR", new Short(NEXT_CHAR));
-        names.put("REPEAT_PREV_CHAR", new Short(REPEAT_PREV_CHAR));
-        names.put("SEARCH_PREV", new Short(SEARCH_PREV));
-        names.put("REPEAT_NEXT_CHAR", new Short(REPEAT_NEXT_CHAR));
-        names.put("SEARCH_NEXT", new Short(SEARCH_NEXT));
-        names.put("PREV_SPACE_WORD", new Short(PREV_SPACE_WORD));
-        names.put("TO_END_WORD", new Short(TO_END_WORD));
-        names.put("REPEAT_SEARCH_PREV", new Short(REPEAT_SEARCH_PREV));
-        names.put("PASTE_PREV", new Short(PASTE_PREV));
-        names.put("REPLACE_MODE", new Short(REPLACE_MODE));
-        names.put("SUBSTITUTE_LINE", new Short(SUBSTITUTE_LINE));
-        names.put("TO_PREV_CHAR", new Short(TO_PREV_CHAR));
-        names.put("NEXT_SPACE_WORD", new Short(NEXT_SPACE_WORD));
-        names.put("DELETE_PREV_CHAR", new Short(DELETE_PREV_CHAR));
-        names.put("ADD", new Short(ADD));
-        names.put("PREV_WORD", new Short(PREV_WORD));
-        names.put("CHANGE_META", new Short(CHANGE_META));
-        names.put("DELETE_META", new Short(DELETE_META));
-        names.put("END_WORD", new Short(END_WORD));
-        names.put("NEXT_CHAR", new Short(NEXT_CHAR));
-        names.put("INSERT", new Short(INSERT));
-        names.put("REPEAT_SEARCH_NEXT", new Short(REPEAT_SEARCH_NEXT));
-        names.put("PASTE_NEXT", new Short(PASTE_NEXT));
-        names.put("REPLACE_CHAR", new Short(REPLACE_CHAR));
-        names.put("SUBSTITUTE_CHAR", new Short(SUBSTITUTE_CHAR));
-        names.put("TO_NEXT_CHAR", new Short(TO_NEXT_CHAR));
-        names.put("UNDO", new Short(UNDO));
-        names.put("NEXT_WORD", new Short(NEXT_WORD));
-        names.put("DELETE_NEXT_CHAR", new Short(DELETE_NEXT_CHAR));
-        names.put("CHANGE_CASE", new Short(CHANGE_CASE));
-        names.put("COMPLETE", new Short(COMPLETE));
-        names.put("EXIT", new Short(EXIT));
-        names.put("CLEAR_LINE", new Short(CLEAR_LINE));
-
+        names.put("MOVE_TO_BEG", MOVE_TO_BEG);
+        names.put("MOVE_TO_END", MOVE_TO_END);
+        names.put("PREV_CHAR", PREV_CHAR);
+        names.put("NEWLINE", NEWLINE);
+        names.put("KILL_LINE", KILL_LINE);
+        names.put("PASTE", PASTE);
+        names.put("CLEAR_SCREEN", CLEAR_SCREEN);
+        names.put("NEXT_HISTORY", NEXT_HISTORY);
+        names.put("PREV_HISTORY", PREV_HISTORY);
+        names.put("START_OF_HISTORY", START_OF_HISTORY);
+        names.put("END_OF_HISTORY", END_OF_HISTORY);
+        names.put("REDISPLAY", REDISPLAY);
+        names.put("KILL_LINE_PREV", KILL_LINE_PREV);
+        names.put("DELETE_PREV_WORD", DELETE_PREV_WORD);
+        names.put("NEXT_CHAR", NEXT_CHAR);
+        names.put("REPEAT_PREV_CHAR", REPEAT_PREV_CHAR);
+        names.put("SEARCH_PREV", SEARCH_PREV);
+        names.put("REPEAT_NEXT_CHAR", REPEAT_NEXT_CHAR);
+        names.put("SEARCH_NEXT", SEARCH_NEXT);
+        names.put("PREV_SPACE_WORD", PREV_SPACE_WORD);
+        names.put("TO_END_WORD", TO_END_WORD);
+        names.put("REPEAT_SEARCH_PREV", REPEAT_SEARCH_PREV);
+        names.put("PASTE_PREV", PASTE_PREV);
+        names.put("REPLACE_MODE", REPLACE_MODE);
+        names.put("SUBSTITUTE_LINE", SUBSTITUTE_LINE);
+        names.put("TO_PREV_CHAR", TO_PREV_CHAR);
+        names.put("NEXT_SPACE_WORD", NEXT_SPACE_WORD);
+        names.put("DELETE_PREV_CHAR", DELETE_PREV_CHAR);
+        names.put("ADD", ADD);
+        names.put("PREV_WORD", PREV_WORD);
+        names.put("CHANGE_META", CHANGE_META);
+        names.put("DELETE_META", DELETE_META);
+        names.put("END_WORD", END_WORD);
+        names.put("NEXT_CHAR", NEXT_CHAR);
+        names.put("INSERT", INSERT);
+        names.put("REPEAT_SEARCH_NEXT", REPEAT_SEARCH_NEXT);
+        names.put("PASTE_NEXT", PASTE_NEXT);
+        names.put("REPLACE_CHAR", REPLACE_CHAR);
+        names.put("SUBSTITUTE_CHAR", SUBSTITUTE_CHAR);
+        names.put("TO_NEXT_CHAR", TO_NEXT_CHAR);
+        names.put("UNDO", UNDO);
+        names.put("NEXT_WORD", NEXT_WORD);
+        names.put("DELETE_NEXT_CHAR", DELETE_NEXT_CHAR);
+        names.put("CHANGE_CASE", CHANGE_CASE);
+        names.put("COMPLETE", COMPLETE);
+        names.put("EXIT", EXIT);
+        names.put("CLEAR_LINE", CLEAR_LINE);
 
         // FIXME: Why new TreeMap here?
         KEYMAP_NAMES = new TreeMap<String,Short>(Collections.unmodifiableMap(names));
@@ -144,13 +143,13 @@ public class ConsoleReader
     /**
      * The null mask.
      */
-    private static final Character NULL_MASK = new Character((char) 0);
+    private static final Character NULL_MASK = (char) 0;
 
     /**
      * The number of tab-completion candidates above which a warning will be
      * prompted before showing all the candidates.
      */
-    private int autoprintThreshhold = Integer.getInteger("jline.completion.threshold", 100).intValue(); // same default as
+    private int autoprintThreshhold = Integer.getInteger("jline.completion.threshold", 100); // same default as
 
     // bash
 
@@ -171,11 +170,11 @@ public class ConsoleReader
 
     History history = new SimpleHistory();
 
-    final List completors = new LinkedList();
+    final List<Completer> completors = new LinkedList<Completer>();
 
     private Character echoCharacter = null;
 
-    private Map triggeredActions = new HashMap();
+    private Map<Character,ActionListener> triggeredActions = new HashMap<Character,ActionListener>();
 
     public Writer getOutput() {
         return out;
@@ -193,7 +192,7 @@ public class ConsoleReader
      * @param listener
      */
     public void addTriggeredAction(char c, ActionListener listener) {
-        triggeredActions.put(new Character(c), listener);
+        triggeredActions.put(c, listener);
     }
 
     /**
@@ -284,7 +283,7 @@ public class ConsoleReader
                     Short opval = (Short) KEYMAP_NAMES.get(op);
 
                     if (opval != null) {
-                        keybindings[code.shortValue()] = opval.shortValue();
+                        keybindings[code] = opval;
                     }
                 }
                 catch (NumberFormatException nfe) {
@@ -647,7 +646,7 @@ public class ConsoleReader
                     case UNKNOWN:
                     default:
                         if (c != 0) { // ignore null chars
-                            ActionListener action = (ActionListener) triggeredActions.get(new Character((char) c));
+                            ActionListener action = (ActionListener) triggeredActions.get((char) c);
                             if (action != null) {
                                 action.actionPerformed(null);
                             }
@@ -858,13 +857,13 @@ public class ConsoleReader
      *
      * @return true if successful
      */
-    private final boolean complete() throws IOException {
+    private boolean complete() throws IOException {
         // debug ("tab for (" + buf + ")");
         if (completors.size() == 0) {
             return false;
         }
 
-        List candidates = new LinkedList();
+        List<String> candidates = new LinkedList<String>();
         String bufstr = buf.buffer.toString();
         int cursor = buf.cursor;
 
@@ -963,9 +962,7 @@ public class ConsoleReader
      * @param appendTo the {@link StringBuilder} to which to append the padded
      *                 {@link String}.
      */
-    private final void pad(final String toPad, final int len,
-                           final StringBuilder appendTo)
-    {
+    private void pad(final String toPad, final int len,  final StringBuilder appendTo) {
         appendTo.append(toPad);
 
         for (int i = 0; i < (len - toPad.length()); i++, appendTo.append(' ')) {
@@ -1032,7 +1029,7 @@ public class ConsoleReader
      *
      * @param buffer the new contents of the buffer.
      */
-    private final void setBuffer(final String buffer) throws IOException {
+    private void setBuffer(final String buffer) throws IOException {
         // don't bother modifying it if it is unchanged
         if (buffer.equals(buf.buffer.toString())) {
             return;
@@ -1168,11 +1165,11 @@ public class ConsoleReader
      *
      * @param clear the number of characters to clear after the end of the buffer
      */
-    private final void drawBuffer(final int clear) throws IOException {
+    private void drawBuffer(final int clear) throws IOException {
         // debug ("drawBuffer: " + clear);
         char[] chars = buf.buffer.substring(buf.cursor).toCharArray();
         if (mask != null) {
-            Arrays.fill(chars, mask.charValue());
+            Arrays.fill(chars, mask);
         }
 
         printCharacters(chars);
@@ -1186,14 +1183,14 @@ public class ConsoleReader
      * Redraw the rest of the buffer from the cursor onwards. This is necessary
      * for inserting text into the buffer.
      */
-    private final void drawBuffer() throws IOException {
+    private void drawBuffer() throws IOException {
         drawBuffer(0);
     }
 
     /**
      * Clear ahead the specified number of characters without moving the cursor.
      */
-    private final void clearAhead(final int num) throws IOException {
+    private void clearAhead(final int num) throws IOException {
         if (num == 0) {
             return;
         }
@@ -1217,7 +1214,7 @@ public class ConsoleReader
     /**
      * Move the visual cursor backwards without modifying the buffer cursor.
      */
-    private final void back(final int num) throws IOException {
+    private void back(final int num) throws IOException {
         printCharacters(BACKSPACE, num);
         flushConsole();
     }
@@ -1254,7 +1251,7 @@ public class ConsoleReader
      * Output the specified characters to the output stream without manipulating
      * the current buffer.
      */
-    private final void printCharacters(final char[] c) throws IOException {
+    private void printCharacters(final char[] c) throws IOException {
         int len = 0;
         for (int i = 0; i < c.length; i++) {
             if (c[i] == '\t') {
@@ -1287,9 +1284,7 @@ public class ConsoleReader
         out.write(cbuf);
     }
 
-    private final void printCharacters(final char c, final int num)
-        throws IOException
-    {
+    private void printCharacters(final char c, final int num) throws IOException {
         if (num == 1) {
             printCharacter(c);
         }
@@ -1305,11 +1300,11 @@ public class ConsoleReader
      * single characters (like a backspace or keyboard) that we want the console
      * to handle immedately.
      */
-    public final void flushConsole() throws IOException {
+    public void flushConsole() throws IOException {
         out.flush();
     }
 
-    private final int backspaceAll() throws IOException {
+    private int backspaceAll() throws IOException {
         return backspace(Integer.MAX_VALUE);
     }
 
@@ -1318,7 +1313,7 @@ public class ConsoleReader
      *
      * @return the number of characters backed up
      */
-    private final int backspace(final int num) throws IOException {
+    private int backspace(final int num) throws IOException {
         if (buf.cursor == 0) {
             return 0;
         }
@@ -1338,11 +1333,11 @@ public class ConsoleReader
      *
      * @return true if successful
      */
-    public final boolean backspace() throws IOException {
+    public boolean backspace() throws IOException {
         return backspace(1) == 1;
     }
 
-    private final boolean moveToEnd() throws IOException {
+    private boolean moveToEnd() throws IOException {
         if (moveCursor(1) == 0) {
             return false;
         }
@@ -1358,7 +1353,7 @@ public class ConsoleReader
      * Delete the character at the current position and redraw the remainder of
      * the buffer.
      */
-    private final boolean deleteCurrentCharacter() throws IOException {
+    private boolean deleteCurrentCharacter() throws IOException {
         boolean success = buf.buffer.length() > 0;
         if (!success) {
             return false;
@@ -1373,7 +1368,7 @@ public class ConsoleReader
         return true;
     }
 
-    private final boolean previousWord() throws IOException {
+    private boolean previousWord() throws IOException {
         while (isDelimiter(buf.current()) && (moveCursor(-1) != 0)) {
             ;
         }
@@ -1385,7 +1380,7 @@ public class ConsoleReader
         return true;
     }
 
-    private final boolean nextWord() throws IOException {
+    private boolean nextWord() throws IOException {
         while (isDelimiter(buf.current()) && (moveCursor(1) != 0)) {
             ;
         }
@@ -1397,7 +1392,7 @@ public class ConsoleReader
         return true;
     }
 
-    private final boolean deletePreviousWord() throws IOException {
+    private boolean deletePreviousWord() throws IOException {
         while (isDelimiter(buf.current()) && backspace()) {
             ;
         }
@@ -1416,7 +1411,7 @@ public class ConsoleReader
      *              otherwise move <i>where</i> to the right.
      * @return the number of spaces we moved
      */
-    public final int moveCursor(final int num) throws IOException {
+    public int moveCursor(final int num) throws IOException {
         int where = num;
 
         if ((buf.cursor == 0) && (where < 0)) {
@@ -1457,7 +1452,7 @@ public class ConsoleReader
      *
      * @param where the number of characters to move to the right or left.
      */
-    private final void moveInternal(final int where) throws IOException {
+    private void moveInternal(final int where) throws IOException {
         // debug ("move cursor " + where + " ("
         // + buf.cursor + " => " + (buf.cursor + where) + ")");
         buf.cursor += where;
@@ -1485,7 +1480,7 @@ public class ConsoleReader
             return;
         }
         else if (mask != null) {
-            c = mask.charValue();
+            c = mask;
         }
         else {
             printCharacters(buf.buffer.substring(buf.cursor - where, buf.cursor).toCharArray());
@@ -1538,9 +1533,7 @@ public class ConsoleReader
      *
      * @return the number of characters backed up
      */
-    private final int delete(final int num)
-        throws IOException
-    {
+    private int delete(final int num) throws IOException {
         /* Commented out beacuse of DWA-2949:
 if (buf.cursor == 0)
        return 0;*/
@@ -1570,12 +1563,9 @@ if (buf.cursor == 0)
      *
      * @return true if successful
      */
-    public final boolean delete()
-        throws IOException
-    {
+    public final boolean delete() throws IOException {
         return delete(1) == 1;
     }
-
 
     public void setHistory(final History history) {
         this.history = history;
