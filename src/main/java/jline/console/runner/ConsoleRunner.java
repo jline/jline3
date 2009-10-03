@@ -4,8 +4,10 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  */
-package jline.console;
+package jline.console.runner;
 
+import jline.console.ConsoleReader;
+import jline.console.History;
 import jline.console.completer.ArgumentCompleter;
 import jline.console.completer.Completer;
 
@@ -18,7 +20,7 @@ import java.util.StringTokenizer;
 /**
  * <p>
  * A pass-through application that sets the system input stream to a
- * {@link ConsoleReader} and invokes the specified main method.
+ * {@link jline.console.ConsoleReader} and invokes the specified main method.
  * </p>
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
@@ -28,7 +30,7 @@ public class ConsoleRunner
     public static final String property = "jline.history";
 
     public static void main(final String[] args) throws Exception {
-        String historyFileName = null;
+        String historyFileName;
 
         List argList = new ArrayList(Arrays.asList(args));
 

@@ -287,7 +287,7 @@
                 </title>
                 <para>
                     No, but you can use the
-                    <classname>jline.console.ConsoleRunner</classname>
+                    <classname>jline.console.runner.ConsoleRunner</classname>
                     application
                     to set up the system input stream and continue on
                     the launch another program. For example, to use JLine
@@ -296,7 +296,7 @@
                     console application, you can run:
                     <programlisting>
                         java
-                        <classname>jline.console.ConsoleRunner</classname>
+                        <classname>jline.console.runner.ConsoleRunner</classname>
                         <ulink url="http://www.beanshell.org/manual/standalonemode.html">bsh.Interpreter</ulink>
                     </programlisting>
                 </para>
@@ -309,7 +309,7 @@
                     Yes. Try running:
                     <programlisting>
                         java
-                        <classname>jline.console.ConsoleRunner</classname>
+                        <classname>jline.console.runner.ConsoleRunner</classname>
                         <ulink url="http://www.beanshell.org/manual/standalonemode.html">bsh.Interpreter</ulink>
                     </programlisting>
                 </para>
@@ -324,7 +324,7 @@
                     Yes. Try running:
                     <programlisting>
                         java
-                        <classname>jline.console.ConsoleRunner</classname>
+                        <classname>jline.console.runner.ConsoleRunner</classname>
                         com.sun.tools.example.debug.tty.TTY
                         <emphasis>args</emphasis>
                     </programlisting>

@@ -4,7 +4,9 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  */
-package jline.console;
+package jline.console.runner;
+
+import jline.console.ConsoleReader;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,7 +14,7 @@ import java.io.SequenceInputStream;
 import java.util.Enumeration;
 
 /**
- * An {@link InputStream} implementation that wraps a {@link ConsoleReader}.
+ * An {@link InputStream} implementation that wraps a {@link jline.console.ConsoleReader}.
  * It is useful for setting up the {@link System#in} for a generic
  * console.
  *
