@@ -14,7 +14,6 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.Set;
@@ -48,14 +47,12 @@ public class CandidateListCompletionHandler
         this.eagerNewlines = eagerNewlines;
     }
 
-    public boolean complete(final ConsoleReader reader, final List candidates,
-                            final int pos) throws IOException
-    {
+    public boolean complete(final ConsoleReader reader, final List<String> candidates, final int pos) throws IOException {
         CursorBuffer buf = reader.getCursorBuffer();
 
         // if there is only one completion, then fill in the buffer
         if (candidates.size() == 1) {
-            String value = candidates.get(0).toString();
+            String value = candidates.get(0);
 
             // fail if the only candidate is the same as the current buffer
             if (value.equals(buf.toString())) {
@@ -83,11 +80,8 @@ public class CandidateListCompletionHandler
         return true;
     }
 
-    public static void setBuffer(ConsoleReader reader, String value, int offset)
-        throws IOException
-    {
-        while ((reader.getCursorBuffer().cursor > offset)
-            && reader.backspace()) {
+    public static void setBuffer(ConsoleReader reader, String value, int offset) throws IOException {
+        while ((reader.getCursorBuffer().cursor > offset) && reader.backspace()) {
             ;
         }
 
@@ -102,21 +96,14 @@ public class CandidateListCompletionHandler
      *
      * @param candidates the list of candidates to print
      */
-    public static final void printCandidates(ConsoleReader reader,
-                                             Collection candidates, boolean eagerNewlines)
-        throws IOException
-    {
-        Set distinct = new HashSet(candidates);
+    public static void printCandidates(ConsoleReader reader, Collection<String> candidates, boolean eagerNewlines) throws IOException {
+        Set distinct = new HashSet<String>(candidates);
 
         if (distinct.size() > reader.getAutoprintThreshhold()) {
             if (!eagerNewlines) {
                 reader.printNewline();
             }
-            reader.printString(MessageFormat.format
-                (loc.getString("display-candidates"), new Object[]{
-                    new Integer(candidates.size())
-                }) + " ");
-
+            reader.printString(MessageFormat.format(loc.getString("display-candidates"), candidates.size()) + " ");
             reader.flushConsole();
 
             int c;
@@ -144,11 +131,9 @@ public class CandidateListCompletionHandler
         // copy the values and make them distinct, without otherwise
         // affecting the ordering. Only do it if the sizes differ.
         if (distinct.size() != candidates.size()) {
-            Collection copy = new ArrayList();
+            Collection<String> copy = new ArrayList<String>();
 
-            for (Iterator i = candidates.iterator(); i.hasNext();) {
-                Object next = i.next();
-
+            for (String next : candidates) {
                 if (!(copy.contains(next))) {
                     copy.add(next);
                 }
@@ -168,14 +153,13 @@ public class CandidateListCompletionHandler
      * <i>foobar</i>, <i>foobaz</i>, <i>foobuz</i>, the
      * method will return <i>foob</i>.
      */
-    private final String getUnambiguousCompletions(final List candidates) {
+    private String getUnambiguousCompletions(final List<String> candidates) {
         if ((candidates == null) || (candidates.size() == 0)) {
             return null;
         }
 
         // convert to an array for speed
-        String[] strings =
-            (String[]) candidates.toArray(new String[candidates.size()]);
+        String[] strings = candidates.toArray(new String[candidates.size()]);
 
         String first = strings[0];
         StringBuilder candidate = new StringBuilder();
@@ -196,11 +180,9 @@ public class CandidateListCompletionHandler
      * @return true is all the elements of <i>candidates</i>
      *         start with <i>starts</i>
      */
-    private final boolean startsWith(final String starts,
-                                     final String[] candidates)
-    {
-        for (int i = 0; i < candidates.length; i++) {
-            if (!candidates[i].startsWith(starts)) {
+    private boolean startsWith(final String starts, final String[] candidates) {
+        for (String candidate : candidates) {
+            if (!candidate.startsWith(starts)) {
                 return false;
             }
         }

@@ -7,7 +7,6 @@
 package jline.console.runner;
 
 import jline.console.ConsoleReader;
-import jline.console.History;
 import jline.console.SimpleHistory;
 import jline.console.completer.ArgumentCompleter;
 import jline.console.completer.Completer;

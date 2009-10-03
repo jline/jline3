@@ -18,6 +18,5 @@ import java.util.List;
  */
 public interface CompletionHandler
 {
-    boolean complete(ConsoleReader reader, List candidates, int position)
-        throws IOException;
+    boolean complete(ConsoleReader reader, List<String> candidates, int position) throws IOException;
 }

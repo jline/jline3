@@ -8,8 +8,8 @@ package jline.console;
 
 import jline.Terminal;
 import jline.TerminalFactory;
-import jline.console.completionhandler.CandidateListCompletionHandler;
 import jline.console.completer.Completer;
+import jline.console.completionhandler.CandidateListCompletionHandler;
 import jline.console.completionhandler.CompletionHandler;
 
 import java.awt.*;
