@@ -7,22 +7,22 @@
 package jline.console;
 
 import jline.UnixTerminal;
-import jline.console.ConsoleReader;
-import junit.framework.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+import org.junit.Before;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 
-public abstract class JLineTestCase
-    extends TestCase
+public abstract class ConsoleReaderTestSupport
 {
-    ConsoleReader console;
+    protected ConsoleReader console;
 
-    public JLineTestCase(String test) {
-        super(test);
-    }
-
+    @Before
     public void setUp() throws Exception {
-        super.setUp();
         console = new ConsoleReader(null, new PrintWriter(
             new OutputStreamWriter(new ByteArrayOutputStream())), null,
             new UnixTerminal());
@@ -32,9 +32,7 @@ public abstract class JLineTestCase
         assertBuffer(expected, buffer, true);
     }
 
-    public void assertBuffer(String expected, Buffer buffer, boolean clear)
-        throws IOException
-    {
+    public void assertBuffer(String expected, Buffer buffer, boolean clear) throws IOException {
         // clear current buffer, if any
         if (clear) {
             console.finishBuffer();
@@ -45,7 +43,7 @@ public abstract class JLineTestCase
 
         // run it through the reader
         while (console.readLine((String) null) != null) {
-            ;
+            // ignore
         }
 
         assertEquals(expected, console.getCursorBuffer().toString());
@@ -55,8 +53,7 @@ public abstract class JLineTestCase
         int action = console.getKeyForAction(logicalAction);
 
         if (action == -1) {
-            fail("Keystroke for logical action " + logicalAction
-                + " was not bound in the console");
+            fail("Keystroke for logical action " + logicalAction + " was not bound in the console");
         }
 
         return action;
@@ -123,10 +120,8 @@ public abstract class JLineTestCase
         }
 
         public Buffer append(String str) {
-            byte[] bytes = str.getBytes();
-
-            for (int i = 0; i < bytes.length; i++) {
-                append(bytes[i]);
+            for (byte b : str.getBytes()) {
+                append(b);
             }
 
             return this;

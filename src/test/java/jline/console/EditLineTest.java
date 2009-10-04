@@ -7,7 +7,8 @@
 package jline.console;
 
 import jline.console.ConsoleReader;
-import jline.console.JLineTestCase;
+import jline.console.ConsoleReaderTestSupport;
+import org.junit.Test;
 
 
 /**
@@ -15,13 +16,10 @@ import jline.console.JLineTestCase;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class TestEditLine
-    extends JLineTestCase
+public class EditLineTest
+    extends ConsoleReaderTestSupport
 {
-    public TestEditLine(String test) {
-        super(test);
-    }
-
+    @Test
     public void testDeletePreviousWord() throws Exception {
         Buffer b = new Buffer("This is a test");
 
@@ -33,6 +31,7 @@ public class TestEditLine
         assertBuffer("", b = b.op(ConsoleReader.DELETE_PREV_WORD));
     }
 
+    @Test
     public void testMoveToEnd() throws Exception {
         Buffer b = new Buffer("This is a test");
 
@@ -58,6 +57,7 @@ public class TestEditLine
                 .append('X'));
     }
 
+    @Test
     public void testPreviousWord() throws Exception {
         assertBuffer("This is a Xtest",
             new Buffer("This is a test").op(ConsoleReader.PREV_WORD)
@@ -94,6 +94,7 @@ public class TestEditLine
                 .append('X'));
     }
 
+    @Test
     public void testLineStart() throws Exception {
         assertBuffer("XThis is a test",
             new Buffer("This is a test").ctrlA().append('X'));
@@ -101,12 +102,14 @@ public class TestEditLine
             new Buffer("This is a test").ctrlA().right().append('X'));
     }
 
+    @Test
     public void testClearLine() throws Exception {
         assertBuffer("", new Buffer("This is a test").ctrlU());
         assertBuffer("t", new Buffer("This is a test").left().ctrlU());
         assertBuffer("st", new Buffer("This is a test").left().left().ctrlU());
     }
 
+    @Test
     public void testRight() throws Exception {
         Buffer b = new Buffer("This is a test");
         b = b.left().right().back();
@@ -117,6 +120,7 @@ public class TestEditLine
         assertBuffer("This is aXtes", b);
     }
 
+    @Test
     public void testLeft() throws Exception {
         Buffer b = new Buffer("This is a test");
         b = b.left().left().left();
@@ -137,6 +141,7 @@ public class TestEditLine
         assertBuffer("est", b = b.back());
     }
 
+    @Test
     public void testBackspace() throws Exception {
         Buffer b = new Buffer("This is a test");
         assertBuffer("This is a tes", b = b.back());
@@ -159,6 +164,7 @@ public class TestEditLine
         assertBuffer("", b = b.back());
     }
 
+    @Test
     public void testBuffer() throws Exception {
         assertBuffer("This is a test", new Buffer("This is a test"));
     }

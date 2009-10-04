@@ -994,7 +994,7 @@ public class ConsoleReader
     /**
      * Returns an unmodifiable list of all the completors.
      */
-    public Collection getCompletors() {
+    public Collection<Completer> getCompletors() {
         return Collections.unmodifiableList(completors);
     }
 
