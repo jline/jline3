@@ -6,16 +6,11 @@
  */
 package jline;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 
 /**
  * <p>
@@ -254,16 +249,14 @@ public class WindowsTerminal
     }
 
     public void initializeTerminal() throws Exception {
-        loadLibrary("jline");
+        NativeLibrary.load("jline");
 
         originalMode = getConsoleMode();
 
         setConsoleMode(originalMode & ~ENABLE_ECHO_INPUT);
 
         // set the console to raw mode
-        int newMode = originalMode
-            & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT
-            | ENABLE_PROCESSED_INPUT | ENABLE_WINDOW_INPUT);
+        int newMode = originalMode & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT | ENABLE_PROCESSED_INPUT | ENABLE_WINDOW_INPUT);
         echoEnabled = false;
         setConsoleMode(newMode);
 
@@ -313,58 +306,6 @@ public class WindowsTerminal
             }
             shutdownHook = null;
         }
-    }
-
-    private void loadLibrary(final String name) throws IOException {
-        // store the DLL in the temporary directory for the System
-        String version = getClass().getPackage().getImplementationVersion();
-
-        if (version == null) {
-            version = "";
-        }
-
-        version = version.replace('.', '_');
-
-        File f = new File(System.getProperty("java.io.tmpdir"), name + "_" + version + ".dll");
-        boolean exists = f.isFile(); // check if it already exists
-
-        // extract the embedded jline.dll file from the jar and save
-        // it to the current directory
-        int bits = 32;
-
-        // check for 64-bit systems and use to appropriate DLL
-        if (System.getProperty("os.arch").contains("64")) {
-            bits = 64;
-        }
-
-        InputStream in = new BufferedInputStream(getClass()
-            .getResourceAsStream(name + bits + ".dll"));
-
-        try {
-            OutputStream fout = new BufferedOutputStream(
-                new FileOutputStream(f));
-            byte[] bytes = new byte[1024 * 10];
-
-            for (int n = 0; n != -1; n = in.read(bytes)) {
-                fout.write(bytes, 0, n);
-            }
-
-            fout.close();
-        }
-        catch (IOException ioe) {
-            // We might get an IOException trying to overwrite an existing
-            // jline.dll file if there is another process using the DLL.
-            // If this happens, ignore errors.
-            if (!exists) {
-                throw ioe;
-            }
-        }
-
-        // try to clean up the DLL after the JVM exits
-        f.deleteOnExit();
-
-        // now actually load the DLL
-        System.load(f.getAbsolutePath());
     }
 
     public int readVirtualKey(InputStream in) throws IOException {
