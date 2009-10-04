@@ -45,8 +45,7 @@ public class UnsupportedTerminal
                 + "                 "
                 + "\r" + prompt;
 
-            maskThread = new Thread("JLine Mask Thread")
-            {
+            maskThread = new Thread() {
                 public void run() {
                     while (!interrupted()) {
                         try {

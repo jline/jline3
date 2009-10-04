@@ -22,9 +22,11 @@ import java.io.InputStream;
 public abstract class TerminalSupport
     implements Terminal, ConsoleOperations
 {
-    private static final int DEFAULT_WIDTH = 80;
+    public static String DEFAULT_KEYBINDINGS_PROPERTIES = "keybindings.properties";
 
-    private static final int DEFAULT_HEIGHT = 80;
+    public static final int DEFAULT_WIDTH = 80;
+
+    public static final int DEFAULT_HEIGHT = 80;
 
     public void init() throws Exception {
     }

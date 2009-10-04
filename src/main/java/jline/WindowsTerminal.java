@@ -42,6 +42,10 @@ import java.io.InputStreamReader;
 public class WindowsTerminal
     extends TerminalSupport
 {
+    public static final String JLINE_WINDOWS_TERMINAL_INPUT_ENCODING = "jline.WindowsTerminal.input.encoding";
+    
+    public static final String JLINE_WINDOWS_TERMINAL_DIRECT_CONSOLE = "jline.WindowsTerminal.directConsole";
+
     // constants copied from wincon.h
 
     /**
@@ -197,12 +201,12 @@ public class WindowsTerminal
 
     private Thread shutdownHook;
 
-    String encoding = System.getProperty("jline.WindowsTerminal.input.encoding", System.getProperty("file.encoding"));
+    String encoding = System.getProperty(JLINE_WINDOWS_TERMINAL_INPUT_ENCODING, System.getProperty("file.encoding"));
     ReplayPrefixOneCharInputStream replayStream = new ReplayPrefixOneCharInputStream(encoding);
     InputStreamReader replayReader;
 
     public WindowsTerminal() {
-        String dir = System.getProperty("jline.WindowsTerminal.directConsole");
+        String dir = System.getProperty(JLINE_WINDOWS_TERMINAL_DIRECT_CONSOLE);
 
         if ("true".equals(dir)) {
             directConsole = Boolean.TRUE;

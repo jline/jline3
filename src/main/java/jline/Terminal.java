@@ -21,8 +21,6 @@ import java.io.InputStream;
  */
 public interface Terminal
 {
-    String DEFAULT_KEYBINDINGS_PROPERTIES = "keybindings.properties";
-
     boolean isSupported();
 
     boolean isAnsiSupported();

@@ -7,10 +7,16 @@
 package jline;
 
 /**
- * ???
+ * Creates terminal instances.
+ *
+ * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
+ *
+ * @since 2.0
  */
 public abstract class TerminalFactory
 {
+    public static final String JLINE_TERMINAL = "jline.terminal";
+
     private static Terminal term;
 
     public static Terminal getTerminal() {
@@ -29,7 +35,7 @@ public abstract class TerminalFactory
         final Terminal t;
 
         String os = System.getProperty("os.name").toLowerCase();
-        String termProp = System.getProperty("jline.terminal");
+        String termProp = System.getProperty(JLINE_TERMINAL);
 
         if ((termProp != null) && (termProp.length() > 0)) {
             try {

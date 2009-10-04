@@ -50,6 +50,12 @@ import java.util.TreeMap;
 public class ConsoleReader
     implements ConsoleOperations
 {
+    public static final String JLINE_COMPLETION_THRESHOLD = "jline.completion.threshold";
+
+    public static final String JLINE_KEYBINDINGS = "jline.keybindings";
+
+    public static final String JLINEBINDINGS_PROPERTIES = ".jlinebindings.properties";
+
     final static int TAB_WIDTH = 4;
 
     String prompt;
@@ -57,8 +63,6 @@ public class ConsoleReader
     private boolean useHistory = true;
 
     private boolean usePagination = false;
-
-    public static final String CR = System.getProperty("line.separator");
 
     private static ResourceBundle loc = ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName());
 
@@ -146,7 +150,7 @@ public class ConsoleReader
      * The number of tab-completion candidates above which a warning will be
      * prompted before showing all the candidates.
      */
-    private int autoprintThreshhold = Integer.getInteger("jline.completion.threshold", 100); // same default as
+    private int autoprintThreshhold = Integer.getInteger(JLINE_COMPLETION_THRESHOLD, 100); // same default as
 
     // bash
 
@@ -172,6 +176,7 @@ public class ConsoleReader
     private Character echoCharacter = null;
 
     private Map<Character,ActionListener> triggeredActions = new HashMap<Character,ActionListener>();
+    private static final String JLINE_WINDOWS_TERMINAL_OUTPUT_ENCODING = "jline.WindowsTerminal.output.encoding";
 
     public Writer getOutput() {
         return out;
@@ -201,7 +206,7 @@ public class ConsoleReader
         this(new FileInputStream(FileDescriptor.in),
             new PrintWriter(
                 new OutputStreamWriter(System.out,
-                    System.getProperty("jline.WindowsTerminal.output.encoding", System.getProperty("file.encoding")))));
+                    System.getProperty(JLINE_WINDOWS_TERMINAL_OUTPUT_ENCODING, System.getProperty("file.encoding")))));
     }
 
     /**
@@ -234,8 +239,8 @@ public class ConsoleReader
         this.out = out;
         if (bindings == null) {
             try {
-                String bindingFile = System.getProperty("jline.keybindings",
-                    new File(System.getProperty("user.home", ".jlinebindings.properties")).getAbsolutePath());
+                String bindingFile = System.getProperty(JLINE_KEYBINDINGS,
+                    new File(System.getProperty("user.home", JLINEBINDINGS_PROPERTIES)).getAbsolutePath());
                 if (new File(bindingFile).isFile()) {
                     bindings = new FileInputStream(new File(bindingFile));
                 }
@@ -885,9 +890,8 @@ public class ConsoleReader
         int width = getTermwidth();
         int maxwidth = 0;
 
-        for (Iterator i = stuff.iterator(); i.hasNext(); maxwidth = Math.max(
-            maxwidth, i.next().toString().length())) {
-            ;
+        for (Iterator i = stuff.iterator(); i.hasNext(); maxwidth = Math.max(maxwidth, i.next().toString().length())) {
+            // empty
         }
 
         StringBuilder line = new StringBuilder();
@@ -947,7 +951,7 @@ public class ConsoleReader
         appendTo.append(toPad);
 
         for (int i = 0; i < (len - toPad.length()); i++, appendTo.append(' ')) {
-            ;
+            // empty
         }
     }
 
