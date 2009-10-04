@@ -17,6 +17,9 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 
+/**
+ * Provides support for console reader tests.
+ */
 public abstract class ConsoleReaderTestSupport
 {
     protected ConsoleReader console;

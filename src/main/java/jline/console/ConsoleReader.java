@@ -68,7 +68,7 @@ public class ConsoleReader
     /**
      * Map that contains the operation name to keymay operation mapping.
      */
-    public static SortedMap KEYMAP_NAMES;
+    public static SortedMap<String,Short> KEYMAP_NAMES;
 
     static {
         Map<String,Short> names = new TreeMap<String,Short>();
@@ -231,18 +231,14 @@ public class ConsoleReader
      * @param bindings the key bindings to use
      * @param term     the terminal to use
      */
-    public ConsoleReader(InputStream in, Writer out, InputStream bindings,
-                         Terminal term) throws IOException
-    {
+    public ConsoleReader(InputStream in, Writer out, InputStream bindings, Terminal term) throws IOException {
         this.terminal = term;
         setInput(in);
         this.out = out;
         if (bindings == null) {
             try {
                 String bindingFile = System.getProperty("jline.keybindings",
-                    new File(System.getProperty("user.home",
-                        ".jlinebindings.properties")).getAbsolutePath());
-
+                    new File(System.getProperty("user.home", ".jlinebindings.properties")).getAbsolutePath());
                 if (new File(bindingFile).isFile()) {
                     bindings = new FileInputStream(new File(bindingFile));
                 }
@@ -273,14 +269,13 @@ public class ConsoleReader
             p.load(bindings);
             bindings.close();
 
-            for (Iterator i = p.keySet().iterator(); i.hasNext();) {
-                String val = (String) i.next();
+            for (Object key : p.keySet()) {
+                String val = (String) key;
 
                 try {
                     Short code = new Short(val);
-                    String op = (String) p.getProperty(val);
-
-                    Short opval = (Short) KEYMAP_NAMES.get(op);
+                    String op = p.getProperty(val);
+                    Short opval = KEYMAP_NAMES.get(op);
 
                     if (opval != null) {
                         keybindings[code] = opval;
@@ -340,8 +335,7 @@ public class ConsoleReader
     }
 
     /**
-     * @param bellEnabled if true, enable audible keyboard bells if an alert is
-     *                    required.
+     * @param bellEnabled if true, enable audible keyboard bells if an alert is required.
      */
     public void setBellEnabled(final boolean bellEnabled) {
         this.bellEnabled = bellEnabled;
@@ -472,8 +466,7 @@ public class ConsoleReader
     }
 
     int getCursorPosition() {
-        // FIXME: does not handle anything but a line with a prompt
-        // absolute position
+        // FIXME: does not handle anything but a line with a prompt absolute position
         return ((prompt == null) ? 0 : prompt.length()) + buf.cursor;
     }
 
@@ -503,9 +496,7 @@ public class ConsoleReader
      * @return a line that is read from the terminal, or null if there was null
      *         input (e.g., <i>CTRL-D</i> was pressed).
      */
-    public String readLine(final String prompt, final Character mask)
-        throws IOException
-    {
+    public String readLine(final String prompt, final Character mask) throws IOException {
         this.mask = mask;
         if (prompt != null) {
             this.prompt = prompt;
@@ -645,7 +636,7 @@ public class ConsoleReader
                     case UNKNOWN:
                     default:
                         if (c != 0) { // ignore null chars
-                            ActionListener action = (ActionListener) triggeredActions.get((char) c);
+                            ActionListener action = triggeredActions.get((char) c);
                             if (action != null) {
                                 action.actionPerformed(null);
                             }
@@ -687,8 +678,7 @@ public class ConsoleReader
     }
 
     /**
-     * Reads the console input and returns an array of the form [raw, key
-     * binding].
+     * Reads the console input and returns an array of the form [raw, key binding].
      */
     private int[] readBinding() throws IOException {
         int c = readVirtualKey();
@@ -710,7 +700,7 @@ public class ConsoleReader
     /**
      * Move up or down the history tree.
      */
-    private final boolean moveHistory(final boolean next) throws IOException {
+    private boolean moveHistory(final boolean next) throws IOException {
         if (next && !history.next()) {
             return false;
         }
@@ -774,11 +764,10 @@ public class ConsoleReader
                 // TODO: we might want instead connect to the input stream
                 // so we can interpret individual lines
                 value = "";
+                String line;
 
-                String line = null;
-
-                for (BufferedReader read = new BufferedReader((Reader) content); (line = read
-                    .readLine()) != null;) {
+                BufferedReader read = new BufferedReader((Reader) content);
+                while ((line = read.readLine()) != null) {
                     if (value.length() > 0) {
                         value += "\n";
                     }
@@ -800,7 +789,7 @@ public class ConsoleReader
         }
         catch (UnsupportedFlavorException ufe) {
             if (debugger != null) {
-                debug(ufe + "");
+                debug(String.valueOf(ufe));
             }
 
             return false;
@@ -868,9 +857,7 @@ public class ConsoleReader
 
         int position = -1;
 
-        for (Iterator i = completors.iterator(); i.hasNext();) {
-            Completer comp = (Completer) i.next();
-
+        for (Completer comp : completors) {
             if ((position = comp.complete(bufstr, cursor, candidates)) != -1) {
                 break;
             }
@@ -893,7 +880,7 @@ public class ConsoleReader
      *
      * @param stuff the stuff to print
      */
-    public void printColumns(final Collection stuff) throws IOException {
+    public void printColumns(final Collection<String> stuff) throws IOException {
         if ((stuff == null) || (stuff.size() == 0)) {
             return;
         }
@@ -917,9 +904,7 @@ public class ConsoleReader
             showLines = Integer.MAX_VALUE;
         }
 
-        for (Iterator i = stuff.iterator(); i.hasNext();) {
-            String cur = (String) i.next();
-
+        for (String cur : stuff) {
             if ((line.length() + maxwidth) > width) {
                 printString(line.toString().trim());
                 printNewline();
@@ -1016,9 +1001,7 @@ public class ConsoleReader
     /**
      * Move the cursor position to the specified absolute index.
      */
-    public final boolean setCursorPosition(final int position)
-        throws IOException
-    {
+    public final boolean setCursorPosition(final int position) throws IOException {
         return moveCursor(position - buf.cursor) != 0;
     }
 
@@ -1135,9 +1118,7 @@ public class ConsoleReader
     /**
      * Output the specified character, both to the buffer and the output stream.
      */
-    private final void putChar(final int c, final boolean print)
-        throws IOException
-    {
+    private void putChar(final int c, final boolean print) throws IOException {
         buf.write((char) c);
 
         if (print) {
@@ -1146,12 +1127,12 @@ public class ConsoleReader
                 printCharacter(c);
             }
             // null mask: don't print anything...
-            else if (mask.charValue() == 0) {
+            else if (mask == 0) {
                 ;
             }
             // otherwise print the mask...
             else {
-                printCharacter(mask.charValue());
+                printCharacter(mask);
             }
 
             drawBuffer();
@@ -1235,7 +1216,7 @@ public class ConsoleReader
      * Output the specified character to the output stream without manipulating
      * the current buffer.
      */
-    private final void printCharacter(final int c) throws IOException {
+    private void printCharacter(final int c) throws IOException {
         if (c == '\t') {
             char cbuf[] = new char[TAB_WIDTH];
             Arrays.fill(cbuf, ' ');
@@ -1250,10 +1231,10 @@ public class ConsoleReader
      * Output the specified characters to the output stream without manipulating
      * the current buffer.
      */
-    private void printCharacters(final char[] c) throws IOException {
+    private void printCharacters(final char[] chars) throws IOException {
         int len = 0;
-        for (int i = 0; i < c.length; i++) {
-            if (c[i] == '\t') {
+        for (char c : chars) {
+            if (c == '\t') {
                 len += TAB_WIDTH;
             }
             else {
@@ -1262,19 +1243,19 @@ public class ConsoleReader
         }
 
         char cbuf[];
-        if (len == c.length) {
-            cbuf = c;
+        if (len == chars.length) {
+            cbuf = chars;
         }
         else {
             cbuf = new char[len];
             int pos = 0;
-            for (int i = 0; i < c.length; i++) {
-                if (c[i] == '\t') {
+            for (char c : chars) {
+                if (c == '\t') {
                     Arrays.fill(cbuf, pos, pos + TAB_WIDTH, ' ');
                     pos += TAB_WIDTH;
                 }
                 else {
-                    cbuf[pos] = c[i];
+                    cbuf[pos] = c;
                     pos++;
                 }
             }

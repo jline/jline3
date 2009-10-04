@@ -12,6 +12,9 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.io.Writer;
 
+/**
+ * Tests for the {@link ConsoleReader}.
+ */
 public class ConsoleReaderTest
 {
     @Before

@@ -6,10 +6,7 @@
  */
 package jline.console;
 
-import jline.console.ConsoleReader;
-import jline.console.ConsoleReaderTestSupport;
 import org.junit.Test;
-
 
 /**
  * Tests various features of editing lines.

@@ -325,8 +325,7 @@ public class WindowsTerminal
 
         version = version.replace('.', '_');
 
-        File f = new File(System.getProperty("java.io.tmpdir"), name + "_"
-            + version + ".dll");
+        File f = new File(System.getProperty("java.io.tmpdir"), name + "_" + version + ".dll");
         boolean exists = f.isFile(); // check if it already exists
 
         // extract the embedded jline.dll file from the jar and save

@@ -8,7 +8,6 @@ package jline.console;
 
 import org.junit.Test;
 
-
 /**
  * Tests command history.
  *
