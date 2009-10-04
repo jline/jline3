@@ -56,6 +56,8 @@ public class ConsoleReader
 
     public static final String JLINEBINDINGS_PROPERTIES = ".jlinebindings.properties";
 
+    private static final String JLINE_NOBELL = "jline.nobell";
+
     final static int TAB_WIDTH = 4;
 
     String prompt;
@@ -293,6 +295,10 @@ public class ConsoleReader
             // keybindings[VK_DOWN] = NEXT_HISTORY;
             // keybindings[VK_LEFT] = PREV_CHAR;
             // keybindings[VK_RIGHT] = NEXT_CHAR;
+        }
+
+        if (Boolean.getBoolean(JLINE_NOBELL)) {
+            setBellEnabled(false);
         }
     }
 

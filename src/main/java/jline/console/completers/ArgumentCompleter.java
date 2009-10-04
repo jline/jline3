@@ -45,12 +45,12 @@ import java.util.List;
  * </p>
  * <p/>
  * <pre>
- *        consoleReader.addCompletor (new ArgumentCompletor (
- *                new {@link SimpleCompleter} (new String [] { "foo", "bar", "baz"}),
- *                new {@link SimpleCompleter} (new String [] { "xxx", "yyy", "xxx"}),
- *                new {@link NullCompleter}
- *                ));
- *        </pre>
+ *      consoleReader.addCompletor (new ArgumentCompletor (
+ *          new {@link SimpleCompleter} (new String [] { "foo", "bar", "baz"}),
+ *          new {@link SimpleCompleter} (new String [] { "xxx", "yyy", "xxx"}),
+ *          new {@link NullCompleter}
+ *      ));
+ * </pre>
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  *

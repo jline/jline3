@@ -69,4 +69,22 @@ public abstract class TerminalFactory
             resetTerminal();
         }
     }
+
+    public static enum Type {
+        AUTO,
+        WINDOWS,
+        UNIX,
+        NONE
+    }
+
+    public static void configure(final String type) {
+        assert type != null;
+
+        System.setProperty(JLINE_TERMINAL, type);
+    }
+
+    public static void configure(final Type type) {
+        assert type != null;
+        configure(type.name().toLowerCase());
+    }
 }
