@@ -4,7 +4,10 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  */
-package jline.console.completer;
+
+package jline.console.completers;
+
+import jline.console.Completer;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -21,77 +24,76 @@ import java.util.StringTokenizer;
 import java.util.TreeSet;
 
 /**
- * <p>
- * A simple {@link Completer} implementation that handles a pre-defined
- * list of completion words.
- * </p>
- * <p/>
- * <p>
- * Example usage:
- * </p>
- * <pre>
+ *  A simple {@link Completor} implementation that handles a pre-defined
+ *  list of completion words.
+ *
+ *  <p>
+ *  Example usage:
+ *  </p>
+ *  <pre>
  *  myConsoleReader.addCompletor (new SimpleCompletor (new String [] { "now", "yesterday", "tomorrow" }));
  *  </pre>
  *
- * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ *  @author  <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ *
+ * @since 2.0
  */
-public class SimpleCompleter
+public class FilterStringsCompleter
     implements Completer, Cloneable
 {
     /**
-     * The list of candidates that will be completed.
+     *  The list of candidates that will be completed.
      */
     SortedSet candidates;
 
     /**
-     * A delimiter to use to qualify completions.
+     *  A delimiter to use to qualify completions.
      */
     String delimiter;
+
     final SimpleCompletorFilter filter;
 
     /**
-     * Create a new SimpleCompletor with a single possible completion
-     * values.
+     *  Create a new SimpleCompletor with a single possible completion
+     *  values.
      */
-    public SimpleCompleter(final String candidateString) {
-        this(new String[]{
-            candidateString
-        });
+    public FilterStringsCompleter(final String candidateString) {
+        this(new String[] {
+                 candidateString
+             });
     }
 
     /**
-     * Create a new SimpleCompletor with a list of possible completion
-     * values.
+     *  Create a new SimpleCompletor with a list of possible completion
+     *  values.
      */
-    public SimpleCompleter(final String[] candidateStrings) {
+    public FilterStringsCompleter(final String[] candidateStrings) {
         this(candidateStrings, null);
     }
 
-    public SimpleCompleter(final String[] strings,
-                           final SimpleCompletorFilter filter)
-    {
+    public FilterStringsCompleter(final String[] strings,
+                           final SimpleCompletorFilter filter) {
         this.filter = filter;
         setCandidateStrings(strings);
     }
 
     /**
-     * Complete candidates using the contents of the specified Reader.
+     *  Complete candidates using the contents of the specified Reader.
      */
-    public SimpleCompleter(final Reader reader) throws IOException {
+    public FilterStringsCompleter(final Reader reader) throws IOException {
         this(getStrings(reader));
     }
 
     /**
-     * Complete candidates using the whitespearated values in
-     * read from the specified Reader.
+     *  Complete candidates using the whitespearated values in
+     *  read from the specified Reader.
      */
-    public SimpleCompleter(final InputStream in) throws IOException {
+    public FilterStringsCompleter(final InputStream in) throws IOException {
         this(getStrings(new InputStreamReader(in)));
     }
 
     private static String[] getStrings(final Reader in)
-        throws IOException
-    {
+                                throws IOException {
         final Reader reader =
             (in instanceof BufferedReader) ? in : new BufferedReader(in);
 
@@ -100,7 +102,7 @@ public class SimpleCompleter
 
         while ((line = ((BufferedReader) reader).readLine()) != null) {
             for (StringTokenizer tok = new StringTokenizer(line);
-                 tok.hasMoreTokens(); words.add(tok.nextToken())) {
+                     tok.hasMoreTokens(); words.add(tok.nextToken())) {
                 ;
             }
         }
@@ -108,7 +110,7 @@ public class SimpleCompleter
         return (String[]) words.toArray(new String[words.size()]);
     }
 
-    public int complete(final String buffer, final int cursor, final List<String> clist) {
+    public int complete(final String buffer, final int cursor, final List clist) {
         String start = (buffer == null) ? "" : buffer;
 
         SortedSet matches = candidates.tailSet(start);
@@ -162,8 +164,7 @@ public class SimpleCompleter
             }
 
             this.candidates = filtered;
-        }
-        else {
+        } else {
             this.candidates = candidates;
         }
     }
@@ -190,22 +191,19 @@ public class SimpleCompleter
     }
 
     /**
-     * Filter for elements in the completor.
+     *  Filter for elements in the completor.
      *
-     * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+     *  @author  <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
      */
-    public static interface SimpleCompletorFilter
-    {
+    public static interface SimpleCompletorFilter {
         /**
-         * Filter the specified String. To not filter it, return the
-         * same String as the parameter. To exclude it, return null.
+         *  Filter the specified String. To not filter it, return the
+         *  same String as the parameter. To exclude it, return null.
          */
         public String filter(String element);
     }
 
-    public static class NoOpFilter
-        implements SimpleCompletorFilter
-    {
+    public static class NoOpFilter implements SimpleCompletorFilter {
         public String filter(final String element) {
             return element;
         }

@@ -86,9 +86,7 @@ public class UnixTerminal
         ttyConfig = stty("-g");
 
         // sanity check
-        if ((ttyConfig.length() == 0)
-            || ((ttyConfig.indexOf("=") == -1)
-            && (ttyConfig.indexOf(":") == -1))) {
+        if ((ttyConfig.length() == 0) || ((!ttyConfig.contains("=")) && (!ttyConfig.contains(":")))) {
             throw new IOException("Unrecognized stty code: " + ttyConfig);
         }
 
@@ -151,6 +149,9 @@ public class UnixTerminal
         }
     }
 
+    public boolean isANSISupported() {
+        return true;
+    }
 
     public int readVirtualKey(InputStream in) throws IOException {
         int c = readCharacter(in);
@@ -208,7 +209,7 @@ public class UnixTerminal
             // handle unicode characters longer than 2 bytes,
             // thanks to Marc.Herbert@continuent.com
             replayStream.setInput(c, in);
-//            replayReader = new InputStreamReader(replayStream, encoding);
+            // replayReader = new InputStreamReader(replayStream, encoding);
             c = replayReader.read();
 
         }
@@ -357,9 +358,7 @@ public class UnixTerminal
 
         p.waitFor();
 
-        String result = new String(bout.toByteArray());
-
-        return result;
+        return new String(bout.toByteArray());
     }
 
     /**

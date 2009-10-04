@@ -28,7 +28,7 @@ import java.util.List;
 public class SimpleHistory
     implements History
 {
-    private List history = new ArrayList();
+    private List<String> history = new ArrayList<String>();
 
     private PrintWriter output = null;
 
@@ -71,15 +71,15 @@ public class SimpleHistory
      */
     public void load(final Reader reader) throws IOException {
         BufferedReader breader = new BufferedReader(reader);
-        List lines = new ArrayList();
+        List<String> lines = new ArrayList<String>();
         String line;
 
         while ((line = breader.readLine()) != null) {
             lines.add(line);
         }
 
-        for (Iterator i = lines.iterator(); i.hasNext();) {
-            addToHistory((String) i.next());
+        for (String line1 : lines) {
+            addToHistory(line1);
         }
     }
 
@@ -125,9 +125,8 @@ public class SimpleHistory
      */
     public void flushBuffer() throws IOException {
         if (getOutput() != null) {
-            for (Iterator i = history.iterator(); i.hasNext(); getOutput()
-                .println((String) i.next())) {
-                ;
+            for (Iterator i = history.iterator(); i.hasNext(); getOutput().println((String) i.next())) {
+                // empty
             }
 
             getOutput().flush();
@@ -203,7 +202,7 @@ public class SimpleHistory
             return "";
         }
 
-        return (String) history.get(currentIndex);
+        return history.get(currentIndex);
     }
 
     /**
@@ -239,7 +238,7 @@ public class SimpleHistory
     /**
      * Returns an immutable list of the history buffer.
      */
-    public List getHistoryList() {
+    public List<String> getHistoryList() {
         return Collections.unmodifiableList(history);
     }
 

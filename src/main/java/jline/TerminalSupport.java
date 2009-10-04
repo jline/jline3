@@ -18,10 +18,6 @@ import java.io.InputStream;
 public abstract class TerminalSupport
     implements Terminal, ConsoleOperations
 {
-    public boolean isANSISupported() {
-        return true;
-    }
-
     public int readCharacter(final InputStream in) throws IOException {
         return in.read();
     }

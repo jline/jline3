@@ -6,9 +6,6 @@
  */
 package jline.console;
 
-import jline.console.ConsoleReader;
-import jline.console.CursorBuffer;
-
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -38,8 +35,7 @@ import java.util.Set;
 public class CandidateListCompletionHandler
     implements CompletionHandler
 {
-    private static ResourceBundle loc = ResourceBundle.
-        getBundle(CandidateListCompletionHandler.class.getName());
+    private static ResourceBundle loc = ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName());
 
     private boolean eagerNewlines = true;
 
@@ -82,7 +78,7 @@ public class CandidateListCompletionHandler
 
     public static void setBuffer(ConsoleReader reader, String value, int offset) throws IOException {
         while ((reader.getCursorBuffer().cursor > offset) && reader.backspace()) {
-            ;
+            // empty
         }
 
         reader.putString(value);

@@ -6,8 +6,6 @@
  */
 package jline.console;
 
-import jline.console.ConsoleReader;
-
 import java.io.IOException;
 import java.util.List;
 

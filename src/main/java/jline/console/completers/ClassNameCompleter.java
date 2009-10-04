@@ -4,7 +4,7 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  */
-package jline.console.completer;
+package jline.console.completers;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,11 +26,12 @@ import java.util.jar.JarFile;
  * it scans the java class path to locate all the classes.
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ *
+ * @since 2.0
  */
 public class ClassNameCompleter
-    extends SimpleCompleter
+    extends FilterStringsCompleter
 {
-
     /**
      * Complete candidates using all the classes available in the
      * java <em>CLASSPATH</em>.

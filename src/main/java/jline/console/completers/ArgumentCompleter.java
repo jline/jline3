@@ -4,8 +4,9 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  */
-package jline.console.completer;
+package jline.console.completers;
 
+import jline.console.Completer;
 import jline.console.ConsoleReader;
 
 import java.util.LinkedList;
@@ -16,6 +17,7 @@ import java.util.List;
  * using the appropriate <i>separator</i> argument. This
  * can be used instead of the individual completors having to
  * know about argument parsing semantics.
+ *
  * <p>
  * <strong>Example 1</strong>: Any argument of the command line can
  * use file completion.
@@ -49,39 +51,32 @@ import java.util.List;
  *                new {@link NullCompleter}
  *                ));
  *        </pre>
- * <p>
- * TODO: handle argument quoting and escape characters
- * </p>
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ *
+ * @since 2.0
  */
 public class ArgumentCompleter
     implements Completer
 {
-    final Completer[] completers;
-    final ArgumentDelimiter delim;
-    boolean strict = true;
+    // TODO: handle argument quoting and escape characters
+    
+    private final Completer[] completers;
+
+    private final ArgumentDelimiter delim;
+
+    private boolean strict = true;
 
     /**
-     * Constuctor: create a new completor with the default
-     * argument separator of " ".
+     * Constuctor: create a new completor with the specified
+     * argument delimiter.
      *
-     * @param completer the embedded completor
+     * @param delim      the delimiter for parsing arguments
+     * @param completers the embedded completors
      */
-    public ArgumentCompleter(final Completer completer) {
-        this(new Completer[]{
-            completer
-        });
-    }
-
-    /**
-     * Constuctor: create a new completor with the default
-     * argument separator of " ".
-     *
-     * @param completors the List of completors to use
-     */
-    public ArgumentCompleter(final List completors) {
-        this((Completer[]) completors.toArray(new Completer[completors.size()]));
+    public ArgumentCompleter(final ArgumentDelimiter delim, final Completer... completers) {
+        this.completers = completers;
+        this.delim = delim;
     }
 
     /**
@@ -90,39 +85,20 @@ public class ArgumentCompleter
      *
      * @param completers the embedded argument completors
      */
-    public ArgumentCompleter(final Completer[] completers) {
-        this(completers, new WhitespaceArgumentDelimiter());
+    public ArgumentCompleter(final Completer... completers) {
+        this(new WhitespaceArgumentDelimiter(), completers);
     }
 
     /**
-     * Constuctor: create a new completor with the specified
-     * argument delimiter.
+     * Constuctor: create a new completor with the default
+     * argument separator of " ".
      *
-     * @param completer the embedded completor
-     * @param delim     the delimiter for parsing arguments
+     * @param completors the List of completors to use
      */
-    public ArgumentCompleter(final Completer completer,
-                             final ArgumentDelimiter delim)
-    {
-        this(new Completer[]{
-            completer
-        }, delim);
+    public ArgumentCompleter(final List<Completer> completors) {
+        this(completors.toArray(new Completer[completors.size()]));
     }
-
-    /**
-     * Constuctor: create a new completor with the specified
-     * argument delimiter.
-     *
-     * @param completers the embedded completors
-     * @param delim      the delimiter for parsing arguments
-     */
-    public ArgumentCompleter(final Completer[] completers,
-                             final ArgumentDelimiter delim)
-    {
-        this.completers = completers;
-        this.delim = delim;
-    }
-
+    
     /**
      * If true, a completion at argument index N will only succeed
      * if all the completions from 0-(N-1) also succeed.
@@ -139,9 +115,7 @@ public class ArgumentCompleter
         return this.strict;
     }
 
-    public int complete(final String buffer, final int cursor,
-                        final List<String> candidates)
-    {
+    public int complete(final String buffer, final int cursor, final List<String> candidates) {
         ArgumentList list = delim.delimit(buffer, cursor);
         int argpos = list.getArgumentPosition();
         int argIndex = list.getCursorArgumentIndex();
@@ -163,12 +137,11 @@ public class ArgumentCompleter
         // ensure that all the previous completers are successful before
         // allowing this completor to pass (only if strict is true).
         for (int i = 0; getStrict() && (i < argIndex); i++) {
-            Completer sub =
-                completers[(i >= completers.length) ? (completers.length - 1) : i];
+            Completer sub = completers[(i >= completers.length) ? (completers.length - 1) : i];
             String[] args = list.getArguments();
             String arg = ((args == null) || (i >= args.length)) ? "" : args[i];
 
-            List subCandidates = new LinkedList();
+            List<String> subCandidates = new LinkedList<String>();
 
             if (sub.complete(arg, arg.length(), subCandidates) == -1) {
                 return -1;
@@ -199,7 +172,7 @@ public class ArgumentCompleter
          */
         if ((cursor != buffer.length()) && delim.isDelimiter(buffer, cursor)) {
             for (int i = 0; i < candidates.size(); i++) {
-                String val = candidates.get(i).toString();
+                String val = candidates.get(i);
 
                 while ((val.length() > 0)
                     && delim.isDelimiter(val, val.length() - 1)) {
@@ -210,8 +183,8 @@ public class ArgumentCompleter
             }
         }
 
-        ConsoleReader.debug("Completing " + buffer + "(pos=" + cursor + ") "
-            + "with: " + candidates + ": offset=" + pos);
+        // FIXME: Get ride of this string concat
+        ConsoleReader.debug("Completing " + buffer + "(pos=" + cursor + ") " + "with: " + candidates + ": offset=" + pos);
 
         return pos;
     }
@@ -257,8 +230,9 @@ public class ArgumentCompleter
     public abstract static class AbstractArgumentDelimiter
         implements ArgumentDelimiter
     {
-        private char[] quoteChars = new char[]{'\'', '"'};
-        private char[] escapeChars = new char[]{'\\'};
+        private char[] quoteChars = { '\'', '"' };
+
+        private char[] escapeChars = { '\\' };
 
         public void setQuoteChars(final char[] quoteChars) {
             this.quoteChars = quoteChars;
@@ -277,7 +251,7 @@ public class ArgumentCompleter
         }
 
         public ArgumentList delimit(final String buffer, final int cursor) {
-            List args = new LinkedList();
+            List<String> args = new LinkedList<String>();
             StringBuilder arg = new StringBuilder();
             int argpos = -1;
             int bindex = -1;
@@ -303,8 +277,7 @@ public class ArgumentCompleter
                 }
             }
 
-            return new ArgumentList((String[]) args.
-                toArray(new String[args.size()]), bindex, argpos, cursor);
+            return new ArgumentList(args.toArray(new String[args.size()]), bindex, argpos, cursor);
         }
 
         /**
@@ -320,15 +293,8 @@ public class ArgumentCompleter
          * @return true if the character should be a delimiter
          */
         public boolean isDelimiter(final String buffer, final int pos) {
-            if (isQuoted(buffer, pos)) {
-                return false;
-            }
+            return !isQuoted(buffer, pos) && !isEscaped(buffer, pos) && isDelimiterChar(buffer, pos);
 
-            if (isEscaped(buffer, pos)) {
-                return false;
-            }
-
-            return isDelimiterChar(buffer, pos);
         }
 
         public boolean isQuoted(final String buffer, final int pos) {
@@ -389,8 +355,11 @@ public class ArgumentCompleter
     public static class ArgumentList
     {
         private String[] arguments;
+
         private int cursorArgumentIndex;
+
         private int argumentPosition;
+
         private int bufferPosition;
 
         /**
@@ -401,16 +370,14 @@ public class ArgumentCompleter
          * @param bufferPosition      the position of the cursor in
          *                            the whole buffer
          */
-        public ArgumentList(String[] arguments, int cursorArgumentIndex,
-                            int argumentPosition, int bufferPosition)
-        {
+        public ArgumentList(final String[] arguments, final int cursorArgumentIndex, final int argumentPosition, final int bufferPosition) {
             this.arguments = arguments;
             this.cursorArgumentIndex = cursorArgumentIndex;
             this.argumentPosition = argumentPosition;
             this.bufferPosition = bufferPosition;
         }
 
-        public void setCursorArgumentIndex(int cursorArgumentIndex) {
+        public void setCursorArgumentIndex(final int cursorArgumentIndex) {
             this.cursorArgumentIndex = cursorArgumentIndex;
         }
 
@@ -419,15 +386,14 @@ public class ArgumentCompleter
         }
 
         public String getCursorArgument() {
-            if ((cursorArgumentIndex < 0)
-                || (cursorArgumentIndex >= arguments.length)) {
+            if ((cursorArgumentIndex < 0) || (cursorArgumentIndex >= arguments.length)) {
                 return null;
             }
 
             return arguments[cursorArgumentIndex];
         }
 
-        public void setArgumentPosition(int argumentPosition) {
+        public void setArgumentPosition(final int argumentPosition) {
             this.argumentPosition = argumentPosition;
         }
 
@@ -435,7 +401,7 @@ public class ArgumentCompleter
             return this.argumentPosition;
         }
 
-        public void setArguments(String[] arguments) {
+        public void setArguments(final String[] arguments) {
             this.arguments = arguments;
         }
 
@@ -443,7 +409,7 @@ public class ArgumentCompleter
             return this.arguments;
         }
 
-        public void setBufferPosition(int bufferPosition) {
+        public void setBufferPosition(final int bufferPosition) {
             this.bufferPosition = bufferPosition;
         }
 

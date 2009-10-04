@@ -6,9 +6,8 @@
  */
 package jline.console;
 
-import jline.console.completer.ArgumentCompleter;
-import jline.console.completer.Completer;
-import jline.console.completer.SimpleCompleter;
+import jline.console.completers.ArgumentCompleter;
+import jline.console.completers.StringsCompleter;
 import org.junit.Test;
 
 import java.util.Iterator;
@@ -28,7 +27,7 @@ public class CompletionTest
             // empty
         }
 
-        console.addCompletor(new SimpleCompleter(new String[]{"foo", "bar", "baz"}));
+        console.addCompletor(new StringsCompleter("foo", "bar", "baz"));
 
         assertBuffer("foo ", new Buffer("f").op(ConsoleReader.COMPLETE));
         // single tab completes to unabbiguous "ba"
@@ -44,8 +43,7 @@ public class CompletionTest
             // empty
         }
 
-        console.addCompletor(new ArgumentCompleter
-            (new SimpleCompleter(new String[]{"foo", "bar", "baz"})));
+        console.addCompletor(new ArgumentCompleter(new StringsCompleter("foo", "bar", "baz")));
 
         assertBuffer("foo foo ", new Buffer("foo f").op(ConsoleReader.COMPLETE));
         assertBuffer("foo ba", new Buffer("foo b").op(ConsoleReader.COMPLETE));

@@ -4,7 +4,9 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  */
-package jline.console.completer;
+package jline.console.completers;
+
+import jline.console.Completer;
 
 import java.io.File;
 import java.util.Collections;
@@ -13,7 +15,7 @@ import java.util.List;
 /**
  * A file name completor takes the buffer and issues a list of
  * potential completions.
- * <p/>
+ *
  * <p>
  * This completor tries to behave as similar as possible to
  * <i>bash</i>'s file name completion (using GNU readline)
@@ -27,17 +29,16 @@ import java.util.List;
  * not provide any way of determining that easily</li>
  * </ul>
  * <p/>
- * <p>TODO</p>
- * <ul>
- * <li>Handle files with spaces in them</li>
- * <li>Have an option for file type color highlighting</li>
- * </ul>
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ *
+ * @since 2.0
  */
 public class FileNameCompleter
     implements Completer
 {
+    // TODO: Handle files with spaces in them
+
     public int complete(final String buf, final int cursor, final List<String> candidates) {
         String buffer = (buf == null) ? "" : buf;
 

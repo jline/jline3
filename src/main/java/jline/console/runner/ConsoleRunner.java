@@ -6,10 +6,10 @@
  */
 package jline.console.runner;
 
+import jline.console.Completer;
 import jline.console.ConsoleReader;
 import jline.console.SimpleHistory;
-import jline.console.completer.ArgumentCompleter;
-import jline.console.completer.Completer;
+import jline.console.completers.ArgumentCompleter;
 
 import java.io.File;
 import java.util.ArrayList;

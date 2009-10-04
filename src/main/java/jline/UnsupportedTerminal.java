@@ -27,6 +27,10 @@ public class UnsupportedTerminal
     public void restoreTerminal() throws Exception {
     }
 
+    public boolean isANSISupported() {
+        return false;
+    }
+
     public boolean getEcho() {
         return true;
     }

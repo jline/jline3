@@ -8,9 +8,6 @@ package jline.console;
 
 import jline.Terminal;
 import jline.TerminalFactory;
-import jline.console.completer.Completer;
-import jline.console.CandidateListCompletionHandler;
-import jline.console.CompletionHandler;
 
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
@@ -955,10 +952,10 @@ public class ConsoleReader
     }
 
     /**
-     * Add the specified {@link jline.console.completer.Completer} to the list of handlers for
+     * Add the specified {@link Completer} to the list of handlers for
      * tab-completion.
      *
-     * @param completer the {@link jline.console.completer.Completer} to add
+     * @param completer the {@link Completer} to add
      * @return true if it was successfully added
      */
     public boolean addCompletor(final Completer completer) {
@@ -966,10 +963,10 @@ public class ConsoleReader
     }
 
     /**
-     * Remove the specified {@link jline.console.completer.Completer} from the list of handlers for
+     * Remove the specified {@link Completer} from the list of handlers for
      * tab-completion.
      *
-     * @param completer the {@link jline.console.completer.Completer} to remove
+     * @param completer the {@link Completer} to remove
      * @return true if it was successfully removed
      */
     public boolean removeCompletor(final Completer completer) {

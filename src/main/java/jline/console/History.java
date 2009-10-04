@@ -54,5 +54,5 @@ public interface History
     
     boolean next();
     
-    List getHistoryList();
+    List<String> getHistoryList();
 }

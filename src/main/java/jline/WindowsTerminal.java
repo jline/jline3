@@ -379,7 +379,11 @@ public class WindowsTerminal
      * @see Terminal#getTerminalWidth
      */
     public int getTerminalWidth() {
-        return getWindowsTerminalWidth();
+        int width = getWindowsTerminalWidth();
+        if (width < 1) {
+            width = 80;
+        }
+        return width;
     }
 
     /**
