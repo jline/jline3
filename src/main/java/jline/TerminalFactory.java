@@ -37,7 +37,7 @@ public abstract class TerminalFactory
         String os = System.getProperty("os.name").toLowerCase();
         String termProp = System.getProperty(JLINE_TERMINAL);
 
-        if ((termProp != null) && (termProp.length() > 0)) {
+        if ("!auto".equals(termProp) && termProp != null && termProp.length() > 0) {
             try {
                 t = (Terminal) Class.forName(termProp).newInstance();
             }
