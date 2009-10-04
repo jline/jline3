@@ -21,13 +21,7 @@ public class UnsupportedTerminal
 {
     private Thread maskThread = null;
 
-    public void initializeTerminal() {
-    }
-
-    public void restoreTerminal() throws Exception {
-    }
-
-    public boolean isANSISupported() {
+    public boolean isAnsiSupported() {
         return false;
     }
 
@@ -37,20 +31,6 @@ public class UnsupportedTerminal
 
     public boolean isEchoEnabled() {
         return true;
-    }
-
-    public void enableEcho() {
-    }
-
-    public void disableEcho() {
-    }
-
-    public int getTerminalWidth() {
-        return 80;
-    }
-
-    public int getTerminalHeight() {
-        return 80;
     }
 
     public boolean isSupported() {

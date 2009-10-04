@@ -13,16 +13,44 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * ???
+ * Provides support for {@link Terminal} instances.
+ *
+ * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
+ *
+ * @since 2.0
  */
 public abstract class TerminalSupport
     implements Terminal, ConsoleOperations
 {
+    private static final int DEFAULT_WIDTH = 80;
+
+    private static final int DEFAULT_HEIGHT = 80;
+
+    public void init() throws Exception {
+    }
+
+    public void restore() throws Exception {
+    }
+
+    public int getWidth() {
+        return DEFAULT_WIDTH;
+    }
+
+    public int getHeight() {
+        return DEFAULT_HEIGHT;
+    }
+
+    public void enableEcho() {
+    }
+
+    public void disableEcho() {
+    }
+
     public int readCharacter(final InputStream in) throws IOException {
         return in.read();
     }
 
-    public int readVirtualKey(InputStream in) throws IOException {
+    public int readVirtualKey(final InputStream in) throws IOException {
         return readCharacter(in);
     }
 
@@ -33,6 +61,6 @@ public abstract class TerminalSupport
     }
 
     public InputStream getDefaultBindings() {
-        return TerminalSupport.class.getResourceAsStream("keybindings.properties");
+        return TerminalSupport.class.getResourceAsStream(DEFAULT_KEYBINDINGS_PROPERTIES);
     }
 }

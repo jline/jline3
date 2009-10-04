@@ -13,6 +13,8 @@ import java.util.List;
  * Handler for dealing with candidates for tab-completion.
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ *
+ * @since 2.0
  */
 public interface CompletionHandler
 {

@@ -16,25 +16,22 @@ import java.util.ResourceBundle;
 import java.util.Set;
 
 /**
- * <p>
  * A {@link CompletionHandler} that deals with multiple distinct completions
  * by outputting the complete list of possibilities to the console. This
  * mimics the behavior of the
  * <a href="http://www.gnu.org/directory/readline.html">readline</a>
  * library.
- * </p>
- * <p/>
- * <strong>TODO:</strong>
- * <ul>
- * <li>handle quotes and escaped quotes</li>
- * <li>enable automatic escaping of whitespace</li>
- * </ul>
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ *
+ * @since 2.0
  */
 public class CandidateListCompletionHandler
     implements CompletionHandler
 {
+    // TODO: handle quotes and escaped quotes
+    //       enable automatic escaping of whitespace
+
     private static ResourceBundle loc = ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName());
 
     private boolean eagerNewlines = true;

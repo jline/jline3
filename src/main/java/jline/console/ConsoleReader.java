@@ -42,7 +42,7 @@ import java.util.TreeMap;
  * A reader for console applications. It supports custom tab-completion,
  * saveable command history, and command line editing. On some platforms,
  * platform-specific commands will need to be issued before the reader will
- * function properly. See {@link jline.Terminal#initializeTerminal} for convenience
+ * function properly. See {@link jline.Terminal#init} for convenience
  * methods for issuing platform-specific setup commands.
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
@@ -349,20 +349,20 @@ public class ConsoleReader
      * Query the terminal to find the current width;
      *
      * @return the width of the current terminal.
-     * @see Terminal#getTerminalWidth
+     * @see Terminal#getWidth
      */
     public int getTermwidth() {
-        return getTerminal().getTerminalWidth();
+        return getTerminal().getWidth();
     }
 
     /**
      * Query the terminal to find the current width;
      *
      * @return the height of the current terminal.
-     * @see Terminal#getTerminalHeight
+     * @see Terminal#getHeight
      */
     public int getTermheight() {
-        return getTerminal().getTerminalHeight();
+        return getTerminal().getHeight();
     }
 
     /**
@@ -820,7 +820,7 @@ public class ConsoleReader
      * Clear the screen by issuing the ANSI "clear screen" code.
      */
     public boolean clearScreen() throws IOException {
-        if (!terminal.isANSISupported()) {
+        if (!terminal.isAnsiSupported()) {
             return false;
         }
 

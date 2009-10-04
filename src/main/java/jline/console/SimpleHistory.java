@@ -24,6 +24,8 @@ import java.util.List;
  * A command history buffer.
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ *
+ * @since 2.0
  */
 public class SimpleHistory
     implements History

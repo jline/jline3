@@ -47,7 +47,7 @@ public abstract class TerminalFactory
         }
 
         try {
-            t.initializeTerminal();
+            t.init();
         }
         catch (Exception e) {
             e.printStackTrace();

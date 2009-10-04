@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
+import java.text.MessageFormat;
 
 /**
  * Manages native library muck.
@@ -21,7 +22,7 @@ import java.net.URL;
  *
  * @since 2.0
  */
-public class NativeLibrary
+class NativeLibrary
 {
     public static File load(final String name) throws IOException {
         assert name != null;
@@ -32,24 +33,28 @@ public class NativeLibrary
             arch = "x86";
         }
 
-        String resourceName = "/jline/win32-" + arch + "/" + libname;
+        String resourceName = MessageFormat.format("/jline/win32-{0}/{1}", arch, libname);
         URL url = NativeLibrary.class.getResource(resourceName);
 
         InputStream is = url.openStream();
         if (is == null) {
-            throw new Error("Unable to open resource stream: " + url);
+            throw new Error(MessageFormat.format("Unable to open resource stream: {0}", url));
         }
 
         // Figure out where our tmp files will go
         File tmp = File.createTempFile(name, ".tmp");
         File dir = new File(tmp.getParentFile(), name);
+
+        //noinspection ResultOfMethodCallIgnored
         tmp.delete();
+        //noinspection ResultOfMethodCallIgnored
         dir.mkdirs();
         
         // Attempt to delete any there already
         File[] files = dir.listFiles();
         if (files != null) {
             for (File file : files) {
+                //noinspection ResultOfMethodCallIgnored
                 file.delete();
             }
         }
@@ -70,7 +75,7 @@ public class NativeLibrary
             os.flush();
         }
         catch(IOException e) {
-            throw new Error("Failed to extract resource: " + url, e);
+            throw new Error(MessageFormat.format("Failed to extract resource: {0}", url), e);
         }
         finally {
             try {

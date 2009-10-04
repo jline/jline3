@@ -21,21 +21,23 @@ import java.io.InputStream;
  */
 public interface Terminal
 {
-    boolean isANSISupported();
+    String DEFAULT_KEYBINDINGS_PROPERTIES = "keybindings.properties";
+
+    boolean isSupported();
+
+    boolean isAnsiSupported();
 
     int readCharacter(final InputStream in) throws IOException;
 
     int readVirtualKey(InputStream in) throws IOException;
 
-    void initializeTerminal() throws Exception;
+    void init() throws Exception;
 
-    void restoreTerminal() throws Exception;
+    void restore() throws Exception;
 
-    int getTerminalWidth();
+    int getWidth();
 
-    int getTerminalHeight();
-
-    boolean isSupported();
+    int getHeight();
 
     boolean getEcho();
 

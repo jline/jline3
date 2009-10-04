@@ -15,7 +15,7 @@ import java.io.InputStreamReader;
 /**
  * <p>
  * Terminal implementation for Microsoft Windows. Terminal initialization in
- * {@link #initializeTerminal} is accomplished by extracting the
+ * {@link #init} is accomplished by extracting the
  * <em>jline_<i>version</i>.dll</em>, saving it to the system temporary
  * directoy (determined by the setting of the <em>java.io.tmpdir</em> System
  * property), loading the library, and then calling the Win32 APIs <a
@@ -248,7 +248,7 @@ public class WindowsTerminal
         }
     }
 
-    public void initializeTerminal() throws Exception {
+    public void init() throws Exception {
         NativeLibrary.load("jline");
 
         originalMode = getConsoleMode();
@@ -266,7 +266,7 @@ public class WindowsTerminal
             {
                 public void start() {
                     try {
-                        restoreTerminal();
+                        restore();
                     }
                     catch (Exception e) {
                         consumeException(e);
@@ -287,7 +287,7 @@ public class WindowsTerminal
      * shutting down the console reader. The ConsoleReader cannot be
      * used after calling this method.
      */
-    public void restoreTerminal() throws Exception {
+    public void restore() throws Exception {
         // restore the old console mode
         setConsoleMode(originalMode);
         TerminalFactory.resetTerminal(this);
@@ -365,7 +365,7 @@ public class WindowsTerminal
     /**
      * Windows doesn't support ANSI codes by default; disable them.
      */
-    public boolean isANSISupported() {
+    public boolean isAnsiSupported() {
         return false;
     }
 
@@ -376,9 +376,9 @@ public class WindowsTerminal
     /**
      * Unsupported; return the default.
      *
-     * @see Terminal#getTerminalWidth
+     * @see Terminal#getWidth
      */
-    public int getTerminalWidth() {
+    public int getWidth() {
         int width = getWindowsTerminalWidth();
         if (width < 1) {
             width = 80;
@@ -389,9 +389,9 @@ public class WindowsTerminal
     /**
      * Unsupported; return the default.
      *
-     * @see Terminal#getTerminalHeight
+     * @see Terminal#getHeight
      */
-    public int getTerminalHeight() {
+    public int getHeight() {
         return getWindowsTerminalHeight();
     }
 

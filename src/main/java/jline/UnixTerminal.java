@@ -29,30 +29,45 @@ import java.util.StringTokenizer;
 public class UnixTerminal
     extends TerminalSupport
 {
+    public static final String JLINE_STTY_COMMAND = "jline.sttyCommand";
+    
     public static final short ARROW_START = 27;
+
     public static final short ARROW_PREFIX = 91;
+
     public static final short ARROW_LEFT = 68;
+
     public static final short ARROW_RIGHT = 67;
+
     public static final short ARROW_UP = 65;
+
     public static final short ARROW_DOWN = 66;
+
     public static final short O_PREFIX = 79;
+
     public static final short HOME_CODE = 72;
+
     public static final short END_CODE = 70;
 
     public static final short DEL_THIRD = 51;
+
     public static final short DEL_SECOND = 126;
 
-    private Map terminfo;
     private boolean echoEnabled;
+
     private String ttyConfig;
+
     private boolean backspaceDeleteSwitched = false;
-    private static String sttyCommand = System.getProperty("jline.sttyCommand", "stty");
+
+    private static String sttyCommand = System.getProperty(JLINE_STTY_COMMAND, "stty");
+
     private Thread shutdownHook;
 
+    private String encoding = System.getProperty("input.encoding", "UTF-8");
 
-    String encoding = System.getProperty("input.encoding", "UTF-8");
-    ReplayPrefixOneCharInputStream replayStream = new ReplayPrefixOneCharInputStream(encoding);
-    InputStreamReader replayReader;
+    private ReplayPrefixOneCharInputStream replayStream = new ReplayPrefixOneCharInputStream(encoding);
+
+    private InputStreamReader replayReader;
 
     public UnixTerminal() {
         try {
@@ -81,7 +96,7 @@ public class UnixTerminal
      * Remove line-buffered input by invoking "stty -icanon min 1"
      * against the current terminal.
      */
-    public void initializeTerminal() throws IOException, InterruptedException {
+    public void init() throws IOException, InterruptedException {
         // save the initial tty configuration
         ttyConfig = stty("-g");
 
@@ -105,7 +120,7 @@ public class UnixTerminal
             {
                 public void start() {
                     try {
-                        restoreTerminal();
+                        restore();
                     }
                     catch (Exception e) {
                         consumeException(e);
@@ -126,7 +141,7 @@ public class UnixTerminal
      * shutting down the console reader. The ConsoleReader cannot be
      * used after calling this method.
      */
-    public void restoreTerminal() throws Exception {
+    public void restore() throws Exception {
         if (ttyConfig != null) {
             stty(ttyConfig);
             ttyConfig = null;
@@ -149,7 +164,7 @@ public class UnixTerminal
         }
     }
 
-    public boolean isANSISupported() {
+    public boolean isAnsiSupported() {
         return true;
     }
 
@@ -239,7 +254,7 @@ public class UnixTerminal
      * that changing to size of the terminal will not be reflected
      * in the console.
      */
-    public int getTerminalWidth() {
+    public int getWidth() {
         int val = -1;
 
         try {
@@ -263,7 +278,7 @@ public class UnixTerminal
      * that changing to size of the terminal will not be reflected
      * in the console.
      */
-    public int getTerminalHeight() {
+    public int getHeight() {
         int val = -1;
 
         try {

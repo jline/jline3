@@ -11,6 +11,8 @@ package jline.console;
  * current cursor position.
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ *
+ * @since 2.0
  */
 public class CursorBuffer
 {
