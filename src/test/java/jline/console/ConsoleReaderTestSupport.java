@@ -135,12 +135,7 @@ public abstract class ConsoleReaderTestSupport
         }
 
         public Buffer append(final int i) {
-            return append((byte) i);
-        }
-
-        public Buffer appendfinal (byte b) {
-            bout.write(b);
-
+            bout.write((byte)i);
             return this;
         }
     }
