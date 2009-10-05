@@ -23,8 +23,8 @@ public class CompletionTest
 {
     @Test
     public void testSimpleCompletor() throws Exception {
-        // clear any current completors
-        for (Iterator i = console.getCompletors().iterator(); i.hasNext(); console.removeCompletor((Completer) i.next())) {
+        // clear any current completers
+        for (Iterator i = console.getCompleters().iterator(); i.hasNext(); console.removeCompletor((Completer) i.next())) {
             // empty
         }
 
@@ -39,8 +39,8 @@ public class CompletionTest
 
     @Test
     public void testArgumentCompletor() throws Exception {
-        // clear any current completors
-        for (Iterator i = console.getCompletors().iterator(); i.hasNext(); console.removeCompletor((Completer) i.next())) {
+        // clear any current completers
+        for (Iterator i = console.getCompleters().iterator(); i.hasNext(); console.removeCompletor((Completer) i.next())) {
             // empty
         }
 

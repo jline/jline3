@@ -19,6 +19,8 @@ import java.text.MessageFormat;
 /**
  * Manages native library muck.
  *
+ * Currently only handles Windows bits, since that is all the native goo that JLine needs.
+ *
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  *
  * @since 2.0

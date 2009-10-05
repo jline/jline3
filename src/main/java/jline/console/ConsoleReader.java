@@ -66,13 +66,25 @@ public class ConsoleReader
 
     public static final char KEYBOARD_BELL = '\07';
 
-    private static final Character NULL_MASK = (char) 0;
+    public static final Character NULL_MASK = (char) 0;
 
-    private static final int TAB_WIDTH = 4;
+    public static final int TAB_WIDTH = 4;
 
     private static final ResourceBundle loc = ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName());
 
-    String prompt;
+    private final Terminal terminal;
+
+    private InputStream in;
+
+    private final Writer out;
+
+    private final CursorBuffer buf = new CursorBuffer();
+
+    private History history = new SimpleHistory();
+
+    private final List<Completer> completers = new LinkedList<Completer>();
+
+    private String prompt;
 
     private boolean useHistory = true;
 
@@ -91,7 +103,7 @@ public class ConsoleReader
     /**
      * The current character mask.
      */
-    private Character mask = null;
+    private Character mask;
 
     /**
      * The number of tab-completion candidates above which a warning will be
@@ -99,22 +111,7 @@ public class ConsoleReader
      */
     private int autoprintThreshhold = Integer.getInteger(JLINE_COMPLETION_THRESHOLD, 100); // same default as bash
 
-    /**
-     * The Terminal to use.
-     */
-    private final Terminal terminal;
-
     private CompletionHandler completionHandler = new CandidateListCompletionHandler();
-
-    InputStream in;
-
-    final Writer out;
-
-    final CursorBuffer buf = new CursorBuffer();
-
-    History history = new SimpleHistory();
-
-    final List<Completer> completors = new LinkedList<Completer>();
 
     private Character echoCharacter = null;
 
@@ -175,8 +172,8 @@ public class ConsoleReader
                         keybindings[code] = opval;
                     }
                 }
-                catch (NumberFormatException nfe) {
-                    consumeException(nfe);
+                catch (NumberFormatException e) {
+                    Log.error("Failed to convert binding code: ", val, e);
                 }
             }
 
@@ -200,6 +197,7 @@ public class ConsoleReader
     public ConsoleReader() throws IOException {
         this(new FileInputStream(FileDescriptor.in),
             new PrintWriter(new OutputStreamWriter(System.out,
+                    // FIXME: Why windows stuff here?
                     System.getProperty(WindowsTerminal.JLINE_WINDOWS_TERMINAL_OUTPUT_ENCODING,
                             System.getProperty("file.encoding")))));
     }
@@ -227,7 +225,7 @@ public class ConsoleReader
      * Returns the stream used for console input.
      */
     public InputStream getInput() {
-        return this.in;
+        return in;
     }
 
     public Writer getOutput() {
@@ -235,7 +233,7 @@ public class ConsoleReader
     }
 
     public Terminal getTerminal() {
-        return this.terminal;
+        return terminal;
     }
 
     /**
@@ -260,7 +258,7 @@ public class ConsoleReader
      * @return true if it was successfully added
      */
     public boolean addCompletor(final Completer completer) {
-        return completors.add(completer);
+        return completers.add(completer);
     }
 
     /**
@@ -271,14 +269,14 @@ public class ConsoleReader
      * @return true if it was successfully removed
      */
     public boolean removeCompletor(final Completer completer) {
-        return completors.remove(completer);
+        return completers.remove(completer);
     }
 
     /**
      * Returns an unmodifiable list of all the completors.
      */
-    public Collection<Completer> getCompletors() {
-        return Collections.unmodifiableList(completors);
+    public Collection<Completer> getCompleters() {
+        return Collections.unmodifiableList(completers);
     }
 
     /**
@@ -317,8 +315,8 @@ public class ConsoleReader
         return history;
     }
 
-    public void setCompletionHandler(final CompletionHandler completionHandler) {
-        this.completionHandler = completionHandler;
+    public void setCompletionHandler(final CompletionHandler handler) {
+        this.completionHandler = handler;
     }
 
     public CompletionHandler getCompletionHandler() {
@@ -351,11 +349,11 @@ public class ConsoleReader
      * will cause nothing to be echoed.
      * </p>
      *
-     * @param echoCharacter the character to echo to the console in place of the typed
+     * @param c the character to echo to the console in place of the typed
      *                      character.
      */
-    public void setEchoCharacter(final Character echoCharacter) {
-        this.echoCharacter = echoCharacter;
+    public void setEchoCharacter(final Character c) {
+        this.echoCharacter = c;
     }
 
     /**
@@ -368,8 +366,8 @@ public class ConsoleReader
     /**
      * Whether or not to add new commands to the history buffer.
      */
-    public void setUseHistory(boolean useHistory) {
-        this.useHistory = useHistory;
+    public void setUseHistory(final boolean flag) {
+        this.useHistory = flag;
     }
 
     /**
@@ -383,8 +381,8 @@ public class ConsoleReader
      * Whether to use pagination when the number of rows of candidates exceeds
      * the height of the temrinal.
      */
-    public void setUsePagination(boolean usePagination) {
-        this.usePagination = usePagination;
+    public void setUsePagination(final boolean flag) {
+        this.usePagination = flag;
     }
 
     /**
@@ -406,7 +404,7 @@ public class ConsoleReader
      * @param c
      * @param listener
      */
-    public void addTriggeredAction(char c, ActionListener listener) {
+    public void addTriggeredAction(final char c, final ActionListener listener) {
         triggeredActions.put(c, listener);
     }
 
@@ -428,7 +426,7 @@ public class ConsoleReader
     /**
      * Clear the echoed characters for the specified character code.
      */
-    int clearEcho(int c) throws IOException {
+    int clearEcho(final int c) throws IOException {
         // if the terminal is not echoing, then just return...
         if (!terminal.getEcho()) {
             return 0;
@@ -442,7 +440,7 @@ public class ConsoleReader
         return num;
     }
 
-    int countEchoCharacters(char c) {
+    int countEchoCharacters(final char c) {
         // tabs as special: we need to determine the number of spaces
         // to cancel based on what out current cursor position is
         if (c == 9) {
@@ -460,7 +458,7 @@ public class ConsoleReader
      * character is echoed to the screen. Adapted from cat by Torbjorn Granlund,
      * as repeated in stty by David MacKenzie.
      */
-    StringBuilder getPrintableCharacters(char ch) {
+    StringBuilder getPrintableCharacters(final char ch) {
         StringBuilder sbuff = new StringBuilder();
 
         if (ch >= 32) {
@@ -878,7 +876,7 @@ public class ConsoleReader
      */
     private boolean complete() throws IOException {
         // debug ("tab for (" + buf + ")");
-        if (completors.size() == 0) {
+        if (completers.size() == 0) {
             return false;
         }
 
@@ -888,7 +886,7 @@ public class ConsoleReader
 
         int position = -1;
 
-        for (Completer comp : completors) {
+        for (Completer comp : completers) {
             if ((position = comp.complete(bufstr, cursor, candidates)) != -1) {
                 break;
             }
@@ -976,7 +974,7 @@ public class ConsoleReader
      * @param appendTo the {@link StringBuilder} to which to append the padded
      *                 {@link String}.
      */
-    private void pad(final String toPad, final int len,  final StringBuilder appendTo) {
+    private void pad(final String toPad, final int len, final StringBuilder appendTo) {
         appendTo.append(toPad);
 
         for (int i = 0; i < (len - toPad.length()); i++, appendTo.append(' ')) {
@@ -1533,13 +1531,7 @@ if (buf.cursor == 0)
     public final boolean delete() throws IOException {
         return delete(1) == 1;
     }
-
-    /**
-     * No-op for exceptions we want to silently consume.
-     */
-    private void consumeException(final Throwable e) {
-    }
-
+    
     /**
      * Checks to see if the specified character is a delimiter. We consider a
      * character a delimiter if it is anything but a letter or digit.
