@@ -52,7 +52,7 @@ public class Log
     }
 
     public static void debug(final Object... messages) {
-        if (DEBUG) {
+        if (TRACE || DEBUG) {
             synchronized (System.err) {
                 System.err.print("[DEBUG] ");
 
