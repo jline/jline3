@@ -31,11 +31,11 @@ public abstract class ConsoleReaderTestSupport
             new UnixTerminal());
     }
 
-    public void assertBuffer(String expected, Buffer buffer) throws IOException {
+    public void assertBuffer(final String expected, final Buffer buffer) throws IOException {
         assertBuffer(expected, buffer, true);
     }
 
-    public void assertBuffer(String expected, Buffer buffer, boolean clear) throws IOException {
+    public void assertBuffer(final String expected, final Buffer buffer, final boolean clear) throws IOException {
         // clear current buffer, if any
         if (clear) {
             console.finishBuffer();
@@ -52,11 +52,11 @@ public abstract class ConsoleReaderTestSupport
         assertEquals(expected, console.getCursorBuffer().toString());
     }
 
-    private int getKeyForAction(Operation key) {
+    private int getKeyForAction(final Operation key) {
         return getKeyForAction(key.code);
     }
 
-    private int getKeyForAction(short logicalAction) {
+    private int getKeyForAction(final short logicalAction) {
         int action = console.getKeyForAction(logicalAction);
 
         if (action == -1) {
@@ -78,7 +78,7 @@ public abstract class ConsoleReaderTestSupport
         public Buffer() {
         }
 
-        public Buffer(String str) {
+        public Buffer(final String str) {
             append(str);
         }
 
@@ -86,11 +86,11 @@ public abstract class ConsoleReaderTestSupport
             return bout.toByteArray();
         }
 
-        public Buffer op(short operation) {
+        public Buffer op(final short operation) {
             return append(getKeyForAction(operation));
         }
 
-        public Buffer op(Operation op) {
+        public Buffer op(final Operation op) {
             return op(op.code);
         }
 
@@ -126,7 +126,7 @@ public abstract class ConsoleReaderTestSupport
             return append(ARROW_START.code).append(ARROW_PREFIX.code).append(ARROW_DOWN.code);
         }
 
-        public Buffer append(String str) {
+        public Buffer append(final String str) {
             for (byte b : str.getBytes()) {
                 append(b);
             }
@@ -134,11 +134,11 @@ public abstract class ConsoleReaderTestSupport
             return this;
         }
 
-        public Buffer append(int i) {
+        public Buffer append(final int i) {
             return append((byte) i);
         }
 
-        public Buffer append(byte b) {
+        public Buffer appendfinal (byte b) {
             bout.write(b);
 
             return this;
