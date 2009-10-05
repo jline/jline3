@@ -25,7 +25,7 @@ import java.text.MessageFormat;
  *
  * @since 2.0
  */
-public class NativeLibrary
+public final class NativeLibrary
 {
     public static File load(final String name) throws IOException {
         assert name != null;

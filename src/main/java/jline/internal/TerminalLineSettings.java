@@ -22,7 +22,7 @@ import java.util.StringTokenizer;
  *
  * @since 2.0
  */
-public class TerminalLineSettings
+public final class TerminalLineSettings
 {
     public static final String JLINE_STTY_COMMAND = "jline.sttyCommand";
 

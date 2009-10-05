@@ -26,7 +26,7 @@ package jline.internal;
  *
  * @since 2.0
  */
-public class Log
+public final class Log
 {
     ///CLOVER:OFF
 
