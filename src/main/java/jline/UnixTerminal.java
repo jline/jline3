@@ -223,16 +223,10 @@ public class UnixTerminal
             }
         }
 
-        // in Unix terminals, arrow keys are represented by
-        // a sequence of 3 characters. E.g., the up arrow
-        // key yields 27, 91, 68
+        // in Unix terminals, arrow keys are represented by a sequence of 3 characters. E.g., the up arrow key yields 27, 91, 68
         if (c == ARROW_START) {
-            //also the escape key is 27
-            //thats why we read until we
-            //have something different than 27
-            //this is a bugfix, because otherwise
-            //pressing escape and than an arrow key
-            //was an undefined state
+            // also the escape key is 27 thats why we read until we have something different than 27
+            // this is a bugfix, because otherwise pressing escape and than an arrow key was an undefined state
             while (c == ARROW_START) {
                 c = readCharacter(in);
             }
