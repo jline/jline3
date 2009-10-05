@@ -77,6 +77,7 @@ public abstract class ConsoleReaderTestSupport
         private final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
         public Buffer() {
+            // nothing
         }
 
         public Buffer(final String str) {
