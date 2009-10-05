@@ -11,6 +11,7 @@ import jline.console.completers.StringsCompleter;
 import org.junit.Test;
 
 import java.util.Iterator;
+import static jline.console.VirtualKey.*;
 
 /**
  * Tests completion.
@@ -29,11 +30,11 @@ public class CompletionTest
 
         console.addCompletor(new StringsCompleter("foo", "bar", "baz"));
 
-        assertBuffer("foo ", new Buffer("f").op(ConsoleReader.COMPLETE));
+        assertBuffer("foo ", new Buffer("f").op(COMPLETE));
         // single tab completes to unabbiguous "ba"
-        assertBuffer("ba", new Buffer("b").op(ConsoleReader.COMPLETE));
-        assertBuffer("ba", new Buffer("ba").op(ConsoleReader.COMPLETE));
-        assertBuffer("baz ", new Buffer("baz").op(ConsoleReader.COMPLETE));
+        assertBuffer("ba", new Buffer("b").op(COMPLETE));
+        assertBuffer("ba", new Buffer("ba").op(COMPLETE));
+        assertBuffer("baz ", new Buffer("baz").op(COMPLETE));
     }
 
     @Test
@@ -45,15 +46,15 @@ public class CompletionTest
 
         console.addCompletor(new ArgumentCompleter(new StringsCompleter("foo", "bar", "baz")));
 
-        assertBuffer("foo foo ", new Buffer("foo f").op(ConsoleReader.COMPLETE));
-        assertBuffer("foo ba", new Buffer("foo b").op(ConsoleReader.COMPLETE));
-        assertBuffer("foo ba", new Buffer("foo ba").op(ConsoleReader.COMPLETE));
-        assertBuffer("foo baz ", new Buffer("foo baz").op(ConsoleReader.COMPLETE));
+        assertBuffer("foo foo ", new Buffer("foo f").op(COMPLETE));
+        assertBuffer("foo ba", new Buffer("foo b").op(COMPLETE));
+        assertBuffer("foo ba", new Buffer("foo ba").op(COMPLETE));
+        assertBuffer("foo baz ", new Buffer("foo baz").op(COMPLETE));
 
         // test completion in the mid range
-        assertBuffer("foo baz", new Buffer("f baz").left().left().left().left().op(ConsoleReader.COMPLETE));
-        assertBuffer("ba foo", new Buffer("b foo").left().left().left().left().op(ConsoleReader.COMPLETE));
-        assertBuffer("foo ba baz", new Buffer("foo b baz").left().left().left().left().op(ConsoleReader.COMPLETE));
-        assertBuffer("foo foo baz", new Buffer("foo f baz").left().left().left().left().op(ConsoleReader.COMPLETE));
+        assertBuffer("foo baz", new Buffer("f baz").left().left().left().left().op(COMPLETE));
+        assertBuffer("ba foo", new Buffer("b foo").left().left().left().left().op(COMPLETE));
+        assertBuffer("foo ba baz", new Buffer("foo b baz").left().left().left().left().op(COMPLETE));
+        assertBuffer("foo foo baz", new Buffer("foo f baz").left().left().left().left().op(COMPLETE));
     }
 }

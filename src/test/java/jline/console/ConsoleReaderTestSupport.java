@@ -52,6 +52,10 @@ public abstract class ConsoleReaderTestSupport
         assertEquals(expected, console.getCursorBuffer().toString());
     }
 
+    private int getKeyForAction(VirtualKey key) {
+        return getKeyForAction(key.code);
+    }
+
     private int getKeyForAction(short logicalAction) {
         int action = console.getKeyForAction(logicalAction);
 
@@ -86,20 +90,24 @@ public abstract class ConsoleReaderTestSupport
             return append(getKeyForAction(operation));
         }
 
+        public Buffer op(VirtualKey key) {
+            return op(key.code);
+        }
+
         public Buffer ctrlA() {
-            return append(getKeyForAction(ConsoleReader.MOVE_TO_BEG));
+            return append(getKeyForAction(VirtualKey.MOVE_TO_BEG));
         }
 
         public Buffer ctrlU() {
-            return append(getKeyForAction(ConsoleReader.KILL_LINE_PREV));
+            return append(getKeyForAction(VirtualKey.KILL_LINE_PREV));
         }
 
         public Buffer tab() {
-            return append(getKeyForAction(ConsoleReader.COMPLETE));
+            return append(getKeyForAction(VirtualKey.COMPLETE));
         }
 
         public Buffer back() {
-            return append(getKeyForAction(ConsoleReader.DELETE_PREV_CHAR));
+            return append(getKeyForAction(VirtualKey.DELETE_PREV_CHAR));
         }
 
         public Buffer left() {

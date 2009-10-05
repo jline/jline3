@@ -11,6 +11,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.io.Writer;
+import static jline.console.VirtualKey.*;
 
 /**
  * Tests for the {@link ConsoleReader}.
@@ -56,8 +57,8 @@ public class ConsoleReaderTest
 
         ConsoleReader consoleReader = new ConsoleReader();
         assertNotNull(consoleReader);
-        assertEquals(127, consoleReader.getKeyForAction(ConsoleReader.DELETE_NEXT_CHAR));
-        assertEquals(8, consoleReader.getKeyForAction(ConsoleReader.DELETE_PREV_CHAR));
+        assertEquals(127, consoleReader.getKeyForAction(DELETE_NEXT_CHAR));
+        assertEquals(8, consoleReader.getKeyForAction(DELETE_PREV_CHAR));
     }
 
     @Test

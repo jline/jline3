@@ -36,8 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.ResourceBundle;
-import java.util.SortedMap;
-import java.util.TreeMap;
 
 /**
  * A reader for console applications. It supports custom tab-completion,
@@ -62,73 +60,19 @@ public class ConsoleReader
     // FIXME: Why is this windows stuff here?
     public static final String JLINE_WINDOWS_TERMINAL_OUTPUT_ENCODING = "jline.WindowsTerminal.output.encoding";
 
-    private static final ResourceBundle loc = ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName());
+    public static final String CR = System.getProperty("line.separator");
 
-    /**
-     * The null mask.
-     */
+    public static final char BACKSPACE = '\b';
+
+    public static final char RESET_LINE = '\r';
+
+    public static final char KEYBOARD_BELL = '\07';
+
     private static final Character NULL_MASK = (char) 0;
 
-    final static int TAB_WIDTH = 4;
+    private static final int TAB_WIDTH = 4;
 
-    /**
-     * Map that contains the operation name to keymay operation mapping.
-     */
-    public static final SortedMap<String,Short> KEYMAP_NAMES;
-
-    static {
-        SortedMap<String,Short> names = new TreeMap<String,Short>();
-
-        names.put("MOVE_TO_BEG", MOVE_TO_BEG);
-        names.put("MOVE_TO_END", MOVE_TO_END);
-        names.put("PREV_CHAR", PREV_CHAR);
-        names.put("NEWLINE", NEWLINE);
-        names.put("KILL_LINE", KILL_LINE);
-        names.put("PASTE", PASTE);
-        names.put("CLEAR_SCREEN", CLEAR_SCREEN);
-        names.put("NEXT_HISTORY", NEXT_HISTORY);
-        names.put("PREV_HISTORY", PREV_HISTORY);
-        names.put("START_OF_HISTORY", START_OF_HISTORY);
-        names.put("END_OF_HISTORY", END_OF_HISTORY);
-        names.put("REDISPLAY", REDISPLAY);
-        names.put("KILL_LINE_PREV", KILL_LINE_PREV);
-        names.put("DELETE_PREV_WORD", DELETE_PREV_WORD);
-        names.put("NEXT_CHAR", NEXT_CHAR);
-        names.put("REPEAT_PREV_CHAR", REPEAT_PREV_CHAR);
-        names.put("SEARCH_PREV", SEARCH_PREV);
-        names.put("REPEAT_NEXT_CHAR", REPEAT_NEXT_CHAR);
-        names.put("SEARCH_NEXT", SEARCH_NEXT);
-        names.put("PREV_SPACE_WORD", PREV_SPACE_WORD);
-        names.put("TO_END_WORD", TO_END_WORD);
-        names.put("REPEAT_SEARCH_PREV", REPEAT_SEARCH_PREV);
-        names.put("PASTE_PREV", PASTE_PREV);
-        names.put("REPLACE_MODE", REPLACE_MODE);
-        names.put("SUBSTITUTE_LINE", SUBSTITUTE_LINE);
-        names.put("TO_PREV_CHAR", TO_PREV_CHAR);
-        names.put("NEXT_SPACE_WORD", NEXT_SPACE_WORD);
-        names.put("DELETE_PREV_CHAR", DELETE_PREV_CHAR);
-        names.put("ADD", ADD);
-        names.put("PREV_WORD", PREV_WORD);
-        names.put("CHANGE_META", CHANGE_META);
-        names.put("DELETE_META", DELETE_META);
-        names.put("END_WORD", END_WORD);
-        names.put("NEXT_CHAR", NEXT_CHAR);
-        names.put("INSERT", INSERT);
-        names.put("REPEAT_SEARCH_NEXT", REPEAT_SEARCH_NEXT);
-        names.put("PASTE_NEXT", PASTE_NEXT);
-        names.put("REPLACE_CHAR", REPLACE_CHAR);
-        names.put("SUBSTITUTE_CHAR", SUBSTITUTE_CHAR);
-        names.put("TO_NEXT_CHAR", TO_NEXT_CHAR);
-        names.put("UNDO", UNDO);
-        names.put("NEXT_WORD", NEXT_WORD);
-        names.put("DELETE_NEXT_CHAR", DELETE_NEXT_CHAR);
-        names.put("CHANGE_CASE", CHANGE_CASE);
-        names.put("COMPLETE", COMPLETE);
-        names.put("EXIT", EXIT);
-        names.put("CLEAR_LINE", CLEAR_LINE);
-
-        KEYMAP_NAMES = Collections.unmodifiableSortedMap(names);
-    }
+    private static final ResourceBundle loc = ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName());
 
     String prompt;
 
@@ -210,9 +154,9 @@ public class ConsoleReader
             bindings = terminal.getDefaultBindings();
         }
 
-        this.keybindings = new short[Character.MAX_VALUE * 2];
+        keybindings = new short[Character.MAX_VALUE * 2];
 
-        Arrays.fill(this.keybindings, UNKNOWN);
+        Arrays.fill(keybindings, VirtualKey.UNKNOWN.code);
 
         /**
          * Loads the key bindings. Bindings file is in the format:
@@ -230,7 +174,7 @@ public class ConsoleReader
                 try {
                     Short code = new Short(val);
                     String op = p.getProperty(val);
-                    Short opval = KEYMAP_NAMES.get(op);
+                    Short opval = VirtualKey.valueOf(op).code;
 
                     if (opval != null) {
                         keybindings[code] = opval;
@@ -470,7 +414,7 @@ public class ConsoleReader
         triggeredActions.put(c, listener);
     }
 
-    int getKeyForAction(short logicalAction) {
+    int getKeyForAction(final short logicalAction) {
         for (int i = 0; i < keybindings.length; i++) {
             if (keybindings[i] == logicalAction) {
                 return i;
@@ -480,6 +424,11 @@ public class ConsoleReader
         return -1;
     }
 
+    int getKeyForAction(final VirtualKey key) {
+        assert key != null;
+        return getKeyForAction(key.code);
+    }
+    
     /**
      * Clear the echoed characters for the specified character code.
      */
@@ -612,7 +561,8 @@ public class ConsoleReader
                 }
 
                 int c = next[0];
-                int code = next[1];
+                // int code = next[1];
+                VirtualKey code = VirtualKey.valueOf(next[1]);
 
                 if (c == -1) {
                     return null;
