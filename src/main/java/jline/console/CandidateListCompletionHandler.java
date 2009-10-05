@@ -20,10 +20,10 @@ import java.util.Set;
  * A {@link CompletionHandler} that deals with multiple distinct completions
  * by outputting the complete list of possibilities to the console. This
  * mimics the behavior of the
- * <a href="http://www.gnu.org/directory/readline.html">readline</a>
- * library.
+ * <a href="http://www.gnu.org/directory/readline.html">readline</a> library.
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  *
  * @since 2.0
  */

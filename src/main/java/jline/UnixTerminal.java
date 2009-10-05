@@ -15,12 +15,13 @@ import static jline.console.Key.CTRL_F;
 import static jline.console.Key.CTRL_N;
 import static jline.console.Key.CTRL_P;
 import static jline.console.Key.DELETE;
+import jline.internal.Log;
+import jline.internal.ReplayPrefixOneCharInputStream;
+import jline.internal.TerminalLineSettings;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.StringTokenizer;
 
 /**
  * <p>
@@ -33,13 +34,14 @@ import java.util.StringTokenizer;
  * </p>
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
- * @author Updates <a href="mailto:dwkemp@gmail.com">Dale Kemp</a> 2005-12-03
+ * @author <a href="mailto:dwkemp@gmail.com">Dale Kemp</a>
+ * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
+ *
+ * @aince 2.0
  */
 public class UnixTerminal
     extends TerminalSupport
 {
-    public static final String JLINE_STTY_COMMAND = "jline.sttyCommand";
-    
     public static final short ARROW_START = 27;
 
     public static final short ARROW_PREFIX = 91;
@@ -62,43 +64,36 @@ public class UnixTerminal
 
     public static final short DEL_SECOND = 126;
 
-    private boolean echoEnabled;
+    private final TerminalLineSettings settings = new TerminalLineSettings();
 
-    private String ttyConfig;
+    private final ReplayPrefixOneCharInputStream replayStream = new ReplayPrefixOneCharInputStream(System.getProperty("input.encoding", "UTF-8"));
+
+    private final InputStreamReader replayReader;
+
+    private boolean echoEnabled;
 
     private boolean backspaceDeleteSwitched = false;
 
-    private static String sttyCommand = System.getProperty(JLINE_STTY_COMMAND, "stty");
+    public UnixTerminal() throws Exception {
+        replayReader = new InputStreamReader(replayStream, replayStream.getEncoding());
+    }
 
-    private Thread shutdownHook;
-
-    private String encoding = System.getProperty("input.encoding", "UTF-8");
-
-    private ReplayPrefixOneCharInputStream replayStream = new ReplayPrefixOneCharInputStream(encoding);
-
-    private InputStreamReader replayReader;
-
-    public UnixTerminal() {
-        try {
-            replayReader = new InputStreamReader(replayStream, encoding);
-        }
-        catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    protected TerminalLineSettings getSettings() {
+        return settings;
     }
 
     protected void checkBackspace() {
-        String[] ttyConfigSplit = ttyConfig.split(":|=");
+        String[] config = settings.getConfig().split(":|=");
 
-        if (ttyConfigSplit.length < 7) {
+        if (config.length < 7) {
             return;
         }
 
-        if (ttyConfigSplit[6] == null) {
+        if (config[6] == null) {
             return;
         }
 
-        backspaceDeleteSwitched = ttyConfigSplit[6].equals("7f");
+        backspaceDeleteSwitched = config[6].equals("7f");
     }
 
     /**
@@ -106,43 +101,16 @@ public class UnixTerminal
      * against the current terminal.
      */
     public void init() throws IOException, InterruptedException {
-        // save the initial tty configuration
-        ttyConfig = stty("-g");
-
-        // sanity check
-        if ((ttyConfig.length() == 0) || ((!ttyConfig.contains("=")) && (!ttyConfig.contains(":")))) {
-            throw new IOException("Unrecognized stty code: " + ttyConfig);
-        }
-
         checkBackspace();
 
         // set the console to be character-buffered instead of line-buffered
-        stty("-icanon min 1");
+        settings.set("-icanon min 1");
 
         // disable character echoing
-        stty("-echo");
+        settings.set("-echo");
         echoEnabled = false;
 
-        // at exit, restore the original tty configuration (for JDK 1.3+)
-        try {
-            Thread thread = new Thread()
-            {
-                public void start() {
-                    try {
-                        restore();
-                    }
-                    catch (Exception e) {
-                        consumeException(e);
-                    }
-                }
-            };
-            Runtime.getRuntime().addShutdownHook(thread);
-            shutdownHook = thread;
-        }
-        catch (AbstractMethodError ame) {
-            // JDK 1.3+ only method. Bummer.
-            consumeException(ame);
-        }
+        installShutdownHook(new RestoreHook());
     }
 
     /**
@@ -151,26 +119,9 @@ public class UnixTerminal
      * used after calling this method.
      */
     public void restore() throws Exception {
-        if (ttyConfig != null) {
-            stty(ttyConfig);
-            ttyConfig = null;
-        }
+        settings.restore();
         TerminalFactory.resetIf(this);
-        // Remove shutdown hook
-        if (shutdownHook != null) {
-            try {
-                Runtime.getRuntime().removeShutdownHook(shutdownHook);
-            }
-            catch (AbstractMethodError ame) {
-                // JDK 1.3+ only method. Bummer.
-                consumeException(ame);
-            }
-            catch (IllegalStateException e) {
-                // The VM is shutting down, not a big deal
-                consumeException(e);
-            }
-            shutdownHook = null;
-        }
+        removeShutdownHook();
     }
 
     public boolean isAnsiSupported() {
@@ -229,6 +180,7 @@ public class UnixTerminal
                 }
             }
         }
+
         // handle unicode characters, thanks for a patch from amyi@inf.ed.ac.uk
         if (c > 128) {
             // handle unicode characters longer than 2 bytes,
@@ -242,12 +194,6 @@ public class UnixTerminal
         return c;
     }
 
-    /**
-     * No-op for exceptions we want to silently consume.
-     */
-    private void consumeException(Throwable e) {
-    }
-
     public boolean isSupported() {
         return true;
     }
@@ -257,8 +203,8 @@ public class UnixTerminal
     }
 
     /**
-     * Returns the value of "stty size" width param.
-     * <p/>
+     * Returns the value of "stty columns" width param.
+     *
      * <strong>Note</strong>: this method caches the value from the
      * first time it is called in order to increase speed, which means
      * that changing to size of the terminal will not be reflected
@@ -268,21 +214,22 @@ public class UnixTerminal
         int val = -1;
 
         try {
-            val = getTerminalProperty("columns");
+            val = settings.getProperty("columns");
         }
         catch (Exception e) {
+            // ignore
         }
 
         if (val == -1) {
-            val = 80;
+            val = DEFAULT_WIDTH;
         }
 
         return val;
     }
 
     /**
-     * Returns the value of "stty size" height param.
-     * <p/>
+     * Returns the value of "stty rows" height param.
+     *
      * <strong>Note</strong>: this method caches the value from the
      * first time it is called in order to increase speed, which means
      * that changing to size of the terminal will not be reflected
@@ -292,219 +239,40 @@ public class UnixTerminal
         int val = -1;
 
         try {
-            val = getTerminalProperty("rows");
+            val = settings.getProperty("rows");
         }
         catch (Exception e) {
+            // ignore
         }
 
         if (val == -1) {
-            val = 24;
+            val = DEFAULT_HEIGHT;
         }
 
         return val;
-    }
-
-    private static int getTerminalProperty(String prop)
-        throws IOException, InterruptedException
-    {
-        // need to be able handle both output formats:
-        // speed 9600 baud; 24 rows; 140 columns;
-        // and:
-        // speed 38400 baud; rows = 49; columns = 111; ypixels = 0; xpixels = 0;
-        String props = stty("-a");
-
-        for (StringTokenizer tok = new StringTokenizer(props, ";\n");
-             tok.hasMoreTokens();) {
-            String str = tok.nextToken().trim();
-
-            if (str.startsWith(prop)) {
-                int index = str.lastIndexOf(" ");
-
-                return Integer.parseInt(str.substring(index).trim());
-            }
-            else if (str.endsWith(prop)) {
-                int index = str.indexOf(" ");
-
-                return Integer.parseInt(str.substring(0, index).trim());
-            }
-        }
-
-        return -1;
-    }
-
-    /**
-     * Execute the stty command with the specified arguments
-     * against the current active terminal.
-     */
-    protected static String stty(final String args)
-        throws IOException, InterruptedException
-    {
-        return exec("stty " + args + " < /dev/tty").trim();
-    }
-
-    /**
-     * Execute the specified command and return the output
-     * (both stdout and stderr).
-     */
-    private static String exec(final String cmd)
-        throws IOException, InterruptedException
-    {
-        return exec(new String[]{
-            "sh",
-            "-c",
-            cmd
-        });
-    }
-
-    /**
-     * Execute the specified command and return the output
-     * (both stdout and stderr).
-     */
-    private static String exec(final String[] cmd)
-        throws IOException, InterruptedException
-    {
-        ByteArrayOutputStream bout = new ByteArrayOutputStream();
-
-        Process p = Runtime.getRuntime().exec(cmd);
-        int c;
-        InputStream in;
-
-        in = p.getInputStream();
-
-        while ((c = in.read()) != -1) {
-            bout.write(c);
-        }
-
-        in = p.getErrorStream();
-
-        while ((c = in.read()) != -1) {
-            bout.write(c);
-        }
-
-        p.waitFor();
-
-        return new String(bout.toByteArray());
-    }
-
-    /**
-     * The command to use to set the terminal options. Defaults
-     * to "stty", or the value of the system property "jline.sttyCommand".
-     */
-    public static void setSttyCommand(String cmd) {
-        sttyCommand = cmd;
-    }
-
-    /**
-     * The command to use to set the terminal options. Defaults
-     * to "stty", or the value of the system property "jline.sttyCommand".
-     */
-    public static String getSttyCommand() {
-        return sttyCommand;
     }
 
     public synchronized boolean isEchoEnabled() {
         return echoEnabled;
     }
 
-
     public synchronized void enableEcho() {
         try {
-            stty("echo");
+            settings.set("echo");
             echoEnabled = true;
         }
         catch (Exception e) {
-            consumeException(e);
+            Log.error("Failed to enable echo: ", e);
         }
     }
 
     public synchronized void disableEcho() {
         try {
-            stty("-echo");
+            settings.set("-echo");
             echoEnabled = false;
         }
         catch (Exception e) {
-            consumeException(e);
-        }
-    }
-
-    /**
-     * This is awkward and inefficient, but probably the minimal way to add
-     * UTF-8 support to JLine
-     *
-     * @author <a href="mailto:Marc.Herbert@continuent.com">Marc Herbert</a>
-     */
-    static class ReplayPrefixOneCharInputStream
-        extends InputStream
-    {
-        byte firstByte;
-        int byteLength;
-        InputStream wrappedStream;
-        int byteRead;
-
-        final String encoding;
-
-        public ReplayPrefixOneCharInputStream(String encoding) {
-            this.encoding = encoding;
-        }
-
-        public void setInput(int recorded, InputStream wrapped) throws IOException {
-            this.byteRead = 0;
-            this.firstByte = (byte) recorded;
-            this.wrappedStream = wrapped;
-
-            byteLength = 1;
-            if (encoding.equalsIgnoreCase("UTF-8")) {
-                setInputUTF8(recorded, wrapped);
-            }
-            else if (encoding.equalsIgnoreCase("UTF-16")) {
-                byteLength = 2;
-            }
-            else if (encoding.equalsIgnoreCase("UTF-32")) {
-                byteLength = 4;
-            }
-        }
-
-
-        public void setInputUTF8(int recorded, InputStream wrapped) throws IOException {
-            // 110yyyyy 10zzzzzz
-            if ((firstByte & (byte) 0xE0) == (byte) 0xC0) {
-                this.byteLength = 2;
-            }
-            // 1110xxxx 10yyyyyy 10zzzzzz
-            else if ((firstByte & (byte) 0xF0) == (byte) 0xE0) {
-                this.byteLength = 3;
-            }
-            // 11110www 10xxxxxx 10yyyyyy 10zzzzzz
-            else if ((firstByte & (byte) 0xF8) == (byte) 0xF0) {
-                this.byteLength = 4;
-            }
-            else {
-                throw new IOException("invalid UTF-8 first byte: " + firstByte);
-            }
-        }
-
-        public int read() throws IOException {
-            if (available() == 0) {
-                return -1;
-            }
-
-            byteRead++;
-
-            if (byteRead == 1) {
-                return firstByte;
-            }
-
-            return wrappedStream.read();
-        }
-
-        /**
-         * InputStreamReader is greedy and will try to read bytes in advance. We
-         * do NOT want this to happen since we use a temporary/"losing bytes"
-         * InputStreamReader above, that's why we hide the real
-         * wrappedStream.available() here.
-         */
-        public int available() {
-            return byteLength - byteRead;
+            Log.error("Failed to disable echo: ", e);
         }
     }
 }

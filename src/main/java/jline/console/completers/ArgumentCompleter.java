@@ -7,8 +7,8 @@
 
 package jline.console.completers;
 
-import jline.Log;
 import jline.console.Completer;
+import jline.internal.Log;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -54,6 +54,7 @@ import java.util.List;
  * </pre>
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  *
  * @since 2.0
  */
@@ -184,7 +185,7 @@ public class ArgumentCompleter
             }
         }
 
-        Log.debug("Completing ", buffer, "(pos=", cursor, ") with: ", candidates, ": offset=", pos);
+        Log.trace("Completing ", buffer, " (pos=", cursor, ") with: ", candidates, ": offset=", pos);
 
         return pos;
     }

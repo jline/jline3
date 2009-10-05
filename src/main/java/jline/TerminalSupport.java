@@ -7,8 +7,8 @@
 
 package jline;
 
-import jline.console.ConsoleOperations;
 import jline.console.ConsoleReader;
+import jline.internal.Log;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,7 +27,9 @@ public abstract class TerminalSupport
 
     public static final int DEFAULT_WIDTH = 80;
 
-    public static final int DEFAULT_HEIGHT = 80;
+    public static final int DEFAULT_HEIGHT = 24;
+
+    private Thread shutdownHook;
 
     public void init() throws Exception {
         // nothing
@@ -35,6 +37,39 @@ public abstract class TerminalSupport
 
     public void restore() throws Exception {
         // nothing
+    }
+
+    protected void installShutdownHook(final Thread hook) {
+        assert hook != null;
+
+        if (shutdownHook != null) {
+            throw new IllegalStateException("Shutdown hook already installed");
+        }
+        
+        try {
+            Runtime.getRuntime().addShutdownHook(hook);
+            shutdownHook = hook;
+        }
+        catch (AbstractMethodError e) {
+            // JDK 1.3+ only method. Bummer.
+            Log.trace("Failed to register shutdown hook: ", e);
+        }
+    }
+
+    protected void removeShutdownHook() {
+        if (shutdownHook != null) {
+            try {
+                Runtime.getRuntime().removeShutdownHook(shutdownHook);
+            }
+            catch (AbstractMethodError e) {
+                // JDK 1.3+ only method. Bummer.
+                Log.trace("Failed to remove shutdown hook: ", e);
+            }
+            catch (IllegalStateException e) {
+                // The VM is shutting down, not a big deal; ignore
+            }
+            shutdownHook = null;
+        }
     }
 
     public int getWidth() {
@@ -71,5 +106,22 @@ public abstract class TerminalSupport
 
     public InputStream getDefaultBindings() {
         return TerminalSupport.class.getResourceAsStream(DEFAULT_KEYBINDINGS_PROPERTIES);
+    }
+
+    //
+    // RestoreHook
+    //
+
+    protected class RestoreHook
+            extends Thread
+    {
+        public void start() {
+            try {
+                restore();
+            }
+            catch (Exception e) {
+                Log.trace("Failed to restore: ", e);
+            }
+        }
     }
 }

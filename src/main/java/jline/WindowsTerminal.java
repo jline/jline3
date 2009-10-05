@@ -18,6 +18,8 @@ import static jline.console.Key.CTRL_N;
 import static jline.console.Key.CTRL_OB;
 import static jline.console.Key.CTRL_P;
 import static jline.console.Key.CTRL_QM;
+import jline.internal.NativeLibrary;
+import jline.internal.ReplayPrefixOneCharInputStream;
 
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
@@ -51,6 +53,9 @@ import java.io.InputStreamReader;
  * </p>
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
+ *
+ * @since 2.0
  */
 public class WindowsTerminal
     extends TerminalSupport
@@ -60,6 +65,8 @@ public class WindowsTerminal
     public static final String JLINE_WINDOWS_TERMINAL_OUTPUT_ENCODING = "jline.WindowsTerminal.output.encoding";
     
     public static final String JLINE_WINDOWS_TERMINAL_DIRECT_CONSOLE = "jline.WindowsTerminal.directConsole";
+
+    public static final String WINDOWSBINDINGS_PROPERTIES = "windowsbindings.properties";
 
     // constants copied from wincon.h
 
@@ -214,15 +221,12 @@ public class WindowsTerminal
 
     private int originalMode;
 
-    private Thread shutdownHook;
+    private final ReplayPrefixOneCharInputStream replayStream = new ReplayPrefixOneCharInputStream(
+            System.getProperty(JLINE_WINDOWS_TERMINAL_INPUT_ENCODING, System.getProperty("file.encoding")));
 
-    String encoding = System.getProperty(JLINE_WINDOWS_TERMINAL_INPUT_ENCODING, System.getProperty("file.encoding"));
+    private final InputStreamReader replayReader;
 
-    ReplayPrefixOneCharInputStream replayStream = new ReplayPrefixOneCharInputStream(encoding);
-
-    InputStreamReader replayReader;
-
-    public WindowsTerminal() {
+    public WindowsTerminal() throws Exception {
         String dir = System.getProperty(JLINE_WINDOWS_TERMINAL_DIRECT_CONSOLE);
 
         if ("true".equals(dir)) {
@@ -232,24 +236,8 @@ public class WindowsTerminal
             directConsole = Boolean.FALSE;
         }
 
-        try {
-            replayReader = new InputStreamReader(replayStream, encoding);
-        }
-        catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
+        replayReader = new InputStreamReader(replayStream, replayStream.getEncoding());
     }
-
-    private native int getConsoleMode();
-
-    private native void setConsoleMode(final int mode);
-
-    private native int readByte();
-
-    private native int getWindowsTerminalWidth();
-
-    private native int getWindowsTerminalHeight();
 
     public int readCharacter(final InputStream in) throws IOException {
         // if we can detect that we are directly wrapping the system
@@ -259,9 +247,7 @@ public class WindowsTerminal
         if (directConsole == Boolean.FALSE) {
             return super.readCharacter(in);
         }
-        else if ((directConsole == Boolean.TRUE)
-            || ((in == System.in) || (in instanceof FileInputStream
-            && (((FileInputStream) in).getFD() == FileDescriptor.in)))) {
+        else if ((directConsole == Boolean.TRUE) || ((in == System.in) || (in instanceof FileInputStream && (((FileInputStream) in).getFD() == FileDescriptor.in)))) {
             return readByte();
         }
         else {
@@ -281,26 +267,7 @@ public class WindowsTerminal
         echoEnabled = false;
         setConsoleMode(newMode);
 
-        // at exit, restore the original tty configuration (for JDK 1.3+)
-        try {
-            Thread thread = new Thread()
-            {
-                public void start() {
-                    try {
-                        restore();
-                    }
-                    catch (Exception e) {
-                        consumeException(e);
-                    }
-                }
-            };
-            Runtime.getRuntime().addShutdownHook(thread);
-            shutdownHook = thread;
-        }
-        catch (AbstractMethodError ame) {
-            // JDK 1.3+ only method. Bummer.
-            consumeException(ame);
-        }
+        installShutdownHook(new RestoreHook());
     }
 
     /**
@@ -312,21 +279,7 @@ public class WindowsTerminal
         // restore the old console mode
         setConsoleMode(originalMode);
         TerminalFactory.resetIf(this);
-        // Remove shutdown hook
-        if (shutdownHook != null) {
-            try {
-                Runtime.getRuntime().removeShutdownHook(shutdownHook);
-            }
-            catch (AbstractMethodError ame) {
-                // JDK 1.3+ only method. Bummer.
-                consumeException(ame);
-            }
-            catch (IllegalStateException e) {
-                // The VM is shutting down, not a big deal
-                consumeException(e);
-            }
-            shutdownHook = null;
-        }
+        removeShutdownHook();
     }
 
     public int readVirtualKey(InputStream in) throws IOException {
@@ -375,7 +328,6 @@ public class WindowsTerminal
         }
 
         return indicator;
-
     }
 
     public boolean isSupported() {
@@ -401,7 +353,7 @@ public class WindowsTerminal
     public int getWidth() {
         int width = getWindowsTerminalWidth();
         if (width < 1) {
-            width = 80;
+            width = DEFAULT_WIDTH;
         }
         return width;
     }
@@ -412,27 +364,25 @@ public class WindowsTerminal
      * @see Terminal#getHeight
      */
     public int getHeight() {
-        return getWindowsTerminalHeight();
-    }
-
-    /**
-     * No-op for exceptions we want to silently consume.
-     */
-    private void consumeException(final Throwable e) {
+        int height = getWindowsTerminalHeight();
+        if (height < 1) {
+            height = DEFAULT_HEIGHT;
+        }
+        return height;
     }
 
     /**
      * Whether or not to allow the use of the JNI console interaction.
      */
-    public void setDirectConsole(Boolean directConsole) {
-        this.directConsole = directConsole;
+    public void setDirectConsole(final boolean flag) {
+        this.directConsole = flag;
     }
 
     /**
      * Whether or not to allow the use of the JNI console interaction.
      */
     public Boolean getDirectConsole() {
-        return this.directConsole;
+        return directConsole;
     }
 
     public synchronized boolean isEchoEnabled() {
@@ -447,94 +397,25 @@ public class WindowsTerminal
 
     public synchronized void disableEcho() {
         // Must set these four modes at the same time to make it work fine.
-        setConsoleMode(getConsoleMode()
-            & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT | ENABLE_PROCESSED_INPUT | ENABLE_WINDOW_INPUT));
+        setConsoleMode(getConsoleMode() & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT | ENABLE_PROCESSED_INPUT | ENABLE_WINDOW_INPUT));
         echoEnabled = true;
     }
 
     public InputStream getDefaultBindings() {
-        return getClass().getResourceAsStream("windowsbindings.properties");
+        return getClass().getResourceAsStream(WINDOWSBINDINGS_PROPERTIES);
     }
 
-    /**
-     * This is awkward and inefficient, but probably the minimal way to add
-     * UTF-8 support to JLine
-     *
-     * @author <a href="mailto:Marc.Herbert@continuent.com">Marc Herbert</a>
-     */
-    static class ReplayPrefixOneCharInputStream
-        extends InputStream
-    {
-        byte firstByte;
-        int byteLength;
-        InputStream wrappedStream;
-        int byteRead;
+    //
+    // Native Bits
+    //
 
-        final String encoding;
+    private native int getConsoleMode();
 
-        public ReplayPrefixOneCharInputStream(String encoding) {
-            this.encoding = encoding;
-        }
+    private native void setConsoleMode(final int mode);
 
-        public void setInput(int recorded, InputStream wrapped) throws IOException {
-            this.byteRead = 0;
-            this.firstByte = (byte) recorded;
-            this.wrappedStream = wrapped;
+    private native int readByte();
 
-            byteLength = 1;
-            if (encoding.equalsIgnoreCase("UTF-8")) {
-                setInputUTF8(recorded, wrapped);
-            }
-            else if (encoding.equalsIgnoreCase("UTF-16")) {
-                byteLength = 2;
-            }
-            else if (encoding.equalsIgnoreCase("UTF-32")) {
-                byteLength = 4;
-            }
-        }
+    private native int getWindowsTerminalWidth();
 
-
-        public void setInputUTF8(int recorded, InputStream wrapped) throws IOException {
-            // 110yyyyy 10zzzzzz
-            if ((firstByte & (byte) 0xE0) == (byte) 0xC0) {
-                this.byteLength = 2;
-            }
-            // 1110xxxx 10yyyyyy 10zzzzzz
-            else if ((firstByte & (byte) 0xF0) == (byte) 0xE0) {
-                this.byteLength = 3;
-            }
-            // 11110www 10xxxxxx 10yyyyyy 10zzzzzz
-            else if ((firstByte & (byte) 0xF8) == (byte) 0xF0) {
-                this.byteLength = 4;
-            }
-            else {
-                throw new IOException("invalid UTF-8 first byte: " + firstByte);
-            }
-        }
-
-        public int read() throws IOException {
-            if (available() == 0) {
-                return -1;
-            }
-
-            byteRead++;
-
-            if (byteRead == 1) {
-                return firstByte;
-            }
-
-            return wrappedStream.read();
-        }
-
-        /**
-         * InputStreamReader is greedy and will try to read bytes in advance. We
-         * do NOT want this to happen since we use a temporary/"losing bytes"
-         * InputStreamReader above, that's why we hide the real
-         * wrappedStream.available() here.
-         */
-        public int available() {
-            return byteLength - byteRead;
-        }
-    }
-
+    private native int getWindowsTerminalHeight();
 }

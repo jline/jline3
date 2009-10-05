@@ -13,9 +13,12 @@ import java.io.IOException;
 import java.io.Writer;
 
 /**
- * A no-op unsupported terminal.
+ * An unsupported terminal.
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
+ *
+ * @since 2.0
  */
 public class UnsupportedTerminal
     extends TerminalSupport
@@ -39,7 +42,7 @@ public class UnsupportedTerminal
     }
 
     public void beforeReadLine(final ConsoleReader reader, final String prompt, final Character mask) {
-        if ((mask != null) && (maskThread == null)) {
+        if (mask != null && maskThread == null) {
             final String fullPrompt = "\r" + prompt
                 + "                 "
                 + "                 "

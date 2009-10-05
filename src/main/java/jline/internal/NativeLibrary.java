@@ -5,7 +5,7 @@
  * BSD license in the documentation provided with this software.
  */
 
-package jline;
+package jline.internal;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -25,7 +25,7 @@ import java.text.MessageFormat;
  *
  * @since 2.0
  */
-class NativeLibrary
+public class NativeLibrary
 {
     public static File load(final String name) throws IOException {
         assert name != null;

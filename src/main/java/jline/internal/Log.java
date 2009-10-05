@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package jline;
+package jline.internal;
 
 /**
  * Jline logger.
@@ -36,49 +36,59 @@ public class Log
     @SuppressWarnings({ "StringConcatenation" })
     public static final boolean TRACE = Boolean.getBoolean(Log.class.getName() + ".trace");
 
+    private static void print(final Object message) {
+        if (message instanceof Throwable) {
+            ((Throwable)message).printStackTrace();
+        }
+        else if (message.getClass().isArray()) {
+            Object[] array = (Object[])message;
+
+            for (int i=0; i<array.length; i++) {
+                System.err.print(array[i]);
+                if (i+1<array.length) {
+                    System.err.print(",");
+                }
+            }
+        }
+        else {
+            System.err.print(message);
+        }
+    }
+
+    private static void log(final String prefix, final Object[] messages) {
+        synchronized (System.err) {
+            System.err.format("[%s] ", prefix);
+
+            for (Object message : messages) {
+                print(message);
+            }
+
+            System.err.println();
+            System.err.flush();
+        }
+    }
+
     public static void trace(final Object... messages) {
         if (TRACE) {
-            synchronized (System.err) {
-                System.err.print("[TRACE] ");
-
-                for (Object message : messages) {
-                    System.err.print(message);
-                }
-
-                System.err.println();
-                System.err.flush();
-            }
+            log("TRACE", messages);
         }
     }
 
     public static void debug(final Object... messages) {
         if (TRACE || DEBUG) {
-            synchronized (System.err) {
-                System.err.print("[DEBUG] ");
+            log("DEBUG", messages);
+        }
+    }
 
-                for (Object message : messages) {
-                    System.err.print(message);
-                }
-
-                System.err.println();
-                System.err.flush();
-            }
+    public static void warn(final Object... messages) {
+        synchronized (System.err) {
+            log("WARNING", messages);
         }
     }
 
     public static void error(final Object... messages) {
         synchronized (System.err) {
-            System.err.print("[ERROR] ");
-
-            for (Object message : messages) {
-                System.err.print(message);
-                if (message instanceof Throwable) {
-                    ((Throwable)message).printStackTrace();
-                }
-            }
-
-            System.err.println();
-            System.err.flush();
+            log("ERROR", messages);
         }
     }
 }

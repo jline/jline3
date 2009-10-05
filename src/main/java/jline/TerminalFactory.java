@@ -7,6 +7,8 @@
 
 package jline;
 
+import jline.internal.Log;
+
 import java.text.MessageFormat;
 
 /**
@@ -46,8 +48,6 @@ public class TerminalFactory
     }
 
     public static synchronized Terminal create() {
-        final Terminal t;
-
         String type = System.getProperty(JLINE_TERMINAL);
 
         if (type == null) {
@@ -56,36 +56,43 @@ public class TerminalFactory
 
         Log.debug("Creating terminal; type=", type);
 
-        String tmp = type.toLowerCase();
+        Terminal t;
+        try {
+            String tmp = type.toLowerCase();
 
-        if (tmp.equals(UNIX)) {
-            t = new UnixTerminal();
-        }
-        else if (tmp.equals(WIN) | tmp.equals(WINDOWS)) {
-            t = new WindowsTerminal();
-        }
-        else if (tmp.equals(NONE) || tmp.equals(OFF) || tmp.equals(FALSE)) {
-            t = new UnsupportedTerminal();
-        }
-        else {
-            if (tmp.equals(AUTO)) {
-                String os = System.getProperty("os.name").toLowerCase();
-
-                if (os.contains(WINDOWS)) {
-                    t = new WindowsTerminal();
-                }
-                else {
-                    t = new UnixTerminal();
-                }
+            if (tmp.equals(UNIX)) {
+                t = new UnixTerminal();
+            }
+            else if (tmp.equals(WIN) | tmp.equals(WINDOWS)) {
+                t = new WindowsTerminal();
+            }
+            else if (tmp.equals(NONE) || tmp.equals(OFF) || tmp.equals(FALSE)) {
+                t = new UnsupportedTerminal();
             }
             else {
-                try {
-                    t = (Terminal)Thread.currentThread().getContextClassLoader().loadClass(type).newInstance();
+                if (tmp.equals(AUTO)) {
+                    String os = System.getProperty("os.name").toLowerCase();
+
+                    if (os.contains(WINDOWS)) {
+                        t = new WindowsTerminal();
+                    }
+                    else {
+                        t = new UnixTerminal();
+                    }
                 }
-                catch (Exception e) {
-                    throw new IllegalArgumentException(MessageFormat.format("Invalid terminal type: {0}", type), e);
+                else {
+                    try {
+                        t = (Terminal)Thread.currentThread().getContextClassLoader().loadClass(type).newInstance();
+                    }
+                    catch (Exception e) {
+                        throw new IllegalArgumentException(MessageFormat.format("Invalid terminal type: {0}", type), e);
+                    }
                 }
             }
+        }
+        catch (Exception e) {
+            Log.error("Failed to construct terminal; falling back to unsupported", e);
+            t =  new UnsupportedTerminal();
         }
 
         Log.debug("Created Terminal: ", t);
