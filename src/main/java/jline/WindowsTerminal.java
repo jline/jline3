@@ -154,7 +154,7 @@ public class WindowsTerminal
         }
     }
 
-    public int readVirtualKey(InputStream in) throws IOException {
+    public int readVirtualKey(final InputStream in) throws IOException {
         int indicator = readCharacter(in);
 
         // in Windows terminals, arrow keys are represented by
@@ -273,7 +273,7 @@ public class WindowsTerminal
 
     private native int getConsoleMode();
 
-    private native void setConsoleMode(final int mode);
+    private native void setConsoleMode(int mode);
 
     private native int readByte();
 
