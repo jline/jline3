@@ -23,13 +23,13 @@ public abstract class TerminalFactory
 
     public static final String WIN = "win";
 
+    public static final String WINDOWS = "windows";
+
     public static final String NONE = "none";
 
     public static final String OFF = "off";
 
     public static final String FALSE = "false";
-
-    public static final String WINDOWS = "windows";
 
     private static Terminal terminal;
 
