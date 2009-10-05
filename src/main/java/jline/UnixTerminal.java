@@ -82,20 +82,6 @@ public class UnixTerminal
         return settings;
     }
 
-    protected void checkBackspace() {
-        String[] config = settings.getConfig().split(":|=");
-
-        if (config.length < 7) {
-            return;
-        }
-
-        if (config[6] == null) {
-            return;
-        }
-
-        backspaceDeleteSwitched = config[6].equals("7f");
-    }
-
     /**
      * Remove line-buffered input by invoking "stty -icanon min 1"
      * against the current terminal.
@@ -124,76 +110,6 @@ public class UnixTerminal
         removeShutdownHook();
     }
 
-    public boolean isAnsiSupported() {
-        return true;
-    }
-
-    public int readVirtualKey(InputStream in) throws IOException {
-        int c = readCharacter(in);
-        Key key = Key.valueOf(c);
-
-        if (backspaceDeleteSwitched) {
-            if (key == DELETE) {
-                c = '\b';
-            }
-            else if (c == '\b') {
-                c = DELETE.code;
-            }
-        }
-
-        // in Unix terminals, arrow keys are represented by
-        // a sequence of 3 characters. E.g., the up arrow
-        // key yields 27, 91, 68
-        if (c == ARROW_START) {
-            //also the escape key is 27
-            //thats why we read until we
-            //have something different than 27
-            //this is a bugfix, because otherwise
-            //pressing escape and than an arrow key
-            //was an undefined state
-            while (c == ARROW_START) {
-                c = readCharacter(in);
-            }
-            if (c == ARROW_PREFIX || c == O_PREFIX) {
-                c = readCharacter(in);
-                if (c == ARROW_UP) {
-                    return CTRL_P.code;
-                }
-                else if (c == ARROW_DOWN) {
-                    return CTRL_N.code;
-                }
-                else if (c == ARROW_LEFT) {
-                    return CTRL_B.code;
-                }
-                else if (c == ARROW_RIGHT) {
-                    return CTRL_F.code;
-                }
-                else if (c == HOME_CODE) {
-                    return CTRL_A.code;
-                }
-                else if (c == END_CODE) {
-                    return CTRL_E.code;
-                }
-                else if (c == DEL_THIRD) {
-                    c = readCharacter(in); // read 4th
-                    return DELETE.code;
-                }
-            }
-        }
-
-        // handle unicode characters, thanks for a patch from amyi@inf.ed.ac.uk
-        if (c > 128) {
-            // handle unicode characters longer than 2 bytes,
-            // thanks to Marc.Herbert@continuent.com
-            replayStream.setInput(c, in);
-            // replayReader = new InputStreamReader(replayStream, encoding);
-            c = replayReader.read();
-
-        }
-
-        return c;
-    }
-
     public boolean isSupported() {
         return true;
     }
@@ -202,7 +118,7 @@ public class UnixTerminal
         return false;
     }
 
-    /**
+       /**
      * Returns the value of "stty columns" width param.
      *
      * <strong>Note</strong>: this method caches the value from the
@@ -252,6 +168,24 @@ public class UnixTerminal
         return val;
     }
 
+    protected void checkBackspace() {
+        String[] config = settings.getConfig().split(":|=");
+
+        if (config.length < 7) {
+            return;
+        }
+
+        if (config[6] == null) {
+            return;
+        }
+
+        backspaceDeleteSwitched = config[6].equals("7f");
+    }
+
+    public boolean isAnsiSupported() {
+        return true;
+    }
+
     public synchronized boolean isEchoEnabled() {
         return echoEnabled;
     }
@@ -274,5 +208,71 @@ public class UnixTerminal
         catch (Exception e) {
             Log.error("Failed to disable echo: ", e);
         }
+    }
+
+    public int readVirtualKey(final InputStream in) throws IOException {
+        int c = readCharacter(in);
+        Key key = Key.valueOf(c);
+
+        if (backspaceDeleteSwitched) {
+            if (key == DELETE) {
+                c = '\b';
+            }
+            else if (c == '\b') {
+                c = DELETE.code;
+            }
+        }
+
+        // in Unix terminals, arrow keys are represented by
+        // a sequence of 3 characters. E.g., the up arrow
+        // key yields 27, 91, 68
+        if (c == ARROW_START) {
+            //also the escape key is 27
+            //thats why we read until we
+            //have something different than 27
+            //this is a bugfix, because otherwise
+            //pressing escape and than an arrow key
+            //was an undefined state
+            while (c == ARROW_START) {
+                c = readCharacter(in);
+            }
+
+            if (c == ARROW_PREFIX || c == O_PREFIX) {
+                c = readCharacter(in);
+                if (c == ARROW_UP) {
+                    return CTRL_P.code;
+                }
+                else if (c == ARROW_DOWN) {
+                    return CTRL_N.code;
+                }
+                else if (c == ARROW_LEFT) {
+                    return CTRL_B.code;
+                }
+                else if (c == ARROW_RIGHT) {
+                    return CTRL_F.code;
+                }
+                else if (c == HOME_CODE) {
+                    return CTRL_A.code;
+                }
+                else if (c == END_CODE) {
+                    return CTRL_E.code;
+                }
+                else if (c == DEL_THIRD) {
+                    readCharacter(in); // read 4th & ignore
+                    return DELETE.code;
+                }
+            }
+        }
+
+        // handle unicode characters, thanks for a patch from amyi@inf.ed.ac.uk
+        if (c > 128) {
+            // handle unicode characters longer than 2 bytes,
+            // thanks to Marc.Herbert@continuent.com
+            replayStream.setInput(c, in);
+            // replayReader = new InputStreamReader(replayStream, encoding);
+            c = replayReader.read();
+        }
+
+        return c;
     }
 }
