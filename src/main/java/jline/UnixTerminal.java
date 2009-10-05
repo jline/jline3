@@ -10,7 +10,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.Map;
 import java.util.StringTokenizer;
 
 /**
@@ -146,7 +145,7 @@ public class UnixTerminal
             stty(ttyConfig);
             ttyConfig = null;
         }
-        TerminalFactory.resetTerminal(this);
+        TerminalFactory.resetIf(this);
         // Remove shutdown hook
         if (shutdownHook != null) {
             try {
