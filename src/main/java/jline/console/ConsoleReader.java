@@ -57,25 +57,27 @@ public class ConsoleReader
 
     public static final String JLINEBINDINGS_PROPERTIES = ".jlinebindings.properties";
 
-    private static final String JLINE_NOBELL = "jline.nobell";
+    public static final String JLINE_NOBELL = "jline.nobell";
+
+    // FIXME: Why is this windows stuff here?
+    public static final String JLINE_WINDOWS_TERMINAL_OUTPUT_ENCODING = "jline.WindowsTerminal.output.encoding";
+
+    private static final ResourceBundle loc = ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName());
+
+    /**
+     * The null mask.
+     */
+    private static final Character NULL_MASK = (char) 0;
 
     final static int TAB_WIDTH = 4;
-
-    String prompt;
-
-    private boolean useHistory = true;
-
-    private boolean usePagination = false;
-
-    private static ResourceBundle loc = ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName());
 
     /**
      * Map that contains the operation name to keymay operation mapping.
      */
-    public static SortedMap<String,Short> KEYMAP_NAMES;
+    public static final SortedMap<String,Short> KEYMAP_NAMES;
 
     static {
-        Map<String,Short> names = new TreeMap<String,Short>();
+        SortedMap<String,Short> names = new TreeMap<String,Short>();
 
         names.put("MOVE_TO_BEG", MOVE_TO_BEG);
         names.put("MOVE_TO_END", MOVE_TO_END);
@@ -125,9 +127,14 @@ public class ConsoleReader
         names.put("EXIT", EXIT);
         names.put("CLEAR_LINE", CLEAR_LINE);
 
-        // FIXME: Why new TreeMap here?
-        KEYMAP_NAMES = new TreeMap<String,Short>(Collections.unmodifiableMap(names));
+        KEYMAP_NAMES = Collections.unmodifiableSortedMap(names);
     }
+
+    String prompt;
+
+    private boolean useHistory = true;
+
+    private boolean usePagination = false;
 
     /**
      * The map for logical operations.
@@ -145,17 +152,10 @@ public class ConsoleReader
     private Character mask = null;
 
     /**
-     * The null mask.
-     */
-    private static final Character NULL_MASK = (char) 0;
-
-    /**
      * The number of tab-completion candidates above which a warning will be
      * prompted before showing all the candidates.
      */
-    private int autoprintThreshhold = Integer.getInteger(JLINE_COMPLETION_THRESHOLD, 100); // same default as
-
-    // bash
+    private int autoprintThreshhold = Integer.getInteger(JLINE_COMPLETION_THRESHOLD, 100); // same default as bash
 
     /**
      * The Terminal to use.
@@ -170,8 +170,6 @@ public class ConsoleReader
 
     final CursorBuffer buf = new CursorBuffer();
 
-    static PrintWriter debugger;
-
     History history = new SimpleHistory();
 
     final List<Completer> completors = new LinkedList<Completer>();
@@ -179,54 +177,6 @@ public class ConsoleReader
     private Character echoCharacter = null;
 
     private Map<Character,ActionListener> triggeredActions = new HashMap<Character,ActionListener>();
-    private static final String JLINE_WINDOWS_TERMINAL_OUTPUT_ENCODING = "jline.WindowsTerminal.output.encoding";
-
-    public Writer getOutput() {
-        return out;
-    }
-
-    /**
-     * Adding a triggered Action allows to give another curse of action
-     * if a character passed the preprocessing.
-     * <p/>
-     * Say you want to close the application if the user enter q.
-     * addTriggerAction('q', new ActionListener(){ System.exit(0); });
-     * would do the trick.
-     *
-     * @param c
-     * @param listener
-     */
-    public void addTriggeredAction(char c, ActionListener listener) {
-        triggeredActions.put(c, listener);
-    }
-
-    /**
-     * Create a new reader using {@link FileDescriptor#in} for input and
-     * {@link System#out} for output. {@link FileDescriptor#in} is used because
-     * it has a better chance of being unbuffered.
-     */
-    public ConsoleReader() throws IOException {
-        this(new FileInputStream(FileDescriptor.in),
-            new PrintWriter(
-                new OutputStreamWriter(System.out,
-                    System.getProperty(JLINE_WINDOWS_TERMINAL_OUTPUT_ENCODING, System.getProperty("file.encoding")))));
-    }
-
-    /**
-     * Create a new reader using the specified {@link InputStream} for input and
-     * the specific writer for output, using the default keybindings resource.
-     */
-    public ConsoleReader(final InputStream in, final Writer out)
-        throws IOException
-    {
-        this(in, out, null);
-    }
-
-    public ConsoleReader(final InputStream in, final Writer out,
-                         final InputStream bindings) throws IOException
-    {
-        this(in, out, bindings, TerminalFactory.get());
-    }
 
     /**
      * Create a new reader.
@@ -303,15 +253,27 @@ public class ConsoleReader
         }
     }
 
-    public Terminal getTerminal() {
-        return this.terminal;
+    /**
+     * Create a new reader using {@link FileDescriptor#in} for input and
+     * {@link System#out} for output. {@link FileDescriptor#in} is used because
+     * it has a better chance of being unbuffered.
+     */
+    public ConsoleReader() throws IOException {
+        this(new FileInputStream(FileDescriptor.in),
+            new PrintWriter(new OutputStreamWriter(System.out,
+                    System.getProperty(JLINE_WINDOWS_TERMINAL_OUTPUT_ENCODING, System.getProperty("file.encoding")))));
     }
 
     /**
-     * Set the stream for debugging. Development use only.
+     * Create a new reader using the specified {@link InputStream} for input and
+     * the specific writer for output, using the default keybindings resource.
      */
-    public void setDebug(final PrintWriter debugger) {
-        ConsoleReader.debugger = debugger;
+    public ConsoleReader(final InputStream in, final Writer out) throws IOException {
+        this(in, out, null);
+    }
+
+    public ConsoleReader(final InputStream in, final Writer out, final InputStream bindings) throws IOException {
+        this(in, out, bindings, TerminalFactory.get());
     }
 
     /**
@@ -328,19 +290,12 @@ public class ConsoleReader
         return this.in;
     }
 
-    /**
-     * Read the next line and return the contents of the buffer.
-     */
-    public String readLine() throws IOException {
-        return readLine((String) null);
+    public Writer getOutput() {
+        return out;
     }
 
-    /**
-     * Read the next line with the specified character mask. If null, then
-     * characters will be echoed. If 0, then no characters will be echoed.
-     */
-    public String readLine(final Character mask) throws IOException {
-        return readLine(null, mask);
+    public Terminal getTerminal() {
+        return this.terminal;
     }
 
     /**
@@ -354,8 +309,39 @@ public class ConsoleReader
      * @return true is audible keyboard bell is enabled.
      */
     public boolean getBellEnabled() {
-        return this.bellEnabled;
+        return bellEnabled;
     }
+
+    /**
+     * Add the specified {@link Completer} to the list of handlers for
+     * tab-completion.
+     *
+     * @param completer the {@link Completer} to add
+     * @return true if it was successfully added
+     */
+    public boolean addCompletor(final Completer completer) {
+        return completors.add(completer);
+    }
+
+    /**
+     * Remove the specified {@link Completer} from the list of handlers for
+     * tab-completion.
+     *
+     * @param completer the {@link Completer} to remove
+     * @return true if it was successfully removed
+     */
+    public boolean removeCompletor(final Completer completer) {
+        return completors.remove(completer);
+    }
+
+    /**
+     * Returns an unmodifiable list of all the completors.
+     */
+    public Collection<Completer> getCompletors() {
+        return Collections.unmodifiableList(completors);
+    }
+
+    // FIXME: Drop these term h/w helpers
 
     /**
      * Query the terminal to find the current width;
@@ -388,7 +374,122 @@ public class ConsoleReader
      * @return the number of candidates to print without issing a warning.
      */
     public int getAutoprintThreshhold() {
-        return this.autoprintThreshhold;
+        return autoprintThreshhold;
+    }
+
+    /**
+     * The default prompt that will be issued.
+     */
+    public void setDefaultPrompt(final String prompt) {
+        this.prompt = prompt;
+    }
+
+    /**
+     * The default prompt that will be issued.
+     */
+    public String getDefaultPrompt() {
+        return prompt;
+    }
+
+    public void setHistory(final History history) {
+        this.history = history;
+    }
+
+    public History getHistory() {
+        return history;
+    }
+
+    public void setCompletionHandler(final CompletionHandler completionHandler) {
+        this.completionHandler = completionHandler;
+    }
+
+    public CompletionHandler getCompletionHandler() {
+        return this.completionHandler;
+    }
+
+    /**
+     * <p>
+     * Set the echo character. For example, to have "*" entered when a password
+     * is typed:
+     * </p>
+     * <p/>
+     * <pre>
+     * myConsoleReader.setEchoCharacter(new Character('*'));
+     * </pre>
+     * <p/>
+     * <p>
+     * Setting the character to
+     * <p/>
+     * <pre>
+     * null
+     * </pre>
+     * <p/>
+     * will restore normal character echoing. Setting the character to
+     * <p/>
+     * <pre>
+     * new Character(0)
+     * </pre>
+     * <p/>
+     * will cause nothing to be echoed.
+     * </p>
+     *
+     * @param echoCharacter the character to echo to the console in place of the typed
+     *                      character.
+     */
+    public void setEchoCharacter(final Character echoCharacter) {
+        this.echoCharacter = echoCharacter;
+    }
+
+    /**
+     * Returns the echo character.
+     */
+    public Character getEchoCharacter() {
+        return this.echoCharacter;
+    }
+
+    /**
+     * Whether or not to add new commands to the history buffer.
+     */
+    public void setUseHistory(boolean useHistory) {
+        this.useHistory = useHistory;
+    }
+
+    /**
+     * Whether or not to add new commands to the history buffer.
+     */
+    public boolean getUseHistory() {
+        return useHistory;
+    }
+
+    /**
+     * Whether to use pagination when the number of rows of candidates exceeds
+     * the height of the temrinal.
+     */
+    public void setUsePagination(boolean usePagination) {
+        this.usePagination = usePagination;
+    }
+
+    /**
+     * Whether to use pagination when the number of rows of candidates exceeds
+     * the height of the temrinal.
+     */
+    public boolean getUsePagination() {
+        return usePagination;
+    }
+
+    /**
+     * Adding a triggered Action allows to give another curse of action
+     * if a character passed the preprocessing.
+     * <p/>
+     * Say you want to close the application if the user enter q.
+     * addTriggerAction('q', new ActionListener(){ System.exit(0); });
+     * would do the trick.
+     *
+     * @param c
+     * @param listener
+     */
+    public void addTriggeredAction(char c, ActionListener listener) {
+        triggeredActions.put(c, listener);
     }
 
     int getKeyForAction(short logicalAction) {
@@ -479,22 +580,23 @@ public class ConsoleReader
         return ((prompt == null) ? 0 : prompt.length()) + buf.cursor;
     }
 
+    /**
+     * Read the next line and return the contents of the buffer.
+     */
+    public String readLine() throws IOException {
+        return readLine((String) null);
+    }
+
+    /**
+     * Read the next line with the specified character mask. If null, then
+     * characters will be echoed. If 0, then no characters will be echoed.
+     */
+    public String readLine(final Character mask) throws IOException {
+        return readLine(null, mask);
+    }
+
     public String readLine(final String prompt) throws IOException {
         return readLine(prompt, null);
-    }
-
-    /**
-     * The default prompt that will be issued.
-     */
-    public void setDefaultPrompt(String prompt) {
-        this.prompt = prompt;
-    }
-
-    /**
-     * The default prompt that will be issued.
-     */
-    public String getDefaultPrompt() {
-        return prompt;
     }
 
     /**
@@ -670,7 +772,7 @@ public class ConsoleReader
         }
     }
 
-    private String readLine(InputStream in) throws IOException {
+    private String readLine(final InputStream in) throws IOException {
         StringBuilder buf = new StringBuilder();
 
         while (true) {
@@ -960,35 +1062,6 @@ public class ConsoleReader
         for (int i = 0; i < (len - toPad.length()); i++, appendTo.append(' ')) {
             // empty
         }
-    }
-
-    /**
-     * Add the specified {@link Completer} to the list of handlers for
-     * tab-completion.
-     *
-     * @param completer the {@link Completer} to add
-     * @return true if it was successfully added
-     */
-    public boolean addCompletor(final Completer completer) {
-        return completors.add(completer);
-    }
-
-    /**
-     * Remove the specified {@link Completer} from the list of handlers for
-     * tab-completion.
-     *
-     * @param completer the {@link Completer} to remove
-     * @return true if it was successfully removed
-     */
-    public boolean removeCompletor(final Completer completer) {
-        return completors.remove(completer);
-    }
-
-    /**
-     * Returns an unmodifiable list of all the completors.
-     */
-    public Collection<Completer> getCompletors() {
-        return Collections.unmodifiableList(completors);
     }
 
     /**
@@ -1423,18 +1496,6 @@ public class ConsoleReader
     }
 
     /**
-     * debug.
-     *
-     * @param str the message to issue.
-     */
-    public static void debug(final String str) {
-        if (debugger != null) {
-            debugger.println(str);
-            debugger.flush();
-        }
-    }
-
-    /**
      * Move the cursor <i>where</i> characters, withough checking the current
      * buffer.
      *
@@ -1555,62 +1616,6 @@ if (buf.cursor == 0)
         return delete(1) == 1;
     }
 
-    public void setHistory(final History history) {
-        this.history = history;
-    }
-
-    public History getHistory() {
-        return this.history;
-    }
-
-    public void setCompletionHandler(final CompletionHandler completionHandler) {
-        this.completionHandler = completionHandler;
-    }
-
-    public CompletionHandler getCompletionHandler() {
-        return this.completionHandler;
-    }
-
-    /**
-     * <p>
-     * Set the echo character. For example, to have "*" entered when a password
-     * is typed:
-     * </p>
-     * <p/>
-     * <pre>
-     * myConsoleReader.setEchoCharacter(new Character('*'));
-     * </pre>
-     * <p/>
-     * <p>
-     * Setting the character to
-     * <p/>
-     * <pre>
-     * null
-     * </pre>
-     * <p/>
-     * will restore normal character echoing. Setting the character to
-     * <p/>
-     * <pre>
-     * new Character(0)
-     * </pre>
-     * <p/>
-     * will cause nothing to be echoed.
-     * </p>
-     *
-     * @param echoCharacter the character to echo to the console in place of the typed
-     *                      character.
-     */
-    public void setEchoCharacter(final Character echoCharacter) {
-        this.echoCharacter = echoCharacter;
-    }
-
-    /**
-     * Returns the echo character.
-     */
-    public Character getEchoCharacter() {
-        return this.echoCharacter;
-    }
-
     /**
      * No-op for exceptions we want to silently consume.
      */
@@ -1628,33 +1633,28 @@ if (buf.cursor == 0)
         return !Character.isLetterOrDigit(c);
     }
 
+    //
+    // Debug Muck
+    //
+
+    static PrintWriter debugger;
+
     /**
-     * Whether or not to add new commands to the history buffer.
+     * Set the stream for debugging. Development use only.
      */
-    public void setUseHistory(boolean useHistory) {
-        this.useHistory = useHistory;
+    public void setDebug(final PrintWriter debugger) {
+        ConsoleReader.debugger = debugger;
     }
 
     /**
-     * Whether or not to add new commands to the history buffer.
+     * debug.
+     *
+     * @param str the message to issue.
      */
-    public boolean getUseHistory() {
-        return useHistory;
-    }
-
-    /**
-     * Whether to use pagination when the number of rows of candidates exceeds
-     * the height of the temrinal.
-     */
-    public void setUsePagination(boolean usePagination) {
-        this.usePagination = usePagination;
-    }
-
-    /**
-     * Whether to use pagination when the number of rows of candidates exceeds
-     * the height of the temrinal.
-     */
-    public boolean getUsePagination() {
-        return this.usePagination;
+    public static void debug(final String str) {
+        if (debugger != null) {
+            debugger.println(str);
+            debugger.flush();
+        }
     }
 }
