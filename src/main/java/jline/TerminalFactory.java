@@ -7,6 +7,8 @@
 
 package jline;
 
+import java.text.MessageFormat;
+
 /**
  * Creates terminal instances.
  *
@@ -32,13 +34,15 @@ public class TerminalFactory
 
     public static final String FALSE = "false";
 
-    private static Terminal terminal;
+    private static final InheritableThreadLocal<Terminal> holder = new InheritableThreadLocal<Terminal>();
 
     public static synchronized Terminal get() {
-        if (terminal == null) {
-            terminal = create();
+        Terminal t = holder.get();
+        if (t == null) {
+            t = create();
+            holder.set(t);
         }
-        return terminal;
+        return t;
     }
 
     public static synchronized Terminal create() {
@@ -79,7 +83,7 @@ public class TerminalFactory
                     t = (Terminal)Thread.currentThread().getContextClassLoader().loadClass(type).newInstance();
                 }
                 catch (Exception e) {
-                    throw new IllegalArgumentException("Invalid terminal type: " + type, e);
+                    throw new IllegalArgumentException(MessageFormat.format("Invalid terminal type: {0}", type), e);
                 }
             }
         }
@@ -98,11 +102,11 @@ public class TerminalFactory
     }
 
     public static synchronized void reset() {
-        terminal = null;
+        holder.remove();
     }
 
     public static synchronized void resetIf(final Terminal t) {
-        if (terminal == t) {
+        if (holder.get() == t) {
             reset();
         }
     }

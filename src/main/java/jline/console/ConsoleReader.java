@@ -1470,7 +1470,7 @@ public class ConsoleReader
     public final int readVirtualKey() throws IOException {
         int c = terminal.readVirtualKey(in);
 
-        Log.debug("keystroke: ", c);
+        Log.debug("Keystroke: ", c);
 
         // clear any echo characters
         clearEcho(c);
