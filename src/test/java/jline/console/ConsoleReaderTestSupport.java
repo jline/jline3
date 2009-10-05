@@ -72,7 +72,7 @@ public abstract class ConsoleReaderTestSupport
      *
      * @author Ryan
      */
-    private class Buffer
+    protected class Buffer
     {
         private final ByteArrayOutputStream out = new ByteArrayOutputStream();
 

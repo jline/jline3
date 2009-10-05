@@ -20,7 +20,7 @@ public class ConsoleReaderTest
 {
     @Before
     public void setUp() throws Exception {
-        System.setProperty("jline.WindowsTerminal.directConsole", "false");
+        System.setProperty(WindowsTerminal.JLINE_WINDOWS_TERMINAL_DIRECT_CONSOLE, "false");
     }
 
     private void assertWindowsKeyBehavior(String expected, char[] input) throws Exception {
