@@ -7,6 +7,16 @@
 
 package jline;
 
+import static jline.UnixTerminal.UnixKey.ARROW_DOWN;
+import static jline.UnixTerminal.UnixKey.ARROW_LEFT;
+import static jline.UnixTerminal.UnixKey.ARROW_PREFIX;
+import static jline.UnixTerminal.UnixKey.ARROW_RIGHT;
+import static jline.UnixTerminal.UnixKey.ARROW_START;
+import static jline.UnixTerminal.UnixKey.ARROW_UP;
+import static jline.UnixTerminal.UnixKey.DEL_THIRD;
+import static jline.UnixTerminal.UnixKey.END_CODE;
+import static jline.UnixTerminal.UnixKey.HOME_CODE;
+import static jline.UnixTerminal.UnixKey.O_PREFIX;
 import jline.console.Key;
 import static jline.console.Key.CTRL_A;
 import static jline.console.Key.CTRL_B;
@@ -22,6 +32,8 @@ import jline.internal.TerminalLineSettings;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Terminal that is used for unix platforms. Terminal initialization
@@ -40,28 +52,6 @@ import java.io.InputStreamReader;
 public class UnixTerminal
     extends TerminalSupport
 {
-    public static final short ARROW_START = 27;
-
-    public static final short ARROW_PREFIX = 91;
-
-    public static final short ARROW_LEFT = 68;
-
-    public static final short ARROW_RIGHT = 67;
-
-    public static final short ARROW_UP = 65;
-
-    public static final short ARROW_DOWN = 66;
-
-    public static final short O_PREFIX = 79;
-
-    public static final short HOME_CODE = 72;
-
-    public static final short END_CODE = 70;
-
-    public static final short DEL_THIRD = 51;
-
-    public static final short DEL_SECOND = 126;
-
     private final TerminalLineSettings settings = new TerminalLineSettings();
 
     private final ReplayPrefixOneCharInputStream replayStream = new ReplayPrefixOneCharInputStream(System.getProperty("input.encoding", "UTF-8"));
@@ -116,13 +106,8 @@ public class UnixTerminal
         return false;
     }
 
-       /**
-     * Returns the value of "stty columns" width param.
-     *
-     * <strong>Note</strong>: this method caches the value from the
-     * first time it is called in order to increase speed, which means
-     * that changing to size of the terminal will not be reflected
-     * in the console.
+    /**
+     * Returns the value of <tt>stty columns</tt> param.
      */
     public int getWidth() {
         int val = -1;
@@ -131,7 +116,7 @@ public class UnixTerminal
             val = settings.getProperty("columns");
         }
         catch (Exception e) {
-            // ignore
+            Log.warn("Failed to query stty colums", e);
         }
 
         if (val == -1) {
@@ -142,12 +127,7 @@ public class UnixTerminal
     }
 
     /**
-     * Returns the value of "stty rows" height param.
-     *
-     * <strong>Note</strong>: this method caches the value from the
-     * first time it is called in order to increase speed, which means
-     * that changing to size of the terminal will not be reflected
-     * in the console.
+     * Returns the value of <tt>stty rows>/tt> param.
      */
     public int getHeight() {
         int val = -1;
@@ -156,7 +136,7 @@ public class UnixTerminal
             val = settings.getProperty("rows");
         }
         catch (Exception e) {
-            // ignore
+            Log.warn("Failed to query stty rows", e);
         }
 
         if (val == -1) {
@@ -220,35 +200,40 @@ public class UnixTerminal
             }
         }
 
+        UnixKey key = UnixKey.valueOf(c);
+
         // in Unix terminals, arrow keys are represented by a sequence of 3 characters. E.g., the up arrow key yields 27, 91, 68
-        if (c == ARROW_START) {
+        if (key == ARROW_START) {
             // also the escape key is 27 thats why we read until we have something different than 27
             // this is a bugfix, because otherwise pressing escape and than an arrow key was an undefined state
-            while (c == ARROW_START) {
+            while (key == ARROW_START) {
                 c = readCharacter(in);
+                key = UnixKey.valueOf(c);
             }
 
-            if (c == ARROW_PREFIX || c == O_PREFIX) {
+            if (key == ARROW_PREFIX || key == O_PREFIX) {
                 c = readCharacter(in);
-                if (c == ARROW_UP) {
+                key = UnixKey.valueOf(c);
+
+                if (key == ARROW_UP) {
                     return CTRL_P.code;
                 }
-                else if (c == ARROW_DOWN) {
+                else if (key == ARROW_DOWN) {
                     return CTRL_N.code;
                 }
-                else if (c == ARROW_LEFT) {
+                else if (key == ARROW_LEFT) {
                     return CTRL_B.code;
                 }
-                else if (c == ARROW_RIGHT) {
+                else if (key == ARROW_RIGHT) {
                     return CTRL_F.code;
                 }
-                else if (c == HOME_CODE) {
+                else if (key == HOME_CODE) {
                     return CTRL_A.code;
                 }
-                else if (c == END_CODE) {
+                else if (key == END_CODE) {
                     return CTRL_E.code;
                 }
-                else if (c == DEL_THIRD) {
+                else if (key == DEL_THIRD) {
                     readCharacter(in); // read 4th & ignore
                     return DELETE.code;
                 }
@@ -265,5 +250,60 @@ public class UnixTerminal
         }
 
         return c;
+    }
+
+    //
+    // UnixKey
+    //
+
+    /**
+     * Unix keys.
+     */
+    public static enum UnixKey
+    {
+        ARROW_START(27),
+
+        ARROW_PREFIX(91),
+
+        ARROW_LEFT(68),
+
+        ARROW_RIGHT(67),
+
+        ARROW_UP(65),
+
+        ARROW_DOWN(66),
+
+        O_PREFIX(79),
+
+        HOME_CODE(72),
+
+        END_CODE(70),
+
+        DEL_THIRD(51),
+
+        DEL_SECOND(126),
+        ;
+
+        public final short code;
+
+        UnixKey(final int code) {
+            this.code = (short)code;
+        }
+
+        private static final Map<Short, UnixKey> codes;
+
+        static {
+            Map<Short, UnixKey> map = new HashMap<Short, UnixKey>();
+
+            for (UnixKey key : UnixKey.values()) {
+                map.put(key.code, key);
+            }
+
+            codes = map;
+        }
+
+        public static UnixKey valueOf(final int code) {
+            return codes.get((short)code);
+        }
     }
 }
