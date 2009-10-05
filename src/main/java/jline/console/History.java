@@ -23,34 +23,26 @@ import java.util.List;
  */
 public interface History
 {
-    void setHistoryFile(File historyFile) throws IOException;
-
-    void load(InputStream in) throws IOException;
-    
-    void load(Reader reader) throws IOException;
-    
     int size();
     
     void clear();
+
+    // TODO: Change to CharSequence?
+
+    List<String> items();
+
+    void add(String item);
+
+    void setMaxSize(int maxSize);
+
+    int getMaxSize();
     
-    void addToHistory(String buffer);
-
-    void flushBuffer() throws IOException;
-
     boolean moveToFirstEntry();
     
     boolean moveToLastEntry();
 
     void moveToEnd();
 
-    void setMaxSize(int maxSize);
-    
-    int getMaxSize();
-    
-    void setOutput(PrintWriter output);
-
-    PrintWriter getOutput();
-    
     int getCurrentIndex();
     
     String current();
@@ -58,6 +50,4 @@ public interface History
     boolean previous();
     
     boolean next();
-    
-    List<String> getHistoryList();
 }

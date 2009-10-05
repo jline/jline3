@@ -18,7 +18,7 @@ import java.io.PrintWriter;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -31,11 +31,13 @@ import java.util.List;
 public class SimpleHistory
     implements History
 {
-    private List<String> history = new ArrayList<String>();
+    public static final int DEFAULT_MAX_SIZE = 500;
+    
+    private final List<String> items = new LinkedList<String>();
 
-    private PrintWriter output = null;
+    private PrintWriter output;
 
-    private int maxSize = 500;
+    private int maxSize = DEFAULT_MAX_SIZE;
 
     private int currentIndex = 0;
 
@@ -43,23 +45,54 @@ public class SimpleHistory
      * Construstor: initialize a blank history.
      */
     public SimpleHistory() {
+        // nothing
     }
 
     /**
      * Construstor: initialize History object the the specified {@link java.io.File} for
      * storage.
      */
-    public SimpleHistory(final File historyFile) throws IOException {
-        setHistoryFile(historyFile);
+    public SimpleHistory(final File file) throws IOException {
+        setHistoryFile(file);
     }
 
-    public void setHistoryFile(final File historyFile) throws IOException {
-        if (historyFile.isFile()) {
-            load(new FileInputStream(historyFile));
+    /**
+     * The output to which all history elements will be written (or null of
+     * history is not saved to a buffer).
+     */
+    public void setOutput(final PrintWriter output) {
+        this.output = output;
+    }
+
+    /**
+     * Returns the PrintWriter that is used to store history elements.
+     */
+    public PrintWriter getOutput() {
+        return output;
+    }
+
+    /**
+     * Flush the entire history buffer to the output PrintWriter.
+     */
+    public void flush() throws IOException {
+        PrintWriter out = getOutput();
+        if (out != null) {
+            for (String item : items) {
+                out.println(item);
+            }
+            out.flush();
+        }
+    }
+
+    public void setHistoryFile(final File file) throws IOException {
+        assert file != null;
+
+        if (file.isFile()) {
+            load(new FileInputStream(file));
         }
 
-        setOutput(new PrintWriter(new FileWriter(historyFile), true));
-        flushBuffer();
+        setOutput(new PrintWriter(new FileWriter(file), true));
+        flush();
     }
 
     /**
@@ -82,83 +115,27 @@ public class SimpleHistory
         }
 
         for (String line1 : lines) {
-            addToHistory(line1);
+            add(line1);
         }
     }
 
     public int size() {
-        return history.size();
+        return items.size();
     }
 
     /**
      * Clear the history buffer
      */
     public void clear() {
-        history.clear();
+        items.clear();
         currentIndex = 0;
     }
 
     /**
-     * Add the specified buffer to the end of the history. The pointer is set to
-     * the end of the history buffer.
+     * Returns an immutable list of the history buffer.
      */
-    public void addToHistory(final String buffer) {
-        // don't append duplicates to the end of the buffer
-        if ((history.size() != 0)
-            && buffer.equals(history.get(history.size() - 1))) {
-            return;
-        }
-
-        history.add(buffer);
-
-        while (history.size() > getMaxSize()) {
-            history.remove(0);
-        }
-
-        currentIndex = history.size();
-
-        if (getOutput() != null) {
-            getOutput().println(buffer);
-            getOutput().flush();
-        }
-    }
-
-    /**
-     * Flush the entire history buffer to the output PrintWriter.
-     */
-    public void flushBuffer() throws IOException {
-        if (getOutput() != null) {
-            for (Iterator i = history.iterator(); i.hasNext(); getOutput().println((String) i.next())) {
-                // empty
-            }
-
-            getOutput().flush();
-        }
-    }
-
-    /**
-     * This moves the history to the last entry. This entry is one position
-     * before the moveToEnd() position.
-     *
-     * @return Returns false if there were no history entries or the history
-     *         index was already at the last entry.
-     */
-    public boolean moveToLastEntry() {
-        int lastEntry = history.size() - 1;
-        if (lastEntry >= 0 && lastEntry != currentIndex) {
-            currentIndex = history.size() - 1;
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Move to the end of the history buffer. This will be a blank entry, after
-     * all of the other entries.
-     */
-    public void moveToEnd() {
-        currentIndex = history.size();
+    public List<String> items() {
+        return Collections.unmodifiableList(items);
     }
 
     /**
@@ -176,36 +153,88 @@ public class SimpleHistory
     }
 
     /**
-     * The output to which all history elements will be written (or null of
-     * history is not saved to a buffer).
-     */
-    public void setOutput(final PrintWriter output) {
-        this.output = output;
-    }
-
-    /**
-     * Returns the PrintWriter that is used to store history elements.
-     */
-    public PrintWriter getOutput() {
-        return this.output;
-    }
-
-    /**
      * Returns the current history index.
      */
     public int getCurrentIndex() {
         return this.currentIndex;
+    }
+    
+    /**
+     * Add the specified buffer to the end of the history. The pointer is set to
+     * the end of the history buffer.
+     */
+    public void add(final String item) {
+        assert item != null;
+
+        // don't append duplicates to the end of the buffer
+        if ((items.size() != 0) && item.equals(items.get(items.size() - 1))) {
+            return;
+        }
+
+        items.add(item);
+
+        while (items.size() > getMaxSize()) {
+            items.remove(0);
+        }
+
+        currentIndex = items.size();
+
+        PrintWriter out = getOutput();
+        if (out != null) {
+            out.println(item);
+            out.flush();
+        }
+    }
+
+    /**
+     * This moves the history to the last entry. This entry is one position
+     * before the moveToEnd() position.
+     *
+     * @return Returns false if there were no history entries or the history
+     *         index was already at the last entry.
+     */
+    public boolean moveToLastEntry() {
+        int lastEntry = items.size() - 1;
+        if (lastEntry >= 0 && lastEntry != currentIndex) {
+            currentIndex = items.size() - 1;
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Moves the history index to the first entry.
+     *
+     * @return Return false if there are no entries in the history or if the
+     *         history is already at the beginning.
+     */
+    public boolean moveToFirstEntry() {
+        if (items.size() > 0 && currentIndex != 0) {
+            currentIndex = 0;
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Move to the end of the history buffer. This will be a blank entry, after
+     * all of the other entries.
+     */
+    public void moveToEnd() {
+        currentIndex = items.size();
     }
 
     /**
      * Return the content of the current buffer.
      */
     public String current() {
-        if (currentIndex >= history.size()) {
+        if (currentIndex >= items.size()) {
             return "";
         }
 
-        return history.get(currentIndex);
+        return items.get(currentIndex);
     }
 
     /**
@@ -229,7 +258,7 @@ public class SimpleHistory
      * @return true if we successfully went to the next element
      */
     public boolean next() {
-        if (currentIndex >= history.size()) {
+        if (currentIndex >= items.size()) {
             return false;
         }
 
@@ -239,32 +268,10 @@ public class SimpleHistory
     }
 
     /**
-     * Returns an immutable list of the history buffer.
-     */
-    public List<String> getHistoryList() {
-        return Collections.unmodifiableList(history);
-    }
-
-    /**
      * Returns the standard {@link java.util.AbstractCollection#toString} representation
      * of the history list.
      */
     public String toString() {
-        return history.toString();
-    }
-
-    /**
-     * Moves the history index to the first entry.
-     *
-     * @return Return false if there are no entries in the history or if the
-     *         history is already at the beginning.
-     */
-    public boolean moveToFirstEntry() {
-        if (history.size() > 0 && currentIndex != 0) {
-            currentIndex = 0;
-            return true;
-        }
-
-        return false;
+        return items.toString();
     }
 }

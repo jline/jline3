@@ -1092,7 +1092,7 @@ public class ConsoleReader
         // the string was a password. We clear the mask after this call
         if (str.length() > 0) {
             if (mask == null && useHistory) {
-                history.addToHistory(str);
+                history.add(str);
             }
             else {
                 mask = null;
