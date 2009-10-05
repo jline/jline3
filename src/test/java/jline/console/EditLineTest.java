@@ -6,9 +6,10 @@
  */
 package jline.console;
 
+import static jline.console.Operation.DELETE_PREV_WORD;
+import static jline.console.Operation.MOVE_TO_END;
+import static jline.console.Operation.PREV_WORD;
 import org.junit.Test;
-
-import static jline.console.Operation.*;
 
 /**
  * Tests various features of editing lines.

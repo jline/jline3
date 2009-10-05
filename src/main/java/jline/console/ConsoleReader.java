@@ -7,10 +7,10 @@
 
 package jline.console;
 
+import jline.Log;
 import jline.Terminal;
 import jline.TerminalFactory;
 import jline.WindowsTerminal;
-import jline.Log;
 
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;

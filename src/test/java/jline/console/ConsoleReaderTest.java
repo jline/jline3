@@ -2,6 +2,8 @@ package jline.console;
 
 import jline.TerminalFactory;
 import jline.WindowsTerminal;
+import static jline.console.Operation.DELETE_NEXT_CHAR;
+import static jline.console.Operation.DELETE_PREV_CHAR;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import org.junit.Before;
@@ -11,7 +13,6 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.io.Writer;
-import static jline.console.Operation.*;
 
 /**
  * Tests for the {@link ConsoleReader}.

@@ -7,11 +7,6 @@
 
 package jline.console;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintWriter;
-import java.io.Reader;
 import java.util.List;
 
 /**

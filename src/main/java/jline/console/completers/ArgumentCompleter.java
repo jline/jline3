@@ -7,9 +7,8 @@
 
 package jline.console.completers;
 
-import jline.console.Completer;
-import jline.console.ConsoleReader;
 import jline.Log;
+import jline.console.Completer;
 
 import java.util.LinkedList;
 import java.util.List;

@@ -7,12 +7,23 @@
 
 package jline;
 
+import static jline.console.Key.CTRL_A;
+import static jline.console.Key.CTRL_B;
+import static jline.console.Key.CTRL_C;
+import static jline.console.Key.CTRL_E;
+import static jline.console.Key.CTRL_F;
+import static jline.console.Key.CTRL_K;
+import static jline.console.Key.CTRL_L;
+import static jline.console.Key.CTRL_N;
+import static jline.console.Key.CTRL_OB;
+import static jline.console.Key.CTRL_P;
+import static jline.console.Key.CTRL_QM;
+
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import static jline.console.Key.*;
 
 /**
  * <p>
