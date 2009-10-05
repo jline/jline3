@@ -77,6 +77,8 @@ public class TerminalLineSettings
     }
 
     public int getProperty(final String name) throws IOException, InterruptedException {
+        assert name != null;
+
         // need to be able handle both output formats:
         // speed 9600 baud; 24 rows; 140 columns;
         // and:
@@ -100,14 +102,18 @@ public class TerminalLineSettings
     }
 
     private static String stty(final String args) throws IOException, InterruptedException {
+        assert args != null;
         return exec(String.format("%s %s < /dev/tty", getCommand(), args));
     }
 
     private static String exec(final String cmd) throws IOException, InterruptedException {
+        assert cmd != null;
         return exec("sh", "-c", cmd);
     }
 
     private static String exec(final String... cmd) throws IOException, InterruptedException {
+        assert cmd != null;
+        
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
         Log.trace("Running: ", cmd);

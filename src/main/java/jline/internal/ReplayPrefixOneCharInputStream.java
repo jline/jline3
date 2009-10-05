@@ -26,6 +26,7 @@ public final class ReplayPrefixOneCharInputStream
     private final String encoding;
 
     public ReplayPrefixOneCharInputStream(final String encoding) {
+        assert encoding != null;
         this.encoding = encoding;
     }
 
