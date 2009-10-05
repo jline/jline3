@@ -10,6 +10,7 @@ package jline.console;
 import jline.Terminal;
 import jline.TerminalFactory;
 import jline.WindowsTerminal;
+import jline.Log;
 
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
@@ -140,10 +141,7 @@ public class ConsoleReader
                 }
             }
             catch (Exception e) {
-                // swallow exceptions with option debugging
-                if (debugger != null) {
-                    e.printStackTrace(debugger);
-                }
+                Log.error("Failed to load bindings", e);
             }
         }
 
@@ -727,11 +725,9 @@ public class ConsoleReader
         // extract the appropriate key binding
         short code = keybindings[c];
 
-        if (debugger != null) {
-            debug("    translated: " + (int) c + ": " + code);
-        }
+        Log.debug("Translated: ", c, " -> ", code);
 
-        return new int[]{c, code};
+        return new int[]{ c, code };
     }
 
     /**
@@ -824,10 +820,8 @@ public class ConsoleReader
 
             return true;
         }
-        catch (UnsupportedFlavorException ufe) {
-            if (debugger != null) {
-                debug(String.valueOf(ufe));
-            }
+        catch (UnsupportedFlavorException e) {
+            Log.error("Paste failed: ", e);
 
             return false;
         }
@@ -1478,9 +1472,7 @@ public class ConsoleReader
     public final int readVirtualKey() throws IOException {
         int c = terminal.readVirtualKey(in);
 
-        if (debugger != null) {
-            debug("keystroke: " + c + "");
-        }
+        Log.debug("keystroke: ", c);
 
         // clear any echo characters
         clearEcho(c);
@@ -1557,30 +1549,5 @@ if (buf.cursor == 0)
      */
     private boolean isDelimiter(char c) {
         return !Character.isLetterOrDigit(c);
-    }
-
-    //
-    // Debug Muck
-    //
-
-    static PrintWriter debugger;
-
-    /**
-     * Set the stream for debugging. Development use only.
-     */
-    public void setDebug(final PrintWriter debugger) {
-        ConsoleReader.debugger = debugger;
-    }
-
-    /**
-     * debug.
-     *
-     * @param str the message to issue.
-     */
-    public static void debug(final String str) {
-        if (debugger != null) {
-            debugger.println(str);
-            debugger.flush();
-        }
     }
 }

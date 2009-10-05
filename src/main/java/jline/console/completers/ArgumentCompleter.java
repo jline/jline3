@@ -9,6 +9,7 @@ package jline.console.completers;
 
 import jline.console.Completer;
 import jline.console.ConsoleReader;
+import jline.Log;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -184,8 +185,7 @@ public class ArgumentCompleter
             }
         }
 
-        // FIXME: Get ride of this string concat
-        ConsoleReader.debug("Completing " + buffer + "(pos=" + cursor + ") " + "with: " + candidates + ": offset=" + pos);
+        Log.debug("Completing ", buffer, "(pos=", cursor, ") with: ", candidates, ": offset=", pos);
 
         return pos;
     }
