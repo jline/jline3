@@ -4,6 +4,7 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  */
+
 package jline;
 
 import jline.console.ConsoleOperations;
@@ -29,9 +30,11 @@ public abstract class TerminalSupport
     public static final int DEFAULT_HEIGHT = 80;
 
     public void init() throws Exception {
+        // nothing
     }
 
     public void restore() throws Exception {
+        // nothing
     }
 
     public int getWidth() {
@@ -43,9 +46,11 @@ public abstract class TerminalSupport
     }
 
     public void enableEcho() {
+        // nothing
     }
 
     public void disableEcho() {
+        // nothing
     }
 
     public int readCharacter(final InputStream in) throws IOException {
@@ -56,10 +61,12 @@ public abstract class TerminalSupport
         return readCharacter(in);
     }
 
-    public void beforeReadLine(ConsoleReader reader, String prompt, Character mask) {
+    public void beforeReadLine(final ConsoleReader reader, final String prompt, final Character mask) {
+        // nothing
     }
 
-    public void afterReadLine(ConsoleReader reader, String prompt, Character mask) {
+    public void afterReadLine(final ConsoleReader reader, final String prompt, final Character mask) {
+        // nothing
     }
 
     public InputStream getDefaultBindings() {
