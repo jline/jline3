@@ -12,6 +12,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import static jline.console.Key.*;
 
 /**
  * <p>
@@ -44,6 +45,8 @@ public class WindowsTerminal
     extends TerminalSupport
 {
     public static final String JLINE_WINDOWS_TERMINAL_INPUT_ENCODING = "jline.WindowsTerminal.input.encoding";
+    
+    public static final String JLINE_WINDOWS_TERMINAL_OUTPUT_ENCODING = "jline.WindowsTerminal.output.encoding";
     
     public static final String JLINE_WINDOWS_TERMINAL_DIRECT_CONSOLE = "jline.WindowsTerminal.directConsole";
 
@@ -203,7 +206,9 @@ public class WindowsTerminal
     private Thread shutdownHook;
 
     String encoding = System.getProperty(JLINE_WINDOWS_TERMINAL_INPUT_ENCODING, System.getProperty("file.encoding"));
+
     ReplayPrefixOneCharInputStream replayStream = new ReplayPrefixOneCharInputStream(encoding);
+
     InputStreamReader replayReader;
 
     public WindowsTerminal() {
@@ -319,33 +324,32 @@ public class WindowsTerminal
         // in Windows terminals, arrow keys are represented by
         // a sequence of 2 characters. E.g., the up arrow
         // key yields 224, 72
-        if (indicator == SPECIAL_KEY_INDICATOR
-            || indicator == NUMPAD_KEY_INDICATOR) {
-            int key = readCharacter(in);
+        if (indicator == SPECIAL_KEY_INDICATOR || indicator == NUMPAD_KEY_INDICATOR) {
+            int c = readCharacter(in);
 
-            switch (key) {
+            switch (c) {
                 case UP_ARROW_KEY:
-                    return CTRL_P; // translate UP -> CTRL-P
+                    return CTRL_P.code; // translate UP -> CTRL-P
                 case LEFT_ARROW_KEY:
-                    return CTRL_B; // translate LEFT -> CTRL-B
+                    return CTRL_B.code; // translate LEFT -> CTRL-B
                 case RIGHT_ARROW_KEY:
-                    return CTRL_F; // translate RIGHT -> CTRL-F
+                    return CTRL_F.code; // translate RIGHT -> CTRL-F
                 case DOWN_ARROW_KEY:
-                    return CTRL_N; // translate DOWN -> CTRL-N
+                    return CTRL_N.code; // translate DOWN -> CTRL-N
                 case DELETE_KEY:
-                    return CTRL_QM; // translate DELETE -> CTRL-?
+                    return CTRL_QM.code; // translate DELETE -> CTRL-?
                 case HOME_KEY:
-                    return CTRL_A;
+                    return CTRL_A.code;
                 case END_KEY:
-                    return CTRL_E;
+                    return CTRL_E.code;
                 case PAGE_UP_KEY:
-                    return CTRL_K;
+                    return CTRL_K.code;
                 case PAGE_DOWN_KEY:
-                    return CTRL_L;
+                    return CTRL_L.code;
                 case ESCAPE_KEY:
-                    return CTRL_OB; // translate ESCAPE -> CTRL-[
+                    return CTRL_OB.code; // translate ESCAPE -> CTRL-[
                 case INSERT_KEY:
-                    return CTRL_C;
+                    return CTRL_C.code;
                 default:
                     return 0;
             }
@@ -426,16 +430,14 @@ public class WindowsTerminal
 
     public synchronized void enableEcho() {
         // Must set these four modes at the same time to make it work fine.
-        setConsoleMode(getConsoleMode() | ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT
-            | ENABLE_PROCESSED_INPUT | ENABLE_WINDOW_INPUT);
+        setConsoleMode(getConsoleMode() | ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT | ENABLE_WINDOW_INPUT);
         echoEnabled = true;
     }
 
     public synchronized void disableEcho() {
         // Must set these four modes at the same time to make it work fine.
         setConsoleMode(getConsoleMode()
-            & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT
-            | ENABLE_PROCESSED_INPUT | ENABLE_WINDOW_INPUT));
+            & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT | ENABLE_PROCESSED_INPUT | ENABLE_WINDOW_INPUT));
         echoEnabled = true;
     }
 

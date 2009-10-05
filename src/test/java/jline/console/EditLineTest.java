@@ -8,7 +8,7 @@ package jline.console;
 
 import org.junit.Test;
 
-import static jline.console.VirtualKey.*;
+import static jline.console.Operation.*;
 
 /**
  * Tests various features of editing lines.

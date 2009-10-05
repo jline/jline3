@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.HashMap;
 
 /**
- * Map for virtual key bindings.
+ * Map for console operation to virtual key bindings.
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
@@ -20,7 +20,7 @@ import java.util.HashMap;
  *
  * @since 2.0
  */
-public enum VirtualKey
+public enum Operation
 {
     /**
      * Unknown operation.
@@ -260,23 +260,23 @@ public enum VirtualKey
 
     public final short code;
     
-    VirtualKey(final int code) {
+    Operation(final int code) {
         this.code = (short)code;
     }
 
-    private static final Map<Short,VirtualKey> codes;
+    private static final Map<Short, Operation> codes;
 
     static {
-        Map<Short,VirtualKey> map = new HashMap<Short,VirtualKey>();
+        Map<Short, Operation> map = new HashMap<Short, Operation>();
 
-        for (VirtualKey key : VirtualKey.values()) {
-            map.put(key.code, key);
+        for (Operation op : Operation.values()) {
+            map.put(op.code, op);
         }
 
         codes = map;
     }
 
-    public static VirtualKey valueOf(final int code) {
+    public static Operation valueOf(final int code) {
         return codes.get((short)code);
     }
 }

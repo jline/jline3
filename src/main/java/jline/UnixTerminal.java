@@ -12,6 +12,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.StringTokenizer;
+import static jline.console.Key.*;
+import jline.console.Key;
 
 /**
  * <p>
@@ -170,13 +172,14 @@ public class UnixTerminal
 
     public int readVirtualKey(InputStream in) throws IOException {
         int c = readCharacter(in);
+        Key key = Key.valueOf(c);
 
         if (backspaceDeleteSwitched) {
-            if (c == DELETE) {
+            if (key == DELETE) {
                 c = '\b';
             }
             else if (c == '\b') {
-                c = DELETE;
+                c = DELETE.code;
             }
         }
 
@@ -196,26 +199,26 @@ public class UnixTerminal
             if (c == ARROW_PREFIX || c == O_PREFIX) {
                 c = readCharacter(in);
                 if (c == ARROW_UP) {
-                    return CTRL_P;
+                    return CTRL_P.code;
                 }
                 else if (c == ARROW_DOWN) {
-                    return CTRL_N;
+                    return CTRL_N.code;
                 }
                 else if (c == ARROW_LEFT) {
-                    return CTRL_B;
+                    return CTRL_B.code;
                 }
                 else if (c == ARROW_RIGHT) {
-                    return CTRL_F;
+                    return CTRL_F.code;
                 }
                 else if (c == HOME_CODE) {
-                    return CTRL_A;
+                    return CTRL_A.code;
                 }
                 else if (c == END_CODE) {
-                    return CTRL_E;
+                    return CTRL_E.code;
                 }
                 else if (c == DEL_THIRD) {
                     c = readCharacter(in); // read 4th
-                    return DELETE;
+                    return DELETE.code;
                 }
             }
         }

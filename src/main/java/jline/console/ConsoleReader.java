@@ -9,6 +9,7 @@ package jline.console;
 
 import jline.Terminal;
 import jline.TerminalFactory;
+import jline.WindowsTerminal;
 
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
@@ -47,7 +48,6 @@ import java.util.ResourceBundle;
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
 public class ConsoleReader
-    implements ConsoleOperations
 {
     public static final String JLINE_COMPLETION_THRESHOLD = "jline.completion.threshold";
 
@@ -56,9 +56,6 @@ public class ConsoleReader
     public static final String JLINEBINDINGS_PROPERTIES = ".jlinebindings.properties";
 
     public static final String JLINE_NOBELL = "jline.nobell";
-
-    // FIXME: Why is this windows stuff here?
-    public static final String JLINE_WINDOWS_TERMINAL_OUTPUT_ENCODING = "jline.WindowsTerminal.output.encoding";
 
     public static final String CR = System.getProperty("line.separator");
 
@@ -156,7 +153,7 @@ public class ConsoleReader
 
         keybindings = new short[Character.MAX_VALUE * 2];
 
-        Arrays.fill(keybindings, VirtualKey.UNKNOWN.code);
+        Arrays.fill(keybindings, Operation.UNKNOWN.code);
 
         /**
          * Loads the key bindings. Bindings file is in the format:
@@ -174,7 +171,7 @@ public class ConsoleReader
                 try {
                     Short code = new Short(val);
                     String op = p.getProperty(val);
-                    Short opval = VirtualKey.valueOf(op).code;
+                    Short opval = Operation.valueOf(op).code;
 
                     if (opval != null) {
                         keybindings[code] = opval;
@@ -205,7 +202,8 @@ public class ConsoleReader
     public ConsoleReader() throws IOException {
         this(new FileInputStream(FileDescriptor.in),
             new PrintWriter(new OutputStreamWriter(System.out,
-                    System.getProperty(JLINE_WINDOWS_TERMINAL_OUTPUT_ENCODING, System.getProperty("file.encoding")))));
+                    System.getProperty(WindowsTerminal.JLINE_WINDOWS_TERMINAL_OUTPUT_ENCODING,
+                            System.getProperty("file.encoding")))));
     }
 
     /**
@@ -424,9 +422,9 @@ public class ConsoleReader
         return -1;
     }
 
-    int getKeyForAction(final VirtualKey key) {
-        assert key != null;
-        return getKeyForAction(key.code);
+    int getKeyForAction(final Operation op) {
+        assert op != null;
+        return getKeyForAction(op.code);
     }
     
     /**
@@ -562,7 +560,7 @@ public class ConsoleReader
 
                 int c = next[0];
                 // int code = next[1];
-                VirtualKey code = VirtualKey.valueOf(next[1]);
+                Operation code = Operation.valueOf(next[1]);
 
                 if (c == -1) {
                     return null;

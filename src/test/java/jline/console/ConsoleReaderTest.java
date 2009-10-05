@@ -11,7 +11,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.io.Writer;
-import static jline.console.VirtualKey.*;
+import static jline.console.Operation.*;
 
 /**
  * Tests for the {@link ConsoleReader}.

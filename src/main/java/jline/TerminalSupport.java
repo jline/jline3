@@ -21,7 +21,7 @@ import java.io.InputStream;
  * @since 2.0
  */
 public abstract class TerminalSupport
-    implements Terminal, ConsoleOperations
+    implements Terminal
 {
     public static String DEFAULT_KEYBINDINGS_PROPERTIES = "keybindings.properties";
 
