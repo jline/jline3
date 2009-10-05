@@ -17,56 +17,93 @@ public abstract class TerminalFactory
 {
     public static final String JLINE_TERMINAL = "jline.terminal";
 
-    private static Terminal term;
+    public static final String AUTO = "auto";
+
+    public static final String UNIX = "unix";
+
+    public static final String WIN = "win";
+
+    public static final String NONE = "none";
+
+    public static final String OFF = "off";
+
+    public static final String FALSE = "false";
+
+    public static final String WINDOWS = "windows";
+
+    private static Terminal terminal;
 
     public static Terminal getTerminal() {
-        return setupTerminal();
+        return create();
     }
 
-    public static void resetTerminal() {
-        term = null;
-    }
-
-    public static synchronized Terminal setupTerminal() {
-        if (term != null) {
-            return term;
+    public static synchronized Terminal create() {
+        if (terminal != null) {
+            return terminal;
         }
 
         final Terminal t;
 
-        String os = System.getProperty("os.name").toLowerCase();
-        String termProp = System.getProperty(JLINE_TERMINAL);
+        String type = System.getProperty(JLINE_TERMINAL);
 
-        if ("!auto".equals(termProp) && termProp != null && termProp.length() > 0) {
-            try {
-                t = (Terminal) Class.forName(termProp).newInstance();
-            }
-            catch (Exception e) {
-                throw new IllegalArgumentException(e);
-            }
+        if (type == null) {
+            type = AUTO;
         }
-        else if (os.contains("windows")) {
-            t = new WindowsTerminal();
-        }
-        else {
+
+        Log.debug("Creating terminal; type=", type);
+
+        String tmp = type.toLowerCase();
+
+        if (tmp.equals(UNIX)) {
             t = new UnixTerminal();
         }
+        else if (tmp.equals(WIN) | tmp.equals(WINDOWS)) {
+            t = new WindowsTerminal();
+        }
+        else if (tmp.equals(NONE) || tmp.equals(OFF) || tmp.equals(FALSE)) {
+            t = new UnsupportedTerminal();
+        }
+        else {
+            if (tmp.equals(AUTO)) {
+                String os = System.getProperty("os.name").toLowerCase();
+
+                if (os.contains(WINDOWS)) {
+                    t = new WindowsTerminal();
+                }
+                else {
+                    t = new UnixTerminal();
+                }
+            }
+            else {
+                try {
+                    t = (Terminal)Thread.currentThread().getContextClassLoader().loadClass(type).newInstance();
+                }
+                catch (Exception e) {
+                    throw new IllegalArgumentException("Invalid terminal type: " + type, e);
+                }
+            }
+        }
+
+        Log.debug("Created Terminal: ", t);
 
         try {
             t.init();
         }
         catch (Exception e) {
-            e.printStackTrace();
-
-            return term = new UnsupportedTerminal();
+            Log.error("Terminal initialization failed; falling back to unsupported", e);
+            return terminal = new UnsupportedTerminal();
         }
 
-        return term = t;
+        return terminal = t;
     }
 
-    public static void resetTerminal(Terminal t) {
-        if (term == t) {
-            resetTerminal();
+    public static void reset() {
+        terminal = null;
+    }
+
+    public static void resetIf(final Terminal t) {
+        if (terminal == t) {
+            reset();
         }
     }
 
@@ -77,9 +114,8 @@ public abstract class TerminalFactory
         NONE
     }
 
-    public static void configure(final String type) {
+    public static void configure(String type) {
         assert type != null;
-
         System.setProperty(JLINE_TERMINAL, type);
     }
 
