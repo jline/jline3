@@ -341,28 +341,6 @@ public class ConsoleReader
         return Collections.unmodifiableList(completors);
     }
 
-    // FIXME: Drop these term h/w helpers
-
-    /**
-     * Query the terminal to find the current width;
-     *
-     * @return the width of the current terminal.
-     * @see Terminal#getWidth
-     */
-    public int getTermwidth() {
-        return getTerminal().getWidth();
-    }
-
-    /**
-     * Query the terminal to find the current width;
-     *
-     * @return the height of the current terminal.
-     * @see Terminal#getHeight
-     */
-    public int getTermheight() {
-        return getTerminal().getHeight();
-    }
-
     /**
      * @param autoprintThreshhold the number of candidates to print without issuing a warning.
      */
@@ -996,7 +974,7 @@ public class ConsoleReader
             return;
         }
 
-        int width = getTermwidth();
+        int width = getTerminal().getWidth();
         int maxwidth = 0;
 
         for (Iterator i = stuff.iterator(); i.hasNext(); maxwidth = Math.max(maxwidth, i.next().toString().length())) {
@@ -1008,7 +986,7 @@ public class ConsoleReader
         int showLines;
 
         if (usePagination) {
-            showLines = getTermheight() - 1; // page limit
+            showLines = getTerminal().getHeight() - 1; // page limit
         }
         else {
             showLines = Integer.MAX_VALUE;
@@ -1027,7 +1005,7 @@ public class ConsoleReader
                         showLines = 1; // one step forward
                     }
                     else if (c != 'q') {
-                        showLines = getTermheight() - 1;
+                        showLines = getTerminal().getHeight() - 1;
                     } // page forward
 
                     back(loc.getString("display-more").length());
