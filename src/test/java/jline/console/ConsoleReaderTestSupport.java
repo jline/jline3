@@ -132,7 +132,6 @@ public abstract class ConsoleReaderTestSupport
             for (byte b : str.getBytes()) {
                 append(b);
             }
-
             return this;
         }
 
