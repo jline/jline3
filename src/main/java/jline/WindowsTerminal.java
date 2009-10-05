@@ -59,6 +59,8 @@ public class WindowsTerminal
 
     public static final String WINDOWSBINDINGS_PROPERTIES = "windowsbindings.properties";
 
+    private static final String JLINE = "jline";
+
     private Boolean directConsole;
 
     private boolean echoEnabled;
@@ -84,7 +86,7 @@ public class WindowsTerminal
     }
 
     public void init() throws Exception {
-        NativeLibrary.load("jline");
+        NativeLibrary.load(JLINE);
 
         originalMode = getConsoleMode();
 
@@ -118,7 +120,7 @@ public class WindowsTerminal
      * Windows doesn't support ANSI codes by default; disable them.
      */
     public boolean isAnsiSupported() {
-        return false;
+        return Boolean.getBoolean(WindowsTerminal.class.getName() + ".ansi");
     }
 
     public int readCharacter(final InputStream in) throws IOException {
@@ -129,7 +131,8 @@ public class WindowsTerminal
         if (directConsole == Boolean.FALSE) {
             return super.readCharacter(in);
         }
-        else if ((directConsole == Boolean.TRUE) || ((in == System.in) || (in instanceof FileInputStream && (((FileInputStream) in).getFD() == FileDescriptor.in)))) {
+        else if ((directConsole == Boolean.TRUE) || (in == System.in ||
+                (in instanceof FileInputStream && (((FileInputStream) in).getFD() == FileDescriptor.in)))) {
             return readByte();
         }
         else {
@@ -150,26 +153,37 @@ public class WindowsTerminal
             switch (key) {
                 case UP_ARROW_KEY:
                     return CTRL_P.code; // translate UP -> CTRL-P
+
                 case LEFT_ARROW_KEY:
                     return CTRL_B.code; // translate LEFT -> CTRL-B
+
                 case RIGHT_ARROW_KEY:
                     return CTRL_F.code; // translate RIGHT -> CTRL-F
+
                 case DOWN_ARROW_KEY:
                     return CTRL_N.code; // translate DOWN -> CTRL-N
+
                 case DELETE_KEY:
                     return CTRL_QM.code; // translate DELETE -> CTRL-?
+
                 case HOME_KEY:
                     return CTRL_A.code;
+
                 case END_KEY:
                     return CTRL_E.code;
+
                 case PAGE_UP_KEY:
                     return CTRL_K.code;
+
                 case PAGE_DOWN_KEY:
                     return CTRL_L.code;
+
                 case ESCAPE_KEY:
                     return CTRL_OB.code; // translate ESCAPE -> CTRL-[
+
                 case INSERT_KEY:
                     return CTRL_C.code;
+
                 default:
                     return 0;
             }

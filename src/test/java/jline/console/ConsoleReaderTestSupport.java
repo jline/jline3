@@ -15,6 +15,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import static jline.UnixTerminal.UnixKey.*;
 
 /**
  * Provides support for console reader tests.
@@ -110,23 +111,19 @@ public abstract class ConsoleReaderTestSupport
         }
 
         public Buffer left() {
-            return append(UnixTerminal.ARROW_START).append(
-                UnixTerminal.ARROW_PREFIX).append(UnixTerminal.ARROW_LEFT);
+            return append(ARROW_START.code).append(ARROW_PREFIX.code).append(ARROW_LEFT.code);
         }
 
         public Buffer right() {
-            return append(UnixTerminal.ARROW_START).append(
-                UnixTerminal.ARROW_PREFIX).append(UnixTerminal.ARROW_RIGHT);
+            return append(ARROW_START.code).append(ARROW_PREFIX.code).append(ARROW_RIGHT.code);
         }
 
         public Buffer up() {
-            return append(UnixTerminal.ARROW_START).append(
-                UnixTerminal.ARROW_PREFIX).append(UnixTerminal.ARROW_UP);
+            return append(ARROW_START.code).append(ARROW_PREFIX.code).append(ARROW_UP.code);
         }
 
         public Buffer down() {
-            return append(UnixTerminal.ARROW_START).append(
-                UnixTerminal.ARROW_PREFIX).append(UnixTerminal.ARROW_DOWN);
+            return append(ARROW_START.code).append(ARROW_PREFIX.code).append(ARROW_DOWN.code);
         }
 
         public Buffer append(String str) {

@@ -3,6 +3,7 @@ package jline.console;
 import jline.TerminalFactory;
 import jline.WindowsTerminal;
 import static jline.console.Operation.*;
+import static jline.WindowsTerminal.WindowsKey.*;
 import static org.junit.Assert.*;
 import org.junit.Before;
 import org.junit.Test;
@@ -77,10 +78,10 @@ public class ConsoleReaderTest
 
         char[] characters = new char[]{
                 'S', 's',
-                WindowsTerminal.SPECIAL_KEY_INDICATOR,
-                WindowsTerminal.LEFT_ARROW_KEY,
-                WindowsTerminal.SPECIAL_KEY_INDICATOR,
-                WindowsTerminal.DELETE_KEY, '\r', 'n'
+                (char) SPECIAL_KEY_INDICATOR.code,
+                (char) LEFT_ARROW_KEY.code,
+                (char) SPECIAL_KEY_INDICATOR.code,
+                (char) DELETE_KEY.code, '\r', 'n'
         };
         assertWindowsKeyBehavior("S", characters);
     }
@@ -94,10 +95,10 @@ public class ConsoleReaderTest
 
         char[] characters = new char[]{
                 'S', 's',
-                WindowsTerminal.NUMPAD_KEY_INDICATOR,
-                WindowsTerminal.LEFT_ARROW_KEY,
-                WindowsTerminal.NUMPAD_KEY_INDICATOR,
-                WindowsTerminal.DELETE_KEY, '\r', 'n'
+                (char) NUMPAD_KEY_INDICATOR.code,
+                (char) LEFT_ARROW_KEY.code,
+                (char) NUMPAD_KEY_INDICATOR.code,
+                (char) DELETE_KEY.code, '\r', 'n'
         };
         assertWindowsKeyBehavior("S", characters);
     }
@@ -111,8 +112,8 @@ public class ConsoleReaderTest
 
         char[] characters = new char[]{
                 'S', 's',
-                WindowsTerminal.SPECIAL_KEY_INDICATOR,
-                WindowsTerminal.HOME_KEY, 'x', '\r', '\n'
+                (char) SPECIAL_KEY_INDICATOR.code,
+                (char) HOME_KEY.code, 'x', '\r', '\n'
         };
         assertWindowsKeyBehavior("xSs", characters);
 
@@ -127,9 +128,9 @@ public class ConsoleReaderTest
 
         char[] characters = new char[]{
                 'S', 's',
-                WindowsTerminal.SPECIAL_KEY_INDICATOR,
-                WindowsTerminal.HOME_KEY, 'x',
-                WindowsTerminal.SPECIAL_KEY_INDICATOR, WindowsTerminal.END_KEY,
+                (char) SPECIAL_KEY_INDICATOR.code,
+                (char) HOME_KEY.code, 'x',
+                (char) SPECIAL_KEY_INDICATOR.code, (char) END_KEY.code,
                 'j', '\r', '\n'
         };
         assertWindowsKeyBehavior("xSsj", characters);
@@ -143,8 +144,8 @@ public class ConsoleReaderTest
         }
 
         char[] characters = new char[]{
-                WindowsTerminal.SPECIAL_KEY_INDICATOR,
-                WindowsTerminal.PAGE_UP_KEY, '\r', '\n'
+                (char) SPECIAL_KEY_INDICATOR.code,
+                (char) PAGE_UP_KEY.code, '\r', '\n'
         };
         assertWindowsKeyBehavior("dir", characters);
     }
@@ -157,8 +158,8 @@ public class ConsoleReaderTest
         }
 
         char[] characters = new char[]{
-                WindowsTerminal.SPECIAL_KEY_INDICATOR,
-                WindowsTerminal.PAGE_DOWN_KEY, '\r', '\n'
+                (char) SPECIAL_KEY_INDICATOR.code,
+                (char) PAGE_DOWN_KEY.code, '\r', '\n'
         };
         assertWindowsKeyBehavior("mkdir monkey", characters);
     }
@@ -172,8 +173,8 @@ public class ConsoleReaderTest
 
         char[] characters = new char[]{
                 's', 's', 's',
-                WindowsTerminal.SPECIAL_KEY_INDICATOR,
-                WindowsTerminal.ESCAPE_KEY, '\r', '\n'
+                (char) SPECIAL_KEY_INDICATOR.code,
+                (char) ESCAPE_KEY.code, '\r', '\n'
         };
         assertWindowsKeyBehavior("", characters);
     }
@@ -187,10 +188,10 @@ public class ConsoleReaderTest
 
         char[] characters = new char[]{
                 'o', 'p', 's',
-                WindowsTerminal.SPECIAL_KEY_INDICATOR,
-                WindowsTerminal.HOME_KEY,
-                WindowsTerminal.SPECIAL_KEY_INDICATOR,
-                WindowsTerminal.INSERT_KEY, 'o', 'o', 'p', 's', '\r', '\n'
+                (char) SPECIAL_KEY_INDICATOR.code,
+                (char) HOME_KEY.code,
+                (char) SPECIAL_KEY_INDICATOR.code,
+                (char) INSERT_KEY.code, 'o', 'o', 'p', 's', '\r', '\n'
         };
         assertWindowsKeyBehavior("oops", characters);
     }
