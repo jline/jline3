@@ -224,7 +224,7 @@ public class ConsoleReader
     public ConsoleReader(final InputStream in, final Writer out,
                          final InputStream bindings) throws IOException
     {
-        this(in, out, bindings, TerminalFactory.getTerminal());
+        this(in, out, bindings, TerminalFactory.get());
     }
 
     /**

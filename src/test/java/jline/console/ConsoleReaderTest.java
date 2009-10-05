@@ -50,7 +50,7 @@ public class ConsoleReaderTest
     @Test
     public void testDeleteAndBackspaceKeymappings() throws Exception {
         // test only works on Windows
-        if (!(TerminalFactory.getTerminal() instanceof WindowsTerminal)) {
+        if (!(TerminalFactory.get() instanceof WindowsTerminal)) {
             return;
         }
 
@@ -71,7 +71,7 @@ public class ConsoleReaderTest
     @Test
     public void testDeleteOnWindowsTerminal() throws Exception {
         // test only works on Windows
-        if (!(TerminalFactory.getTerminal() instanceof WindowsTerminal)) {
+        if (!(TerminalFactory.get() instanceof WindowsTerminal)) {
             return;
         }
 
@@ -88,7 +88,7 @@ public class ConsoleReaderTest
     @Test
     public void testNumpadDeleteOnWindowsTerminal() throws Exception {
         // test only works on Windows
-        if (!(TerminalFactory.getTerminal() instanceof WindowsTerminal)) {
+        if (!(TerminalFactory.get() instanceof WindowsTerminal)) {
             return;
         }
 
@@ -105,7 +105,7 @@ public class ConsoleReaderTest
     @Test
     public void testHomeKeyOnWindowsTerminal() throws Exception {
         // test only works on Windows
-        if (!(TerminalFactory.getTerminal() instanceof WindowsTerminal)) {
+        if (!(TerminalFactory.get() instanceof WindowsTerminal)) {
             return;
         }
 
@@ -121,7 +121,7 @@ public class ConsoleReaderTest
     @Test
     public void testEndKeyOnWindowsTerminal() throws Exception {
         // test only works on Windows
-        if (!(TerminalFactory.getTerminal() instanceof WindowsTerminal)) {
+        if (!(TerminalFactory.get() instanceof WindowsTerminal)) {
             return;
         }
 
@@ -138,7 +138,7 @@ public class ConsoleReaderTest
     @Test
     public void testPageUpOnWindowsTerminal() throws Exception {
         // test only works on Windows
-        if (!(TerminalFactory.getTerminal() instanceof WindowsTerminal)) {
+        if (!(TerminalFactory.get() instanceof WindowsTerminal)) {
             return;
         }
 
@@ -152,7 +152,7 @@ public class ConsoleReaderTest
     @Test
     public void testPageDownOnWindowsTerminal() throws Exception {
         // test only works on Windows
-        if (!(TerminalFactory.getTerminal() instanceof WindowsTerminal)) {
+        if (!(TerminalFactory.get() instanceof WindowsTerminal)) {
             return;
         }
 
@@ -166,7 +166,7 @@ public class ConsoleReaderTest
     @Test
     public void testEscapeOnWindowsTerminal() throws Exception {
         // test only works on Windows
-        if (!(TerminalFactory.getTerminal() instanceof WindowsTerminal)) {
+        if (!(TerminalFactory.get() instanceof WindowsTerminal)) {
             return;
         }
 
@@ -181,7 +181,7 @@ public class ConsoleReaderTest
     @Test
     public void testInsertOnWindowsTerminal() throws Exception {
         // test only works on Windows
-        if (!(TerminalFactory.getTerminal() instanceof WindowsTerminal)) {
+        if (!(TerminalFactory.get() instanceof WindowsTerminal)) {
             return;
         }
 

@@ -4,6 +4,7 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  */
+
 package jline;
 
 /**
@@ -13,7 +14,7 @@ package jline;
  *
  * @since 2.0
  */
-public abstract class TerminalFactory
+public class TerminalFactory
 {
     public static final String JLINE_TERMINAL = "jline.terminal";
 
@@ -33,15 +34,14 @@ public abstract class TerminalFactory
 
     private static Terminal terminal;
 
-    public static Terminal getTerminal() {
-        return create();
+    public static synchronized Terminal get() {
+        if (terminal == null) {
+            terminal = create();
+        }
+        return terminal;
     }
 
     public static synchronized Terminal create() {
-        if (terminal != null) {
-            return terminal;
-        }
-
         final Terminal t;
 
         String type = System.getProperty(JLINE_TERMINAL);
@@ -91,17 +91,17 @@ public abstract class TerminalFactory
         }
         catch (Exception e) {
             Log.error("Terminal initialization failed; falling back to unsupported", e);
-            return terminal = new UnsupportedTerminal();
+            return new UnsupportedTerminal();
         }
 
-        return terminal = t;
+        return t;
     }
 
-    public static void reset() {
+    public static synchronized void reset() {
         terminal = null;
     }
 
-    public static void resetIf(final Terminal t) {
+    public static synchronized void resetIf(final Terminal t) {
         if (terminal == t) {
             reset();
         }
@@ -114,12 +114,12 @@ public abstract class TerminalFactory
         NONE
     }
 
-    public static void configure(String type) {
+    public static synchronized void configure(final String type) {
         assert type != null;
         System.setProperty(JLINE_TERMINAL, type);
     }
 
-    public static void configure(final Type type) {
+    public static synchronized void configure(final Type type) {
         assert type != null;
         configure(type.name().toLowerCase());
     }
