@@ -212,10 +212,9 @@ public class UnixTerminal
 
     public int readVirtualKey(final InputStream in) throws IOException {
         int c = readCharacter(in);
-        Key key = Key.valueOf(c);
-
+        
         if (backspaceDeleteSwitched) {
-            if (key == DELETE) {
+            if (Key.valueOf(c) == DELETE) {
                 c = '\b';
             }
             else if (c == '\b') {
