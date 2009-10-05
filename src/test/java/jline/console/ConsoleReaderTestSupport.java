@@ -60,6 +60,7 @@ public abstract class ConsoleReaderTestSupport
         int action = console.getKeyForAction(logicalAction);
 
         if (action == -1) {
+            //noinspection StringConcatenation
             fail("Keystroke for logical action " + logicalAction + " was not bound in the console");
         }
 
@@ -71,9 +72,9 @@ public abstract class ConsoleReaderTestSupport
      *
      * @author Ryan
      */
-    class Buffer
+    private class Buffer
     {
-        private final ByteArrayOutputStream bout = new ByteArrayOutputStream();
+        private final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
         public Buffer() {
         }
@@ -83,7 +84,7 @@ public abstract class ConsoleReaderTestSupport
         }
 
         public byte[] getBytes() {
-            return bout.toByteArray();
+            return out.toByteArray();
         }
 
         public Buffer op(final short operation) {
@@ -135,7 +136,7 @@ public abstract class ConsoleReaderTestSupport
         }
 
         public Buffer append(final int i) {
-            bout.write((byte)i);
+            out.write((byte)i);
             return this;
         }
     }
