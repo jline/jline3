@@ -16,7 +16,7 @@ public class TerminalFactoryTest
 
     @Test
     public void testConfigureNone() {
-        TerminalFactory.configure("none");
+        TerminalFactory.configure(TerminalFactory.NONE);
         Terminal t = TerminalFactory.get();
         assertNotNull(t);
         assertEquals(UnsupportedTerminal.class.getName(), t.getClass().getName());
