@@ -14,7 +14,7 @@ import java.text.MessageFormat;
 import java.util.StringTokenizer;
 
 /**
- * Provides access to <tt>stty</tt> information.
+ * Provides access to terminal line settings via <tt>stty</tt>.
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:dwkemp@gmail.com">Dale Kemp</a>
