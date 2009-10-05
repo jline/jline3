@@ -2,10 +2,8 @@ package jline.console;
 
 import jline.TerminalFactory;
 import jline.WindowsTerminal;
-import static jline.console.Operation.DELETE_NEXT_CHAR;
-import static jline.console.Operation.DELETE_PREV_CHAR;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static jline.console.Operation.*;
+import static org.junit.Assert.*;
 import org.junit.Before;
 import org.junit.Test;
 

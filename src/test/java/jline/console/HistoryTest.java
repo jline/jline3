@@ -6,10 +6,7 @@
  */
 package jline.console;
 
-import static jline.console.Operation.MOVE_TO_BEG;
-import static jline.console.Operation.NEWLINE;
-import static jline.console.Operation.NEXT_HISTORY;
-import static jline.console.Operation.PREV_HISTORY;
+import static jline.console.Operation.*;
 import org.junit.Test;
 
 /**

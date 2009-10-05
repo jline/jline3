@@ -7,23 +7,8 @@
 
 package jline;
 
-import static jline.WindowsTerminal.WindowsKey.ENABLE_ECHO_INPUT;
-import static jline.WindowsTerminal.WindowsKey.ENABLE_LINE_INPUT;
-import static jline.WindowsTerminal.WindowsKey.ENABLE_PROCESSED_INPUT;
-import static jline.WindowsTerminal.WindowsKey.ENABLE_WINDOW_INPUT;
-import static jline.WindowsTerminal.WindowsKey.NUMPAD_KEY_INDICATOR;
-import static jline.WindowsTerminal.WindowsKey.SPECIAL_KEY_INDICATOR;
-import static jline.console.Key.CTRL_A;
-import static jline.console.Key.CTRL_B;
-import static jline.console.Key.CTRL_C;
-import static jline.console.Key.CTRL_E;
-import static jline.console.Key.CTRL_F;
-import static jline.console.Key.CTRL_K;
-import static jline.console.Key.CTRL_L;
-import static jline.console.Key.CTRL_N;
-import static jline.console.Key.CTRL_OB;
-import static jline.console.Key.CTRL_P;
-import static jline.console.Key.CTRL_QM;
+import static jline.WindowsTerminal.WindowsKey.*;
+import static jline.console.Key.*;
 import jline.internal.NativeLibrary;
 import jline.internal.ReplayPrefixOneCharInputStream;
 
@@ -36,7 +21,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * <p>
  * Terminal implementation for Microsoft Windows. Terminal initialization in
  * {@link #init} is accomplished by extracting the
  * <em>jline_<i>version</i>.dll</em>, saving it to the system temporary
@@ -47,8 +31,7 @@ import java.util.Map;
  * <a href="http://msdn.microsoft.com/library/default.asp?
  * url=/library/en-us/dllproc/base/getconsolemode.asp">GetConsoleMode</a> to
  * disable character echoing.
- * </p>
- * <p/>
+ *
  * <p>
  * By default, the {@link #readCharacter} method will attempt to test to see if
  * the specified {@link InputStream} is {@link System#in} or a wrapper around
@@ -282,7 +265,9 @@ public class WindowsTerminal
     private native int getWindowsTerminalHeight();
 
     /**
-     * Windows keys - constants copied <tt>wincon.h</tt>.
+     * Windows keys.
+     *
+     * Constants copied <tt>wincon.h</tt>.
      */
     public static enum WindowsKey
     {
