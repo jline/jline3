@@ -723,7 +723,7 @@ public class ConsoleReader
         // extract the appropriate key binding
         short code = keybindings[c];
 
-        Log.debug("Translated: ", c, " -> ", code);
+        Log.trace("Translated: ", c, " -> ", code);
 
         return new int[]{ c, code };
     }
@@ -1470,7 +1470,7 @@ public class ConsoleReader
     public final int readVirtualKey() throws IOException {
         int c = terminal.readVirtualKey(in);
 
-        Log.debug("Keystroke: ", c);
+        Log.trace("Keystroke: ", c);
 
         // clear any echo characters
         clearEcho(c);
@@ -1500,8 +1500,10 @@ public class ConsoleReader
      */
     private int delete(final int num) throws IOException {
         /* Commented out beacuse of DWA-2949:
-if (buf.cursor == 0)
-       return 0;*/
+        if (buf.cursor == 0) {
+            return 0;
+        }
+        */
 
         buf.buffer.delete(buf.cursor, buf.cursor + 1);
         drawBuffer(1);
