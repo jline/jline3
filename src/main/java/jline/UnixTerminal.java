@@ -24,15 +24,13 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 
 /**
- * <p>
  * Terminal that is used for unix platforms. Terminal initialization
  * is handled by issuing the <em>stty</em> command against the
  * <em>/dev/tty</em> file to disable character echoing and enable
  * character input. All known unix systems (including
  * Linux and Macintosh OS X) support the <em>stty</em>), so this
  * implementation should work for an reasonable POSIX system.
- * </p>
- *
+ * 
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:dwkemp@gmail.com">Dale Kemp</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
