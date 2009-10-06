@@ -28,6 +28,8 @@ public final class TerminalLineSettings
 
     public static final String DEFAULT_STTY = "stty";
 
+    public static final String DEFAULT_SH = "sh";
+
     private static String command = System.getProperty(JLINE_STTY_COMMAND, DEFAULT_STTY);
 
     private String config;
@@ -76,26 +78,31 @@ public final class TerminalLineSettings
         stty(args);
     }
 
-    public int getProperty(final String name) throws IOException, InterruptedException {
+    public int getProperty(final String name) {
         assert name != null;
 
-        // need to be able handle both output formats:
-        // speed 9600 baud; 24 rows; 140 columns;
-        // and:
-        // speed 38400 baud; rows = 49; columns = 111; ypixels = 0; xpixels = 0;
-        String props = get("-a");
+        try {
+            // need to be able handle both output formats:
+            // speed 9600 baud; 24 rows; 140 columns;
+            // and:
+            // speed 38400 baud; rows = 49; columns = 111; ypixels = 0; xpixels = 0;
+            String props = get("-a");
 
-        for (StringTokenizer tok = new StringTokenizer(props, ";\n"); tok.hasMoreTokens();) {
-            String str = tok.nextToken().trim();
+            for (StringTokenizer tok = new StringTokenizer(props, ";\n"); tok.hasMoreTokens();) {
+                String str = tok.nextToken().trim();
 
-            if (str.startsWith(name)) {
-                int index = str.lastIndexOf(" ");
-                return Integer.parseInt(str.substring(index).trim());
+                if (str.startsWith(name)) {
+                    int index = str.lastIndexOf(" ");
+                    return Integer.parseInt(str.substring(index).trim());
+                }
+                else if (str.endsWith(name)) {
+                    int index = str.indexOf(" ");
+                    return Integer.parseInt(str.substring(0, index).trim());
+                }
             }
-            else if (str.endsWith(name)) {
-                int index = str.indexOf(" ");
-                return Integer.parseInt(str.substring(0, index).trim());
-            }
+        }
+        catch (Exception e) {
+            Log.warn("Failed to query stty ", name, e);
         }
 
         return -1;
@@ -108,7 +115,7 @@ public final class TerminalLineSettings
 
     private static String exec(final String cmd) throws IOException, InterruptedException {
         assert cmd != null;
-        return exec("sh", "-c", cmd);
+        return exec(DEFAULT_SH, "-c", cmd);
     }
 
     private static String exec(final String... cmd) throws IOException, InterruptedException {

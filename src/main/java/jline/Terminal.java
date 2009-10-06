@@ -39,6 +39,8 @@ public interface Terminal
 
     int getHeight();
 
+    // FIXMEL Should just have isEchoEnabled() and setEchoEnabled()
+
     boolean getEcho();
 
     boolean isEchoEnabled();

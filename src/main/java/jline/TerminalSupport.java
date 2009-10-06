@@ -31,6 +31,16 @@ public abstract class TerminalSupport
 
     private Thread shutdownHook;
 
+    private boolean supported;
+
+    private boolean echoEnabled;
+
+    private boolean ansiSupported;
+
+    protected TerminalSupport(final boolean supported) {
+        this.supported = supported;
+    }
+
     public void init() throws Exception {
         // nothing
     }
@@ -72,6 +82,18 @@ public abstract class TerminalSupport
         }
     }
 
+    public boolean isSupported() {
+        return supported;
+    }
+
+    public boolean isAnsiSupported() {
+        return ansiSupported;
+    }
+
+    protected void setAnsiSupported(final boolean flag) {
+        this.ansiSupported = flag;
+    }
+
     public int getWidth() {
         return DEFAULT_WIDTH;
     }
@@ -80,12 +102,20 @@ public abstract class TerminalSupport
         return DEFAULT_HEIGHT;
     }
 
-    public void enableEcho() {
+    public synchronized void enableEcho() {
         // nothing
     }
 
-    public void disableEcho() {
+    public synchronized void disableEcho() {
         // nothing
+    }
+
+    public synchronized boolean isEchoEnabled() {
+        return echoEnabled;
+    }
+
+    protected synchronized void setEchoEnabled(final boolean flag) {
+        this.echoEnabled = flag;
     }
 
     public int readCharacter(final InputStream in) throws IOException {

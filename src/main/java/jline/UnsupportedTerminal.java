@@ -25,20 +25,14 @@ public class UnsupportedTerminal
 {
     private Thread maskThread;
 
-    public boolean isAnsiSupported() {
-        return false;
+    public UnsupportedTerminal() {
+        super(false);
+        setAnsiSupported(false);
+        setEchoEnabled(true);
     }
 
     public boolean getEcho() {
         return true;
-    }
-
-    public boolean isEchoEnabled() {
-        return true;
-    }
-
-    public boolean isSupported() {
-        return false;
     }
 
     public void beforeReadLine(final ConsoleReader reader, final String prompt, final Character mask) {
@@ -58,10 +52,10 @@ public class UnsupportedTerminal
                             out.flush();
                             sleep(3);
                         }
-                        catch (IOException ioe) {
+                        catch (IOException e) {
                             return;
                         }
-                        catch (InterruptedException ie) {
+                        catch (InterruptedException e) {
                             return;
                         }
                     }
@@ -75,7 +69,7 @@ public class UnsupportedTerminal
     }
 
     public void afterReadLine(final ConsoleReader reader, final String prompt, final Character mask) {
-        if ((maskThread != null) && maskThread.isAlive()) {
+        if (maskThread != null && maskThread.isAlive()) {
             maskThread.interrupt();
         }
 

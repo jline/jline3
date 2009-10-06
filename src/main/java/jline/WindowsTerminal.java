@@ -63,8 +63,6 @@ public class WindowsTerminal
 
     private Boolean directConsole;
 
-    private boolean echoEnabled;
-
     private int originalMode;
 
     private final ReplayPrefixOneCharInputStream replayStream = new ReplayPrefixOneCharInputStream(
@@ -73,13 +71,13 @@ public class WindowsTerminal
     private final InputStreamReader replayReader;
 
     public WindowsTerminal() throws Exception {
-        String dir = System.getProperty(JLINE_WINDOWS_TERMINAL_DIRECT_CONSOLE);
-
-        if ("true".equals(dir)) {
-            directConsole = Boolean.TRUE;
+        super(true);
+        String tmp = System.getProperty(JLINE_WINDOWS_TERMINAL_DIRECT_CONSOLE);
+        if (Boolean.TRUE.toString().equals(tmp)) {
+            setDirectConsole(true);
         }
-        else if ("false".equals(dir)) {
-            directConsole = Boolean.FALSE;
+        else if (Boolean.FALSE.toString().equals(tmp)) {
+            setDirectConsole(false);
         }
 
         replayReader = new InputStreamReader(replayStream, replayStream.getEncoding());
@@ -94,8 +92,10 @@ public class WindowsTerminal
 
         // set the console to raw mode
         int newMode = originalMode & ~(ENABLE_LINE_INPUT.code | ENABLE_ECHO_INPUT.code | ENABLE_PROCESSED_INPUT.code | ENABLE_WINDOW_INPUT.code);
-        echoEnabled = false;
+        setEchoEnabled(false);
         setConsoleMode(newMode);
+
+        setAnsiSupported(Boolean.getBoolean(WindowsTerminal.class.getName() + ".ansi"));
 
         installShutdownHook(new RestoreHook());
     }
@@ -112,17 +112,6 @@ public class WindowsTerminal
         removeShutdownHook();
     }
     
-    public boolean isSupported() {
-        return true;
-    }
-
-    /**
-     * Windows doesn't support ANSI codes by default; disable them.
-     */
-    public boolean isAnsiSupported() {
-        return Boolean.getBoolean(WindowsTerminal.class.getName() + ".ansi");
-    }
-
     public int readCharacter(final InputStream in) throws IOException {
         // if we can detect that we are directly wrapping the system
         // input, then bypass the input stream and read directly (which
@@ -204,30 +193,14 @@ public class WindowsTerminal
         return false;
     }
 
-    /**
-     * Unsupported; return the default.
-     *
-     * @see Terminal#getWidth
-     */
     public int getWidth() {
-        int width = getWindowsTerminalWidth();
-        if (width < 1) {
-            width = DEFAULT_WIDTH;
-        }
-        return width;
+        int w = getWindowsTerminalWidth();
+        return w < 1 ? DEFAULT_WIDTH : w;
     }
 
-    /**
-     * Unsupported; return the default.
-     *
-     * @see Terminal#getHeight
-     */
     public int getHeight() {
-        int height = getWindowsTerminalHeight();
-        if (height < 1) {
-            height = DEFAULT_HEIGHT;
-        }
-        return height;
+        int h = getWindowsTerminalHeight();
+        return h < 1 ? DEFAULT_HEIGHT : h;
     }
 
     /**
@@ -244,20 +217,16 @@ public class WindowsTerminal
         return directConsole;
     }
 
-    public synchronized boolean isEchoEnabled() {
-        return echoEnabled;
-    }
-
     public synchronized void enableEcho() {
         // Must set these four modes at the same time to make it work fine.
         setConsoleMode(getConsoleMode() | ENABLE_ECHO_INPUT.code | ENABLE_LINE_INPUT.code | ENABLE_PROCESSED_INPUT.code | ENABLE_WINDOW_INPUT.code);
-        echoEnabled = true;
+        setEchoEnabled(true);
     }
 
     public synchronized void disableEcho() {
         // Must set these four modes at the same time to make it work fine.
         setConsoleMode(getConsoleMode() & ~(ENABLE_LINE_INPUT.code | ENABLE_ECHO_INPUT.code| ENABLE_PROCESSED_INPUT.code | ENABLE_WINDOW_INPUT.code));
-        echoEnabled = true;
+        setEchoEnabled(true);
     }
 
     public InputStream getDefaultBindings() {

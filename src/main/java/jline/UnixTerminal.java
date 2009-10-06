@@ -43,11 +43,10 @@ public class UnixTerminal
 
     private final InputStreamReader replayReader;
 
-    private boolean echoEnabled;
-
     private boolean backspaceDeleteSwitched = false;
 
     public UnixTerminal() throws Exception {
+        super(true);
         replayReader = new InputStreamReader(replayStream, replayStream.getEncoding());
     }
 
@@ -66,8 +65,9 @@ public class UnixTerminal
         settings.set("-icanon min 1");
 
         // disable character echoing
-        settings.set("-echo");
-        echoEnabled = false;
+        disableEcho();
+
+        setAnsiSupported(true);
 
         installShutdownHook(new RestoreHook());
     }
@@ -83,10 +83,6 @@ public class UnixTerminal
         removeShutdownHook();
     }
 
-    public boolean isSupported() {
-        return true;
-    }
-
     public boolean getEcho() {
         return false;
     }
@@ -95,40 +91,16 @@ public class UnixTerminal
      * Returns the value of <tt>stty columns</tt> param.
      */
     public int getWidth() {
-        int val = -1;
-
-        try {
-            val = settings.getProperty("columns");
-        }
-        catch (Exception e) {
-            Log.warn("Failed to query stty colums", e);
-        }
-
-        if (val == -1) {
-            val = DEFAULT_WIDTH;
-        }
-
-        return val;
+        int w = settings.getProperty("columns");
+        return w == -1 ? DEFAULT_WIDTH : w;
     }
 
     /**
      * Returns the value of <tt>stty rows>/tt> param.
      */
     public int getHeight() {
-        int val = -1;
-
-        try {
-            val = settings.getProperty("rows");
-        }
-        catch (Exception e) {
-            Log.warn("Failed to query stty rows", e);
-        }
-
-        if (val == -1) {
-            val = DEFAULT_HEIGHT;
-        }
-
-        return val;
+        int h = settings.getProperty("rows");
+        return h == -1 ? DEFAULT_HEIGHT : h;
     }
 
     protected void checkBackspace() {
@@ -145,18 +117,10 @@ public class UnixTerminal
         backspaceDeleteSwitched = config[6].equals("7f");
     }
 
-    public boolean isAnsiSupported() {
-        return true;
-    }
-
-    public synchronized boolean isEchoEnabled() {
-        return echoEnabled;
-    }
-
     public synchronized void enableEcho() {
         try {
             settings.set("echo");
-            echoEnabled = true;
+            setEchoEnabled(true);
         }
         catch (Exception e) {
             Log.error("Failed to enable echo: ", e);
@@ -166,7 +130,7 @@ public class UnixTerminal
     public synchronized void disableEcho() {
         try {
             settings.set("-echo");
-            echoEnabled = false;
+            setEchoEnabled(false);
         }
         catch (Exception e) {
             Log.error("Failed to disable echo: ", e);
@@ -236,10 +200,6 @@ public class UnixTerminal
 
         return c;
     }
-
-    //
-    // UnixKey
-    //
 
     /**
      * Unix keys.

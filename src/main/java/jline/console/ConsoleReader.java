@@ -28,6 +28,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.Writer;
+import java.io.BufferedInputStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -125,52 +126,64 @@ public class ConsoleReader
      * @param bindings the key bindings to use
      * @param term     the terminal to use
      */
-    public ConsoleReader(InputStream in, Writer out, InputStream bindings, Terminal term) throws IOException {
+    public ConsoleReader(final InputStream in, final Writer out, InputStream bindings, final Terminal term) throws IOException {
         this.terminal = term;
         setInput(in);
         this.out = out;
-        if (bindings == null) {
+        this.keybindings = loadKeyBindings(bindings);
+
+        if (Boolean.getBoolean(JLINE_NOBELL)) {
+            setBellEnabled(false);
+        }
+    }
+
+    private short[] loadKeyBindings(InputStream input) throws IOException {
+        if (input == null) {
             try {
-                String bindingFile = System.getProperty(JLINE_KEYBINDINGS,
-                    new File(System.getProperty("user.home", JLINEBINDINGS_PROPERTIES)).getAbsolutePath());
-                if (new File(bindingFile).isFile()) {
-                    bindings = new FileInputStream(new File(bindingFile));
+                File file = new File(System.getProperty("user.home", JLINEBINDINGS_PROPERTIES));
+
+                String path = System.getProperty(JLINE_KEYBINDINGS);
+                if (path != null) {
+                    file = new File(path);
+                }
+
+                if (file.isFile()) {
+                    Log.debug("Loading user bindings from: ", file);
+                    input = new FileInputStream(file);
                 }
             }
             catch (Exception e) {
-                Log.error("Failed to load bindings", e);
+                Log.error("Failed to load user bindings", e);
             }
         }
 
-        if (bindings == null) {
-            bindings = terminal.getDefaultBindings();
+        if (input == null) {
+            Log.debug("Using default bindings");
+            input = terminal.getDefaultBindings();
         }
 
-        keybindings = new short[Character.MAX_VALUE * 2];
+        short[] keybindings = new short[Character.MAX_VALUE * 2];
 
         Arrays.fill(keybindings, Operation.UNKNOWN.code);
 
-        /**
-         * Loads the key bindings. Bindings file is in the format:
-         *
-         * keycode: operation name
-         */
-        if (bindings != null) {
+        // Loads the key bindings. Bindings file is in the format:
+        //
+        // keycode: operation name
+
+        if (input != null) {
+            input = new BufferedInputStream(input);
             Properties p = new Properties();
-            p.load(bindings);
-            bindings.close();
+            p.load(input);
+            input.close();
 
             for (Object key : p.keySet()) {
                 String val = (String) key;
 
                 try {
-                    Short code = new Short(val);
-                    String op = p.getProperty(val);
-                    Short opval = Operation.valueOf(op).code;
-
-                    if (opval != null) {
-                        keybindings[code] = opval;
-                    }
+                    short code = Short.parseShort(val);
+                    String name = p.getProperty(val);
+                    Operation op = Operation.valueOf(name);
+                    keybindings[code] = op.code;
                 }
                 catch (NumberFormatException e) {
                     Log.error("Failed to convert binding code: ", val, e);
@@ -184,9 +197,7 @@ public class ConsoleReader
             // keybindings[VK_RIGHT] = NEXT_CHAR;
         }
 
-        if (Boolean.getBoolean(JLINE_NOBELL)) {
-            setBellEnabled(false);
-        }
+        return keybindings;
     }
 
     /**
@@ -237,10 +248,10 @@ public class ConsoleReader
     }
 
     /**
-     * @param bellEnabled if true, enable audible keyboard bells if an alert is required.
+     * @param flag if true, enable audible keyboard bells if an alert is required.
      */
-    public void setBellEnabled(final boolean bellEnabled) {
-        this.bellEnabled = bellEnabled;
+    public void setBellEnabled(final boolean flag) {
+        this.bellEnabled = flag;
     }
 
     /**
@@ -280,10 +291,10 @@ public class ConsoleReader
     }
 
     /**
-     * @param autoprintThreshhold the number of candidates to print without issuing a warning.
+     * @param threshhold the number of candidates to print without issuing a warning.
      */
-    public void setAutoprintThreshhold(final int autoprintThreshhold) {
-        this.autoprintThreshhold = autoprintThreshhold;
+    public void setAutoprintThreshhold(final int threshhold) {
+        this.autoprintThreshhold = threshhold;
     }
 
     /**
@@ -396,13 +407,10 @@ public class ConsoleReader
     /**
      * Adding a triggered Action allows to give another curse of action
      * if a character passed the preprocessing.
-     * <p/>
+     * 
      * Say you want to close the application if the user enter q.
      * addTriggerAction('q', new ActionListener(){ System.exit(0); });
      * would do the trick.
-     *
-     * @param c
-     * @param listener
      */
     public void addTriggeredAction(final char c, final ActionListener listener) {
         triggeredActions.put(c, listener);
@@ -682,7 +690,7 @@ public class ConsoleReader
                         }
                 }
 
-                if (!(success)) {
+                if (!success) {
                     beep();
                 }
 
@@ -1201,14 +1209,12 @@ public class ConsoleReader
     /**
      * Issue an audible keyboard bell, if {@link #getBellEnabled} return true.
      */
-    public final void beep() throws IOException {
-        if (!(getBellEnabled())) {
-            return;
+    public void beep() throws IOException {
+        if (getBellEnabled()) {
+            printCharacter(KEYBOARD_BELL);
+            // need to flush so the console actually beeps
+            flushConsole();
         }
-
-        printCharacter(KEYBOARD_BELL);
-        // need to flush so the console actually beeps
-        flushConsole();
     }
 
     /**
@@ -1322,7 +1328,7 @@ public class ConsoleReader
         }
 
         while (moveCursor(1) != 0) {
-            ;
+            // nothing
         }
 
         return true;
@@ -1349,11 +1355,11 @@ public class ConsoleReader
 
     private boolean previousWord() throws IOException {
         while (isDelimiter(buf.current()) && (moveCursor(-1) != 0)) {
-            ;
+            // nothing
         }
 
         while (!isDelimiter(buf.current()) && (moveCursor(-1) != 0)) {
-            ;
+            // nothing
         }
 
         return true;
@@ -1361,11 +1367,11 @@ public class ConsoleReader
 
     private boolean nextWord() throws IOException {
         while (isDelimiter(buf.current()) && (moveCursor(1) != 0)) {
-            ;
+            // nothing
         }
 
         while (!isDelimiter(buf.current()) && (moveCursor(1) != 0)) {
-            ;
+            // nothing
         }
 
         return true;
@@ -1373,11 +1379,11 @@ public class ConsoleReader
 
     private boolean deletePreviousWord() throws IOException {
         while (isDelimiter(buf.current()) && backspace()) {
-            ;
+            // nothing
         }
 
         while (!isDelimiter(buf.current()) && backspace()) {
-            ;
+            // nothing
         }
 
         return true;
@@ -1486,7 +1492,7 @@ public class ConsoleReader
         Arrays.sort(allowed); // always need to sort before binarySearch
 
         while (Arrays.binarySearch(allowed, c = (char) readVirtualKey()) < 0) {
-            ;
+            // nothing
         }
 
         return c;
@@ -1511,7 +1517,7 @@ public class ConsoleReader
         return 1;
     }
 
-    public final boolean replace(int num, String replacement) {
+    public final boolean replace(final int num, final  String replacement) {
         buf.buffer.replace(buf.cursor - num, buf.cursor, replacement);
         try {
             moveCursor(-num);
@@ -1541,7 +1547,7 @@ public class ConsoleReader
      * @param c the character to test
      * @return true if it is a delimiter
      */
-    private boolean isDelimiter(char c) {
+    private boolean isDelimiter(final char c) {
         return !Character.isLetterOrDigit(c);
     }
 }
