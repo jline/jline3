@@ -38,13 +38,15 @@ public interface Terminal
 
     void setEchoEnabled(boolean enabled);
 
-    int readCharacter(final InputStream in) throws IOException;
+    int readCharacter(InputStream in) throws IOException;
 
     int readVirtualKey(InputStream in) throws IOException;
+
+    InputStream getDefaultBindings();
+
+    // TODO: Move to ConsoleCallback or something
 
     void beforeReadLine(ConsoleReader reader, String prompt, Character mask);
 
     void afterReadLine(ConsoleReader reader, String prompt, Character mask);
-
-    InputStream getDefaultBindings();
 }

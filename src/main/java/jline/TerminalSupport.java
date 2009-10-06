@@ -93,6 +93,7 @@ public abstract class TerminalSupport
 
     protected synchronized void setAnsiSupported(final boolean supported) {
         this.ansiSupported = supported;
+        Log.debug("Ansi supported: ",  supported);
     }
 
     public int getWidth() {
@@ -109,6 +110,7 @@ public abstract class TerminalSupport
 
     public synchronized void setEchoEnabled(final boolean enabled) {
         this.echoEnabled = enabled;
+        Log.debug("Echo enabled: ",  enabled);
     }
 
     public int readCharacter(final InputStream in) throws IOException {

@@ -12,6 +12,7 @@ import static jline.WindowsTerminal.ConsoleMode.*;
 import static jline.console.Key.*;
 import jline.internal.NativeLibrary;
 import jline.internal.ReplayPrefixOneCharInputStream;
+import jline.internal.Log;
 
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
@@ -60,6 +61,8 @@ public class WindowsTerminal
 
     public static final String WINDOWSBINDINGS_PROPERTIES = "windowsbindings.properties";
 
+    public static final String ANSI = WindowsTerminal.class.getName() + ".ansi";
+
     public static final String JLINE_NATIVE_LIBARARY = "jline";
 
     private boolean directConsole;
@@ -83,7 +86,11 @@ public class WindowsTerminal
 
         NativeLibrary.load(JLINE_NATIVE_LIBARARY);
 
-        setAnsiSupported(Boolean.getBoolean(WindowsTerminal.class.getName() + ".ansi"));
+        setAnsiSupported(Boolean.getBoolean(ANSI));
+
+        //
+        // FIXME: Need a way to disable direct console and sysin detection muck
+        //
 
         setDirectConsole(Boolean.getBoolean(JLINE_WINDOWS_TERMINAL_DIRECT_CONSOLE));
 
@@ -141,6 +148,7 @@ public class WindowsTerminal
      */
     public void setDirectConsole(final boolean flag) {
         this.directConsole = flag;
+        Log.debug("Direct console: ",  flag);
     }
 
     /**
@@ -157,10 +165,8 @@ public class WindowsTerminal
         // input, then bypass the input stream and read directly (which
         // allows us to access otherwise unreadable strokes, such as
         // the arrow keys)
-        if (!directConsole) {
-            return super.readCharacter(in);
-        }
-        else if (isSystemIn(in)) {
+
+        if (directConsole || isSystemIn(in)) {
             return readByte();
         }
         else {
