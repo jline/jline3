@@ -8,8 +8,7 @@
 package jline.console;
 
 /**
- * A CursorBuffer is a holder for a {@link StringBuilder} that also contains the
- * current cursor position.
+ * A holder for a {@link StringBuilder} that also contains the current cursor position.
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
@@ -18,11 +17,26 @@ package jline.console;
  */
 public class CursorBuffer
 {
+    private boolean overTyping = false;
+
     public int cursor = 0;
 
-    StringBuilder buffer = new StringBuilder();
+    public StringBuilder buffer = new StringBuilder();
 
-    private boolean overTyping = false;
+    public boolean isOverTyping() {
+        return overTyping;
+    }
+
+    public void setOverTyping(final boolean b) {
+        overTyping = b;
+    }
+
+    public void setBuffer(final StringBuilder buffer) {
+        buffer.setLength(0);
+        buffer.append(this.buffer);
+
+        this.buffer = buffer;
+    }
 
     public int length() {
         return buffer.length();
@@ -81,26 +95,8 @@ public class CursorBuffer
         }
     }
 
+    @Override
     public String toString() {
         return buffer.toString();
-    }
-
-    public boolean isOverTyping() {
-        return overTyping;
-    }
-
-    public void setOverTyping(boolean b) {
-        overTyping = b;
-    }
-
-    public StringBuilder getBuffer() {
-        return buffer;
-    }
-
-    public void setBuffer(StringBuilder buffer) {
-        buffer.setLength(0);
-        buffer.append(this.buffer.toString());
-
-        this.buffer = buffer;
     }
 }
