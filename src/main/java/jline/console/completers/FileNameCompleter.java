@@ -43,29 +43,31 @@ public class FileNameCompleter
 
     public int complete(final String buf, final int cursor, final List<String> candidates) {
         String buffer = (buf == null) ? "" : buf;
-
         String translated = buffer;
 
-        // special character: ~ maps to the user's home directory
+        File homeDir = getUserHome();
+
+        // Special character: ~ maps to the user's home directory
         if (translated.startsWith("~" + File.separator)) {
-            translated = System.getProperty("user.home") + translated.substring(1);
+            translated = homeDir.getPath() + translated.substring(1);
         }
         else if (translated.startsWith("~")) {
-            translated = new File(System.getProperty("user.home")).getParentFile() .getAbsolutePath();
+            translated = homeDir.getParentFile().getAbsolutePath();
         }
         else if (!(translated.startsWith(File.separator))) {
-            translated = new File("").getAbsolutePath() + File.separator + translated;
+            String cwd = getUserDir().getPath();
+            translated = cwd + File.separator + translated;
         }
 
-        File f = new File(translated);
+        File file = new File(translated);
 
         final File dir;
 
         if (translated.endsWith(File.separator)) {
-            dir = f;
+            dir = file;
         }
         else {
-            dir = f.getParentFile();
+            dir = file.getParentFile();
         }
 
         final File[] entries = (dir == null) ? new File[0] : dir.listFiles();
@@ -78,55 +80,43 @@ public class FileNameCompleter
         }
     }
 
-    /**
-     * Match the specified <i>buffer</i> to the array of <i>entries</i>
-     * and enter the matches into the list of <i>candidates</i>. This method
-     * can be overridden in a subclass that wants to do more
-     * sophisticated file name completion.
-     *
-     * @param buffer     the untranslated buffer
-     * @param translated the buffer with common characters replaced
-     * @param entries    the list of files to match
-     * @param candidates the list of candidates to populate
-     * @return the offset of the match
-     */
-    public int matchFiles(String buffer, String translated, File[] entries, List<String> candidates) {
-        if (entries == null) {
+    protected File getUserHome() {
+        return new File(System.getProperty("user.home"));
+    }
+
+    protected File getUserDir() {
+        return new File(System.getProperty(""));
+    }
+
+    public int matchFiles(final String buffer, final String translated, final File[] files, final List<String> candidates) {
+        if (files == null) {
             return -1;
         }
 
         int matches = 0;
 
         // first pass: just count the matches
-        for (int i = 0; i < entries.length; i++) {
-            if (entries[i].getAbsolutePath().startsWith(translated)) {
+        for (File file : files) {
+            if (file.getAbsolutePath().startsWith(translated)) {
                 matches++;
             }
         }
-
-        // green - executable
-        // blue - directory
-        // red - compressed
-        // cyan - symlink
-        for (int i = 0; i < entries.length; i++) {
-            if (entries[i].getAbsolutePath().startsWith(translated)) {
-                String name =
-                    entries[i].getName()
-                        + (((matches == 1) && entries[i].isDirectory())
-                        ? File.separator : " ");
-
-                /*
-                if (entries [i].isDirectory ())
-                {
-                        name = new ANSIBuffer ().blue (name).toString ();
-                }
-                */
-                candidates.add(name);
+        for (File file : files) {
+            if (file.getAbsolutePath().startsWith(translated)) {
+                String name = file.getName() + (((matches == 1) && file.isDirectory()) ? File.separator : " ");
+                candidates.add(render(file, name));
             }
         }
 
         final int index = buffer.lastIndexOf(File.separator);
 
         return index + File.separator.length();
+    }
+
+    protected String render(final File file, final String name) {
+        assert file != null;
+        assert name != null;
+
+        return name;
     }
 }
