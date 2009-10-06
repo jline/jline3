@@ -1435,7 +1435,7 @@ public class ConsoleReader
         if (where < 0) {
             int len = 0;
             for (int i = buf.cursor; i < buf.cursor - where; i++) {
-                if (buf.getBuffer().charAt(i) == '\t') {
+                if (buf.buffer.charAt(i) == '\t') {
                     len += TAB_WIDTH;
                 }
                 else {
