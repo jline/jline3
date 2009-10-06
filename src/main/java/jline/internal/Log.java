@@ -30,6 +30,15 @@ public final class Log
 {
     ///CLOVER:OFF
 
+    public static enum Level
+    {
+        TRACE,
+        DEBUG,
+        INFO,
+        WARN,
+        ERROR
+    }
+
     @SuppressWarnings({ "StringConcatenation" })
     public static final boolean DEBUG = Boolean.getBoolean(Log.class.getName() + ".debug");
 
@@ -55,9 +64,9 @@ public final class Log
         }
     }
 
-    private static void log(final String prefix, final Object[] messages) {
+    private static void log(final Level level, final Object[] messages) {
         synchronized (System.err) {
-            System.err.format("[%s] ", prefix);
+            System.err.format("[%s] ", level);
 
             for (Object message : messages) {
                 print(message);
@@ -70,25 +79,25 @@ public final class Log
 
     public static void trace(final Object... messages) {
         if (TRACE) {
-            log("TRACE", messages);
+            log(Level.TRACE, messages);
         }
     }
 
     public static void debug(final Object... messages) {
         if (TRACE || DEBUG) {
-            log("DEBUG", messages);
+            log(Level.DEBUG, messages);
         }
     }
 
     public static void warn(final Object... messages) {
         synchronized (System.err) {
-            log("WARNING", messages);
+            log(Level.WARN, messages);
         }
     }
 
     public static void error(final Object... messages) {
         synchronized (System.err) {
-            log("ERROR", messages);
+            log(Level.ERROR, messages);
         }
     }
 }
