@@ -37,8 +37,8 @@ public class CandidateListCompletionHandler
 
     private boolean eagerNewlines = true;
 
-    public void setAlwaysIncludeNewline(boolean eagerNewlines) {
-        this.eagerNewlines = eagerNewlines;
+    public void setAlwaysIncludeNewline(boolean flag) {
+        this.eagerNewlines = flag;
     }
 
     public boolean complete(final ConsoleReader reader, final List<String> candidates, final int pos) throws IOException {
@@ -73,7 +73,7 @@ public class CandidateListCompletionHandler
         return true;
     }
 
-    public static void setBuffer(ConsoleReader reader, String value, int offset) throws IOException {
+    public static void setBuffer(final ConsoleReader reader, final String value, final int offset) throws IOException {
         while ((reader.getCursorBuffer().cursor > offset) && reader.backspace()) {
             // empty
         }
@@ -89,7 +89,7 @@ public class CandidateListCompletionHandler
      *
      * @param candidates the list of candidates to print
      */
-    public static void printCandidates(ConsoleReader reader, Collection<String> candidates, boolean eagerNewlines) throws IOException {
+    public static void printCandidates(final ConsoleReader reader, Collection<String> candidates, final boolean eagerNewlines) throws IOException {
         Set distinct = new HashSet<String>(candidates);
 
         if (distinct.size() > reader.getAutoprintThreshhold()) {
@@ -170,8 +170,7 @@ public class CandidateListCompletionHandler
     }
 
     /**
-     * @return true is all the elements of <i>candidates</i>
-     *         start with <i>starts</i>
+     * @return true is all the elements of <i>candidates</i> start with <i>starts</i>
      */
     private boolean startsWith(final String starts, final String[] candidates) {
         for (String candidate : candidates) {
