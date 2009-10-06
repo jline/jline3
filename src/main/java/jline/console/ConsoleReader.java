@@ -435,8 +435,8 @@ public class ConsoleReader
      * Clear the echoed characters for the specified character code.
      */
     int clearEcho(final int c) throws IOException {
-        // if the terminal is not echoing, then just return...
-        if (!terminal.getEcho()) {
+        // if the terminal is not echoing, then ignore
+        if (!terminal.isEchoEnabled()) {
             return 0;
         }
 

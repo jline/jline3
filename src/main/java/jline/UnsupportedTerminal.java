@@ -31,10 +31,7 @@ public class UnsupportedTerminal
         setEchoEnabled(true);
     }
 
-    public boolean getEcho() {
-        return true;
-    }
-
+    @Override
     public void beforeReadLine(final ConsoleReader reader, final String prompt, final Character mask) {
         if (mask != null && maskThread == null) {
             final String fullPrompt = "\r" + prompt
@@ -68,6 +65,7 @@ public class UnsupportedTerminal
         }
     }
 
+    @Override
     public void afterReadLine(final ConsoleReader reader, final String prompt, final Character mask) {
         if (maskThread != null && maskThread.isAlive()) {
             maskThread.interrupt();

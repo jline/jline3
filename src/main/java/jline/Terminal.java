@@ -13,41 +13,34 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * Representation of the input terminal for a platform. Handles
- * any initialization that the platform may need to perform
- * in order to allow the {@link ConsoleReader} to correctly handle
- * input.
+ * Representation of the input terminal for a platform.
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
+ *
+ * @since 2.0
  */
 public interface Terminal
 {
-    boolean isSupported();
-
-    boolean isAnsiSupported();
-
-    int readCharacter(final InputStream in) throws IOException;
-
-    int readVirtualKey(InputStream in) throws IOException;
-
     void init() throws Exception;
 
     void restore() throws Exception;
+
+    boolean isSupported();
 
     int getWidth();
 
     int getHeight();
 
-    // FIXMEL Should just have isEchoEnabled() and setEchoEnabled()
-
-    boolean getEcho();
+    boolean isAnsiSupported();
 
     boolean isEchoEnabled();
 
-    void enableEcho();
+    void setEchoEnabled(boolean enabled);
 
-    void disableEcho();
+    int readCharacter(final InputStream in) throws IOException;
+
+    int readVirtualKey(InputStream in) throws IOException;
 
     void beforeReadLine(ConsoleReader reader, String prompt, Character mask);
 

@@ -54,7 +54,7 @@ public enum Key
     Key(final int code) {
         this.code = (short)code;
     }
-
+    
     private static final Map<Short, Key> codes;
 
     static {

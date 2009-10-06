@@ -42,11 +42,12 @@ public abstract class TerminalSupport
     }
 
     public void init() throws Exception {
-        // nothing
+        installShutdownHook(new RestoreHook());
     }
 
     public void restore() throws Exception {
-        // nothing
+        TerminalFactory.resetIf(this);
+        removeShutdownHook();
     }
 
     protected void installShutdownHook(final Thread hook) {
@@ -82,16 +83,16 @@ public abstract class TerminalSupport
         }
     }
 
-    public boolean isSupported() {
+    public final boolean isSupported() {
         return supported;
     }
 
-    public boolean isAnsiSupported() {
+    public synchronized boolean isAnsiSupported() {
         return ansiSupported;
     }
 
-    protected void setAnsiSupported(final boolean flag) {
-        this.ansiSupported = flag;
+    protected synchronized void setAnsiSupported(final boolean supported) {
+        this.ansiSupported = supported;
     }
 
     public int getWidth() {
@@ -102,20 +103,12 @@ public abstract class TerminalSupport
         return DEFAULT_HEIGHT;
     }
 
-    public synchronized void enableEcho() {
-        // nothing
-    }
-
-    public synchronized void disableEcho() {
-        // nothing
-    }
-
     public synchronized boolean isEchoEnabled() {
         return echoEnabled;
     }
 
-    protected synchronized void setEchoEnabled(final boolean flag) {
-        this.echoEnabled = flag;
+    public synchronized void setEchoEnabled(final boolean enabled) {
+        this.echoEnabled = enabled;
     }
 
     public int readCharacter(final InputStream in) throws IOException {

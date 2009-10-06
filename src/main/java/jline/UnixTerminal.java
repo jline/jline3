@@ -39,15 +39,17 @@ public class UnixTerminal
 {
     private final TerminalLineSettings settings = new TerminalLineSettings();
 
-    private final ReplayPrefixOneCharInputStream replayStream = new ReplayPrefixOneCharInputStream(System.getProperty("input.encoding", "UTF-8"));
+    private final ReplayPrefixOneCharInputStream replayStream;
 
     private final InputStreamReader replayReader;
 
-    private boolean backspaceDeleteSwitched = false;
+    private boolean backspaceDeleteSwitched;
 
     public UnixTerminal() throws Exception {
         super(true);
-        replayReader = new InputStreamReader(replayStream, replayStream.getEncoding());
+
+        this.replayStream = new ReplayPrefixOneCharInputStream(System.getProperty("input.encoding", "UTF-8"));
+        this.replayReader = new InputStreamReader(replayStream, replayStream.getEncoding());
     }
 
     protected TerminalLineSettings getSettings() {
@@ -58,18 +60,23 @@ public class UnixTerminal
      * Remove line-buffered input by invoking "stty -icanon min 1"
      * against the current terminal.
      */
-    public void init() throws IOException, InterruptedException {
-        checkBackspace();
+    @Override
+    public void init() throws Exception {
+        super.init();
+
+        setAnsiSupported(true);
+        
+        backspaceDeleteSwitched = detectBackspaceDeleteSwitched();
 
         // set the console to be character-buffered instead of line-buffered
         settings.set("-icanon min 1");
+        
+        setEchoEnabled(false);
+    }
 
-        // disable character echoing
-        disableEcho();
-
-        setAnsiSupported(true);
-
-        installShutdownHook(new RestoreHook());
+    private boolean detectBackspaceDeleteSwitched() {
+        String[] config = settings.getConfig().split(":|=");
+        return config.length >= 7 && config[6] != null && config[6].equals("7f");
     }
 
     /**
@@ -77,19 +84,16 @@ public class UnixTerminal
      * shutting down the console reader. The ConsoleReader cannot be
      * used after calling this method.
      */
+    @Override
     public void restore() throws Exception {
         settings.restore();
-        TerminalFactory.resetIf(this);
-        removeShutdownHook();
-    }
-
-    public boolean getEcho() {
-        return false;
+        super.restore();
     }
 
     /**
      * Returns the value of <tt>stty columns</tt> param.
      */
+    @Override
     public int getWidth() {
         int w = settings.getProperty("columns");
         return w == -1 ? DEFAULT_WIDTH : w;
@@ -98,45 +102,29 @@ public class UnixTerminal
     /**
      * Returns the value of <tt>stty rows>/tt> param.
      */
+    @Override
     public int getHeight() {
         int h = settings.getProperty("rows");
         return h == -1 ? DEFAULT_HEIGHT : h;
     }
 
-    protected void checkBackspace() {
-        String[] config = settings.getConfig().split(":|=");
-
-        if (config.length < 7) {
-            return;
-        }
-
-        if (config[6] == null) {
-            return;
-        }
-
-        backspaceDeleteSwitched = config[6].equals("7f");
-    }
-
-    public synchronized void enableEcho() {
+    @Override
+    public synchronized void setEchoEnabled(final boolean enabled) {
         try {
-            settings.set("echo");
-            setEchoEnabled(true);
+            if (enabled) {
+                settings.set("echo");
+            }
+            else {
+                settings.set("-echo");
+            }
+            super.setEchoEnabled(enabled);
         }
         catch (Exception e) {
-            Log.error("Failed to enable echo: ", e);
+            Log.error("Failed to ", (enabled ? "enable" : "disable"), " echo: ", e);
         }
     }
 
-    public synchronized void disableEcho() {
-        try {
-            settings.set("-echo");
-            setEchoEnabled(false);
-        }
-        catch (Exception e) {
-            Log.error("Failed to disable echo: ", e);
-        }
-    }
-
+    @Override
     public int readVirtualKey(final InputStream in) throws IOException {
         int c = readCharacter(in);
         

@@ -8,6 +8,7 @@
 package jline;
 
 import static jline.WindowsTerminal.WindowsKey.*;
+import static jline.WindowsTerminal.ConsoleMode.*;
 import static jline.console.Key.*;
 import jline.internal.NativeLibrary;
 import jline.internal.ReplayPrefixOneCharInputStream;
@@ -59,45 +60,36 @@ public class WindowsTerminal
 
     public static final String WINDOWSBINDINGS_PROPERTIES = "windowsbindings.properties";
 
-    private static final String JLINE = "jline";
+    public static final String JLINE_NATIVE_LIBARARY = "jline";
 
-    private Boolean directConsole;
+    private boolean directConsole;
 
     private int originalMode;
 
-    private final ReplayPrefixOneCharInputStream replayStream = new ReplayPrefixOneCharInputStream(
-            System.getProperty(JLINE_WINDOWS_TERMINAL_INPUT_ENCODING, System.getProperty("file.encoding")));
+    private final ReplayPrefixOneCharInputStream replayStream;
 
     private final InputStreamReader replayReader;
 
     public WindowsTerminal() throws Exception {
         super(true);
-        String tmp = System.getProperty(JLINE_WINDOWS_TERMINAL_DIRECT_CONSOLE);
-        if (Boolean.TRUE.toString().equals(tmp)) {
-            setDirectConsole(true);
-        }
-        else if (Boolean.FALSE.toString().equals(tmp)) {
-            setDirectConsole(false);
-        }
 
-        replayReader = new InputStreamReader(replayStream, replayStream.getEncoding());
+        this.replayStream = new ReplayPrefixOneCharInputStream(System.getProperty(JLINE_WINDOWS_TERMINAL_INPUT_ENCODING, System.getProperty("file.encoding")));
+        this.replayReader = new InputStreamReader(replayStream, replayStream.getEncoding());
     }
 
+    @Override
     public void init() throws Exception {
-        NativeLibrary.load(JLINE);
+        super.init();
 
-        originalMode = getConsoleMode();
-
-        setConsoleMode(originalMode & ~ENABLE_ECHO_INPUT.code);
-
-        // set the console to raw mode
-        int newMode = originalMode & ~(ENABLE_LINE_INPUT.code | ENABLE_ECHO_INPUT.code | ENABLE_PROCESSED_INPUT.code | ENABLE_WINDOW_INPUT.code);
-        setEchoEnabled(false);
-        setConsoleMode(newMode);
+        NativeLibrary.load(JLINE_NATIVE_LIBARARY);
 
         setAnsiSupported(Boolean.getBoolean(WindowsTerminal.class.getName() + ".ansi"));
 
-        installShutdownHook(new RestoreHook());
+        setDirectConsole(Boolean.getBoolean(JLINE_WINDOWS_TERMINAL_DIRECT_CONSOLE));
+
+        this.originalMode = getConsoleMode();
+        setConsoleMode(originalMode & ~ENABLE_ECHO_INPUT.code);
+        setEchoEnabled(false);
     }
 
     /**
@@ -105,23 +97,70 @@ public class WindowsTerminal
      * shutting down the console reader. The ConsoleReader cannot be
      * used after calling this method.
      */
+    @Override
     public void restore() throws Exception {
         // restore the old console mode
         setConsoleMode(originalMode);
-        TerminalFactory.resetIf(this);
-        removeShutdownHook();
+        super.restore();
     }
-    
+
+    @Override
+    public int getWidth() {
+        int w = getWindowsTerminalWidth();
+        return w < 1 ? DEFAULT_WIDTH : w;
+    }
+
+    @Override
+    public int getHeight() {
+        int h = getWindowsTerminalHeight();
+        return h < 1 ? DEFAULT_HEIGHT : h;
+    }
+
+    @Override
+    public void setEchoEnabled(final boolean enabled) {
+        // Must set these four modes at the same time to make it work fine.
+        if (enabled) {
+            setConsoleMode(getConsoleMode() |
+                    ENABLE_ECHO_INPUT.code |
+                    ENABLE_LINE_INPUT.code |
+                    ENABLE_PROCESSED_INPUT.code |
+                    ENABLE_WINDOW_INPUT.code);
+        }
+        else {
+            setConsoleMode(getConsoleMode() &
+                  ~(ENABLE_LINE_INPUT.code |
+                    ENABLE_ECHO_INPUT.code |
+                    ENABLE_PROCESSED_INPUT.code |
+                    ENABLE_WINDOW_INPUT.code));
+        }
+        super.setEchoEnabled(enabled);
+    }
+
+    /**
+     * Whether or not to allow the use of the JNI console interaction.
+     */
+    public void setDirectConsole(final boolean flag) {
+        this.directConsole = flag;
+    }
+
+    /**
+     * Whether or not to allow the use of the JNI console interaction.
+     */
+    public Boolean getDirectConsole() {
+        return directConsole;
+    }
+
+
+    @Override
     public int readCharacter(final InputStream in) throws IOException {
         // if we can detect that we are directly wrapping the system
         // input, then bypass the input stream and read directly (which
         // allows us to access otherwise unreadable strokes, such as
         // the arrow keys)
-        if (directConsole == Boolean.FALSE) {
+        if (!directConsole) {
             return super.readCharacter(in);
         }
-        else if ((directConsole == Boolean.TRUE) || (in == System.in ||
-                (in instanceof FileInputStream && (((FileInputStream) in).getFD() == FileDescriptor.in)))) {
+        else if (isSystemIn(in)) {
             return readByte();
         }
         else {
@@ -129,6 +168,20 @@ public class WindowsTerminal
         }
     }
 
+    private boolean isSystemIn(final InputStream in) throws IOException {
+        assert in != null;
+
+        if (in == System.in) {
+            return true;
+        }
+        else if (in instanceof FileInputStream && ((FileInputStream)in).getFD() == FileDescriptor.in) {
+            return true;
+        }
+
+        return false;
+    }
+
+    @Override
     public int readVirtualKey(final InputStream in) throws IOException {
         int indicator = readCharacter(in);
 
@@ -189,46 +242,7 @@ public class WindowsTerminal
         return indicator;
     }
 
-    public boolean getEcho() {
-        return false;
-    }
-
-    public int getWidth() {
-        int w = getWindowsTerminalWidth();
-        return w < 1 ? DEFAULT_WIDTH : w;
-    }
-
-    public int getHeight() {
-        int h = getWindowsTerminalHeight();
-        return h < 1 ? DEFAULT_HEIGHT : h;
-    }
-
-    /**
-     * Whether or not to allow the use of the JNI console interaction.
-     */
-    public void setDirectConsole(final boolean flag) {
-        this.directConsole = flag;
-    }
-
-    /**
-     * Whether or not to allow the use of the JNI console interaction.
-     */
-    public Boolean getDirectConsole() {
-        return directConsole;
-    }
-
-    public synchronized void enableEcho() {
-        // Must set these four modes at the same time to make it work fine.
-        setConsoleMode(getConsoleMode() | ENABLE_ECHO_INPUT.code | ENABLE_LINE_INPUT.code | ENABLE_PROCESSED_INPUT.code | ENABLE_WINDOW_INPUT.code);
-        setEchoEnabled(true);
-    }
-
-    public synchronized void disableEcho() {
-        // Must set these four modes at the same time to make it work fine.
-        setConsoleMode(getConsoleMode() & ~(ENABLE_LINE_INPUT.code | ENABLE_ECHO_INPUT.code| ENABLE_PROCESSED_INPUT.code | ENABLE_WINDOW_INPUT.code));
-        setEchoEnabled(true);
-    }
-
+    @Override
     public InputStream getDefaultBindings() {
         return getClass().getResourceAsStream(WINDOWSBINDINGS_PROPERTIES);
     }
@@ -248,11 +262,11 @@ public class WindowsTerminal
     private native int getWindowsTerminalHeight();
 
     /**
-     * Windows keys.
+     * Console mode
      *
      * Constants copied <tt>wincon.h</tt>.
      */
-    public static enum WindowsKey
+    public static enum ConsoleMode
     {
         /**
          * The ReadFile or ReadConsole function returns only when a carriage return
@@ -310,7 +324,22 @@ public class WindowsTerminal
          * ENABLE_EXTENDED_FLAGS.
          */
         ENABLE_WRAP_AT_EOL_OUTPUT(2),
+        ;
 
+        public final int code;
+
+        ConsoleMode(final int code) {
+            this.code = code;
+        }
+    }
+
+    /**
+     * Windows keys.
+     *
+     * Constants copied <tt>wincon.h</tt>.
+     */
+    public static enum WindowsKey
+    {
         /**
          * On windows terminals, this character indicates that a 'special' key has
          * been pressed. This means that a key such as an arrow key, or delete, or
