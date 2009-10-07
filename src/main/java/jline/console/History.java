@@ -42,9 +42,4 @@ public interface History
     boolean moveToLast();
 
     void moveToEnd();
-
-    // TODO: Should this be here?
-    void setMaxSize(int maxSize);
-
-    int getMaxSize();
 }
