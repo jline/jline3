@@ -95,6 +95,7 @@ public class CandidateListCompletionHandler
             if (!eagerNewlines) {
                 reader.printNewline();
             }
+            //noinspection StringConcatenation
             reader.printString(MessageFormat.format(loc.getString("display-candidates"), candidates.size()) + " ");
             reader.flushConsole();
 
