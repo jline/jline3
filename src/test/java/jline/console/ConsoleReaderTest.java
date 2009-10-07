@@ -41,7 +41,7 @@ public class ConsoleReaderTest
     }
 
     private History createSeededHistory() {
-        History history = new SimpleHistory();
+        History history = new FileHistory();
         history.add("dir");
         history.add("cd c:\\");
         history.add("mkdir monkey");

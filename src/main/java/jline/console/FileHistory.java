@@ -22,14 +22,14 @@ import java.util.LinkedList;
 import java.util.List;
 
 /**
- * A command history buffer.
+ * Simple command history using a file for persistent backing.
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  *
  * @since 2.0
  */
-public class SimpleHistory
+public class FileHistory
     implements History
 {
     public static final int DEFAULT_MAX_SIZE = 500;
@@ -38,14 +38,16 @@ public class SimpleHistory
 
     private PrintWriter output;
 
+    private File file;
+
     private int maxSize = DEFAULT_MAX_SIZE;
 
-    private int currentIndex = 0;
+    private int index = 0;
 
     /**
      * Construstor: initialize a blank history.
      */
-    public SimpleHistory() {
+    public FileHistory() {
         // nothing
     }
 
@@ -53,8 +55,8 @@ public class SimpleHistory
      * Construstor: initialize History object the the specified {@link java.io.File} for
      * storage.
      */
-    public SimpleHistory(final File file) throws IOException {
-        setHistoryFile(file);
+    public FileHistory(final File file) throws IOException {
+        setFile(file);
     }
 
     /**
@@ -85,7 +87,7 @@ public class SimpleHistory
         }
     }
 
-    public void setHistoryFile(final File file) throws IOException {
+    public void setFile(final File file) throws IOException {
         assert file != null;
 
         if (file.isFile()) {
@@ -94,18 +96,18 @@ public class SimpleHistory
 
         setOutput(new PrintWriter(new FileWriter(file), true));
         flush();
+
+        this.file = file;
     }
 
-    /**
-     * Load the history buffer from the specified InputStream.
-     */
+    public File getFile() {
+        return file;
+    }
+
     public void load(final InputStream in) throws IOException {
         load(new InputStreamReader(in));
     }
 
-    /**
-     * Load the history buffer from the specified Reader.
-     */
     public void load(final Reader reader) throws IOException {
         BufferedReader breader = new BufferedReader(reader);
         List<String> lines = new ArrayList<String>();
@@ -129,7 +131,7 @@ public class SimpleHistory
      */
     public void clear() {
         items.clear();
-        currentIndex = 0;
+        index = 0;
     }
 
     /**
@@ -150,14 +152,14 @@ public class SimpleHistory
      * Get the maximum size that the history buffer will store.
      */
     public int getMaxSize() {
-        return this.maxSize;
+        return maxSize;
     }
 
     /**
      * Returns the current history index.
      */
-    public int getCurrentIndex() {
-        return this.currentIndex;
+    public int index() {
+        return index;
     }
     
     /**
@@ -168,7 +170,7 @@ public class SimpleHistory
         assert item != null;
 
         // don't append duplicates to the end of the buffer
-        if ((items.size() != 0) && item.equals(items.get(items.size() - 1))) {
+        if (!items.isEmpty() && item.equals(items.get(items.size() - 1))) {
             return;
         }
 
@@ -178,7 +180,7 @@ public class SimpleHistory
             items.remove(0);
         }
 
-        currentIndex = items.size();
+        index = items.size();
 
         PrintWriter out = getOutput();
         if (out != null) {
@@ -194,10 +196,10 @@ public class SimpleHistory
      * @return Returns false if there were no history entries or the history
      *         index was already at the last entry.
      */
-    public boolean moveToLastEntry() {
+    public boolean moveToLast() {
         int lastEntry = items.size() - 1;
-        if (lastEntry >= 0 && lastEntry != currentIndex) {
-            currentIndex = items.size() - 1;
+        if (lastEntry >= 0 && lastEntry != index) {
+            index = items.size() - 1;
             return true;
         }
 
@@ -210,9 +212,9 @@ public class SimpleHistory
      * @return Return false if there are no entries in the history or if the
      *         history is already at the beginning.
      */
-    public boolean moveToFirstEntry() {
-        if (items.size() > 0 && currentIndex != 0) {
-            currentIndex = 0;
+    public boolean moveToFirst() {
+        if (items.size() > 0 && index != 0) {
+            index = 0;
             return true;
         }
 
@@ -224,18 +226,18 @@ public class SimpleHistory
      * all of the other entries.
      */
     public void moveToEnd() {
-        currentIndex = items.size();
+        index = items.size();
     }
 
     /**
      * Return the content of the current buffer.
      */
     public String current() {
-        if (currentIndex >= items.size()) {
+        if (index >= items.size()) {
             return "";
         }
 
-        return items.get(currentIndex);
+        return items.get(index);
     }
 
     /**
@@ -244,11 +246,11 @@ public class SimpleHistory
      * @return true if we successfully went to the previous element
      */
     public boolean previous() {
-        if (currentIndex <= 0) {
+        if (index <= 0) {
             return false;
         }
 
-        currentIndex--;
+        index--;
 
         return true;
     }
@@ -259,19 +261,16 @@ public class SimpleHistory
      * @return true if we successfully went to the next element
      */
     public boolean next() {
-        if (currentIndex >= items.size()) {
+        if (index >= items.size()) {
             return false;
         }
 
-        currentIndex++;
+        index++;
 
         return true;
     }
 
-    /**
-     * Returns the standard {@link java.util.AbstractCollection#toString} representation
-     * of the history list.
-     */
+    @Override
     public String toString() {
         return items.toString();
     }

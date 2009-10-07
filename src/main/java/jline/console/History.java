@@ -29,21 +29,22 @@ public interface History
 
     void add(String item);
 
-    void setMaxSize(int maxSize);
-
-    int getMaxSize();
-    
-    boolean moveToFirstEntry();
-    
-    boolean moveToLastEntry();
-
-    void moveToEnd();
-
-    int getCurrentIndex();
+    int index();
     
     String current();
     
     boolean previous();
     
     boolean next();
+
+    boolean moveToFirst();
+
+    boolean moveToLast();
+
+    void moveToEnd();
+
+    // TODO: Should this be here?
+    void setMaxSize(int maxSize);
+
+    int getMaxSize();
 }

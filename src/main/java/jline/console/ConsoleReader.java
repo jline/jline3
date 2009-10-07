@@ -81,7 +81,7 @@ public class ConsoleReader
 
     private final CursorBuffer buf = new CursorBuffer();
 
-    private History history = new SimpleHistory();
+    private History history = new FileHistory();
 
     private final List<Completer> completers = new LinkedList<Completer>();
 
@@ -652,14 +652,14 @@ public class ConsoleReader
                         break;
 
                     case START_OF_HISTORY:
-                        success = history.moveToFirstEntry();
+                        success = history.moveToFirst();
                         if (success) {
                             setBuffer(history.current());
                         }
                         break;
 
                     case END_OF_HISTORY:
-                        success = history.moveToLastEntry();
+                        success = history.moveToLast();
                         if (success) {
                             setBuffer(history.current());
                         }
