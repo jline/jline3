@@ -30,8 +30,7 @@ import java.util.Set;
 public class CandidateListCompletionHandler
     implements CompletionHandler
 {
-    // TODO: handle quotes and escaped quotes
-    //       enable automatic escaping of whitespace
+    // TODO: handle quotes and escaped quotes && enable automatic escaping of whitespace
 
     private static ResourceBundle loc = ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName());
 
@@ -103,16 +102,16 @@ public class CandidateListCompletionHandler
 
             String noOpt = loc.getString("display-candidates-no");
             String yesOpt = loc.getString("display-candidates-yes");
+            char[] allowed = { yesOpt.charAt(0), noOpt.charAt(0) };
 
-            while ((c = reader.readCharacter(new char[]{
-                yesOpt.charAt(0), noOpt.charAt(0)})) != -1) {
-                if (noOpt.startsWith
-                    (new String(new char[]{(char) c}))) {
+            while ((c = reader.readCharacter(allowed)) != -1) {
+                String tmp = new String(new char[]{(char) c});
+
+                if (noOpt.startsWith(tmp)) {
                     reader.printNewline();
                     return;
                 }
-                else if (yesOpt.startsWith
-                    (new String(new char[]{(char) c}))) {
+                else if (yesOpt.startsWith(tmp)) {
                     break;
                 }
                 else {
@@ -127,7 +126,7 @@ public class CandidateListCompletionHandler
             Collection<String> copy = new ArrayList<String>();
 
             for (String next : candidates) {
-                if (!(copy.contains(next))) {
+                if (!copy.contains(next)) {
                     copy.add(next);
                 }
             }
@@ -147,7 +146,7 @@ public class CandidateListCompletionHandler
      * method will return <i>foob</i>.
      */
     private String getUnambiguousCompletions(final List<String> candidates) {
-        if ((candidates == null) || (candidates.size() == 0)) {
+        if (candidates == null || candidates.isEmpty()) {
             return null;
         }
 
