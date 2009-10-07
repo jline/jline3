@@ -81,7 +81,7 @@ public class ConsoleReader
 
     private final CursorBuffer buf = new CursorBuffer();
 
-    private History history = new FileHistory();
+    private History history = new MemoryHistory();
 
     private final List<Completer> completers = new LinkedList<Completer>();
 
