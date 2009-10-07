@@ -19,6 +19,8 @@
 
 package jline.internal;
 
+import java.io.PrintStream;
+
 /**
  * Jline logger.
  *
@@ -45,6 +47,17 @@ public final class Log
     @SuppressWarnings({ "StringConcatenation" })
     public static final boolean TRACE = Boolean.getBoolean(Log.class.getName() + ".trace");
 
+    private static PrintStream output = System.err;
+
+    public static PrintStream getOutput() {
+        return output;
+    }
+
+    public static void setOutput(final PrintStream output) {
+        assert output != null;
+        Log.output = output;
+    }
+
     private static void print(final Object message) {
         if (message instanceof Throwable) {
             ((Throwable)message).printStackTrace();
@@ -53,27 +66,28 @@ public final class Log
             Object[] array = (Object[])message;
 
             for (int i=0; i<array.length; i++) {
-                System.err.print(array[i]);
+                output.print(array[i]);
                 if (i+1<array.length) {
-                    System.err.print(",");
+                    output.print(",");
                 }
             }
         }
         else {
-            System.err.print(message);
+            output.print(message);
         }
     }
 
     private static void log(final Level level, final Object[] messages) {
-        synchronized (System.err) {
-            System.err.format("[%s] ", level);
+        //noinspection SynchronizeOnNonFinalField
+        synchronized (output) {
+            output.format("[%s] ", level);
 
             for (Object message : messages) {
                 print(message);
             }
 
-            System.err.println();
-            System.err.flush();
+            output.println();
+            output.flush();
         }
     }
 
@@ -90,14 +104,10 @@ public final class Log
     }
 
     public static void warn(final Object... messages) {
-        synchronized (System.err) {
-            log(Level.WARN, messages);
-        }
+        log(Level.WARN, messages);
     }
 
     public static void error(final Object... messages) {
-        synchronized (System.err) {
-            log(Level.ERROR, messages);
-        }
+        log(Level.ERROR, messages);
     }
 }
