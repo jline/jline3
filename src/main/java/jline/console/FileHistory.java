@@ -23,6 +23,9 @@ import java.io.Reader;
 /**
  * {@link History} using a file for persistent backing.
  *
+ * Implementors should install shutdown hook to call {@link FileHistory#flush}
+ * to save history to disk.
+ *
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  *
  * @since 2.0
@@ -45,9 +48,8 @@ public class FileHistory
 
     public void load(final File file) throws IOException {
         assert file != null;
-        assert file.isFile();
-
         if (file.exists()) {
+            Log.trace("Loading history from: ", file);
             load(new FileInputStream(file));
         }
     }
