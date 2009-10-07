@@ -1498,7 +1498,6 @@ public class ConsoleReader
         return c;
     }
 
-
     /**
      * Issue <em>num</em> deletes.
      *
