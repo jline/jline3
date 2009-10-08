@@ -24,13 +24,17 @@ import java.util.StringTokenizer;
  */
 public final class TerminalLineSettings
 {
-    public static final String JLINE_STTY_COMMAND = "jline.sttyCommand";
+    public static final String JLINE_STTY = "jline.stty";
 
     public static final String DEFAULT_STTY = "stty";
 
+    public static final String JLINE_SH = "jline.sh";
+
     public static final String DEFAULT_SH = "sh";
 
-    private static String command = System.getProperty(JLINE_STTY_COMMAND, DEFAULT_STTY);
+    private static String sttyCommand = System.getProperty(JLINE_STTY, DEFAULT_STTY);
+
+    private static String shCommand = System.getProperty(JLINE_SH, DEFAULT_SH);
 
     private String config;
 
@@ -51,23 +55,6 @@ public final class TerminalLineSettings
 
     public void restore() throws IOException, InterruptedException {
         set("sane");
-    }
-
-    /**
-     * The command to use to set the terminal options. Defaults
-     * to "stty", or the value of the system property "jline.sttyCommand".
-     */
-    public static void setCommand(final String cmd) {
-        assert cmd != null;
-        command = cmd;
-    }
-
-    /**
-     * The command to use to set the terminal options. Defaults
-     * to "stty", or the value of the system property "jline.sttyCommand".
-     */
-    public static String getCommand() {
-        return command;
     }
 
     public String get(final String args) throws IOException, InterruptedException {
@@ -110,12 +97,12 @@ public final class TerminalLineSettings
 
     private static String stty(final String args) throws IOException, InterruptedException {
         assert args != null;
-        return exec(String.format("%s %s < /dev/tty", getCommand(), args));
+        return exec(String.format("%s %s < /dev/tty", sttyCommand, args));
     }
 
     private static String exec(final String cmd) throws IOException, InterruptedException {
         assert cmd != null;
-        return exec(DEFAULT_SH, "-c", cmd);
+        return exec(shCommand, "-c", cmd);
     }
 
     private static String exec(final String... cmd) throws IOException, InterruptedException {
