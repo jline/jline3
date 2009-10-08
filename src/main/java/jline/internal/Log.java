@@ -22,7 +22,7 @@ package jline.internal;
 import java.io.PrintStream;
 
 /**
- * Jline logger.
+ * Internal logger.
  *
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  *
@@ -53,9 +53,9 @@ public final class Log
         return output;
     }
 
-    public static void setOutput(final PrintStream output) {
-        assert output != null;
-        Log.output = output;
+    public static void setOutput(final PrintStream out) {
+        assert out != null;
+        output = out;
     }
 
     private static void print(final Object message) {
