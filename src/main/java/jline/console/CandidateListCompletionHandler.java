@@ -62,7 +62,7 @@ public class CandidateListCompletionHandler
         }
 
         if (eagerNewlines) {
-            reader.printNewline();
+            reader.println();
         }
         printCandidates(reader, candidates, eagerNewlines);
 
@@ -82,9 +82,8 @@ public class CandidateListCompletionHandler
     }
 
     /**
-     * Print out the candidates. If the size of the candidates
-     * is greated than the {@link getAutoprintThreshhold},
-     * they prompt with aq warning.
+     * Print out the candidates. If the size of the candidates is greater than the
+     * {@link ConsoleReader#getAutoprintThreshhold}, they prompt with a warning.
      *
      * @param candidates the list of candidates to print
      */
@@ -93,7 +92,7 @@ public class CandidateListCompletionHandler
 
         if (distinct.size() > reader.getAutoprintThreshhold()) {
             if (!eagerNewlines) {
-                reader.printNewline();
+                reader.println();
             }
             //noinspection StringConcatenation
             reader.printString(MessageFormat.format(loc.getString("display-candidates"), candidates.size()) + " ");
@@ -109,7 +108,7 @@ public class CandidateListCompletionHandler
                 String tmp = new String(new char[]{(char) c});
 
                 if (noOpt.startsWith(tmp)) {
-                    reader.printNewline();
+                    reader.println();
                     return;
                 }
                 else if (yesOpt.startsWith(tmp)) {
@@ -121,8 +120,7 @@ public class CandidateListCompletionHandler
             }
         }
 
-        // copy the values and make them distinct, without otherwise
-        // affecting the ordering. Only do it if the sizes differ.
+        // copy the values and make them distinct, without otherwise affecting the ordering. Only do it if the sizes differ.
         if (distinct.size() != candidates.size()) {
             Collection<String> copy = new ArrayList<String>();
 
@@ -135,16 +133,14 @@ public class CandidateListCompletionHandler
             candidates = copy;
         }
 
-        reader.printNewline();
+        reader.println();
         reader.printColumns(candidates);
     }
 
     /**
-     * Returns a root that matches all the {@link String} elements
-     * of the specified {@link List}, or null if there are
-     * no commalities. For example, if the list contains
-     * <i>foobar</i>, <i>foobaz</i>, <i>foobuz</i>, the
-     * method will return <i>foob</i>.
+     * Returns a root that matches all the {@link String} elements of the specified {@link List},
+     * or null if there are no commonalities. For example, if the list contains
+     * <i>foobar</i>, <i>foobaz</i>, <i>foobuz</i>, the method will return <i>foob</i>.
      */
     private String getUnambiguousCompletions(final List<String> candidates) {
         if (candidates == null || candidates.isEmpty()) {

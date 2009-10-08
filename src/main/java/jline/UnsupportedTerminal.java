@@ -7,11 +7,6 @@
 
 package jline;
 
-import jline.console.ConsoleReader;
-
-import java.io.IOException;
-import java.io.Writer;
-
 /**
  * An unsupported terminal.
  *
@@ -23,54 +18,9 @@ import java.io.Writer;
 public class UnsupportedTerminal
     extends TerminalSupport
 {
-    private Thread maskThread;
-
     public UnsupportedTerminal() {
         super(false);
         setAnsiSupported(false);
         setEchoEnabled(true);
-    }
-
-    @Override
-    public void beforeReadLine(final ConsoleReader reader, final String prompt, final Character mask) {
-        if (mask != null && maskThread == null) {
-            final String fullPrompt = "\r" + prompt
-                + "                 "
-                + "                 "
-                + "                 "
-                + "\r" + prompt;
-
-            maskThread = new Thread() {
-                public void run() {
-                    while (!interrupted()) {
-                        try {
-                            Writer out = reader.getOutput();
-                            out.write(fullPrompt);
-                            out.flush();
-                            sleep(3);
-                        }
-                        catch (IOException e) {
-                            return;
-                        }
-                        catch (InterruptedException e) {
-                            return;
-                        }
-                    }
-                }
-            };
-
-            maskThread.setPriority(Thread.MAX_PRIORITY);
-            maskThread.setDaemon(true);
-            maskThread.start();
-        }
-    }
-
-    @Override
-    public void afterReadLine(final ConsoleReader reader, final String prompt, final Character mask) {
-        if (maskThread != null && maskThread.isAlive()) {
-            maskThread.interrupt();
-        }
-
-        maskThread = null;
     }
 }

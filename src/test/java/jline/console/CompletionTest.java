@@ -24,11 +24,11 @@ public class CompletionTest
     @Test
     public void testSimpleCompletor() throws Exception {
         // clear any current completers
-        for (Iterator i = console.getCompleters().iterator(); i.hasNext(); console.removeCompletor((Completer) i.next())) {
+        for (Iterator i = console.getCompleters().iterator(); i.hasNext(); console.removeCompleter((Completer) i.next())) {
             // empty
         }
 
-        console.addCompletor(new StringsCompleter("foo", "bar", "baz"));
+        console.addCompleter(new StringsCompleter("foo", "bar", "baz"));
 
         assertBuffer("foo ", new Buffer("f").op(COMPLETE));
         // single tab completes to unabbiguous "ba"
@@ -40,11 +40,11 @@ public class CompletionTest
     @Test
     public void testArgumentCompletor() throws Exception {
         // clear any current completers
-        for (Iterator i = console.getCompleters().iterator(); i.hasNext(); console.removeCompletor((Completer) i.next())) {
+        for (Iterator i = console.getCompleters().iterator(); i.hasNext(); console.removeCompleter((Completer) i.next())) {
             // empty
         }
 
-        console.addCompletor(new ArgumentCompleter(new StringsCompleter("foo", "bar", "baz")));
+        console.addCompleter(new ArgumentCompleter(new StringsCompleter("foo", "bar", "baz")));
 
         assertBuffer("foo foo ", new Buffer("foo f").op(COMPLETE));
         assertBuffer("foo ba", new Buffer("foo b").op(COMPLETE));

@@ -248,10 +248,10 @@ public class ConsoleReader
     }
 
     /**
-     * @param flag if true, enable audible keyboard bells if an alert is required.
+     * @param enabled if true, enable audible keyboard bells if an alert is required.
      */
-    public void setBellEnabled(final boolean flag) {
-        this.bellEnabled = flag;
+    public void setBellEnabled(final boolean enabled) {
+        this.bellEnabled = enabled;
     }
 
     /**
@@ -268,7 +268,7 @@ public class ConsoleReader
      * @param completer the {@link Completer} to add
      * @return true if it was successfully added
      */
-    public boolean addCompletor(final Completer completer) {
+    public boolean addCompleter(final Completer completer) {
         return completers.add(completer);
     }
 
@@ -279,7 +279,7 @@ public class ConsoleReader
      * @param completer the {@link Completer} to remove
      * @return true if it was successfully removed
      */
-    public boolean removeCompletor(final Completer completer) {
+    public boolean removeCompleter(final Completer completer) {
         return completers.remove(completer);
     }
 
@@ -335,30 +335,25 @@ public class ConsoleReader
     }
 
     /**
-     * <p>
-     * Set the echo character. For example, to have "*" entered when a password
-     * is typed:
-     * </p>
-     * <p/>
+     * Set the echo character. For example, to have "*" entered when a password is typed:
+     *
      * <pre>
      * myConsoleReader.setEchoCharacter(new Character('*'));
      * </pre>
-     * <p/>
-     * <p>
+     *
      * Setting the character to
-     * <p/>
+     *
      * <pre>
      * null
      * </pre>
-     * <p/>
+     *
      * will restore normal character echoing. Setting the character to
-     * <p/>
+     *
      * <pre>
      * new Character(0)
      * </pre>
-     * <p/>
+     *
      * will cause nothing to be echoed.
-     * </p>
      *
      * @param c the character to echo to the console in place of the typed
      *                      character.
@@ -506,7 +501,7 @@ public class ConsoleReader
 
     int getCursorPosition() {
         // FIXME: does not handle anything but a line with a prompt absolute position
-        return ((prompt == null) ? 0 : prompt.length()) + buf.cursor;
+        return (prompt == null ? 0 : prompt.length()) + buf.cursor;
     }
 
     /**
@@ -543,7 +538,9 @@ public class ConsoleReader
         }
 
         try {
-            terminal.beforeReadLine(this, this.prompt, mask);
+            if (!terminal.isSupported()) {
+                beforeReadLine(prompt, mask);
+            }
 
             if ((this.prompt != null) && (this.prompt.length() > 0)) {
                 out.write(this.prompt);
@@ -601,7 +598,7 @@ public class ConsoleReader
 
                     case NEWLINE: // enter
                         moveToEnd();
-                        printNewline(); // output newline
+                        println(); // output newline
                         return finishBuffer();
 
                     case DELETE_PREV_CHAR: // backspace
@@ -698,7 +695,9 @@ public class ConsoleReader
             }
         }
         finally {
-            terminal.afterReadLine(this, this.prompt, mask);
+            if (!terminal.isSupported()) {
+                afterReadLine(prompt, mask);
+            }
         }
     }
 
@@ -943,7 +942,7 @@ public class ConsoleReader
         for (String cur : stuff) {
             if ((line.length() + maxwidth) > width) {
                 printString(line.toString().trim());
-                printNewline();
+                println();
                 line.setLength(0);
                 if (--showLines == 0) { // Overflow
                     printString(loc.getString("display-more"));
@@ -968,7 +967,7 @@ public class ConsoleReader
 
         if (line.length() > 0) {
             printString(line.toString().trim());
-            printNewline();
+            println();
             line.setLength(0);
         }
     }
@@ -1073,7 +1072,7 @@ public class ConsoleReader
     /**
      * Output a platform-dependant newline.
      */
-    public final void printNewline() throws IOException {
+    public final void println() throws IOException {
         printString(CR);
         flushConsole();
     }
@@ -1548,5 +1547,48 @@ public class ConsoleReader
      */
     private boolean isDelimiter(final char c) {
         return !Character.isLetterOrDigit(c);
+    }
+
+    private Thread maskThread;
+
+    private void beforeReadLine(final String prompt, final Character mask) {
+        if (mask != null && maskThread == null) {
+            final String fullPrompt = "\r" + prompt
+                + "                 "
+                + "                 "
+                + "                 "
+                + "\r" + prompt;
+
+            maskThread = new Thread() {
+                public void run() {
+                    while (!interrupted()) {
+                        try {
+                            Writer out = getOutput();
+                            out.write(fullPrompt);
+                            out.flush();
+                            sleep(3);
+                        }
+                        catch (IOException e) {
+                            return;
+                        }
+                        catch (InterruptedException e) {
+                            return;
+                        }
+                    }
+                }
+            };
+
+            maskThread.setPriority(Thread.MAX_PRIORITY);
+            maskThread.setDaemon(true);
+            maskThread.start();
+        }
+    }
+
+    private void afterReadLine(final String prompt, final Character mask) {
+        if (maskThread != null && maskThread.isAlive()) {
+            maskThread.interrupt();
+        }
+
+        maskThread = null;
     }
 }

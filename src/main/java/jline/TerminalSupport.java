@@ -121,14 +121,6 @@ public abstract class TerminalSupport
         return readCharacter(in);
     }
 
-    public void beforeReadLine(final ConsoleReader reader, final String prompt, final Character mask) {
-        // nothing
-    }
-
-    public void afterReadLine(final ConsoleReader reader, final String prompt, final Character mask) {
-        // nothing
-    }
-
     public InputStream getDefaultBindings() {
         return TerminalSupport.class.getResourceAsStream(DEFAULT_KEYBINDINGS_PROPERTIES);
     }

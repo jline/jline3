@@ -7,8 +7,6 @@
 
 package jline;
 
-import jline.console.ConsoleReader;
-
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -43,10 +41,4 @@ public interface Terminal
     int readVirtualKey(InputStream in) throws IOException;
 
     InputStream getDefaultBindings();
-
-    // TODO: Move to ConsoleCallback or something
-
-    void beforeReadLine(ConsoleReader reader, String prompt, Character mask);
-
-    void afterReadLine(ConsoleReader reader, String prompt, Character mask);
 }
