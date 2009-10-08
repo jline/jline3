@@ -27,16 +27,24 @@ import java.text.MessageFormat;
  */
 public final class NativeLibrary
 {
+    public static final String I386 = "i386";
+
+    public static final String X86 = "x86";
+
+    public static final String DOT_DLL = ".dll";
+    
+    public static final String DOT_TMP = ".tmp";
+
     public static File load(final String name) throws IOException {
         assert name != null;
 
-        String libname = System.mapLibraryName(name);
+        String libName = System.mapLibraryName(name);
         String arch = System.getProperty("os.arch");
-        if ("i386".equals(arch)) {
-            arch = "x86";
+        if (I386.equals(arch)) {
+            arch = X86;
         }
 
-        String resourceName = MessageFormat.format("/jline/win32-{0}/{1}", arch, libname);
+        String resourceName = MessageFormat.format("/jline/win32-{0}/{1}", arch, libName);
         URL url = NativeLibrary.class.getResource(resourceName);
 
         InputStream is = url.openStream();
@@ -45,7 +53,7 @@ public final class NativeLibrary
         }
 
         // Figure out where our tmp files will go
-        File tmp = File.createTempFile(name, ".tmp");
+        File tmp = File.createTempFile(name, DOT_TMP);
         File dir = new File(tmp.getParentFile(), name);
 
         //noinspection ResultOfMethodCallIgnored
@@ -65,7 +73,7 @@ public final class NativeLibrary
         File lib;
         OutputStream os = null;
         try {
-            lib = File.createTempFile(name, ".dll", dir);
+            lib = File.createTempFile(name, DOT_DLL, dir);
             lib.deleteOnExit();
 
             os = new BufferedOutputStream(new FileOutputStream(lib));
