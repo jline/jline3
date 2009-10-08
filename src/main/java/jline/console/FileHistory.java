@@ -12,8 +12,8 @@ import jline.internal.Log;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -50,7 +50,7 @@ public class FileHistory
         assert file != null;
         if (file.exists()) {
             Log.trace("Loading history from: ", file);
-            load(new FileInputStream(file));
+            load(new FileReader(file));
         }
     }
 
@@ -70,7 +70,7 @@ public class FileHistory
     }
 
     public void flush() throws IOException {
-        Log.trace("Flusing history");
+        Log.trace("Flushing history");
 
         if (!file.exists()) {
             if (!file.getParentFile().mkdirs()) {
