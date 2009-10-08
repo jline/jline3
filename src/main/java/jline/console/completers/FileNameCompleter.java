@@ -85,7 +85,7 @@ public class FileNameCompleter
     }
 
     protected File getUserDir() {
-        return new File(System.getProperty(""));
+        return new File(".");
     }
 
     public int matchFiles(final String buffer, final String translated, final File[] files, final List<String> candidates) {
