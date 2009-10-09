@@ -31,13 +31,6 @@ public class CursorBuffer
         overTyping = b;
     }
 
-    public void setBuffer(final StringBuilder buffer) {
-        buffer.setLength(0);
-        buffer.append(this.buffer);
-
-        this.buffer = buffer;
-    }
-
     public int length() {
         return buffer.length();
     }
@@ -50,20 +43,10 @@ public class CursorBuffer
         return buffer.charAt(cursor - 1);
     }
 
-    public boolean clearBuffer() {
-        if (buffer.length() == 0) {
-            return false;
-        }
-
-        buffer.delete(0, buffer.length());
-        cursor = 0;
-        return true;
-    }
-
     /**
      * Write the specific character into the buffer, setting the cursor position
      * ahead one. The text may overwrite or insert based on the current setting
-     * of isOvertyping().
+     * of {@linke #isOverTyping}.
      *
      * @param c the character to insert
      */
@@ -75,7 +58,7 @@ public class CursorBuffer
     }
 
     /**
-     * Insert the specified {@link String} into the buffer, setting the cursor
+     * Insert the specified string into the buffer, setting the cursor
      * to the end of the insertion point.
      *
      * @param str the String to insert. Must not be null.
