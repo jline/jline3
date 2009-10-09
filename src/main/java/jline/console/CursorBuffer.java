@@ -58,12 +58,11 @@ public class CursorBuffer
     }
 
     /**
-     * Insert the specified string into the buffer, setting the cursor
-     * to the end of the insertion point.
-     *
-     * @param str the String to insert. Must not be null.
+     * Insert the specified chars into the buffer, setting the cursor to the end of the insertion point.
      */
-    public void write(final String str) {
+    public void write(final CharSequence str) {
+        assert str != null;
+
         if (buffer.length() == 0) {
             buffer.append(str);
         }
