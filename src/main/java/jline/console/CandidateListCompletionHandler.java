@@ -31,16 +31,6 @@ public class CandidateListCompletionHandler
 {
     // TODO: handle quotes and escaped quotes && enable automatic escaping of whitespace
 
-    private boolean eagerNewlines = true;
-
-    public boolean isEagerNewlines() {
-        return eagerNewlines;
-    }
-
-    public void setEagerNewlines(final boolean flag) {
-        this.eagerNewlines = flag;
-    }
-
     public boolean complete(final ConsoleReader reader, final List<CharSequence> candidates, final int pos) throws IOException {
         CursorBuffer buf = reader.getCursorBuffer();
 
@@ -62,10 +52,8 @@ public class CandidateListCompletionHandler
             setBuffer(reader, value, pos);
         }
 
-        if (isEagerNewlines()) {
-            reader.println();
-        }
-        printCandidates(reader, candidates, isEagerNewlines());
+        reader.println();
+        printCandidates(reader, candidates);
 
         // redraw the current console buffer
         reader.drawLine();
@@ -88,13 +76,10 @@ public class CandidateListCompletionHandler
      *
      * @param candidates the list of candidates to print
      */
-    public static void printCandidates(final ConsoleReader reader, Collection<CharSequence> candidates, final boolean eagerNewlines) throws IOException {
+    public static void printCandidates(final ConsoleReader reader, Collection<CharSequence> candidates) throws IOException {
         Set<CharSequence> distinct = new HashSet<CharSequence>(candidates);
 
         if (distinct.size() > reader.getAutoprintThreshhold()) {
-            if (!eagerNewlines) {
-                reader.println();
-            }
             //noinspection StringConcatenation
             reader.print(Messages.DISPLAY_CANDIDATES.format(candidates.size()));
             reader.flush();
