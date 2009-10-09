@@ -7,9 +7,24 @@
 
 package jline;
 
-import static jline.UnixTerminal.UnixKey.*;
+import static jline.UnixTerminal.UnixKey.ARROW_DOWN;
+import static jline.UnixTerminal.UnixKey.ARROW_LEFT;
+import static jline.UnixTerminal.UnixKey.ARROW_PREFIX;
+import static jline.UnixTerminal.UnixKey.ARROW_RIGHT;
+import static jline.UnixTerminal.UnixKey.ARROW_START;
+import static jline.UnixTerminal.UnixKey.ARROW_UP;
+import static jline.UnixTerminal.UnixKey.DEL_THIRD;
+import static jline.UnixTerminal.UnixKey.END_CODE;
+import static jline.UnixTerminal.UnixKey.HOME_CODE;
+import static jline.UnixTerminal.UnixKey.O_PREFIX;
 import jline.console.Key;
-import static jline.console.Key.*;
+import static jline.console.Key.CTRL_A;
+import static jline.console.Key.CTRL_B;
+import static jline.console.Key.CTRL_E;
+import static jline.console.Key.CTRL_F;
+import static jline.console.Key.CTRL_N;
+import static jline.console.Key.CTRL_P;
+import static jline.console.Key.DELETE;
 import jline.internal.Log;
 import jline.internal.ReplayPrefixOneCharInputStream;
 import jline.internal.TerminalLineSettings;

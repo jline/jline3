@@ -7,7 +7,6 @@
 
 package jline;
 
-import jline.console.ConsoleReader;
 import jline.internal.Log;
 
 import java.io.IOException;

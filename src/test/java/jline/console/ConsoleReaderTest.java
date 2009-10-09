@@ -2,10 +2,21 @@ package jline.console;
 
 import jline.TerminalFactory;
 import jline.WindowsTerminal;
-import static jline.console.Operation.*;
-import static jline.WindowsTerminal.WindowsKey.*;
+import static jline.WindowsTerminal.WindowsKey.DELETE_KEY;
+import static jline.WindowsTerminal.WindowsKey.END_KEY;
+import static jline.WindowsTerminal.WindowsKey.ESCAPE_KEY;
+import static jline.WindowsTerminal.WindowsKey.HOME_KEY;
+import static jline.WindowsTerminal.WindowsKey.INSERT_KEY;
+import static jline.WindowsTerminal.WindowsKey.LEFT_ARROW_KEY;
+import static jline.WindowsTerminal.WindowsKey.NUMPAD_KEY_INDICATOR;
+import static jline.WindowsTerminal.WindowsKey.PAGE_DOWN_KEY;
+import static jline.WindowsTerminal.WindowsKey.PAGE_UP_KEY;
+import static jline.WindowsTerminal.WindowsKey.SPECIAL_KEY_INDICATOR;
+import static jline.console.Operation.DELETE_NEXT_CHAR;
+import static jline.console.Operation.DELETE_PREV_CHAR;
 import jline.console.history.MemoryHistory;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import org.junit.Before;
 import org.junit.Test;
 

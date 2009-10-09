@@ -10,7 +10,6 @@ package jline.console.completers;
 import jline.console.Completer;
 
 import java.io.File;
-import java.util.Collections;
 import java.util.List;
 
 /**
