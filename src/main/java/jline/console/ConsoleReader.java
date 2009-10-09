@@ -9,7 +9,6 @@ package jline.console;
 
 import jline.Terminal;
 import jline.TerminalFactory;
-import jline.WindowsTerminal;
 import jline.internal.Log;
 
 import java.awt.*;
@@ -51,15 +50,7 @@ import java.util.ResourceBundle;
  */
 public class ConsoleReader
 {
-    public static final String JLINE_COMPLETION_THRESHOLD = "jline.completion.threshold";
-
-    public static final String JLINE_KEYBINDINGS = "jline.keybindings";
-
-    public static final String JLINEBINDINGS_PROPERTIES = ".jlinebindings.properties";
-
     public static final String JLINE_NOBELL = "jline.nobell";
-
-    public static final String CR = System.getProperty("line.separator");
 
     public static final char BACKSPACE = '\b';
 
@@ -67,7 +58,7 @@ public class ConsoleReader
 
     public static final char KEYBOARD_BELL = '\07';
 
-    public static final Character NULL_MASK = (char) 0;
+    public static final char NULL_MASK = 0;
 
     public static final int TAB_WIDTH = 4;
 
@@ -81,69 +72,45 @@ public class ConsoleReader
 
     private final CursorBuffer buf = new CursorBuffer();
 
-    private History history = new MemoryHistory();
-
     private String prompt;
 
-    private boolean useHistory = true;
-
-    /**
-     * If true, issue an audible keyboard bell when appropriate.
-     */
     private boolean bellEnabled = true;
 
-    /**
-     * The current character mask.
-     */
     private Character mask;
 
     private Character echoCharacter;
 
-    /**
-     * Create a new reader.
-     *
-     * @param in       the input
-     * @param out      the output
-     * @param bindings the key bindings to use
-     * @param term     the terminal to use
-     */
     public ConsoleReader(final InputStream in, final Writer out, InputStream bindings, final Terminal term) throws IOException {
-        this.terminal = term;
-        setInput(in);
+        this.in = in;
         this.out = out;
+        this.terminal = term != null ? term : TerminalFactory.get();
         this.keybindings = loadKeyBindings(bindings);
-
+        
         if (Boolean.getBoolean(JLINE_NOBELL)) {
             setBellEnabled(false);
         }
     }
 
+    public ConsoleReader(final InputStream in, final Writer out, final InputStream bindings) throws IOException {
+        this(in, out, bindings, null);
+    }
+
+    public ConsoleReader(final InputStream in, final Writer out) throws IOException {
+        this(in, out, null, null);
+    }
+
     /**
      * Create a new reader using {@link FileDescriptor#in} for input and
-     * {@link System#out} for output. {@link FileDescriptor#in} is used because
-     * it has a better chance of being unbuffered.
+     * {@link System#out} for output.
+     *
+     * {@link FileDescriptor#in} is used because it has a better chance of not being buffered.
      */
     public ConsoleReader() throws IOException {
-        this(new FileInputStream(FileDescriptor.in),
-            new PrintWriter(new OutputStreamWriter(System.out,
-                    // FIXME: Why windows stuff here?
-                    System.getProperty(WindowsTerminal.JLINE_WINDOWS_TERMINAL_OUTPUT_ENCODING,
-                            System.getProperty("file.encoding")))));
+        this(new FileInputStream(FileDescriptor.in), new PrintWriter(new OutputStreamWriter(System.out)), null, null);
     }
 
-    /**
-     * Create a new reader using the specified {@link InputStream} for input and
-     * the specific writer for output, using the default keybindings resource.
-     */
-    public ConsoleReader(final InputStream in, final Writer out) throws IOException {
-        this(in, out, null);
-    }
-
-    public ConsoleReader(final InputStream in, final Writer out, final InputStream bindings) throws IOException {
-        this(in, out, bindings, TerminalFactory.get());
-    }
-
-    public void setInput(final InputStream in) {
+    // FIXME: Only used for tests
+    void setInput(final InputStream in) {
         this.in = in;
     }
 
@@ -163,31 +130,19 @@ public class ConsoleReader
         return buf;
     }
 
-    /**
-     * @param enabled if true, enable audible keyboard bells if an alert is required.
-     */
     public void setBellEnabled(final boolean enabled) {
         this.bellEnabled = enabled;
     }
 
-    /**
-     * @return true is audible keyboard bell is enabled.
-     */
-    public boolean getBellEnabled() {
+    public boolean isBellEnabled() {
         return bellEnabled;
     }
 
-    /**
-     * The default prompt that will be issued.
-     */
-    public void setDefaultPrompt(final String prompt) {
+    public void setPrompt(final String prompt) {
         this.prompt = prompt;
     }
 
-    /**
-     * The default prompt that will be issued.
-     */
-    public String getDefaultPrompt() {
+    public String getPrompt() {
         return prompt;
     }
 
@@ -212,8 +167,7 @@ public class ConsoleReader
      *
      * will cause nothing to be echoed.
      *
-     * @param c the character to echo to the console in place of the typed
-     *                      character.
+     * @param c the character to echo to the console in place of the typed character.
      */
     public void setEchoCharacter(final Character c) {
         this.echoCharacter = c;
@@ -223,45 +177,7 @@ public class ConsoleReader
      * Returns the echo character.
      */
     public Character getEchoCharacter() {
-        return this.echoCharacter;
-    }
-
-    public void setHistory(final History history) {
-        this.history = history;
-    }
-
-    public History getHistory() {
-        return history;
-    }
-
-    /**
-     * Whether or not to add new commands to the history buffer.
-     */
-    public void setUseHistory(final boolean flag) {
-        this.useHistory = flag;
-    }
-
-    /**
-     * Whether or not to add new commands to the history buffer.
-     */
-    public boolean getUseHistory() {
-        return useHistory;
-    }
-
-    /**
-     * Move up or down the history tree.
-     */
-    private boolean moveHistory(final boolean next) throws IOException {
-        if (next && !history.next()) {
-            return false;
-        }
-        else if (!next && !history.previous()) {
-            return false;
-        }
-
-        setBuffer(history.current());
-
-        return true;
+        return echoCharacter;
     }
 
     /**
@@ -281,6 +197,7 @@ public class ConsoleReader
 
     int getCursorPosition() {
         // FIXME: does not handle anything but a line with a prompt absolute position
+        String prompt = getPrompt();
         return (prompt == null ? 0 : prompt.length()) + buf.cursor;
     }
 
@@ -325,18 +242,10 @@ public class ConsoleReader
     }
 
     /**
-     * Clear the line and redraw it.
-     */
-    public final void redrawLine() throws IOException {
-        print(RESET_LINE);
-        flush();
-        drawLine();
-    }
-
-    /**
      * Output put the prompt + the current buffer
      */
     public final void drawLine() throws IOException {
+        String prompt = getPrompt();
         if (prompt != null) {
             print(prompt);
         }
@@ -349,18 +258,27 @@ public class ConsoleReader
     }
 
     /**
+     * Clear the line and redraw it.
+     */
+    public final void redrawLine() throws IOException {
+        print(RESET_LINE);
+        flush();
+        drawLine();
+    }
+
+    /**
      * Clear the buffer and add its contents to the history.
      *
      * @return the former contents of the buffer.
      */
-    final String finishBuffer() {
+    final String finishBuffer() { // FIXME: Package protected because used by tests
         String str = buf.buffer.toString();
 
         // we only add it to the history if the buffer is not empty
         // and if mask is null, since having a mask typically means
         // the string was a password. We clear the mask after this call
         if (str.length() > 0) {
-            if (mask == null && useHistory) {
+            if (mask == null && isHistoryEnabled()) {
                 history.add(str);
             }
             else {
@@ -392,15 +310,13 @@ public class ConsoleReader
         buf.write((char) c);
 
         if (print) {
-            // no masking...
             if (mask == null) {
+                // no masking
                 print(c);
             }
-            // null mask: don't print anything...
-            else if (mask == 0) {
-                ;
+            else if (mask == NULL_MASK) {
+                // Don't print anything
             }
-            // otherwise print the mask...
             else {
                 print(mask);
             }
@@ -630,9 +546,9 @@ public class ConsoleReader
                 }
             }
 
-            char cbuf[] = new char[len];
-            Arrays.fill(cbuf, BACKSPACE);
-            out.write(cbuf);
+            char chars[] = new char[len];
+            Arrays.fill(chars, BACKSPACE);
+            out.write(chars);
 
             return;
         }
@@ -648,40 +564,15 @@ public class ConsoleReader
         }
 
         // null character mask: don't output anything
-        if (NULL_MASK.equals(mask)) {
+        if (mask == NULL_MASK) {
             return;
         }
 
         print(c, Math.abs(where));
     }
 
-    /**
-     * Issue <em>num</em> deletes.
-     *
-     * @return the number of characters backed up
-     */
-    private int delete(final int num) throws IOException {
-        /* Commented out beacuse of DWA-2949:
-        if (buf.cursor == 0) {
-            return 0;
-        }
-        */
-
-        buf.buffer.delete(buf.cursor, buf.cursor + 1);
-        drawBuffer(1);
-
-        return 1;
-    }
-
-    /**
-     * Issue a delete.
-     *
-     * @return true if successful
-     */
-    public final boolean delete() throws IOException {
-        return delete(1) == 1;
-    }
-
+    // FIXME: replace() is not used
+    
     public final boolean replace(final int num, final  String replacement) {
         buf.buffer.replace(buf.cursor - num, buf.cursor, replacement);
         try {
@@ -806,6 +697,12 @@ public class ConsoleReader
     // Key Bindings
     //
 
+    public static final String JLINE_COMPLETION_THRESHOLD = "jline.completion.threshold";
+
+    public static final String JLINE_KEYBINDINGS = "jline.keybindings";
+
+    public static final String JLINEBINDINGS_PROPERTIES = ".jlinebindings.properties";
+
     /** The map for logical operations. */
     private final short[] keybindings;
 
@@ -831,7 +728,7 @@ public class ConsoleReader
 
         if (input == null) {
             Log.debug("Using default bindings");
-            input = terminal.getDefaultBindings();
+            input = getTerminal().getDefaultBindings();
         }
 
         short[] keybindings = new short[Character.MAX_VALUE * 2];
@@ -936,10 +833,17 @@ public class ConsoleReader
      * @return a line that is read from the terminal, or null if there was null
      *         input (e.g., <i>CTRL-D</i> was pressed).
      */
-    public String readLine(final String prompt, final Character mask) throws IOException {
+    public String readLine(String prompt, final Character mask) throws IOException {
+        // prompt may be null
+        // mask may be null
+
+        // FIXME: This blows, each call to readLine will reset the console's state which doesn't seem very nice.
         this.mask = mask;
         if (prompt != null) {
-            this.prompt = prompt;
+            setPrompt(prompt);
+        }
+        else {
+            prompt = getPrompt();
         }
 
         try {
@@ -947,8 +851,8 @@ public class ConsoleReader
                 beforeReadLine(prompt, mask);
             }
 
-            if ((this.prompt != null) && (this.prompt.length() > 0)) {
-                out.write(this.prompt);
+            if (prompt != null && prompt.length() > 0) {
+                out.write(prompt);
                 out.flush();
             }
 
@@ -1219,22 +1123,66 @@ public class ConsoleReader
         return autoprintThreshhold;
     }
 
-    private boolean usePagination;
+    private boolean paginationEnabled;
 
     /**
-     * Whether to use pagination when the number of rows of candidates exceeds
-     * the height of the temrinal.
+     * Whether to use pagination when the number of rows of candidates exceeds the height of the terminal.
      */
-    public void setUsePagination(final boolean flag) {
-        this.usePagination = flag;
+    public void setPaginationEnabled(final boolean enabled) {
+        this.paginationEnabled = enabled;
     }
 
     /**
-     * Whether to use pagination when the number of rows of candidates exceeds
-     * the height of the temrinal.
+     * Whether to use pagination when the number of rows of candidates exceeds the height of the terminal.
      */
-    public boolean getUsePagination() {
-        return usePagination;
+    public boolean isPaginationEnabled() {
+        return paginationEnabled;
+    }
+
+    //
+    // History
+    //
+
+    private History history = new MemoryHistory();
+
+    public void setHistory(final History history) {
+        this.history = history;
+    }
+
+    public History getHistory() {
+        return history;
+    }
+
+    private boolean historyEnabled = true;
+
+    /**
+     * Whether or not to add new commands to the history buffer.
+     */
+    public void setHistoryEnabled(final boolean enabled) {
+        this.historyEnabled = enabled;
+    }
+
+    /**
+     * Whether or not to add new commands to the history buffer.
+     */
+    public boolean isHistoryEnabled() {
+        return historyEnabled;
+    }
+
+    /**
+     * Move up or down the history tree.
+     */
+    private boolean moveHistory(final boolean next) throws IOException {
+        if (next && !history.next()) {
+            return false;
+        }
+        else if (!next && !history.previous()) {
+            return false;
+        }
+
+        setBuffer(history.current());
+
+        return true;
     }
 
     //
@@ -1246,9 +1194,9 @@ public class ConsoleReader
      */
     private void print(final int c) throws IOException {
         if (c == '\t') {
-            char cbuf[] = new char[TAB_WIDTH];
-            Arrays.fill(cbuf, ' ');
-            out.write(cbuf);
+            char chars[] = new char[TAB_WIDTH];
+            Arrays.fill(chars, ' ');
+            out.write(chars);
             return;
         }
 
@@ -1258,9 +1206,9 @@ public class ConsoleReader
     /**
      * Output the specified characters to the output stream without manipulating the current buffer.
      */
-    private void print(final char[] chars) throws IOException {
+    private void print(final char[] buff) throws IOException {
         int len = 0;
-        for (char c : chars) {
+        for (char c : buff) {
             if (c == '\t') {
                 len += TAB_WIDTH;
             }
@@ -1269,26 +1217,26 @@ public class ConsoleReader
             }
         }
 
-        char cbuf[];
-        if (len == chars.length) {
-            cbuf = chars;
+        char chars[];
+        if (len == buff.length) {
+            chars = buff;
         }
         else {
-            cbuf = new char[len];
+            chars = new char[len];
             int pos = 0;
-            for (char c : chars) {
+            for (char c : buff) {
                 if (c == '\t') {
-                    Arrays.fill(cbuf, pos, pos + TAB_WIDTH, ' ');
+                    Arrays.fill(chars, pos, pos + TAB_WIDTH, ' ');
                     pos += TAB_WIDTH;
                 }
                 else {
-                    cbuf[pos] = c;
+                    chars[pos] = c;
                     pos++;
                 }
             }
         }
 
-        out.write(cbuf);
+        out.write(chars);
     }
 
     private void print(final char c, final int num) throws IOException {
@@ -1305,9 +1253,12 @@ public class ConsoleReader
     /**
      * Output the specified string to the output stream (but not the buffer).
      */
-    public final void print(final String str) throws IOException {
-        print(str.toCharArray());
+    public final void print(final CharSequence s) throws IOException {
+        assert s != null;
+        print(s.toString().toCharArray());
     }
+
+    public static final String CR = System.getProperty("line.separator");
 
     /**
      * Output a platform-dependant newline.
@@ -1320,6 +1271,35 @@ public class ConsoleReader
     //
     // Actions
     //
+
+    /**
+     * Issue a delete.
+     *
+     * @return true if successful
+     */
+    public final boolean delete() throws IOException {
+        return delete(1) == 1;
+    }
+
+    // FIXME: delete(int) only used by above + the return is always 1 and num is ignored
+
+    /**
+     * Issue <em>num</em> deletes.
+     *
+     * @return the number of characters backed up
+     */
+    private int delete(final int num) throws IOException {
+        /* Commented out because of DWA-2949:
+        if (buf.cursor == 0) {
+            return 0;
+        }
+        */
+
+        buf.buffer.delete(buf.cursor, buf.cursor + 1);
+        drawBuffer(1);
+
+        return 1;
+    }
 
     /**
      * Kill the buffer ahead of the current cursor position.
@@ -1366,10 +1346,10 @@ public class ConsoleReader
     }
 
     /**
-     * Issue an audible keyboard bell, if {@link #getBellEnabled} return true.
+     * Issue an audible keyboard bell, if {@link #isBellEnabled} return true.
      */
     public void beep() throws IOException {
-        if (getBellEnabled()) {
+        if (isBellEnabled()) {
             print(KEYBOARD_BELL);
             // need to flush so the console actually beeps
             flush();
@@ -1497,7 +1477,7 @@ public class ConsoleReader
         StringBuilder line = new StringBuilder();
         int showLines;
 
-        if (usePagination) {
+        if (isPaginationEnabled()) {
             showLines = getTerminal().getHeight() - 1; // page limit
         }
         else {
