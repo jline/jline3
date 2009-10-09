@@ -20,10 +20,8 @@ import java.util.List;
 public interface Completer
 {
     /**
-     * Populates <i>candidates</i> with a list of possible
-     * completions for the <i>buffer</i>. The <i>candidates</i>
-     * list will not be sorted before being displayed to the
-     * user: thus, the complete method should sort the
+     * Populates <i>candidates</i> with a list of possible completions for the <i>buffer</i>. The <i>candidates</i>
+     * list will not be sorted before being displayed to the user: thus, the complete method should sort the
      * {@link List} before returning.
      *
      * @param buffer        the buffer

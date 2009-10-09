@@ -36,8 +36,12 @@ public class CandidateListCompletionHandler
 
     private boolean eagerNewlines = true;
 
-    public void setAlwaysIncludeNewline(boolean flag) {
-        this.eagerNewlines = flag;
+    public boolean isEagerNewlines() {
+        return eagerNewlines;
+    }
+
+    public void setEagerNewlines(final boolean eagerNewlines) {
+        this.eagerNewlines = eagerNewlines;
     }
 
     public boolean complete(final ConsoleReader reader, final List<String> candidates, final int pos) throws IOException {
@@ -61,10 +65,10 @@ public class CandidateListCompletionHandler
             setBuffer(reader, value, pos);
         }
 
-        if (eagerNewlines) {
+        if (isEagerNewlines()) {
             reader.println();
         }
-        printCandidates(reader, candidates, eagerNewlines);
+        printCandidates(reader, candidates, isEagerNewlines());
 
         // redraw the current console buffer
         reader.drawLine();

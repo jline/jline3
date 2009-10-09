@@ -22,7 +22,7 @@ public class CompletionTest
     extends ConsoleReaderTestSupport
 {
     @Test
-    public void testSimpleCompletor() throws Exception {
+    public void testSimplecompleter() throws Exception {
         // clear any current completers
         for (Iterator i = console.getCompleters().iterator(); i.hasNext(); console.removeCompleter((Completer) i.next())) {
             // empty
@@ -38,7 +38,7 @@ public class CompletionTest
     }
 
     @Test
-    public void testArgumentCompletor() throws Exception {
+    public void testArgumentcompleter() throws Exception {
         // clear any current completers
         for (Iterator i = console.getCompleters().iterator(); i.hasNext(); console.removeCompleter((Completer) i.next())) {
             // empty

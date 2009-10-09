@@ -14,11 +14,11 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * A file name completor takes the buffer and issues a list of
+ * A file name completer takes the buffer and issues a list of
  * potential completions.
  *
  * <p>
- * This completor tries to behave as similar as possible to
+ * This completer tries to behave as similar as possible to
  * <i>bash</i>'s file name completion (using GNU readline)
  * with the following exceptions:
  * <p/>

@@ -680,7 +680,7 @@ public class ConsoleReader
         return sbuff;
     }
 
-    public final int readCharacter(final char[] allowed) throws IOException {
+    public final int readCharacter(final char... allowed) throws IOException {
         // if we restrict to a limited set and the current character is not in the set, then try again.
         char c;
 
@@ -1208,7 +1208,7 @@ public class ConsoleReader
     /**
      * Output the specified characters to the output stream without manipulating the current buffer.
      */
-    private void print(final char[] buff) throws IOException {
+    private void print(final char... buff) throws IOException {
         int len = 0;
         for (char c : buff) {
             if (c == '\t') {

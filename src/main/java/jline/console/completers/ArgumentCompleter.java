@@ -14,44 +14,9 @@ import java.util.LinkedList;
 import java.util.List;
 
 /**
- * A {@link Completer} implementation that invokes a child completor
- * using the appropriate <i>separator</i> argument. This
- * can be used instead of the individual completors having to
+ * A {@link Completer} implementation that invokes a child completer using the appropriate
+ * <i>separator</i> argument. This can be used instead of the individual completers having to
  * know about argument parsing semantics.
- *
- * <p>
- * <strong>Example 1</strong>: Any argument of the command line can
- * use file completion.
- * <p>
- * <pre>
- *        consoleReader.addCompletor (new ArgumentCompletor (
- *                new {@link FileNameCompleter} ()))
- *  </pre>
- * <p>
- * <strong>Example 2</strong>: The first argument of the command line
- * can be completed with any of "foo", "bar", or "baz", and remaining
- * arguments can be completed with a file name.
- * <p>
- * <pre>
- *        consoleReader.addCompletor (new ArgumentCompletor (
- *                new {@link SimpleCompleter} (new String [] { "foo", "bar", "baz"})));
- *        consoleReader.addCompletor (new ArgumentCompletor (
- *                new {@link FileNameCompleter} ()));
- *  </pre>
- * <p/>
- * <p>
- * When the argument index is past the last embedded completors, the last
- * completors is always used. To disable this behavior, have the last
- * completor be a {@link NullCompleter}. For example:
- * </p>
- * <p/>
- * <pre>
- *      consoleReader.addCompletor (new ArgumentCompletor (
- *          new {@link SimpleCompleter} (new String [] { "foo", "bar", "baz"}),
- *          new {@link SimpleCompleter} (new String [] { "xxx", "yyy", "xxx"}),
- *          new {@link NullCompleter}
- *      ));
- * </pre>
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
@@ -70,11 +35,10 @@ public class ArgumentCompleter
     private boolean strict = true;
 
     /**
-     * Constuctor: create a new completor with the specified
-     * argument delimiter.
+     * Create a new completer with the specified argument delimiter.
      *
      * @param delim      the delimiter for parsing arguments
-     * @param completers the embedded completors
+     * @param completers the embedded completers
      */
     public ArgumentCompleter(final ArgumentDelimiter delim, final Completer... completers) {
         this.completers = completers;
@@ -82,23 +46,21 @@ public class ArgumentCompleter
     }
 
     /**
-     * Constuctor: create a new completor with the default
-     * argument separator of " ".
+     * Create a new completer with the default argument separator of " ".
      *
-     * @param completers the embedded argument completors
+     * @param completers the embedded argument completers
      */
     public ArgumentCompleter(final Completer... completers) {
         this(new WhitespaceArgumentDelimiter(), completers);
     }
 
     /**
-     * Constuctor: create a new completor with the default
-     * argument separator of " ".
+     * Create a new completer with the default argument separator of " ".
      *
-     * @param completors the List of completors to use
+     * @param completers the List of completers to use
      */
-    public ArgumentCompleter(final List<Completer> completors) {
-        this(completors.toArray(new Completer[completors.size()]));
+    public ArgumentCompleter(final List<Completer> completers) {
+        this(completers.toArray(new Completer[completers.size()]));
     }
     
     /**
@@ -137,7 +99,7 @@ public class ArgumentCompleter
         }
 
         // ensure that all the previous completers are successful before
-        // allowing this completor to pass (only if strict is true).
+        // allowing this completer to pass (only if strict is true).
         for (int i = 0; getStrict() && (i < argIndex); i++) {
             Completer sub = completers[(i >= completers.length) ? (completers.length - 1) : i];
             String[] args = list.getArguments();
