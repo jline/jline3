@@ -262,8 +262,7 @@ public class ConsoleReader
     }
 
     /**
-     * Add the specified {@link Completer} to the list of handlers for
-     * tab-completion.
+     * Add the specified {@link Completer} to the list of handlers for tab-completion.
      *
      * @param completer the {@link Completer} to add
      * @return true if it was successfully added
@@ -273,8 +272,7 @@ public class ConsoleReader
     }
 
     /**
-     * Remove the specified {@link Completer} from the list of handlers for
-     * tab-completion.
+     * Remove the specified {@link Completer} from the list of handlers for tab-completion.
      *
      * @param completer the {@link Completer} to remove
      * @return true if it was successfully removed
@@ -284,7 +282,7 @@ public class ConsoleReader
     }
 
     /**
-     * Returns an unmodifiable list of all the completors.
+     * Returns an unmodifiable list of all the completers.
      */
     public Collection<Completer> getCompleters() {
         return Collections.unmodifiableList(completers);
@@ -696,7 +694,7 @@ public class ConsoleReader
         }
         finally {
             if (!terminal.isSupported()) {
-                afterReadLine(prompt, mask);
+                afterReadLine();
             }
         }
     }
@@ -1584,7 +1582,7 @@ public class ConsoleReader
         }
     }
 
-    private void afterReadLine(final String prompt, final Character mask) {
+    private void afterReadLine() {
         if (maskThread != null && maskThread.isAlive()) {
             maskThread.interrupt();
         }
