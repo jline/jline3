@@ -103,8 +103,8 @@ public class FileNameCompleter
         }
         for (File file : files) {
             if (file.getAbsolutePath().startsWith(translated)) {
-                String name = file.getName() + ((matches == 1 && file.isDirectory()) ? File.separator : " ");
-                candidates.add(render(file, name));
+                CharSequence name = file.getName() + (matches == 1 && file.isDirectory() ? File.separator : " ");
+                candidates.add(render(file, name).toString());
             }
         }
 
@@ -113,7 +113,7 @@ public class FileNameCompleter
         return index + File.separator.length();
     }
 
-    protected String render(final File file, final String name) {
+    protected CharSequence render(final File file, final CharSequence name) {
         assert file != null;
         assert name != null;
 

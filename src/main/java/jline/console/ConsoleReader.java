@@ -1189,6 +1189,8 @@ public class ConsoleReader
     // Printing
     //
 
+    public static final String CR = System.getProperty("line.separator");
+
     /**
      * Output the specified character to the output stream without manipulating the current buffer.
      */
@@ -1258,7 +1260,11 @@ public class ConsoleReader
         print(s.toString().toCharArray());
     }
 
-    public static final String CR = System.getProperty("line.separator");
+    public final void println(final CharSequence s) throws IOException {
+        assert s != null;
+        print(s.toString().toCharArray());
+        println();
+    }
 
     /**
      * Output a platform-dependant newline.
@@ -1462,7 +1468,7 @@ public class ConsoleReader
     /**
      * Output the specified {@link Collection} in proper columns.
      */
-    public void printColumns(final Collection<String> items) throws IOException {
+    public void printColumns(final Collection<? extends CharSequence> items) throws IOException {
         if (items == null || items.isEmpty()) {
             return;
         }
@@ -1470,8 +1476,9 @@ public class ConsoleReader
         int width = getTerminal().getWidth();
         int maxWidth = 0;
 
-        for (Iterator i = items.iterator(); i.hasNext(); maxWidth = Math.max(maxWidth, i.next().toString().length())) {
-            // empty
+        Iterator iter = items.iterator();
+        while (iter.hasNext()) {
+            maxWidth = Math.max(maxWidth, iter.next().toString().length());
         }
 
         StringBuilder line = new StringBuilder();
@@ -1484,9 +1491,9 @@ public class ConsoleReader
             showLines = Integer.MAX_VALUE;
         }
 
-        for (String cur : items) {
+        for (CharSequence cur : items) {
             if ((line.length() + maxWidth) > width) {
-                print(line.toString().trim());
+                print(line);
                 println();
                 line.setLength(0);
                 if (--showLines == 0) { // Overflow
@@ -1586,7 +1593,7 @@ public class ConsoleReader
      * @param len      the target length
      * @param appendTo the {@link StringBuilder} to which to append the padded {@link String}.
      */
-    private void pad(final String toPad, final int len, final StringBuilder appendTo) {
+    private void pad(final CharSequence toPad, final int len, final StringBuilder appendTo) {
         appendTo.append(toPad);
 
         for (int i = 0; i < (len - toPad.length()); i++, appendTo.append(' ')) {
