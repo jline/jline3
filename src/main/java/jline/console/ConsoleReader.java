@@ -83,18 +83,9 @@ public class ConsoleReader
 
     private History history = new MemoryHistory();
 
-    private final List<Completer> completers = new LinkedList<Completer>();
-
     private String prompt;
 
     private boolean useHistory = true;
-
-    private boolean usePagination = false;
-
-    /**
-     * The map for logical operations.
-     */
-    private final short[] keybindings;
 
     /**
      * If true, issue an audible keyboard bell when appropriate.
@@ -106,17 +97,7 @@ public class ConsoleReader
      */
     private Character mask;
 
-    /**
-     * The number of tab-completion candidates above which a warning will be
-     * prompted before showing all the candidates.
-     */
-    private int autoprintThreshhold = Integer.getInteger(JLINE_COMPLETION_THRESHOLD, 100); // same default as bash
-
-    private CompletionHandler completionHandler = new CandidateListCompletionHandler();
-
-    private Character echoCharacter = null;
-
-    private Map<Character,ActionListener> triggeredActions = new HashMap<Character,ActionListener>();
+    private Character echoCharacter;
 
     /**
      * Create a new reader.
@@ -136,6 +117,697 @@ public class ConsoleReader
             setBellEnabled(false);
         }
     }
+
+    /**
+     * Create a new reader using {@link FileDescriptor#in} for input and
+     * {@link System#out} for output. {@link FileDescriptor#in} is used because
+     * it has a better chance of being unbuffered.
+     */
+    public ConsoleReader() throws IOException {
+        this(new FileInputStream(FileDescriptor.in),
+            new PrintWriter(new OutputStreamWriter(System.out,
+                    // FIXME: Why windows stuff here?
+                    System.getProperty(WindowsTerminal.JLINE_WINDOWS_TERMINAL_OUTPUT_ENCODING,
+                            System.getProperty("file.encoding")))));
+    }
+
+    /**
+     * Create a new reader using the specified {@link InputStream} for input and
+     * the specific writer for output, using the default keybindings resource.
+     */
+    public ConsoleReader(final InputStream in, final Writer out) throws IOException {
+        this(in, out, null);
+    }
+
+    public ConsoleReader(final InputStream in, final Writer out, final InputStream bindings) throws IOException {
+        this(in, out, bindings, TerminalFactory.get());
+    }
+
+    public void setInput(final InputStream in) {
+        this.in = in;
+    }
+
+    public InputStream getInput() {
+        return in;
+    }
+
+    public Writer getOutput() {
+        return out;
+    }
+
+    public Terminal getTerminal() {
+        return terminal;
+    }
+
+    public CursorBuffer getCursorBuffer() {
+        return buf;
+    }
+
+    /**
+     * @param enabled if true, enable audible keyboard bells if an alert is required.
+     */
+    public void setBellEnabled(final boolean enabled) {
+        this.bellEnabled = enabled;
+    }
+
+    /**
+     * @return true is audible keyboard bell is enabled.
+     */
+    public boolean getBellEnabled() {
+        return bellEnabled;
+    }
+
+    /**
+     * The default prompt that will be issued.
+     */
+    public void setDefaultPrompt(final String prompt) {
+        this.prompt = prompt;
+    }
+
+    /**
+     * The default prompt that will be issued.
+     */
+    public String getDefaultPrompt() {
+        return prompt;
+    }
+
+    /**
+     * Set the echo character. For example, to have "*" entered when a password is typed:
+     *
+     * <pre>
+     * myConsoleReader.setEchoCharacter(new Character('*'));
+     * </pre>
+     *
+     * Setting the character to
+     *
+     * <pre>
+     * null
+     * </pre>
+     *
+     * will restore normal character echoing. Setting the character to
+     *
+     * <pre>
+     * new Character(0)
+     * </pre>
+     *
+     * will cause nothing to be echoed.
+     *
+     * @param c the character to echo to the console in place of the typed
+     *                      character.
+     */
+    public void setEchoCharacter(final Character c) {
+        this.echoCharacter = c;
+    }
+
+    /**
+     * Returns the echo character.
+     */
+    public Character getEchoCharacter() {
+        return this.echoCharacter;
+    }
+
+    public void setHistory(final History history) {
+        this.history = history;
+    }
+
+    public History getHistory() {
+        return history;
+    }
+
+    /**
+     * Whether or not to add new commands to the history buffer.
+     */
+    public void setUseHistory(final boolean flag) {
+        this.useHistory = flag;
+    }
+
+    /**
+     * Whether or not to add new commands to the history buffer.
+     */
+    public boolean getUseHistory() {
+        return useHistory;
+    }
+
+    /**
+     * Move up or down the history tree.
+     */
+    private boolean moveHistory(final boolean next) throws IOException {
+        if (next && !history.next()) {
+            return false;
+        }
+        else if (!next && !history.previous()) {
+            return false;
+        }
+
+        setBuffer(history.current());
+
+        return true;
+    }
+
+    /**
+     * Erase the current line.
+     *
+     * @return false if we failed (e.g., the buffer was empty)
+     */
+    final boolean resetLine() throws IOException {
+        if (buf.cursor == 0) {
+            return false;
+        }
+
+        backspaceAll();
+
+        return true;
+    }
+
+    int getCursorPosition() {
+        // FIXME: does not handle anything but a line with a prompt absolute position
+        return (prompt == null ? 0 : prompt.length()) + buf.cursor;
+    }
+
+    /**
+     * Move the cursor position to the specified absolute index.
+     */
+    public final boolean setCursorPosition(final int position) throws IOException {
+        return moveCursor(position - buf.cursor) != 0;
+    }
+
+    /**
+     * Set the current buffer's content to the specified {@link String}. The
+     * visual console will be modified to show the current buffer.
+     *
+     * @param buffer the new contents of the buffer.
+     */
+    private void setBuffer(final String buffer) throws IOException {
+        // don't bother modifying it if it is unchanged
+        if (buffer.equals(buf.buffer.toString())) {
+            return;
+        }
+
+        // obtain the difference between the current buffer and the new one
+        int sameIndex = 0;
+
+        for (int i = 0, l1 = buffer.length(), l2 = buf.buffer.length(); (i < l1)
+            && (i < l2); i++) {
+            if (buffer.charAt(i) == buf.buffer.charAt(i)) {
+                sameIndex++;
+            }
+            else {
+                break;
+            }
+        }
+
+        int diff = buf.buffer.length() - sameIndex;
+
+        backspace(diff); // go back for the differences
+        killLine(); // clear to the end of the line
+        buf.buffer.setLength(sameIndex); // the new length
+        putString(buffer.substring(sameIndex)); // append the differences
+    }
+
+    /**
+     * Clear the line and redraw it.
+     */
+    public final void redrawLine() throws IOException {
+        print(RESET_LINE);
+        flush();
+        drawLine();
+    }
+
+    /**
+     * Output put the prompt + the current buffer
+     */
+    public final void drawLine() throws IOException {
+        if (prompt != null) {
+            print(prompt);
+        }
+
+        print(buf.buffer.toString());
+
+        if (buf.length() != buf.cursor) { // not at end of line
+            back(buf.length() - buf.cursor);
+        }
+    }
+
+    /**
+     * Clear the buffer and add its contents to the history.
+     *
+     * @return the former contents of the buffer.
+     */
+    final String finishBuffer() {
+        String str = buf.buffer.toString();
+
+        // we only add it to the history if the buffer is not empty
+        // and if mask is null, since having a mask typically means
+        // the string was a password. We clear the mask after this call
+        if (str.length() > 0) {
+            if (mask == null && useHistory) {
+                history.add(str);
+            }
+            else {
+                mask = null;
+            }
+        }
+
+        history.moveToEnd();
+
+        buf.buffer.setLength(0);
+        buf.cursor = 0;
+
+        return str;
+    }
+
+    /**
+     * Write out the specified string to the buffer and the output stream.
+     */
+    public final void putString(final String str) throws IOException {
+        buf.write(str);
+        print(str);
+        drawBuffer();
+    }
+
+    /**
+     * Output the specified character, both to the buffer and the output stream.
+     */
+    private void putChar(final int c, final boolean print) throws IOException {
+        buf.write((char) c);
+
+        if (print) {
+            // no masking...
+            if (mask == null) {
+                print(c);
+            }
+            // null mask: don't print anything...
+            else if (mask == 0) {
+                ;
+            }
+            // otherwise print the mask...
+            else {
+                print(mask);
+            }
+
+            drawBuffer();
+        }
+    }
+
+    /**
+     * Redraw the rest of the buffer from the cursor onwards. This is necessary
+     * for inserting text into the buffer.
+     *
+     * @param clear the number of characters to clear after the end of the buffer
+     */
+    private void drawBuffer(final int clear) throws IOException {
+        // debug ("drawBuffer: " + clear);
+        char[] chars = buf.buffer.substring(buf.cursor).toCharArray();
+        if (mask != null) {
+            Arrays.fill(chars, mask);
+        }
+
+        print(chars);
+
+        clearAhead(clear);
+        back(chars.length);
+        flush();
+    }
+
+    /**
+     * Redraw the rest of the buffer from the cursor onwards. This is necessary
+     * for inserting text into the buffer.
+     */
+    private void drawBuffer() throws IOException {
+        drawBuffer(0);
+    }
+
+    /**
+     * Clear ahead the specified number of characters without moving the cursor.
+     */
+    private void clearAhead(final int num) throws IOException {
+        if (num == 0) {
+            return;
+        }
+
+        // debug ("clearAhead: " + num);
+
+        // print blank extra characters
+        print(' ', num);
+
+        // we need to flush here so a "clever" console
+        // doesn't just ignore the redundancy of a space followed by
+        // a backspace.
+        flush();
+
+        // reset the visual cursor
+        back(num);
+
+        flush();
+    }
+
+    /**
+     * Move the visual cursor backwards without modifying the buffer cursor.
+     */
+    private void back(final int num) throws IOException {
+        print(BACKSPACE, num);
+        flush();
+    }
+
+    /**
+     * Flush the console output stream. This is important for printout out
+     * single characters (like a backspace or keyboard) that we want the console
+     * to handle immediately.
+     */
+    public void flush() throws IOException {
+        out.flush();
+    }
+
+    private int backspaceAll() throws IOException {
+        return backspace(Integer.MAX_VALUE);
+    }
+
+    /**
+     * Issue <em>num</em> backspaces.
+     *
+     * @return the number of characters backed up
+     */
+    private int backspace(final int num) throws IOException {
+        if (buf.cursor == 0) {
+            return 0;
+        }
+
+        int count = 0;
+
+        count = moveCursor(-1 * num) * -1;
+        // debug ("Deleting from " + buf.cursor + " for " + count);
+        buf.buffer.delete(buf.cursor, buf.cursor + count);
+        drawBuffer(count);
+
+        return count;
+    }
+
+    /**
+     * Issue a backspace.
+     *
+     * @return true if successful
+     */
+    public boolean backspace() throws IOException {
+        return backspace(1) == 1;
+    }
+
+    private boolean moveToEnd() throws IOException {
+        if (moveCursor(1) == 0) {
+            return false;
+        }
+
+        while (moveCursor(1) != 0) {
+            // nothing
+        }
+
+        return true;
+    }
+
+    /**
+     * Delete the character at the current position and redraw the remainder of the buffer.
+     */
+    private boolean deleteCurrentCharacter() throws IOException {
+        boolean success = buf.buffer.length() > 0;
+        if (!success) {
+            return false;
+        }
+
+        if (buf.cursor == buf.buffer.length()) {
+            return false;
+        }
+
+        buf.buffer.deleteCharAt(buf.cursor);
+        drawBuffer(1);
+        return true;
+    }
+
+    private boolean previousWord() throws IOException {
+        while (isDelimiter(buf.current()) && (moveCursor(-1) != 0)) {
+            // nothing
+        }
+
+        while (!isDelimiter(buf.current()) && (moveCursor(-1) != 0)) {
+            // nothing
+        }
+
+        return true;
+    }
+
+    private boolean nextWord() throws IOException {
+        while (isDelimiter(buf.current()) && (moveCursor(1) != 0)) {
+            // nothing
+        }
+
+        while (!isDelimiter(buf.current()) && (moveCursor(1) != 0)) {
+            // nothing
+        }
+
+        return true;
+    }
+
+    private boolean deletePreviousWord() throws IOException {
+        while (isDelimiter(buf.current()) && backspace()) {
+            // nothing
+        }
+
+        while (!isDelimiter(buf.current()) && backspace()) {
+            // nothing
+        }
+
+        return true;
+    }
+
+    /**
+     * Move the cursor <i>where</i> characters.
+     *
+     * @param num if less than 0, move abs(<i>where</i>) to the left,
+     *              otherwise move <i>where</i> to the right.
+     * @return the number of spaces we moved
+     */
+    public int moveCursor(final int num) throws IOException {
+        int where = num;
+
+        if ((buf.cursor == 0) && (where < 0)) {
+            return 0;
+        }
+
+        if ((buf.cursor == buf.buffer.length()) && (where > 0)) {
+            return 0;
+        }
+
+        if ((buf.cursor + where) < 0) {
+            where = -buf.cursor;
+        }
+        else if ((buf.cursor + where) > buf.buffer.length()) {
+            where = buf.buffer.length() - buf.cursor;
+        }
+
+        moveInternal(where);
+
+        return where;
+    }
+
+    /**
+     * Move the cursor <i>where</i> characters, withough checking the current buffer.
+     *
+     * @param where the number of characters to move to the right or left.
+     */
+    private void moveInternal(final int where) throws IOException {
+        // debug ("move cursor " + where + " ("
+        // + buf.cursor + " => " + (buf.cursor + where) + ")");
+        buf.cursor += where;
+
+        char c;
+
+        if (where < 0) {
+            int len = 0;
+            for (int i = buf.cursor; i < buf.cursor - where; i++) {
+                if (buf.buffer.charAt(i) == '\t') {
+                    len += TAB_WIDTH;
+                }
+                else {
+                    len++;
+                }
+            }
+
+            char cbuf[] = new char[len];
+            Arrays.fill(cbuf, BACKSPACE);
+            out.write(cbuf);
+
+            return;
+        }
+        else if (buf.cursor == 0) {
+            return;
+        }
+        else if (mask != null) {
+            c = mask;
+        }
+        else {
+            print(buf.buffer.substring(buf.cursor - where, buf.cursor).toCharArray());
+            return;
+        }
+
+        // null character mask: don't output anything
+        if (NULL_MASK.equals(mask)) {
+            return;
+        }
+
+        print(c, Math.abs(where));
+    }
+
+    /**
+     * Issue <em>num</em> deletes.
+     *
+     * @return the number of characters backed up
+     */
+    private int delete(final int num) throws IOException {
+        /* Commented out beacuse of DWA-2949:
+        if (buf.cursor == 0) {
+            return 0;
+        }
+        */
+
+        buf.buffer.delete(buf.cursor, buf.cursor + 1);
+        drawBuffer(1);
+
+        return 1;
+    }
+
+    /**
+     * Issue a delete.
+     *
+     * @return true if successful
+     */
+    public final boolean delete() throws IOException {
+        return delete(1) == 1;
+    }
+
+    public final boolean replace(final int num, final  String replacement) {
+        buf.buffer.replace(buf.cursor - num, buf.cursor, replacement);
+        try {
+            moveCursor(-num);
+            drawBuffer(Math.max(0, num - replacement.length()));
+            moveCursor(replacement.length());
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
+    //
+    // Key reading
+    //
+
+    /**
+     * Read a character from the console.
+     *
+     * @return the character, or -1 if an EOF is received.
+     */
+    public final int readVirtualKey() throws IOException {
+        int c = terminal.readVirtualKey(in);
+
+        Log.trace("Keystroke: ", c);
+
+        // clear any echo characters
+        clearEcho(c);
+
+        return c;
+    }
+
+    /**
+     * Clear the echoed characters for the specified character code.
+     */
+    private int clearEcho(final int c) throws IOException {
+        // if the terminal is not echoing, then ignore
+        if (!terminal.isEchoEnabled()) {
+            return 0;
+        }
+
+        // otherwise, clear
+        int num = countEchoCharacters((char) c);
+        back(num);
+        drawBuffer(num);
+
+        return num;
+    }
+
+    private int countEchoCharacters(final char c) {
+        // tabs as special: we need to determine the number of spaces
+        // to cancel based on what out current cursor position is
+        if (c == 9) {
+            int tabStop = 8; // will this ever be different?
+            int position = getCursorPosition();
+
+            return tabStop - (position % tabStop);
+        }
+
+        return getPrintableCharacters(c).length();
+    }
+
+    /**
+     * Return the number of characters that will be printed when the specified
+     * character is echoed to the screen. Adapted from cat by Torbjorn Granlund,
+     * as repeated in stty by David MacKenzie.
+     */
+    private StringBuilder getPrintableCharacters(final char ch) {
+        StringBuilder sbuff = new StringBuilder();
+
+        if (ch >= 32) {
+            if (ch < 127) {
+                sbuff.append(ch);
+            }
+            else if (ch == 127) {
+                sbuff.append('^');
+                sbuff.append('?');
+            }
+            else {
+                sbuff.append('M');
+                sbuff.append('-');
+
+                if (ch >= (128 + 32)) {
+                    if (ch < (128 + 127)) {
+                        sbuff.append((char) (ch - 128));
+                    }
+                    else {
+                        sbuff.append('^');
+                        sbuff.append('?');
+                    }
+                }
+                else {
+                    sbuff.append('^');
+                    sbuff.append((char) (ch - 128 + 64));
+                }
+            }
+        }
+        else {
+            sbuff.append('^');
+            sbuff.append((char) (ch + 64));
+        }
+
+        return sbuff;
+    }
+
+    public final int readCharacter(final char[] allowed) throws IOException {
+        // if we restrict to a limited set and the current character is not in the set, then try again.
+        char c;
+
+        Arrays.sort(allowed); // always need to sort before binarySearch
+
+        while (Arrays.binarySearch(allowed, c = (char) readVirtualKey()) < 0) {
+            // nothing
+        }
+
+        return c;
+    }
+
+    //
+    // Key Bindings
+    //
+
+    /** The map for logical operations. */
+    private final short[] keybindings;
 
     private short[] loadKeyBindings(InputStream input) throws IOException {
         if (input == null) {
@@ -200,219 +872,6 @@ public class ConsoleReader
         return keybindings;
     }
 
-    /**
-     * Create a new reader using {@link FileDescriptor#in} for input and
-     * {@link System#out} for output. {@link FileDescriptor#in} is used because
-     * it has a better chance of being unbuffered.
-     */
-    public ConsoleReader() throws IOException {
-        this(new FileInputStream(FileDescriptor.in),
-            new PrintWriter(new OutputStreamWriter(System.out,
-                    // FIXME: Why windows stuff here?
-                    System.getProperty(WindowsTerminal.JLINE_WINDOWS_TERMINAL_OUTPUT_ENCODING,
-                            System.getProperty("file.encoding")))));
-    }
-
-    /**
-     * Create a new reader using the specified {@link InputStream} for input and
-     * the specific writer for output, using the default keybindings resource.
-     */
-    public ConsoleReader(final InputStream in, final Writer out) throws IOException {
-        this(in, out, null);
-    }
-
-    public ConsoleReader(final InputStream in, final Writer out, final InputStream bindings) throws IOException {
-        this(in, out, bindings, TerminalFactory.get());
-    }
-
-    /**
-     * Set the stream to be used for console input.
-     */
-    public void setInput(final InputStream in) {
-        this.in = in;
-    }
-
-    /**
-     * Returns the stream used for console input.
-     */
-    public InputStream getInput() {
-        return in;
-    }
-
-    public Writer getOutput() {
-        return out;
-    }
-
-    public Terminal getTerminal() {
-        return terminal;
-    }
-
-    public CursorBuffer getCursorBuffer() {
-        return buf;
-    }
-
-    /**
-     * @param enabled if true, enable audible keyboard bells if an alert is required.
-     */
-    public void setBellEnabled(final boolean enabled) {
-        this.bellEnabled = enabled;
-    }
-
-    /**
-     * @return true is audible keyboard bell is enabled.
-     */
-    public boolean getBellEnabled() {
-        return bellEnabled;
-    }
-
-    /**
-     * Add the specified {@link Completer} to the list of handlers for tab-completion.
-     *
-     * @param completer the {@link Completer} to add
-     * @return true if it was successfully added
-     */
-    public boolean addCompleter(final Completer completer) {
-        return completers.add(completer);
-    }
-
-    /**
-     * Remove the specified {@link Completer} from the list of handlers for tab-completion.
-     *
-     * @param completer the {@link Completer} to remove
-     * @return true if it was successfully removed
-     */
-    public boolean removeCompleter(final Completer completer) {
-        return completers.remove(completer);
-    }
-
-    /**
-     * Returns an unmodifiable list of all the completers.
-     */
-    public Collection<Completer> getCompleters() {
-        return Collections.unmodifiableList(completers);
-    }
-
-    /**
-     * @param threshhold the number of candidates to print without issuing a warning.
-     */
-    public void setAutoprintThreshhold(final int threshhold) {
-        this.autoprintThreshhold = threshhold;
-    }
-
-    /**
-     * @return the number of candidates to print without issuing a warning.
-     */
-    public int getAutoprintThreshhold() {
-        return autoprintThreshhold;
-    }
-
-    /**
-     * The default prompt that will be issued.
-     */
-    public void setDefaultPrompt(final String prompt) {
-        this.prompt = prompt;
-    }
-
-    /**
-     * The default prompt that will be issued.
-     */
-    public String getDefaultPrompt() {
-        return prompt;
-    }
-
-    public void setHistory(final History history) {
-        this.history = history;
-    }
-
-    public History getHistory() {
-        return history;
-    }
-
-    public void setCompletionHandler(final CompletionHandler handler) {
-        this.completionHandler = handler;
-    }
-
-    public CompletionHandler getCompletionHandler() {
-        return this.completionHandler;
-    }
-
-    /**
-     * Set the echo character. For example, to have "*" entered when a password is typed:
-     *
-     * <pre>
-     * myConsoleReader.setEchoCharacter(new Character('*'));
-     * </pre>
-     *
-     * Setting the character to
-     *
-     * <pre>
-     * null
-     * </pre>
-     *
-     * will restore normal character echoing. Setting the character to
-     *
-     * <pre>
-     * new Character(0)
-     * </pre>
-     *
-     * will cause nothing to be echoed.
-     *
-     * @param c the character to echo to the console in place of the typed
-     *                      character.
-     */
-    public void setEchoCharacter(final Character c) {
-        this.echoCharacter = c;
-    }
-
-    /**
-     * Returns the echo character.
-     */
-    public Character getEchoCharacter() {
-        return this.echoCharacter;
-    }
-
-    /**
-     * Whether or not to add new commands to the history buffer.
-     */
-    public void setUseHistory(final boolean flag) {
-        this.useHistory = flag;
-    }
-
-    /**
-     * Whether or not to add new commands to the history buffer.
-     */
-    public boolean getUseHistory() {
-        return useHistory;
-    }
-
-    /**
-     * Whether to use pagination when the number of rows of candidates exceeds
-     * the height of the temrinal.
-     */
-    public void setUsePagination(final boolean flag) {
-        this.usePagination = flag;
-    }
-
-    /**
-     * Whether to use pagination when the number of rows of candidates exceeds
-     * the height of the temrinal.
-     */
-    public boolean getUsePagination() {
-        return usePagination;
-    }
-
-    /**
-     * Adding a triggered Action allows to give another curse of action
-     * if a character passed the preprocessing.
-     * 
-     * Say you want to close the application if the user enter q.
-     * addTriggerAction('q', new ActionListener(){ System.exit(0); });
-     * would do the trick.
-     */
-    public void addTriggeredAction(final char c, final ActionListener listener) {
-        triggeredActions.put(c, listener);
-    }
-
     int getKeyForAction(final short logicalAction) {
         for (int i = 0; i < keybindings.length; i++) {
             if (keybindings[i] == logicalAction) {
@@ -446,83 +905,9 @@ public class ConsoleReader
         return new int[]{ c, code };
     }
 
-    /**
-     * Clear the echoed characters for the specified character code.
-     */
-    int clearEcho(final int c) throws IOException {
-        // if the terminal is not echoing, then ignore
-        if (!terminal.isEchoEnabled()) {
-            return 0;
-        }
-
-        // otherwise, clear
-        int num = countEchoCharacters((char) c);
-        back(num);
-        drawBuffer(num);
-
-        return num;
-    }
-
-    int countEchoCharacters(final char c) {
-        // tabs as special: we need to determine the number of spaces
-        // to cancel based on what out current cursor position is
-        if (c == 9) {
-            int tabStop = 8; // will this ever be different?
-            int position = getCursorPosition();
-
-            return tabStop - (position % tabStop);
-        }
-
-        return getPrintableCharacters(c).length();
-    }
-
-    /**
-     * Return the number of characters that will be printed when the specified
-     * character is echoed to the screen. Adapted from cat by Torbjorn Granlund,
-     * as repeated in stty by David MacKenzie.
-     */
-    StringBuilder getPrintableCharacters(final char ch) {
-        StringBuilder sbuff = new StringBuilder();
-
-        if (ch >= 32) {
-            if (ch < 127) {
-                sbuff.append(ch);
-            }
-            else if (ch == 127) {
-                sbuff.append('^');
-                sbuff.append('?');
-            }
-            else {
-                sbuff.append('M');
-                sbuff.append('-');
-
-                if (ch >= (128 + 32)) {
-                    if (ch < (128 + 127)) {
-                        sbuff.append((char) (ch - 128));
-                    }
-                    else {
-                        sbuff.append('^');
-                        sbuff.append('?');
-                    }
-                }
-                else {
-                    sbuff.append('^');
-                    sbuff.append((char) (ch - 128 + 64));
-                }
-            }
-        }
-        else {
-            sbuff.append('^');
-            sbuff.append((char) (ch + 64));
-        }
-
-        return sbuff;
-    }
-
-    int getCursorPosition() {
-        // FIXME: does not handle anything but a line with a prompt absolute position
-        return (prompt == null ? 0 : prompt.length()) + buf.cursor;
-    }
+    //
+    // Line Reading
+    //
 
     /**
      * Read the next line and return the contents of the buffer.
@@ -740,20 +1125,47 @@ public class ConsoleReader
         // return new BufferedReader (new InputStreamReader (in)).readLine ();
     }
 
+    //
+    // Completion
+    //
+
+    private final List<Completer> completers = new LinkedList<Completer>();
+
+    private CompletionHandler completionHandler = new CandidateListCompletionHandler();
+
     /**
-     * Move up or down the history tree.
+     * Add the specified {@link Completer} to the list of handlers for tab-completion.
+     *
+     * @param completer the {@link Completer} to add
+     * @return true if it was successfully added
      */
-    private boolean moveHistory(final boolean next) throws IOException {
-        if (next && !history.next()) {
-            return false;
-        }
-        else if (!next && !history.previous()) {
-            return false;
-        }
+    public boolean addCompleter(final Completer completer) {
+        return completers.add(completer);
+    }
 
-        setBuffer(history.current());
+    /**
+     * Remove the specified {@link Completer} from the list of handlers for tab-completion.
+     *
+     * @param completer the {@link Completer} to remove
+     * @return true if it was successfully removed
+     */
+    public boolean removeCompleter(final Completer completer) {
+        return completers.remove(completer);
+    }
 
-        return true;
+    /**
+     * Returns an unmodifiable list of all the completers.
+     */
+    public Collection<Completer> getCompleters() {
+        return Collections.unmodifiableList(completers);
+    }
+
+    public void setCompletionHandler(final CompletionHandler handler) {
+        this.completionHandler = handler;
+    }
+
+    public CompletionHandler getCompletionHandler() {
+        return this.completionHandler;
     }
 
     /**
@@ -784,212 +1196,53 @@ public class ConsoleReader
             return false;
         }
 
-        return completionHandler.complete(this, candidates, position);
+        return getCompletionHandler().complete(this, candidates, position);
     }
 
     /**
-     * Erase the current line.
-     *
-     * @return false if we failed (e.g., the buffer was empty)
+     * The number of tab-completion candidates above which a warning will be
+     * prompted before showing all the candidates.
      */
-    final boolean resetLine() throws IOException {
-        if (buf.cursor == 0) {
-            return false;
-        }
-
-        backspaceAll();
-
-        return true;
-    }
+    private int autoprintThreshhold = Integer.getInteger(JLINE_COMPLETION_THRESHOLD, 100); // same default as bash
 
     /**
-     * Move the cursor position to the specified absolute index.
+     * @param threshhold the number of candidates to print without issuing a warning.
      */
-    public final boolean setCursorPosition(final int position) throws IOException {
-        return moveCursor(position - buf.cursor) != 0;
+    public void setAutoprintThreshhold(final int threshhold) {
+        this.autoprintThreshhold = threshhold;
     }
 
     /**
-     * Set the current buffer's content to the specified {@link String}. The
-     * visual console will be modified to show the current buffer.
-     *
-     * @param buffer the new contents of the buffer.
+     * @return the number of candidates to print without issuing a warning.
      */
-    private void setBuffer(final String buffer) throws IOException {
-        // don't bother modifying it if it is unchanged
-        if (buffer.equals(buf.buffer.toString())) {
-            return;
-        }
-
-        // obtain the difference between the current buffer and the new one
-        int sameIndex = 0;
-
-        for (int i = 0, l1 = buffer.length(), l2 = buf.buffer.length(); (i < l1)
-            && (i < l2); i++) {
-            if (buffer.charAt(i) == buf.buffer.charAt(i)) {
-                sameIndex++;
-            }
-            else {
-                break;
-            }
-        }
-
-        int diff = buf.buffer.length() - sameIndex;
-
-        backspace(diff); // go back for the differences
-        killLine(); // clear to the end of the line
-        buf.buffer.setLength(sameIndex); // the new length
-        putString(buffer.substring(sameIndex)); // append the differences
+    public int getAutoprintThreshhold() {
+        return autoprintThreshhold;
     }
 
+    private boolean usePagination;
+
     /**
-     * Clear the line and redraw it.
+     * Whether to use pagination when the number of rows of candidates exceeds
+     * the height of the temrinal.
      */
-    public final void redrawLine() throws IOException {
-        print(RESET_LINE);
-        flush();
-        drawLine();
+    public void setUsePagination(final boolean flag) {
+        this.usePagination = flag;
     }
 
     /**
-     * Output put the prompt + the current buffer
+     * Whether to use pagination when the number of rows of candidates exceeds
+     * the height of the temrinal.
      */
-    public final void drawLine() throws IOException {
-        if (prompt != null) {
-            print(prompt);
-        }
-
-        print(buf.buffer.toString());
-
-        if (buf.length() != buf.cursor) { // not at end of line
-            back(buf.length() - buf.cursor);
-        }
+    public boolean getUsePagination() {
+        return usePagination;
     }
 
-    /**
-     * Clear the buffer and add its contents to the history.
-     *
-     * @return the former contents of the buffer.
-     */
-    final String finishBuffer() {
-        String str = buf.buffer.toString();
-
-        // we only add it to the history if the buffer is not empty
-        // and if mask is null, since having a mask typically means
-        // the string was a password. We clear the mask after this call
-        if (str.length() > 0) {
-            if (mask == null && useHistory) {
-                history.add(str);
-            }
-            else {
-                mask = null;
-            }
-        }
-
-        history.moveToEnd();
-
-        buf.buffer.setLength(0);
-        buf.cursor = 0;
-
-        return str;
-    }
+    //
+    // Printing
+    //
 
     /**
-     * Write out the specified string to the buffer and the output stream.
-     */
-    public final void putString(final String str) throws IOException {
-        buf.write(str);
-        print(str);
-        drawBuffer();
-    }
-
-    /**
-     * Output the specified character, both to the buffer and the output stream.
-     */
-    private void putChar(final int c, final boolean print) throws IOException {
-        buf.write((char) c);
-
-        if (print) {
-            // no masking...
-            if (mask == null) {
-                print(c);
-            }
-            // null mask: don't print anything...
-            else if (mask == 0) {
-                ;
-            }
-            // otherwise print the mask...
-            else {
-                print(mask);
-            }
-
-            drawBuffer();
-        }
-    }
-
-    /**
-     * Redraw the rest of the buffer from the cursor onwards. This is necessary
-     * for inserting text into the buffer.
-     *
-     * @param clear the number of characters to clear after the end of the buffer
-     */
-    private void drawBuffer(final int clear) throws IOException {
-        // debug ("drawBuffer: " + clear);
-        char[] chars = buf.buffer.substring(buf.cursor).toCharArray();
-        if (mask != null) {
-            Arrays.fill(chars, mask);
-        }
-
-        print(chars);
-
-        clearAhead(clear);
-        back(chars.length);
-        flush();
-    }
-
-    /**
-     * Redraw the rest of the buffer from the cursor onwards. This is necessary
-     * for inserting text into the buffer.
-     */
-    private void drawBuffer() throws IOException {
-        drawBuffer(0);
-    }
-
-    /**
-     * Clear ahead the specified number of characters without moving the cursor.
-     */
-    private void clearAhead(final int num) throws IOException {
-        if (num == 0) {
-            return;
-        }
-
-        // debug ("clearAhead: " + num);
-
-        // print blank extra characters
-        print(' ', num);
-
-        // we need to flush here so a "clever" console
-        // doesn't just ignore the redundancy of a space followed by
-        // a backspace.
-        flush();
-
-        // reset the visual cursor
-        back(num);
-
-        flush();
-    }
-
-    /**
-     * Move the visual cursor backwards without modifying the buffer cursor.
-     */
-    private void back(final int num) throws IOException {
-        print(BACKSPACE, num);
-        flush();
-    }
-
-    /**
-     * Output the specified character to the output stream without manipulating
-     * the current buffer.
+     * Output the specified character to the output stream without manipulating the current buffer.
      */
     private void print(final int c) throws IOException {
         if (c == '\t') {
@@ -1003,8 +1256,7 @@ public class ConsoleReader
     }
 
     /**
-     * Output the specified characters to the output stream without manipulating
-     * the current buffer.
+     * Output the specified characters to the output stream without manipulating the current buffer.
      */
     private void print(final char[] chars) throws IOException {
         int len = 0;
@@ -1065,273 +1317,9 @@ public class ConsoleReader
         flush();
     }
 
-    /**
-     * Flush the console output stream. This is important for printout out
-     * single characters (like a backspace or keyboard) that we want the console
-     * to handle immediately.
-     */
-    public void flush() throws IOException {
-        out.flush();
-    }
-
-    private int backspaceAll() throws IOException {
-        return backspace(Integer.MAX_VALUE);
-    }
-
-    /**
-     * Issue <em>num</em> backspaces.
-     *
-     * @return the number of characters backed up
-     */
-    private int backspace(final int num) throws IOException {
-        if (buf.cursor == 0) {
-            return 0;
-        }
-
-        int count = 0;
-
-        count = moveCursor(-1 * num) * -1;
-        // debug ("Deleting from " + buf.cursor + " for " + count);
-        buf.buffer.delete(buf.cursor, buf.cursor + count);
-        drawBuffer(count);
-
-        return count;
-    }
-
-    /**
-     * Issue a backspace.
-     *
-     * @return true if successful
-     */
-    public boolean backspace() throws IOException {
-        return backspace(1) == 1;
-    }
-
-    private boolean moveToEnd() throws IOException {
-        if (moveCursor(1) == 0) {
-            return false;
-        }
-
-        while (moveCursor(1) != 0) {
-            // nothing
-        }
-
-        return true;
-    }
-
-    /**
-     * Delete the character at the current position and redraw the remainder of the buffer.
-     */
-    private boolean deleteCurrentCharacter() throws IOException {
-        boolean success = buf.buffer.length() > 0;
-        if (!success) {
-            return false;
-        }
-
-        if (buf.cursor == buf.buffer.length()) {
-            return false;
-        }
-
-        buf.buffer.deleteCharAt(buf.cursor);
-        drawBuffer(1);
-        return true;
-    }
-
-    private boolean previousWord() throws IOException {
-        while (isDelimiter(buf.current()) && (moveCursor(-1) != 0)) {
-            // nothing
-        }
-
-        while (!isDelimiter(buf.current()) && (moveCursor(-1) != 0)) {
-            // nothing
-        }
-
-        return true;
-    }
-
-    private boolean nextWord() throws IOException {
-        while (isDelimiter(buf.current()) && (moveCursor(1) != 0)) {
-            // nothing
-        }
-
-        while (!isDelimiter(buf.current()) && (moveCursor(1) != 0)) {
-            // nothing
-        }
-
-        return true;
-    }
-
-    private boolean deletePreviousWord() throws IOException {
-        while (isDelimiter(buf.current()) && backspace()) {
-            // nothing
-        }
-
-        while (!isDelimiter(buf.current()) && backspace()) {
-            // nothing
-        }
-
-        return true;
-    }
-
-    /**
-     * Move the cursor <i>where</i> characters.
-     *
-     * @param num if less than 0, move abs(<i>where</i>) to the left,
-     *              otherwise move <i>where</i> to the right.
-     * @return the number of spaces we moved
-     */
-    public int moveCursor(final int num) throws IOException {
-        int where = num;
-
-        if ((buf.cursor == 0) && (where < 0)) {
-            return 0;
-        }
-
-        if ((buf.cursor == buf.buffer.length()) && (where > 0)) {
-            return 0;
-        }
-
-        if ((buf.cursor + where) < 0) {
-            where = -buf.cursor;
-        }
-        else if ((buf.cursor + where) > buf.buffer.length()) {
-            where = buf.buffer.length() - buf.cursor;
-        }
-
-        moveInternal(where);
-
-        return where;
-    }
-
-    /**
-     * Move the cursor <i>where</i> characters, withough checking the current
-     * buffer.
-     *
-     * @param where the number of characters to move to the right or left.
-     */
-    private void moveInternal(final int where) throws IOException {
-        // debug ("move cursor " + where + " ("
-        // + buf.cursor + " => " + (buf.cursor + where) + ")");
-        buf.cursor += where;
-
-        char c;
-
-        if (where < 0) {
-            int len = 0;
-            for (int i = buf.cursor; i < buf.cursor - where; i++) {
-                if (buf.buffer.charAt(i) == '\t') {
-                    len += TAB_WIDTH;
-                }
-                else {
-                    len++;
-                }
-            }
-
-            char cbuf[] = new char[len];
-            Arrays.fill(cbuf, BACKSPACE);
-            out.write(cbuf);
-
-            return;
-        }
-        else if (buf.cursor == 0) {
-            return;
-        }
-        else if (mask != null) {
-            c = mask;
-        }
-        else {
-            print(buf.buffer.substring(buf.cursor - where, buf.cursor).toCharArray());
-            return;
-        }
-
-        // null character mask: don't output anything
-        if (NULL_MASK.equals(mask)) {
-            return;
-        }
-
-        print(c, Math.abs(where));
-    }
-
-    /**
-     * Read a character from the console.
-     *
-     * @return the character, or -1 if an EOF is received.
-     */
-    public final int readVirtualKey() throws IOException {
-        int c = terminal.readVirtualKey(in);
-
-        Log.trace("Keystroke: ", c);
-
-        // clear any echo characters
-        clearEcho(c);
-
-        return c;
-    }
-
-    public final int readCharacter(final char[] allowed) throws IOException {
-        // if we restrict to a limited set and the current character is not in the set, then try again.
-        char c;
-
-        Arrays.sort(allowed); // always need to sort before binarySearch
-
-        while (Arrays.binarySearch(allowed, c = (char) readVirtualKey()) < 0) {
-            // nothing
-        }
-
-        return c;
-    }
-
-    /**
-     * Issue <em>num</em> deletes.
-     *
-     * @return the number of characters backed up
-     */
-    private int delete(final int num) throws IOException {
-        /* Commented out beacuse of DWA-2949:
-        if (buf.cursor == 0) {
-            return 0;
-        }
-        */
-
-        buf.buffer.delete(buf.cursor, buf.cursor + 1);
-        drawBuffer(1);
-
-        return 1;
-    }
-
-    /**
-     * Issue a delete.
-     *
-     * @return true if successful
-     */
-    public final boolean delete() throws IOException {
-        return delete(1) == 1;
-    }
-
-    public final boolean replace(final int num, final  String replacement) {
-        buf.buffer.replace(buf.cursor - num, buf.cursor, replacement);
-        try {
-            moveCursor(-num);
-            drawBuffer(Math.max(0, num - replacement.length()));
-            moveCursor(replacement.length());
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Checks to see if the specified character is a delimiter. We consider a
-     * character a delimiter if it is anything but a letter or digit.
-     *
-     * @param c the character to test
-     * @return true if it is a delimiter
-     */
-    private boolean isDelimiter(final char c) {
-        return !Character.isLetterOrDigit(c);
-    }
+    //
+    // Actions
+    //
 
     /**
      * Kill the buffer ahead of the current cursor position.
@@ -1469,6 +1457,28 @@ public class ConsoleReader
         }
     }
 
+    //
+    // Triggered Actions
+    //
+
+    private final Map<Character,ActionListener> triggeredActions = new HashMap<Character,ActionListener>();
+
+    /**
+     * Adding a triggered Action allows to give another curse of action
+     * if a character passed the preprocessing.
+     *
+     * Say you want to close the application if the user enter q.
+     * addTriggerAction('q', new ActionListener(){ System.exit(0); });
+     * would do the trick.
+     */
+    public void addTriggeredAction(final char c, final ActionListener listener) {
+        triggeredActions.put(c, listener);
+    }
+
+    //
+    // Formatted Output
+    //
+
     /**
      * Output the specified {@link Collection} in proper columns.
      */
@@ -1527,20 +1537,9 @@ public class ConsoleReader
         }
     }
 
-    /**
-     * Append <i>toPad</i> to the specified <i>appendTo</i>, as well as (<i>toPad.length () - len</i>) spaces.
-     *
-     * @param toPad    the {@link String} to pad
-     * @param len      the target length
-     * @param appendTo the {@link StringBuilder} to which to append the padded {@link String}.
-     */
-    private void pad(final String toPad, final int len, final StringBuilder appendTo) {
-        appendTo.append(toPad);
-
-        for (int i = 0; i < (len - toPad.length()); i++, appendTo.append(' ')) {
-            // empty
-        }
-    }
+    //
+    // Non-supported Terminal Support
+    //
 
     private Thread maskThread;
 
@@ -1583,5 +1582,35 @@ public class ConsoleReader
         }
 
         maskThread = null;
+    }
+
+    //
+    // Helpers
+    //
+
+    /**
+     * Checks to see if the specified character is a delimiter. We consider a
+     * character a delimiter if it is anything but a letter or digit.
+     *
+     * @param c the character to test
+     * @return true if it is a delimiter
+     */
+    private boolean isDelimiter(final char c) {
+        return !Character.isLetterOrDigit(c);
+    }
+
+    /**
+     * Append <i>toPad</i> to the specified <i>appendTo</i>, as well as (<i>toPad.length () - len</i>) spaces.
+     *
+     * @param toPad    the {@link String} to pad
+     * @param len      the target length
+     * @param appendTo the {@link StringBuilder} to which to append the padded {@link String}.
+     */
+    private void pad(final String toPad, final int len, final StringBuilder appendTo) {
+        appendTo.append(toPad);
+
+        for (int i = 0; i < (len - toPad.length()); i++, appendTo.append(' ')) {
+            // empty
+        }
     }
 }
