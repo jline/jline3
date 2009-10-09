@@ -55,7 +55,7 @@ public class StringsCompleter
     }
 
     @SuppressWarnings({ "unchecked" })
-    public int complete(String buffer, final int cursor, final List<String> candidates) {
+    public int complete(String buffer, final int cursor, final List<CharSequence> candidates) {
         // buffer could be null
         assert candidates != null;
 

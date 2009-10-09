@@ -54,7 +54,7 @@ public class AggregateCompleter
         return completers;
     }
 
-    public int complete(final String buffer, final int cursor, final List<String> candidates) {
+    public int complete(final String buffer, final int cursor, final List<CharSequence> candidates) {
         // buffer could be null
         assert candidates != null;
 
@@ -84,13 +84,13 @@ public class AggregateCompleter
 
     private class Completion
     {
-        public final List<String> candidates;
+        public final List<CharSequence> candidates;
 
         public int cursor;
 
-        public Completion(final List<String> candidates) {
+        public Completion(final List<CharSequence> candidates) {
             assert candidates != null;
-            this.candidates = new LinkedList<String>(candidates);
+            this.candidates = new LinkedList<CharSequence>(candidates);
         }
 
         public void complete(final Completer completer, final String buffer, final int cursor) {

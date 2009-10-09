@@ -72,14 +72,14 @@ public class ArgumentCompleter
     }
 
     /**
-     * Returns whether a completion at argument index N will succees
+     * Returns whether a completion at argument index N will success
      * if all the completions from arguments 0-(N-1) also succeed.
      */
     public boolean getStrict() {
         return this.strict;
     }
 
-    public int complete(final String buffer, final int cursor, final List<String> candidates) {
+    public int complete(final String buffer, final int cursor, final List<CharSequence> candidates) {
         ArgumentList list = delim.delimit(buffer, cursor);
         int argpos = list.getArgumentPosition();
         int argIndex = list.getCursorArgumentIndex();
@@ -105,7 +105,7 @@ public class ArgumentCompleter
             String[] args = list.getArguments();
             String arg = ((args == null) || (i >= args.length)) ? "" : args[i];
 
-            List<String> subCandidates = new LinkedList<String>();
+            List<CharSequence> subCandidates = new LinkedList<CharSequence>();
 
             if (sub.complete(arg, arg.length(), subCandidates) == -1) {
                 return -1;
@@ -136,11 +136,11 @@ public class ArgumentCompleter
          */
         if ((cursor != buffer.length()) && delim.isDelimiter(buffer, cursor)) {
             for (int i = 0; i < candidates.size(); i++) {
-                String val = candidates.get(i);
+                CharSequence val = candidates.get(i);
 
                 while ((val.length() > 0)
                     && delim.isDelimiter(val, val.length() - 1)) {
-                    val = val.substring(0, val.length() - 1);
+                    val = val.subSequence(0, val.length() - 1);
                 }
 
                 candidates.set(i, val);
@@ -180,7 +180,7 @@ public class ArgumentCompleter
          * @param pos    the index of the character in the buffer
          * @return true if the character should be a delimiter
          */
-        boolean isDelimiter(String buffer, int pos);
+        boolean isDelimiter(CharSequence buffer, int pos);
     }
 
     /**
@@ -255,16 +255,16 @@ public class ArgumentCompleter
          * @param pos    the index of the character in the buffer
          * @return true if the character should be a delimiter
          */
-        public boolean isDelimiter(final String buffer, final int pos) {
+        public boolean isDelimiter(final CharSequence buffer, final int pos) {
             return !isQuoted(buffer, pos) && !isEscaped(buffer, pos) && isDelimiterChar(buffer, pos);
 
         }
 
-        public boolean isQuoted(final String buffer, final int pos) {
+        public boolean isQuoted(final CharSequence buffer, final int pos) {
             return false;
         }
 
-        public boolean isEscaped(final String buffer, final int pos) {
+        public boolean isEscaped(final CharSequence buffer, final int pos) {
             if (pos <= 0) {
                 return false;
             }
@@ -287,7 +287,7 @@ public class ArgumentCompleter
          * {@link #getEscapeChars}. To perform escaping manually,
          * override {@link #isDelimiter} instead.
          */
-        public abstract boolean isDelimiterChar(String buffer, int pos);
+        public abstract boolean isDelimiterChar(CharSequence buffer, int pos);
     }
 
     /**
@@ -306,7 +306,7 @@ public class ArgumentCompleter
          * preceeding character is not an escape character.
          */
         @Override
-        public boolean isDelimiterChar(String buffer, int pos) {
+        public boolean isDelimiterChar(CharSequence buffer, int pos) {
             return Character.isWhitespace(buffer.charAt(pos));
         }
     }

@@ -44,12 +44,12 @@ public class CandidateListCompletionHandler
         this.eagerNewlines = eagerNewlines;
     }
 
-    public boolean complete(final ConsoleReader reader, final List<String> candidates, final int pos) throws IOException {
+    public boolean complete(final ConsoleReader reader, final List<CharSequence> candidates, final int pos) throws IOException {
         CursorBuffer buf = reader.getCursorBuffer();
 
         // if there is only one completion, then fill in the buffer
         if (candidates.size() == 1) {
-            String value = candidates.get(0);
+            CharSequence value = candidates.get(0);
 
             // fail if the only candidate is the same as the current buffer
             if (value.equals(buf.toString())) {
@@ -76,7 +76,7 @@ public class CandidateListCompletionHandler
         return true;
     }
 
-    public static void setBuffer(final ConsoleReader reader, final String value, final int offset) throws IOException {
+    public static void setBuffer(final ConsoleReader reader, final CharSequence value, final int offset) throws IOException {
         while ((reader.getCursorBuffer().cursor > offset) && reader.backspace()) {
             // empty
         }
@@ -91,8 +91,8 @@ public class CandidateListCompletionHandler
      *
      * @param candidates the list of candidates to print
      */
-    public static void printCandidates(final ConsoleReader reader, Collection<String> candidates, final boolean eagerNewlines) throws IOException {
-        Set distinct = new HashSet<String>(candidates);
+    public static void printCandidates(final ConsoleReader reader, Collection<CharSequence> candidates, final boolean eagerNewlines) throws IOException {
+        Set<CharSequence> distinct = new HashSet<CharSequence>(candidates);
 
         if (distinct.size() > reader.getAutoprintThreshhold()) {
             if (!eagerNewlines) {
@@ -126,9 +126,9 @@ public class CandidateListCompletionHandler
 
         // copy the values and make them distinct, without otherwise affecting the ordering. Only do it if the sizes differ.
         if (distinct.size() != candidates.size()) {
-            Collection<String> copy = new ArrayList<String>();
+            Collection<CharSequence> copy = new ArrayList<CharSequence>();
 
-            for (String next : candidates) {
+            for (CharSequence next : candidates) {
                 if (!copy.contains(next)) {
                     copy.add(next);
                 }
@@ -146,7 +146,7 @@ public class CandidateListCompletionHandler
      * or null if there are no commonalities. For example, if the list contains
      * <i>foobar</i>, <i>foobaz</i>, <i>foobuz</i>, the method will return <i>foob</i>.
      */
-    private String getUnambiguousCompletions(final List<String> candidates) {
+    private String getUnambiguousCompletions(final List<CharSequence> candidates) {
         if (candidates == null || candidates.isEmpty()) {
             return null;
         }

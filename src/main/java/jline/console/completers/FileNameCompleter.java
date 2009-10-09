@@ -41,7 +41,7 @@ public class FileNameCompleter
 {
     // TODO: Handle files with spaces in them
 
-    public int complete(final String buf, final int cursor, final List<String> candidates) {
+    public int complete(final String buf, final int cursor, final List<CharSequence> candidates) {
         String buffer = (buf == null) ? "" : buf;
         String translated = buffer;
 
@@ -70,14 +70,9 @@ public class FileNameCompleter
             dir = file.getParentFile();
         }
 
-        final File[] entries = (dir == null) ? new File[0] : dir.listFiles();
+        File[] entries = dir == null ? new File[0] : dir.listFiles();
 
-        try {
-            return matchFiles(buffer, translated, entries, candidates);
-        }
-        finally {
-            Collections.sort(candidates);
-        }
+        return matchFiles(buffer, translated, entries, candidates);
     }
 
     protected File getUserHome() {
@@ -88,7 +83,7 @@ public class FileNameCompleter
         return new File(".");
     }
 
-    public int matchFiles(final String buffer, final String translated, final File[] files, final List<String> candidates) {
+    public int matchFiles(final String buffer, final String translated, final File[] files, final List<CharSequence> candidates) {
         if (files == null) {
             return -1;
         }

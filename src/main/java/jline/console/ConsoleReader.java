@@ -297,7 +297,7 @@ public class ConsoleReader
     /**
      * Write out the specified string to the buffer and the output stream.
      */
-    public final void putString(final String str) throws IOException {
+    public final void putString(final CharSequence str) throws IOException {
         buf.write(str);
         print(str);
         drawBuffer();
@@ -1083,7 +1083,7 @@ public class ConsoleReader
             return false;
         }
 
-        List<String> candidates = new LinkedList<String>();
+        List<CharSequence> candidates = new LinkedList<CharSequence>();
         String bufstr = buf.buffer.toString();
         int cursor = buf.cursor;
 
