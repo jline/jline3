@@ -96,7 +96,7 @@ public class CandidateListCompletionHandler
             }
             //noinspection StringConcatenation
             reader.printString(MessageFormat.format(loc.getString("display-candidates"), candidates.size()) + " ");
-            reader.flushConsole();
+            reader.flush();
 
             int c;
 

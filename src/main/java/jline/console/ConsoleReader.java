@@ -691,7 +691,7 @@ public class ConsoleReader
                     beep();
                 }
 
-                flushConsole();
+                flush();
             }
         }
         finally {
@@ -865,11 +865,11 @@ public class ConsoleReader
 
         // send the ANSI code to clear the screen
         printString(((char) 27) + "[2J");
-        flushConsole();
+        flush();
 
         // then send the ANSI code to go to position 1,1
         printString(((char) 27) + "[1;1H");
-        flushConsole();
+        flush();
 
         redrawLine();
 
@@ -946,7 +946,7 @@ public class ConsoleReader
                 line.setLength(0);
                 if (--showLines == 0) { // Overflow
                     printString(loc.getString("display-more"));
-                    flushConsole();
+                    flush();
                     int c = readVirtualKey();
                     if (c == '\r' || c == '\n') {
                         showLines = 1; // one step forward
@@ -1049,7 +1049,7 @@ public class ConsoleReader
      */
     public final void redrawLine() throws IOException {
         printCharacter(RESET_LINE);
-        flushConsole();
+        flush();
         drawLine();
     }
 
@@ -1074,7 +1074,7 @@ public class ConsoleReader
      */
     public final void println() throws IOException {
         printString(CR);
-        flushConsole();
+        flush();
     }
 
     /**
@@ -1162,7 +1162,7 @@ public class ConsoleReader
 
         clearAhead(clear);
         back(chars.length);
-        flushConsole();
+        flush();
     }
 
     /**
@@ -1189,12 +1189,12 @@ public class ConsoleReader
         // we need to flush here so a "clever" console
         // doesn't just ignore the redundancy of a space followed by
         // a backspace.
-        flushConsole();
+        flush();
 
         // reset the visual cursor
         back(num);
 
-        flushConsole();
+        flush();
     }
 
     /**
@@ -1202,7 +1202,7 @@ public class ConsoleReader
      */
     private void back(final int num) throws IOException {
         printCharacters(BACKSPACE, num);
-        flushConsole();
+        flush();
     }
 
     /**
@@ -1212,7 +1212,7 @@ public class ConsoleReader
         if (getBellEnabled()) {
             printCharacter(KEYBOARD_BELL);
             // need to flush so the console actually beeps
-            flushConsole();
+            flush();
         }
     }
 
@@ -1282,9 +1282,9 @@ public class ConsoleReader
     /**
      * Flush the console output stream. This is important for printout out
      * single characters (like a backspace or keyboard) that we want the console
-     * to handle immedately.
+     * to handle immediately.
      */
-    public void flushConsole() throws IOException {
+    public void flush() throws IOException {
         out.flush();
     }
 
