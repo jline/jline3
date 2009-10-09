@@ -1474,53 +1474,60 @@ public class ConsoleReader
         }
 
         int width = getTerminal().getWidth();
+        int height = getTerminal().getHeight();
+
         int maxWidth = 0;
-
-        Iterator iter = items.iterator();
+        Iterator<? extends CharSequence> iter = items.iterator();
         while (iter.hasNext()) {
-            maxWidth = Math.max(maxWidth, iter.next().toString().length());
+            maxWidth = Math.max(maxWidth, iter.next().length());
         }
+        Log.debug("Max width: ", maxWidth);
 
-        StringBuilder line = new StringBuilder();
         int showLines;
-
         if (isPaginationEnabled()) {
-            showLines = getTerminal().getHeight() - 1; // page limit
+            showLines = height - 1; // page limit
         }
         else {
             showLines = Integer.MAX_VALUE;
         }
 
-        for (CharSequence cur : items) {
-            if ((line.length() + maxWidth) > width) {
-                print(line);
-                println();
-                line.setLength(0);
-                if (--showLines == 0) { // Overflow
+        StringBuilder buff = new StringBuilder();
+        for (CharSequence item : items) {
+            if ((buff.length() + maxWidth) > width) {
+                println(buff);
+                buff.setLength(0);
+
+                if (--showLines == 0) {
+                    // Overflow
                     print(loc.getString("display-more"));
                     flush();
                     int c = readVirtualKey();
                     if (c == '\r' || c == '\n') {
-                        showLines = 1; // one step forward
+                        // one step forward
+                        showLines = 1;
                     }
                     else if (c != 'q') {
-                        showLines = getTerminal().getHeight() - 1;
-                    } // page forward
+                        // page forward
+                        showLines = height - 1;
+                    }
 
                     back(loc.getString("display-more").length());
                     if (c == 'q') {
+                        // cancel
                         break;
-                    } // cancel
+                    }
                 }
             }
 
-            pad(cur, maxWidth + 3, line);
+            // NOTE: toString() is important here due to AnsiString being retarded
+            buff.append(item.toString());
+            for (int i=0; i < (maxWidth - item.length()); i++) {
+                buff.append(' ');
+            }
         }
 
-        if (line.length() > 0) {
-            print(line.toString().trim());
-            println();
-            line.setLength(0);
+        if (buff.length() > 0) {
+            println(buff);
         }
     }
 
@@ -1584,20 +1591,5 @@ public class ConsoleReader
      */
     private boolean isDelimiter(final char c) {
         return !Character.isLetterOrDigit(c);
-    }
-
-    /**
-     * Append <i>toPad</i> to the specified <i>appendTo</i>, as well as (<i>toPad.length () - len</i>) spaces.
-     *
-     * @param toPad    the {@link String} to pad
-     * @param len      the target length
-     * @param appendTo the {@link StringBuilder} to which to append the padded {@link String}.
-     */
-    private void pad(final CharSequence toPad, final int len, final StringBuilder appendTo) {
-        appendTo.append(toPad);
-
-        for (int i = 0; i < (len - toPad.length()); i++, appendTo.append(' ')) {
-            // empty
-        }
     }
 }
