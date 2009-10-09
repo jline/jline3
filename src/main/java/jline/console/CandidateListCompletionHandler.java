@@ -32,16 +32,14 @@ public class CandidateListCompletionHandler
 {
     // TODO: handle quotes and escaped quotes && enable automatic escaping of whitespace
 
-    private static ResourceBundle loc = ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName());
-
     private boolean eagerNewlines = true;
 
     public boolean isEagerNewlines() {
         return eagerNewlines;
     }
 
-    public void setEagerNewlines(final boolean eagerNewlines) {
-        this.eagerNewlines = eagerNewlines;
+    public void setEagerNewlines(final boolean flag) {
+        this.eagerNewlines = flag;
     }
 
     public boolean complete(final ConsoleReader reader, final List<CharSequence> candidates, final int pos) throws IOException {
@@ -99,13 +97,13 @@ public class CandidateListCompletionHandler
                 reader.println();
             }
             //noinspection StringConcatenation
-            reader.print(MessageFormat.format(loc.getString("display-candidates"), candidates.size()) + " ");
+            reader.print(Messages.DISPLAY_CANDIDATES.format(candidates.size()));
             reader.flush();
 
             int c;
 
-            String noOpt = loc.getString("display-candidates-no");
-            String yesOpt = loc.getString("display-candidates-yes");
+            String noOpt = Messages.DISPLAY_CANDIDATES_NO.format();
+            String yesOpt = Messages.DISPLAY_CANDIDATES_YES.format();
             char[] allowed = { yesOpt.charAt(0), noOpt.charAt(0) };
 
             while ((c = reader.readCharacter(allowed)) != -1) {
@@ -180,5 +178,19 @@ public class CandidateListCompletionHandler
         }
 
         return true;
+    }
+
+    private static enum Messages
+    {
+        DISPLAY_CANDIDATES,
+        DISPLAY_CANDIDATES_YES,
+        DISPLAY_CANDIDATES_NO,
+        ;
+
+        private static final ResourceBundle bundle = ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName());
+
+        public String format(final Object... args) {
+            return String.format(bundle.getString(name()), args);
+        }
     }
 }
