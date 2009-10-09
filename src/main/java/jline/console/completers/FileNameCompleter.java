@@ -103,7 +103,7 @@ public class FileNameCompleter
         }
         for (File file : files) {
             if (file.getAbsolutePath().startsWith(translated)) {
-                String name = file.getName() + (((matches == 1) && file.isDirectory()) ? File.separator : " ");
+                String name = file.getName() + ((matches == 1 && file.isDirectory()) ? File.separator : " ");
                 candidates.add(render(file, name));
             }
         }
