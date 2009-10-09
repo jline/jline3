@@ -5,8 +5,9 @@
  * BSD license in the documentation provided with this software.
  */
 
-package jline.console;
+package jline.console.history;
 
+import jline.console.PersistentHistory;
 import jline.internal.Log;
 
 import java.io.BufferedOutputStream;
@@ -21,7 +22,7 @@ import java.io.PrintStream;
 import java.io.Reader;
 
 /**
- * {@link History} using a file for persistent backing.
+ * {@link jline.console.History} using a file for persistent backing.
  *
  * Implementors should install shutdown hook to call {@link FileHistory#flush}
  * to save history to disk.

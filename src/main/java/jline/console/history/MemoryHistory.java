@@ -5,14 +5,16 @@
  * BSD license in the documentation provided with this software.
  */
 
-package jline.console;
+package jline.console.history;
+
+import jline.console.History;
 
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
 /**
- * Simple non-persistent {@link History}.
+ * Simple non-persistent {@link jline.console.History}.
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>

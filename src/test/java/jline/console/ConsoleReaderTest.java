@@ -4,6 +4,7 @@ import jline.TerminalFactory;
 import jline.WindowsTerminal;
 import static jline.console.Operation.*;
 import static jline.WindowsTerminal.WindowsKey.*;
+import jline.console.history.MemoryHistory;
 import static org.junit.Assert.*;
 import org.junit.Before;
 import org.junit.Test;

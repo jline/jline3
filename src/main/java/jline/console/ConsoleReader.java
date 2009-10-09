@@ -9,6 +9,7 @@ package jline.console;
 
 import jline.Terminal;
 import jline.TerminalFactory;
+import jline.console.history.MemoryHistory;
 import jline.internal.Log;
 
 import java.awt.*;
