@@ -247,6 +247,10 @@ public class ConsoleReader
         return terminal;
     }
 
+    public CursorBuffer getCursorBuffer() {
+        return buf;
+    }
+
     /**
      * @param enabled if true, enable audible keyboard bells if an alert is required.
      */
@@ -296,7 +300,7 @@ public class ConsoleReader
     }
 
     /**
-     * @return the number of candidates to print without issing a warning.
+     * @return the number of candidates to print without issuing a warning.
      */
     public int getAutoprintThreshhold() {
         return autoprintThreshhold;
@@ -423,7 +427,25 @@ public class ConsoleReader
         assert op != null;
         return getKeyForAction(op.code);
     }
-    
+
+    /**
+     * Reads the console input and returns an array of the form [raw, key binding].
+     */
+    private int[] readBinding() throws IOException {
+        int c = readVirtualKey();
+
+        if (c == -1) {
+            return null;
+        }
+
+        // extract the appropriate key binding
+        short code = keybindings[c];
+
+        Log.trace("Translated: ", c, " -> ", code);
+
+        return new int[]{ c, code };
+    }
+
     /**
      * Clear the echoed characters for the specified character code.
      */
@@ -445,10 +467,10 @@ public class ConsoleReader
         // tabs as special: we need to determine the number of spaces
         // to cancel based on what out current cursor position is
         if (c == 9) {
-            int tabstop = 8; // will this ever be different?
+            int tabStop = 8; // will this ever be different?
             int position = getCursorPosition();
 
-            return tabstop - (position % tabstop);
+            return tabStop - (position % tabStop);
         }
 
         return getPrintableCharacters(c).length();
@@ -699,38 +721,23 @@ public class ConsoleReader
         }
     }
 
+    /**
+     * Read a line for unsupported terminals.
+     */
     private String readLine(final InputStream in) throws IOException {
-        StringBuilder buf = new StringBuilder();
+        StringBuilder buff = new StringBuilder();
 
         while (true) {
             int i = in.read();
 
-            if ((i == -1) || (i == '\n') || (i == '\r')) {
-                return buf.toString();
+            if (i == -1 || i == '\n' || i == '\r') {
+                return buff.toString();
             }
 
-            buf.append((char) i);
+            buff.append((char) i);
         }
 
         // return new BufferedReader (new InputStreamReader (in)).readLine ();
-    }
-
-    /**
-     * Reads the console input and returns an array of the form [raw, key binding].
-     */
-    private int[] readBinding() throws IOException {
-        int c = readVirtualKey();
-
-        if (c == -1) {
-            return null;
-        }
-
-        // extract the appropriate key binding
-        short code = keybindings[c];
-
-        Log.trace("Translated: ", c, " -> ", code);
-
-        return new int[]{ c, code };
     }
 
     /**
@@ -750,132 +757,7 @@ public class ConsoleReader
     }
 
     /**
-     * Paste the contents of the clipboard into the console buffer
-     *
-     * @return true if clipboard contents pasted
-     */
-    public boolean paste() throws IOException {
-        Clipboard clipboard;
-        try { // May throw ugly exception on system without X
-            clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-        }
-        catch (Exception e) {
-            return false;
-        }
-
-        if (clipboard == null) {
-            return false;
-        }
-
-        Transferable transferable = clipboard.getContents(null);
-
-        if (transferable == null) {
-            return false;
-        }
-
-        try {
-            Object content = transferable.getTransferData(DataFlavor.plainTextFlavor);
-
-            /*
-             * This fix was suggested in bug #1060649 at
-             * http://sourceforge.net/tracker/index.php?func=detail&aid=1060649&group_id=64033&atid=506056
-             * to get around the deprecated DataFlavor.plainTextFlavor, but it
-             * raises a UnsupportedFlavorException on Mac OS X
-             */
-            if (content == null) {
-                try {
-                    content = new DataFlavor().getReaderForText(transferable);
-                }
-                catch (Exception e) {
-                }
-            }
-
-            if (content == null) {
-                return false;
-            }
-
-            String value;
-
-            if (content instanceof Reader) {
-                // TODO: we might want instead connect to the input stream
-                // so we can interpret individual lines
-                value = "";
-                String line;
-
-                BufferedReader read = new BufferedReader((Reader) content);
-                while ((line = read.readLine()) != null) {
-                    if (value.length() > 0) {
-                        value += "\n";
-                    }
-
-                    value += line;
-                }
-            }
-            else {
-                value = content.toString();
-            }
-
-            if (value == null) {
-                return true;
-            }
-
-            putString(value);
-
-            return true;
-        }
-        catch (UnsupportedFlavorException e) {
-            Log.error("Paste failed: ", e);
-
-            return false;
-        }
-    }
-
-    /**
-     * Kill the buffer ahead of the current cursor position.
-     *
-     * @return true if successful
-     */
-    public boolean killLine() throws IOException {
-        int cp = buf.cursor;
-        int len = buf.buffer.length();
-
-        if (cp >= len) {
-            return false;
-        }
-
-        int num = buf.buffer.length() - cp;
-        clearAhead(num);
-
-        for (int i = 0; i < num; i++) {
-            buf.buffer.deleteCharAt(len - i - 1);
-        }
-
-        return true;
-    }
-
-    /**
-     * Clear the screen by issuing the ANSI "clear screen" code.
-     */
-    public boolean clearScreen() throws IOException {
-        if (!terminal.isAnsiSupported()) {
-            return false;
-        }
-
-        // send the ANSI code to clear the screen
-        printString(((char) 27) + "[2J");
-        flush();
-
-        // then send the ANSI code to go to position 1,1
-        printString(((char) 27) + "[1;1H");
-        flush();
-
-        redrawLine();
-
-        return true;
-    }
-
-    /**
-     * Use the completors to modify the buffer with the appropriate completions.
+     * Use the completers to modify the buffer with the appropriate completions.
      *
      * @return true if successful
      */
@@ -903,88 +785,6 @@ public class ConsoleReader
         }
 
         return completionHandler.complete(this, candidates, position);
-    }
-
-    public CursorBuffer getCursorBuffer() {
-        return buf;
-    }
-
-    /**
-     * Output the specified {@link Collection} in proper columns.
-     *
-     * @param stuff the stuff to print
-     */
-    public void printColumns(final Collection<String> stuff) throws IOException {
-        if ((stuff == null) || (stuff.size() == 0)) {
-            return;
-        }
-
-        int width = getTerminal().getWidth();
-        int maxwidth = 0;
-
-        for (Iterator i = stuff.iterator(); i.hasNext(); maxwidth = Math.max(maxwidth, i.next().toString().length())) {
-            // empty
-        }
-
-        StringBuilder line = new StringBuilder();
-
-        int showLines;
-
-        if (usePagination) {
-            showLines = getTerminal().getHeight() - 1; // page limit
-        }
-        else {
-            showLines = Integer.MAX_VALUE;
-        }
-
-        for (String cur : stuff) {
-            if ((line.length() + maxwidth) > width) {
-                printString(line.toString().trim());
-                println();
-                line.setLength(0);
-                if (--showLines == 0) { // Overflow
-                    printString(loc.getString("display-more"));
-                    flush();
-                    int c = readVirtualKey();
-                    if (c == '\r' || c == '\n') {
-                        showLines = 1; // one step forward
-                    }
-                    else if (c != 'q') {
-                        showLines = getTerminal().getHeight() - 1;
-                    } // page forward
-
-                    back(loc.getString("display-more").length());
-                    if (c == 'q') {
-                        break;
-                    } // cancel
-                }
-            }
-
-            pad(cur, maxwidth + 3, line);
-        }
-
-        if (line.length() > 0) {
-            printString(line.toString().trim());
-            println();
-            line.setLength(0);
-        }
-    }
-
-    /**
-     * Append <i>toPad</i> to the specified <i>appendTo</i>, as well as (<i>toPad.length () -
-     * len</i>) spaces.
-     *
-     * @param toPad    the {@link String} to pad
-     * @param len      the target length
-     * @param appendTo the {@link StringBuilder} to which to append the padded
-     *                 {@link String}.
-     */
-    private void pad(final String toPad, final int len, final StringBuilder appendTo) {
-        appendTo.append(toPad);
-
-        for (int i = 0; i < (len - toPad.length()); i++, appendTo.append(' ')) {
-            // empty
-        }
     }
 
     /**
@@ -1046,7 +846,7 @@ public class ConsoleReader
      * Clear the line and redraw it.
      */
     public final void redrawLine() throws IOException {
-        printCharacter(RESET_LINE);
+        print(RESET_LINE);
         flush();
         drawLine();
     }
@@ -1056,23 +856,14 @@ public class ConsoleReader
      */
     public final void drawLine() throws IOException {
         if (prompt != null) {
-            printString(prompt);
+            print(prompt);
         }
 
-        printString(buf.buffer.toString());
+        print(buf.buffer.toString());
 
-        if (buf.length() != buf.cursor) // not at end of line
-        {
+        if (buf.length() != buf.cursor) { // not at end of line
             back(buf.length() - buf.cursor);
-        } // sync
-    }
-
-    /**
-     * Output a platform-dependant newline.
-     */
-    public final void println() throws IOException {
-        printString(CR);
-        flush();
+        }
     }
 
     /**
@@ -1108,15 +899,8 @@ public class ConsoleReader
      */
     public final void putString(final String str) throws IOException {
         buf.write(str);
-        printString(str);
+        print(str);
         drawBuffer();
-    }
-
-    /**
-     * Output the specified string to the output stream (but not the buffer).
-     */
-    public final void printString(final String str) throws IOException {
-        printCharacters(str.toCharArray());
     }
 
     /**
@@ -1128,7 +912,7 @@ public class ConsoleReader
         if (print) {
             // no masking...
             if (mask == null) {
-                printCharacter(c);
+                print(c);
             }
             // null mask: don't print anything...
             else if (mask == 0) {
@@ -1136,7 +920,7 @@ public class ConsoleReader
             }
             // otherwise print the mask...
             else {
-                printCharacter(mask);
+                print(mask);
             }
 
             drawBuffer();
@@ -1156,7 +940,7 @@ public class ConsoleReader
             Arrays.fill(chars, mask);
         }
 
-        printCharacters(chars);
+        print(chars);
 
         clearAhead(clear);
         back(chars.length);
@@ -1182,7 +966,7 @@ public class ConsoleReader
         // debug ("clearAhead: " + num);
 
         // print blank extra characters
-        printCharacters(' ', num);
+        print(' ', num);
 
         // we need to flush here so a "clever" console
         // doesn't just ignore the redundancy of a space followed by
@@ -1199,26 +983,15 @@ public class ConsoleReader
      * Move the visual cursor backwards without modifying the buffer cursor.
      */
     private void back(final int num) throws IOException {
-        printCharacters(BACKSPACE, num);
+        print(BACKSPACE, num);
         flush();
-    }
-
-    /**
-     * Issue an audible keyboard bell, if {@link #getBellEnabled} return true.
-     */
-    public void beep() throws IOException {
-        if (getBellEnabled()) {
-            printCharacter(KEYBOARD_BELL);
-            // need to flush so the console actually beeps
-            flush();
-        }
     }
 
     /**
      * Output the specified character to the output stream without manipulating
      * the current buffer.
      */
-    private void printCharacter(final int c) throws IOException {
+    private void print(final int c) throws IOException {
         if (c == '\t') {
             char cbuf[] = new char[TAB_WIDTH];
             Arrays.fill(cbuf, ' ');
@@ -1233,7 +1006,7 @@ public class ConsoleReader
      * Output the specified characters to the output stream without manipulating
      * the current buffer.
      */
-    private void printCharacters(final char[] chars) throws IOException {
+    private void print(final char[] chars) throws IOException {
         int len = 0;
         for (char c : chars) {
             if (c == '\t') {
@@ -1266,15 +1039,30 @@ public class ConsoleReader
         out.write(cbuf);
     }
 
-    private void printCharacters(final char c, final int num) throws IOException {
+    private void print(final char c, final int num) throws IOException {
         if (num == 1) {
-            printCharacter(c);
+            print(c);
         }
         else {
             char[] chars = new char[num];
             Arrays.fill(chars, c);
-            printCharacters(chars);
+            print(chars);
         }
+    }
+
+    /**
+     * Output the specified string to the output stream (but not the buffer).
+     */
+    public final void print(final String str) throws IOException {
+        print(str.toCharArray());
+    }
+
+    /**
+     * Output a platform-dependant newline.
+     */
+    public final void println() throws IOException {
+        print(CR);
+        flush();
     }
 
     /**
@@ -1332,8 +1120,7 @@ public class ConsoleReader
     }
 
     /**
-     * Delete the character at the current position and redraw the remainder of
-     * the buffer.
+     * Delete the character at the current position and redraw the remainder of the buffer.
      */
     private boolean deleteCurrentCharacter() throws IOException {
         boolean success = buf.buffer.length() > 0;
@@ -1453,7 +1240,7 @@ public class ConsoleReader
             c = mask;
         }
         else {
-            printCharacters(buf.buffer.substring(buf.cursor - where, buf.cursor).toCharArray());
+            print(buf.buffer.substring(buf.cursor - where, buf.cursor).toCharArray());
             return;
         }
 
@@ -1462,7 +1249,7 @@ public class ConsoleReader
             return;
         }
 
-        printCharacters(c, Math.abs(where));
+        print(c, Math.abs(where));
     }
 
     /**
@@ -1482,8 +1269,7 @@ public class ConsoleReader
     }
 
     public final int readCharacter(final char[] allowed) throws IOException {
-        // if we restrict to a limited set and the current character
-        // is not in the set, then try again.
+        // if we restrict to a limited set and the current character is not in the set, then try again.
         char c;
 
         Arrays.sort(allowed); // always need to sort before binarySearch
@@ -1513,6 +1299,15 @@ public class ConsoleReader
         return 1;
     }
 
+    /**
+     * Issue a delete.
+     *
+     * @return true if successful
+     */
+    public final boolean delete() throws IOException {
+        return delete(1) == 1;
+    }
+
     public final boolean replace(final int num, final  String replacement) {
         buf.buffer.replace(buf.cursor - num, buf.cursor, replacement);
         try {
@@ -1528,15 +1323,6 @@ public class ConsoleReader
     }
 
     /**
-     * Issue a delete.
-     *
-     * @return true if successful
-     */
-    public final boolean delete() throws IOException {
-        return delete(1) == 1;
-    }
-    
-    /**
      * Checks to see if the specified character is a delimiter. We consider a
      * character a delimiter if it is anything but a letter or digit.
      *
@@ -1545,6 +1331,215 @@ public class ConsoleReader
      */
     private boolean isDelimiter(final char c) {
         return !Character.isLetterOrDigit(c);
+    }
+
+    /**
+     * Kill the buffer ahead of the current cursor position.
+     *
+     * @return true if successful
+     */
+    public boolean killLine() throws IOException {
+        int cp = buf.cursor;
+        int len = buf.buffer.length();
+
+        if (cp >= len) {
+            return false;
+        }
+
+        int num = buf.buffer.length() - cp;
+        clearAhead(num);
+
+        for (int i = 0; i < num; i++) {
+            buf.buffer.deleteCharAt(len - i - 1);
+        }
+
+        return true;
+    }
+
+    /**
+     * Clear the screen by issuing the ANSI "clear screen" code.
+     */
+    public boolean clearScreen() throws IOException {
+        if (!terminal.isAnsiSupported()) {
+            return false;
+        }
+
+        // send the ANSI code to clear the screen
+        print(((char) 27) + "[2J");
+        flush();
+
+        // then send the ANSI code to go to position 1,1
+        print(((char) 27) + "[1;1H");
+        flush();
+
+        redrawLine();
+
+        return true;
+    }
+
+    /**
+     * Issue an audible keyboard bell, if {@link #getBellEnabled} return true.
+     */
+    public void beep() throws IOException {
+        if (getBellEnabled()) {
+            print(KEYBOARD_BELL);
+            // need to flush so the console actually beeps
+            flush();
+        }
+    }
+
+    /**
+     * Paste the contents of the clipboard into the console buffer
+     *
+     * @return true if clipboard contents pasted
+     */
+    public boolean paste() throws IOException {
+        Clipboard clipboard;
+        try { // May throw ugly exception on system without X
+            clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        }
+        catch (Exception e) {
+            return false;
+        }
+
+        if (clipboard == null) {
+            return false;
+        }
+
+        Transferable transferable = clipboard.getContents(null);
+
+        if (transferable == null) {
+            return false;
+        }
+
+        try {
+            Object content = transferable.getTransferData(DataFlavor.plainTextFlavor);
+
+            /*
+             * This fix was suggested in bug #1060649 at
+             * http://sourceforge.net/tracker/index.php?func=detail&aid=1060649&group_id=64033&atid=506056
+             * to get around the deprecated DataFlavor.plainTextFlavor, but it
+             * raises a UnsupportedFlavorException on Mac OS X
+             */
+            if (content == null) {
+                try {
+                    content = new DataFlavor().getReaderForText(transferable);
+                }
+                catch (Exception e) {
+                }
+            }
+
+            if (content == null) {
+                return false;
+            }
+
+            String value;
+
+            if (content instanceof Reader) {
+                // TODO: we might want instead connect to the input stream
+                // so we can interpret individual lines
+                value = "";
+                String line;
+
+                BufferedReader read = new BufferedReader((Reader) content);
+                while ((line = read.readLine()) != null) {
+                    if (value.length() > 0) {
+                        value += "\n";
+                    }
+
+                    value += line;
+                }
+            }
+            else {
+                value = content.toString();
+            }
+
+            if (value == null) {
+                return true;
+            }
+
+            putString(value);
+
+            return true;
+        }
+        catch (UnsupportedFlavorException e) {
+            Log.error("Paste failed: ", e);
+
+            return false;
+        }
+    }
+
+    /**
+     * Output the specified {@link Collection} in proper columns.
+     */
+    public void printColumns(final Collection<String> items) throws IOException {
+        if (items == null || items.isEmpty()) {
+            return;
+        }
+
+        int width = getTerminal().getWidth();
+        int maxWidth = 0;
+
+        for (Iterator i = items.iterator(); i.hasNext(); maxWidth = Math.max(maxWidth, i.next().toString().length())) {
+            // empty
+        }
+
+        StringBuilder line = new StringBuilder();
+        int showLines;
+
+        if (usePagination) {
+            showLines = getTerminal().getHeight() - 1; // page limit
+        }
+        else {
+            showLines = Integer.MAX_VALUE;
+        }
+
+        for (String cur : items) {
+            if ((line.length() + maxWidth) > width) {
+                print(line.toString().trim());
+                println();
+                line.setLength(0);
+                if (--showLines == 0) { // Overflow
+                    print(loc.getString("display-more"));
+                    flush();
+                    int c = readVirtualKey();
+                    if (c == '\r' || c == '\n') {
+                        showLines = 1; // one step forward
+                    }
+                    else if (c != 'q') {
+                        showLines = getTerminal().getHeight() - 1;
+                    } // page forward
+
+                    back(loc.getString("display-more").length());
+                    if (c == 'q') {
+                        break;
+                    } // cancel
+                }
+            }
+
+            pad(cur, maxWidth + 3, line);
+        }
+
+        if (line.length() > 0) {
+            print(line.toString().trim());
+            println();
+            line.setLength(0);
+        }
+    }
+
+    /**
+     * Append <i>toPad</i> to the specified <i>appendTo</i>, as well as (<i>toPad.length () - len</i>) spaces.
+     *
+     * @param toPad    the {@link String} to pad
+     * @param len      the target length
+     * @param appendTo the {@link StringBuilder} to which to append the padded {@link String}.
+     */
+    private void pad(final String toPad, final int len, final StringBuilder appendTo) {
+        appendTo.append(toPad);
+
+        for (int i = 0; i < (len - toPad.length()); i++, appendTo.append(' ')) {
+            // empty
+        }
     }
 
     private Thread maskThread;
