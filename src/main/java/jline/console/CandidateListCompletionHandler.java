@@ -52,7 +52,6 @@ public class CandidateListCompletionHandler
             setBuffer(reader, value, pos);
         }
 
-        reader.println();
         printCandidates(reader, candidates);
 
         // redraw the current console buffer
