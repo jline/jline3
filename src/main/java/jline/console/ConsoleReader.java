@@ -1521,7 +1521,7 @@ public class ConsoleReader
 
             // NOTE: toString() is important here due to AnsiString being retarded
             buff.append(item.toString());
-            for (int i=0; i < (maxWidth - item.length()); i++) {
+            for (int i=0; i < (maxWidth + 3 - item.length()); i++) {
                 buff.append(' ');
             }
         }
