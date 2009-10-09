@@ -84,7 +84,7 @@ public class ConsoleReader
         this.in = in;
         this.out = out;
         this.terminal = term != null ? term : TerminalFactory.get();
-        this.keybindings = loadKeyBindings(bindings);
+        this.keyBindings = loadKeyBindings(bindings);
         
         if (Boolean.getBoolean(JLINE_NOBELL)) {
             setBellEnabled(false);
@@ -704,7 +704,7 @@ public class ConsoleReader
     public static final String JLINEBINDINGS_PROPERTIES = ".jlinebindings.properties";
 
     /** The map for logical operations. */
-    private final short[] keybindings;
+    private final short[] keyBindings;
 
     private short[] loadKeyBindings(InputStream input) throws IOException {
         if (input == null) {
@@ -731,9 +731,9 @@ public class ConsoleReader
             input = getTerminal().getDefaultBindings();
         }
 
-        short[] keybindings = new short[Character.MAX_VALUE * 2];
+        short[] keyBindings = new short[Character.MAX_VALUE * 2];
 
-        Arrays.fill(keybindings, Operation.UNKNOWN.code);
+        Arrays.fill(keyBindings, Operation.UNKNOWN.code);
 
         // Loads the key bindings. Bindings file is in the format:
         //
@@ -752,7 +752,7 @@ public class ConsoleReader
                     short code = Short.parseShort(val);
                     String name = p.getProperty(val);
                     Operation op = Operation.valueOf(name);
-                    keybindings[code] = op.code;
+                    keyBindings[code] = op.code;
                 }
                 catch (NumberFormatException e) {
                     Log.error("Failed to convert binding code: ", val, e);
@@ -766,12 +766,12 @@ public class ConsoleReader
             // keybindings[VK_RIGHT] = NEXT_CHAR;
         }
 
-        return keybindings;
+        return keyBindings;
     }
 
     int getKeyForAction(final short logicalAction) {
-        for (int i = 0; i < keybindings.length; i++) {
-            if (keybindings[i] == logicalAction) {
+        for (int i = 0; i < keyBindings.length; i++) {
+            if (keyBindings[i] == logicalAction) {
                 return i;
             }
         }
@@ -795,7 +795,7 @@ public class ConsoleReader
         }
 
         // extract the appropriate key binding
-        short code = keybindings[c];
+        short code = keyBindings[c];
 
         Log.trace("Translated: ", c, " -> ", code);
 
