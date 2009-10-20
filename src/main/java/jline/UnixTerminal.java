@@ -76,7 +76,14 @@ public class UnixTerminal
 
     private boolean detectBackspaceDeleteSwitched() {
         String[] config = settings.getConfig().split(":|=");
-        return config.length >= 7 && config[6] != null && config[6].equals("7f");
+        if (config.length > 20 && "gfmt1".equals(config[0])) {
+            // BSD style stty -g format
+            return "7f".equals(config[20]);
+        } else if (config.length > 6) {
+            return "7f".equals(config[6]);
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -130,9 +137,9 @@ public class UnixTerminal
 
         if (backspaceDeleteSwitched) {
             if (Key.valueOf(c) == DELETE) {
-                c = '\b';
+                c = BACKSPACE.code;
             }
-            else if (c == '\b') {
+            else if (c == BACKSPACE.code) {
                 c = DELETE.code;
             }
         }

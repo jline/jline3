@@ -44,6 +44,8 @@ public enum Key
 
     CTRL_QM(127),
 
+    BACKSPACE('\b'),
+
     DELETE(127),;
 
     public final short code;
