@@ -419,8 +419,21 @@ public class ConsoleReader
 
         int count = 0;
 
+        int termwidth = getTerminal().getWidth();
+        int line = getCursorPosition() / termwidth;
         count = moveCursor(-1 * num) * -1;
         buf.buffer.delete(buf.cursor, buf.cursor + count);
+        int deletedLines = line - getCursorPosition() / termwidth;
+        if (deletedLines > 0) {
+            if (terminal.isAnsiSupported()) {
+                print(RESET_LINE);
+                flush();
+                // send the ANSI code to move up
+                print(((char) 27) + "[" + deletedLines + "A");
+                flush();
+            }
+            redrawLine();
+        }
         drawBuffer(count);
 
         return count;
