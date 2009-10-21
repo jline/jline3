@@ -266,7 +266,7 @@ public class ConsoleReader
         print(buf.buffer.toString());
 
         if (buf.length() != buf.cursor) { // not at end of line
-            back(buf.length() - buf.cursor);
+            back(buf.length() - buf.cursor - 1);
         }
     }
 
@@ -346,15 +346,20 @@ public class ConsoleReader
      */
     private void drawBuffer(final int clear) throws IOException {
         // debug ("drawBuffer: " + clear);
+        if (buf.cursor == buf.length() && clear == 0) {
+            return;
+        }
         char[] chars = buf.buffer.substring(buf.cursor).toCharArray();
         if (mask != null) {
             Arrays.fill(chars, mask);
         }
 
         print(chars);
-
         clearAhead(clear);
-        back(chars.length);
+        if (chars.length > 0) {
+            // don't ask, it works
+            back(Math.max(chars.length - 1, 1));
+        }
         flush();
     }
 
@@ -371,6 +376,11 @@ public class ConsoleReader
      */
     private void clearAhead(final int num) throws IOException {
         if (num == 0) {
+            return;
+        }
+
+        if (terminal.isAnsiSupported()) {
+            printAnsiSequence("J");
             return;
         }
 
@@ -391,6 +401,21 @@ public class ConsoleReader
      * Move the visual cursor backwards without modifying the buffer cursor.
      */
     private void back(final int num) throws IOException {
+        if (num == 0) return;
+        if (terminal.isAnsiSupported()) {
+            int width = getTerminal().getWidth();
+            int cursor = getCursorPosition();
+            // debug("back: " + cursor + " + " + num + " on " + width);
+            int currRow = (cursor + num) / width;
+            int newRow = cursor / width;
+            int newCol = cursor % width + 1;
+            // debug("    old row: " + currRow + " new row: " + newRow);
+            if (newRow < currRow) {
+                printAnsiSequence((currRow - newRow) + "A");
+            }
+            printAnsiSequence(newCol + "G");
+            return;
+        }
         print(BACKSPACE, num);
         flush();
     }
@@ -420,19 +445,14 @@ public class ConsoleReader
         int count = 0;
 
         int termwidth = getTerminal().getWidth();
-        int line = getCursorPosition() / termwidth;
+        int lines = getCursorPosition() / termwidth;
         count = moveCursor(-1 * num) * -1;
         buf.buffer.delete(buf.cursor, buf.cursor + count);
-        int deletedLines = line - getCursorPosition() / termwidth;
-        if (deletedLines > 0) {
+        if (getCursorPosition() / termwidth != lines) {
             if (terminal.isAnsiSupported()) {
-                print(RESET_LINE);
-                flush();
-                // send the ANSI code to move up
-                print(((char) 27) + "[" + deletedLines + "A");
-                flush();
+                // debug("doing backspace redraw: " + getCursorPosition() + " on " + termwidth + ": " + lines);
+                printAnsiSequence("J");
             }
-            redrawLine();
         }
         drawBuffer(count);
 
@@ -449,27 +469,14 @@ public class ConsoleReader
     }
 
     private boolean moveToEnd() throws IOException {
-        if (moveCursor(1) == 0) {
-            return false;
-        }
-
-        while (moveCursor(1) != 0) {
-            // nothing
-        }
-
-        return true;
+        return moveCursor(buf.length() - buf.cursor) > 0;
     }
 
     /**
      * Delete the character at the current position and redraw the remainder of the buffer.
      */
     private boolean deleteCurrentCharacter() throws IOException {
-        boolean success = buf.buffer.length() > 0;
-        if (!success) {
-            return false;
-        }
-
-        if (buf.cursor == buf.buffer.length()) {
+        if (buf.length() == 0 || buf.cursor == buf.length()) {
             return false;
         }
 
@@ -523,11 +530,11 @@ public class ConsoleReader
     public int moveCursor(final int num) throws IOException {
         int where = num;
 
-        if ((buf.cursor == 0) && (where < 0)) {
+        if ((buf.cursor == 0) && (where <= 0)) {
             return 0;
         }
 
-        if ((buf.cursor == buf.buffer.length()) && (where > 0)) {
+        if ((buf.cursor == buf.buffer.length()) && (where >= 0)) {
             return 0;
         }
 
@@ -552,6 +559,23 @@ public class ConsoleReader
         // debug ("move cursor " + where + " ("
         // + buf.cursor + " => " + (buf.cursor + where) + ")");
         buf.cursor += where;
+
+        if (terminal.isAnsiSupported()) {
+            if (where < 0) {
+                back(Math.abs(where));
+            } else {
+                int width = getTerminal().getWidth();
+                int cursor = getCursorPosition();
+                int oldLine = (cursor - where) / width;
+                int newLine = cursor / width;
+                if (newLine > oldLine) {
+                    printAnsiSequence((newLine - oldLine) + "B");
+                }
+                printAnsiSequence(1 +(cursor % width) + "G");
+            }
+            flush();
+            return;
+        }
 
         char c;
 
@@ -1364,12 +1388,10 @@ public class ConsoleReader
         }
 
         // send the ANSI code to clear the screen
-        print(((char) 27) + "[2J");
-        flush();
+        printAnsiSequence("2J");
 
         // then send the ANSI code to go to position 1,1
-        print(((char) 27) + "[1;1H");
-        flush();
+        printAnsiSequence("1;1H");
 
         redrawLine();
 
@@ -1614,5 +1636,12 @@ public class ConsoleReader
      */
     private boolean isDelimiter(final char c) {
         return !Character.isLetterOrDigit(c);
+    }
+
+    private void printAnsiSequence(String sequence) throws IOException {
+        print(27);
+        print('[');
+        print(sequence);
+        flush();
     }
 }
