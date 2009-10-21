@@ -356,9 +356,13 @@ public class ConsoleReader
 
         print(chars);
         clearAhead(clear);
-        if (chars.length > 0) {
-            // don't ask, it works
-            back(Math.max(chars.length - 1, 1));
+        if (terminal.isAnsiSupported()) {
+            if (chars.length > 0) {
+                // don't ask, it works
+                back(Math.max(chars.length - 1, 1));
+            }
+        } else {
+            back(chars.length);
         }
         flush();
     }
