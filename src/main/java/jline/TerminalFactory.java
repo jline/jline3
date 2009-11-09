@@ -10,6 +10,8 @@ package jline;
 import jline.internal.Log;
 
 import java.text.MessageFormat;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Creates terminal instances.
@@ -38,15 +40,6 @@ public class TerminalFactory
 
     private static final InheritableThreadLocal<Terminal> holder = new InheritableThreadLocal<Terminal>();
 
-    public static synchronized Terminal get() {
-        Terminal t = holder.get();
-        if (t == null) {
-            t = create();
-            holder.set(t);
-        }
-        return t;
-    }
-
     public static synchronized Terminal create() {
         String type = System.getProperty(JLINE_TERMINAL);
 
@@ -61,10 +54,10 @@ public class TerminalFactory
             String tmp = type.toLowerCase();
 
             if (tmp.equals(UNIX)) {
-                t = new UnixTerminal();
+                t = getFlavor(Flavor.UNIX);
             }
             else if (tmp.equals(WIN) | tmp.equals(WINDOWS)) {
-                t = new WindowsTerminal();
+                t = getFlavor(Flavor.WINDOWS);
             }
             else if (tmp.equals(NONE) || tmp.equals(OFF) || tmp.equals(FALSE)) {
                 t = new UnsupportedTerminal();
@@ -73,12 +66,11 @@ public class TerminalFactory
                 if (tmp.equals(AUTO)) {
                     String os = System.getProperty("os.name").toLowerCase();
 
+                    Flavor flavor = Flavor.UNIX;
                     if (os.contains(WINDOWS)) {
-                        t = new WindowsTerminal();
+                        flavor = Flavor.WINDOWS;
                     }
-                    else {
-                        t = new UnixTerminal();
-                    }
+                    t = getFlavor(flavor);
                 }
                 else {
                     try {
@@ -92,7 +84,7 @@ public class TerminalFactory
         }
         catch (Exception e) {
             Log.error("Failed to construct terminal; falling back to unsupported", e);
-            t =  new UnsupportedTerminal();
+            t = new UnsupportedTerminal();
         }
 
         Log.debug("Created Terminal: ", t);
@@ -134,4 +126,44 @@ public class TerminalFactory
         assert type != null;
         configure(type.name().toLowerCase());
     }
+
+    //
+    // Flavor Support
+    //
+
+    public static enum Flavor
+    {
+        WINDOWS,
+        UNIX
+    }
+
+    private static final Map<Flavor,Class<? extends Terminal>> FLAVORS = new HashMap<Flavor,Class<? extends Terminal>>();
+
+    static {
+        registerFlavor(Flavor.WINDOWS, WindowsTerminal.class);
+        registerFlavor(Flavor.UNIX, UnixTerminal.class);
+    }
+
+    public static synchronized Terminal get() {
+        Terminal t = holder.get();
+        if (t == null) {
+            t = create();
+            holder.set(t);
+        }
+        return t;
+    }
+
+    public static Terminal getFlavor(final Flavor flavor) throws Exception {
+        Class<? extends Terminal> type = FLAVORS.get(flavor);
+        if (type != null) {
+            return type.newInstance();
+        }
+
+        throw new InternalError();
+    }
+
+    public static void registerFlavor(final Flavor flavor, final Class<? extends Terminal> type) {
+        FLAVORS.put(flavor, type);
+    }
+
 }
