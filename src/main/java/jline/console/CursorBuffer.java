@@ -21,7 +21,7 @@ public class CursorBuffer
 
     public int cursor = 0;
 
-    public StringBuilder buffer = new StringBuilder();
+    public final StringBuilder buffer = new StringBuilder();
 
     public boolean isOverTyping() {
         return overTyping;
