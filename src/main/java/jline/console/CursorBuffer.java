@@ -46,7 +46,7 @@ public class CursorBuffer
     /**
      * Write the specific character into the buffer, setting the cursor position
      * ahead one. The text may overwrite or insert based on the current setting
-     * of {@linke #isOverTyping}.
+     * of {@link #isOverTyping}.
      *
      * @param c the character to insert
      */
@@ -75,6 +75,16 @@ public class CursorBuffer
         if (isOverTyping() && cursor < buffer.length()) {
             buffer.delete(cursor, (cursor + str.length()));
         }
+    }
+
+     public boolean clear() {
+        if (buffer.length() == 0) {
+            return false;
+        }
+
+        buffer.delete(0, buffer.length());
+        cursor = 0;
+        return true;
     }
 
     @Override
