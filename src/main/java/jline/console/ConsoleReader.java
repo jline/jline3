@@ -92,8 +92,8 @@ public class ConsoleReader
         }
     }
 
-    public ConsoleReader(final InputStream in, final Writer out, final InputStream bindings) throws IOException {
-        this(in, out, bindings, null);
+    public ConsoleReader(final InputStream in, final Writer out, final Terminal term) throws IOException {
+        this(in, out, null, term);
     }
 
     public ConsoleReader(final InputStream in, final Writer out) throws IOException {
