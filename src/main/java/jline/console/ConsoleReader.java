@@ -1390,12 +1390,11 @@ public class ConsoleReader
         try {
             Object content = transferable.getTransferData(DataFlavor.plainTextFlavor);
 
-            /*
-             * This fix was suggested in bug #1060649 at
-             * http://sourceforge.net/tracker/index.php?func=detail&aid=1060649&group_id=64033&atid=506056
-             * to get around the deprecated DataFlavor.plainTextFlavor, but it
-             * raises a UnsupportedFlavorException on Mac OS X
-             */
+            // This fix was suggested in bug #1060649 at
+            // http://sourceforge.net/tracker/index.php?func=detail&aid=1060649&group_id=64033&atid=506056
+            // to get around the deprecated DataFlavor.plainTextFlavor, but it
+            // raises a UnsupportedFlavorException on Mac OS X
+            
             if (content == null) {
                 try {
                     content = new DataFlavor().getReaderForText(transferable);
