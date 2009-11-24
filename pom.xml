@@ -57,7 +57,6 @@
     <repositories>
         <repository>
             <id>jansi</id>
-            <name>jansi Release Repository</name>
             <url>http://jansi.fusesource.org/repo/release</url>
             <snapshots>
                 <enabled>false</enabled>
