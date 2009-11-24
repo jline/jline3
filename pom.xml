@@ -14,10 +14,46 @@
     <name>JLine</name>
     <version>2.0-SNAPSHOT</version>
 
+    <licenses>
+        <license>
+            <name>The BSD License</name>
+            <url>http://www.opensource.org/licenses/bsd-license.php</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <scm>
+        <connection>scm:git:git://github.com/jdillon/jline2.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com:jdillon/jline2.git</developerConnection>
+        <url>http://github.com/jdillon/jline2</url>
+    </scm>
+
+    <!--
+    FIXME: Replace with Sonatype details...
+    <distributionManagement>
+        <repository>
+            <id>release.fusesource.org</id>
+            <name>RestMQ Release Repository</name>
+            <url>dav:http://fusesource.com/forge/dav/jansi/repo/release</url>
+        </repository>
+        <snapshotRepository>
+            <uniqueVersion>false</uniqueVersion>
+            <id>snapshot.fusesource.org</id>
+            <name>RestMQ Snapshot Repository</name>
+            <url>dav:http://fusesource.com/forge/dav/jansi/repo/snapshot</url>
+        </snapshotRepository>
+        <site>
+            <id>website.fusesource.org</id>
+            <name>website</name>
+            <url>dav:http://fusesource.com/forge/dav/jansi/maven/${project.version}</url>
+        </site>
+    </distributionManagement>
+    -->
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-
+    
     <repositories>
         <repository>
             <id>jansi</id>
@@ -90,30 +126,6 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-remote-resources-plugin</artifactId>
-                <version>1.1</version>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <version>2.1</version>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.2-beta-3</version>
-            </plugin>
-
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>javacc-maven-plugin</artifactId>
-                <version>2.6</version>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.4.3</version>
                 <configuration>
@@ -173,6 +185,19 @@
                         <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
                     </archive>
                 </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-scm-plugin</artifactId>
+                <version>1.2</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.apache.maven.scm</groupId>
+                        <artifactId>maven-scm-provider-gitexe</artifactId>
+                        <version>1.2</version>
+                    </dependency>
+                </dependencies>
             </plugin>
         </plugins>
     </build>
