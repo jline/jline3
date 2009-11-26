@@ -28,7 +28,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 /**
- * Completer which contains multipule completers and aggregates them together.
+ * Completer which contains multiple completers and aggregates them together.
  *
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  *
