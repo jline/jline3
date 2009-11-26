@@ -7,6 +7,18 @@
 
 package jline;
 
+import jline.internal.Log;
+import jline.internal.NativeLibrary;
+import jline.internal.ReplayPrefixOneCharInputStream;
+
+import java.io.FileDescriptor;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.HashMap;
+import java.util.Map;
+
 import static jline.WindowsTerminal.ConsoleMode.ENABLE_ECHO_INPUT;
 import static jline.WindowsTerminal.ConsoleMode.ENABLE_LINE_INPUT;
 import static jline.WindowsTerminal.ConsoleMode.ENABLE_PROCESSED_INPUT;
@@ -24,17 +36,6 @@ import static jline.console.Key.CTRL_N;
 import static jline.console.Key.CTRL_OB;
 import static jline.console.Key.CTRL_P;
 import static jline.console.Key.CTRL_QM;
-import jline.internal.Log;
-import jline.internal.NativeLibrary;
-import jline.internal.ReplayPrefixOneCharInputStream;
-
-import java.io.FileDescriptor;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Terminal implementation for Microsoft Windows. Terminal initialization in

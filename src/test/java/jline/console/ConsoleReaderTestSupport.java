@@ -7,6 +7,14 @@
 package jline.console;
 
 import jline.UnixTerminal;
+import org.junit.Before;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+
 import static jline.UnixTerminal.UnixKey.ARROW_DOWN;
 import static jline.UnixTerminal.UnixKey.ARROW_LEFT;
 import static jline.UnixTerminal.UnixKey.ARROW_PREFIX;
@@ -15,13 +23,6 @@ import static jline.UnixTerminal.UnixKey.ARROW_START;
 import static jline.UnixTerminal.UnixKey.ARROW_UP;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
-import org.junit.Before;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 
 /**
  * Provides support for console reader tests.

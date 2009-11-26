@@ -6,12 +6,13 @@
  */
 package jline.console;
 
-import static jline.console.Operation.COMPLETE;
 import jline.console.completers.ArgumentCompleter;
 import jline.console.completers.StringsCompleter;
 import org.junit.Test;
 
 import java.util.Iterator;
+
+import static jline.console.Operation.COMPLETE;
 
 /**
  * Tests completion.

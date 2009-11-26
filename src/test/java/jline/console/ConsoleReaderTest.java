@@ -2,6 +2,15 @@ package jline.console;
 
 import jline.TerminalFactory;
 import jline.WindowsTerminal;
+import jline.console.history.MemoryHistory;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.StringWriter;
+import java.io.Writer;
+
 import static jline.WindowsTerminal.WindowsKey.DELETE_KEY;
 import static jline.WindowsTerminal.WindowsKey.END_KEY;
 import static jline.WindowsTerminal.WindowsKey.ESCAPE_KEY;
@@ -14,16 +23,8 @@ import static jline.WindowsTerminal.WindowsKey.PAGE_UP_KEY;
 import static jline.WindowsTerminal.WindowsKey.SPECIAL_KEY_INDICATOR;
 import static jline.console.Operation.DELETE_NEXT_CHAR;
 import static jline.console.Operation.DELETE_PREV_CHAR;
-import jline.console.history.MemoryHistory;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.io.StringWriter;
-import java.io.Writer;
 
 /**
  * Tests for the {@link ConsoleReader}.
