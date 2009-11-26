@@ -4,9 +4,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.sonatype.spice</groupId>
-        <artifactId>spice-parent</artifactId>
-        <version>13</version>
+        <groupId>org.sonatype.forge</groupId>
+        <artifactId>forge-parent</artifactId>
+        <version>5</version>
     </parent>
     
     <groupId>org.sonatype.jline</groupId>
@@ -24,31 +24,9 @@
 
     <scm>
         <connection>scm:git:git://github.com/jdillon/jline2.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com:jdillon/jline2.git</developerConnection>
+        <developerConnection>scm:git:ssh://git@github.com/jdillon/jline2.git</developerConnection>
         <url>http://github.com/jdillon/jline2</url>
     </scm>
-
-    <!--
-    FIXME: Replace with Sonatype details...
-    <distributionManagement>
-        <repository>
-            <id>release.fusesource.org</id>
-            <name>RestMQ Release Repository</name>
-            <url>dav:http://fusesource.com/forge/dav/jansi/repo/release</url>
-        </repository>
-        <snapshotRepository>
-            <uniqueVersion>false</uniqueVersion>
-            <id>snapshot.fusesource.org</id>
-            <name>RestMQ Snapshot Repository</name>
-            <url>dav:http://fusesource.com/forge/dav/jansi/repo/snapshot</url>
-        </snapshotRepository>
-        <site>
-            <id>website.fusesource.org</id>
-            <name>website</name>
-            <url>dav:http://fusesource.com/forge/dav/jansi/maven/${project.version}</url>
-        </site>
-    </distributionManagement>
-    -->
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -148,8 +126,6 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>2.0.2</version>
                 <configuration>
-                    <debug>true</debug>
-                    <optimize>false</optimize>
                     <source>1.5</source>
                     <target>1.5</target>
                 </configuration>
@@ -190,13 +166,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-scm-plugin</artifactId>
                 <version>1.2</version>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.apache.maven.scm</groupId>
-                        <artifactId>maven-scm-provider-gitexe</artifactId>
-                        <version>1.2</version>
-                    </dependency>
-                </dependencies>
             </plugin>
         </plugins>
     </build>
