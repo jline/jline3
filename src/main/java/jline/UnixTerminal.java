@@ -48,7 +48,7 @@ import static jline.console.Key.DELETE;
  * @author <a href="mailto:dwkemp@gmail.com">Dale Kemp</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  *
- * @aince 2.0
+ * @since 2.0
  */
 public class UnixTerminal
     extends TerminalSupport
