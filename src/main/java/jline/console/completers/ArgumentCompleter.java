@@ -303,7 +303,7 @@ public class ArgumentCompleter
     {
         /**
          * The character is a delimiter if it is whitespace, and the
-         * preceeding character is not an escape character.
+         * preceding character is not an escape character.
          */
         @Override
         public boolean isDelimiterChar(CharSequence buffer, int pos) {

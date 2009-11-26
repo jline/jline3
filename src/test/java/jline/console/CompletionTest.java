@@ -32,14 +32,14 @@ public class CompletionTest
         console.addCompleter(new StringsCompleter("foo", "bar", "baz"));
 
         assertBuffer("foo ", new Buffer("f").op(COMPLETE));
-        // single tab completes to unabbiguous "ba"
+        // single tab completes to unambiguous "ba"
         assertBuffer("ba", new Buffer("b").op(COMPLETE));
         assertBuffer("ba", new Buffer("ba").op(COMPLETE));
         assertBuffer("baz ", new Buffer("baz").op(COMPLETE));
     }
 
     @Test
-    public void testArgumentcompleter() throws Exception {
+    public void testArgumentCompleter() throws Exception {
         // clear any current completers
         for (Iterator i = console.getCompleters().iterator(); i.hasNext(); console.removeCompleter((Completer) i.next())) {
             // empty

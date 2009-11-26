@@ -1108,20 +1108,20 @@ public class ConsoleReader
      * The number of tab-completion candidates above which a warning will be
      * prompted before showing all the candidates.
      */
-    private int autoprintThreshhold = Integer.getInteger(JLINE_COMPLETION_THRESHOLD, 100); // same default as bash
+    private int autoprintThreshold = Integer.getInteger(JLINE_COMPLETION_THRESHOLD, 100); // same default as bash
 
     /**
      * @param threshhold the number of candidates to print without issuing a warning.
      */
-    public void setAutoprintThreshhold(final int threshhold) {
-        this.autoprintThreshhold = threshhold;
+    public void setAutoprintThreshold(final int threshhold) {
+        this.autoprintThreshold = threshhold;
     }
 
     /**
      * @return the number of candidates to print without issuing a warning.
      */
-    public int getAutoprintThreshhold() {
-        return autoprintThreshhold;
+    public int getAutoprintThreshold() {
+        return autoprintThreshold;
     }
 
     private boolean paginationEnabled;
@@ -1451,7 +1451,7 @@ public class ConsoleReader
 
     /**
      * Adding a triggered Action allows to give another curse of action
-     * if a character passed the preprocessing.
+     * if a character passed the pre-processing.
      *
      * Say you want to close the application if the user enter q.
      * addTriggerAction('q', new ActionListener(){ System.exit(0); });

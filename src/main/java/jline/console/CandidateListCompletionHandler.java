@@ -71,14 +71,14 @@ public class CandidateListCompletionHandler
 
     /**
      * Print out the candidates. If the size of the candidates is greater than the
-     * {@link ConsoleReader#getAutoprintThreshhold}, they prompt with a warning.
+     * {@link ConsoleReader#getAutoprintThreshold}, they prompt with a warning.
      *
      * @param candidates the list of candidates to print
      */
     public static void printCandidates(final ConsoleReader reader, Collection<CharSequence> candidates) throws IOException {
         Set<CharSequence> distinct = new HashSet<CharSequence>(candidates);
 
-        if (distinct.size() > reader.getAutoprintThreshhold()) {
+        if (distinct.size() > reader.getAutoprintThreshold()) {
             //noinspection StringConcatenation
             reader.print(Messages.DISPLAY_CANDIDATES.format(candidates.size()));
             reader.flush();
