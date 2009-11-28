@@ -49,6 +49,11 @@ public abstract class TerminalSupport
         removeShutdownHook();
     }
 
+    public void reset() throws Exception {
+        restore();
+        init();
+    }
+
     protected void installShutdownHook(final Thread hook) {
         assert hook != null;
 

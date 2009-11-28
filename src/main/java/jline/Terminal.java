@@ -24,6 +24,8 @@ public interface Terminal
 
     void restore() throws Exception;
 
+    void reset() throws Exception;
+    
     boolean isSupported();
 
     int getWidth();
