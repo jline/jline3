@@ -14,6 +14,11 @@
     <name>JLine</name>
     <version>2.1-SNAPSHOT</version>
 
+    <organization>
+        <name>Sonatype</name>
+        <url>http://sonatype.org</url>
+    </organization>
+    
     <licenses>
         <license>
             <name>The BSD License</name>
