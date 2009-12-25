@@ -47,22 +47,22 @@ public class FileNameCompleter
         File homeDir = getUserHome();
 
         // Special character: ~ maps to the user's home directory
-        if (translated.startsWith("~" + File.separator)) {
+        if (translated.startsWith("~" + separator())) {
             translated = homeDir.getPath() + translated.substring(1);
         }
         else if (translated.startsWith("~")) {
             translated = homeDir.getParentFile().getAbsolutePath();
         }
-        else if (!(translated.startsWith(File.separator))) {
+        else if (!(translated.startsWith(separator()))) {
             String cwd = getUserDir().getPath();
-            translated = cwd + File.separator + translated;
+            translated = cwd + separator() + translated;
         }
 
         File file = new File(translated);
 
         final File dir;
 
-        if (translated.endsWith(File.separator)) {
+        if (translated.endsWith(separator())) {
             dir = file;
         }
         else {
@@ -72,6 +72,10 @@ public class FileNameCompleter
         File[] entries = dir == null ? new File[0] : dir.listFiles();
 
         return matchFiles(buffer, translated, entries, candidates);
+    }
+
+    protected String separator() {
+        return File.separator;
     }
 
     protected File getUserHome() {
@@ -97,14 +101,14 @@ public class FileNameCompleter
         }
         for (File file : files) {
             if (file.getAbsolutePath().startsWith(translated)) {
-                CharSequence name = file.getName() + (matches == 1 && file.isDirectory() ? File.separator : " ");
+                CharSequence name = file.getName() + (matches == 1 && file.isDirectory() ? separator() : " ");
                 candidates.add(render(file, name).toString());
             }
         }
 
-        final int index = buffer.lastIndexOf(File.separator);
+        final int index = buffer.lastIndexOf(separator());
 
-        return index + File.separator.length();
+        return index + separator().length();
     }
 
     protected CharSequence render(final File file, final CharSequence name) {
