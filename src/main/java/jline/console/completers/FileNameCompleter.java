@@ -40,8 +40,20 @@ public class FileNameCompleter
 {
     // TODO: Handle files with spaces in them
 
+    private static final boolean OS_IS_WINDOWS;
+
+    static {
+        String os = System.getProperty("os.name").toLowerCase();
+        OS_IS_WINDOWS = os.contains("windows");
+    }
+
     public int complete(final String buf, final int cursor, final List<CharSequence> candidates) {
         String buffer = (buf == null) ? "" : buf;
+
+        if (OS_IS_WINDOWS) {
+            buffer = buffer.replaceAll("/", "\\");
+        }
+        
         String translated = buffer;
 
         File homeDir = getUserHome();
