@@ -28,7 +28,6 @@ import java.util.List;
  * but it cannot complete to other users' homes, since java does
  * not provide any way of determining that easily</li>
  * </ul>
- * <p/>
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
