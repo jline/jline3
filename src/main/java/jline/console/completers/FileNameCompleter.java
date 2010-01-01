@@ -51,7 +51,7 @@ public class FileNameCompleter
         String buffer = (buf == null) ? "" : buf;
 
         if (OS_IS_WINDOWS) {
-            buffer = buffer.replaceAll("/", "\\");
+            buffer = buffer.replace('/', '\\');
         }
         
         String translated = buffer;
