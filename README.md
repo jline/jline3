@@ -8,8 +8,8 @@ Building
 
 ### Requirements
 
-* Maven 2.x
-* Java 5
+* Maven 2+
+* Java 5+
 
 Check out and build:
 
