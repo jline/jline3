@@ -112,7 +112,7 @@ public class UnixTerminal
     @Override
     public int getWidth() {
         int w = settings.getProperty("columns");
-        return w == -1 ? DEFAULT_WIDTH : w;
+        return w < 1 ? DEFAULT_WIDTH : w;
     }
 
     /**
@@ -121,7 +121,7 @@ public class UnixTerminal
     @Override
     public int getHeight() {
         int h = settings.getProperty("rows");
-        return h == -1 ? DEFAULT_HEIGHT : h;
+        return h < 1 ? DEFAULT_HEIGHT : h;
     }
 
     @Override
