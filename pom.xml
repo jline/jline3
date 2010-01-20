@@ -32,7 +32,24 @@
         <developerConnection>scm:git:ssh://git@github.com/jdillon/jline2.git</developerConnection>
         <url>http://github.com/jdillon/jline2</url>
     </scm>
-
+    
+    <ciManagement>
+        <system>Hudson</system>
+        <url>https://grid.sonatype.org/ci/job/JLine2</url>
+    </ciManagement>
+    
+    <developers>
+        <developer>
+            <id>jdillon</id>
+            <name>Jason Dillon</name>
+            <email>jason@planet57.com</email>
+            <roles>
+                <role>Build Master</role>
+                <role>Developer</role>
+            </roles>
+        </developer>
+    </developers>
+    
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
