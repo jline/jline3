@@ -33,9 +33,7 @@ public abstract class ConsoleReaderTestSupport
 
     @Before
     public void setUp() throws Exception {
-        console = new ConsoleReader(null, new PrintWriter(
-            new OutputStreamWriter(new ByteArrayOutputStream())), null,
-            new UnixTerminal());
+        console = new ConsoleReader(null, new PrintWriter(new OutputStreamWriter(new ByteArrayOutputStream())), new UnixTerminal());
     }
 
     protected void assertBuffer(final String expected, final Buffer buffer) throws IOException {
@@ -73,11 +71,6 @@ public abstract class ConsoleReaderTestSupport
         return action;
     }
 
-    /**
-     * TODO: Fix this so tests don't break on windows machines.
-     *
-     * @author Ryan
-     */
     protected class Buffer
     {
         private final ByteArrayOutputStream out = new ByteArrayOutputStream();

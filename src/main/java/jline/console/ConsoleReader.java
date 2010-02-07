@@ -81,7 +81,7 @@ public class ConsoleReader
 
     private Character echoCharacter;
 
-    public ConsoleReader(final InputStream in, final Writer out, InputStream bindings, final Terminal term) throws
+    public ConsoleReader(final InputStream in, final Writer out, final InputStream bindings, final Terminal term) throws
         IOException
     {
         this.in = in;
