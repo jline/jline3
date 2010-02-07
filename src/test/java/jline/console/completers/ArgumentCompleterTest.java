@@ -15,11 +15,8 @@
  */
 package jline.console.completers;
 
-import jline.console.Completer;
 import jline.console.ConsoleReaderTestSupport;
 import org.junit.Test;
-
-import java.util.Iterator;
 
 import static jline.console.Operation.COMPLETE;
 
@@ -33,14 +30,6 @@ public class ArgumentCompleterTest
 {
     @Test
     public void test1() throws Exception {
-        // clear any current completers
-        for (
-            Iterator
-                i =
-                console.getCompleters().iterator(); i.hasNext(); console.removeCompleter((Completer) i.next())) {
-            // empty
-        }
-
         console.addCompleter(new ArgumentCompleter(new StringsCompleter("foo", "bar", "baz")));
 
         assertBuffer("foo foo ", new Buffer("foo f").op(COMPLETE));

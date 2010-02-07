@@ -290,10 +290,8 @@ public class ArgumentCompleter
     }
 
     /**
-     * {@link ArgumentCompleter.ArgumentDelimiter}
-     * implementation that counts all
-     * whitespace (as reported by {@link Character#isWhitespace})
-     * as being a delimiter.
+     * {@link ArgumentCompleter.ArgumentDelimiter} implementation that counts all
+     * whitespace (as reported by {@link Character#isWhitespace}) as being a delimiter.
      *
      * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
      */
@@ -328,10 +326,8 @@ public class ArgumentCompleter
         /**
          * @param arguments           the array of tokens
          * @param cursorArgumentIndex the token index of the cursor
-         * @param argumentPosition    the position of the cursor in the
-         *                            current token
-         * @param bufferPosition      the position of the cursor in
-         *                            the whole buffer
+         * @param argumentPosition    the position of the cursor in the current token
+         * @param bufferPosition      the position of the cursor in the whole buffer
          */
         public ArgumentList(final String[] arguments, final int cursorArgumentIndex, final int argumentPosition, final int bufferPosition) {
             this.arguments = arguments;

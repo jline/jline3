@@ -38,6 +38,12 @@ public abstract class ConsoleReaderTestSupport
             new UnixTerminal());
     }
 
+    protected void clearCompleters() {
+        for (Completer completer : console.getCompleters()) {
+            console.removeCompleter(completer);
+        }
+    }
+
     protected void assertBuffer(final String expected, final Buffer buffer) throws IOException {
         assertBuffer(expected, buffer, true);
     }

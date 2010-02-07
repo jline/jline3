@@ -44,8 +44,13 @@ public class FileNameCompleter
         OS_IS_WINDOWS = os.contains("windows");
     }
 
-    public int complete(final String buf, final int cursor, final List<CharSequence> candidates) {
-        String buffer = (buf == null) ? "" : buf;
+    public int complete(String buffer, final int cursor, final List<CharSequence> candidates) {
+        // buffer can be null
+        assert candidates != null;
+
+        if (buffer == null) {
+            buffer = "";
+        }
 
         if (OS_IS_WINDOWS) {
             buffer = buffer.replace('/', '\\');
@@ -68,7 +73,6 @@ public class FileNameCompleter
         }
 
         File file = new File(translated);
-
         final File dir;
 
         if (translated.endsWith(separator())) {
@@ -95,7 +99,7 @@ public class FileNameCompleter
         return new File(".");
     }
 
-    public int matchFiles(final String buffer, final String translated, final File[] files, final List<CharSequence> candidates) {
+    protected int matchFiles(final String buffer, final String translated, final File[] files, final List<CharSequence> candidates) {
         if (files == null) {
             return -1;
         }

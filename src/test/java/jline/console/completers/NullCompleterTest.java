@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package jline.console.completers;
 
 import jline.console.ConsoleReaderTestSupport;
@@ -21,21 +22,19 @@ import org.junit.Test;
 import static jline.console.Operation.COMPLETE;
 
 /**
- * Tests for {@link StringsCompleter}.
+ * Tests for {@link NullCompleter}.
  *
- * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  */
-public class StringsCompleterTest
+public class NullCompleterTest
     extends ConsoleReaderTestSupport
 {
     @Test
     public void test1() throws Exception {
-        console.addCompleter(new StringsCompleter("foo", "bar", "baz"));
+        console.addCompleter(NullCompleter.INSTANCE);
 
-        assertBuffer("foo ", new Buffer("f").op(COMPLETE));
-        // single tab completes to unambiguous "ba"
-        assertBuffer("ba", new Buffer("b").op(COMPLETE));
+        assertBuffer("f", new Buffer("f").op(COMPLETE));
         assertBuffer("ba", new Buffer("ba").op(COMPLETE));
-        assertBuffer("baz ", new Buffer("baz").op(COMPLETE));
+        assertBuffer("baz", new Buffer("baz").op(COMPLETE));
     }
 }
