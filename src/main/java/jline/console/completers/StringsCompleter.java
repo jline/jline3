@@ -54,22 +54,21 @@ public class StringsCompleter
         return strings;
     }
 
-    public int complete(String buffer, final int cursor, final List<CharSequence> candidates) {
+    public int complete(final String buffer, final int cursor, final List<CharSequence> candidates) {
         // buffer could be null
         assert candidates != null;
 
         if (buffer == null) {
-            buffer = "";
+            candidates.addAll(strings);
         }
+        else {
+            for (String match : strings.tailSet(buffer)) {
+                if (!match.startsWith(buffer)) {
+                    break;
+                }
 
-        SortedSet<String> matches = strings.tailSet(buffer);
-
-        for (String match : matches) {
-            if (!match.startsWith(buffer)) {
-                break;
+                candidates.add(match);
             }
-
-            candidates.add(match);
         }
 
         if (candidates.size() == 1) {
