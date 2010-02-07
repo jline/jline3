@@ -38,11 +38,11 @@ public abstract class ConsoleReaderTestSupport
             new UnixTerminal());
     }
 
-    public void assertBuffer(final String expected, final Buffer buffer) throws IOException {
+    protected void assertBuffer(final String expected, final Buffer buffer) throws IOException {
         assertBuffer(expected, buffer, true);
     }
 
-    public void assertBuffer(final String expected, final Buffer buffer, final boolean clear) throws IOException {
+    protected void assertBuffer(final String expected, final Buffer buffer, final boolean clear) throws IOException {
         // clear current buffer, if any
         if (clear) {
             console.finishBuffer();
