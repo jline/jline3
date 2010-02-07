@@ -19,7 +19,7 @@ package jline.console.completers;
 import jline.console.Completer;
 
 /**
- * {@link Completer} for enum names.
+ * {@link Completer} for {@link Enum} names.
  *
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  * @since 2.0
@@ -28,6 +28,8 @@ public class EnumCompleter
     extends StringsCompleter
 {
     public EnumCompleter(Class<? extends Enum> source) {
+        assert source != null;
+
         for (Enum<?> n : source.getEnumConstants()) {
             this.getStrings().add(n.name().toLowerCase());
         }

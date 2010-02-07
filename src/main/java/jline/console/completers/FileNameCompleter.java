@@ -16,7 +16,6 @@ import java.util.List;
  * A file name completer takes the buffer and issues a list of
  * potential completions.
  * <p/>
- * <p/>
  * This completer tries to behave as similar as possible to
  * <i>bash</i>'s file name completion (using GNU readline)
  * with the following exceptions:
