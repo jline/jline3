@@ -34,7 +34,10 @@ public class StringsCompleterTest
     @Test
     public void test1() throws Exception {
         // clear any current completers
-        for (Iterator i = console.getCompleters().iterator(); i.hasNext(); console.removeCompleter((Completer) i.next())) {
+        for (
+            Iterator
+                i =
+                console.getCompleters().iterator(); i.hasNext(); console.removeCompleter((Completer) i.next())) {
             // empty
         }
 

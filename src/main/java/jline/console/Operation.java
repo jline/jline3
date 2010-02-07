@@ -15,9 +15,7 @@ import java.util.Map;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
- *
  * @see java.awt.event.KeyEvent
- *
  * @since 2.0
  */
 public enum Operation
@@ -31,7 +29,7 @@ public enum Operation
      * Operation that moves to the beginning of the buffer.
      */
     MOVE_TO_BEG(-1),
-    
+
     /**
      * Operation that moves to the end of the buffer.
      */
@@ -255,13 +253,12 @@ public enum Operation
     /**
      * Operation that clears whatever text is on the current line.
      */
-    CLEAR_LINE(-63),
-    ;
+    CLEAR_LINE(-63),;
 
     public final short code;
-    
+
     Operation(final int code) {
-        this.code = (short)code;
+        this.code = (short) code;
     }
 
     private static final Map<Short, Operation> codes;
@@ -277,6 +274,6 @@ public enum Operation
     }
 
     public static Operation valueOf(final int code) {
-        return codes.get((short)code);
+        return codes.get((short) code);
     }
 }

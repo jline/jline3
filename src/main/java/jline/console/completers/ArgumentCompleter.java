@@ -20,14 +20,13 @@ import java.util.List;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
- *
  * @since 2.0
  */
 public class ArgumentCompleter
     implements Completer
 {
     // TODO: handle argument quoting and escape characters
-    
+
     private final Completer[] completers;
 
     private final ArgumentDelimiter delim;
@@ -62,7 +61,7 @@ public class ArgumentCompleter
     public ArgumentCompleter(final List<Completer> completers) {
         this(completers.toArray(new Completer[completers.size()]));
     }
-    
+
     /**
      * If true, a completion at argument index N will only succeed
      * if all the completions from 0-(N-1) also succeed.
@@ -193,9 +192,9 @@ public class ArgumentCompleter
     public abstract static class AbstractArgumentDelimiter
         implements ArgumentDelimiter
     {
-        private char[] quoteChars = { '\'', '"' };
+        private char[] quoteChars = {'\'', '"'};
 
-        private char[] escapeChars = { '\\' };
+        private char[] escapeChars = {'\\'};
 
         public void setQuoteChars(final char[] quoteChars) {
             this.quoteChars = quoteChars;

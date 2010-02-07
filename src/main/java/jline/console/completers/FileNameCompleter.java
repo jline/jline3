@@ -15,8 +15,8 @@ import java.util.List;
 /**
  * A file name completer takes the buffer and issues a list of
  * potential completions.
- *
- * <p>
+ * <p/>
+ * <p/>
  * This completer tries to behave as similar as possible to
  * <i>bash</i>'s file name completion (using GNU readline)
  * with the following exceptions:
@@ -31,7 +31,6 @@ import java.util.List;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
- *
  * @since 2.0
  */
 public class FileNameCompleter
@@ -52,7 +51,7 @@ public class FileNameCompleter
         if (OS_IS_WINDOWS) {
             buffer = buffer.replace('/', '\\');
         }
-        
+
         String translated = buffer;
 
         File homeDir = getUserHome();

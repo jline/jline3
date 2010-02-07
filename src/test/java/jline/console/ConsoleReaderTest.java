@@ -60,7 +60,7 @@ public class ConsoleReaderTest
         history.add("mkdir monkey");
         return history;
     }
-    
+
     @Test
     public void testDeleteAndBackspaceKeymappings() throws Exception {
         // test only works on Windows
@@ -90,11 +90,11 @@ public class ConsoleReaderTest
         }
 
         char[] characters = new char[]{
-                'S', 's',
-                (char) SPECIAL_KEY_INDICATOR.code,
-                (char) LEFT_ARROW_KEY.code,
-                (char) SPECIAL_KEY_INDICATOR.code,
-                (char) DELETE_KEY.code, '\r', 'n'
+            'S', 's',
+            (char) SPECIAL_KEY_INDICATOR.code,
+            (char) LEFT_ARROW_KEY.code,
+            (char) SPECIAL_KEY_INDICATOR.code,
+            (char) DELETE_KEY.code, '\r', 'n'
         };
         assertWindowsKeyBehavior("S", characters);
     }
@@ -107,11 +107,11 @@ public class ConsoleReaderTest
         }
 
         char[] characters = new char[]{
-                'S', 's',
-                (char) NUMPAD_KEY_INDICATOR.code,
-                (char) LEFT_ARROW_KEY.code,
-                (char) NUMPAD_KEY_INDICATOR.code,
-                (char) DELETE_KEY.code, '\r', 'n'
+            'S', 's',
+            (char) NUMPAD_KEY_INDICATOR.code,
+            (char) LEFT_ARROW_KEY.code,
+            (char) NUMPAD_KEY_INDICATOR.code,
+            (char) DELETE_KEY.code, '\r', 'n'
         };
         assertWindowsKeyBehavior("S", characters);
     }
@@ -124,9 +124,9 @@ public class ConsoleReaderTest
         }
 
         char[] characters = new char[]{
-                'S', 's',
-                (char) SPECIAL_KEY_INDICATOR.code,
-                (char) HOME_KEY.code, 'x', '\r', '\n'
+            'S', 's',
+            (char) SPECIAL_KEY_INDICATOR.code,
+            (char) HOME_KEY.code, 'x', '\r', '\n'
         };
         assertWindowsKeyBehavior("xSs", characters);
 
@@ -140,11 +140,11 @@ public class ConsoleReaderTest
         }
 
         char[] characters = new char[]{
-                'S', 's',
-                (char) SPECIAL_KEY_INDICATOR.code,
-                (char) HOME_KEY.code, 'x',
-                (char) SPECIAL_KEY_INDICATOR.code, (char) END_KEY.code,
-                'j', '\r', '\n'
+            'S', 's',
+            (char) SPECIAL_KEY_INDICATOR.code,
+            (char) HOME_KEY.code, 'x',
+            (char) SPECIAL_KEY_INDICATOR.code, (char) END_KEY.code,
+            'j', '\r', '\n'
         };
         assertWindowsKeyBehavior("xSsj", characters);
     }
@@ -157,8 +157,8 @@ public class ConsoleReaderTest
         }
 
         char[] characters = new char[]{
-                (char) SPECIAL_KEY_INDICATOR.code,
-                (char) PAGE_UP_KEY.code, '\r', '\n'
+            (char) SPECIAL_KEY_INDICATOR.code,
+            (char) PAGE_UP_KEY.code, '\r', '\n'
         };
         assertWindowsKeyBehavior("dir", characters);
     }
@@ -171,8 +171,8 @@ public class ConsoleReaderTest
         }
 
         char[] characters = new char[]{
-                (char) SPECIAL_KEY_INDICATOR.code,
-                (char) PAGE_DOWN_KEY.code, '\r', '\n'
+            (char) SPECIAL_KEY_INDICATOR.code,
+            (char) PAGE_DOWN_KEY.code, '\r', '\n'
         };
         assertWindowsKeyBehavior("mkdir monkey", characters);
     }
@@ -185,9 +185,9 @@ public class ConsoleReaderTest
         }
 
         char[] characters = new char[]{
-                's', 's', 's',
-                (char) SPECIAL_KEY_INDICATOR.code,
-                (char) ESCAPE_KEY.code, '\r', '\n'
+            's', 's', 's',
+            (char) SPECIAL_KEY_INDICATOR.code,
+            (char) ESCAPE_KEY.code, '\r', '\n'
         };
         assertWindowsKeyBehavior("", characters);
     }
@@ -200,11 +200,11 @@ public class ConsoleReaderTest
         }
 
         char[] characters = new char[]{
-                'o', 'p', 's',
-                (char) SPECIAL_KEY_INDICATOR.code,
-                (char) HOME_KEY.code,
-                (char) SPECIAL_KEY_INDICATOR.code,
-                (char) INSERT_KEY.code, 'o', 'o', 'p', 's', '\r', '\n'
+            'o', 'p', 's',
+            (char) SPECIAL_KEY_INDICATOR.code,
+            (char) HOME_KEY.code,
+            (char) SPECIAL_KEY_INDICATOR.code,
+            (char) INSERT_KEY.code, 'o', 'o', 'p', 's', '\r', '\n'
         };
         assertWindowsKeyBehavior("oops", characters);
     }

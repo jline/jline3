@@ -12,7 +12,6 @@ package jline.console;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
- *
  * @since 2.0
  */
 public class CursorBuffer
@@ -77,7 +76,7 @@ public class CursorBuffer
         }
     }
 
-     public boolean clear() {
+    public boolean clear() {
         if (buffer.length() == 0) {
             return false;
         }

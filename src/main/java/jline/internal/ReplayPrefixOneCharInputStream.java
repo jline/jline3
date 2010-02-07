@@ -9,7 +9,6 @@ import java.text.MessageFormat;
  *
  * @author <a href="mailto:Marc.Herbert@continuent.com">Marc Herbert</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
- *
  * @since 2.0
  */
 public final class ReplayPrefixOneCharInputStream

@@ -16,7 +16,6 @@ import java.io.InputStream;
  * Provides support for {@link Terminal} instances.
  *
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
- *
  * @since 2.0
  */
 public abstract class TerminalSupport
@@ -60,7 +59,7 @@ public abstract class TerminalSupport
         if (shutdownHook != null) {
             throw new IllegalStateException("Shutdown hook already installed");
         }
-        
+
         try {
             Runtime.getRuntime().addShutdownHook(hook);
             shutdownHook = hook;
@@ -97,7 +96,7 @@ public abstract class TerminalSupport
 
     protected synchronized void setAnsiSupported(final boolean supported) {
         this.ansiSupported = supported;
-        Log.debug("Ansi supported: ",  supported);
+        Log.debug("Ansi supported: ", supported);
     }
 
     public int getWidth() {
@@ -114,7 +113,7 @@ public abstract class TerminalSupport
 
     public synchronized void setEchoEnabled(final boolean enabled) {
         this.echoEnabled = enabled;
-        Log.debug("Echo enabled: ",  enabled);
+        Log.debug("Echo enabled: ", enabled);
     }
 
     public int readCharacter(final InputStream in) throws IOException {
@@ -134,7 +133,7 @@ public abstract class TerminalSupport
     //
 
     protected class RestoreHook
-            extends Thread
+        extends Thread
     {
         public void start() {
             try {

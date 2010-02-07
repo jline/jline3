@@ -19,7 +19,6 @@ import java.util.StringTokenizer;
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:dwkemp@gmail.com">Dale Kemp</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
- *
  * @since 2.0
  */
 public final class TerminalLineSettings
@@ -107,11 +106,11 @@ public final class TerminalLineSettings
 
     private static String exec(final String... cmd) throws IOException, InterruptedException {
         assert cmd != null;
-        
+
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
         Log.trace("Running: ", cmd);
-        
+
         Process p = Runtime.getRuntime().exec(cmd);
         int c;
 

@@ -31,7 +31,6 @@ import java.util.TreeSet;
  * Completer for a set of strings.
  *
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
- *
  * @since 2.0
  */
 public class StringsCompleter
@@ -39,7 +38,8 @@ public class StringsCompleter
 {
     private final SortedSet<String> strings = new TreeSet<String>();
 
-    public StringsCompleter() {}
+    public StringsCompleter() {
+    }
 
     public StringsCompleter(final Collection<String> strings) {
         assert strings != null;
@@ -54,7 +54,7 @@ public class StringsCompleter
         return strings;
     }
 
-    @SuppressWarnings({ "unchecked" })
+    @SuppressWarnings({"unchecked"})
     public int complete(String buffer, final int cursor, final List<CharSequence> candidates) {
         // buffer could be null
         assert candidates != null;

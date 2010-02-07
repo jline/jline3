@@ -81,12 +81,14 @@ public class ConsoleReader
 
     private Character echoCharacter;
 
-    public ConsoleReader(final InputStream in, final Writer out, InputStream bindings, final Terminal term) throws IOException {
+    public ConsoleReader(final InputStream in, final Writer out, InputStream bindings, final Terminal term) throws
+        IOException
+    {
         this.in = in;
         this.out = out;
         this.terminal = term != null ? term : TerminalFactory.get();
         this.keyBindings = loadKeyBindings(bindings);
-        
+
         if (Boolean.getBoolean(JLINE_NOBELL)) {
             setBellEnabled(false);
         }
@@ -103,7 +105,7 @@ public class ConsoleReader
     /**
      * Create a new reader using {@link FileDescriptor#in} for input and
      * {@link System#out} for output.
-     *
+     * <p/>
      * {@link FileDescriptor#in} is used because it has a better chance of not being buffered.
      */
     public ConsoleReader() throws IOException {
@@ -111,6 +113,7 @@ public class ConsoleReader
     }
 
     // FIXME: Only used for tests
+
     void setInput(final InputStream in) {
         this.in = in;
     }
@@ -149,23 +152,23 @@ public class ConsoleReader
 
     /**
      * Set the echo character. For example, to have "*" entered when a password is typed:
-     *
+     * <p/>
      * <pre>
      * myConsoleReader.setEchoCharacter(new Character('*'));
      * </pre>
-     *
+     * <p/>
      * Setting the character to
-     *
+     * <p/>
      * <pre>
      * null
      * </pre>
-     *
+     * <p/>
      * will restore normal character echoing. Setting the character to
-     *
+     * <p/>
      * <pre>
      * new Character(0)
      * </pre>
-     *
+     * <p/>
      * will cause nothing to be echoed.
      *
      * @param c the character to echo to the console in place of the typed character.
@@ -498,7 +501,7 @@ public class ConsoleReader
      * Move the cursor <i>where</i> characters.
      *
      * @param num if less than 0, move abs(<i>where</i>) to the left,
-     *              otherwise move <i>where</i> to the right.
+     *            otherwise move <i>where</i> to the right.
      * @return the number of spaces we moved
      */
     public int moveCursor(final int num) throws IOException {
@@ -573,8 +576,8 @@ public class ConsoleReader
     }
 
     // FIXME: replace() is not used
-    
-    public final boolean replace(final int num, final  String replacement) {
+
+    public final boolean replace(final int num, final String replacement) {
         buf.buffer.replace(buf.cursor - num, buf.cursor, replacement);
         try {
             moveCursor(-num);
@@ -704,7 +707,9 @@ public class ConsoleReader
 
     public static final String JLINEBINDINGS_PROPERTIES = ".jlinebindings.properties";
 
-    /** The map for logical operations. */
+    /**
+     * The map for logical operations.
+     */
     private final short[] keyBindings;
 
     private short[] loadKeyBindings(InputStream input) throws IOException {
@@ -800,7 +805,7 @@ public class ConsoleReader
 
         Log.trace("Translated: ", c, " -> ", code);
 
-        return new int[]{ c, code };
+        return new int[]{c, code};
     }
 
     //
@@ -1394,7 +1399,7 @@ public class ConsoleReader
             // http://sourceforge.net/tracker/index.php?func=detail&aid=1060649&group_id=64033&atid=506056
             // to get around the deprecated DataFlavor.plainTextFlavor, but it
             // raises a UnsupportedFlavorException on Mac OS X
-            
+
             if (content == null) {
                 try {
                     content = new DataFlavor().getReaderForText(transferable);
@@ -1447,12 +1452,12 @@ public class ConsoleReader
     // Triggered Actions
     //
 
-    private final Map<Character,ActionListener> triggeredActions = new HashMap<Character,ActionListener>();
+    private final Map<Character, ActionListener> triggeredActions = new HashMap<Character, ActionListener>();
 
     /**
      * Adding a triggered Action allows to give another curse of action
      * if a character passed the pre-processing.
-     *
+     * <p/>
      * Say you want to close the application if the user enter q.
      * addTriggerAction('q', new ActionListener(){ System.exit(0); });
      * would do the trick.
@@ -1521,7 +1526,7 @@ public class ConsoleReader
 
             // NOTE: toString() is important here due to AnsiString being retarded
             buff.append(item.toString());
-            for (int i=0; i < (maxWidth + 3 - item.length()); i++) {
+            for (int i = 0; i < (maxWidth + 3 - item.length()); i++) {
                 buff.append(' ');
             }
         }
@@ -1545,7 +1550,8 @@ public class ConsoleReader
                 + "                 "
                 + "\r" + prompt;
 
-            maskThread = new Thread() {
+            maskThread = new Thread()
+            {
                 public void run() {
                     while (!interrupted()) {
                         try {

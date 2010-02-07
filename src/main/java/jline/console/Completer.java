@@ -14,7 +14,6 @@ import java.util.List;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
- *
  * @since 2.0
  */
 public interface Completer
@@ -24,10 +23,10 @@ public interface Completer
      * list will not be sorted before being displayed to the user: thus, the complete method should sort the
      * {@link List} before returning.
      *
-     * @param buffer        the buffer
-     * @param cursor        ???
-     * @param candidates    the {@link List} of candidates to populate
-     * @return              the index of the <i>buffer</i> for which the completion will be relative
+     * @param buffer     the buffer
+     * @param cursor     ???
+     * @param candidates the {@link List} of candidates to populate
+     * @return the index of the <i>buffer</i> for which the completion will be relative
      */
     int complete(String buffer, int cursor, List<CharSequence> candidates);
 }

@@ -143,7 +143,7 @@ public abstract class ConsoleReaderTestSupport
         }
 
         public Buffer append(final int i) {
-            out.write((byte)i);
+            out.write((byte) i);
             return this;
         }
     }

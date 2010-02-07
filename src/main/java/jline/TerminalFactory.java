@@ -17,7 +17,6 @@ import java.util.Map;
  * Creates terminal instances.
  *
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
- *
  * @since 2.0
  */
 public class TerminalFactory
@@ -74,7 +73,7 @@ public class TerminalFactory
                 }
                 else {
                     try {
-                        t = (Terminal)Thread.currentThread().getContextClassLoader().loadClass(type).newInstance();
+                        t = (Terminal) Thread.currentThread().getContextClassLoader().loadClass(type).newInstance();
                     }
                     catch (Exception e) {
                         throw new IllegalArgumentException(MessageFormat.format("Invalid terminal type: {0}", type), e);
@@ -110,7 +109,8 @@ public class TerminalFactory
         }
     }
 
-    public static enum Type {
+    public static enum Type
+    {
         AUTO,
         WINDOWS,
         UNIX,
@@ -137,7 +137,10 @@ public class TerminalFactory
         UNIX
     }
 
-    private static final Map<Flavor,Class<? extends Terminal>> FLAVORS = new HashMap<Flavor,Class<? extends Terminal>>();
+    private static final
+    Map<Flavor, Class<? extends Terminal>>
+        FLAVORS =
+        new HashMap<Flavor, Class<? extends Terminal>>();
 
     static {
         registerFlavor(Flavor.WINDOWS, WindowsTerminal.class);

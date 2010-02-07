@@ -48,7 +48,7 @@ import static jline.console.Key.CTRL_QM;
  * <a href="http://msdn.microsoft.com/library/default.asp?
  * url=/library/en-us/dllproc/base/getconsolemode.asp">GetConsoleMode</a> to
  * disable character echoing.
- *
+ * <p/>
  * <p>
  * By default, the {@link #readCharacter} method will attempt to test to see if
  * the specified {@link InputStream} is {@link System#in} or a wrapper around
@@ -62,16 +62,15 @@ import static jline.console.Key.CTRL_QM;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
- *
  * @since 2.0
  */
 public class WindowsTerminal
     extends TerminalSupport
 {
     public static final String JLINE_WINDOWS_TERMINAL_INPUT_ENCODING = "jline.WindowsTerminal.input.encoding";
-    
+
     public static final String JLINE_WINDOWS_TERMINAL_OUTPUT_ENCODING = "jline.WindowsTerminal.output.encoding";
-    
+
     public static final String JLINE_WINDOWS_TERMINAL_DIRECT_CONSOLE = "jline.WindowsTerminal.directConsole";
 
     public static final String WINDOWSBINDINGS_PROPERTIES = "windowsbindings.properties";
@@ -91,7 +90,8 @@ public class WindowsTerminal
     public WindowsTerminal() throws Exception {
         super(true);
 
-        this.replayStream = new ReplayPrefixOneCharInputStream(System.getProperty(JLINE_WINDOWS_TERMINAL_INPUT_ENCODING, System.getProperty("file.encoding")));
+        this.replayStream =
+            new ReplayPrefixOneCharInputStream(System.getProperty(JLINE_WINDOWS_TERMINAL_INPUT_ENCODING, System.getProperty("file.encoding")));
         this.replayReader = new InputStreamReader(replayStream, replayStream.getEncoding());
     }
 
@@ -143,14 +143,14 @@ public class WindowsTerminal
         // Must set these four modes at the same time to make it work fine.
         if (enabled) {
             setConsoleMode(getConsoleMode() |
-                    ENABLE_ECHO_INPUT.code |
-                    ENABLE_LINE_INPUT.code |
-                    ENABLE_PROCESSED_INPUT.code |
-                    ENABLE_WINDOW_INPUT.code);
+                ENABLE_ECHO_INPUT.code |
+                ENABLE_LINE_INPUT.code |
+                ENABLE_PROCESSED_INPUT.code |
+                ENABLE_WINDOW_INPUT.code);
         }
         else {
             setConsoleMode(getConsoleMode() &
-                  ~(ENABLE_LINE_INPUT.code |
+                ~(ENABLE_LINE_INPUT.code |
                     ENABLE_ECHO_INPUT.code |
                     ENABLE_PROCESSED_INPUT.code |
                     ENABLE_WINDOW_INPUT.code));
@@ -163,7 +163,7 @@ public class WindowsTerminal
      */
     public void setDirectConsole(final boolean flag) {
         this.directConsole = flag;
-        Log.debug("Direct console: ",  flag);
+        Log.debug("Direct console: ", flag);
     }
 
     /**
@@ -195,7 +195,7 @@ public class WindowsTerminal
         if (in == System.in) {
             return true;
         }
-        else if (in instanceof FileInputStream && ((FileInputStream)in).getFD() == FileDescriptor.in) {
+        else if (in instanceof FileInputStream && ((FileInputStream) in).getFD() == FileDescriptor.in) {
             return true;
         }
 
@@ -284,7 +284,7 @@ public class WindowsTerminal
 
     /**
      * Console mode
-     *
+     * <p/>
      * Constants copied <tt>wincon.h</tt>.
      */
     public static enum ConsoleMode
@@ -344,8 +344,7 @@ public class WindowsTerminal
          * enable this option, use the OR to combine this flag with
          * ENABLE_EXTENDED_FLAGS.
          */
-        ENABLE_WRAP_AT_EOL_OUTPUT(2),
-        ;
+        ENABLE_WRAP_AT_EOL_OUTPUT(2),;
 
         public final int code;
 
@@ -356,7 +355,7 @@ public class WindowsTerminal
 
     /**
      * Windows keys.
-     *
+     * <p/>
      * Constants copied <tt>wincon.h</tt>.
      */
     public static enum WindowsKey
@@ -447,8 +446,7 @@ public class WindowsTerminal
          * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR,
          * this character indicates that the escape key was pressed.
          */
-        ESCAPE_KEY(0),
-        ;
+        ESCAPE_KEY(0),;
 
         public final int code;
 

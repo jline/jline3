@@ -12,12 +12,10 @@ import java.util.Map;
 
 /**
  * Map from key name to key codes.
- * 
+ *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
- *
  * @see java.awt.event.KeyEvent
- *
  * @since 2.0
  */
 public enum Key
@@ -46,15 +44,14 @@ public enum Key
 
     CTRL_QM(127),
 
-    DELETE(127),
-    ;
+    DELETE(127),;
 
     public final short code;
 
     Key(final int code) {
-        this.code = (short)code;
+        this.code = (short) code;
     }
-    
+
     private static final Map<Short, Key> codes;
 
     static {
@@ -68,6 +65,6 @@ public enum Key
     }
 
     public static Key valueOf(final int code) {
-        return codes.get((short)code);
+        return codes.get((short) code);
     }
 }

@@ -43,11 +43,10 @@ import static jline.console.Key.DELETE;
  * character input. All known unix systems (including
  * Linux and Macintosh OS X) support the <em>stty</em>), so this
  * implementation should work for an reasonable POSIX system.
- * 
+ *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:dwkemp@gmail.com">Dale Kemp</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
- *
  * @since 2.0
  */
 public class UnixTerminal
@@ -81,12 +80,12 @@ public class UnixTerminal
         super.init();
 
         setAnsiSupported(true);
-        
+
         backspaceDeleteSwitched = detectBackspaceDeleteSwitched();
 
         // set the console to be character-buffered instead of line-buffered
         settings.set("-icanon min 1");
-        
+
         setEchoEnabled(false);
     }
 
@@ -143,7 +142,7 @@ public class UnixTerminal
     @Override
     public int readVirtualKey(final InputStream in) throws IOException {
         int c = readCharacter(in);
-        
+
         if (backspaceDeleteSwitched) {
             if (Key.valueOf(c) == DELETE) {
                 c = '\b';
@@ -230,13 +229,12 @@ public class UnixTerminal
 
         DEL_THIRD(51),
 
-        DEL_SECOND(126),
-        ;
+        DEL_SECOND(126),;
 
         public final short code;
 
         UnixKey(final int code) {
-            this.code = (short)code;
+            this.code = (short) code;
         }
 
         private static final Map<Short, UnixKey> codes;
@@ -252,7 +250,7 @@ public class UnixTerminal
         }
 
         public static UnixKey valueOf(final int code) {
-            return codes.get((short)code);
+            return codes.get((short) code);
         }
     }
 }

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
 
@@ -8,7 +9,7 @@
         <artifactId>forge-parent</artifactId>
         <version>5</version>
     </parent>
-    
+
     <groupId>org.sonatype.jline</groupId>
     <artifactId>jline</artifactId>
     <name>JLine</name>
@@ -18,7 +19,7 @@
         <name>Sonatype</name>
         <url>http://sonatype.org</url>
     </organization>
-    
+
     <licenses>
         <license>
             <name>The BSD License</name>
@@ -32,12 +33,12 @@
         <developerConnection>scm:git:ssh://git@github.com/jdillon/jline2.git</developerConnection>
         <url>http://github.com/jdillon/jline2</url>
     </scm>
-    
+
     <ciManagement>
         <system>Hudson</system>
         <url>https://grid.sonatype.org/ci/job/JLine2</url>
     </ciManagement>
-    
+
     <developers>
         <developer>
             <id>jdillon</id>
@@ -49,11 +50,11 @@
             </roles>
         </developer>
     </developers>
-    
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-    
+
     <repositories>
         <repository>
             <id>jansi</id>
@@ -66,7 +67,7 @@
             </releases>
         </repository>
     </repositories>
-    
+
     <dependencies>
         <dependency>
             <groupId>org.fusesource.jansi</groupId>
@@ -172,7 +173,7 @@
                     </execution>
                 </executions>
             </plugin>
-            
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -190,7 +191,7 @@
                     </execution>
                 </executions>
             </plugin>
-            
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-scm-plugin</artifactId>

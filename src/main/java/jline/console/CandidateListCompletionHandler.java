@@ -23,7 +23,6 @@ import java.util.Set;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
- *
  * @since 2.0
  */
 public class CandidateListCompletionHandler
@@ -31,7 +30,9 @@ public class CandidateListCompletionHandler
 {
     // TODO: handle quotes and escaped quotes && enable automatic escaping of whitespace
 
-    public boolean complete(final ConsoleReader reader, final List<CharSequence> candidates, final int pos) throws IOException {
+    public boolean complete(final ConsoleReader reader, final List<CharSequence> candidates, final int pos) throws
+        IOException
+    {
         CursorBuffer buf = reader.getCursorBuffer();
 
         // if there is only one completion, then fill in the buffer
@@ -60,7 +61,9 @@ public class CandidateListCompletionHandler
         return true;
     }
 
-    public static void setBuffer(final ConsoleReader reader, final CharSequence value, final int offset) throws IOException {
+    public static void setBuffer(final ConsoleReader reader, final CharSequence value, final int offset) throws
+        IOException
+    {
         while ((reader.getCursorBuffer().cursor > offset) && reader.backspace()) {
             // empty
         }
@@ -75,7 +78,9 @@ public class CandidateListCompletionHandler
      *
      * @param candidates the list of candidates to print
      */
-    public static void printCandidates(final ConsoleReader reader, Collection<CharSequence> candidates) throws IOException {
+    public static void printCandidates(final ConsoleReader reader, Collection<CharSequence> candidates) throws
+        IOException
+    {
         Set<CharSequence> distinct = new HashSet<CharSequence>(candidates);
 
         if (distinct.size() > reader.getAutoprintThreshold()) {
@@ -87,7 +92,7 @@ public class CandidateListCompletionHandler
 
             String noOpt = Messages.DISPLAY_CANDIDATES_NO.format();
             String yesOpt = Messages.DISPLAY_CANDIDATES_YES.format();
-            char[] allowed = { yesOpt.charAt(0), noOpt.charAt(0) };
+            char[] allowed = {yesOpt.charAt(0), noOpt.charAt(0)};
 
             while ((c = reader.readCharacter(allowed)) != -1) {
                 String tmp = new String(new char[]{(char) c});
@@ -167,10 +172,12 @@ public class CandidateListCompletionHandler
     {
         DISPLAY_CANDIDATES,
         DISPLAY_CANDIDATES_YES,
-        DISPLAY_CANDIDATES_NO,
-        ;
+        DISPLAY_CANDIDATES_NO,;
 
-        private static final ResourceBundle bundle = ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName());
+        private static final
+        ResourceBundle
+            bundle =
+            ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName());
 
         public String format(final Object... args) {
             return String.format(bundle.getString(name()), args);

@@ -18,11 +18,10 @@ import java.text.MessageFormat;
 
 /**
  * Manages native library muck.
- *
+ * <p/>
  * Currently only handles Windows bits, since that is all the native goo that JLine needs.
  *
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
- *
  * @since 2.0
  */
 public final class NativeLibrary
@@ -32,7 +31,7 @@ public final class NativeLibrary
     public static final String X86 = "x86";
 
     public static final String DOT_DLL = ".dll";
-    
+
     public static final String DOT_TMP = ".tmp";
 
     public static File load(final String name) throws IOException {
@@ -60,7 +59,7 @@ public final class NativeLibrary
         tmp.delete();
         //noinspection ResultOfMethodCallIgnored
         dir.mkdirs();
-        
+
         // Attempt to delete any there already
         File[] files = dir.listFiles();
         if (files != null) {
@@ -85,28 +84,28 @@ public final class NativeLibrary
 
             os.flush();
         }
-        catch(IOException e) {
+        catch (IOException e) {
             throw new Error(MessageFormat.format("Failed to extract resource: {0}", url), e);
         }
         finally {
             try {
                 is.close();
             }
-            catch(IOException e) {
+            catch (IOException e) {
                 // ignore
             }
             if (os != null) {
                 try {
                     os.close();
                 }
-                catch(IOException e) {
+                catch (IOException e) {
                     // Ignore
                 }
             }
         }
 
         System.load(lib.getAbsolutePath());
-        
+
         return lib;
     }
 }
