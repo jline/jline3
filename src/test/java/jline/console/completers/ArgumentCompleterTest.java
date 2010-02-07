@@ -32,15 +32,15 @@ public class ArgumentCompleterTest
     public void test1() throws Exception {
         console.addCompleter(new ArgumentCompleter(new StringsCompleter("foo", "bar", "baz")));
 
-        assertBuffer("foo foo ", new Buffer("foo f").op(COMPLETE));
-        assertBuffer("foo ba", new Buffer("foo b").op(COMPLETE));
-        assertBuffer("foo ba", new Buffer("foo ba").op(COMPLETE));
-        assertBuffer("foo baz ", new Buffer("foo baz").op(COMPLETE));
+        assertBuffer("foo foo ", new Buffer("foo f").tab());
+        assertBuffer("foo ba", new Buffer("foo b").tab());
+        assertBuffer("foo ba", new Buffer("foo ba").tab());
+        assertBuffer("foo baz ", new Buffer("foo baz").tab());
 
         // test completion in the mid range
-        assertBuffer("foo baz", new Buffer("f baz").left().left().left().left().op(COMPLETE));
-        assertBuffer("ba foo", new Buffer("b foo").left().left().left().left().op(COMPLETE));
-        assertBuffer("foo ba baz", new Buffer("foo b baz").left().left().left().left().op(COMPLETE));
-        assertBuffer("foo foo baz", new Buffer("foo f baz").left().left().left().left().op(COMPLETE));
+        assertBuffer("foo baz", new Buffer("f baz").left().left().left().left().tab());
+        assertBuffer("ba foo", new Buffer("b foo").left().left().left().left().tab());
+        assertBuffer("foo ba baz", new Buffer("foo b baz").left().left().left().left().tab());
+        assertBuffer("foo foo baz", new Buffer("foo f baz").left().left().left().left().tab());
     }
 }

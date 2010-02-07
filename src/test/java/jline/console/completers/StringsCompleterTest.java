@@ -32,10 +32,10 @@ public class StringsCompleterTest
     public void test1() throws Exception {
         console.addCompleter(new StringsCompleter("foo", "bar", "baz"));
 
-        assertBuffer("foo ", new Buffer("f").op(COMPLETE));
+        assertBuffer("foo ", new Buffer("f").tab());
         // single tab completes to unambiguous "ba"
-        assertBuffer("ba", new Buffer("b").op(COMPLETE));
-        assertBuffer("ba", new Buffer("ba").op(COMPLETE));
-        assertBuffer("baz ", new Buffer("baz").op(COMPLETE));
+        assertBuffer("ba", new Buffer("b").tab());
+        assertBuffer("ba", new Buffer("ba").tab());
+        assertBuffer("baz ", new Buffer("baz").tab());
     }
 }

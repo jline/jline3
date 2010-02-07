@@ -33,8 +33,8 @@ public class NullCompleterTest
     public void test1() throws Exception {
         console.addCompleter(NullCompleter.INSTANCE);
 
-        assertBuffer("f", new Buffer("f").op(COMPLETE));
-        assertBuffer("ba", new Buffer("ba").op(COMPLETE));
-        assertBuffer("baz", new Buffer("baz").op(COMPLETE));
+        assertBuffer("f", new Buffer("f").tab());
+        assertBuffer("ba", new Buffer("ba").tab());
+        assertBuffer("baz", new Buffer("baz").tab());
     }
 }

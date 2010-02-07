@@ -38,12 +38,6 @@ public abstract class ConsoleReaderTestSupport
             new UnixTerminal());
     }
 
-    protected void clearCompleters() {
-        for (Completer completer : console.getCompleters()) {
-            console.removeCompleter(completer);
-        }
-    }
-
     protected void assertBuffer(final String expected, final Buffer buffer) throws IOException {
         assertBuffer(expected, buffer, true);
     }
@@ -73,7 +67,6 @@ public abstract class ConsoleReaderTestSupport
         int action = console.getKeyForAction(logicalAction);
 
         if (action == -1) {
-            //noinspection StringConcatenation
             fail("Keystroke for logical action " + logicalAction + " was not bound in the console");
         }
 
