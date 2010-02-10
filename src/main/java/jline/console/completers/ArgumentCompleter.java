@@ -27,9 +27,9 @@ public class ArgumentCompleter
 {
     // TODO: handle argument quoting and escape characters
 
-    private final Completer[] completers;
-
     private final ArgumentDelimiter delim;
+
+    private final Completer[] completers;
 
     private boolean strict = true;
 
@@ -40,8 +40,10 @@ public class ArgumentCompleter
      * @param completers the embedded completers
      */
     public ArgumentCompleter(final ArgumentDelimiter delim, final Completer... completers) {
-        this.completers = completers;
+        assert delim != null;
         this.delim = delim;
+        assert completers != null;
+        this.completers = completers;
     }
 
     /**
@@ -74,11 +76,14 @@ public class ArgumentCompleter
      * Returns whether a completion at argument index N will success
      * if all the completions from arguments 0-(N-1) also succeed.
      */
-    public boolean getStrict() {
+    public boolean isStrict() {
         return this.strict;
     }
 
     public int complete(final String buffer, final int cursor, final List<CharSequence> candidates) {
+        // buffer can be null
+        assert candidates != null;
+
         ArgumentList list = delim.delimit(buffer, cursor);
         int argpos = list.getArgumentPosition();
         int argIndex = list.getCursorArgumentIndex();
@@ -99,7 +104,7 @@ public class ArgumentCompleter
 
         // ensure that all the previous completers are successful before
         // allowing this completer to pass (only if strict is true).
-        for (int i = 0; getStrict() && (i < argIndex); i++) {
+        for (int i = 0; isStrict() && (i < argIndex); i++) {
             Completer sub = completers[(i >= completers.length) ? (completers.length - 1) : i];
             String[] args = list.getArguments();
             String arg = ((args == null) || (i >= args.length)) ? "" : args[i];
@@ -123,16 +128,15 @@ public class ArgumentCompleter
 
         int pos = ret + (list.getBufferPosition() - argpos);
 
-        /**
-         *  Special case: when completing in the middle of a line, and the
-         *  area under the cursor is a delimiter, then trim any delimiters
-         *  from the candidates, since we do not need to have an extra
-         *  delimiter.
-         *
-         *  E.g., if we have a completion for "foo", and we
-         *  enter "f bar" into the buffer, and move to after the "f"
-         *  and hit TAB, we want "foo bar" instead of "foo  bar".
-         */
+        // Special case: when completing in the middle of a line, and the
+        // area under the cursor is a delimiter, then trim any delimiters
+        // from the candidates, since we do not need to have an extra
+        // delimiter.
+        //
+        // E.g., if we have a completion for "foo", and we
+        // enter "f bar" into the buffer, and move to after the "f"
+        // and hit TAB, we want "foo bar" instead of "foo  bar".
+
         if ((cursor != buffer.length()) && delim.isDelimiter(buffer, cursor)) {
             for (int i = 0; i < candidates.size(); i++) {
                 CharSequence val = candidates.get(i);
@@ -196,16 +200,16 @@ public class ArgumentCompleter
 
         private char[] escapeChars = {'\\'};
 
-        public void setQuoteChars(final char[] quoteChars) {
-            this.quoteChars = quoteChars;
+        public void setQuoteChars(final char[] chars) {
+            this.quoteChars = chars;
         }
 
         public char[] getQuoteChars() {
             return this.quoteChars;
         }
 
-        public void setEscapeChars(final char[] escapeChars) {
-            this.escapeChars = escapeChars;
+        public void setEscapeChars(final char[] chars) {
+            this.escapeChars = chars;
         }
 
         public char[] getEscapeChars() {
@@ -256,7 +260,6 @@ public class ArgumentCompleter
          */
         public boolean isDelimiter(final CharSequence buffer, final int pos) {
             return !isQuoted(buffer, pos) && !isEscaped(buffer, pos) && isDelimiterChar(buffer, pos);
-
         }
 
         public boolean isQuoted(final CharSequence buffer, final int pos) {
@@ -303,7 +306,7 @@ public class ArgumentCompleter
          * preceding character is not an escape character.
          */
         @Override
-        public boolean isDelimiterChar(CharSequence buffer, int pos) {
+        public boolean isDelimiterChar(final CharSequence buffer, final int pos) {
             return Character.isWhitespace(buffer.charAt(pos));
         }
     }
@@ -336,8 +339,8 @@ public class ArgumentCompleter
             this.bufferPosition = bufferPosition;
         }
 
-        public void setCursorArgumentIndex(final int cursorArgumentIndex) {
-            this.cursorArgumentIndex = cursorArgumentIndex;
+        public void setCursorArgumentIndex(final int i) {
+            this.cursorArgumentIndex = i;
         }
 
         public int getCursorArgumentIndex() {
@@ -352,8 +355,8 @@ public class ArgumentCompleter
             return arguments[cursorArgumentIndex];
         }
 
-        public void setArgumentPosition(final int argumentPosition) {
-            this.argumentPosition = argumentPosition;
+        public void setArgumentPosition(final int pos) {
+            this.argumentPosition = pos;
         }
 
         public int getArgumentPosition() {
@@ -368,8 +371,8 @@ public class ArgumentCompleter
             return this.arguments;
         }
 
-        public void setBufferPosition(final int bufferPosition) {
-            this.bufferPosition = bufferPosition;
+        public void setBufferPosition(final int pos) {
+            this.bufferPosition = pos;
         }
 
         public int getBufferPosition() {
