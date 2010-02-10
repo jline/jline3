@@ -14,9 +14,8 @@ import java.util.LinkedList;
 import java.util.List;
 
 /**
- * A {@link Completer} implementation that invokes a child completer using the appropriate
- * <i>separator</i> argument. This can be used instead of the individual completers having to
- * know about argument parsing semantics.
+ * A {@link Completer} implementation that invokes a child completer using the appropriate <i>separator</i> argument.
+ * This can be used instead of the individual completers having to know about argument parsing semantics.
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
@@ -49,7 +48,7 @@ public class ArgumentCompleter
     /**
      * Create a new completer with the default argument separator of " ".
      *
-     * @param completers the embedded argument completers
+     * @param completers the embedded completers
      */
     public ArgumentCompleter(final Completer... completers) {
         this(new WhitespaceArgumentDelimiter(), completers);
@@ -102,8 +101,7 @@ public class ArgumentCompleter
             comp = completers[argIndex];
         }
 
-        // ensure that all the previous completers are successful before
-        // allowing this completer to pass (only if strict is true).
+        // ensure that all the previous completers are successful before allowing this completer to pass (only if strict).
         for (int i = 0; isStrict() && (i < argIndex); i++) {
             Completer sub = completers[(i >= completers.length) ? (completers.length - 1) : i];
             String[] args = list.getArguments();
@@ -128,13 +126,10 @@ public class ArgumentCompleter
 
         int pos = ret + (list.getBufferPosition() - argpos);
 
-        // Special case: when completing in the middle of a line, and the
-        // area under the cursor is a delimiter, then trim any delimiters
-        // from the candidates, since we do not need to have an extra
-        // delimiter.
+        // Special case: when completing in the middle of a line, and the area under the cursor is a delimiter,
+        // then trim any delimiters from the candidates, since we do not need to have an extra delimiter.
         //
-        // E.g., if we have a completion for "foo", and we
-        // enter "f bar" into the buffer, and move to after the "f"
+        // E.g., if we have a completion for "foo", and we enter "f bar" into the buffer, and move to after the "f"
         // and hit TAB, we want "foo bar" instead of "foo  bar".
 
         if ((cursor != buffer.length()) && delim.isDelimiter(buffer, cursor)) {
@@ -156,17 +151,15 @@ public class ArgumentCompleter
     }
 
     /**
-     * The {@link ArgumentCompleter.ArgumentDelimiter} allows custom
-     * breaking up of a {@link String} into individual arguments in
-     * order to dispatch the arguments to the nested {@link Completer}.
+     * The {@link ArgumentCompleter.ArgumentDelimiter} allows custom breaking up of a {@link String} into individual
+     * arguments in order to dispatch the arguments to the nested {@link Completer}.
      *
      * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
      */
     public static interface ArgumentDelimiter
     {
         /**
-         * Break the specified buffer into individual tokens
-         * that can be completed on their own.
+         * Break the specified buffer into individual tokens that can be completed on their own.
          *
          * @param buffer           the buffer to split
          * @param argumentPosition the current position of the
@@ -176,8 +169,7 @@ public class ArgumentCompleter
         ArgumentList delimit(String buffer, int argumentPosition);
 
         /**
-         * Returns true if the specified character is a whitespace
-         * parameter.
+         * Returns true if the specified character is a whitespace parameter.
          *
          * @param buffer the complete command buffer
          * @param pos    the index of the character in the buffer
@@ -187,8 +179,7 @@ public class ArgumentCompleter
     }
 
     /**
-     * Abstract implementation of a delimiter that uses the
-     * {@link #isDelimiter} method to determine if a particular
+     * Abstract implementation of a delimiter that uses the {@link #isDelimiter} method to determine if a particular
      * character should be used as a delimiter.
      *
      * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
@@ -247,12 +238,9 @@ public class ArgumentCompleter
         }
 
         /**
-         * Returns true if the specified character is a whitespace
-         * parameter. Check to ensure that the character is not
-         * escaped by any of
-         * {@link #getQuoteChars}, and is not escaped by ant of the
-         * {@link #getEscapeChars}, and returns true from
-         * {@link #isDelimiterChar}.
+         * Returns true if the specified character is a whitespace parameter. Check to ensure that the character is not
+         * escaped by any of {@link #getQuoteChars}, and is not escaped by ant of the {@link #getEscapeChars}, and
+         * returns true from {@link #isDelimiterChar}.
          *
          * @param buffer the complete command buffer
          * @param pos    the index of the character in the buffer
@@ -282,19 +270,16 @@ public class ArgumentCompleter
         }
 
         /**
-         * Returns true if the character at the specified position
-         * if a delimiter. This method will only be called if the
-         * character is not enclosed in any of the
-         * {@link #getQuoteChars}, and is not escaped by ant of the
-         * {@link #getEscapeChars}. To perform escaping manually,
-         * override {@link #isDelimiter} instead.
+         * Returns true if the character at the specified position if a delimiter. This method will only be called if
+         * the character is not enclosed in any of the {@link #getQuoteChars}, and is not escaped by ant of the
+         * {@link #getEscapeChars}. To perform escaping manually, override {@link #isDelimiter} instead.
          */
         public abstract boolean isDelimiterChar(CharSequence buffer, int pos);
     }
 
     /**
-     * {@link ArgumentCompleter.ArgumentDelimiter} implementation that counts all
-     * whitespace (as reported by {@link Character#isWhitespace}) as being a delimiter.
+     * {@link ArgumentCompleter.ArgumentDelimiter} implementation that counts all whitespace (as reported by
+     * {@link Character#isWhitespace}) as being a delimiter.
      *
      * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
      */
@@ -333,6 +318,8 @@ public class ArgumentCompleter
          * @param bufferPosition      the position of the cursor in the whole buffer
          */
         public ArgumentList(final String[] arguments, final int cursorArgumentIndex, final int argumentPosition, final int bufferPosition) {
+            assert arguments != null;
+
             this.arguments = arguments;
             this.cursorArgumentIndex = cursorArgumentIndex;
             this.argumentPosition = argumentPosition;
