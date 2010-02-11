@@ -10,6 +10,9 @@ package jline.console.completers;
 import jline.console.Completer;
 import jline.internal.Log;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -24,43 +27,51 @@ import java.util.List;
 public class ArgumentCompleter
     implements Completer
 {
-    // TODO: handle argument quoting and escape characters
+    private final ArgumentDelimiter delimiter;
 
-    private final ArgumentDelimiter delim;
-
-    private final Completer[] completers;
+    private final List<Completer> completers = new ArrayList<Completer>();
 
     private boolean strict = true;
 
     /**
      * Create a new completer with the specified argument delimiter.
      *
-     * @param delim      the delimiter for parsing arguments
-     * @param completers the embedded completers
+     * @param delimiter     The delimiter for parsing arguments
+     * @param completers    The embedded completers
      */
-    public ArgumentCompleter(final ArgumentDelimiter delim, final Completer... completers) {
-        assert delim != null;
-        this.delim = delim;
+    public ArgumentCompleter(final ArgumentDelimiter delimiter, final Collection<Completer> completers) {
+        assert delimiter != null;
+        this.delimiter = delimiter;
         assert completers != null;
-        this.completers = completers;
+        this.completers.addAll(completers);
     }
 
     /**
-     * Create a new completer with the default argument separator of " ".
+     * Create a new completer with the specified argument delimiter.
      *
-     * @param completers the embedded completers
+     * @param delimiter     The delimiter for parsing arguments
+     * @param completers    The embedded completers
+     */
+    public ArgumentCompleter(final ArgumentDelimiter delimiter, final Completer... completers) {
+        this(delimiter, Arrays.asList(completers));
+    }
+
+    /**
+     * Create a new completer with the default {@link WhitespaceArgumentDelimiter}.
+     *
+     * @param completers    The embedded completers
      */
     public ArgumentCompleter(final Completer... completers) {
         this(new WhitespaceArgumentDelimiter(), completers);
     }
 
     /**
-     * Create a new completer with the default argument separator of " ".
+     * Create a new completer with the default {@link WhitespaceArgumentDelimiter}.
      *
-     * @param completers the List of completers to use
+     * @param completers    The embedded completers
      */
     public ArgumentCompleter(final List<Completer> completers) {
-        this(completers.toArray(new Completer[completers.size()]));
+        this(new WhitespaceArgumentDelimiter(), completers);
     }
 
     /**
@@ -74,15 +85,33 @@ public class ArgumentCompleter
     /**
      * Returns whether a completion at argument index N will success
      * if all the completions from arguments 0-(N-1) also succeed.
+     *
+     * @return  True if strict.
+     * @since 2.3
      */
     public boolean isStrict() {
         return this.strict;
+    }
+
+    /**
+     * @since 2.3
+     */
+    public ArgumentDelimiter getDelimiter() {
+        return delimiter;
+    }
+
+    /**
+     * @since 2.3
+     */
+    public List<Completer> getCompleters() {
+        return completers;
     }
 
     public int complete(final String buffer, final int cursor, final List<CharSequence> candidates) {
         // buffer can be null
         assert candidates != null;
 
+        ArgumentDelimiter delim = getDelimiter();
         ArgumentList list = delim.delimit(buffer, cursor);
         int argpos = list.getArgumentPosition();
         int argIndex = list.getCursorArgumentIndex();
@@ -91,21 +120,22 @@ public class ArgumentCompleter
             return -1;
         }
 
-        final Completer comp;
+        List<Completer> completers = getCompleters();
+        Completer completer;
 
         // if we are beyond the end of the completers, just use the last one
-        if (argIndex >= completers.length) {
-            comp = completers[completers.length - 1];
+        if (argIndex >= completers.size()) {
+            completer = completers.get(completers.size() - 1);
         }
         else {
-            comp = completers[argIndex];
+            completer = completers.get(argIndex);
         }
 
         // ensure that all the previous completers are successful before allowing this completer to pass (only if strict).
         for (int i = 0; isStrict() && (i < argIndex); i++) {
-            Completer sub = completers[(i >= completers.length) ? (completers.length - 1) : i];
+            Completer sub = completers.get(i >= completers.size() ? (completers.size() - 1) : i);
             String[] args = list.getArguments();
-            String arg = ((args == null) || (i >= args.length)) ? "" : args[i];
+            String arg = (args == null || i >= args.length) ? "" : args[i];
 
             List<CharSequence> subCandidates = new LinkedList<CharSequence>();
 
@@ -118,13 +148,13 @@ public class ArgumentCompleter
             }
         }
 
-        int ret = comp.complete(list.getCursorArgument(), argpos, candidates);
+        int ret = completer.complete(list.getCursorArgument(), argpos, candidates);
 
         if (ret == -1) {
             return -1;
         }
 
-        int pos = ret + (list.getBufferPosition() - argpos);
+        int pos = ret + list.getBufferPosition() - argpos;
 
         // Special case: when completing in the middle of a line, and the area under the cursor is a delimiter,
         // then trim any delimiters from the candidates, since we do not need to have an extra delimiter.
@@ -136,8 +166,7 @@ public class ArgumentCompleter
             for (int i = 0; i < candidates.size(); i++) {
                 CharSequence val = candidates.get(i);
 
-                while ((val.length() > 0)
-                    && delim.isDelimiter(val, val.length() - 1)) {
+                while (val.length() > 0 && delim.isDelimiter(val, val.length() - 1)) {
                     val = val.subSequence(0, val.length() - 1);
                 }
 
@@ -161,19 +190,18 @@ public class ArgumentCompleter
         /**
          * Break the specified buffer into individual tokens that can be completed on their own.
          *
-         * @param buffer           the buffer to split
-         * @param argumentPosition the current position of the
-         *                         cursor in the buffer
-         * @return the tokens
+         * @param buffer    The buffer to split
+         * @param pos       The current position of the cursor in the buffer
+         * @return          The tokens
          */
-        ArgumentList delimit(String buffer, int argumentPosition);
+        ArgumentList delimit(CharSequence buffer, int pos);
 
         /**
          * Returns true if the specified character is a whitespace parameter.
          *
-         * @param buffer the complete command buffer
-         * @param pos    the index of the character in the buffer
-         * @return true if the character should be a delimiter
+         * @param buffer    The complete command buffer
+         * @param pos       The index of the character in the buffer
+         * @return          True if the character should be a delimiter
          */
         boolean isDelimiter(CharSequence buffer, int pos);
     }
@@ -187,6 +215,8 @@ public class ArgumentCompleter
     public abstract static class AbstractArgumentDelimiter
         implements ArgumentDelimiter
     {
+        // TODO: handle argument quoting and escape characters
+        
         private char[] quoteChars = {'\'', '"'};
 
         private char[] escapeChars = {'\\'};
@@ -207,7 +237,7 @@ public class ArgumentCompleter
             return this.escapeChars;
         }
 
-        public ArgumentList delimit(final String buffer, final int cursor) {
+        public ArgumentList delimit(final CharSequence buffer, final int cursor) {
             List<String> args = new LinkedList<String>();
             StringBuilder arg = new StringBuilder();
             int argpos = -1;
@@ -242,9 +272,9 @@ public class ArgumentCompleter
          * escaped by any of {@link #getQuoteChars}, and is not escaped by ant of the {@link #getEscapeChars}, and
          * returns true from {@link #isDelimiterChar}.
          *
-         * @param buffer the complete command buffer
-         * @param pos    the index of the character in the buffer
-         * @return true if the character should be a delimiter
+         * @param buffer    The complete command buffer
+         * @param pos       The index of the character in the buffer
+         * @return          True if the character should be a delimiter
          */
         public boolean isDelimiter(final CharSequence buffer, final int pos) {
             return !isQuoted(buffer, pos) && !isEscaped(buffer, pos) && isDelimiterChar(buffer, pos);
@@ -312,10 +342,10 @@ public class ArgumentCompleter
         private int bufferPosition;
 
         /**
-         * @param arguments           the array of tokens
-         * @param cursorArgumentIndex the token index of the cursor
-         * @param argumentPosition    the position of the cursor in the current token
-         * @param bufferPosition      the position of the cursor in the whole buffer
+         * @param arguments             The array of tokens
+         * @param cursorArgumentIndex   The token index of the cursor
+         * @param argumentPosition      The position of the cursor in the current token
+         * @param bufferPosition        The position of the cursor in the whole buffer
          */
         public ArgumentList(final String[] arguments, final int cursorArgumentIndex, final int argumentPosition, final int bufferPosition) {
             assert arguments != null;

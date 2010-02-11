@@ -39,6 +39,7 @@ public class AggregateCompleter
     private final List<Completer> completers = new ArrayList<Completer>();
 
     public AggregateCompleter() {
+        // empty
     }
 
     public AggregateCompleter(final Collection<Completer> completers) {
@@ -80,6 +81,13 @@ public class AggregateCompleter
         }
 
         return max;
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "{" +
+            "completers=" + completers +
+            '}';
     }
 
     private class Completion
