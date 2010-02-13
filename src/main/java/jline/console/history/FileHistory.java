@@ -7,7 +7,6 @@
 
 package jline.console.history;
 
-import jline.console.PersistentHistory;
 import jline.internal.Log;
 
 import java.io.BufferedOutputStream;
@@ -23,7 +22,7 @@ import java.io.PrintStream;
 import java.io.Reader;
 
 /**
- * {@link jline.console.History} using a file for persistent backing.
+ * {@link History} using a file for persistent backing.
  * <p/>
  * Implementors should install shutdown hook to call {@link FileHistory#flush}
  * to save history to disk.

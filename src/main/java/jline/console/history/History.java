@@ -5,7 +5,7 @@
  * BSD license in the documentation provided with this software.
  */
 
-package jline.console;
+package jline.console.history;
 
 import java.util.List;
 

@@ -2,6 +2,7 @@ package jline.console;
 
 import jline.TerminalFactory;
 import jline.WindowsTerminal;
+import jline.console.history.History;
 import jline.console.history.MemoryHistory;
 import org.junit.Before;
 import org.junit.Test;

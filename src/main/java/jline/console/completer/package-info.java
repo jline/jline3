@@ -14,27 +14,9 @@
  * limitations under the License.
  */
 
-package jline.console.completers;
-
-import jline.console.ConsoleReaderTestSupport;
-import org.junit.Test;
-
-import static jline.console.Operation.COMPLETE;
-
 /**
- * Tests for {@link NullCompleter}.
+ * Console completer support.
  *
- * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
+ * @since 2.0
  */
-public class NullCompleterTest
-    extends ConsoleReaderTestSupport
-{
-    @Test
-    public void test1() throws Exception {
-        console.addCompleter(NullCompleter.INSTANCE);
-
-        assertBuffer("f", new Buffer("f").tab());
-        assertBuffer("ba", new Buffer("ba").tab());
-        assertBuffer("baz", new Buffer("baz").tab());
-    }
-}
+package jline.console.completer;

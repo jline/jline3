@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009 the original author(s).
+ * Copyright (C) 2010 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,24 +14,26 @@
  * limitations under the License.
  */
 
-package jline.console.completers;
+package jline.console.completer;
 
-import jline.console.Completer;
+import jline.console.ConsoleReaderTestSupport;
+import jline.console.completer.NullCompleter;
+import org.junit.Test;
 
 /**
- * {@link Completer} for {@link Enum} names.
+ * Tests for {@link NullCompleter}.
  *
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
- * @since 2.0
  */
-public class EnumCompleter
-    extends StringsCompleter
+public class NullCompleterTest
+    extends ConsoleReaderTestSupport
 {
-    public EnumCompleter(Class<? extends Enum> source) {
-        assert source != null;
+    @Test
+    public void test1() throws Exception {
+        console.addCompleter(NullCompleter.INSTANCE);
 
-        for (Enum<?> n : source.getEnumConstants()) {
-            this.getStrings().add(n.name().toLowerCase());
-        }
+        assertBuffer("f", new Buffer("f").tab());
+        assertBuffer("ba", new Buffer("ba").tab());
+        assertBuffer("baz", new Buffer("baz").tab());
     }
 }

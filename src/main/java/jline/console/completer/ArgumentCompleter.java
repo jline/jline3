@@ -5,9 +5,8 @@
  * BSD license in the documentation provided with this software.
  */
 
-package jline.console.completers;
+package jline.console.completer;
 
-import jline.console.Completer;
 import jline.internal.Log;
 
 import java.util.ArrayList;

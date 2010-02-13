@@ -17,9 +17,7 @@
  * under the License.
  */
 
-package jline.console.completers;
-
-import jline.console.Completer;
+package jline.console.completer;
 
 import java.util.List;
 

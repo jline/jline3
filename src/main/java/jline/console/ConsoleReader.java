@@ -9,6 +9,10 @@ package jline.console;
 
 import jline.Terminal;
 import jline.TerminalFactory;
+import jline.console.completer.CandidateListCompletionHandler;
+import jline.console.completer.Completer;
+import jline.console.completer.CompletionHandler;
+import jline.console.history.History;
 import jline.console.history.MemoryHistory;
 import jline.internal.Log;
 
@@ -1044,9 +1048,9 @@ public class ConsoleReader
     private CompletionHandler completionHandler = new CandidateListCompletionHandler();
 
     /**
-     * Add the specified {@link Completer} to the list of handlers for tab-completion.
+     * Add the specified {@link jline.console.completer.Completer} to the list of handlers for tab-completion.
      *
-     * @param completer the {@link Completer} to add
+     * @param completer the {@link jline.console.completer.Completer} to add
      * @return true if it was successfully added
      */
     public boolean addCompleter(final Completer completer) {
@@ -1054,7 +1058,7 @@ public class ConsoleReader
     }
 
     /**
-     * Remove the specified {@link Completer} from the list of handlers for tab-completion.
+     * Remove the specified {@link jline.console.completer.Completer} from the list of handlers for tab-completion.
      *
      * @param completer the {@link Completer} to remove
      * @return true if it was successfully removed

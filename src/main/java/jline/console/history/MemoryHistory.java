@@ -7,14 +7,12 @@
 
 package jline.console.history;
 
-import jline.console.History;
-
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
 /**
- * Non-persistent {@link jline.console.History}.
+ * Non-persistent {@link History}.
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>

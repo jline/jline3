@@ -5,9 +5,7 @@
  * BSD license in the documentation provided with this software.
  */
 
-package jline.console.completers;
-
-import jline.console.Completer;
+package jline.console.completer;
 
 import java.io.File;
 import java.util.List;

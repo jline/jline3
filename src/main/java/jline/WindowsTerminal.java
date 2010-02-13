@@ -19,23 +19,9 @@ import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
 
-import static jline.WindowsTerminal.ConsoleMode.ENABLE_ECHO_INPUT;
-import static jline.WindowsTerminal.ConsoleMode.ENABLE_LINE_INPUT;
-import static jline.WindowsTerminal.ConsoleMode.ENABLE_PROCESSED_INPUT;
-import static jline.WindowsTerminal.ConsoleMode.ENABLE_WINDOW_INPUT;
-import static jline.WindowsTerminal.WindowsKey.NUMPAD_KEY_INDICATOR;
-import static jline.WindowsTerminal.WindowsKey.SPECIAL_KEY_INDICATOR;
-import static jline.console.Key.CTRL_A;
-import static jline.console.Key.CTRL_B;
-import static jline.console.Key.CTRL_C;
-import static jline.console.Key.CTRL_E;
-import static jline.console.Key.CTRL_F;
-import static jline.console.Key.CTRL_K;
-import static jline.console.Key.CTRL_L;
-import static jline.console.Key.CTRL_N;
-import static jline.console.Key.CTRL_OB;
-import static jline.console.Key.CTRL_P;
-import static jline.console.Key.CTRL_QM;
+import static jline.WindowsTerminal.ConsoleMode.*;
+import static jline.WindowsTerminal.WindowsKey.*;
+import static jline.console.Key.*;
 
 /**
  * Terminal implementation for Microsoft Windows. Terminal initialization in

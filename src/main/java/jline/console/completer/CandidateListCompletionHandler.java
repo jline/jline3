@@ -5,7 +5,10 @@
  * BSD license in the documentation provided with this software.
  */
 
-package jline.console;
+package jline.console.completer;
+
+import jline.console.ConsoleReader;
+import jline.console.CursorBuffer;
 
 import java.io.IOException;
 import java.util.ArrayList;

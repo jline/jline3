@@ -13,15 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package jline.console.completers;
+package jline.console.completer;
 
 import jline.console.ConsoleReaderTestSupport;
+import jline.console.completer.StringsCompleter;
 import org.junit.Test;
 
-import static jline.console.Operation.COMPLETE;
-
 /**
- * Tests for {@link StringsCompleter}.
+ * Tests for {@link jline.console.completer.StringsCompleter}.
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
