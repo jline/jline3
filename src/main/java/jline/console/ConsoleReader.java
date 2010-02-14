@@ -37,7 +37,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -67,7 +66,8 @@ public class ConsoleReader
 
     public static final int TAB_WIDTH = 4;
 
-    private static final ResourceBundle loc = ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName());
+    private static final ResourceBundle
+        resources = ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName());
 
     private final Terminal terminal;
 
@@ -1500,7 +1500,7 @@ public class ConsoleReader
 
                 if (--showLines == 0) {
                     // Overflow
-                    print(loc.getString("display-more"));
+                    print(resources.getString("display-more"));
                     flush();
                     int c = readVirtualKey();
                     if (c == '\r' || c == '\n') {
@@ -1512,7 +1512,7 @@ public class ConsoleReader
                         showLines = height - 1;
                     }
 
-                    back(loc.getString("display-more").length());
+                    back(resources.getString("display-more").length());
                     if (c == 'q') {
                         // cancel
                         break;
