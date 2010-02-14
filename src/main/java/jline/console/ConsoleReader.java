@@ -373,14 +373,11 @@ public class ConsoleReader
             return;
         }
 
-        // debug ("clearAhead: " + num);
-
         // print blank extra characters
         print(' ', num);
 
-        // we need to flush here so a "clever" console
-        // doesn't just ignore the redundancy of a space followed by
-        // a backspace.
+        // we need to flush here so a "clever" console doesn't just ignore the redundancy
+        // of a space followed by a backspace.
         flush();
 
         // reset the visual cursor
@@ -398,9 +395,8 @@ public class ConsoleReader
     }
 
     /**
-     * Flush the console output stream. This is important for printout out
-     * single characters (like a backspace or keyboard) that we want the console
-     * to handle immediately.
+     * Flush the console output stream. This is important for printout out single characters (like a backspace or
+     * keyboard) that we want the console to handle immediately.
      */
     public void flush() throws IOException {
         out.flush();
@@ -423,7 +419,6 @@ public class ConsoleReader
         int count = 0;
 
         count = moveCursor(-1 * num) * -1;
-        // debug ("Deleting from " + buf.cursor + " for " + count);
         buf.buffer.delete(buf.cursor, buf.cursor + count);
         drawBuffer(count);
 
@@ -508,9 +503,8 @@ public class ConsoleReader
     /**
      * Move the cursor <i>where</i> characters.
      *
-     * @param num if less than 0, move abs(<i>where</i>) to the left,
-     *            otherwise move <i>where</i> to the right.
-     * @return the number of spaces we moved
+     * @param num   If less than 0, move abs(<i>where</i>) to the left, otherwise move <i>where</i> to the right.
+     * @return      The number of spaces we moved
      */
     public int moveCursor(final int num) throws IOException {
         int where = num;
@@ -536,7 +530,7 @@ public class ConsoleReader
     }
 
     /**
-     * Move the cursor <i>where</i> characters, withough checking the current buffer.
+     * Move the cursor <i>where</i> characters, without checking the current buffer.
      *
      * @param where the number of characters to move to the right or left.
      */
@@ -651,8 +645,9 @@ public class ConsoleReader
 
     /**
      * Return the number of characters that will be printed when the specified
-     * character is echoed to the screen. Adapted from cat by Torbjorn Granlund,
-     * as repeated in stty by David MacKenzie.
+     * character is echoed to the screen
+     *
+     * Adapted from cat by Torbjorn Granlund, as repeated in stty by David MacKenzie.
      */
     private StringBuilder getPrintableCharacters(final char ch) {
         StringBuilder sbuff = new StringBuilder();
@@ -843,9 +838,9 @@ public class ConsoleReader
      * Read a line from the <i>in</i> {@link InputStream}, and return the line
      * (without any trailing newlines).
      *
-     * @param prompt the prompt to issue to the console, may be null.
-     * @return a line that is read from the terminal, or null if there was null
-     *         input (e.g., <i>CTRL-D</i> was pressed).
+     * @param prompt    The prompt to issue to the console, may be null.
+     * @return          A line that is read from the terminal, or null if there was null input (e.g., <i>CTRL-D</i>
+ *                      was pressed).
      */
     public String readLine(String prompt, final Character mask) throws IOException {
         // prompt may be null
@@ -1064,8 +1059,8 @@ public class ConsoleReader
     /**
      * Remove the specified {@link jline.console.completer.Completer} from the list of handlers for tab-completion.
      *
-     * @param completer the {@link Completer} to remove
-     * @return true if it was successfully removed
+     * @param completer     The {@link Completer} to remove
+     * @return              True if it was successfully removed
      */
     public boolean removeCompleter(final Completer completer) {
         return completers.remove(completer);
@@ -1110,12 +1105,7 @@ public class ConsoleReader
             }
         }
 
-        // no candidates? Fail.
-        if (candidates.size() == 0) {
-            return false;
-        }
-
-        return getCompletionHandler().complete(this, candidates, position);
+        return candidates.size() != 0 && getCompletionHandler().complete(this, candidates, position);
     }
 
     /**
@@ -1125,10 +1115,10 @@ public class ConsoleReader
     private int autoprintThreshold = Integer.getInteger(JLINE_COMPLETION_THRESHOLD, 100); // same default as bash
 
     /**
-     * @param threshhold the number of candidates to print without issuing a warning.
+     * @param threshold the number of candidates to print without issuing a warning.
      */
-    public void setAutoprintThreshold(final int threshhold) {
-        this.autoprintThreshold = threshhold;
+    public void setAutoprintThreshold(final int threshold) {
+        this.autoprintThreshold = threshold;
     }
 
     /**
@@ -1464,12 +1454,10 @@ public class ConsoleReader
     private final Map<Character, ActionListener> triggeredActions = new HashMap<Character, ActionListener>();
 
     /**
-     * Adding a triggered Action allows to give another curse of action
-     * if a character passed the pre-processing.
+     * Adding a triggered Action allows to give another curse of action if a character passed the pre-processing.
      * <p/>
      * Say you want to close the application if the user enter q.
-     * addTriggerAction('q', new ActionListener(){ System.exit(0); });
-     * would do the trick.
+     * addTriggerAction('q', new ActionListener(){ System.exit(0); }); would do the trick.
      */
     public void addTriggeredAction(final char c, final ActionListener listener) {
         triggeredActions.put(c, listener);
@@ -1600,8 +1588,8 @@ public class ConsoleReader
      * Checks to see if the specified character is a delimiter. We consider a
      * character a delimiter if it is anything but a letter or digit.
      *
-     * @param c the character to test
-     * @return true if it is a delimiter
+     * @param c     The character to test
+     * @return      True if it is a delimiter
      */
     private boolean isDelimiter(final char c) {
         return !Character.isLetterOrDigit(c);
