@@ -1301,6 +1301,8 @@ public class ConsoleReader
      * @return the number of characters backed up
      */
     private int delete(final int num) throws IOException {
+        // TODO: Try to use jansi for this
+
         /* Commented out because of DWA-2949:
         if (buf.cursor == 0) {
             return 0;
@@ -1319,6 +1321,8 @@ public class ConsoleReader
      * @return true if successful
      */
     public boolean killLine() throws IOException {
+        // TODO: USe jansi for this
+
         int cp = buf.cursor;
         int len = buf.buffer.length();
 
@@ -1340,6 +1344,8 @@ public class ConsoleReader
      * Clear the screen by issuing the ANSI "clear screen" code.
      */
     public boolean clearScreen() throws IOException {
+        // TODO: use jansi for this
+
         if (!terminal.isAnsiSupported()) {
             return false;
         }
@@ -1405,6 +1411,7 @@ public class ConsoleReader
                     content = new DataFlavor().getReaderForText(transferable);
                 }
                 catch (Exception e) {
+                    // ignore
                 }
             }
 
