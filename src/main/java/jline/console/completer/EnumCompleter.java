@@ -20,7 +20,7 @@ package jline.console.completer;
  * {@link Completer} for {@link Enum} names.
  *
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
- * @since 2.0
+ * @since 2.3
  */
 public class EnumCompleter
     extends StringsCompleter

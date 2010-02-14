@@ -17,6 +17,6 @@
 /**
  * Console completer support.
  *
- * @since 2.0
+ * @since 2.3
  */
 package jline.console.completer;

@@ -29,7 +29,7 @@ import java.util.TreeSet;
  * Completer for a set of strings.
  *
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
- * @since 2.0
+ * @since 2.3
  */
 public class StringsCompleter
     implements Completer
@@ -37,6 +37,7 @@ public class StringsCompleter
     private final SortedSet<String> strings = new TreeSet<String>();
 
     public StringsCompleter() {
+        // empty
     }
 
     public StringsCompleter(final Collection<String> strings) {
