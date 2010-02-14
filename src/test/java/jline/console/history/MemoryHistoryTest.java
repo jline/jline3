@@ -85,4 +85,15 @@ public class MemoryHistoryTest
         assertHistoryContains(1, "b", "c", "d", "e", "f");
         assertEquals("f", history.get(5));
     }
+
+    @Test
+    public void testReplace() {
+        assertEquals(0, history.size());
+
+        history.add("a");
+        history.add("b");
+        history.replace("c");
+
+        assertHistoryContains(0, "a", "c");
+    }
 }

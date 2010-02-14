@@ -32,6 +32,8 @@ public interface History
 
     void add(CharSequence line);
 
+    void replace(CharSequence item);
+
     //
     // Entries
     //

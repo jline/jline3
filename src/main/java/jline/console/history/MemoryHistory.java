@@ -7,10 +7,8 @@
 
 package jline.console.history;
 
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
 
@@ -111,6 +109,11 @@ public class MemoryHistory
         items.add(item);
 
         maybeResize();
+    }
+
+    public void replace(final CharSequence item) {
+        items.removeLast();
+        add(item);
     }
 
     private void maybeResize() {
