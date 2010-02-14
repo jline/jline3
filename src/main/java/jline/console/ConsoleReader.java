@@ -1079,6 +1079,7 @@ public class ConsoleReader
     }
 
     public void setCompletionHandler(final CompletionHandler handler) {
+        assert handler != null;
         this.completionHandler = handler;
     }
 
@@ -1490,9 +1491,8 @@ public class ConsoleReader
         int height = getTerminal().getHeight();
 
         int maxWidth = 0;
-        Iterator<? extends CharSequence> iter = items.iterator();
-        while (iter.hasNext()) {
-            maxWidth = Math.max(maxWidth, iter.next().length());
+        for (CharSequence item : items) {
+            maxWidth = Math.max(maxWidth, item.length());
         }
         Log.debug("Max width: ", maxWidth);
 
