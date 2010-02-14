@@ -51,6 +51,7 @@ import java.util.ResourceBundle;
  * methods for issuing platform-specific setup commands.
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  */
 public class ConsoleReader
 {
