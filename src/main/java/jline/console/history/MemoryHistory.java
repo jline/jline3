@@ -8,87 +8,213 @@
 package jline.console.history;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
+import java.util.NoSuchElementException;
 
 /**
  * Non-persistent {@link History}.
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
- * @since 2.0
+ * @since 2.3
  */
 public class MemoryHistory
     implements History
 {
     public static final int DEFAULT_MAX_SIZE = 500;
 
-    private final List<String> items = new LinkedList<String>();
+    private final LinkedList<CharSequence> items = new LinkedList<CharSequence>();
 
     private int maxSize = DEFAULT_MAX_SIZE;
 
+    private boolean ignoreDuplicates = true;
+
+    private boolean autoTrim = false;
+
+    // NOTE: These are all ideas from looking at the Bash man page:
+
+    // TODO: Add ignore space? (lines starting with a space are ignored)
+
+    // TODO: Add ignore patterns?
+
+    // TODO: Add history timestamp?
+
+    // TODO: Add erase dups?
+
+    private int offset = 0;
+
     private int index = 0;
+
+    public void setMaxSize(final int maxSize) {
+        this.maxSize = maxSize;
+        maybeResize();
+    }
+
+    public int getMaxSize() {
+        return maxSize;
+    }
+
+    public boolean isIgnoreDuplicates() {
+        return ignoreDuplicates;
+    }
+
+    public void setIgnoreDuplicates(final boolean flag) {
+        this.ignoreDuplicates = flag;
+    }
+
+    public boolean isAutoTrim() {
+        return autoTrim;
+    }
+
+    public void setAutoTrim(final boolean flag) {
+        this.autoTrim = flag;
+    }
 
     public int size() {
         return items.size();
     }
 
-    /**
-     * Clear the history buffer
-     */
+    public boolean isEmpty() {
+        return items.isEmpty();
+    }
+
+    public int index() {
+        return offset + index;
+    }
+
     public void clear() {
         items.clear();
+        offset = 0;
         index = 0;
     }
 
-    /**
-     * Returns an immutable list of the history buffer.
-     */
-    public List<String> items() {
-        return Collections.unmodifiableList(items);
+    public CharSequence get(final int index) {
+        return items.get(index - offset);
     }
 
-    /**
-     * Set the maximum size that the history buffer will store.
-     */
-    public void setMaxSize(final int maxSize) {
-        this.maxSize = maxSize;
-    }
-
-    /**
-     * Get the maximum size that the history buffer will store.
-     */
-    public int getMaxSize() {
-        return maxSize;
-    }
-
-    /**
-     * Returns the current history index.
-     */
-    public int index() {
-        return index;
-    }
-
-    /**
-     * Add the specified buffer to the end of the history. The pointer is set to
-     * the end of the history buffer.
-     */
-    public void add(final String item) {
+    public void add(CharSequence item) {
         assert item != null;
 
-        // don't append duplicates to the end of the buffer
-        if (!items.isEmpty() && item.equals(items.get(items.size() - 1))) {
-            return;
+        if (isAutoTrim()) {
+            item = String.valueOf(item).trim();
+        }
+
+        if (isIgnoreDuplicates()) {
+            if (!items.isEmpty() && item.equals(items.getLast())) {
+                return;
+            }
         }
 
         items.add(item);
 
-        while (items.size() > getMaxSize()) {
-            items.remove(0);
+        maybeResize();
+    }
+
+    private void maybeResize() {
+        while (size() > getMaxSize()) {
+            items.removeFirst();
+            offset++;
         }
 
-        index = items.size();
+        index = size();
     }
+
+    public ListIterator<Entry> entries(final int index) {
+        return new EntriesIterator(index);
+    }
+
+    public ListIterator<Entry> entries() {
+        return entries(0);
+    }
+
+    public Iterator<Entry> iterator() {
+        return entries();    
+    }
+
+    private static class EntryImpl
+        implements Entry
+    {
+        private final int index;
+
+        private final CharSequence value;
+
+        public EntryImpl(int index, CharSequence value) {
+            this.index = index;
+            this.value = value;
+        }
+
+        public int index() {
+            return index;
+        }
+
+        public CharSequence value() {
+            return value;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("%d: %s", index, value);
+        }
+    }
+
+    private class EntriesIterator
+        implements ListIterator<Entry>
+    {
+        private final ListIterator<CharSequence> source;
+
+        private EntriesIterator(final int index) {
+            source = items.listIterator(index);
+        }
+
+        public Entry next() {
+            if (!source.hasNext()) {
+                throw new NoSuchElementException();
+            }
+            return new EntryImpl(offset + source.nextIndex(), source.next());
+        }
+
+        public Entry previous() {
+            if (!source.hasPrevious()) {
+                throw new NoSuchElementException();
+            }
+            return new EntryImpl(offset + source.previousIndex(), source.previous());
+        }
+
+        public int nextIndex() {
+            return offset + source.nextIndex();
+        }
+
+        public int previousIndex() {
+            return offset + source.previousIndex();
+        }
+
+        public boolean hasNext() {
+            return source.hasNext();
+        }
+
+        public boolean hasPrevious() {
+            return source.hasPrevious();
+        }
+
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
+
+        public void set(final Entry entry) {
+            throw new UnsupportedOperationException();
+        }
+
+        public void add(final Entry entry) {
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    //
+    // Navigation
+    //
 
     /**
      * This moves the history to the last entry. This entry is one position
@@ -98,9 +224,9 @@ public class MemoryHistory
      *         index was already at the last entry.
      */
     public boolean moveToLast() {
-        int lastEntry = items.size() - 1;
+        int lastEntry = size() - 1;
         if (lastEntry >= 0 && lastEntry != index) {
-            index = items.size() - 1;
+            index = size() - 1;
             return true;
         }
 
@@ -114,7 +240,7 @@ public class MemoryHistory
      *         history is already at the beginning.
      */
     public boolean moveToFirst() {
-        if (items.size() > 0 && index != 0) {
+        if (size() > 0 && index != 0) {
             index = 0;
             return true;
         }
@@ -127,14 +253,14 @@ public class MemoryHistory
      * all of the other entries.
      */
     public void moveToEnd() {
-        index = items.size();
+        index = size();
     }
 
     /**
      * Return the content of the current buffer.
      */
-    public String current() {
-        if (index >= items.size()) {
+    public CharSequence current() {
+        if (index >= size()) {
             return "";
         }
 
@@ -162,17 +288,12 @@ public class MemoryHistory
      * @return true if we successfully went to the next element
      */
     public boolean next() {
-        if (index >= items.size()) {
+        if (index >= size()) {
             return false;
         }
 
         index++;
 
         return true;
-    }
-
-    @Override
-    public String toString() {
-        return items.toString();
     }
 }

@@ -249,6 +249,10 @@ public class ConsoleReader
         putString(buffer.substring(sameIndex)); // append the differences
     }
 
+    private void setBuffer(final CharSequence buffer) throws IOException {
+        setBuffer(String.valueOf(buffer));
+    }
+
     /**
      * Output put the prompt + the current buffer
      */

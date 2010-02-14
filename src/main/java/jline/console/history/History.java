@@ -7,30 +7,53 @@
 
 package jline.console.history;
 
-import java.util.List;
+import java.util.Iterator;
+import java.util.ListIterator;
 
 /**
  * Console history.
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
- * @since 2.0
+ * @since 2.3
  */
 public interface History
+    extends Iterable<History.Entry>
 {
     int size();
 
-    void clear();
-
-    // TODO: Change to CharSequence?
-
-    List<String> items();
-
-    void add(String item);
+    boolean isEmpty();
 
     int index();
 
-    String current();
+    void clear();
+
+    CharSequence get(int index);
+
+    void add(CharSequence line);
+
+    //
+    // Entries
+    //
+    
+    interface Entry
+    {
+        int index();
+
+        CharSequence value();
+    }
+
+    ListIterator<Entry> entries(int index);
+
+    ListIterator<Entry> entries();
+
+    Iterator<Entry> iterator();
+
+    //
+    // Navigation
+    //
+
+    CharSequence current();
 
     boolean previous();
 

@@ -20,11 +20,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.Reader;
+import java.util.ListIterator;
 
 /**
  * {@link History} using a file for persistent backing.
  * <p/>
- * Implementors should install shutdown hook to call {@link FileHistory#flush}
+ * Implementers should install shutdown hook to call {@link FileHistory#flush}
  * to save history to disk.
  *
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
@@ -73,8 +74,9 @@ public class FileHistory
         Log.trace("Flushing history");
 
         if (!file.exists()) {
-            if (!file.getParentFile().mkdirs()) {
-                Log.warn("Failed to create directory structure for: ", file);
+            File dir = file.getParentFile();
+            if (!dir.exists() && !dir.mkdirs()) {
+                Log.warn("Failed to create directory: ", dir);
             }
             if (!file.createNewFile()) {
                 Log.warn("Failed to create file: ", file);
@@ -83,8 +85,8 @@ public class FileHistory
 
         PrintStream out = new PrintStream(new BufferedOutputStream(new FileOutputStream(file)));
         try {
-            for (String item : items()) {
-                out.println(item);
+            for (Entry entry : this) {
+                out.println(entry.value());
             }
         }
         finally {
