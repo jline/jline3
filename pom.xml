@@ -248,6 +248,10 @@
                                         <exclude>junit/**</exclude>
                                         <exclude>org/junit/**</exclude>
                                         <exclude>org/hamcrest/**</exclude>
+                                        <exclude>org/fusesource/hawtjni/runtime/Jni*</exclude>
+                                        <exclude>org/fusesource/hawtjni/runtime/*Flag*</exclude>
+                                        <exclude>org/fusesource/hawtjni/runtime/T32*</exclude>
+                                        <exclude>org/fusesource/hawtjni/runtime/NativeStats*</exclude>
                                     </excludes>
                                 </filter>
                             </filters>
