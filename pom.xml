@@ -74,6 +74,7 @@
             <groupId>org.fusesource.jansi</groupId>
             <artifactId>jansi</artifactId>
             <version>${jansi-version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -81,6 +82,7 @@
             <artifactId>jansi</artifactId>
             <classifier>windows64</classifier>
             <version>${jansi-version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -88,6 +90,7 @@
             <artifactId>jansi</artifactId>
             <classifier>windows32</classifier>
             <version>${jansi-version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -95,6 +98,7 @@
             <artifactId>jansi</artifactId>
             <classifier>osx</classifier>
             <version>${jansi-version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
