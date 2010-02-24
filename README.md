@@ -1,12 +1,7 @@
 Description
 -----------
 
-JLine 2.x
-
-License
--------
-
-BSD
+JLine 2.
 
 Building
 --------

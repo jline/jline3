@@ -53,19 +53,18 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <jansi-version>1.3-SNAPSHOT</jansi-version>
     </properties>
 
     <repositories>
         <repository>
             <id>jansi</id>
-            <url>http://jansi.fusesource.org/repo/snapshot</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
+            <url>http://jansi.fusesource.org/repo/release</url>
             <snapshots>
-                <enabled>true</enabled>
+                <enabled>false</enabled>
             </snapshots>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
         </repository>
     </repositories>
 
@@ -73,32 +72,7 @@
         <dependency>
             <groupId>org.fusesource.jansi</groupId>
             <artifactId>jansi</artifactId>
-            <version>${jansi-version}</version>
-            <!--<scope>provided</scope>-->
-        </dependency>
-
-        <dependency>
-            <groupId>org.fusesource.jansi</groupId>
-            <artifactId>jansi</artifactId>
-            <classifier>windows64</classifier>
-            <version>${jansi-version}</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.fusesource.jansi</groupId>
-            <artifactId>jansi</artifactId>
-            <classifier>windows32</classifier>
-            <version>${jansi-version}</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.fusesource.jansi</groupId>
-            <artifactId>jansi</artifactId>
-            <classifier>osx</classifier>
-            <version>${jansi-version}</version>
-            <scope>provided</scope>
+            <version>1.2</version>
         </dependency>
 
         <dependency>
@@ -221,43 +195,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-scm-plugin</artifactId>
                 <version>1.2</version>
-            </plugin>
-
-            <!-- include all the dependencies into the jar so it can run standalone -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>1.3.1</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <artifactSet>
-                                <excludes>
-                                    <exclude>junit:junit</exclude>
-                                </excludes>
-                            </artifactSet>
-                            <filters>
-                                <filter>
-                                    <artifact>org.fusesource.jansi:jansi</artifact>
-                                    <excludes>
-                                        <exclude>META-INF/maven/**</exclude>
-                                        <exclude>*.txt</exclude>
-                                        <exclude>junit/**</exclude>
-                                        <exclude>org/junit/**</exclude>
-                                        <exclude>org/hamcrest/**</exclude>
-                                        <exclude>org/fusesource/hawtjni/runtime/Jni*</exclude>
-                                        <exclude>org/fusesource/hawtjni/runtime/*Flag*</exclude>
-                                        <exclude>org/fusesource/hawtjni/runtime/T32*</exclude>
-                                        <exclude>org/fusesource/hawtjni/runtime/NativeStats*</exclude>
-                                    </excludes>
-                                </filter>
-                            </filters>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>

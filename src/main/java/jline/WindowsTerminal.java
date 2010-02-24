@@ -7,6 +7,10 @@
 
 package jline;
 
+import jline.internal.Log;
+import jline.internal.NativeLibrary;
+import jline.internal.ReplayPrefixOneCharInputStream;
+
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -14,11 +18,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
-
-import org.fusesource.jansi.internal.WindowsSupport;
-
-import jline.internal.Log;
-import jline.internal.ReplayPrefixOneCharInputStream;
 
 import static jline.WindowsTerminal.ConsoleMode.*;
 import static jline.WindowsTerminal.WindowsKey.*;
@@ -64,6 +63,8 @@ public class WindowsTerminal
 
     public static final String ANSI = WindowsTerminal.class.getName() + ".ansi";
 
+    public static final String JLINE_NATIVE_LIBARARY = "jline";
+
     private boolean directConsole;
 
     private int originalMode;
@@ -83,6 +84,8 @@ public class WindowsTerminal
     @Override
     public void init() throws Exception {
         super.init();
+
+        NativeLibrary.load(JLINE_NATIVE_LIBARARY);
 
         setAnsiSupported(Boolean.getBoolean(ANSI));
 
@@ -254,25 +257,16 @@ public class WindowsTerminal
     //
     // Native Bits
     //
-    private int getConsoleMode() {
-        return WindowsSupport.getConsoleMode();
-    }
 
-    private void setConsoleMode(int mode) {
-        WindowsSupport.setConsoleMode(mode);
-    }
+    private native int getConsoleMode();
 
-    private int readByte() {
-        return WindowsSupport.readByte();
-    }
+    private native void setConsoleMode(int mode);
 
-    private int getWindowsTerminalWidth() {
-        return WindowsSupport.getWindowsTerminalWidth();
-    }
+    private native int readByte();
 
-    private int getWindowsTerminalHeight() {
-        return WindowsSupport.getWindowsTerminalHeight();
-    }
+    private native int getWindowsTerminalWidth();
+
+    private native int getWindowsTerminalHeight();
 
     /**
      * Console mode
