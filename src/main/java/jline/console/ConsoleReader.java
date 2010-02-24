@@ -15,7 +15,6 @@ import jline.console.completer.CompletionHandler;
 import jline.console.history.History;
 import jline.console.history.MemoryHistory;
 import jline.internal.Log;
-import static org.fusesource.jansi.Ansi.ansi;
 
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
@@ -418,7 +417,9 @@ public class ConsoleReader
             return 0;
         }
 
-        int count = moveCursor(-1 * num) * -1;
+        int count = 0;
+
+        count = moveCursor(-1 * num) * -1;
         buf.buffer.delete(buf.cursor, buf.cursor + count);
         drawBuffer(count);
 
@@ -1034,6 +1035,8 @@ public class ConsoleReader
 
             buff.append((char) i);
         }
+
+        // return new BufferedReader (new InputStreamReader (in)).readLine ();
     }
 
     //
@@ -1347,10 +1350,12 @@ public class ConsoleReader
             return false;
         }
 
-        print(ansi().eraseScreen().toString());
+        // send the ANSI code to clear the screen
+        print(((char) 27) + "[2J");
         flush();
 
-        print(ansi().cursor(1,1).toString());
+        // then send the ANSI code to go to position 1,1
+        print(((char) 27) + "[1;1H");
         flush();
 
         redrawLine();

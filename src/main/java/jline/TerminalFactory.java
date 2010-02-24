@@ -40,6 +40,11 @@ public class TerminalFactory
     private static final InheritableThreadLocal<Terminal> holder = new InheritableThreadLocal<Terminal>();
 
     public static synchronized Terminal create() {
+        if (Log.TRACE) {
+            //noinspection ThrowableInstanceNeverThrown
+            Log.trace(new Throwable("CREATE MARKER"));
+        }
+
         String type = System.getProperty(JLINE_TERMINAL);
 
         if (type == null) {
@@ -137,10 +142,7 @@ public class TerminalFactory
         UNIX
     }
 
-    private static final
-    Map<Flavor, Class<? extends Terminal>>
-        FLAVORS =
-        new HashMap<Flavor, Class<? extends Terminal>>();
+    private static final Map<Flavor, Class<? extends Terminal>> FLAVORS = new HashMap<Flavor, Class<? extends Terminal>>();
 
     static {
         registerFlavor(Flavor.WINDOWS, WindowsTerminal.class);
