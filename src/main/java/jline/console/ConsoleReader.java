@@ -242,7 +242,11 @@ public class ConsoleReader
             }
         }
 
-        int diff = buf.buffer.length() - sameIndex;
+        int diff = buf.cursor - sameIndex;
+        if (diff < 0) { // we can't backspace here so try from the end of the buffer
+            moveToEnd();
+            diff = buf.buffer.length() - sameIndex;
+        }
 
         backspace(diff); // go back for the differences
         killLine(); // clear to the end of the line

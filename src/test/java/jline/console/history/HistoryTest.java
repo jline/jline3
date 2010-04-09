@@ -13,6 +13,7 @@ import static jline.console.Operation.MOVE_TO_BEG;
 import static jline.console.Operation.NEWLINE;
 import static jline.console.Operation.NEXT_HISTORY;
 import static jline.console.Operation.PREV_HISTORY;
+import static jline.console.Operation.PREV_CHAR;
 
 /**
  * Tests command history.
@@ -35,6 +36,7 @@ public class HistoryTest
         assertBuffer("", b);
 
         assertBuffer("test line 5", b = b.op(PREV_HISTORY));
+        assertBuffer("test line 5", b = b.op(PREV_CHAR));
         assertBuffer("test line 4", b = b.op(PREV_HISTORY));
         assertBuffer("test line 5", b = b.op(NEXT_HISTORY));
         assertBuffer("test line 4", b = b.op(PREV_HISTORY));
