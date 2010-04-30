@@ -86,6 +86,12 @@ public class ConsoleReader
 
     private Character echoCharacter;
 
+    private StringBuffer searchTerm = null;
+
+    private String previousSearchTerm = "";
+
+    private int searchIndex = -1;
+
     public ConsoleReader(final InputStream in, final Writer out, final InputStream bindings, final Terminal term) throws
         IOException
     {
@@ -916,6 +922,12 @@ public class ConsoleReader
                 return readLine(in);
             }
 
+            final int NORMAL = 1;
+            final int SEARCH = 2;
+            int state = NORMAL;
+
+            boolean success = true;
+
             while (true) {
                 int[] next = readBinding();
 
@@ -931,133 +943,217 @@ public class ConsoleReader
                     return null;
                 }
 
-                boolean success = true;
+                // Search mode.
+                //
+                // Note that we have to do this first, because if there is a command
+                // not linked to a search command, we leave the search mode and fall
+                // through to the normal state.
+                if (state == SEARCH) {
+                    switch (code) {
+                        // This doesn't work right now, it seems CTRL-G is not passed
+                        // down correctly. :(
+                        case ABORT:
+                            state = NORMAL;
+                            break;
 
-                switch (code) {
-                    case EXIT: // ctrl-d
-                        if (buf.buffer.length() == 0) {
-                            return null;
+                        case SEARCH_PREV:
+                            if (searchTerm.length() == 0) {
+                                searchTerm.append(previousSearchTerm);
+                            }
+
+                            if (searchIndex == -1) {
+                                searchIndex = searchBackwards(searchTerm.toString());
+                            } else {
+                                searchIndex = searchBackwards(searchTerm.toString(), searchIndex);
+                            }
+                            break;
+
+                        case DELETE_PREV_CHAR:
+                            if (searchTerm.length() > 0) {
+                                searchTerm.deleteCharAt(searchTerm.length() - 1);
+                                searchIndex = searchBackwards(searchTerm.toString());
+                            }
+                            break;
+
+                        case UNKNOWN:
+                            searchTerm.appendCodePoint(c);
+                            searchIndex = searchBackwards(searchTerm.toString());
+                            break;
+
+                        default:
+                            // Set buffer and cursor position to the found string.
+                            if (searchIndex != -1) {
+                                setBuffer(history.current());
+                                buf.cursor = history.current().toString().indexOf(searchTerm.toString());
+                            }
+                            state = NORMAL;
+                            break;
+                    }
+
+                    // if we're still in search mode, print the search status
+                    if (state == SEARCH) {
+                        if (searchTerm.length() == 0) {
+                            printSearchStatus("", "");
                         } else {
-                            deleteCurrentCharacter();
+                            if (searchIndex == -1) {
+                                beep();
+                            } else {
+                                printSearchStatus(searchTerm.toString(), history.get(searchIndex).toString());
+                            }
                         }
-                        break;
+                    }
+                    // otherwise, restore the line
+                    else {
+                        restoreLine();
+                    }
+                }
 
-                    case COMPLETE: // tab
-                        success = complete();
-                        break;
+                if (state == NORMAL) {
+                    switch (code) {
+                        case EXIT: // ctrl-d
+                            if (buf.buffer.length() == 0) {
+                                return null;
+                            } else {
+                                deleteCurrentCharacter();
+                            }
+                            break;
 
-                    case MOVE_TO_BEG:
-                        success = setCursorPosition(0);
-                        break;
+                        case COMPLETE: // tab
+                            success = complete();
+                            break;
 
-                    case KILL_LINE: // CTRL-K
-                        success = killLine();
-                        break;
+                        case MOVE_TO_BEG:
+                            success = setCursorPosition(0);
+                            break;
 
-                    case CLEAR_SCREEN: // CTRL-L
-                        success = clearScreen();
-                        break;
+                        case KILL_LINE: // CTRL-K
+                            success = killLine();
+                            break;
 
-                    case KILL_LINE_PREV: // CTRL-U
-                        success = resetLine();
-                        break;
+                        case CLEAR_SCREEN: // CTRL-L
+                            success = clearScreen();
+                            break;
 
-                    case NEWLINE: // enter
-                        moveToEnd();
-                        println(); // output newline
-                        return finishBuffer();
+                        case KILL_LINE_PREV: // CTRL-U
+                            success = resetLine();
+                            break;
 
-                    case DELETE_PREV_CHAR: // backspace
-                        success = backspace();
-                        break;
+                        case NEWLINE: // enter
+                            moveToEnd();
+                            println(); // output newline
+                            return finishBuffer();
 
-                    case DELETE_NEXT_CHAR: // delete
-                        success = deleteCurrentCharacter();
-                        break;
+                        case DELETE_PREV_CHAR: // backspace
+                            success = backspace();
+                            break;
 
-                    case MOVE_TO_END:
-                        success = moveToEnd();
-                        break;
+                        case DELETE_NEXT_CHAR: // delete
+                            success = deleteCurrentCharacter();
+                            break;
 
-                    case PREV_CHAR:
-                        success = moveCursor(-1) != 0;
-                        break;
+                        case MOVE_TO_END:
+                            success = moveToEnd();
+                            break;
 
-                    case NEXT_CHAR:
-                        success = moveCursor(1) != 0;
-                        break;
+                        case PREV_CHAR:
+                            success = moveCursor(-1) != 0;
+                            break;
 
-                    case NEXT_HISTORY:
-                        success = moveHistory(true);
-                        break;
+                        case NEXT_CHAR:
+                            success = moveCursor(1) != 0;
+                            break;
 
-                    case PREV_HISTORY:
-                        success = moveHistory(false);
-                        break;
+                        case NEXT_HISTORY:
+                            success = moveHistory(true);
+                            break;
 
-                    case REDISPLAY:
-                        break;
+                        case PREV_HISTORY:
+                            success = moveHistory(false);
+                            break;
 
-                    case PASTE:
-                        success = paste();
-                        break;
+                        case ABORT:
+                        case REDISPLAY:
+                            break;
 
-                    case DELETE_PREV_WORD:
-                        success = deletePreviousWord();
-                        break;
+                        case PASTE:
+                            success = paste();
+                            break;
 
-                    case PREV_WORD:
-                        success = previousWord();
-                        break;
+                        case DELETE_PREV_WORD:
+                            success = deletePreviousWord();
+                            break;
 
-                    case NEXT_WORD:
-                        success = nextWord();
-                        break;
+                        case PREV_WORD:
+                            success = previousWord();
+                            break;
 
-                    case START_OF_HISTORY:
-                        success = history.moveToFirst();
-                        if (success) {
-                            setBuffer(history.current());
-                        }
-                        break;
+                        case NEXT_WORD:
+                            success = nextWord();
+                            break;
 
-                    case END_OF_HISTORY:
-                        success = history.moveToLast();
-                        if (success) {
-                            setBuffer(history.current());
-                        }
-                        break;
+                        case START_OF_HISTORY:
+                            success = history.moveToFirst();
+                            if (success) {
+                                setBuffer(history.current());
+                            }
+                            break;
 
-                    case CLEAR_LINE:
-                        moveInternal(-(buf.buffer.length()));
-                        killLine();
-                        break;
+                        case END_OF_HISTORY:
+                            success = history.moveToLast();
+                            if (success) {
+                                setBuffer(history.current());
+                            }
+                            break;
 
-                    case INSERT:
-                        buf.setOverTyping(!buf.isOverTyping());
-                        break;
+                        case CLEAR_LINE:
+                            moveInternal(-(buf.buffer.length()));
+                            killLine();
+                            break;
 
-                    case UNKNOWN:
-                    default:
-                        if (c != 0) { // ignore null chars
-                            ActionListener action = triggeredActions.get((char) c);
-                            if (action != null) {
-                                action.actionPerformed(null);
+                        case INSERT:
+                            buf.setOverTyping(!buf.isOverTyping());
+                            break;
+
+                        case SEARCH_PREV: // CTRL-R
+                            if (searchTerm != null) {
+                                previousSearchTerm = searchTerm.toString();
+                            }
+                            searchTerm = new StringBuffer(buf.buffer);
+                            state = SEARCH;
+                            if (searchTerm.length() > 0) {
+                                searchIndex = searchBackwards(searchTerm.toString());
+                                if (searchIndex == -1) {
+                                    beep();
+                                }
+                                printSearchStatus(searchTerm.toString(),
+                                        searchIndex > -1 ? history.get(searchIndex).toString() : "");
+                            } else {
+                                printSearchStatus("", "");
+                            }
+                            break;
+
+                        case UNKNOWN:
+                        default:
+                            if (c != 0) { // ignore null chars
+                                ActionListener action = triggeredActions.get((char) c);
+                                if (action != null) {
+                                    action.actionPerformed(null);
+                                }
+                                else {
+                                    putChar(c, true);
+                                }
                             }
                             else {
-                                putChar(c, true);
+                                success = false;
                             }
-                        }
-                        else {
-                            success = false;
-                        }
-                }
+                    }
 
-                if (!success) {
-                    beep();
-                }
+                    if (!success) {
+                        beep();
+                    }
 
-                flush();
+                    flush();
+                }
             }
         }
         finally {
@@ -1633,6 +1729,61 @@ public class ConsoleReader
         maskThread = null;
     }
 
+    public void printSearchStatus(String searchTerm, String match) throws IOException {
+        int i = match.indexOf(searchTerm);
+        print("\r(reverse-i-search) `" + searchTerm + "': " + match + "\u001b[K");
+        // FIXME: our ANSI using back() does not work here
+        print(BACKSPACE, match.length());
+        flush();
+    }
+
+    public void restoreLine() throws IOException {
+        printAnsiSequence("2K"); // ansi/vt100 for clear whole line
+        redrawLine();
+        flush();
+    }
+
+    //
+    // History search
+    //
+    /**
+     * Search backward in history from a given position.
+     *
+     * @param searchTerm substring to search for.
+     * @param startIndex the index from which on to search
+     * @return index where this substring has been found, or -1 else.
+     */
+    public int searchBackwards(String searchTerm, int startIndex) {
+        for (int i = startIndex - 1; i >= 0; i--) {
+            if (i >= history.size())
+                continue;
+            if (getHistory(i).indexOf(searchTerm) != -1) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Search backwards in history from the current position.
+     *
+     * @param searchTerm substring to search for.
+     * @return index where the substring has been found, or -1 else.
+     */
+    public int searchBackwards(String searchTerm) {
+        return searchBackwards(searchTerm, searchIndex);
+    }
+
+    /**
+     * Get the history string for the given index.
+     *
+     * @param index
+     * @return
+     */
+    public String getHistory(int index) {
+        return (String) history.get(index);
+    }
+
     //
     // Helpers
     //
@@ -1654,4 +1805,5 @@ public class ConsoleReader
         print(sequence);
         flush();
     }
+
 }

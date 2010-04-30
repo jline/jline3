@@ -253,7 +253,13 @@ public enum Operation
     /**
      * Operation that clears whatever text is on the current line.
      */
-    CLEAR_LINE(-63),;
+    CLEAR_LINE(-63),
+
+    /**
+     * Cancel search
+     */
+    ABORT(-64),
+    ;
 
     public final short code;
 

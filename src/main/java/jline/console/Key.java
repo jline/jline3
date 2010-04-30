@@ -32,6 +32,8 @@ public enum Key
 
     CTRL_F(6),
 
+    CTRL_G(7),
+
     CTRL_K(11),
 
     CTRL_L(12),
