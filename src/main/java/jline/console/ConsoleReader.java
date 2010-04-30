@@ -1128,6 +1128,7 @@ public class ConsoleReader
                                 printSearchStatus(searchTerm.toString(),
                                         searchIndex > -1 ? history.get(searchIndex).toString() : "");
                             } else {
+                                searchIndex = -1;
                                 printSearchStatus("", "");
                             }
                             break;
