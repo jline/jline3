@@ -1734,7 +1734,7 @@ public class ConsoleReader
         int i = match.indexOf(searchTerm);
         print("\r(reverse-i-search) `" + searchTerm + "': " + match + "\u001b[K");
         // FIXME: our ANSI using back() does not work here
-        print(BACKSPACE, match.length());
+        print(BACKSPACE, match.length() - i);
         flush();
     }
 
