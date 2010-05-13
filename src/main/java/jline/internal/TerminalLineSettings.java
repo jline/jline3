@@ -112,21 +112,32 @@ public final class TerminalLineSettings
         Log.trace("Running: ", cmd);
 
         Process p = Runtime.getRuntime().exec(cmd);
-        int c;
 
-        InputStream in = p.getInputStream();
-
-        while ((c = in.read()) != -1) {
-            out.write(c);
+        InputStream in = null;
+        InputStream err = null;
+        try {
+            int c;
+            in = p.getInputStream();
+            while ((c = in.read()) != -1) {
+                out.write(c);
+            }
+            err = p.getErrorStream();
+            while ((c = err.read()) != -1) {
+                out.write(c);
+            }
+            p.waitFor();
+        } finally {
+            try {
+                in.close();
+            } catch (Exception e) {
+                // Ignore
+            }
+            try {
+                err.close();
+            } catch (Exception e) {
+                // Ignore
+            }
         }
-
-        in = p.getErrorStream();
-
-        while ((c = in.read()) != -1) {
-            out.write(c);
-        }
-
-        p.waitFor();
 
         String result = new String(out.toByteArray());
 
