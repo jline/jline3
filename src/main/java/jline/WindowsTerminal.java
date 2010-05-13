@@ -43,8 +43,8 @@ import static jline.console.Key.*;
  * directly invoke the readc() method in the JNI library. This is so the class
  * can read special keys (like arrow keys) which are otherwise inaccessible via
  * the {@link System#in} stream. Using JNI reading can be bypassed by setting
- * the <code>jline.WindowsTerminal.disableDirectConsole</code> system property
- * to <code>true</code>.
+ * the <code>jline.WindowsTerminal.directConsole</code> system property
+ * to <code>false</code>.
  * </p>
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
