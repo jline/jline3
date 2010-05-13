@@ -933,6 +933,8 @@ public class ConsoleReader
                     case EXIT: // ctrl-d
                         if (buf.buffer.length() == 0) {
                             return null;
+                        } else {
+                            deleteCurrentCharacter();
                         }
                         break;
 
