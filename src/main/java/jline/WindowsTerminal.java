@@ -248,7 +248,7 @@ public class WindowsTerminal
 
     @Override
     public InputStream getDefaultBindings() {
-        return getClass().getResourceAsStream(WINDOWSBINDINGS_PROPERTIES);
+        return WindowsTerminal.class.getResourceAsStream(WINDOWSBINDINGS_PROPERTIES);
     }
 
     //
