@@ -8,8 +8,10 @@
 package jline.internal;
 
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.text.MessageFormat;
 import java.util.StringTokenizer;
 
@@ -107,7 +109,7 @@ public final class TerminalLineSettings
     private static String exec(final String... cmd) throws IOException, InterruptedException {
         assert cmd != null;
 
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ByteArrayOutputStream bout = new ByteArrayOutputStream();
 
         Log.trace("Running: ", cmd);
 
@@ -115,34 +117,37 @@ public final class TerminalLineSettings
 
         InputStream in = null;
         InputStream err = null;
+        OutputStream out = null;
         try {
             int c;
             in = p.getInputStream();
             while ((c = in.read()) != -1) {
-                out.write(c);
+                bout.write(c);
             }
             err = p.getErrorStream();
             while ((c = err.read()) != -1) {
-                out.write(c);
+                bout.write(c);
             }
+            out = p.getOutputStream();
             p.waitFor();
         } finally {
-            try {
-                in.close();
-            } catch (Exception e) {
-                // Ignore
-            }
-            try {
-                err.close();
-            } catch (Exception e) {
-                // Ignore
-            }
+            close(in, out, err);
         }
 
-        String result = new String(out.toByteArray());
+        String result = new String(bout.toByteArray());
 
         Log.trace("Result: ", result);
 
         return result;
+    }
+
+    private static void close(Closeable... closeables) {
+        for (Closeable c : closeables) {
+            try {
+                c.close();
+            } catch (Exception e) {
+                // Ignore
+            }
+        }
     }
 }
