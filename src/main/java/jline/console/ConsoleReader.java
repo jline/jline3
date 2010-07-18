@@ -213,7 +213,7 @@ public class ConsoleReader
     int getCursorPosition() {
         // FIXME: does not handle anything but a line with a prompt absolute position
         String prompt = getPrompt();
-        return (prompt == null ? 0 : prompt.length()) + buf.cursor;
+        return ((prompt == null) ? 0 : prompt.replaceAll("^\\n+", "").length()) + buf.cursor;
     }
 
     /**
