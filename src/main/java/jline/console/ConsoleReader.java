@@ -213,7 +213,24 @@ public class ConsoleReader
     int getCursorPosition() {
         // FIXME: does not handle anything but a line with a prompt absolute position
         String prompt = getPrompt();
-        return ((prompt == null) ? 0 : prompt.replaceAll("^\\n+", "").length()) + buf.cursor;
+        return ((prompt == null) ? 0 : getPromptLastLine().length()) + buf.cursor;
+    }
+
+    /**
+     * Returns the text after the last '\n'.
+     * prompt is returned if no '\n' characters are present.
+     * null is returned if prompt is null.
+     */
+    private String getPromptLastLine() {
+        if (prompt == null) return null;
+
+        int last = prompt.lastIndexOf("\n");
+
+        if (last >= 0) {
+            return prompt.substring(last + 1, prompt.length());
+        }
+
+        return prompt;
     }
 
     /**
