@@ -17,6 +17,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static jline.UnixTerminal.UnixKey.*;
 import static jline.console.Key.*;
@@ -43,7 +45,9 @@ public class UnixTerminal
 
     private final InputStreamReader replayReader;
 
-    private boolean backspaceDeleteSwitched;
+    private boolean deleteSendsBackspace = false;
+
+    private boolean backspaceSendsDelete = false;
 
     public UnixTerminal() throws Exception {
         super(true);
@@ -66,7 +70,7 @@ public class UnixTerminal
 
         setAnsiSupported(true);
 
-        backspaceDeleteSwitched = detectBackspaceDeleteSwitched();
+        checkBackspace();
 
         // set the console to be character-buffered instead of line-buffered
         settings.set("-icanon min 1");
@@ -74,15 +78,23 @@ public class UnixTerminal
         setEchoEnabled(false);
     }
 
-    private boolean detectBackspaceDeleteSwitched() {
-        String[] config = settings.getConfig().split(":|=");
-        if (config.length > 20 && "gfmt1".equals(config[0])) {
-            // BSD style stty -g format
-            return "7f".equals(config[20]);
-        } else if (config.length > 6) {
-            return "7f".equals(config[6]);
+    private void checkBackspace() {
+        deleteSendsBackspace = getTtyField("erase").equals("7f");
+        // XXX
+        // if (condition)
+        //     backspaceSendsDelete = deleteSendsBackspace;
+        //
+        // ...is presumably needed for a full backspace/del swap.
+        // But on OSX this is doing the right thing as is.
+    }
+
+    private String getTtyField(String name) {
+        Pattern p = Pattern.compile("\\b" + name + "=([^:]*)");
+        Matcher m = p.matcher(settings.getConfig());
+        if (m.find()) {
+            return m.group(1);
         } else {
-            return false;
+            return "";
         }
     }
 
@@ -135,13 +147,10 @@ public class UnixTerminal
     public int readVirtualKey(final InputStream in) throws IOException {
         int c = readCharacter(in);
 
-        if (backspaceDeleteSwitched) {
-            if (Key.valueOf(c) == DELETE) {
-                c = BACKSPACE.code;
-            }
-            else if (c == BACKSPACE.code) {
-                c = DELETE.code;
-            }
+        if (Key.valueOf(c) == DELETE && deleteSendsBackspace) {
+            c = BACKSPACE.code;
+        } else if (Key.valueOf(c) == BACKSPACE && backspaceSendsDelete) {
+            c = DELETE.code;
         }
 
         UnixKey key = UnixKey.valueOf(c);
