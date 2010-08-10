@@ -22,17 +22,7 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionListener;
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileDescriptor;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.io.Reader;
-import java.io.Writer;
+import java.io.*;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -334,6 +324,17 @@ public class ConsoleReader
         return str;
     }
 
+    /* Handle case where terminal does not move cursor to the next line
+     * when a character is inserted at the width of the terminal.  This also
+     * fixes backspace issue, where it assumes that the terminal is doing this.
+     */
+    private final void newlineAtWrap() throws IOException {
+        int width = getTerminal().getWidth();
+
+        if ((getCursorPosition() % width == 0) && getCurrentPosition() >= width)
+            println();
+    }
+
     /**
      * Write out the specified string to the buffer and the output stream.
      */
@@ -341,6 +342,7 @@ public class ConsoleReader
         buf.write(str);
         print(str);
         drawBuffer();
+        newlineAtWrap();
     }
 
     /**
@@ -362,6 +364,7 @@ public class ConsoleReader
             }
 
             drawBuffer();
+            newlineAtWrap();
         }
     }
 
@@ -1822,6 +1825,31 @@ public class ConsoleReader
         print('[');
         print(sequence);
         flush();
+    }
+
+    // return column position, reported by the terminal
+    private int getCurrentPosition() {
+        // check for ByteArrayInputStream to disable for unit tests
+        if (terminal.isAnsiSupported() && !(in instanceof ByteArrayInputStream)) {
+            try {
+                printAnsiSequence("6n");
+                flush();
+                StringBuffer b = new StringBuffer(8);
+                // position is sent as <ESC>[{ROW};{COLUMN}R
+                int r;
+                while((r = in.read()) > -1 && r != 'R') {
+                    if (r != 27 && r != '[') {
+                        b.append((char) r);
+                    }
+                }
+                String[] pos = b.toString().split(";");
+                return Integer.parseInt(pos[1]);
+            } catch (Exception x) {
+                // no luck
+            }
+        }
+
+        return -1; // TODO: throw exception instead?
     }
 
 }
