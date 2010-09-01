@@ -82,6 +82,8 @@ public class ConsoleReader
 
     private int searchIndex = -1;
 
+    private int historyCurrentIndex;
+
     public ConsoleReader(final InputStream in, final Writer out, final InputStream bindings, final Terminal term) throws
         IOException
     {
@@ -970,6 +972,8 @@ public class ConsoleReader
                 // not linked to a search command, we leave the search mode and fall
                 // through to the normal state.
                 if (state == SEARCH) {
+                    int cursorDest = -1;
+
                     switch (code) {
                         // This doesn't work right now, it seems CTRL-G is not passed
                         // down correctly. :(
@@ -1004,9 +1008,9 @@ public class ConsoleReader
                         default:
                             // Set buffer and cursor position to the found string.
                             if (searchIndex != -1) {
-                                // TODO: set cursor position to the found string
-                                //setBuffer(history.current());
-                                //buf.cursor = history.current().toString().indexOf(searchTerm.toString());
+                                historyCurrentIndex = searchIndex;
+                                // set cursor position to the found string
+                                cursorDest = history.current().toString().indexOf(searchTerm.toString());
                             }
                             state = NORMAL;
                             break;
@@ -1027,7 +1031,7 @@ public class ConsoleReader
                     }
                     // otherwise, restore the line
                     else {
-                        restoreLine(originalPrompt);
+                        restoreLine(originalPrompt, cursorDest);
                     }
                 }
 
@@ -1756,8 +1760,18 @@ public class ConsoleReader
     /**
      * Erases the current line with the existing prompt, then redraws the line
      * with the provided prompt and buffer
+     * @param prompt
+     *            the new prompt
+     * @param buffer
+     *            the buffer to be drawn
+     * @param cursorDest
+     *            where you want the cursor set when the line has been drawn.
+     *            -1 for end of line.
      * */
-    public void resetPromptLine(String prompt, String buffer) throws IOException {
+    public void resetPromptLine(String prompt, String buffer, int cursorDest) throws IOException {
+        // move cursor to end of line
+        moveToEnd();
+
         // backspace all text, including prompt
         buf.buffer.append(this.prompt);
         buf.cursor += this.prompt.length();
@@ -1768,20 +1782,25 @@ public class ConsoleReader
         redrawLine();
         setBuffer(buffer);
 
+        // move cursor to destination (-1 will move to end of line)
+        if (cursorDest < 0) cursorDest = buffer.length();
+        setCursorPosition(cursorDest);
+
         flush();
     }
 
     public void printSearchStatus(String searchTerm, String match) throws IOException {
         String prompt = "(reverse-i-search)`" + searchTerm + "': ";
         String buffer = match;
-        resetPromptLine(prompt, buffer);
+        int cursorDest = match.indexOf(searchTerm);
+        resetPromptLine(prompt, buffer, cursorDest);
     }
 
-    public void restoreLine(String originalPrompt) throws IOException {
+    public void restoreLine(String originalPrompt, int cursorDest) throws IOException {
         // TODO move cursor to matched string
         String prompt = lastLine(originalPrompt);
         String buffer = buf.buffer.toString();
-        resetPromptLine(prompt, buffer);
+        resetPromptLine(prompt, buffer, cursorDest);
     }
 
     //
