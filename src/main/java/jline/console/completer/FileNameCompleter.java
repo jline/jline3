@@ -66,7 +66,7 @@ public class FileNameCompleter
             translated = homeDir.getParentFile().getAbsolutePath();
         }
         else if (!(translated.startsWith(separator()))) {
-            String cwd = getUserDir().getPath();
+            String cwd = getUserDir().getAbsolutePath();
             translated = cwd + separator() + translated;
         }
 
