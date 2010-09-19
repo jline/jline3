@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.Set;
 
@@ -180,7 +181,9 @@ public class CandidateListCompletionHandler
         private static final
         ResourceBundle
             bundle =
-            ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName());
+            ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName(),
+                                     Locale.getDefault(),
+                                     CandidateListCompletionHandler.class.getClassLoader());
 
         public String format(final Object... args) {
             return String.format(bundle.getString(name()), args);
