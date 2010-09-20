@@ -205,7 +205,7 @@ public class ConsoleReader
     int getCursorPosition() {
         // FIXME: does not handle anything but a line with a prompt absolute position
         String prompt = getPrompt();
-        return ((prompt == null) ? 0 : lastLine(prompt).length()) + buf.cursor;
+        return ((prompt == null) ? 0 : stripAnsi(lastLine(prompt)).length()) + buf.cursor;
     }
 
     /**
@@ -215,7 +215,6 @@ public class ConsoleReader
      */
     private String lastLine(String str) {
         if (str == null) return "";
-        str = stripAnsi(str);
         int last = str.lastIndexOf("\n");
 
         if (last >= 0) {
@@ -226,6 +225,7 @@ public class ConsoleReader
     }
 
     private String stripAnsi(String str) {
+        if (str == null) return "";
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             AnsiOutputStream aos = new AnsiOutputStream(baos);
@@ -306,7 +306,7 @@ public class ConsoleReader
      */
     public final void redrawLine() throws IOException {
         print(RESET_LINE);
-        flush();
+//        flush();
         drawLine();
     }
 
@@ -408,7 +408,7 @@ public class ConsoleReader
         } else {
             back(chars.length);
         }
-        flush();
+//        flush();
     }
 
     /**
@@ -437,12 +437,12 @@ public class ConsoleReader
 
         // we need to flush here so a "clever" console doesn't just ignore the redundancy
         // of a space followed by a backspace.
-        flush();
+//        flush();
 
         // reset the visual cursor
         back(num);
 
-        flush();
+//        flush();
     }
 
     /**
@@ -465,7 +465,7 @@ public class ConsoleReader
             return;
         }
         print(BACKSPACE, num);
-        flush();
+//        flush();
     }
 
     /**
@@ -621,7 +621,7 @@ public class ConsoleReader
                 }
                 printAnsiSequence(1 +(cursor % width) + "G");
             }
-            flush();
+//            flush();
             return;
         }
 
@@ -1081,6 +1081,7 @@ public class ConsoleReader
                         case NEWLINE: // enter
                             moveToEnd();
                             println(); // output newline
+                            flush();
                             return finishBuffer();
 
                         case DELETE_PREV_CHAR: // backspace
@@ -1461,7 +1462,7 @@ public class ConsoleReader
      */
     public final void println() throws IOException {
         print(CR);
-        flush();
+//        flush();
     }
 
     //
@@ -1823,7 +1824,7 @@ public class ConsoleReader
      * @return index where this substring has been found, or -1 else.
      */
     public int searchBackwards(String searchTerm, int startIndex) {
-        for (int i = startIndex - 1; i >= 0; i--) {
+        for (int i = startIndex - 1; i >= startIndex - history.size(); i--) {
             if (i >= history.size())
                 continue;
             if (getHistory(i).indexOf(searchTerm) != -1) {
@@ -1872,7 +1873,7 @@ public class ConsoleReader
         print(27);
         print('[');
         print(sequence);
-        flush();
+//        flush();
     }
 
     // return column position, reported by the terminal

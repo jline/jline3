@@ -242,7 +242,8 @@ public class MemoryHistory
      * @return
      */
     public boolean moveTo(int index) {
-        if (index >= 0 && index < size()) {
+        index -= offset;
+        if (index >= 0 && index < size() ) {
             this.index = index;
             return true;
         }
