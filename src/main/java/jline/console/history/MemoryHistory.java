@@ -237,6 +237,19 @@ public class MemoryHistory
     }
 
     /**
+     * Move to the specified index in the history
+     * @param index
+     * @return
+     */
+    public boolean moveTo(int index) {
+        if (index >= 0 && index < size()) {
+            this.index = index;
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * Moves the history index to the first entry.
      *
      * @return Return false if there are no entries in the history or if the

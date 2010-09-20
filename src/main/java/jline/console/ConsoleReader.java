@@ -15,6 +15,8 @@ import jline.console.completer.CompletionHandler;
 import jline.console.history.History;
 import jline.console.history.MemoryHistory;
 import jline.internal.Log;
+import org.fusesource.jansi.Ansi;
+import org.fusesource.jansi.AnsiOutputStream;
 
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
@@ -81,8 +83,6 @@ public class ConsoleReader
     private String previousSearchTerm = "";
 
     private int searchIndex = -1;
-
-    private int historyCurrentIndex;
 
     public ConsoleReader(final InputStream in, final Writer out, final InputStream bindings, final Terminal term) throws
         IOException
@@ -214,7 +214,8 @@ public class ConsoleReader
      * null is returned if prompt is null.
      */
     private String lastLine(String str) {
-        if (str == null) return null;
+        if (str == null) return "";
+        str = stripAnsi(str);
         int last = str.lastIndexOf("\n");
 
         if (last >= 0) {
@@ -222,6 +223,18 @@ public class ConsoleReader
         }
 
         return str;
+    }
+
+    private String stripAnsi(String str) {
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            AnsiOutputStream aos = new AnsiOutputStream(baos);
+            aos.write(str.getBytes());
+            aos.flush();
+            return baos.toString();
+        } catch (IOException e) {
+            return str;
+        }
     }
 
     /**
@@ -415,7 +428,7 @@ public class ConsoleReader
         }
 
         if (terminal.isAnsiSupported()) {
-            printAnsiSequence("J");
+            printAnsiSequence("K");
             return;
         }
 
@@ -486,7 +499,7 @@ public class ConsoleReader
         if (getCursorPosition() / termwidth != lines) {
             if (terminal.isAnsiSupported()) {
                 // debug("doing backspace redraw: " + getCursorPosition() + " on " + termwidth + ": " + lines);
-                printAnsiSequence("J");
+                printAnsiSequence("K");
             }
         }
         drawBuffer(count);
@@ -1008,7 +1021,7 @@ public class ConsoleReader
                         default:
                             // Set buffer and cursor position to the found string.
                             if (searchIndex != -1) {
-                                historyCurrentIndex = searchIndex;
+                                history.moveTo(searchIndex);
                                 // set cursor position to the found string
                                 cursorDest = history.current().toString().indexOf(searchTerm.toString());
                             }
@@ -1492,8 +1505,6 @@ public class ConsoleReader
      * @return true if successful
      */
     public boolean killLine() throws IOException {
-        // TODO: USe jansi for this
-
         int cp = buf.cursor;
         int len = buf.buffer.length();
 
@@ -1515,8 +1526,6 @@ public class ConsoleReader
      * Clear the screen by issuing the ANSI "clear screen" code.
      */
     public boolean clearScreen() throws IOException {
-        // TODO: use jansi for this
-
         if (!terminal.isAnsiSupported()) {
             return false;
         }
@@ -1831,7 +1840,7 @@ public class ConsoleReader
      * @return index where the substring has been found, or -1 else.
      */
     public int searchBackwards(String searchTerm) {
-        return searchBackwards(searchTerm, searchIndex);
+        return searchBackwards(searchTerm, history.index());
     }
 
     /**

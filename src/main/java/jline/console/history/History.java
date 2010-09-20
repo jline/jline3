@@ -65,5 +65,7 @@ public interface History
 
     boolean moveToLast();
 
+    boolean moveTo(int index);
+
     void moveToEnd();
 }
