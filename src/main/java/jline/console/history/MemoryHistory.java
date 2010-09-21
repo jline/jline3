@@ -126,11 +126,11 @@ public class MemoryHistory
     }
 
     public ListIterator<Entry> entries(final int index) {
-        return new EntriesIterator(index);
+        return new EntriesIterator(index - offset);
     }
 
     public ListIterator<Entry> entries() {
-        return entries(0);
+        return entries(offset);
     }
 
     public Iterator<Entry> iterator() {

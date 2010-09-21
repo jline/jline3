@@ -213,7 +213,13 @@ public class ConsoleReaderTest
     @Test
     public void testExpansion() throws Exception {
         ConsoleReader reader = new ConsoleReader();
-        reader.setHistory(createSeededHistory());
+        MemoryHistory history = new MemoryHistory();
+        history.setMaxSize(3);
+        history.add("foo");
+        history.add("dir");
+        history.add("cd c:\\");
+        history.add("mkdir monkey");
+        reader.setHistory(history);
 
         assertEquals("echo a!", reader.expandEvents("echo a!"));
         assertEquals("mkdir monkey ; echo a!", reader.expandEvents("!! ; echo a!"));
@@ -239,8 +245,8 @@ public class ConsoleReaderTest
 
         assertEquals("mkdir monkey", reader.expandEvents("!-1"));
         assertEquals("cd c:\\", reader.expandEvents("!-2"));
-        assertEquals("cd c:\\", reader.expandEvents("!1"));
-        assertEquals("mkdir monkey", reader.expandEvents("!2"));
+        assertEquals("cd c:\\", reader.expandEvents("!2"));
+        assertEquals("mkdir monkey", reader.expandEvents("!3"));
         try {
             reader.expandEvents("!20");
         } catch (IllegalArgumentException e) {

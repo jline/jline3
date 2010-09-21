@@ -15,7 +15,6 @@ import jline.console.completer.CompletionHandler;
 import jline.console.history.History;
 import jline.console.history.MemoryHistory;
 import jline.internal.Log;
-import org.fusesource.jansi.Ansi;
 import org.fusesource.jansi.AnsiOutputStream;
 
 import java.awt.*;
@@ -25,15 +24,7 @@ import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionListener;
 import java.io.*;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.ResourceBundle;
+import java.util.*;
 
 /**
  * A reader for console applications. It supports custom tab-completion,
@@ -357,7 +348,7 @@ public class ConsoleReader
                         c = str.charAt(++i);
                         boolean neg = false;
                         String rep = null;
-                        int i1;
+                        int i1, idx;
                         switch (c) {
                             case '!':
                                 if (history.size() == 0) {
@@ -374,16 +365,12 @@ public class ConsoleReader
                                     i1 = str.length();
                                 }
                                 String sc = str.substring(i + 1, i1);
-                                for (int ih = history.index() - 1; ih >= history.index() - history.size(); ih--) {
-                                    String h = history.get(ih).toString();
-                                    if (h.contains(sc)) {
-                                        rep = h;
-                                        i = i1;
-                                        break;
-                                    }
-                                }
-                                if (rep == null) {
+                                i = i1;
+                                idx = searchBackwards(sc);
+                                if (idx < 0) {
                                     throw new IllegalArgumentException("!?" + sc + ": event not found");
+                                } else {
+                                    rep = history.get(idx).toString();
                                 }
                                 break;
                             case ' ':
@@ -412,7 +399,7 @@ public class ConsoleReader
                                         break;
                                     }
                                 }
-                                int idx = 0;
+                                idx = 0;
                                 try {
                                     idx = Integer.parseInt(str.substring(i1, i));
                                 } catch (NumberFormatException e) {
@@ -434,16 +421,12 @@ public class ConsoleReader
                                 break;
                             default:
                                 String ss = str.substring(i);
-                                for (int ih = history.index() - 1; ih >= history.index() - history.size(); ih--) {
-                                    String h = history.get(ih).toString();
-                                    if (h.startsWith(ss)) {
-                                        rep = h;
-                                        i = str.length();
-                                        break;
-                                    }
-                                }
-                                if (rep == null) {
+                                i = str.length();
+                                idx = searchBackwards(ss, history.index(), true);
+                                if (idx < 0) {
                                     throw new IllegalArgumentException("!" + ss + ": event not found");
+                                } else {
+                                    rep = history.get(idx).toString();
                                 }
                                 break;
                         }
@@ -1973,14 +1956,7 @@ public class ConsoleReader
      * @return index where this substring has been found, or -1 else.
      */
     public int searchBackwards(String searchTerm, int startIndex) {
-        for (int i = startIndex - 1; i >= startIndex - history.size(); i--) {
-            if (i >= history.size())
-                continue;
-            if (getHistory(i).indexOf(searchTerm) != -1) {
-                return i;
-            }
-        }
-        return -1;
+        return searchBackwards(searchTerm, startIndex, false);
     }
 
     /**
@@ -1993,14 +1969,22 @@ public class ConsoleReader
         return searchBackwards(searchTerm, history.index());
     }
 
-    /**
-     * Get the history string for the given index.
-     *
-     * @param index
-     * @return
-     */
-    public String getHistory(int index) {
-        return (String) history.get(index);
+
+    public int searchBackwards(String searchTerm, int startIndex, boolean startsWith) {
+        ListIterator<History.Entry> it = history.entries(startIndex);
+        while (it.hasPrevious()) {
+            History.Entry e = it.previous();
+            if (startsWith) {
+                if (e.value().toString().startsWith(searchTerm)) {
+                    return e.index();
+                }
+            } else {
+                if (e.value().toString().contains(searchTerm)) {
+                    return e.index();
+                }
+            }
+        }
+        return -1;
     }
 
     //
