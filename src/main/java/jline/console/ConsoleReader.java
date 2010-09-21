@@ -17,7 +17,7 @@ import jline.console.history.MemoryHistory;
 import jline.internal.Log;
 import org.fusesource.jansi.AnsiOutputStream;
 
-import java.awt.*;
+import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
