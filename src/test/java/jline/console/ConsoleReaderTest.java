@@ -209,4 +209,47 @@ public class ConsoleReaderTest
         };
         assertWindowsKeyBehavior("oops", characters);
     }
+
+    @Test
+    public void testExpansion() throws Exception {
+        ConsoleReader reader = new ConsoleReader();
+        reader.setHistory(createSeededHistory());
+
+        assertEquals("echo a!", reader.expandEvents("echo a!"));
+        assertEquals("mkdir monkey ; echo a!", reader.expandEvents("!! ; echo a!"));
+        assertEquals("echo ! a", reader.expandEvents("echo ! a"));
+        assertEquals("echo !\ta", reader.expandEvents("echo !\ta"));
+
+        assertEquals("mkdir barey", reader.expandEvents("^monk^bar^"));
+        assertEquals("mkdir barey", reader.expandEvents("^monk^bar"));
+        assertEquals("a^monk^bar", reader.expandEvents("a^monk^bar"));
+
+        assertEquals("mkdir monkey", reader.expandEvents("!!"));
+        assertEquals("echo echo a", reader.expandEvents("echo !#a"));
+
+        assertEquals("mkdir monkey", reader.expandEvents("!mk"));
+        try {
+            reader.expandEvents("!mz");
+        } catch (IllegalArgumentException e) {
+            assertEquals("!mz: event not found", e.getMessage());
+        }
+
+        assertEquals("mkdir monkey", reader.expandEvents("!?mo"));
+        assertEquals("mkdir monkey", reader.expandEvents("!?mo?"));
+
+        assertEquals("mkdir monkey", reader.expandEvents("!-1"));
+        assertEquals("cd c:\\", reader.expandEvents("!-2"));
+        assertEquals("cd c:\\", reader.expandEvents("!1"));
+        assertEquals("mkdir monkey", reader.expandEvents("!2"));
+        try {
+            reader.expandEvents("!20");
+        } catch (IllegalArgumentException e) {
+            assertEquals("!20: event not found", e.getMessage());
+        }
+        try {
+            reader.expandEvents("!-20");
+        } catch (IllegalArgumentException e) {
+            assertEquals("!-20: event not found", e.getMessage());
+        }
+    }
 }

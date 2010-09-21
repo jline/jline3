@@ -134,7 +134,7 @@ public final class TerminalLineSettings
             close(in, out, err);
         }
 
-        String result = new String(bout.toByteArray());
+        String result = bout.toString();
 
         Log.trace("Result: ", result);
 

@@ -315,8 +315,10 @@ public class ConsoleReader
      *
      * @return the former contents of the buffer.
      */
-    final String finishBuffer() { // FIXME: Package protected because used by tests
+    final String finishBuffer() throws IOException { // FIXME: Package protected because used by tests
         String str = buf.buffer.toString();
+
+        str = expandEvents(str);
 
         // we only add it to the history if the buffer is not empty
         // and if mask is null, since having a mask typically means
@@ -336,6 +338,153 @@ public class ConsoleReader
         buf.cursor = 0;
 
         return str;
+    }
+
+    /**
+     * Expand event designator such as !!, !#, !3, etc...
+     * See http://www.gnu.org/software/bash/manual/html_node/Event-Designators.html
+     *
+     * @param str
+     * @return
+     */
+    final String expandEvents(String str) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < str.length(); i++) {
+            char c = str.charAt(i);
+            switch (c) {
+                case '!':
+                    if (i + 1 < str.length()) {
+                        c = str.charAt(++i);
+                        boolean neg = false;
+                        String rep = null;
+                        int i1;
+                        switch (c) {
+                            case '!':
+                                if (history.size() == 0) {
+                                    throw new IllegalArgumentException("!!: event not found");
+                                }
+                                rep = history.get(history.index() - 1).toString();
+                                break;
+                            case '#':
+                                sb.append(sb.toString());
+                                break;
+                            case '?':
+                                i1 = str.indexOf('?', i + 1);
+                                if (i1 < 0) {
+                                    i1 = str.length();
+                                }
+                                String sc = str.substring(i + 1, i1);
+                                for (int ih = history.index() - 1; ih >= history.index() - history.size(); ih--) {
+                                    String h = history.get(ih).toString();
+                                    if (h.contains(sc)) {
+                                        rep = h;
+                                        i = i1;
+                                        break;
+                                    }
+                                }
+                                if (rep == null) {
+                                    throw new IllegalArgumentException("!?" + sc + ": event not found");
+                                }
+                                break;
+                            case ' ':
+                            case '\t':
+                                sb.append('!');
+                                sb.append(c);
+                                break;
+                            case '-':
+                                neg = true;
+                                i++;
+                                // fall through
+                            case '0':
+                            case '1':
+                            case '2':
+                            case '3':
+                            case '4':
+                            case '5':
+                            case '6':
+                            case '7':
+                            case '8':
+                            case '9':
+                                i1 = i;
+                                for (; i < str.length(); i++) {
+                                    c = str.charAt(i);
+                                    if (c < '0' || c > '9') {
+                                        break;
+                                    }
+                                }
+                                int idx = 0;
+                                try {
+                                    idx = Integer.parseInt(str.substring(i1, i));
+                                } catch (NumberFormatException e) {
+                                    throw new IllegalArgumentException((neg ? "!-" : "!") + str.substring(i1, i) + ": event not found");
+                                }
+                                if (neg) {
+                                    if (idx < history.size()) {
+                                        rep = (history.get(history.index() - idx)).toString();
+                                    } else {
+                                        throw new IllegalArgumentException((neg ? "!-" : "!") + str.substring(i1, i) + ": event not found");
+                                    }
+                                } else {
+                                    if (idx >= history.index() - history.size() && idx < history.index()) {
+                                        rep = (history.get(idx)).toString();
+                                    } else {
+                                        throw new IllegalArgumentException((neg ? "!-" : "!") + str.substring(i1, i) + ": event not found");
+                                    }
+                                }
+                                break;
+                            default:
+                                String ss = str.substring(i);
+                                for (int ih = history.index() - 1; ih >= history.index() - history.size(); ih--) {
+                                    String h = history.get(ih).toString();
+                                    if (h.startsWith(ss)) {
+                                        rep = h;
+                                        i = str.length();
+                                        break;
+                                    }
+                                }
+                                if (rep == null) {
+                                    throw new IllegalArgumentException("!" + ss + ": event not found");
+                                }
+                                break;
+                        }
+                        if (rep != null) {
+                            sb.append(rep);
+                        }
+                    } else {
+                        sb.append(c);
+                    }
+                    break;
+                case '^':
+                    if (i == 0) {
+                        int i1 = str.indexOf('^', i + 1);
+                        int i2 = str.indexOf('^', i1 + 1);
+                        if (i2 < 0) {
+                            i2 = str.length();
+                        }
+                        if (i1 > 0 && i2 > 0) {
+                            String s1 = str.substring(i + 1, i1);
+                            String s2 = str.substring(i1 + 1, i2);
+                            String s = history.get(history.index() - 1).toString().replace(s1, s2);
+                            sb.append(s);
+                            i = i2 + 1;
+                            break;
+                        }
+                    }
+                    sb.append(c);
+                    break;
+                default:
+                    sb.append(c);
+                    break;
+            }
+        }
+        String result = sb.toString();
+        if (!str.equals(result)) {
+            print(result);
+            println();
+            flush();
+        }
+        return result;
+
     }
 
     /* Handle case where terminal does not move cursor to the next line
