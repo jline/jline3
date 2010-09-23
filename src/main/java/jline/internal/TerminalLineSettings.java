@@ -130,7 +130,8 @@ public final class TerminalLineSettings
             }
             out = p.getOutputStream();
             p.waitFor();
-        } finally {
+        }
+        finally {
             close(in, out, err);
         }
 
@@ -141,11 +142,12 @@ public final class TerminalLineSettings
         return result;
     }
 
-    private static void close(Closeable... closeables) {
+    private static void close(final Closeable... closeables) {
         for (Closeable c : closeables) {
             try {
                 c.close();
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 // Ignore
             }
         }
