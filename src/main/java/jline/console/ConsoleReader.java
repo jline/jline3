@@ -14,6 +14,7 @@ import jline.console.completer.Completer;
 import jline.console.completer.CompletionHandler;
 import jline.console.history.History;
 import jline.console.history.MemoryHistory;
+import jline.internal.Configuration;
 import jline.internal.Log;
 import org.fusesource.jansi.AnsiOutputStream;
 
@@ -83,9 +84,7 @@ public class ConsoleReader
         this.terminal = term != null ? term : TerminalFactory.get();
         this.keyBindings = loadKeyBindings(bindings);
 
-        if (Boolean.getBoolean(JLINE_NOBELL)) {
-            setBellEnabled(false);
-        }
+        setBellEnabled(!Configuration.getBoolean(JLINE_NOBELL, false));
     }
 
     public ConsoleReader(final InputStream in, final Writer out, final Terminal term) throws IOException {
@@ -936,9 +935,9 @@ public class ConsoleReader
     private short[] loadKeyBindings(InputStream input) throws IOException {
         if (input == null) {
             try {
-                File file = new File(System.getProperty("user.home", JLINEBINDINGS_PROPERTIES));
+                File file = new File(Configuration.getUserHome(), JLINEBINDINGS_PROPERTIES);
 
-                String path = System.getProperty(JLINE_KEYBINDINGS);
+                String path = Configuration.getString(JLINE_KEYBINDINGS);
                 if (path != null) {
                     file = new File(path);
                 }

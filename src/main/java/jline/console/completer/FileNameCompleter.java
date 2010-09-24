@@ -7,6 +7,8 @@
 
 package jline.console.completer;
 
+import jline.internal.Configuration;
+
 import java.io.File;
 import java.util.List;
 
@@ -38,7 +40,7 @@ public class FileNameCompleter
     private static final boolean OS_IS_WINDOWS;
 
     static {
-        String os = System.getProperty("os.name").toLowerCase();
+        String os = Configuration.getOsName();
         OS_IS_WINDOWS = os.contains("windows");
     }
 
@@ -90,7 +92,7 @@ public class FileNameCompleter
     }
 
     protected File getUserHome() {
-        return new File(System.getProperty("user.home"));
+        return Configuration.getUserHome();
     }
 
     protected File getUserDir() {

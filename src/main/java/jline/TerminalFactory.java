@@ -7,6 +7,7 @@
 
 package jline;
 
+import jline.internal.Configuration;
 import jline.internal.Log;
 
 import java.text.MessageFormat;
@@ -45,8 +46,7 @@ public class TerminalFactory
             Log.trace(new Throwable("CREATE MARKER"));
         }
 
-        String type = System.getProperty(JLINE_TERMINAL);
-
+        String type = Configuration.getString(JLINE_TERMINAL);
         if (type == null) {
             type = AUTO;
         }
@@ -68,8 +68,7 @@ public class TerminalFactory
             }
             else {
                 if (tmp.equals(AUTO)) {
-                    String os = System.getProperty("os.name").toLowerCase();
-
+                    String os = Configuration.getOsName();
                     Flavor flavor = Flavor.UNIX;
                     if (os.contains(WINDOWS)) {
                         flavor = Flavor.WINDOWS;

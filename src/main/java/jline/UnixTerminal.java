@@ -8,6 +8,7 @@
 package jline;
 
 import jline.console.Key;
+import jline.internal.Configuration;
 import jline.internal.Log;
 import jline.internal.ReplayPrefixOneCharInputStream;
 import jline.internal.TerminalLineSettings;
@@ -52,7 +53,7 @@ public class UnixTerminal
     public UnixTerminal() throws Exception {
         super(true);
 
-        this.replayStream = new ReplayPrefixOneCharInputStream(System.getProperty("input.encoding", "UTF-8"));
+        this.replayStream = new ReplayPrefixOneCharInputStream(Configuration.getInputEncoding());
         this.replayReader = new InputStreamReader(replayStream, replayStream.getEncoding());
     }
 

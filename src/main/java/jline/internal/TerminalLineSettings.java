@@ -33,9 +33,9 @@ public final class TerminalLineSettings
 
     public static final String DEFAULT_SH = "sh";
 
-    private static String sttyCommand = System.getProperty(JLINE_STTY, DEFAULT_STTY);
+    private static String sttyCommand = Configuration.getString(JLINE_STTY, DEFAULT_STTY);
 
-    private static String shCommand = System.getProperty(JLINE_SH, DEFAULT_SH);
+    private static String shCommand = Configuration.getString(JLINE_SH, DEFAULT_SH);
 
     private String config;
 

@@ -15,6 +15,7 @@ import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
 
+import jline.internal.Configuration;
 import org.fusesource.jansi.internal.WindowsSupport;
 
 import jline.internal.Log;
@@ -76,7 +77,7 @@ public class WindowsTerminal
         super(true);
 
         this.replayStream =
-            new ReplayPrefixOneCharInputStream(System.getProperty(JLINE_WINDOWS_TERMINAL_INPUT_ENCODING, System.getProperty("file.encoding")));
+            new ReplayPrefixOneCharInputStream(Configuration.getString(JLINE_WINDOWS_TERMINAL_INPUT_ENCODING, Configuration.getFileEncoding()));
         this.replayReader = new InputStreamReader(replayStream, replayStream.getEncoding());
     }
 
