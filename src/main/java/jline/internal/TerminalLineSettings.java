@@ -39,6 +39,10 @@ public final class TerminalLineSettings
 
     private String config;
 
+    private String ttyProps;
+
+    private long ttyPropsLastFetched;
+
     public TerminalLineSettings() throws IOException, InterruptedException {
         config = get("-g");
 
@@ -70,13 +74,16 @@ public final class TerminalLineSettings
         assert name != null;
 
         try {
+            // tty properties are cached so we don't have to worry too much about getting term widht/height
+            if (ttyProps == null || System.currentTimeMillis() - ttyPropsLastFetched > 1000) {
+                ttyProps = get("-a");
+                ttyPropsLastFetched = System.currentTimeMillis();
+            }
             // need to be able handle both output formats:
             // speed 9600 baud; 24 rows; 140 columns;
             // and:
             // speed 38400 baud; rows = 49; columns = 111; ypixels = 0; xpixels = 0;
-            String props = get("-a");
-
-            for (StringTokenizer tok = new StringTokenizer(props, ";\n"); tok.hasMoreTokens();) {
+            for (StringTokenizer tok = new StringTokenizer(ttyProps, ";\n"); tok.hasMoreTokens();) {
                 String str = tok.nextToken().trim();
 
                 if (str.startsWith(name)) {
