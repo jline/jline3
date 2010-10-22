@@ -46,7 +46,7 @@ public class UnixTerminal
 
     private final InputStreamReader replayReader;
 
-    private boolean deleteSendsBackspace = false;
+    private boolean backspaceDeleteSwitched;
 
     private boolean backspaceSendsDelete = false;
 
@@ -71,7 +71,7 @@ public class UnixTerminal
 
         setAnsiSupported(true);
 
-        checkBackspace();
+        backspaceDeleteSwitched = detectBackspaceDeleteSwitched();
 
         // set the console to be character-buffered instead of line-buffered
         settings.set("-icanon min 1");
@@ -79,23 +79,15 @@ public class UnixTerminal
         setEchoEnabled(false);
     }
 
-    private void checkBackspace() {
-        deleteSendsBackspace = getTtyField("erase").equals("7f");
-        // XXX
-        // if (condition)
-        //     backspaceSendsDelete = deleteSendsBackspace;
-        //
-        // ...is presumably needed for a full backspace/del swap.
-        // But on OSX this is doing the right thing as is.
-    }
-
-    private String getTtyField(String name) {
-        Pattern p = Pattern.compile("\\b" + name + "=([^:]*)");
-        Matcher m = p.matcher(settings.getConfig());
-        if (m.find()) {
-            return m.group(1);
+    private boolean detectBackspaceDeleteSwitched() {
+        String[] config = settings.getConfig().split(":|=");
+        if (config.length > 20 && "gfmt1".equals(config[0])) {
+            // BSD style stty -g format
+            return "7f".equals(config[20]);
+        } else if (config.length > 6) {
+            return "7f".equals(config[6]);
         } else {
-            return "";
+            return false;
         }
     }
 
@@ -151,10 +143,12 @@ public class UnixTerminal
     public int readVirtualKey(final InputStream in) throws IOException {
         int c = readCharacter(in);
 
-        if (Key.valueOf(c) == DELETE && deleteSendsBackspace) {
-            c = BACKSPACE.code;
-        } else if (Key.valueOf(c) == BACKSPACE && backspaceSendsDelete) {
-            c = DELETE.code;
+        if (backspaceDeleteSwitched) {
+            if (Key.valueOf(c) == DELETE) {
+                c = BACKSPACE.code;
+            } else if (c == BACKSPACE.code) {
+                c = DELETE.code;
+            }
         }
 
         UnixKey key = UnixKey.valueOf(c);
