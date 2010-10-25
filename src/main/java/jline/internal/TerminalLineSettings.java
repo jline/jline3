@@ -14,6 +14,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.MessageFormat;
 import java.util.StringTokenizer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Provides access to terminal line settings via <tt>stty</tt>.
@@ -21,6 +23,7 @@ import java.util.StringTokenizer;
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:dwkemp@gmail.com">Dale Kemp</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
+ * @author <a href="mailto:jbonofre@apache.org">Jean-Baptiste Onofré</a>
  * @since 2.0
  */
 public final class TerminalLineSettings
@@ -39,17 +42,13 @@ public final class TerminalLineSettings
 
     private String config;
 
-    private String ttyProps;
-
-    private long ttyPropsLastFetched;
-
     public TerminalLineSettings() throws IOException, InterruptedException {
-        config = get("-g");
+        config = get("-a");
 
         Log.debug("Config: ", config);
 
         // sanity check
-        if (config.length() == 0 || (!config.contains("=") && !config.contains(":"))) {
+        if (config.length() == 0) {
             throw new IOException(MessageFormat.format("Unrecognized stty code: {0}", config));
         }
     }
@@ -70,37 +69,45 @@ public final class TerminalLineSettings
         stty(args);
     }
 
-    public int getProperty(final String name) {
-        assert name != null;
+    /**
+     * <p>
+     * Get the value of a stty property.
+     * </p>
+     *
+     * @param name the stty property.
+     * @return the stty property value.                        
+     */
+    public String getProperty(String name) {
+        return this.getProperty(name, config);
+    }
 
-        try {
-            // tty properties are cached so we don't have to worry too much about getting term widht/height
-            if (ttyProps == null || System.currentTimeMillis() - ttyPropsLastFetched > 1000) {
-                ttyProps = get("-a");
-                ttyPropsLastFetched = System.currentTimeMillis();
-            }
-            // need to be able handle both output formats:
-            // speed 9600 baud; 24 rows; 140 columns;
-            // and:
-            // speed 38400 baud; rows = 49; columns = 111; ypixels = 0; xpixels = 0;
-            for (StringTokenizer tok = new StringTokenizer(ttyProps, ";\n"); tok.hasMoreTokens();) {
-                String str = tok.nextToken().trim();
-
-                if (str.startsWith(name)) {
-                    int index = str.lastIndexOf(" ");
-                    return Integer.parseInt(str.substring(index).trim());
-                }
-                else if (str.endsWith(name)) {
-                    int index = str.indexOf(" ");
-                    return Integer.parseInt(str.substring(0, index).trim());
+    /**
+     * <p>
+     * Parse a stty output (provided by stty -a) and return the value of a given property.
+     * </p>
+     *
+     * @param name property name.
+     * @param stty string resulting of stty -a execution.
+     * @return value of the given property.
+     */
+    protected String getProperty(String name, String stty) {
+        // try the first kind of regex
+        Pattern pattern = Pattern.compile(name + "\\s+=\\s+([^;]*)[;\\n\\r]");
+        Matcher matcher = pattern.matcher(stty);
+        if (!matcher.find()) {
+            // try a second kind of regex
+            pattern = Pattern.compile(name + "\\s+([^;]*)[;\\n\\r]");
+            matcher = pattern.matcher(stty);
+            if (!matcher.find()) {
+                // try a second try of regex
+                pattern = Pattern.compile("(\\S*)\\s+" + name);
+                matcher = pattern.matcher(stty);
+                if (!matcher.find()) {
+                    return null;
                 }
             }
         }
-        catch (Exception e) {
-            Log.warn("Failed to query stty ", name, e);
-        }
-
-        return -1;
+        return matcher.group(1);
     }
 
     private static String stty(final String args) throws IOException, InterruptedException {

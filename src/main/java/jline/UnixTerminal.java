@@ -18,8 +18,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static jline.UnixTerminal.UnixKey.*;
 import static jline.console.Key.*;
@@ -35,6 +33,7 @@ import static jline.console.Key.*;
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:dwkemp@gmail.com">Dale Kemp</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
+ * @author <a href="mailto:jbonofre@apache.org">Jean-Baptiste Onofré</a>
  * @since 2.0
  */
 public class UnixTerminal
@@ -45,10 +44,6 @@ public class UnixTerminal
     private final ReplayPrefixOneCharInputStream replayStream;
 
     private final InputStreamReader replayReader;
-
-    private boolean backspaceDeleteSwitched;
-
-    private boolean backspaceSendsDelete = false;
 
     public UnixTerminal() throws Exception {
         super(true);
@@ -71,24 +66,10 @@ public class UnixTerminal
 
         setAnsiSupported(true);
 
-        backspaceDeleteSwitched = detectBackspaceDeleteSwitched();
-
         // set the console to be character-buffered instead of line-buffered
         settings.set("-icanon min 1");
 
         setEchoEnabled(false);
-    }
-
-    private boolean detectBackspaceDeleteSwitched() {
-        String[] config = settings.getConfig().split(":|=");
-        if (config.length > 20 && "gfmt1".equals(config[0])) {
-            // BSD style stty -g format
-            return "7f".equals(config[20]);
-        } else if (config.length > 6) {
-            return "7f".equals(config[6]);
-        } else {
-            return false;
-        }
     }
 
     /**
@@ -110,7 +91,7 @@ public class UnixTerminal
      */
     @Override
     public int getWidth() {
-        int w = settings.getProperty("columns");
+       int w = Integer.parseInt(settings.getProperty("columns"));
         return w < 1 ? DEFAULT_WIDTH : w;
     }
 
@@ -119,7 +100,7 @@ public class UnixTerminal
      */
     @Override
     public int getHeight() {
-        int h = settings.getProperty("rows");
+        int h = Integer.parseInt(settings.getProperty("rows"));
         return h < 1 ? DEFAULT_HEIGHT : h;
     }
 
@@ -143,12 +124,8 @@ public class UnixTerminal
     public int readVirtualKey(final InputStream in) throws IOException {
         int c = readCharacter(in);
 
-        if (backspaceDeleteSwitched) {
-            if (Key.valueOf(c) == DELETE) {
-                c = BACKSPACE.code;
-            } else if (c == BACKSPACE.code) {
-                c = DELETE.code;
-            }
+        if (Key.valueOf(c) == DELETE && settings.getProperty("erase").equals("^?")) {
+            c = BACKSPACE.code;
         }
 
         UnixKey key = UnixKey.valueOf(c);
