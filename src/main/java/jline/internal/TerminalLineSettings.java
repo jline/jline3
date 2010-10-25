@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.MessageFormat;
-import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -41,6 +40,8 @@ public final class TerminalLineSettings
     private static String shCommand = Configuration.getString(JLINE_SH, DEFAULT_SH);
 
     private String config;
+
+    private long configLastFetched;
 
     public TerminalLineSettings() throws IOException, InterruptedException {
         config = get("-a");
@@ -71,19 +72,31 @@ public final class TerminalLineSettings
 
     /**
      * <p>
-     * Get the value of a stty property.
+     * Get the value of a stty property, including the management of a cache.
      * </p>
      *
      * @param name the stty property.
      * @return the stty property value.                        
      */
     public String getProperty(String name) {
-        return this.getProperty(name, config);
+        assert name != null;
+
+        try {
+            if (config == null || System.currentTimeMillis() - configLastFetched > 1000 ) {
+                config = get("-a");
+                configLastFetched = System.currentTimeMillis();
+            }
+
+            return this.getProperty(name, config);
+        } catch (Exception e) {
+            Log.warn("Failed to query stty ", name, e);            
+            return null;
+        }
     }
 
     /**
      * <p>
-     * Parse a stty output (provided by stty -a) and return the value of a given property.
+     * Parses a stty output (provided by stty -a) and return the value of a given property.
      * </p>
      *
      * @param name property name.
