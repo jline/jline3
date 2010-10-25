@@ -91,7 +91,7 @@ public class UnixTerminal
      */
     @Override
     public int getWidth() {
-       int w = Integer.parseInt(settings.getProperty("columns"));
+        int w = settings.getProperty("columns");
         return w < 1 ? DEFAULT_WIDTH : w;
     }
 
@@ -100,7 +100,7 @@ public class UnixTerminal
      */
     @Override
     public int getHeight() {
-        int h = Integer.parseInt(settings.getProperty("rows"));
+        int h = settings.getProperty("rows");
         return h < 1 ? DEFAULT_HEIGHT : h;
     }
 
@@ -124,7 +124,7 @@ public class UnixTerminal
     public int readVirtualKey(final InputStream in) throws IOException {
         int c = readCharacter(in);
 
-        if (Key.valueOf(c) == DELETE && settings.getProperty("erase").equals("^?")) {
+        if (Key.valueOf(c) == DELETE && settings.getProperty("erase") == DELETE.code) {
             c = BACKSPACE.code;
         }
 

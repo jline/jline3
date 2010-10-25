@@ -45,6 +45,7 @@ public final class TerminalLineSettings
 
     public TerminalLineSettings() throws IOException, InterruptedException {
         config = get("-a");
+        configLastFetched = System.currentTimeMillis();
 
         Log.debug("Config: ", config);
 
@@ -78,19 +79,18 @@ public final class TerminalLineSettings
      * @param name the stty property.
      * @return the stty property value.                        
      */
-    public String getProperty(String name) {
+    public int getProperty(String name) {
         assert name != null;
-
         try {
+            // tty properties are cached so we don't have to worry too much about getting term widht/height
             if (config == null || System.currentTimeMillis() - configLastFetched > 1000 ) {
                 config = get("-a");
                 configLastFetched = System.currentTimeMillis();
             }
-
             return this.getProperty(name, config);
         } catch (Exception e) {
             Log.warn("Failed to query stty ", name, e);            
-            return null;
+            return -1;
         }
     }
 
@@ -103,7 +103,7 @@ public final class TerminalLineSettings
      * @param stty string resulting of stty -a execution.
      * @return value of the given property.
      */
-    protected String getProperty(String name, String stty) {
+    protected int getProperty(String name, String stty) {
         // try the first kind of regex
         Pattern pattern = Pattern.compile(name + "\\s+=\\s+([^;]*)[;\\n\\r]");
         Matcher matcher = pattern.matcher(stty);
@@ -116,11 +116,46 @@ public final class TerminalLineSettings
                 pattern = Pattern.compile("(\\S*)\\s+" + name);
                 matcher = pattern.matcher(stty);
                 if (!matcher.find()) {
-                    return null;
+                    return -1;
                 }
             }
         }
-        return matcher.group(1);
+        return parseControlChar(matcher.group(1));
+    }
+
+    private int parseControlChar(String str) {
+        // under
+        if ("<undef>".equals(str)) {
+            return -1;
+        }
+        // octal
+        if (str.charAt(0) == '0') {
+            return Integer.parseInt(str, 8);
+        }
+        // decimal
+        if (str.charAt(0) >= '1' && str.charAt(0) <= '9') {
+            return Integer.parseInt(str, 10);
+        }
+        // control char
+        if (str.charAt(0) == '^') {
+            if (str.charAt(1) == '?') {
+                return 127;
+            } else {
+                return str.charAt(1) - 64;
+            }
+        } else if (str.charAt(0) == 'M' && str.charAt(1) == '-') {
+            if (str.charAt(2) == '^') {
+                if (str.charAt(3) == '?') {
+                    return 127 + 128;
+                } else {
+                    return str.charAt(3) - 64 + 128;
+                }
+            } else {
+                return str.charAt(2) + 128;
+            }
+        } else {
+            return str.charAt(0);
+        }
     }
 
     private static String stty(final String args) throws IOException, InterruptedException {
