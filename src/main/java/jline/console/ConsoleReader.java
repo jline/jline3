@@ -587,6 +587,20 @@ public class ConsoleReader
 
         if (terminal.isAnsiSupported()) {
             printAnsiSequence("K");
+            // if cursor+num wraps, then we need to clear the line(s) below too
+            int width = terminal.getWidth();
+            int cursor = getCursorPosition();
+            int curCol = cursor % width;
+            int endCol = (cursor + num) % width;
+            int lines = num / width;
+            if (endCol < curCol) lines++;
+            for (int i = 0; i < lines; i++) {
+                printAnsiSequence("B");
+                printAnsiSequence("2K");
+            }
+            for (int i = 0; i < lines; i++) {
+                printAnsiSequence("A");
+            }
             return;
         }
 
