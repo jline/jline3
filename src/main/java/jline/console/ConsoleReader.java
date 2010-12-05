@@ -1316,7 +1316,7 @@ public class ConsoleReader
                             break;
 
                         case CLEAR_LINE:
-                            moveInternal(-(buf.buffer.length()));
+                            moveInternal(-(buf.cursor));
                             killLine();
                             break;
 
