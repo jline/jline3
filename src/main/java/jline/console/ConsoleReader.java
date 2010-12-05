@@ -76,6 +76,21 @@ public class ConsoleReader
 
     private int searchIndex = -1;
 
+    public ConsoleReader(final InputStream in, final OutputStream out, final InputStream bindings, final Terminal term) throws
+        IOException
+    {
+        this.in = in;
+        this.terminal = term != null ? term : TerminalFactory.get();
+        this.out = new PrintWriter(terminal.wrapOutIfNeeded(out));
+        this.keyBindings = loadKeyBindings(bindings);
+
+        setBellEnabled(!Configuration.getBoolean(JLINE_NOBELL, false));
+    }
+
+    /**
+     * @deprecated use {@link #ConsoleReader(InputStream, OutputStream, InputStream, Terminal)}
+     * to let the terminal wrap the output stream if needed.
+     */
     public ConsoleReader(final InputStream in, final Writer out, final InputStream bindings, final Terminal term) throws
         IOException
     {
@@ -87,11 +102,20 @@ public class ConsoleReader
         setBellEnabled(!Configuration.getBoolean(JLINE_NOBELL, false));
     }
 
+    /**
+     * @deprecated use {@link #ConsoleReader(InputStream, OutputStream, InputStream, Terminal)}
+     * to let the terminal wrap the output stream if needed.
+     */
     public ConsoleReader(final InputStream in, final Writer out, final Terminal term) throws IOException {
         this(in, out, null, term);
     }
 
-    public ConsoleReader(final InputStream in, final Writer out) throws IOException {
+    /**
+     * @deprecated use {@link #ConsoleReader(InputStream, OutputStream, InputStream, Terminal)}
+     * to let the terminal wrap the output stream if needed.
+     */
+    public ConsoleReader(final InputStream in, final Writer out) throws IOException
+    {
         this(in, out, null, null);
     }
 
@@ -102,7 +126,7 @@ public class ConsoleReader
      * {@link FileDescriptor#in} is used because it has a better chance of not being buffered.
      */
     public ConsoleReader() throws IOException {
-        this(new FileInputStream(FileDescriptor.in), new PrintWriter(new OutputStreamWriter(System.out)), null, null);
+        this(new FileInputStream(FileDescriptor.in), System.out, null, null );
     }
 
     // FIXME: Only used for tests
@@ -474,10 +498,12 @@ public class ConsoleReader
      * fixes backspace issue, where it assumes that the terminal is doing this.
      */
     private final void newlineAtWrap() throws IOException {
-        int width = getTerminal().getWidth();
+        if (terminal.newlineAtWrapNeeded()) {
+            int width = getTerminal().getWidth();
 
-        if ((getCursorPosition() % width == 0) && getCurrentPosition() >= width)
-            println();
+            if ((getCursorPosition() % width == 0) && getCurrentPosition() >= width)
+                println();
+        }
     }
 
     /**
@@ -534,7 +560,8 @@ public class ConsoleReader
         if (terminal.isAnsiSupported()) {
             if (chars.length > 0) {
                 // don't ask, it works
-                back(Math.max(chars.length - 1, 1));
+                //back(Math.max(chars.length - 1, 1), true);
+                back(chars.length, true);
             }
         } else {
             back(chars.length);
@@ -571,28 +598,39 @@ public class ConsoleReader
 //        flush();
 
         // reset the visual cursor
-        back(num);
+        back(num, true);
 
 //        flush();
     }
 
+    private void back(final int num) throws IOException {
+        back(num, false);
+    }
+
     /**
      * Move the visual cursor backwards without modifying the buffer cursor.
+     * @param printed if true some characters were printed and we have to deal
+     * with new line at wrap
      */
-    private void back(final int num) throws IOException {
+    private void back(final int num, boolean printed) throws IOException {
         if (num == 0) return;
         if (terminal.isAnsiSupported()) {
             int width = getTerminal().getWidth();
             int cursor = getCursorPosition();
-            // debug("back: " + cursor + " + " + num + " on " + width);
-            int currRow = (cursor + num) / width;
-            int newRow = cursor / width;
-            int newCol = cursor % width + 1;
-            // debug("    old row: " + currRow + " new row: " + newRow);
-            if (newRow < currRow) {
-                printAnsiSequence((currRow - newRow) + "A");
+            int realCursor = cursor + num;
+            // adjust cursor if it did not wrapped on its own
+            if (printed && terminal.newlineAtWrapNeeded() && realCursor%width == 0) {
+                realCursor--;
             }
-            printAnsiSequence(newCol + "G");
+            int realCol  = realCursor % width;
+            int newCol = cursor % width;
+            int moveup = num / width;
+            int delta = realCol - newCol;
+            if (delta < 0) moveup++;
+            if (moveup > 0) {
+                printAnsiSequence(moveup + "A");
+            }
+            printAnsiSequence((1 + newCol) + "G");
             return;
         }
         print(BACKSPACE, num);
@@ -2005,7 +2043,7 @@ public class ConsoleReader
         print(27);
         print('[');
         print(sequence);
-//        flush();
+        flush(); // helps with step debugging
     }
 
     // return column position, reported by the terminal

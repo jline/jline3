@@ -11,6 +11,7 @@ import jline.internal.Log;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 /**
  * Provides support for {@link Terminal} instances.
@@ -97,6 +98,21 @@ public abstract class TerminalSupport
     protected synchronized void setAnsiSupported(final boolean supported) {
         this.ansiSupported = supported;
         Log.debug("Ansi supported: ", supported);
+    }
+
+    /**
+     * Subclass to change behavior if needed. 
+     * @return the passed out
+     */
+    public OutputStream wrapOutIfNeeded(OutputStream out) {
+        return out;
+    }
+
+    /**
+     * Defaults to true which was the behaviour before this method was added.
+     */
+    public boolean newlineAtWrapNeeded() {
+        return true;
     }
 
     public int getWidth() {

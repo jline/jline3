@@ -144,7 +144,7 @@ public class TerminalFactory
     private static final Map<Flavor, Class<? extends Terminal>> FLAVORS = new HashMap<Flavor, Class<? extends Terminal>>();
 
     static {
-        registerFlavor(Flavor.WINDOWS, WindowsTerminal.class);
+        registerFlavor(Flavor.WINDOWS, AnsiWindowsTerminal.class);
         registerFlavor(Flavor.UNIX, UnixTerminal.class);
     }
 
