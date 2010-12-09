@@ -41,6 +41,8 @@ public class ConsoleReader
 {
     public static final String JLINE_NOBELL = "jline.nobell";
 
+    public static final String JLINE_EXPANDEVENTS = "jline.expandevents";
+
     public static final char BACKSPACE = '\b';
 
     public static final char RESET_LINE = '\r';
@@ -66,6 +68,8 @@ public class ConsoleReader
 
     private boolean bellEnabled = true;
 
+    private boolean expandEvents = false;
+
     private Character mask;
 
     private Character echoCharacter;
@@ -85,6 +89,7 @@ public class ConsoleReader
         this.keyBindings = loadKeyBindings(bindings);
 
         setBellEnabled(!Configuration.getBoolean(JLINE_NOBELL, false));
+        setExpandEvents(Configuration.getBoolean(JLINE_EXPANDEVENTS, false));
     }
 
     /**
@@ -157,6 +162,14 @@ public class ConsoleReader
 
     public boolean isBellEnabled() {
         return bellEnabled;
+    }
+
+    public void setExpandEvents(final boolean expand) {
+        this.expandEvents = expand;
+    }
+
+    public boolean getExpandEvents() {
+        return expandEvents;
     }
 
     public void setPrompt(final String prompt) {
@@ -332,7 +345,9 @@ public class ConsoleReader
     final String finishBuffer() throws IOException { // FIXME: Package protected because used by tests
         String str = buf.buffer.toString();
 
-        str = expandEvents(str);
+        if (expandEvents) {
+            str = expandEvents(str);
+        }
 
         // we only add it to the history if the buffer is not empty
         // and if mask is null, since having a mask typically means
