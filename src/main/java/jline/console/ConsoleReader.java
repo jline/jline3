@@ -326,6 +326,8 @@ public class ConsoleReader
         if (buf.length() != buf.cursor) { // not at end of line
             back(buf.length() - buf.cursor - 1);
         }
+        // force drawBuffer to check for weird wrap (after clear screen)
+        drawBuffer();
     }
 
     /**
@@ -548,23 +550,35 @@ public class ConsoleReader
     private void drawBuffer(final int clear) throws IOException {
         // debug ("drawBuffer: " + clear);
         if (buf.cursor == buf.length() && clear == 0) {
-            return;
-        }
-        char[] chars = buf.buffer.substring(buf.cursor).toCharArray();
-        if (mask != null) {
-            Arrays.fill(chars, mask);
-        }
+        } else {
+            char[] chars = buf.buffer.substring(buf.cursor).toCharArray();
+            if (mask != null) {
+                Arrays.fill(chars, mask);
+            }
 
-        print(chars);
-        clearAhead(clear, chars.length);
-        if (terminal.isAnsiSupported()) {
-            if (chars.length > 0) {
+            print(chars);
+            clearAhead(clear, chars.length);
+            if (terminal.isAnsiSupported()) {
+                if (chars.length > 0) {
+                    back(chars.length);
+                }
+            } else {
                 back(chars.length);
             }
-        } else {
-            back(chars.length);
         }
-//        flush();
+        if (terminal.hasWeirdWrap()) {
+            int width = terminal.getWidth();
+            // best guess on whether the cursor is in that weird location...
+            // Need to do this without calling ansi cursor location methods
+            // otherwise it breaks paste of wrapped lines in xterm.
+            if (getCursorPosition() == width 
+                    && buf.cursor == buf.length() && clear == 0) {
+                // the following workaround is reverse-engineered from looking
+                // at what bash sent to the terminal in the same situation
+                print(32); // move cursor to next line by printing dummy space
+                print(13); // CR / not newline.
+            }
+        }
     }
 
     /**
