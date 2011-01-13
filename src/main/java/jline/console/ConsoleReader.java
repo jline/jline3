@@ -583,7 +583,7 @@ public class ConsoleReader
             // best guess on whether the cursor is in that weird location...
             // Need to do this without calling ansi cursor location methods
             // otherwise it breaks paste of wrapped lines in xterm.
-            if (getCursorPosition() == width 
+            if (getCursorPosition() > 0 && (getCursorPosition() % width == 0)
                     && buf.cursor == buf.length() && clear == 0) {
                 // the following workaround is reverse-engineered from looking
                 // at what bash sent to the terminal in the same situation
