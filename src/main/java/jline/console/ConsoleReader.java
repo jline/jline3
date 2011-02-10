@@ -1502,7 +1502,7 @@ public class ConsoleReader
      *
      * @return true if successful
      */
-    private boolean complete() throws IOException {
+    protected boolean complete() throws IOException {
         // debug ("tab for (" + buf + ")");
         if (completers.size() == 0) {
             return false;
