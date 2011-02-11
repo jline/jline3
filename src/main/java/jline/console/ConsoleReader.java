@@ -219,7 +219,7 @@ public class ConsoleReader
      *
      * @return false if we failed (e.g., the buffer was empty)
      */
-    final boolean resetLine() throws IOException {
+    protected final boolean resetLine() throws IOException {
         if (buf.cursor == 0) {
             return false;
         }
@@ -378,7 +378,7 @@ public class ConsoleReader
      * @param str
      * @return
      */
-    final String expandEvents(String str) throws IOException {
+    protected String expandEvents(String str) throws IOException {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < str.length(); i++) {
             char c = str.charAt(i);
@@ -736,7 +736,7 @@ public class ConsoleReader
         return backspace(1) == 1;
     }
 
-    private boolean moveToEnd() throws IOException {
+    protected boolean moveToEnd() throws IOException {
         return moveCursor(buf.length() - buf.cursor) > 0;
     }
 
