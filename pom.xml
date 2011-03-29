@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.sonatype.forge</groupId>
         <artifactId>forge-parent</artifactId>
-        <version>6</version>
+        <version>9</version>
     </parent>
 
     <groupId>org.sonatype.jline</groupId>
