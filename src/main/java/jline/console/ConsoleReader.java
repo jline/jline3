@@ -7,6 +7,37 @@
 
 package jline.console;
 
+import java.awt.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.event.ActionListener;
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.io.Reader;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Properties;
+import java.util.ResourceBundle;
+
 import jline.Terminal;
 import jline.TerminalFactory;
 import jline.console.completer.CandidateListCompletionHandler;
@@ -17,15 +48,6 @@ import jline.console.history.MemoryHistory;
 import jline.internal.Configuration;
 import jline.internal.Log;
 import org.fusesource.jansi.AnsiOutputStream;
-
-import java.awt.Toolkit;
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
-import java.awt.datatransfer.UnsupportedFlavorException;
-import java.awt.event.ActionListener;
-import java.io.*;
-import java.util.*;
 
 /**
  * A reader for console applications. It supports custom tab-completion,
@@ -57,6 +79,8 @@ public class ConsoleReader
     private final Terminal terminal;
 
     private InputStream in;
+
+    private List<Byte> streamBuffer = new ArrayList<Byte>();
 
     private final Writer out;
 
@@ -820,7 +844,7 @@ public class ConsoleReader
      * @return the character, or -1 if an EOF is received.
      */
     public final int readVirtualKey() throws IOException {
-        int c = terminal.readVirtualKey(in);
+        int c = streamBuffer.isEmpty() ? terminal.readVirtualKey(in) : streamBuffer.remove(0);
 
         Log.trace("Keystroke: ", c);
 
@@ -1343,7 +1367,7 @@ public class ConsoleReader
         StringBuilder buff = new StringBuilder();
 
         while (true) {
-            int i = in.read();
+            int i = streamBuffer.isEmpty() ? in.read() : streamBuffer.remove(0);
 
             if (i == -1 || i == '\n' || i == '\r') {
                 return buff.toString();
@@ -2013,6 +2037,9 @@ public class ConsoleReader
         // check for ByteArrayInputStream to disable for unit tests
         if (terminal.isAnsiSupported() && !(in instanceof ByteArrayInputStream)) {
             try {
+                while (in.available() > 0) {
+                    streamBuffer.add( (byte) in.read() );
+                }
                 printAnsiSequence("6n");
                 flush();
                 StringBuffer b = new StringBuffer(8);
