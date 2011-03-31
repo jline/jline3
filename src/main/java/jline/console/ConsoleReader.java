@@ -41,6 +41,8 @@ public class ConsoleReader
 {
     public static final String JLINE_NOBELL = "jline.nobell";
 
+    public static final String JLINE_EXPANDEVENTS = "jline.expandevents";
+
     public static final char BACKSPACE = '\b';
 
     public static final char RESET_LINE = '\r';
@@ -66,6 +68,8 @@ public class ConsoleReader
 
     private boolean bellEnabled = true;
 
+    private boolean expandEvents = false;
+
     private Character mask;
 
     private Character echoCharacter;
@@ -76,6 +80,22 @@ public class ConsoleReader
 
     private int searchIndex = -1;
 
+    public ConsoleReader(final InputStream in, final OutputStream out, final InputStream bindings, final Terminal term) throws
+        IOException
+    {
+        this.in = in;
+        this.terminal = term != null ? term : TerminalFactory.get();
+        this.out = new PrintWriter(terminal.wrapOutIfNeeded(out));
+        this.keyBindings = loadKeyBindings(bindings);
+
+        setBellEnabled(!Configuration.getBoolean(JLINE_NOBELL, false));
+        setExpandEvents(Configuration.getBoolean(JLINE_EXPANDEVENTS, false));
+    }
+
+    /**
+     * @deprecated use {@link #ConsoleReader(InputStream, OutputStream, InputStream, Terminal)}
+     * to let the terminal wrap the output stream if needed.
+     */
     public ConsoleReader(final InputStream in, final Writer out, final InputStream bindings, final Terminal term) throws
         IOException
     {
@@ -87,11 +107,20 @@ public class ConsoleReader
         setBellEnabled(!Configuration.getBoolean(JLINE_NOBELL, false));
     }
 
+    /**
+     * @deprecated use {@link #ConsoleReader(InputStream, OutputStream, InputStream, Terminal)}
+     * to let the terminal wrap the output stream if needed.
+     */
     public ConsoleReader(final InputStream in, final Writer out, final Terminal term) throws IOException {
         this(in, out, null, term);
     }
 
-    public ConsoleReader(final InputStream in, final Writer out) throws IOException {
+    /**
+     * @deprecated use {@link #ConsoleReader(InputStream, OutputStream, InputStream, Terminal)}
+     * to let the terminal wrap the output stream if needed.
+     */
+    public ConsoleReader(final InputStream in, final Writer out) throws IOException
+    {
         this(in, out, null, null);
     }
 
@@ -102,7 +131,7 @@ public class ConsoleReader
      * {@link FileDescriptor#in} is used because it has a better chance of not being buffered.
      */
     public ConsoleReader() throws IOException {
-        this(new FileInputStream(FileDescriptor.in), new PrintWriter(new OutputStreamWriter(System.out)), null, null);
+        this(new FileInputStream(FileDescriptor.in), System.out, null, null );
     }
 
     // FIXME: Only used for tests
@@ -133,6 +162,14 @@ public class ConsoleReader
 
     public boolean isBellEnabled() {
         return bellEnabled;
+    }
+
+    public void setExpandEvents(final boolean expand) {
+        this.expandEvents = expand;
+    }
+
+    public boolean getExpandEvents() {
+        return expandEvents;
     }
 
     public void setPrompt(final String prompt) {
@@ -182,7 +219,7 @@ public class ConsoleReader
      *
      * @return false if we failed (e.g., the buffer was empty)
      */
-    final boolean resetLine() throws IOException {
+    protected final boolean resetLine() throws IOException {
         if (buf.cursor == 0) {
             return false;
         }
@@ -289,6 +326,8 @@ public class ConsoleReader
         if (buf.length() != buf.cursor) { // not at end of line
             back(buf.length() - buf.cursor - 1);
         }
+        // force drawBuffer to check for weird wrap (after clear screen)
+        drawBuffer();
     }
 
     /**
@@ -308,7 +347,9 @@ public class ConsoleReader
     final String finishBuffer() throws IOException { // FIXME: Package protected because used by tests
         String str = buf.buffer.toString();
 
-        str = expandEvents(str);
+        if (expandEvents) {
+            str = expandEvents(str);
+        }
 
         // we only add it to the history if the buffer is not empty
         // and if mask is null, since having a mask typically means
@@ -337,7 +378,7 @@ public class ConsoleReader
      * @param str
      * @return
      */
-    final String expandEvents(String str) throws IOException {
+    protected String expandEvents(String str) throws IOException {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < str.length(); i++) {
             char c = str.charAt(i);
@@ -469,17 +510,6 @@ public class ConsoleReader
 
     }
 
-    /* Handle case where terminal does not move cursor to the next line
-     * when a character is inserted at the width of the terminal.  This also
-     * fixes backspace issue, where it assumes that the terminal is doing this.
-     */
-    private final void newlineAtWrap() throws IOException {
-        int width = getTerminal().getWidth();
-
-        if ((getCursorPosition() % width == 0) && getCurrentPosition() >= width)
-            println();
-    }
-
     /**
      * Write out the specified string to the buffer and the output stream.
      */
@@ -487,7 +517,6 @@ public class ConsoleReader
         buf.write(str);
         print(str);
         drawBuffer();
-        newlineAtWrap();
     }
 
     /**
@@ -509,7 +538,6 @@ public class ConsoleReader
             }
 
             drawBuffer();
-            newlineAtWrap();
         }
     }
 
@@ -522,24 +550,47 @@ public class ConsoleReader
     private void drawBuffer(final int clear) throws IOException {
         // debug ("drawBuffer: " + clear);
         if (buf.cursor == buf.length() && clear == 0) {
-            return;
-        }
-        char[] chars = buf.buffer.substring(buf.cursor).toCharArray();
-        if (mask != null) {
-            Arrays.fill(chars, mask);
-        }
-
-        print(chars);
-        clearAhead(clear);
-        if (terminal.isAnsiSupported()) {
-            if (chars.length > 0) {
-                // don't ask, it works
-                back(Math.max(chars.length - 1, 1));
-            }
         } else {
-            back(chars.length);
+            char[] chars = buf.buffer.substring(buf.cursor).toCharArray();
+            if (mask != null) {
+                Arrays.fill(chars, mask);
+            }
+            if (terminal.hasWeirdWrap()) {
+                // need to determine if wrapping will occur:
+                int width = terminal.getWidth();
+                int pos = getCursorPosition();
+                for (int i = 0; i < chars.length; i++) {
+                    print(chars[i]);
+                    if ((pos + i + 1) % width == 0) {
+                        print(32); // move cursor to next line by printing dummy space
+                        print(13); // CR / not newline.
+                    }
+                }
+            } else {
+                print(chars);
+            }
+            clearAhead(clear, chars.length);
+            if (terminal.isAnsiSupported()) {
+                if (chars.length > 0) {
+                    back(chars.length);
+                }
+            } else {
+                back(chars.length);
+            }
         }
-//        flush();
+        if (terminal.hasWeirdWrap()) {
+            int width = terminal.getWidth();
+            // best guess on whether the cursor is in that weird location...
+            // Need to do this without calling ansi cursor location methods
+            // otherwise it breaks paste of wrapped lines in xterm.
+            if (getCursorPosition() > 0 && (getCursorPosition() % width == 0)
+                    && buf.cursor == buf.length() && clear == 0) {
+                // the following workaround is reverse-engineered from looking
+                // at what bash sent to the terminal in the same situation
+                print(32); // move cursor to next line by printing dummy space
+                print(13); // CR / not newline.
+            }
+        }
     }
 
     /**
@@ -552,14 +603,34 @@ public class ConsoleReader
 
     /**
      * Clear ahead the specified number of characters without moving the cursor.
+     *
+     * @param num the number of characters to clear
+     * @param delta the difference between the internal cursor and the screen
+     * cursor - if > 0, assume some stuff was printed and weird wrap has to be
+     * checked
      */
-    private void clearAhead(final int num) throws IOException {
+    private void clearAhead(final int num, int delta) throws IOException {
         if (num == 0) {
             return;
         }
 
         if (terminal.isAnsiSupported()) {
+            int width = terminal.getWidth();
+            int screenCursorCol = getCursorPosition() + delta;
+            // clear current line
             printAnsiSequence("K");
+            // if cursor+num wraps, then we need to clear the line(s) below too
+            int curCol = screenCursorCol % width;
+            int endCol = (screenCursorCol + num - 1) % width;
+            int lines = num / width;
+            if (endCol < curCol) lines++;
+            for (int i = 0; i < lines; i++) {
+                printAnsiSequence("B");
+                printAnsiSequence("2K");
+            }
+            for (int i = 0; i < lines; i++) {
+                printAnsiSequence("A");
+            }
             return;
         }
 
@@ -579,20 +650,21 @@ public class ConsoleReader
     /**
      * Move the visual cursor backwards without modifying the buffer cursor.
      */
-    private void back(final int num) throws IOException {
+    protected void back(final int num) throws IOException {
         if (num == 0) return;
         if (terminal.isAnsiSupported()) {
             int width = getTerminal().getWidth();
             int cursor = getCursorPosition();
-            // debug("back: " + cursor + " + " + num + " on " + width);
-            int currRow = (cursor + num) / width;
-            int newRow = cursor / width;
-            int newCol = cursor % width + 1;
-            // debug("    old row: " + currRow + " new row: " + newRow);
-            if (newRow < currRow) {
-                printAnsiSequence((currRow - newRow) + "A");
+            int realCursor = cursor + num;
+            int realCol  = realCursor % width;
+            int newCol = cursor % width;
+            int moveup = num / width;
+            int delta = realCol - newCol;
+            if (delta < 0) moveup++;
+            if (moveup > 0) {
+                printAnsiSequence(moveup + "A");
             }
-            printAnsiSequence(newCol + "G");
+            printAnsiSequence((1 + newCol) + "G");
             return;
         }
         print(BACKSPACE, num);
@@ -631,6 +703,23 @@ public class ConsoleReader
             if (terminal.isAnsiSupported()) {
                 // debug("doing backspace redraw: " + getCursorPosition() + " on " + termwidth + ": " + lines);
                 printAnsiSequence("K");
+                // if cursor+num wraps, then we need to clear the line(s) below too
+                // last char printed is one pos less than cursor so we subtract
+                // one
+/*
+                // TODO: fixme (does not work - test with reverse search with wrapping line and CTRL-E)
+                int endCol = (getCursorPosition() + num - 1) % termwidth;
+                int curCol = getCursorPosition() % termwidth;
+                if (endCol < curCol) lines++;
+                for (int i = 1; i < lines; i++) {
+                    printAnsiSequence("B");
+                    printAnsiSequence("2K");
+                }
+                for (int i = 1; i < lines; i++) {
+                    printAnsiSequence("A");
+                }
+                return count;
+*/
             }
         }
         drawBuffer(count);
@@ -647,7 +736,7 @@ public class ConsoleReader
         return backspace(1) == 1;
     }
 
-    private boolean moveToEnd() throws IOException {
+    protected boolean moveToEnd() throws IOException {
         return moveCursor(buf.length() - buf.cursor) > 0;
     }
 
@@ -748,6 +837,15 @@ public class ConsoleReader
                 int oldLine = (cursor - where) / width;
                 int newLine = cursor / width;
                 if (newLine > oldLine) {
+                    if (terminal.hasWeirdWrap()) {
+                        // scroll up if at bottom
+                        // note:
+                        //   on rxvt cywgin terminal.getHeight() is incorrect
+                        //   MacOs xterm does not seem to support scrolling
+                        if (getCurrentAnsiRow() == terminal.getHeight()) {
+                            printAnsiSequence((newLine - oldLine) + "S");
+                        }
+                    }
                     printAnsiSequence((newLine - oldLine) + "B");
                 }
                 printAnsiSequence(1 +(cursor % width) + "G");
@@ -1278,7 +1376,7 @@ public class ConsoleReader
                             break;
 
                         case CLEAR_LINE:
-                            moveInternal(-(buf.buffer.length()));
+                            moveInternal(-(buf.cursor));
                             killLine();
                             break;
 
@@ -1404,7 +1502,7 @@ public class ConsoleReader
      *
      * @return true if successful
      */
-    private boolean complete() throws IOException {
+    protected boolean complete() throws IOException {
         // debug ("tab for (" + buf + ")");
         if (completers.size() == 0) {
             return false;
@@ -1645,7 +1743,7 @@ public class ConsoleReader
         }
 
         int num = buf.buffer.length() - cp;
-        clearAhead(num);
+        clearAhead(num, 0);
 
         for (int i = 0; i < num; i++) {
             buf.buffer.deleteCharAt(len - i - 1);
@@ -2005,7 +2103,7 @@ public class ConsoleReader
         print(27);
         print('[');
         print(sequence);
-//        flush();
+        flush(); // helps with step debugging
     }
 
     // return column position, reported by the terminal
@@ -2033,4 +2131,30 @@ public class ConsoleReader
         return -1; // TODO: throw exception instead?
     }
 
+    // return row position, reported by the terminal
+    // needed to know whether to scroll up on cursor move in last col for weird
+    // wrapping terminals - not tested for anything else
+    private int getCurrentAnsiRow() {
+        // check for ByteArrayInputStream to disable for unit tests
+        if (terminal.isAnsiSupported() && !(in instanceof ByteArrayInputStream)) {
+            try {
+                printAnsiSequence("6n");
+                flush();
+                StringBuffer b = new StringBuffer(8);
+                // position is sent as <ESC>[{ROW};{COLUMN}R
+                int r;
+                while((r = in.read()) > -1 && r != 'R') {
+                    if (r != 27 && r != '[') {
+                        b.append((char) r);
+                    }
+                }
+                String[] pos = b.toString().split(";");
+                return Integer.parseInt(pos[0]);
+            } catch (Exception x) {
+                // no luck
+            }
+        }
+
+        return -1; // TODO: throw exception instead?
+    }
 }

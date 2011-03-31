@@ -9,6 +9,7 @@ package jline;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 /**
  * Representation of the input terminal for a platform.
@@ -32,6 +33,19 @@ public interface Terminal
     int getHeight();
 
     boolean isAnsiSupported();
+
+    /**
+     * When ANSI is not natively handled, the output will have to be wrapped.
+     */
+    OutputStream wrapOutIfNeeded(OutputStream out);
+
+    /**
+     * For terminals that don't wrap when character is written in last column,
+     * only when the next character is written.
+     * These are the ones that have 'am' and 'xn' termcap attributes (xterm and
+     * rxvt flavors falls under that category)
+     */
+    boolean hasWeirdWrap();
 
     boolean isEchoEnabled();
 
