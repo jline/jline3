@@ -6,7 +6,7 @@ JLine 2.x
 License
 -------
 
-BSD
+[BSD](http://www.opensource.org/licenses/bsd-license.php)
 
 Building
 --------
