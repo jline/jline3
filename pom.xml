@@ -9,15 +9,10 @@
         <version>9</version>
     </parent>
 
-    <groupId>org.sonatype.jline</groupId>
+    <groupId>jline</groupId>
     <artifactId>jline</artifactId>
     <name>JLine</name>
     <version>2.6-SNAPSHOT</version>
-
-    <organization>
-        <name>Sonatype</name>
-        <url>http://sonatype.org</url>
-    </organization>
 
     <licenses>
         <license>
@@ -28,9 +23,9 @@
     </licenses>
 
     <scm>
-        <connection>scm:git:git://github.com/jdillon/jline2.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/jdillon/jline2.git</developerConnection>
-        <url>http://github.com/jdillon/jline2</url>
+        <connection>scm:git:git://github.com/jline/jline2.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/jline/jline2.git</developerConnection>
+        <url>http://github.com/jline/jline2</url>
     </scm>
 
     <ciManagement>
