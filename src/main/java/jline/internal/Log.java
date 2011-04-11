@@ -59,7 +59,7 @@ public final class Log
 
     private static void print(final Object message) {
         if (message instanceof Throwable) {
-            ((Throwable) message).printStackTrace();
+            ((Throwable) message).printStackTrace(output);
         }
         else if (message.getClass().isArray()) {
             Object[] array = (Object[]) message;

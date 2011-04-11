@@ -1,285 +1,135 @@
-/*
- * Copyright (c) 2002-2007, Marc Prud'hommeaux. All rights reserved.
- *
- * This software is distributable under the BSD license. See the terms of the
- * BSD license in the documentation provided with this software.
- */
-
 package jline.console;
 
-import java.util.HashMap;
-import java.util.Map;
+public enum Operation {
 
-/**
- * Map for console operation to virtual key bindings.
- *
- * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
- * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
- * @see java.awt.event.KeyEvent
- * @since 2.0
- */
-public enum Operation
-{
-    /**
-     * Unknown operation.
-     */
-    UNKNOWN(-99),
+    ABORT,
+    ACCEPT_LINE,
+    ARROW_KEY_PREFIX,
+    BACKWARD_BYTE,
+    BACKWARD_CHAR,
+    BACKWARD_DELETE_CHAR,
+    BACKWARD_KILL_LINE,
+    BACKWARD_KILL_WORD,
+    BACKWARD_WORD,
+    BEGINNING_OF_HISTORY,
+    BEGINNING_OF_LINE,
+    CALL_LAST_KBD_MACRO,
+    CAPITALIZE_WORD,
+    CHARACTER_SEARCH,
+    CHARACTER_SEARCH_BACKWARD,
+    CLEAR_SCREEN,
+    COMPLETE,
+    COPY_BACKWARD_WORD,
+    COPY_FORWARD_WORD,
+    COPY_REGION_AS_KILL,
+    DELETE_CHAR,
+    DELETE_CHAR_OR_LIST,
+    DELETE_HORIZONTAL_SPACE,
+    DIGIT_ARGUMENT,
+    DO_LOWERCASE_VERSION,
+    DOWNCASE_WORD,
+    DUMP_FUNCTIONS,
+    DUMP_MACROS,
+    DUMP_VARIABLES,
+    EMACS_EDITING_MODE,
+    END_KBD_MACRO,
+    END_OF_HISTORY,
+    END_OF_LINE,
+    EXCHANGE_POINT_AND_MARK,
+    FORWARD_BACKWARD_DELETE_CHAR,
+    FORWARD_BYTE,
+    FORWARD_CHAR,
+    FORWARD_SEARCH_HISTORY,
+    FORWARD_WORD,
+    HISTORY_SEARCH_BACKWARD,
+    HISTORY_SEARCH_FORWARD,
+    INSERT_COMMENT,
+    INSERT_COMPLETIONS,
+    KILL_WHOLE_LINE,
+    KILL_LINE,
+    KILL_REGION,
+    KILL_WORD,
+    MENU_COMPLETE,
+    MENU_COMPLETE_BACKWARD,
+    NEXT_HISTORY,
+    NON_INCREMENTAL_FORWARD_SEARCH_HISTORY,
+    NON_INCREMENTAL_REVERSE_SEARCH_HISTORY,
+    NON_INCREMENTAL_FORWARD_SEARCH_HISTORY_AGAIN,
+    NON_INCREMENTAL_REVERSE_SEARCH_HISTORY_AGAIN,
+    OLD_MENU_COMPLETE,
+    OVERWRITE_MODE,
+    PASTE_FROM_CLIPBOARD,
+    POSSIBLE_COMPLETIONS,
+    PREVIOUS_HISTORY,
+    QUOTED_INSERT,
+    RE_READ_INIT_FILE,
+    REDRAW_CURRENT_LINE,
+    REVERSE_SEARCH_HISTORY,
+    REVERT_LINE,
+    SELF_INSERT,
+    SET_MARK,
+    SKIP_CSI_SEQUENCE,
+    START_KBD_MACRO,
+    TAB_INSERT,
+    TILDE_EXPAND,
+    TRANSPOSE_CHARS,
+    TRANSPOSE_WORDS,
+    TTY_STATUS,
+    UNDO,
+    UNIVERSAL_ARGUMENT,
+    UNIX_FILENAME_RUBOUT,
+    UNIX_LINE_DISCARD,
+    UNIX_WORD_RUBOUT,
+    UPCASE_WORD,
+    YANK,
+    YANK_LAST_ARG,
+    YANK_NTH_ARG,
+    YANK_POP,
+    VI_APPEND_EOL,
+    VI_APPEND_MODE,
+    VI_ARG_DIGIT,
+    VI_BACK_TO_INDENT,
+    VI_BACKWARD_BIGWORD,
+    VI_BACKWARD_WORD,
+    VI_BWORD,
+    VI_CHANGE_CASE,
+    VI_CHANGE_CHAR,
+    VI_CHANGE_TO,
+    VI_CHAR_SEARCH,
+    VI_COLUMN,
+    VI_COMPLETE,
+    VI_DELETE,
+    VI_DELETE_TO,
+    VI_EDITING_MODE,
+    VI_END_BIGWORD,
+    VI_END_WORD,
+    VI_EOF_MAYBE,
+    VI_EWORD,
+    VI_FWORD,
+    VI_FETCH_HISTORY,
+    VI_FIRST_PRINT,
+    VI_FORWARD_BIGWORD,
+    VI_FORWARD_WORD,
+    VI_GOTO_MARK,
+    VI_INSERT_BEG,
+    VI_INSERTION_MODE,
+    VI_MATCH,
+    VI_MOVEMENT_MODE,
+    VI_NEXT_WORD,
+    VI_OVERSTRIKE,
+    VI_OVERSTRIKE_DELETE,
+    VI_PREV_WORD,
+    VI_PUT,
+    VI_REDO,
+    VI_REPLACE,
+    VI_RUBOUT,
+    VI_SEARCH,
+    VI_SEARCH_AGAIN,
+    VI_SET_MARK,
+    VI_SUBST,
+    VI_TILDE_EXPAND,
+    VI_YANK_ARG,
+    VI_YANK_TO;
 
-    /**
-     * Operation that moves to the beginning of the buffer.
-     */
-    MOVE_TO_BEG(-1),
 
-    /**
-     * Operation that moves to the end of the buffer.
-     */
-    MOVE_TO_END(-3),
-
-    /**
-     * Operation that moved to the previous character in the buffer.
-     */
-    PREV_CHAR(-4),
-
-    /**
-     * Operation that issues a newline.
-     */
-    NEWLINE(-6),
-
-    /**
-     * Operation that deletes the buffer from the current character to the end.
-     */
-    KILL_LINE(-7),
-
-    /**
-     * Operation that clears the screen.
-     */
-    CLEAR_SCREEN(-8),
-
-    /**
-     * Operation that sets the buffer to the next history item.
-     */
-    NEXT_HISTORY(-9),
-
-    /**
-     * Operation that sets the buffer to the previous history item.
-     */
-    PREV_HISTORY(-11),
-
-    /**
-     * Operation that redisplays the current buffer.
-     */
-    REDISPLAY(-13),
-
-    /**
-     * Operation that deletes the buffer from the cursor to the beginning.
-     */
-    KILL_LINE_PREV(-15),
-
-    /**
-     * Operation that deletes the previous word in the buffer.
-     */
-    DELETE_PREV_WORD(-16),
-
-    /**
-     * Operation that moves to the next character in the buffer.
-     */
-    NEXT_CHAR(-19),
-
-    /**
-     * Operation that moves to the previous character in the buffer.
-     */
-    REPEAT_PREV_CHAR(-20),
-
-    /**
-     * Operation that searches backwards in the command history.
-     */
-    SEARCH_PREV(-21),
-
-    /**
-     * Operation that repeats the character.
-     */
-    REPEAT_NEXT_CHAR(-24),
-
-    /**
-     * Operation that searches forward in the command history.
-     */
-    SEARCH_NEXT(-25),
-
-    /**
-     * Operation that moved to the previous whitespace.
-     */
-    PREV_SPACE_WORD(-27),
-
-    /**
-     * Operation that moved to the end of the current word.
-     */
-    TO_END_WORD(-29),
-
-    /**
-     * Operation that
-     */
-    REPEAT_SEARCH_PREV(-34),
-
-    /**
-     * Operation that
-     */
-    PASTE_PREV(-36),
-
-    /**
-     * Operation that
-     */
-    REPLACE_MODE(-37),
-
-    /**
-     * Operation that
-     */
-    SUBSTITUTE_LINE(-38),
-
-    /**
-     * Operation that
-     */
-    TO_PREV_CHAR(-39),
-
-    /**
-     * Operation that
-     */
-    NEXT_SPACE_WORD(-40),
-
-    /**
-     * Operation that
-     */
-    DELETE_PREV_CHAR(-41),
-
-    /**
-     * Operation that
-     */
-    ADD(-42),
-
-    /**
-     * Operation that
-     */
-    PREV_WORD(-43),
-
-    /**
-     * Operation that
-     */
-    CHANGE_META(-44),
-
-    /**
-     * Operation that
-     */
-    DELETE_META(-45),
-
-    /**
-     * Operation that
-     */
-    END_WORD(-46),
-
-    /**
-     * Operation that toggles insert/overtype
-     */
-    INSERT(-48),
-
-    /**
-     * Operation that
-     */
-    REPEAT_SEARCH_NEXT(-49),
-
-    /**
-     * Operation that
-     */
-    PASTE_NEXT(-50),
-
-    /**
-     * Operation that
-     */
-    REPLACE_CHAR(-51),
-
-    /**
-     * Operation that
-     */
-    SUBSTITUTE_CHAR(-52),
-
-    /**
-     * Operation that
-     */
-    TO_NEXT_CHAR(-53),
-
-    /**
-     * Operation that undoes the previous operation.
-     */
-    UNDO(-54),
-
-    /**
-     * Operation that moved to the next word.
-     */
-    NEXT_WORD(-55),
-
-    /**
-     * Operation that deletes the previous character.
-     */
-    DELETE_NEXT_CHAR(-56),
-
-    /**
-     * Operation that toggles between uppercase and lowercase.
-     */
-    CHANGE_CASE(-57),
-
-    /**
-     * Operation that performs completion operation on the current word.
-     */
-    COMPLETE(-58),
-
-    /**
-     * Operation that exits the command prompt.
-     */
-    EXIT(-59),
-
-    /**
-     * Operation that pastes the contents of the clipboard into the line
-     */
-    PASTE(-60),
-
-    /**
-     * Operation that moves the current History to the beginning.
-     */
-    START_OF_HISTORY(-61),
-
-    /**
-     * Operation that moves the current History to the end.
-     */
-    END_OF_HISTORY(-62),
-
-    /**
-     * Operation that clears whatever text is on the current line.
-     */
-    CLEAR_LINE(-63),
-
-    /**
-     * Cancel search
-     */
-    ABORT(-64),
-    ;
-
-    public final short code;
-
-    Operation(final int code) {
-        this.code = (short) code;
-    }
-
-    private static final Map<Short, Operation> codes;
-
-    static {
-        Map<Short, Operation> map = new HashMap<Short, Operation>();
-
-        for (Operation op : Operation.values()) {
-            map.put(op.code, op);
-        }
-
-        codes = map;
-    }
-
-    public static Operation valueOf(final int code) {
-        return codes.get((short) code);
-    }
 }

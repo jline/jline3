@@ -1,29 +1,19 @@
 package jline.console;
 
-import jline.TerminalFactory;
-import jline.WindowsTerminal;
-import jline.console.history.History;
-import jline.console.history.MemoryHistory;
-import org.junit.Before;
-import org.junit.Test;
-
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.io.Writer;
 
-import static jline.WindowsTerminal.WindowsKey.DELETE_KEY;
-import static jline.WindowsTerminal.WindowsKey.END_KEY;
-import static jline.WindowsTerminal.WindowsKey.ESCAPE_KEY;
-import static jline.WindowsTerminal.WindowsKey.HOME_KEY;
-import static jline.WindowsTerminal.WindowsKey.INSERT_KEY;
-import static jline.WindowsTerminal.WindowsKey.LEFT_ARROW_KEY;
-import static jline.WindowsTerminal.WindowsKey.NUMPAD_KEY_INDICATOR;
-import static jline.WindowsTerminal.WindowsKey.PAGE_DOWN_KEY;
-import static jline.WindowsTerminal.WindowsKey.PAGE_UP_KEY;
-import static jline.WindowsTerminal.WindowsKey.SPECIAL_KEY_INDICATOR;
-import static jline.console.Operation.DELETE_NEXT_CHAR;
-import static jline.console.Operation.DELETE_PREV_CHAR;
+import jline.TerminalFactory;
+import jline.WindowsTerminal;
+import jline.console.history.History;
+import jline.console.history.MemoryHistory;
+import jline.internal.Configuration;
+import org.junit.Before;
+import org.junit.Test;
+
+import static jline.WindowsTerminal.WindowsKey.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -40,10 +30,16 @@ public class ConsoleReaderTest
     private void assertWindowsKeyBehavior(String expected, char[] input) throws Exception {
         StringBuilder buffer = new StringBuilder();
         buffer.append(input);
-        ConsoleReader reader = createConsole(buffer.toString().getBytes());
+        ConsoleReader reader = createConsole(buffer.toString());
         assertNotNull(reader);
         String line = reader.readLine();
         assertEquals(expected, line);
+    }
+
+    private ConsoleReader createConsole(String chars) throws Exception {
+        System.err.println(Configuration.getEncoding());
+        System.err.println(chars);
+        return createConsole(chars.getBytes(Configuration.getEncoding()));
     }
 
     private ConsoleReader createConsole(byte[] bytes) throws Exception {
@@ -63,24 +59,20 @@ public class ConsoleReaderTest
     }
 
     @Test
-    public void testDeleteAndBackspaceKeymappings() throws Exception {
-        // test only works on Windows
-        if (!(TerminalFactory.get() instanceof WindowsTerminal)) {
-            return;
-        }
-
-        ConsoleReader consoleReader = new ConsoleReader();
-        assertNotNull(consoleReader);
-        assertEquals(127, consoleReader.getKeyForAction(DELETE_NEXT_CHAR));
-        assertEquals(8, consoleReader.getKeyForAction(DELETE_PREV_CHAR));
-    }
-
-    @Test
     public void testReadline() throws Exception {
-        ConsoleReader consoleReader = createConsole("Sample String\r\n".getBytes());
+        ConsoleReader consoleReader = createConsole("Sample String\r\n");
         assertNotNull(consoleReader);
         String line = consoleReader.readLine();
         assertEquals("Sample String", line);
+    }
+
+    @Test
+    public void testReadlineWithUnicode() throws Exception {
+        System.setProperty("input.encoding", "UTF-8");
+        ConsoleReader consoleReader = createConsole("\u6771\u00E9\u00E8\r\n");
+        assertNotNull(consoleReader);
+        String line = consoleReader.readLine();
+        assertEquals("\u6771\u00E9\u00E8", line);
     }
 
     @Test
@@ -258,4 +250,5 @@ public class ConsoleReaderTest
             assertEquals("!-20: event not found", e.getMessage());
         }
     }
+
 }

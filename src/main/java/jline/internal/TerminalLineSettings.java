@@ -35,15 +35,17 @@ public final class TerminalLineSettings
 
     public static final String DEFAULT_SH = "sh";
 
-    private static String sttyCommand = Configuration.getString(JLINE_STTY, DEFAULT_STTY);
+    private String sttyCommand;
 
-    private static String shCommand = Configuration.getString(JLINE_SH, DEFAULT_SH);
+    private String shCommand;
 
     private String config;
 
     private long configLastFetched;
 
     public TerminalLineSettings() throws IOException, InterruptedException {
+        sttyCommand = Configuration.getString(JLINE_STTY, DEFAULT_STTY);
+        shCommand = Configuration.getString(JLINE_SH, DEFAULT_SH);
         config = get("-a");
         configLastFetched = System.currentTimeMillis();
 
@@ -158,17 +160,17 @@ public final class TerminalLineSettings
         }
     }
 
-    private static String stty(final String args) throws IOException, InterruptedException {
+    private String stty(final String args) throws IOException, InterruptedException {
         assert args != null;
         return exec(String.format("%s %s < /dev/tty", sttyCommand, args));
     }
 
-    private static String exec(final String cmd) throws IOException, InterruptedException {
+    private String exec(final String cmd) throws IOException, InterruptedException {
         assert cmd != null;
         return exec(shCommand, "-c", cmd);
     }
 
-    private static String exec(final String... cmd) throws IOException, InterruptedException {
+    private String exec(final String... cmd) throws IOException, InterruptedException {
         assert cmd != null;
 
         ByteArrayOutputStream bout = new ByteArrayOutputStream();

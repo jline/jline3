@@ -1,0 +1,307 @@
+package jline.console;
+
+public class KeyMap {
+
+    private static final int KEYMAP_LENGTH = 256;
+
+    private static final Object NULL_FUNCTION = new Object();
+
+    private Object[] mapping = new Object[KEYMAP_LENGTH];
+    private Object anotherKey = null;
+    private boolean convertMetaCharsToAscii = false;
+
+
+    public KeyMap() {
+        this.mapping = new Object[KEYMAP_LENGTH];
+    }
+
+    public KeyMap(Object[] mapping) {
+        this.mapping = mapping;
+    }
+
+    public Object getAnotherKey() {
+        return anotherKey;
+    }
+
+    public Object getBound( CharSequence keySeq ) {
+        if (keySeq != null && keySeq.length() > 0) {
+            KeyMap map = this;
+            for (int i = 0; i < keySeq.length(); i++) {
+                char c = keySeq.charAt(i);
+//                if (isMeta(c) && isConvertMetaCharsToAscii()) {
+//                    if (map.mapping[ESCAPE] instanceof KeyMap) {
+//                        map = (KeyMap) map.mapping[ESCAPE];
+//                        c = unMeta(c);
+//                    } else {
+//                        return map.mapping[c];
+//                    }
+//                }
+                if (c > 255) {
+                    return Operation.SELF_INSERT;
+                }
+                if (map.mapping[c] instanceof KeyMap) {
+                    if (i == keySeq.length() - 1) {
+                        return map.mapping[c];
+                    } else {
+                        map = (KeyMap) map.mapping[c];
+                    }
+                } else {
+                    return map.mapping[c];
+                }
+            }
+        }
+        return null;
+    }
+
+    public void bindIfNotBound( CharSequence keySeq, Object function ) {
+        if (keySeq != null && keySeq.length() > 0) {
+            KeyMap map = this;
+            for (int i = 0; i < keySeq.length(); i++) {
+                char c = keySeq.charAt(i);
+                if (c >= map.mapping.length) {
+                    return;
+                }
+//                if (isMeta(c) && isConvertMetaCharsToAscii()) {
+//                    c = unMeta( c );
+//                    if (map.mapping[ESCAPE] instanceof KeyMap) {
+//                        map = (KeyMap) map.mapping[ESCAPE];
+//                    }
+//                }
+                if (i < keySeq.length() - 1) {
+                    if (!(map.mapping[c] instanceof KeyMap)) {
+                        KeyMap m = new KeyMap();
+                        if (map.mapping[c] != Operation.DO_LOWERCASE_VERSION) {
+                            m.anotherKey = map.mapping[c];
+                        }
+                        map.mapping[c] = m;
+                    }
+                    map = (KeyMap) map.mapping[c];
+                } else {
+                    if (function == null) {
+                        function = NULL_FUNCTION;
+                    }
+                    if (map.mapping[c] instanceof KeyMap) {
+                        map.anotherKey = function;
+                    } else {
+                        Object op = map.mapping[c];
+                        if ( op == null || op == Operation.DO_LOWERCASE_VERSION || op == Operation.VI_MOVEMENT_MODE ) {
+                            map.mapping[c] = function;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public void bind( CharSequence keySeq, Object function ) {
+        if (keySeq != null && keySeq.length() > 0) {
+            KeyMap map = this;
+            for (int i = 0; i < keySeq.length(); i++) {
+                char c = keySeq.charAt(i);
+                if (c >= map.mapping.length) {
+                    return;
+                }
+//                if (isMeta(c) && isConvertMetaCharsToAscii()) {
+//                    c = unMeta( c );
+//                    if (map.mapping[ESCAPE] instanceof KeyMap) {
+//                        map = (KeyMap) map.mapping[ESCAPE];
+//                    }
+//                }
+                if (i < keySeq.length() - 1) {
+                    if (!(map.mapping[c] instanceof KeyMap)) {
+                        KeyMap m = new KeyMap();
+                        if (map.mapping[c] != Operation.DO_LOWERCASE_VERSION) {
+                            m.anotherKey = map.mapping[c];
+                        }
+                        map.mapping[c] = m;
+                    }
+                    map = (KeyMap) map.mapping[c];
+                } else {
+                    if (function == null) {
+                        function = NULL_FUNCTION;
+                    }
+                    if (map.mapping[c] instanceof KeyMap) {
+                        map.anotherKey = function;
+                    } else {
+                        map.mapping[c] = function;
+                    }
+                }
+            }
+        }
+    }
+
+    public void bindArrowKeys() {
+        // MS-DOS
+        bindIfNotBound( "\033[0A", Operation.PREVIOUS_HISTORY );
+        bindIfNotBound( "\033[0B", Operation.BACKWARD_CHAR );
+        bindIfNotBound( "\033[0C", Operation.FORWARD_CHAR );
+        bindIfNotBound( "\033[0D", Operation.NEXT_HISTORY );
+
+        // Windows
+        bindIfNotBound( "\340\110", Operation.PREVIOUS_HISTORY );
+        bindIfNotBound( "\340\113", Operation.BACKWARD_CHAR );
+        bindIfNotBound( "\340\115", Operation.FORWARD_CHAR );
+        bindIfNotBound( "\340\120", Operation.NEXT_HISTORY );
+        bindIfNotBound( "\000\110", Operation.PREVIOUS_HISTORY );
+        bindIfNotBound( "\000\113", Operation.BACKWARD_CHAR );
+        bindIfNotBound( "\000\115", Operation.FORWARD_CHAR );
+        bindIfNotBound( "\000\120", Operation.NEXT_HISTORY );
+
+        bindIfNotBound( "\033[A", Operation.PREVIOUS_HISTORY );
+        bindIfNotBound( "\033[B", Operation.NEXT_HISTORY );
+        bindIfNotBound( "\033[C", Operation.FORWARD_CHAR );
+        bindIfNotBound( "\033[D", Operation.BACKWARD_CHAR );
+        bindIfNotBound( "\033[H", Operation.BEGINNING_OF_LINE );
+        bindIfNotBound( "\033[F", Operation.END_OF_LINE );
+
+        bindIfNotBound( "\033[OA", Operation.PREVIOUS_HISTORY );
+        bindIfNotBound( "\033[OB", Operation.NEXT_HISTORY );
+        bindIfNotBound( "\033[OC", Operation.FORWARD_CHAR );
+        bindIfNotBound( "\033[OD", Operation.BACKWARD_CHAR );
+        bindIfNotBound( "\033[OH", Operation.BEGINNING_OF_LINE );
+        bindIfNotBound( "\033[OF", Operation.END_OF_LINE );
+
+        // MINGW32
+        bindIfNotBound( "\0340H", Operation.PREVIOUS_HISTORY );
+        bindIfNotBound( "\0340P", Operation.NEXT_HISTORY );
+        bindIfNotBound( "\0340M", Operation.FORWARD_CHAR );
+        bindIfNotBound( "\0340K", Operation.BACKWARD_CHAR );
+    }
+
+    public boolean isConvertMetaCharsToAscii() {
+        return convertMetaCharsToAscii;
+    }
+
+    public void setConvertMetaCharsToAscii(boolean convertMetaCharsToAscii) {
+        this.convertMetaCharsToAscii = convertMetaCharsToAscii;
+    }
+
+    public static boolean isMeta( char c ) {
+        return c > 0x7f && c <= 0xff;
+    }
+
+    public static char unMeta( char c ) {
+        return (char) (c & 0x7F);
+    }
+
+    public static char meta( char c ) {
+        return (char) (c | 0x80);
+    }
+
+    public static KeyMap emacs() {
+        Object[] map = new Object[KEYMAP_LENGTH];
+        Object[] ctrl = new Object[] {
+                        // Control keys.
+                        Operation.SET_MARK,                 /* Control-@ */
+                        Operation.BEGINNING_OF_LINE,        /* Control-A */
+                        Operation.BACKWARD_CHAR,            /* Control-B */
+                        null,                               /* Control-C */
+                        Operation.DELETE_CHAR,              /* Control-D */
+                        Operation.END_OF_LINE,              /* Control-E */
+                        Operation.FORWARD_CHAR,             /* Control-F */
+                        Operation.ABORT,                    /* Control-G */
+                        Operation.BACKWARD_DELETE_CHAR,     /* Control-H */
+                        Operation.COMPLETE,                 /* Control-I */
+                        Operation.ACCEPT_LINE,              /* Control-J */
+                        Operation.KILL_LINE,                /* Control-K */
+                        Operation.CLEAR_SCREEN,             /* Control-L */
+                        Operation.ACCEPT_LINE,              /* Control-M */
+                        Operation.NEXT_HISTORY,             /* Control-N */
+                        null,                               /* Control-O */
+                        Operation.PREVIOUS_HISTORY,         /* Control-P */
+                        Operation.QUOTED_INSERT,            /* Control-Q */
+                        Operation.REVERSE_SEARCH_HISTORY,   /* Control-R */
+                        Operation.FORWARD_SEARCH_HISTORY,   /* Control-S */
+                        Operation.TRANSPOSE_CHARS,          /* Control-T */
+                        Operation.UNIX_LINE_DISCARD,        /* Control-U */
+                        Operation.QUOTED_INSERT,            /* Control-V */
+                        Operation.UNIX_WORD_RUBOUT,         /* Control-W */
+                        emacsCtrlX(),                       /* Control-X */
+                        Operation.YANK,                     /* Control-Y */
+                        null,                               /* Control-Z */
+                        emacsMeta(),                        /* Control-[ */
+                        null,                               /* Control-\ */
+                        Operation.CHARACTER_SEARCH,         /* Control-] */
+                        null,                               /* Control-^ */
+                        Operation.UNDO,                     /* Control-_ */
+                };
+        System.arraycopy( ctrl, 0, map, 0, ctrl.length );
+        for (int i = 32; i < 256; i++) {
+            map[i] = Operation.SELF_INSERT;
+        }
+        map[DELETE] = Operation.BACKWARD_DELETE_CHAR;
+        return new KeyMap(map);
+    }
+
+    public static final char CTRL_G = (char) 7;
+    public static final char CTRL_H = (char) 8;
+    public static final char CTRL_I = (char) 9;
+    public static final char CTRL_J = (char) 10;
+    public static final char CTRL_M = (char) 13;
+    public static final char CTRL_R = (char) 18;
+    public static final char CTRL_U = (char) 21;
+    public static final char CTRL_X = (char) 24;
+    public static final char CTRL_Y = (char) 25;
+    public static final char ESCAPE = (char) 27; /* Ctrl-[ */
+    public static final char CTRL_OB = (char) 27; /* Ctrl-[ */
+    public static final char CTRL_CB = (char) 29; /* Ctrl-] */
+
+    public static final int DELETE = (char) 127;
+
+    public static KeyMap emacsCtrlX() {
+        Object[] map = new Object[KEYMAP_LENGTH];
+        map[CTRL_G] = Operation.ABORT;
+        map[CTRL_R] = Operation.RE_READ_INIT_FILE;
+        map[CTRL_U] = Operation.UNDO;
+        map[CTRL_X] = Operation.EXCHANGE_POINT_AND_MARK;
+        map['('] = Operation.START_KBD_MACRO;
+        map[')'] = Operation.END_KBD_MACRO;
+        for (int i = 'A'; i <= 'Z'; i++) {
+            map[i] = Operation.DO_LOWERCASE_VERSION;
+        }
+        map['e'] = Operation.CALL_LAST_KBD_MACRO;
+        map[DELETE] = Operation.KILL_LINE;
+        return new KeyMap(map);
+    }
+
+    public static KeyMap emacsMeta() {
+        Object[] map = new Object[KEYMAP_LENGTH];
+        map[CTRL_G] = Operation.ABORT;
+        map[CTRL_H] = Operation.BACKWARD_KILL_WORD;
+        map[CTRL_I] = Operation.TAB_INSERT;
+        map[CTRL_J] = Operation.VI_EDITING_MODE;
+        map[CTRL_M] = Operation.VI_EDITING_MODE;
+        map[CTRL_R] = Operation.REVERT_LINE;
+        map[CTRL_Y] = Operation.YANK_NTH_ARG;
+        map[CTRL_OB] = Operation.COMPLETE;
+        map[CTRL_CB] = Operation.CHARACTER_SEARCH_BACKWARD;
+        map[' '] = Operation.SET_MARK;
+        map['#'] = Operation.INSERT_COMMENT;
+        map['&'] = Operation.TILDE_EXPAND;
+        map['*'] = Operation.INSERT_COMPLETIONS;
+        map['-'] = Operation.DIGIT_ARGUMENT;
+        map['.'] = Operation.YANK_LAST_ARG;
+        map['<'] = Operation.BEGINNING_OF_HISTORY;
+        map['='] = Operation.POSSIBLE_COMPLETIONS;
+        map['>'] = Operation.END_OF_HISTORY;
+        map['?'] = Operation.POSSIBLE_COMPLETIONS;
+        for (int i = 'A'; i <= 'Z'; i++) {
+            map[i] = Operation.DO_LOWERCASE_VERSION;
+        }
+        map['\\'] = Operation.DELETE_HORIZONTAL_SPACE;
+        map['_'] = Operation.YANK_LAST_ARG;
+        map['b'] = Operation.BACKWARD_WORD;
+        map['c'] = Operation.CAPITALIZE_WORD;
+        map['d'] = Operation.KILL_WORD;
+        map['f'] = Operation.FORWARD_WORD;
+        map['l'] = Operation.DOWNCASE_WORD;
+        map['p'] = Operation.NON_INCREMENTAL_REVERSE_SEARCH_HISTORY;
+        map['r'] = Operation.REVERT_LINE;
+        map['t'] = Operation.TRANSPOSE_WORDS;
+        map['u'] = Operation.UPCASE_WORD;
+        map['y'] = Operation.YANK_POP;
+        map['~'] = Operation.TILDE_EXPAND;
+        map[DELETE] = Operation.BACKWARD_KILL_WORD;
+        return new KeyMap(map);
+    }
+}

@@ -6,11 +6,15 @@
  */
 package jline.example;
 
-import jline.console.completer.*;
-import jline.console.ConsoleReader;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.LinkedList;
+import java.util.List;
 
-import java.io.*;
-import java.util.*;
+import jline.console.ConsoleReader;
+import jline.console.completer.Completer;
+import jline.console.completer.FileNameCompleter;
+import jline.console.completer.StringsCompleter;
 
 public class Example
 {
@@ -36,72 +40,77 @@ public class Example
     }
 
     public static void main(String[] args) throws IOException {
-        Character mask = null;
-        String trigger = null;
-        boolean color = false;
+        try {
+            Character mask = null;
+            String trigger = null;
+            boolean color = false;
 
-        ConsoleReader reader = new ConsoleReader();
-        
-        reader.setBellEnabled(false);
-        reader.setPrompt("prompt> ");
+            ConsoleReader reader = new ConsoleReader();
 
-        if ((args == null) || (args.length == 0)) {
-            usage();
+            reader.setBellEnabled(false);
+            reader.setPrompt("prompt> ");
 
-            return;
-        }
-
-        List<Completer> completors = new LinkedList<Completer>();
-
-        if (args.length > 0) {
-            if (args[0].equals("none")) {
-            }
-            else if (args[0].equals("files")) {
-                completors.add(new FileNameCompleter());
-            }
-            else if (args[0].equals("simple")) {
-                completors.add(new StringsCompleter("foo", "bar", "baz"));
-            }
-            else if (args[0].equals("color")) {
-                color = true;
-                reader.setPrompt("\u001B[1mfoo\u001B[0m@bar\u001B[32m@baz\u001B[0m> ");
-            }
-            else {
+            if ((args == null) || (args.length == 0)) {
                 usage();
 
                 return;
             }
-        }
 
-        if (args.length == 3) {
-            mask = args[2].charAt(0);
-            trigger = args[1];
-        }
+            List<Completer> completors = new LinkedList<Completer>();
 
-        for (Completer c : completors) {
-            reader.addCompleter(c);
-        }
+            if (args.length > 0) {
+                if (args[0].equals("none")) {
+                }
+                else if (args[0].equals("files")) {
+                    completors.add(new FileNameCompleter());
+                }
+                else if (args[0].equals("simple")) {
+                    completors.add(new StringsCompleter("foo", "bar", "baz"));
+                }
+                else if (args[0].equals("color")) {
+                    color = true;
+                    reader.setPrompt("\u001B[1mfoo\u001B[0m@bar\u001B[32m@baz\u001B[0m> ");
+                }
+                else {
+                    usage();
 
-        String line;
-        PrintWriter out = new PrintWriter(
-                reader.getTerminal().wrapOutIfNeeded(System.out));
-
-        while ((line = reader.readLine()) != null) {
-            if (color){
-                out.println("\u001B[33m======>\u001B[0m\"" + line + "\"");
-            } else {
-                out.println("======>\"" + line + "\"");
+                    return;
+                }
             }
-            out.flush();
 
-            // If we input the special word then we will mask
-            // the next line.
-            if ((trigger != null) && (line.compareTo(trigger) == 0)) {
-                line = reader.readLine("password> ", mask);
+            if (args.length == 3) {
+                mask = args[2].charAt(0);
+                trigger = args[1];
             }
-            if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) {
-                break;
+
+            for (Completer c : completors) {
+                reader.addCompleter(c);
             }
+
+            String line;
+            PrintWriter out = new PrintWriter(reader.getOutput());
+
+            while ((line = reader.readLine()) != null) {
+                if (color){
+                    out.println("\u001B[33m======>\u001B[0m\"" + line + "\"");
+
+                } else {
+                    out.println("======>\"" + line + "\"");
+                }
+                out.flush();
+
+                // If we input the special word then we will mask
+                // the next line.
+                if ((trigger != null) && (line.compareTo(trigger) == 0)) {
+                    line = reader.readLine("password> ", mask);
+                }
+                if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) {
+                    break;
+                }
+            }
+        }
+        catch (Throwable t) {
+            t.printStackTrace();
         }
     }
 }

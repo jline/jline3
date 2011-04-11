@@ -11,19 +11,17 @@ import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
 
 import jline.internal.Configuration;
+import jline.internal.Log;
 import org.fusesource.jansi.internal.WindowsSupport;
 
-import jline.internal.Log;
-import jline.internal.ReplayPrefixOneCharInputStream;
-
-import static jline.WindowsTerminal.ConsoleMode.*;
-import static jline.WindowsTerminal.WindowsKey.*;
-import static jline.console.Key.*;
+import static jline.WindowsTerminal.ConsoleMode.ENABLE_ECHO_INPUT;
+import static jline.WindowsTerminal.ConsoleMode.ENABLE_LINE_INPUT;
+import static jline.WindowsTerminal.ConsoleMode.ENABLE_PROCESSED_INPUT;
+import static jline.WindowsTerminal.ConsoleMode.ENABLE_WINDOW_INPUT;
 
 /**
  * Terminal implementation for Microsoft Windows. Terminal initialization in
@@ -38,9 +36,9 @@ import static jline.console.Key.*;
  * disable character echoing.
  * <p/>
  * <p>
- * By default, the {@link #readCharacter} method will attempt to test to see if
- * the specified {@link InputStream} is {@link System#in} or a wrapper around
- * {@link FileDescriptor#in}, and if so, will bypass the character reading to
+ * By default, the {@link #wrapInIfNeeded(java.io.InputStream)} method will attempt
+ * to test to see if the specified {@link InputStream} is {@link System#in} or a wrapper
+ * around {@link FileDescriptor#in}, and if so, will bypass the character reading to
  * directly invoke the readc() method in the JNI library. This is so the class
  * can read special keys (like arrow keys) which are otherwise inaccessible via
  * the {@link System#in} stream. Using JNI reading can be bypassed by setting
@@ -55,13 +53,7 @@ import static jline.console.Key.*;
 public class WindowsTerminal
     extends TerminalSupport
 {
-    public static final String JLINE_WINDOWS_TERMINAL_INPUT_ENCODING = "jline.WindowsTerminal.input.encoding";
-
-    public static final String JLINE_WINDOWS_TERMINAL_OUTPUT_ENCODING = "jline.WindowsTerminal.output.encoding";
-
     public static final String JLINE_WINDOWS_TERMINAL_DIRECT_CONSOLE = "jline.WindowsTerminal.directConsole";
-
-    public static final String WINDOWSBINDINGS_PROPERTIES = "windowsbindings.properties";
 
     public static final String ANSI = WindowsTerminal.class.getName() + ".ansi";
 
@@ -69,29 +61,21 @@ public class WindowsTerminal
 
     private int originalMode;
 
-    private final ReplayPrefixOneCharInputStream replayStream;
-
-    private final InputStreamReader replayReader;
-
     public WindowsTerminal() throws Exception {
         super(true);
-
-        this.replayStream =
-            new ReplayPrefixOneCharInputStream(Configuration.getString(JLINE_WINDOWS_TERMINAL_INPUT_ENCODING, Configuration.getFileEncoding()));
-        this.replayReader = new InputStreamReader(replayStream, replayStream.getEncoding());
     }
 
     @Override
     public void init() throws Exception {
         super.init();
 
-        setAnsiSupported(Boolean.getBoolean(ANSI));
+        setAnsiSupported(Configuration.getBoolean(ANSI, true));
 
         //
         // FIXME: Need a way to disable direct console and sysin detection muck
         //
 
-        setDirectConsole(Boolean.getBoolean(JLINE_WINDOWS_TERMINAL_DIRECT_CONSOLE));
+        setDirectConsole(Configuration.getBoolean(JLINE_WINDOWS_TERMINAL_DIRECT_CONSOLE, true));
 
         this.originalMode = getConsoleMode();
         setConsoleMode(originalMode & ~ENABLE_ECHO_INPUT.code);
@@ -159,21 +143,20 @@ public class WindowsTerminal
 
 
     @Override
-    public int readCharacter(final InputStream in) throws IOException {
-        // if we can detect that we are directly wrapping the system
-        // input, then bypass the input stream and read directly (which
-        // allows us to access otherwise unreadable strokes, such as
-        // the arrow keys)
-
-        if (directConsole || isSystemIn(in)) {
-            return readByte();
-        }
-        else {
-            return super.readCharacter(in);
+    public InputStream wrapInIfNeeded(InputStream in) throws IOException {
+        if (directConsole && isSystemIn(in)) {
+            return new InputStream() {
+                @Override
+                public int read() throws IOException {
+                    return readByte();
+                }
+            };
+        } else {
+            return super.wrapInIfNeeded(in);
         }
     }
 
-    private boolean isSystemIn(final InputStream in) throws IOException {
+    protected boolean isSystemIn(final InputStream in) throws IOException {
         assert in != null;
 
         if (in == System.in) {
@@ -184,74 +167,6 @@ public class WindowsTerminal
         }
 
         return false;
-    }
-
-    @Override
-    public int readVirtualKey(final InputStream in) throws IOException {
-        int indicator = readCharacter(in);
-
-        // in Windows terminals, arrow keys are represented by
-        // a sequence of 2 characters. E.g., the up arrow
-        // key yields 224, 72
-        if (indicator == SPECIAL_KEY_INDICATOR.code || indicator == NUMPAD_KEY_INDICATOR.code) {
-            int c = readCharacter(in);
-            WindowsKey key = WindowsKey.valueOf(c);
-            if (key == null)
-                return 0;
-
-            switch (key) {
-                case UP_ARROW_KEY:
-                    return CTRL_P.code; // translate UP -> CTRL-P
-
-                case LEFT_ARROW_KEY:
-                    return CTRL_B.code; // translate LEFT -> CTRL-B
-
-                case RIGHT_ARROW_KEY:
-                    return CTRL_F.code; // translate RIGHT -> CTRL-F
-
-                case DOWN_ARROW_KEY:
-                    return CTRL_N.code; // translate DOWN -> CTRL-N
-
-                case DELETE_KEY:
-                    return CTRL_QM.code; // translate DELETE -> CTRL-?
-
-                case HOME_KEY:
-                    return CTRL_A.code;
-
-                case END_KEY:
-                    return CTRL_E.code;
-
-                case PAGE_UP_KEY:
-                    return CTRL_K.code;
-
-                case PAGE_DOWN_KEY:
-                    return CTRL_L.code;
-
-                case ESCAPE_KEY:
-                    return CTRL_OB.code; // translate ESCAPE -> CTRL-[
-
-                case INSERT_KEY:
-                    return CTRL_C.code;
-
-                default:
-                    return 0;
-            }
-        }
-        else if (indicator > 128) {
-            // handle unicode characters longer than 2 bytes,
-            // thanks to Marc.Herbert@continuent.com
-            replayStream.setInput(indicator, in);
-            // replayReader = new InputStreamReader(replayStream, encoding);
-            indicator = replayReader.read();
-
-        }
-
-        return indicator;
-    }
-
-    @Override
-    public InputStream getDefaultBindings() {
-        return WindowsTerminal.class.getResourceAsStream(WINDOWSBINDINGS_PROPERTIES);
     }
 
     //

@@ -8,9 +8,8 @@ package jline.console;
 
 import org.junit.Test;
 
-import static jline.console.Operation.DELETE_PREV_WORD;
-import static jline.console.Operation.MOVE_TO_END;
-import static jline.console.Operation.PREV_WORD;
+import static jline.console.Operation.BACKWARD_WORD;
+import static jline.console.Operation.*;
 
 /**
  * Tests various features of editing lines.
@@ -24,12 +23,12 @@ public class EditLineTest
     public void testDeletePreviousWord() throws Exception {
         Buffer b = new Buffer("This is a test");
 
-        assertBuffer("This is a ", b = b.op(DELETE_PREV_WORD));
-        assertBuffer("This is ", b = b.op(DELETE_PREV_WORD));
-        assertBuffer("This ", b = b.op(DELETE_PREV_WORD));
-        assertBuffer("", b = b.op(DELETE_PREV_WORD));
-        assertBuffer("", b = b.op(DELETE_PREV_WORD));
-        assertBuffer("", b = b.op(DELETE_PREV_WORD));
+        assertBuffer("This is a ", b = b.op(UNIX_WORD_RUBOUT));
+        assertBuffer("This is ", b = b.op(UNIX_WORD_RUBOUT));
+        assertBuffer("This ", b = b.op(UNIX_WORD_RUBOUT));
+        assertBuffer("", b = b.op(UNIX_WORD_RUBOUT));
+        assertBuffer("", b = b.op(UNIX_WORD_RUBOUT));
+        assertBuffer("", b = b.op(UNIX_WORD_RUBOUT));
     }
 
     @Test
@@ -37,61 +36,61 @@ public class EditLineTest
         Buffer b = new Buffer("This is a test");
 
         assertBuffer("This is a XtestX",
-            new Buffer("This is a test").op(PREV_WORD)
+            new Buffer("This is a test").op(BACKWARD_WORD)
                 .append('X')
-                .op(MOVE_TO_END)
+                .op(END_OF_LINE)
                 .append('X'));
 
         assertBuffer("This is Xa testX",
-            new Buffer("This is a test").op(PREV_WORD)
-                .op(PREV_WORD)
+            new Buffer("This is a test").op(BACKWARD_WORD)
+                .op(BACKWARD_WORD)
                 .append('X')
-                .op(MOVE_TO_END)
+                .op(END_OF_LINE)
                 .append('X'));
 
         assertBuffer("This Xis a testX",
-            new Buffer("This is a test").op(PREV_WORD)
-                .op(PREV_WORD)
-                .op(PREV_WORD)
+            new Buffer("This is a test").op(BACKWARD_WORD)
+                .op(BACKWARD_WORD)
+                .op(BACKWARD_WORD)
                 .append('X')
-                .op(MOVE_TO_END)
+                .op(END_OF_LINE)
                 .append('X'));
     }
 
     @Test
     public void testPreviousWord() throws Exception {
         assertBuffer("This is a Xtest",
-            new Buffer("This is a test").op(PREV_WORD)
+            new Buffer("This is a test").op(BACKWARD_WORD)
                 .append('X'));
         assertBuffer("This is Xa test",
-            new Buffer("This is a test").op(PREV_WORD)
-                .op(PREV_WORD)
+            new Buffer("This is a test").op(BACKWARD_WORD)
+                .op(BACKWARD_WORD)
                 .append('X'));
         assertBuffer("This Xis a test",
-            new Buffer("This is a test").op(PREV_WORD)
-                .op(PREV_WORD)
-                .op(PREV_WORD)
+            new Buffer("This is a test").op(BACKWARD_WORD)
+                .op(BACKWARD_WORD)
+                .op(BACKWARD_WORD)
                 .append('X'));
         assertBuffer("XThis is a test",
-            new Buffer("This is a test").op(PREV_WORD)
-                .op(PREV_WORD)
-                .op(PREV_WORD)
-                .op(PREV_WORD)
+            new Buffer("This is a test").op(BACKWARD_WORD)
+                .op(BACKWARD_WORD)
+                .op(BACKWARD_WORD)
+                .op(BACKWARD_WORD)
                 .append('X'));
         assertBuffer("XThis is a test",
-            new Buffer("This is a test").op(PREV_WORD)
-                .op(PREV_WORD)
-                .op(PREV_WORD)
-                .op(PREV_WORD)
-                .op(PREV_WORD)
+            new Buffer("This is a test").op(BACKWARD_WORD)
+                .op(BACKWARD_WORD)
+                .op(BACKWARD_WORD)
+                .op(BACKWARD_WORD)
+                .op(BACKWARD_WORD)
                 .append('X'));
         assertBuffer("XThis is a test",
-            new Buffer("This is a test").op(PREV_WORD)
-                .op(PREV_WORD)
-                .op(PREV_WORD)
-                .op(PREV_WORD)
-                .op(PREV_WORD)
-                .op(PREV_WORD)
+            new Buffer("This is a test").op(BACKWARD_WORD)
+                .op(BACKWARD_WORD)
+                .op(BACKWARD_WORD)
+                .op(BACKWARD_WORD)
+                .op(BACKWARD_WORD)
+                .op(BACKWARD_WORD)
                 .append('X'));
     }
 

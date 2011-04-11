@@ -7,12 +7,12 @@
 
 package jline;
 
-import jline.internal.Log;
-import jline.internal.Configuration;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+
+import jline.internal.Configuration;
+import jline.internal.Log;
 
 /**
  * Provides support for {@link Terminal} instances.
@@ -23,8 +23,6 @@ import java.io.OutputStream;
 public abstract class TerminalSupport
     implements Terminal
 {
-    public static String DEFAULT_KEYBINDINGS_PROPERTIES = "keybindings.properties";
-
     public static final String JLINE_SHUTDOWNHOOK = "jline.shutdownhook";
 
     public static final int DEFAULT_WIDTH = 80;
@@ -40,6 +38,8 @@ public abstract class TerminalSupport
     private boolean echoEnabled;
 
     private boolean ansiSupported;
+
+    private Configuration configuration;
 
     protected TerminalSupport(final boolean supported) {
         this.supported = supported;
@@ -148,16 +148,8 @@ public abstract class TerminalSupport
         Log.debug("Echo enabled: ", enabled);
     }
 
-    public int readCharacter(final InputStream in) throws IOException {
-        return in.read();
-    }
-
-    public int readVirtualKey(final InputStream in) throws IOException {
-        return readCharacter(in);
-    }
-
-    public InputStream getDefaultBindings() {
-        return TerminalSupport.class.getResourceAsStream(DEFAULT_KEYBINDINGS_PROPERTIES);
+    public InputStream wrapInIfNeeded(InputStream in) throws IOException {
+        return in;
     }
 
     //

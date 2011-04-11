@@ -39,6 +39,8 @@ public interface Terminal
      */
     OutputStream wrapOutIfNeeded(OutputStream out);
 
+    InputStream wrapInIfNeeded(InputStream in) throws IOException;
+
     /**
      * For terminals that don't wrap when character is written in last column,
      * only when the next character is written.
@@ -51,9 +53,4 @@ public interface Terminal
 
     void setEchoEnabled(boolean enabled);
 
-    int readCharacter(InputStream in) throws IOException;
-
-    int readVirtualKey(InputStream in) throws IOException;
-
-    InputStream getDefaultBindings();
 }

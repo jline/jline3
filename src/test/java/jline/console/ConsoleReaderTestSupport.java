@@ -6,23 +6,16 @@
  */
 package jline.console;
 
-import jline.UnixTerminal;
-import org.junit.Before;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 
-import static jline.UnixTerminal.UnixKey.ARROW_DOWN;
-import static jline.UnixTerminal.UnixKey.ARROW_LEFT;
-import static jline.UnixTerminal.UnixKey.ARROW_PREFIX;
-import static jline.UnixTerminal.UnixKey.ARROW_RIGHT;
-import static jline.UnixTerminal.UnixKey.ARROW_START;
-import static jline.UnixTerminal.UnixKey.ARROW_UP;
+import jline.UnixTerminal;
+import org.junit.Before;
+
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 /**
  * Provides support for console reader tests.
@@ -57,18 +50,20 @@ public abstract class ConsoleReaderTestSupport
         assertEquals(expected, console.getCursorBuffer().toString());
     }
 
-    private int getKeyForAction(final Operation key) {
-        return getKeyForAction(key.code);
-    }
-
-    private int getKeyForAction(final short logicalAction) {
-        int action = console.getKeyForAction(logicalAction);
-
-        if (action == -1) {
-            fail("Keystroke for logical action " + logicalAction + " was not bound in the console");
+    private String getKeyForAction(final Operation key) {
+        switch (key) {
+            case BACKWARD_WORD:        return "\u001Bb";
+            case BEGINNING_OF_LINE:    return "\033[H";
+            case END_OF_LINE:          return "\u0005";
+            case UNIX_WORD_RUBOUT:     return "\u0017";
+            case ACCEPT_LINE:          return "\n";
+            case PREVIOUS_HISTORY:     return "\033[A";
+            case NEXT_HISTORY:         return "\033[B";
+            case BACKWARD_CHAR:        return "\u0002";
+            case COMPLETE:             return "\011";
+            case BACKWARD_DELETE_CHAR: return "\010";
         }
-
-        return action;
+        throw new IllegalArgumentException(key.toString());
     }
 
     protected class Buffer
@@ -87,44 +82,40 @@ public abstract class ConsoleReaderTestSupport
             return out.toByteArray();
         }
 
-        public Buffer op(final short operation) {
-            return append(getKeyForAction(operation));
-        }
-
         public Buffer op(final Operation op) {
-            return op(op.code);
+            return append(getKeyForAction(op));
         }
 
         public Buffer ctrlA() {
-            return append(getKeyForAction(Operation.MOVE_TO_BEG));
+            return append("\001");
         }
 
         public Buffer ctrlU() {
-            return append(getKeyForAction(Operation.KILL_LINE_PREV));
+            return append("\025");
         }
 
         public Buffer tab() {
-            return append(getKeyForAction(Operation.COMPLETE));
+            return op(Operation.COMPLETE);
         }
 
         public Buffer back() {
-            return append(getKeyForAction(Operation.DELETE_PREV_CHAR));
+            return op(Operation.BACKWARD_DELETE_CHAR);
         }
 
         public Buffer left() {
-            return append(ARROW_START.code).append(ARROW_PREFIX.code).append(ARROW_LEFT.code);
+            return append("\033[D");
         }
 
         public Buffer right() {
-            return append(ARROW_START.code).append(ARROW_PREFIX.code).append(ARROW_RIGHT.code);
+            return append("\033[C");
         }
 
         public Buffer up() {
-            return append(ARROW_START.code).append(ARROW_PREFIX.code).append(ARROW_UP.code);
+            return append(getKeyForAction(Operation.PREVIOUS_HISTORY));
         }
 
         public Buffer down() {
-            return append(ARROW_START.code).append(ARROW_PREFIX.code).append(ARROW_DOWN.code);
+            return append("\033[B");
         }
 
         public Buffer append(final String str) {

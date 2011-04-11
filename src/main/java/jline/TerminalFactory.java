@@ -7,12 +7,12 @@
 
 package jline;
 
-import jline.internal.Configuration;
-import jline.internal.Log;
-
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
+
+import jline.internal.Configuration;
+import jline.internal.Log;
 
 /**
  * Creates terminal instances.
@@ -46,10 +46,7 @@ public class TerminalFactory
             Log.trace(new Throwable("CREATE MARKER"));
         }
 
-        String type = Configuration.getString(JLINE_TERMINAL);
-        if (type == null) {
-            type = AUTO;
-        }
+        String type = Configuration.getString(JLINE_TERMINAL, AUTO);
 
         Log.debug("Creating terminal; type=", type);
 
