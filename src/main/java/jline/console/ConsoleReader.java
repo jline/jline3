@@ -1427,6 +1427,11 @@ public class ConsoleReader
                                 success = true;
                                 break;
 
+                            case RE_READ_INIT_FILE:
+                                Configuration.getConfig().load();
+                                success = true;
+                                break;
+
                             default:
                                 int i = 0;
                                 break;

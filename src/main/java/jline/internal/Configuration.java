@@ -21,10 +21,11 @@ package jline.internal;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,20 +46,32 @@ public class Configuration
 
     private static Configuration configuration;
 
+    public static Configuration getConfig() {
+        return getConfig(null, (URL) null);
+    }
+
     public static Configuration getConfig(String name) {
-        if (configuration != null) {
-            if (name != null && !name.equals(configuration.appName)) {
-                configuration = new Configuration(name);
-            }
-        } else {
-            configuration = new Configuration(name != null ? name : "JLine");
+        return getConfig(name, (URL) null);
+    }
+
+    public static Configuration getConfig(String name, String fileOrUrl) {
+        return getConfig(name, getUrlFrom(fileOrUrl));
+    }
+
+    public static Configuration getConfig(String name, URL url) {
+        if (name == null) {
+            name = "JLine";
+        }
+        if (url ==  null) {
+            url = getUrlFrom(new File(getUserHome(), JLINE_RC));
+        }
+        if (configuration == null || !name.equals(configuration.appName) || !url.equals(configuration.url)) {
+            configuration = new Configuration(name, url);
         }
         return configuration;
     }
 
-    public static Configuration getConfig() {
-        return getConfig(null);
-    }
+
 
     private final Properties props;
 
@@ -66,58 +79,66 @@ public class Configuration
 
     private final KeyMap keys;
 
+    private final URL url;
+
     public Configuration(String appName) {
-        this(appName, (File) null);
+        this(appName, (String) null);
     }
 
     public Configuration(String appName, File inputRc) {
-        this.appName = appName;
-        this.props = new Properties();
-        this.keys = KeyMap.emacs();
-
-        File file = inputRc != null ? inputRc : new File(getUserHome(), JLINE_RC);
-        if (file.exists() && file.canRead()) {
-            try {
-                InputStream input = new FileInputStream(file);
-                try {
-                    load(input);
-                    Log.debug("Loaded user configuration: ", file);
-                }
-                finally {
-                    try {
-                        input.close();
-                    } catch (IOException e) {
-                    }
-                }
-            }
-            catch (IOException e) {
-                Log.warn("Unable to read user configuration: ", file, e);
-            }
-        }
-        else {
-            Log.trace("User configuration file missing or unreadable: ", file);
-        }
+        this(appName, getUrlFrom(inputRc));
     }
 
-    public Configuration(String appName, InputStream input) {
+    public Configuration(String appName, String fileOrUrl) {
+        this(appName, getUrlFrom(fileOrUrl));
+    }
+
+    public Configuration(String appName, URL url) {
         this.appName = appName;
         this.props = new Properties();
-        this.keys = KeyMap.emacs();
+        this.keys = new KeyMap();
+        this.url = url;
+        load();
+    }
 
-        if (input != null) {
+    public void load() {
+        try {
+            keys.from(KeyMap.emacs());
+            InputStream input = this.url.openStream();
             try {
                 load(input);
-                Log.debug("Loaded user configuration");
-            }
-            catch (IOException e) {
-                Log.warn("Unable to read user configuration: ", e);
+                Log.debug("Loaded user configuration: ", this.url);
             }
             finally {
                 try {
                     input.close();
                 } catch (IOException e) {
+                    // Ignore
                 }
             }
+            keys.bindArrowKeys();
+        }
+        catch (IOException e) {
+            Log.warn("Unable to read user configuration: ", this.url, e);
+        }
+    }
+
+    private static URL getUrlFrom(String fileOrUrl) {
+        if (fileOrUrl == null) {
+            return null;
+        }
+        try {
+            return new URL(fileOrUrl);
+        } catch (MalformedURLException e) {
+            return getUrlFrom(new File(fileOrUrl));
+        }
+    }
+
+    private static URL getUrlFrom(File inputRc) {
+        try {
+            return inputRc != null ? inputRc.toURI().toURL() : null;
+        } catch (MalformedURLException e) {
+            throw new IllegalStateException(e);
         }
     }
 
@@ -273,6 +294,7 @@ public class Configuration
                 }
             }
         }
+
     }
 
     private String translateQuoted(String keySeq) {

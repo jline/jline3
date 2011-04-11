@@ -23,6 +23,11 @@ public class KeyMap {
         return anotherKey;
     }
 
+    public void from(KeyMap other) {
+        this.mapping = other.mapping;
+        this.anotherKey = other.anotherKey;
+    }
+
     public Object getBound( CharSequence keySeq ) {
         if (keySeq != null && keySeq.length() > 0) {
             KeyMap map = this;
