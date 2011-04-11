@@ -47,7 +47,6 @@ public class Example
 
             ConsoleReader reader = new ConsoleReader();
 
-            reader.setBellEnabled(false);
             reader.setPrompt("prompt> ");
 
             if ((args == null) || (args.length == 0)) {

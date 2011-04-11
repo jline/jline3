@@ -8,14 +8,14 @@ public class KeyMap {
 
     private Object[] mapping = new Object[KEYMAP_LENGTH];
     private Object anotherKey = null;
-    private boolean convertMetaCharsToAscii = false;
+//    private boolean convertMetaCharsToAscii = false;
 
 
     public KeyMap() {
-        this.mapping = new Object[KEYMAP_LENGTH];
+        this(new Object[KEYMAP_LENGTH]);
     }
 
-    public KeyMap(Object[] mapping) {
+    protected KeyMap(Object[] mapping) {
         this.mapping = mapping;
     }
 
@@ -173,13 +173,13 @@ public class KeyMap {
         bindIfNotBound( "\0340K", Operation.BACKWARD_CHAR );
     }
 
-    public boolean isConvertMetaCharsToAscii() {
-        return convertMetaCharsToAscii;
-    }
+//    public boolean isConvertMetaCharsToAscii() {
+//        return convertMetaCharsToAscii;
+//    }
 
-    public void setConvertMetaCharsToAscii(boolean convertMetaCharsToAscii) {
-        this.convertMetaCharsToAscii = convertMetaCharsToAscii;
-    }
+//    public void setConvertMetaCharsToAscii(boolean convertMetaCharsToAscii) {
+//        this.convertMetaCharsToAscii = convertMetaCharsToAscii;
+//    }
 
     public static boolean isMeta( char c ) {
         return c > 0x7f && c <= 0xff;

@@ -25,10 +25,6 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.CharsetDecoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -48,10 +44,9 @@ import jline.console.completer.CompletionHandler;
 import jline.console.history.History;
 import jline.console.history.MemoryHistory;
 import jline.internal.Configuration;
+import jline.internal.InputStreamReader;
 import jline.internal.Log;
 import org.fusesource.jansi.AnsiOutputStream;
-
-import jline.internal.InputStreamReader;
 
 /**
  * A reader for console applications. It supports custom tab-completion,
@@ -66,8 +61,6 @@ import jline.internal.InputStreamReader;
 public class ConsoleReader
 {
     public static final String JLINE_NOBELL = "jline.nobell";
-
-    public static final String JLINE_EXPANDEVENTS = "jline.expandevents";
 
     public static final char BACKSPACE = '\b';
 
@@ -92,9 +85,7 @@ public class ConsoleReader
 
     private String prompt;
 
-    private boolean bellEnabled = true;
-
-    private boolean expandEvents = false;
+    private boolean expandEvents = true;
 
     private Character mask;
 
@@ -106,77 +97,27 @@ public class ConsoleReader
 
     private int searchIndex = -1;
 
-    private CharsetDecoder decoder;
-
     private Reader reader;
 
     private String encoding;
 
-    public ConsoleReader(final InputStream in, final OutputStream out, final InputStream bindings, final Terminal term) throws
-        IOException
-    {
-        this( in, out, null, bindings, term );
+    public ConsoleReader() throws IOException {
+        this(new FileInputStream(FileDescriptor.in), System.out, null);
     }
 
-    public ConsoleReader(final InputStream in, final OutputStream out, final String encoding, final InputStream bindings, final Terminal term) throws
+    public ConsoleReader(final InputStream in, final OutputStream out) throws
         IOException
     {
-        Configuration.getConfig().getKeys().bindArrowKeys();
+        this(in, out, null);
+    }
 
+    public ConsoleReader(final InputStream in, final OutputStream out, final Terminal term) throws
+        IOException
+    {
         this.encoding = encoding != null ? encoding : Configuration.getEncoding();
-        this.decoder = Charset.forName(this.encoding).newDecoder();
         this.terminal = term != null ? term : TerminalFactory.get();
         this.out = new OutputStreamWriter(terminal.wrapOutIfNeeded(out), this.encoding);
         setInput( in );
-
-        setBellEnabled(!Configuration.getBoolean(JLINE_NOBELL, false));
-        setExpandEvents(Configuration.getBoolean(JLINE_EXPANDEVENTS, false));
-    }
-
-    /**
-     * @deprecated use {@link #ConsoleReader(InputStream, OutputStream, InputStream, Terminal)}
-     * to let the terminal wrap the output stream if needed.
-     */
-    public ConsoleReader(final InputStream in, final Writer out, final InputStream bindings, final Terminal term) throws
-        IOException
-    {
-        Configuration.getConfig().getKeys().bindArrowKeys();
-
-        this.encoding = encoding != null ? encoding : Configuration.getEncoding();
-        this.decoder = Charset.forName(this.encoding).newDecoder();
-        this.terminal = term != null ? term : TerminalFactory.get();
-        this.out = out;
-        setInput( in );
-
-        setBellEnabled(!Configuration.getBoolean(JLINE_NOBELL, false));
-        setExpandEvents(Configuration.getBoolean(JLINE_EXPANDEVENTS, false));
-    }
-
-    /**
-     * @deprecated use {@link #ConsoleReader(InputStream, OutputStream, InputStream, Terminal)}
-     * to let the terminal wrap the output stream if needed.
-     */
-    public ConsoleReader(final InputStream in, final Writer out, final Terminal term) throws IOException {
-        this(in, out, null, term);
-    }
-
-    /**
-     * @deprecated use {@link #ConsoleReader(InputStream, OutputStream, InputStream, Terminal)}
-     * to let the terminal wrap the output stream if needed.
-     */
-    public ConsoleReader(final InputStream in, final Writer out) throws IOException
-    {
-        this(in, out, null, null);
-    }
-
-    /**
-     * Create a new reader using {@link FileDescriptor#in} for input and
-     * {@link System#out} for output.
-     * <p/>
-     * {@link FileDescriptor#in} is used because it has a better chance of not being buffered.
-     */
-    public ConsoleReader() throws IOException {
-        this(new FileInputStream(FileDescriptor.in), System.out, null, null );
     }
 
     void setInput(final InputStream in) throws IOException {
@@ -218,14 +159,6 @@ public class ConsoleReader
 
     public CursorBuffer getCursorBuffer() {
         return buf;
-    }
-
-    public void setBellEnabled(final boolean enabled) {
-        this.bellEnabled = enabled;
-    }
-
-    public boolean isBellEnabled() {
-        return bellEnabled;
     }
 
     public void setExpandEvents(final boolean expand) {
@@ -1010,26 +943,25 @@ public class ConsoleReader
         return true;
     }
 
-    //
-    // Key reading
-    //
-
-    private CharBuffer cb = CharBuffer.allocate(10);
-    private ByteBuffer bb = ByteBuffer.allocate(10);
-
     /**
      * Read a character from the console.
      *
      * @return the character, or -1 if an EOF is received.
      */
     public final int readCharater() throws IOException {
-        return reader.read();
+        int c = reader.read();
+        if (c >= 0) {
+            Log.trace("Keystroke: ", c);
+            // clear any echo characters
+            clearEcho(c);
+        }
+        return c;
     }
 
     /**
      * Clear the echoed characters for the specified character code.
      */
-    private int clearEcho(final char c) throws IOException {
+    private int clearEcho(final int c) throws IOException {
         // if the terminal is not echoing, then ignore
         if (!terminal.isEchoEnabled()) {
             return 0;
@@ -1043,7 +975,7 @@ public class ConsoleReader
         return num;
     }
 
-    private int countEchoCharacters(final char c) {
+    private int countEchoCharacters(final int c) {
         // tabs as special: we need to determine the number of spaces
         // to cancel based on what out current cursor position is
         if (c == 9) {
@@ -1062,7 +994,7 @@ public class ConsoleReader
      *
      * Adapted from cat by Torbjorn Granlund, as repeated in stty by David MacKenzie.
      */
-    private StringBuilder getPrintableCharacters(final char ch) {
+    private StringBuilder getPrintableCharacters(final int ch) {
         StringBuilder sbuff = new StringBuilder();
 
         if (ch >= 32) {
@@ -1228,6 +1160,12 @@ public class ConsoleReader
                         pushBackChar.add(macro.charAt(macro.length() - 1 - i));
                     }
                     sb.setLength( 0 );
+                    continue;
+                }
+
+                // Handle custom callbacks
+                if (o instanceof ActionListener) {
+                    ((ActionListener) o).actionPerformed(null);
                     continue;
                 }
 
@@ -1809,10 +1747,10 @@ public class ConsoleReader
     }
 
     /**
-     * Issue an audible keyboard bell, if {@link #isBellEnabled} return true.
+     * Issue an audible keyboard bell.
      */
     public void beep() throws IOException {
-        if (isBellEnabled()) {
+        if (!Configuration.getBoolean(JLINE_NOBELL, true)) {
             print(KEYBOARD_BELL);
             // need to flush so the console actually beeps
             flush();

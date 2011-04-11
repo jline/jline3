@@ -1,9 +1,8 @@
 package jline.console;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.io.StringWriter;
-import java.io.Writer;
 
 import jline.TerminalFactory;
 import jline.WindowsTerminal;
@@ -44,8 +43,7 @@ public class ConsoleReaderTest
 
     private ConsoleReader createConsole(byte[] bytes) throws Exception {
         InputStream in = new ByteArrayInputStream(bytes);
-        Writer writer = new StringWriter();
-        ConsoleReader reader = new ConsoleReader(in, writer);
+        ConsoleReader reader = new ConsoleReader(in, new ByteArrayOutputStream());
         reader.setHistory(createSeededHistory());
         return reader;
     }
