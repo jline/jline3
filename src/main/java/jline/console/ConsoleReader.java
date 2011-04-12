@@ -101,6 +101,9 @@ public class ConsoleReader
 
     private String encoding;
 
+    private boolean recording;
+    private String macro = "";
+
     public ConsoleReader() throws IOException {
         this(new FileInputStream(FileDescriptor.in), System.out, null);
     }
@@ -1126,6 +1129,9 @@ public class ConsoleReader
                     return null;
                 }
                 sb.append( (char) c );
+                if (recording) {
+                    macro += (char) c;
+                }
 
                 Object o = Configuration.getConfig().getKeys().getBound( sb );
                 if (o == Operation.DO_LOWERCASE_VERSION) {
@@ -1152,6 +1158,7 @@ public class ConsoleReader
                 if ( o == null ) {
                     continue;
                 }
+
 
                 // Handle macros
                 if (o instanceof String) {
@@ -1368,6 +1375,22 @@ public class ConsoleReader
                             case RE_READ_INIT_FILE:
                                 Configuration.getConfig().load();
                                 success = true;
+                                break;
+
+                            case START_KBD_MACRO:
+                                recording = true;
+                                break;
+
+                            case END_KBD_MACRO:
+                                recording = false;
+                                macro = macro.substring(0, macro.length() - sb.length());
+                                break;
+
+                            case CALL_LAST_KBD_MACRO:
+                                for (int i = 0; i < macro.length(); i++) {
+                                    pushBackChar.add(macro.charAt(macro.length() - 1 - i));
+                                }
+                                sb.setLength( 0 );
                                 break;
 
                             default:

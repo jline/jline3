@@ -249,4 +249,12 @@ public class ConsoleReaderTest
         }
     }
 
+    @Test
+    public void testMacro() throws Exception {
+        ConsoleReader consoleReader = createConsole("\u0018(foo\u0018)\u0018e\r\n");
+        assertNotNull(consoleReader);
+        String line = consoleReader.readLine();
+        assertEquals("foofoo", line);
+    }
+
 }
