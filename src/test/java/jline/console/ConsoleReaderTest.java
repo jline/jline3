@@ -23,7 +23,10 @@ public class ConsoleReaderTest
 {
     @Before
     public void setUp() throws Exception {
+        TerminalFactory.configure(TerminalFactory.AUTO);
+        TerminalFactory.reset();
         System.setProperty(WindowsTerminal.JLINE_WINDOWS_TERMINAL_DIRECT_CONSOLE, "false");
+        Configuration.getConfig(getClass().getName(), getClass().getResource("/jline/empty-config"));
     }
 
     private void assertWindowsKeyBehavior(String expected, char[] input) throws Exception {
