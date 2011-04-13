@@ -6,7 +6,7 @@ JLine 2.x
 License
 -------
 
-BSD
+[BSD](http://www.opensource.org/licenses/bsd-license.php)
 
 Building
 --------
@@ -18,7 +18,7 @@ Building
 
 Check out and build:
 
-    git clone git://github.com/jdillon/jline2.git
+    git clone git://github.com/jline/jline2.git
     cd jline2
     mvn install
 

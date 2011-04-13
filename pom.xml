@@ -28,11 +28,6 @@
         <url>http://github.com/jline/jline2</url>
     </scm>
 
-    <ciManagement>
-        <system>Hudson</system>
-        <url>https://grid.sonatype.org/ci/job/JLine2</url>
-    </ciManagement>
-
     <developers>
         <developer>
             <id>jdillon</id>
@@ -47,6 +42,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
     
     <!--
