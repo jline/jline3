@@ -309,4 +309,190 @@ public class KeyMap {
         map[DELETE] = Operation.BACKWARD_KILL_WORD;
         return new KeyMap(map);
     }
+
+    public static KeyMap viInsertion() {
+        Object[] map = new Object[KEYMAP_LENGTH];
+        Object[] ctrl = new Object[] {
+                        // Control keys.
+                        null,                               /* Control-@ */
+                        Operation.SELF_INSERT,              /* Control-A */
+                        Operation.SELF_INSERT,              /* Control-B */
+                        Operation.SELF_INSERT,              /* Control-C */
+                        Operation.VI_EOF_MAYBE,             /* Control-D */
+                        Operation.SELF_INSERT,              /* Control-E */
+                        Operation.SELF_INSERT,              /* Control-F */
+                        Operation.SELF_INSERT,              /* Control-G */
+                        Operation.BACKWARD_DELETE_CHAR,     /* Control-H */
+                        Operation.COMPLETE,                 /* Control-I */
+                        Operation.ACCEPT_LINE,              /* Control-J */
+                        Operation.SELF_INSERT,              /* Control-K */
+                        Operation.SELF_INSERT,              /* Control-L */
+                        Operation.ACCEPT_LINE,              /* Control-M */
+                        Operation.MENU_COMPLETE,            /* Control-N */
+                        Operation.SELF_INSERT,              /* Control-O */
+                        Operation.MENU_COMPLETE_BACKWARD,   /* Control-P */
+                        Operation.SELF_INSERT,              /* Control-Q */
+                        Operation.REVERSE_SEARCH_HISTORY,   /* Control-R */
+                        Operation.FORWARD_SEARCH_HISTORY,   /* Control-S */
+                        Operation.TRANSPOSE_CHARS,          /* Control-T */
+                        Operation.UNIX_LINE_DISCARD,        /* Control-U */
+                        Operation.QUOTED_INSERT,            /* Control-V */
+                        Operation.UNIX_WORD_RUBOUT,         /* Control-W */
+                        Operation.SELF_INSERT,              /* Control-X */
+                        Operation.YANK,                     /* Control-Y */
+                        Operation.SELF_INSERT,              /* Control-Z */
+                        viMovement(),                       /* Control-[ */
+                        Operation.SELF_INSERT,              /* Control-\ */
+                        Operation.SELF_INSERT,              /* Control-] */
+                        Operation.SELF_INSERT,              /* Control-^ */
+                        Operation.UNDO,                     /* Control-_ */
+                };
+        System.arraycopy( ctrl, 0, map, 0, ctrl.length );
+        for (int i = 32; i < 256; i++) {
+            map[i] = Operation.SELF_INSERT;
+        }
+        map[DELETE] = Operation.BACKWARD_DELETE_CHAR;
+        return new KeyMap(map);
+    }
+
+    public static KeyMap viMovement() {
+        Object[] map = new Object[KEYMAP_LENGTH];
+        Object[] low = new Object[] {
+                        // Control keys.
+                        null,                               /* Control-@ */
+                        null,                               /* Control-A */
+                        null,                               /* Control-B */
+                        null,                               /* Control-C */
+                        Operation.VI_EOF_MAYBE,             /* Control-D */
+                        Operation.EMACS_EDITING_MODE,       /* Control-E */
+                        null,                               /* Control-F */
+                        Operation.ABORT,                    /* Control-G */
+                        Operation.BACKWARD_CHAR,            /* Control-H */
+                        null,                               /* Control-I */
+                        Operation.ACCEPT_LINE,              /* Control-J */
+                        Operation.KILL_LINE,                /* Control-K */
+                        Operation.CLEAR_SCREEN,             /* Control-L */
+                        Operation.ACCEPT_LINE,              /* Control-M */
+                        Operation.NEXT_HISTORY,             /* Control-N */
+                        null,                               /* Control-O */
+                        Operation.PREVIOUS_HISTORY,         /* Control-P */
+                        Operation.QUOTED_INSERT,            /* Control-Q */
+                        Operation.REVERSE_SEARCH_HISTORY,   /* Control-R */
+                        Operation.FORWARD_SEARCH_HISTORY,   /* Control-S */
+                        Operation.TRANSPOSE_CHARS,          /* Control-T */
+                        Operation.UNIX_LINE_DISCARD,        /* Control-U */
+                        Operation.QUOTED_INSERT,            /* Control-V */
+                        Operation.UNIX_WORD_RUBOUT,         /* Control-W */
+                        null,                               /* Control-X */
+                        Operation.YANK,                     /* Control-Y */
+                        null,                               /* Control-Z */
+                        emacsMeta(),                        /* Control-[ */
+                        null,                               /* Control-\ */
+                        Operation.CHARACTER_SEARCH,         /* Control-] */
+                        null,                               /* Control-^ */
+                        Operation.UNDO,                     /* Control-_ */
+                        Operation.FORWARD_CHAR,             /* SPACE */
+                        null,
+                        null,
+                        Operation.INSERT_COMMENT,
+                        Operation.END_OF_LINE,
+                        Operation.VI_MATCH,
+                        Operation.VI_TILDE_EXPAND,
+                        null,
+                        null,
+                        null,
+                        Operation.VI_COMPLETE,
+                        Operation.NEXT_HISTORY,
+                        Operation.VI_CHAR_SEARCH,
+                        Operation.PREVIOUS_HISTORY,
+                        Operation.VI_REDO,
+                        Operation.VI_SEARCH,
+                        Operation.BEGINNING_OF_LINE,
+                        Operation.VI_ARG_DIGIT,             /* 1 */
+                        Operation.VI_ARG_DIGIT,             /* 2 */
+                        Operation.VI_ARG_DIGIT,             /* 3 */
+                        Operation.VI_ARG_DIGIT,             /* 4 */
+                        Operation.VI_ARG_DIGIT,             /* 5 */
+                        Operation.VI_ARG_DIGIT,             /* 6 */
+                        Operation.VI_ARG_DIGIT,             /* 7 */
+                        Operation.VI_ARG_DIGIT,             /* 8 */
+                        Operation.VI_ARG_DIGIT,             /* 9 */
+                        null,
+                        Operation.VI_CHAR_SEARCH,
+                        null,
+                        Operation.VI_COMPLETE,
+                        null,
+                        Operation.VI_SEARCH,
+                        null,
+                        Operation.VI_APPEND_EOL,
+                        Operation.VI_PREV_WORD,
+                        Operation.VI_CHANGE_TO,
+                        Operation.VI_DELETE_TO,
+                        Operation.VI_END_WORD,
+                        Operation.VI_CHAR_SEARCH,
+                        Operation.VI_FETCH_HISTORY,
+                        null,
+                        Operation.VI_INSERT_BEG,
+                        null,
+                        null,
+                        null,
+                        null,
+                        Operation.VI_SEARCH_AGAIN,
+                        null,
+                        Operation.VI_PUT,
+                        null,
+                        Operation.VI_REPLACE,
+                        Operation.VI_SUBST,
+                        Operation.VI_CHAR_SEARCH,
+                        Operation.REVERT_LINE,
+                        null,
+                        Operation.VI_NEXT_WORD,
+                        Operation.VI_RUBOUT,
+                        Operation.VI_YANK_TO,
+                        null,
+                        null,
+                        Operation.VI_COMPLETE,
+                        null,
+                        Operation.VI_FIRST_PRINT,
+                        Operation.VI_YANK_ARG,
+                        Operation.VI_GOTO_MARK,
+                        Operation.VI_APPEND_MODE,
+                        Operation.VI_PREV_WORD,
+                        Operation.VI_CHANGE_TO,
+                        Operation.VI_DELETE_TO,
+                        Operation.VI_END_WORD,
+                        Operation.VI_CHAR_SEARCH,
+                        null,
+                        Operation.BACKWARD_CHAR,
+                        Operation.VI_INSERTION_MODE,
+                        Operation.NEXT_HISTORY,
+                        Operation.PREVIOUS_HISTORY,
+                        Operation.FORWARD_CHAR,
+                        Operation.VI_SET_MARK,
+                        Operation.VI_SEARCH_AGAIN,
+                        null,
+                        Operation.VI_PUT,
+                        null,
+                        Operation.VI_CHANGE_CHAR,
+                        Operation.VI_SUBST,
+                        Operation.VI_CHAR_SEARCH,
+                        Operation.UNDO,
+                        null,
+                        Operation.VI_NEXT_WORD,
+                        Operation.VI_RUBOUT,
+                        Operation.VI_YANK_TO,
+                        null,
+                        null,
+                        Operation.VI_COLUMN,
+                        null,
+                        Operation.VI_CHANGE_CASE,
+                        null
+                };
+        System.arraycopy( low, 0, map, 0, low.length );
+        for (int i = 128; i < 256; i++) {
+            map[i] = null;
+        }
+        return new KeyMap(map);
+    }
+
 }
