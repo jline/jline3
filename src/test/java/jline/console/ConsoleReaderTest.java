@@ -26,7 +26,7 @@ public class ConsoleReaderTest
         TerminalFactory.configure(TerminalFactory.AUTO);
         TerminalFactory.reset();
         System.setProperty(WindowsTerminal.JLINE_WINDOWS_TERMINAL_DIRECT_CONSOLE, "false");
-        Configuration.getConfig(getClass().getName(), getClass().getResource("/jline/empty-config"));
+        Configuration.getConfig(getClass().getResource("/jline/empty-config"));
     }
 
     private void assertWindowsKeyBehavior(String expected, char[] input) throws Exception {
@@ -45,8 +45,11 @@ public class ConsoleReaderTest
     }
 
     private ConsoleReader createConsole(byte[] bytes) throws Exception {
+        return createConsole(null, bytes);
+    }
+    private ConsoleReader createConsole(String appName, byte[] bytes) throws Exception {
         InputStream in = new ByteArrayInputStream(bytes);
-        ConsoleReader reader = new ConsoleReader(in, new ByteArrayOutputStream());
+        ConsoleReader reader = new ConsoleReader(appName, in, new ByteArrayOutputStream(), null);
         reader.setHistory(createSeededHistory());
         return reader;
     }
@@ -258,6 +261,38 @@ public class ConsoleReaderTest
         assertNotNull(consoleReader);
         String line = consoleReader.readLine();
         assertEquals("foofoo", line);
+    }
+
+    @Test
+    public void testInput() throws Exception {
+        System.setProperty(Configuration.JLINE_INPUTRC, getClass().getResource("/jline/internal/config1").toExternalForm());
+        try {
+            ConsoleReader consoleReader = createConsole("\u0018(foo\u0018)\u0018e\r\n");
+            assertNotNull(consoleReader);
+
+            assertEquals(Operation.UNIVERSAL_ARGUMENT, consoleReader.getKeys().getBound("" + ((char)('U' - 'A' + 1))));
+            assertEquals("Function Key \u2671", consoleReader.getKeys().getBound("\u001b[11~"));
+            assertEquals(null, consoleReader.getKeys().getBound(((char)('X' - 'A' + 1)) + "q"));
+
+            consoleReader = createConsole("bash", new byte[0]);
+            assertNotNull(consoleReader);
+            assertEquals("\u001bb\"\u001bf\"", consoleReader.getKeys().getBound(((char)('X' - 'A' + 1)) + "q"));
+        } finally {
+            System.clearProperty(Configuration.JLINE_INPUTRC);
+        }
+    }
+
+    @Test
+    public void testInput2() throws Exception {
+        System.setProperty(Configuration.JLINE_INPUTRC, getClass().getResource("/jline/internal/config2").toExternalForm());
+        try {
+            ConsoleReader consoleReader = createConsole("Bash", new byte[0]);
+            assertNotNull(consoleReader);
+            assertNotNull(consoleReader.getKeys().getBound("\u001b" + ((char)('V' - 'A' + 1))));
+
+        } finally {
+            System.clearProperty(Configuration.JLINE_INPUTRC);
+        }
     }
 
 }

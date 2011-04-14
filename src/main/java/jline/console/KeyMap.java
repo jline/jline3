@@ -1,5 +1,8 @@
 package jline.console;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class KeyMap {
 
     private static final int KEYMAP_LENGTH = 256;
@@ -193,6 +196,22 @@ public class KeyMap {
         return (char) (c | 0x80);
     }
 
+    public static Map<String, KeyMap> keyMaps() {
+        Map<String, KeyMap> keyMaps = new HashMap<String, KeyMap>();
+        KeyMap emacs = emacs();
+        keyMaps.put("emacs", emacs);
+        keyMaps.put("emacs-standard", emacs);
+        keyMaps.put("emacs-ctlx", (KeyMap) emacs.getBound("\u0018"));
+        keyMaps.put("emacs-meta", (KeyMap) emacs.getBound("\u001b"));
+        KeyMap viMov = viMovement();
+        keyMaps.put("vi", viMov);
+        keyMaps.put("vi-move", viMov);
+        keyMaps.put("vi-command", viMov);
+        KeyMap viIns = viInsertion();
+        keyMaps.put("vi-insert", viIns);
+        return keyMaps;
+    }
+
     public static KeyMap emacs() {
         Object[] map = new Object[KEYMAP_LENGTH];
         Object[] ctrl = new Object[] {
@@ -341,7 +360,7 @@ public class KeyMap {
                         Operation.SELF_INSERT,              /* Control-X */
                         Operation.YANK,                     /* Control-Y */
                         Operation.SELF_INSERT,              /* Control-Z */
-                        viMovement(),                       /* Control-[ */
+                        Operation.VI_MOVEMENT_MODE,         /* Control-[ */
                         Operation.SELF_INSERT,              /* Control-\ */
                         Operation.SELF_INSERT,              /* Control-] */
                         Operation.SELF_INSERT,              /* Control-^ */
