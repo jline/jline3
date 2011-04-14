@@ -19,6 +19,7 @@
 
 package jline.internal;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -42,7 +43,10 @@ import jline.console.Operation;
  */
 public class Configuration
 {
-    public static final String JLINE_RC = ".inputrc";
+    public static final String JLINE_INPUTRC = "jline.inputrc";
+
+    public static final String JLINE_RC = ".jline.rc";
+    public static final String INPUT_RC = ".inputrc";
 
     private static Configuration configuration;
 
@@ -65,7 +69,7 @@ public class Configuration
         if (url ==  null) {
             url = getUrlFrom(new File(getUserHome(), JLINE_RC));
         }
-        if (configuration == null || !name.equals(configuration.appName) || !url.equals(configuration.url)) {
+        if (configuration == null || !name.equals(configuration.appName) || !url.equals(configuration.jlinercUrl)) {
             configuration = new Configuration(name, url);
         }
         return configuration;
@@ -79,10 +83,12 @@ public class Configuration
 
     private final KeyMap keys;
 
-    private final URL url;
+    private final URL jlinercUrl;
+
+    private final URL inputrcUrl;
 
     public Configuration(String appName) {
-        this(appName, (String) null);
+        this(appName, getUrlFrom(new File(getUserHome(), JLINE_RC)));
     }
 
     public Configuration(String appName, File inputRc) {
@@ -93,21 +99,50 @@ public class Configuration
         this(appName, getUrlFrom(fileOrUrl));
     }
 
-    public Configuration(String appName, URL url) {
+    public Configuration(String appName, URL jlinercUrl) {
         this.appName = appName;
-        this.props = new Properties();
         this.keys = new KeyMap();
-        this.url = url;
+        this.jlinercUrl = jlinercUrl;
+        this.props = loadProps();
+        this.inputrcUrl = getUrlFrom(string(JLINE_INPUTRC, getUrlFrom(new File(getUserHome(), INPUT_RC)).toExternalForm()));
         load();
+    }
+
+    protected Properties loadProps() {
+        // Load jline resources
+        Properties props = new Properties();
+        try {
+            InputStream input = this.jlinercUrl.openStream();
+            try {
+                props.load(new BufferedInputStream(input));
+            }
+            finally {
+                try {
+                    input.close();
+                } catch (IOException e) {
+                    // Ignore
+                }
+            }
+        } catch (IOException e) {
+            if (this.jlinercUrl.getProtocol().equals("file")) {
+                File file = new File(this.jlinercUrl.getPath());
+                if (file.exists()) {
+                    Log.warn("Unable to read user configuration: ", this.jlinercUrl, e);
+                }
+            } else {
+                Log.warn("Unable to read user configuration: ", this.jlinercUrl, e);
+            }
+        }
+        return props;
     }
 
     public void load() {
         try {
             keys.from(KeyMap.emacs());
-            InputStream input = this.url.openStream();
+            InputStream input = this.inputrcUrl.openStream();
             try {
                 load(input);
-                Log.debug("Loaded user configuration: ", this.url);
+                Log.debug("Loaded user configuration: ", this.inputrcUrl);
             }
             finally {
                 try {
@@ -119,7 +154,14 @@ public class Configuration
             keys.bindArrowKeys();
         }
         catch (IOException e) {
-            Log.warn("Unable to read user configuration: ", this.url, e);
+            if (this.inputrcUrl.getProtocol().equals("file")) {
+                File file = new File(this.inputrcUrl.getPath());
+                if (file.exists()) {
+                    Log.warn("Unable to read user configuration: ", this.inputrcUrl, e);
+                }
+            } else {
+                Log.warn("Unable to read user configuration: ", this.inputrcUrl, e);
+            }
         }
     }
 
@@ -401,8 +443,7 @@ public class Configuration
         }
     }
 
-
-    public static String getString(final String name, final String defaultValue) {
+    public String string(final String name, final String defaultValue) {
         assert name != null;
 
         String value;
@@ -412,7 +453,7 @@ public class Configuration
 
         if (value == null) {
             // Next try userprops
-            value = Configuration.getConfig().props.getProperty(name);
+            value = props.getProperty(name);
 
             if (value == null) {
                 // else use the default
@@ -423,17 +464,33 @@ public class Configuration
         return value;
     }
 
-    public static String getString(final String name) {
-        return getString(name, null);
+    public String string(final String name) {
+        return string(name, null);
     }
 
-    public static boolean getBoolean(final String name, final boolean defaultValue) {
-        String value = getString(name);
+    public boolean bool(final String name, final boolean defaultValue) {
+        String value = string(name, null);
         if (value == null) {
             return defaultValue;
         }
         return value.length() == 0 || value.equalsIgnoreCase("1")
                 || value.equalsIgnoreCase("on") || value.equalsIgnoreCase("true");
+    }
+
+    public boolean bool(final String name) {
+        return bool(name, false);
+    }
+
+    public static String getString(final String name, final String defaultValue) {
+        return Configuration.getConfig().string(name, defaultValue);
+    }
+
+    public static String getString(final String name) {
+        return getString(name, null);
+    }
+
+    public static boolean getBoolean(final String name, final boolean defaultValue) {
+        return Configuration.getConfig().bool(name, defaultValue);
     }
 
     public static boolean getBoolean(final String name) {
