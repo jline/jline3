@@ -105,7 +105,7 @@ public final class TerminalLineSettings
      * @param stty string resulting of stty -a execution.
      * @return value of the given property.
      */
-    protected int getProperty(String name, String stty) {
+    protected static int getProperty(String name, String stty) {
         // try the first kind of regex
         Pattern pattern = Pattern.compile(name + "\\s+=\\s+([^;]*)[;\\n\\r]");
         Matcher matcher = pattern.matcher(stty);
@@ -125,7 +125,7 @@ public final class TerminalLineSettings
         return parseControlChar(matcher.group(1));
     }
 
-    private int parseControlChar(String str) {
+    private static int parseControlChar(String str) {
         // under
         if ("<undef>".equals(str)) {
             return -1;

@@ -163,7 +163,6 @@ public class ConsoleReader
                     // Ignore
                 }
             }
-            keys.bindArrowKeys();
         }
         catch (IOException e) {
             if (this.inputrcUrl.getProtocol().equals("file")) {
@@ -175,6 +174,7 @@ public class ConsoleReader
                 Log.warn("Unable to read user configuration: ", this.inputrcUrl, e);
             }
         }
+        keys.bindArrowKeys();
         keys = viEditMode ? keyMaps.get("vi") : keyMaps.get("emacs");
     }
 
@@ -1494,6 +1494,7 @@ public class ConsoleReader
                 if ( o == null ) {
                     continue;
                 }
+                Log.trace("Binding: ", o);
 
 
                 // Handle macros
@@ -1597,8 +1598,16 @@ public class ConsoleReader
                                 success = killLine();
                                 break;
 
+                            case KILL_WHOLE_LINE:
+                                success = setCursorPosition(0) && killLine();
+                                break;
+
                             case CLEAR_SCREEN: // CTRL-L
                                 success = clearScreen();
+                                break;
+
+                            case OVERWRITE_MODE:
+                                buf.setOverTyping(!buf.isOverTyping());
                                 break;
 
                             case SELF_INSERT:
@@ -1768,7 +1777,10 @@ public class ConsoleReader
         while (true) {
             int i = readCharater();
 
-            if (i == -1 || i == '\n' || i == '\r') {
+            if (i == -1) {
+                return null;
+            }
+            if (i == '\n' || i == '\r') {
                 return buff.toString();
             }
 

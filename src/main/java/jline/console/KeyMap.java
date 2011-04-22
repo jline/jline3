@@ -146,14 +146,22 @@ public class KeyMap {
         bindIfNotBound( "\033[0D", Operation.NEXT_HISTORY );
 
         // Windows
+        bindIfNotBound( "\340\000", Operation.KILL_WHOLE_LINE );
+        bindIfNotBound( "\340\107", Operation.BEGINNING_OF_LINE );
         bindIfNotBound( "\340\110", Operation.PREVIOUS_HISTORY );
+        bindIfNotBound( "\340\111", Operation.BEGINNING_OF_HISTORY );
         bindIfNotBound( "\340\113", Operation.BACKWARD_CHAR );
         bindIfNotBound( "\340\115", Operation.FORWARD_CHAR );
+        bindIfNotBound( "\340\117", Operation.END_OF_LINE );
         bindIfNotBound( "\340\120", Operation.NEXT_HISTORY );
+        bindIfNotBound( "\340\121", Operation.END_OF_HISTORY );
+        bindIfNotBound( "\340\122", Operation.OVERWRITE_MODE );
+        bindIfNotBound( "\340\123", Operation.DELETE_CHAR );
         bindIfNotBound( "\000\110", Operation.PREVIOUS_HISTORY );
         bindIfNotBound( "\000\113", Operation.BACKWARD_CHAR );
         bindIfNotBound( "\000\115", Operation.FORWARD_CHAR );
         bindIfNotBound( "\000\120", Operation.NEXT_HISTORY );
+        bindIfNotBound( "\000\123", Operation.DELETE_CHAR );
 
         bindIfNotBound( "\033[A", Operation.PREVIOUS_HISTORY );
         bindIfNotBound( "\033[B", Operation.NEXT_HISTORY );

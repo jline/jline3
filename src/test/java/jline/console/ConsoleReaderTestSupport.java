@@ -10,7 +10,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import jline.UnixTerminal;
+import jline.TerminalSupport;
 import org.junit.Before;
 
 import static org.junit.Assert.assertEquals;
@@ -24,7 +24,7 @@ public abstract class ConsoleReaderTestSupport
 
     @Before
     public void setUp() throws Exception {
-        console = new ConsoleReader(null, new ByteArrayOutputStream(), new UnixTerminal());
+        console = new ConsoleReader(null, new ByteArrayOutputStream(), new TerminalSupport(true) { });
     }
 
     protected void assertBuffer(final String expected, final Buffer buffer) throws IOException {
@@ -41,8 +41,9 @@ public abstract class ConsoleReaderTestSupport
         console.setInput(new ByteArrayInputStream(buffer.getBytes()));
 
         // run it through the reader
-        while (console.readLine((String) null) != null) {
-            // ignore
+        String line;
+        while ((line = console.readLine((String) null)) != null) {
+            //System.err.println("Read line: " + line);
         }
 
         assertEquals(expected, console.getCursorBuffer().toString());

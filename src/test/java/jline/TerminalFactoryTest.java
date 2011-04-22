@@ -1,5 +1,6 @@
 package jline;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -13,6 +14,11 @@ public class TerminalFactoryTest
 {
     @Before
     public void setUp() throws Exception {
+        TerminalFactory.reset();
+    }
+
+    @After
+    public void tearDown() throws Exception {
         TerminalFactory.reset();
     }
 

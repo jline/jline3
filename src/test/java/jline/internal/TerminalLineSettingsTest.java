@@ -92,55 +92,57 @@ public class TerminalLineSettingsTest
 
     @Before
     public void setUp() throws Exception {
-        settings = new TerminalLineSettings();
     }
 
     @Test
-    public void testGetConfig() {
-        String config = settings.getConfig();
-        System.out.println(config);
+    public void testGetConfig() throws Exception {
+        if (!Configuration.getOsName().contains("win")) {
+            TerminalLineSettings settings = new TerminalLineSettings();
+            String config = settings.getConfig();
+            System.out.println(config);
+        }
     }
 
     @Test
     public void testLinuxSttyParsing() {
-        assertEquals(0x7f, settings.getProperty("erase", linuxSttySample));
-        assertEquals(244, settings.getProperty("columns", linuxSttySample));
-        assertEquals(85, settings.getProperty("rows", linuxSttySample));
+        assertEquals(0x7f, TerminalLineSettings.getProperty("erase", linuxSttySample));
+        assertEquals(244, TerminalLineSettings.getProperty("columns", linuxSttySample));
+        assertEquals(85, TerminalLineSettings.getProperty("rows", linuxSttySample));
     }
 
     @Test
     public void testSolarisSttyParsing() {
-        assertEquals(0x7f, settings.getProperty("erase", solarisSttySample));
-        assertEquals(244, settings.getProperty("columns", solarisSttySample));
-        assertEquals(85, settings.getProperty("rows", solarisSttySample));
+        assertEquals(0x7f, TerminalLineSettings.getProperty("erase", solarisSttySample));
+        assertEquals(244, TerminalLineSettings.getProperty("columns", solarisSttySample));
+        assertEquals(85, TerminalLineSettings.getProperty("rows", solarisSttySample));
     }
 
     @Test
     public void testAixSttyParsing() {
-        assertEquals(0x7f, settings.getProperty("erase", aixSttySample));
-        assertEquals(244, settings.getProperty("columns", aixSttySample));
-        assertEquals(85, settings.getProperty("rows", aixSttySample));
+        assertEquals(0x7f, TerminalLineSettings.getProperty("erase", aixSttySample));
+        assertEquals(244, TerminalLineSettings.getProperty("columns", aixSttySample));
+        assertEquals(85, TerminalLineSettings.getProperty("rows", aixSttySample));
     }
 
     @Test
     public void testMacOsSttyParsing() {
-        assertEquals(0x7f, settings.getProperty("erase", macOsSttySample));
-        assertEquals(155, settings.getProperty("columns", macOsSttySample));
-        assertEquals(47, settings.getProperty("rows", macOsSttySample));
+        assertEquals(0x7f, TerminalLineSettings.getProperty("erase", macOsSttySample));
+        assertEquals(155, TerminalLineSettings.getProperty("columns", macOsSttySample));
+        assertEquals(47, TerminalLineSettings.getProperty("rows", macOsSttySample));
     }
 
     @Test
     public void testNetBsdSttyParsing() {
-        assertEquals(0x7f, settings.getProperty("erase", netBsdSttySample));
-        assertEquals(244, settings.getProperty("columns", netBsdSttySample));
-        assertEquals(85, settings.getProperty("rows", netBsdSttySample));
+        assertEquals(0x7f, TerminalLineSettings.getProperty("erase", netBsdSttySample));
+        assertEquals(244, TerminalLineSettings.getProperty("columns", netBsdSttySample));
+        assertEquals(85, TerminalLineSettings.getProperty("rows", netBsdSttySample));
     }
 
     @Test
     public void testFreeBsdSttyParsing() {
-        assertEquals(0x7f, settings.getProperty("erase", freeBsdSttySample));
-        assertEquals(199, settings.getProperty("columns", freeBsdSttySample));
-        assertEquals(32, settings.getProperty("rows", freeBsdSttySample));
+        assertEquals(0x7f, TerminalLineSettings.getProperty("erase", freeBsdSttySample));
+        assertEquals(199, TerminalLineSettings.getProperty("columns", freeBsdSttySample));
+        assertEquals(32, TerminalLineSettings.getProperty("rows", freeBsdSttySample));
     }
 
 }

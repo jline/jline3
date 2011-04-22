@@ -3,6 +3,8 @@ package jline.console;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 import jline.TerminalFactory;
 import jline.WindowsTerminal;
@@ -12,7 +14,7 @@ import jline.internal.Configuration;
 import org.junit.Before;
 import org.junit.Test;
 
-import static jline.WindowsTerminal.WindowsKey.*;
+import static jline.console.ConsoleReaderTest.WindowsKey.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -295,4 +297,121 @@ public class ConsoleReaderTest
         }
     }
 
+    /**
+     * Windows keys.
+     * <p/>
+     * Constants copied <tt>wincon.h</tt>.
+     */
+    public static enum WindowsKey
+    {
+        /**
+         * On windows terminals, this character indicates that a 'special' key has
+         * been pressed. This means that a key such as an arrow key, or delete, or
+         * home, etc. will be indicated by the next character.
+         */
+        SPECIAL_KEY_INDICATOR(224),
+
+        /**
+         * On windows terminals, this character indicates that a special key on the
+         * number pad has been pressed.
+         */
+        NUMPAD_KEY_INDICATOR(0),
+
+        /**
+         * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR,
+         * this character indicates an left arrow key press.
+         */
+        LEFT_ARROW_KEY(75),
+
+        /**
+         * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR
+         * this character indicates an
+         * right arrow key press.
+         */
+        RIGHT_ARROW_KEY(77),
+
+        /**
+         * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR
+         * this character indicates an up
+         * arrow key press.
+         */
+        UP_ARROW_KEY(72),
+
+        /**
+         * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR
+         * this character indicates an
+         * down arrow key press.
+         */
+        DOWN_ARROW_KEY(80),
+
+        /**
+         * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR
+         * this character indicates that
+         * the delete key was pressed.
+         */
+        DELETE_KEY(83),
+
+        /**
+         * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR
+         * this character indicates that
+         * the home key was pressed.
+         */
+        HOME_KEY(71),
+
+        /**
+         * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR
+         * this character indicates that
+         * the end key was pressed.
+         */
+        END_KEY(79),
+
+        /**
+         * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR
+         * this character indicates that
+         * the page up key was pressed.
+         */
+        PAGE_UP_KEY(73),
+
+        /**
+         * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR
+         * this character indicates that
+         * the page down key was pressed.
+         */
+        PAGE_DOWN_KEY(81),
+
+        /**
+         * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR
+         * this character indicates that
+         * the insert key was pressed.
+         */
+        INSERT_KEY(82),
+
+        /**
+         * When following the SPECIAL_KEY_INDICATOR or NUMPAD_KEY_INDICATOR,
+         * this character indicates that the escape key was pressed.
+         */
+        ESCAPE_KEY(0),;
+
+        public final int code;
+
+        WindowsKey(final int code) {
+            this.code = code;
+        }
+
+        private static final Map<Integer, WindowsKey> codes;
+
+        static {
+            Map<Integer, WindowsKey> map = new HashMap<Integer, WindowsKey>();
+
+            for (WindowsKey key : WindowsKey.values()) {
+                map.put(key.code, key);
+            }
+
+            codes = map;
+        }
+
+        public static WindowsKey valueOf(final int code) {
+            return codes.get(code);
+        }
+    }
 }
