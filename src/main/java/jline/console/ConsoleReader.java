@@ -7,37 +7,6 @@
 
 package jline.console;
 
-import java.awt.*;
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
-import java.awt.datatransfer.UnsupportedFlavorException;
-import java.awt.event.ActionListener;
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileDescriptor;
-import java.io.FileInputStream;
-import java.io.FilterInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Reader;
-import java.io.Writer;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.ResourceBundle;
-
 import jline.Terminal;
 import jline.TerminalFactory;
 import jline.console.completer.CandidateListCompletionHandler;
@@ -49,6 +18,17 @@ import jline.internal.Configuration;
 import jline.internal.InputStreamReader;
 import jline.internal.Log;
 import org.fusesource.jansi.AnsiOutputStream;
+
+import java.awt.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.event.ActionListener;
+import java.io.*;
+import java.net.URL;
+import java.util.*;
+import java.util.List;
 
 /**
  * A reader for console applications. It supports custom tab-completion,
@@ -109,13 +89,9 @@ public class ConsoleReader
 
     private String appName;
 
-    private KeyMap keys;
-
-    private boolean viEditMode;
-
-    private Map<String, KeyMap> keyMaps;
-
     private URL inputrcUrl;
+
+    private ConsoleKeys consoleKeys;
 
     public ConsoleReader() throws IOException {
         this(null, new FileInputStream(FileDescriptor.in), System.out, null);
@@ -144,319 +120,11 @@ public class ConsoleReader
 
         this.inputrcUrl = Configuration.getUrlFrom(Configuration.getString(Configuration.JLINE_INPUTRC,
                             Configuration.getUrlFrom(new File(Configuration.getUserHome(), Configuration.INPUT_RC)).toExternalForm()));
-        keyMaps = KeyMap.keyMaps();
-        loadKeys();
-    }
-
-    public void loadKeys() {
-        keys = keyMaps.get("emacs");
-        try {
-            InputStream input = this.inputrcUrl.openStream();
-            try {
-                loadKeys(input);
-                Log.debug("Loaded user configuration: ", this.inputrcUrl);
-            }
-            finally {
-                try {
-                    input.close();
-                } catch (IOException e) {
-                    // Ignore
-                }
-            }
-        }
-        catch (IOException e) {
-            if (this.inputrcUrl.getProtocol().equals("file")) {
-                File file = new File(this.inputrcUrl.getPath());
-                if (file.exists()) {
-                    Log.warn("Unable to read user configuration: ", this.inputrcUrl, e);
-                }
-            } else {
-                Log.warn("Unable to read user configuration: ", this.inputrcUrl, e);
-            }
-        }
-        keys.bindArrowKeys();
-        keys = viEditMode ? keyMaps.get("vi") : keyMaps.get("emacs");
-    }
-
-    private void loadKeys(InputStream input) throws IOException {
-        BufferedReader reader = new BufferedReader( new java.io.InputStreamReader( input ) );
-        String line;
-        boolean parsing = true;
-        List<Boolean> ifsStack = new ArrayList<Boolean>();
-        while ( (line = reader.readLine()) != null ) {
-            line = line.trim();
-            if (line.length() == 0) {
-                continue;
-            }
-            if (line.charAt(0) == '#') {
-                continue;
-            }
-            int i = 0;
-            if (line.charAt(i) == '$') {
-                String cmd;
-                String args;
-                for (++i; i < line.length() && (line.charAt(i) == ' ' || line.charAt(i) == '\t'); i++);
-                int s = i;
-                for (; i < line.length() && (line.charAt(i) != ' ' && line.charAt(i) != '\t'); i++);
-                cmd = line.substring(s, i);
-                for (; i < line.length() && (line.charAt(i) == ' ' || line.charAt(i) == '\t'); i++);
-                s = i;
-                for (; i < line.length() && (line.charAt(i) != ' ' && line.charAt(i) != '\t'); i++);
-                args = line.substring(s, i);
-                if ("if".equalsIgnoreCase(cmd)) {
-                    ifsStack.add( parsing );
-                    if (!parsing) {
-                        continue;
-                    }
-                    if (args.startsWith("term=")) {
-                        // TODO
-                    } else if (args.startsWith("mode=")) {
-                        if (args.equalsIgnoreCase("mode=vi")) {
-                            parsing = viEditMode;
-                        } else if (args.equals("mode=emacs")) {
-                            parsing = !viEditMode;
-                        } else {
-                            parsing = false;
-                        }
-                    } else {
-                        parsing = args.equalsIgnoreCase(appName);
-                    }
-                } else if ("else".equalsIgnoreCase(cmd)) {
-                    if (ifsStack.isEmpty()) {
-                        throw new IllegalArgumentException("$else found without matching $if");
-                    }
-                    boolean invert = true;
-                    for (boolean b : ifsStack) {
-                        if (!b) {
-                            invert = false;
-                            break;
-                        }
-                    }
-                    if (invert) {
-                        parsing = !parsing;
-                    }
-                } else if ("endif".equalsIgnoreCase(cmd)) {
-                    if (ifsStack.isEmpty()) {
-                        throw new IllegalArgumentException("endif found without matching $if");
-                    }
-                    parsing = ifsStack.remove( ifsStack.size() - 1 );
-                } else if ("include".equalsIgnoreCase(cmd)) {
-                    // TODO
-                }
-                continue;
-            }
-            if (!parsing) {
-                continue;
-            }
-            boolean equivalency;
-            String keySeq = "";
-            if (line.charAt(i++) == '"') {
-                boolean esc = false;
-                for (;; i++) {
-                    if (i >= line.length()) {
-                        throw new IllegalArgumentException("Missing closing quote on line '" + line + "'");
-                    }
-                    if (esc) {
-                        esc = false;
-                    } else if (line.charAt(i) == '\\') {
-                        esc = true;
-                    } else if (line.charAt(i) == '"') {
-                        break;
-                    }
-                }
-            }
-            for (; i < line.length() && line.charAt(i) != ':'
-                    && line.charAt(i) != ' ' && line.charAt(i) != '\t'
-                    ; i++);
-            keySeq = line.substring(0, i);
-            equivalency = (i + 1 < line.length() && line.charAt(i) == ':' && line.charAt(i + 1) == '=');
-            i++;
-            if (equivalency) {
-                i++;
-            }
-            if (keySeq.equalsIgnoreCase("set")) {
-                String key;
-                String val;
-                for (; i < line.length() && (line.charAt(i) == ' ' || line.charAt(i) == '\t'); i++);
-                int s = i;
-                for (; i < line.length() && (line.charAt(i) != ' ' && line.charAt(i) != '\t'); i++);
-                key = line.substring( s, i );
-                for (; i < line.length() && (line.charAt(i) == ' ' || line.charAt(i) == '\t'); i++);
-                s = i;
-                for (; i < line.length() && (line.charAt(i) != ' ' && line.charAt(i) != '\t'); i++);
-                val = line.substring( s, i );
-                setVar( key, val );
-            } else {
-                for (; i < line.length() && (line.charAt(i) == ' ' || line.charAt(i) == '\t'); i++);
-                int start = i;
-                if (i < line.length() && (line.charAt(i) == '\'' || line.charAt(i) == '\"')) {
-                    char delim = line.charAt(i++);
-                    boolean esc = false;
-                    for (;; i++) {
-                        if (i >= line.length()) {
-                            break;
-                        }
-                        if (esc) {
-                            esc = false;
-                        } else if (line.charAt(i) == '\\') {
-                            esc = true;
-                        } else if (line.charAt(i) == delim) {
-                            break;
-                        }
-                    }
-                }
-                for (; i < line.length() && line.charAt(i) != ' ' && line.charAt(i) != '\t'; i++);
-                String val = line.substring(Math.min(start, line.length()), Math.min(i, line.length()));
-                if (keySeq.charAt(0) == '"') {
-                    keySeq = translateQuoted(keySeq);
-                } else {
-                    // Bind key name
-                    String keyName = keySeq.lastIndexOf('-') > 0 ? keySeq.substring( keySeq.lastIndexOf('-') + 1 ) : keySeq;
-                    char key = getKeyFromName(keyName);
-                    keyName = keySeq.toLowerCase();
-                    keySeq = "";
-                    if (keyName.contains("meta-") || keyName.contains("m-")) {
-                        keySeq += "\u001b";
-                    }
-                    if (keyName.contains("control-") || keyName.contains("c-") || keyName.contains("ctrl-")) {
-                        key = (char)(Character.toUpperCase( key ) & 0x1f);
-                    }
-                    keySeq += key;
-                }
-                if (val.length() > 0 && (val.charAt(0) == '\'' || val.charAt(0) == '\"')) {
-                    keys.bind( keySeq, translateQuoted(val) );
-                } else {
-                    val = val.replace('-', '_').toUpperCase();
-                    keys.bind( keySeq, Operation.valueOf(val) );
-                }
-            }
-        }
-
-    }
-
-    private String translateQuoted(String keySeq) {
-        int i;
-        String str = keySeq.substring( 1, keySeq.length() - 1 );
-        keySeq = "";
-        for (i = 0; i < str.length(); i++) {
-            char c = str.charAt(i);
-            if (c == '\\') {
-                boolean ctrl = str.regionMatches(i, "\\C-", 0, 3)|| str.regionMatches(i, "\\M-\\C-", 0, 6);
-                boolean meta = str.regionMatches(i, "\\M-", 0, 3)|| str.regionMatches(i, "\\C-\\M-", 0, 6);
-                i += (meta ? 3 : 0) + (ctrl ? 3 : 0) + (!meta && !ctrl ? 1 : 0);
-                if (i >= str.length()) {
-                    break;
-                }
-                c = str.charAt(i);
-                if (meta) {
-                    keySeq += "\u001b";
-                }
-                if (ctrl) {
-                    c = c == '?' ? 0x7f : (char)(Character.toUpperCase( c ) & 0x1f);
-                }
-                if (!meta && !ctrl) {
-                    switch (c) {
-                        case 'a': c = 0x07; break;
-                        case 'b': c = '\b'; break;
-                        case 'd': c = 0x7f; break;
-                        case 'e': c = 0x1b; break;
-                        case 'f': c = '\f'; break;
-                        case 'n': c = '\n'; break;
-                        case 'r': c = '\r'; break;
-                        case 't': c = '\t'; break;
-                        case 'v': c = 0x0b; break;
-                        case '\\': c = '\\'; break;
-                        case '0': case '1': case '2': case '3':
-                        case '4': case '5': case '6': case '7':
-                            c = 0;
-                            for (int j = 0; j < 3; j++, i++) {
-                                if (i >= str.length()) {
-                                    break;
-                                }
-                                int k = Character.digit(str.charAt(i), 8);
-                                if (k < 0) {
-                                    break;
-                                }
-                                c = (char)(c * 8 + k);
-                            }
-                            c &= 0xFF;
-                            break;
-                        case 'x':
-                            i++;
-                            c = 0;
-                            for (int j = 0; j < 2; j++, i++) {
-                                if (i >= str.length()) {
-                                    break;
-                                }
-                                int k = Character.digit(str.charAt(i), 16);
-                                if (k < 0) {
-                                    break;
-                                }
-                                c = (char)(c * 16 + k);
-                            }
-                            c &= 0xFF;
-                            break;
-                        case 'u':
-                            i++;
-                            c = 0;
-                            for (int j = 0; j < 4; j++, i++) {
-                                if (i >= str.length()) {
-                                    break;
-                                }
-                                int k = Character.digit(str.charAt(i), 16);
-                                if (k < 0) {
-                                    break;
-                                }
-                                c = (char)(c * 16 + k);
-                            }
-                            break;
-                    }
-                }
-                keySeq += c;
-            } else {
-                keySeq += c;
-            }
-        }
-        return keySeq;
-    }
-
-    private static char getKeyFromName(String name) {
-        if ("DEL".equalsIgnoreCase(name) || "Rubout".equalsIgnoreCase(name)) {
-            return 0x7f;
-        } else if ("ESC".equalsIgnoreCase(name) || "Escape".equalsIgnoreCase(name)) {
-            return '\033';
-        } else if ("LFD".equalsIgnoreCase(name) || "NewLine".equalsIgnoreCase(name)) {
-            return '\n';
-        } else if ("RET".equalsIgnoreCase(name) || "Return".equalsIgnoreCase(name)) {
-            return '\r';
-        } else if ("SPC".equalsIgnoreCase(name) || "Space".equalsIgnoreCase(name)) {
-            return ' ';
-        } else if ("Tab".equalsIgnoreCase(name)) {
-            return '\t';
-        } else {
-            return name.charAt(0);
-        }
+        consoleKeys = new ConsoleKeys(appName, inputrcUrl);
     }
 
     public KeyMap getKeys() {
-        return keys;
-    }
-
-    private void setVar(String key, String val) {
-        if ("keymap".equalsIgnoreCase(key)) {
-            if (keyMaps.containsKey(val)) {
-                keys = keyMaps.get(val);
-            }
-        } else if ("editing-mode".equals(key)) {
-            if ("vi".equalsIgnoreCase(val)) {
-                keys = keyMaps.get("vi-insert");
-                viEditMode = true;
-            } else if ("emacs".equalsIgnoreCase(key)) {
-                keys = keyMaps.get("emacs");
-                viEditMode = false;
-            }
-        }
-        // TODO
+        return consoleKeys.getKeys();
     }
 
     void setInput(final InputStream in) throws IOException {
@@ -1469,11 +1137,11 @@ public class ConsoleReader
                     macro += (char) c;
                 }
 
-                Object o = keys.getBound( sb );
+                Object o = getKeys().getBound( sb );
                 if (o == Operation.DO_LOWERCASE_VERSION) {
                     sb.setLength( sb.length() - 1);
                     sb.append( Character.toLowerCase( (char) c ));
-                    o = keys.getBound( sb );
+                    o = getKeys().getBound( sb );
                 }
                 if ( o instanceof KeyMap ) {
                     continue;
@@ -1481,7 +1149,7 @@ public class ConsoleReader
                 while ( o == null && sb.length() > 0 ) {
                     c = sb.charAt( sb.length() - 1 );
                     sb.setLength( sb.length() - 1 );
-                    Object o2 = keys.getBound( sb );
+                    Object o2 = getKeys().getBound( sb );
                     if ( o2 instanceof KeyMap ) {
                         o = ((KeyMap) o2).getAnotherKey();
                         if ( o == null ) {
@@ -1718,7 +1386,7 @@ public class ConsoleReader
                                 break;
 
                             case RE_READ_INIT_FILE:
-                                loadKeys();
+                                consoleKeys.loadKeys(appName, inputrcUrl);
                                 success = true;
                                 break;
 
@@ -1739,13 +1407,13 @@ public class ConsoleReader
                                 break;
 
                             case VI_EDITING_MODE:
-                                viEditMode = true;
-                                keys = keyMaps.get("vi");
+                                consoleKeys.setViEditMode(true);
+                                consoleKeys.setKeys(consoleKeys.getKeyMaps().get("vi"));
                                 break;
 
                             case EMACS_EDITING_MODE:
-                                viEditMode = false;
-                                keys = keyMaps.get("emacs");
+                                consoleKeys.setViEditMode(false);
+                                consoleKeys.setKeys(consoleKeys.getKeyMaps().get("emacs"));
                                 break;
 
                             default:
