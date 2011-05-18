@@ -117,6 +117,8 @@ public class ConsoleReader
 
     private URL inputrcUrl;
 
+    private boolean skipLF = false;
+
     public ConsoleReader() throws IOException {
         this(null, new FileInputStream(FileDescriptor.in), System.out, null);
     }
@@ -1774,20 +1776,32 @@ public class ConsoleReader
     private String readLineSimple() throws IOException {
         StringBuilder buff = new StringBuilder();
 
-        while (true) {
-            int i = readCharater();
-
-            if (i == -1) {
-                return null;
-            }
-            if (i == '\n' || i == '\r') {
+        if (skipLF) {
+            skipLF = false;
+            
+            int i = readCharacter();
+            
+            if (i == -1 || i == '\r') {
                 return buff.toString();
+            } else if (i == '\n') {
+                // ignore
+            } else {
+                buff.append((char) i);
             }
+        }        
+        
+        while (true) {
+            int i = readCharacter();
 
-            buff.append((char) i);
+            if (i == -1 || i == '\n') {
+                return buff.toString();
+            } else if (i == '\r') {
+                skipLF = true;
+                return buff.toString();
+            } else {
+                buff.append((char) i);
+            }
         }
-
-        // return new BufferedReader (new InputStreamReader (in)).readLine ();
     }
 
     //
