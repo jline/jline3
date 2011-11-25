@@ -53,26 +53,11 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
     
-    <!--
-    <repositories>
-        <repository>
-            <id>jansi</id>
-            <url>http://jansi.fusesource.org/repo/snapshot</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
-    -->
-    
     <dependencies>
         <dependency>
             <groupId>org.fusesource.jansi</groupId>
             <artifactId>jansi</artifactId>
-            <version>1.4</version>
+            <version>1.7</version>
             <!--<scope>provided</scope>-->
         </dependency>
 
