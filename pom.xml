@@ -9,7 +9,7 @@
         <version>9</version>
     </parent>
 
-    <groupId>jline</groupId>
+    <groupId>net.sf.jline</groupId>
     <artifactId>jline</artifactId>
     <name>JLine</name>
     <version>2.6-SNAPSHOT</version>
