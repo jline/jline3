@@ -11,6 +11,7 @@ import jline.WindowsTerminal;
 import jline.console.history.History;
 import jline.console.history.MemoryHistory;
 import jline.internal.Configuration;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -29,6 +30,12 @@ public class ConsoleReaderTest
         TerminalFactory.reset();
         System.setProperty(WindowsTerminal.JLINE_WINDOWS_TERMINAL_DIRECT_CONSOLE, "false");
         Configuration.getConfig(getClass().getResource("/jline/empty-config"));
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        TerminalFactory.get().restore();
+        TerminalFactory.reset();
     }
 
     private void assertWindowsKeyBehavior(String expected, char[] input) throws Exception {
