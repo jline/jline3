@@ -107,6 +107,10 @@ public class MemoryHistory
             }
         }
 
+        internalAdd(item);
+    }
+
+    protected void internalAdd(CharSequence item) {
         items.add(item);
 
         maybeResize();

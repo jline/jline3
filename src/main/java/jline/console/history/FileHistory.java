@@ -7,8 +7,6 @@
 
 package jline.console.history;
 
-import jline.internal.Log;
-
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
@@ -20,7 +18,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.Reader;
-import java.util.ListIterator;
+
+import jline.internal.Log;
 
 /**
  * {@link History} using a file for persistent backing.
@@ -66,7 +65,7 @@ public class FileHistory
 
         String item;
         while ((item = input.readLine()) != null) {
-            add(item);
+            internalAdd(item);
         }
     }
 
