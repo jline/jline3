@@ -7,6 +7,37 @@
 
 package jline.console;
 
+import java.awt.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.event.ActionListener;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileInputStream;
+import java.io.FilterInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Reader;
+import java.io.Writer;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.ResourceBundle;
+
 import jline.Terminal;
 import jline.TerminalFactory;
 import jline.console.completer.CandidateListCompletionHandler;
@@ -18,17 +49,6 @@ import jline.internal.Configuration;
 import jline.internal.InputStreamReader;
 import jline.internal.Log;
 import org.fusesource.jansi.AnsiOutputStream;
-
-import java.awt.*;
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
-import java.awt.datatransfer.UnsupportedFlavorException;
-import java.awt.event.ActionListener;
-import java.io.*;
-import java.net.URL;
-import java.util.*;
-import java.util.List;
 
 /**
  * A reader for console applications. It supports custom tab-completion,
@@ -386,8 +406,19 @@ public class ConsoleReader
      */
     protected String expandEvents(String str) throws IOException {
         StringBuilder sb = new StringBuilder();
+        boolean escaped = false;
         for (int i = 0; i < str.length(); i++) {
             char c = str.charAt(i);
+            if (escaped) {
+                sb.append(c);
+                escaped = false;
+                continue;
+            } else if (c == '\\') {
+                escaped = true;
+                continue;
+            } else {
+                escaped = false;
+            }
             switch (c) {
                 case '!':
                     if (i + 1 < str.length()) {

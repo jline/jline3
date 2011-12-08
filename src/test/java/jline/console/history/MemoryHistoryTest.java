@@ -51,6 +51,17 @@ public class MemoryHistoryTest
         assertEquals(1, history.index());
     }
 
+    @Test
+    public void testAddWithEscape() {
+        assertEquals(0, history.size());
+
+        history.add("foo!bar");
+
+        assertEquals(1, history.size());
+        assertEquals("foo\\!bar", history.get(0));
+        assertEquals(1, history.index());
+    }
+
     private void assertHistoryContains(final int offset, final String... items) {
         assertEquals(items.length, history.size());
         int i=0;
