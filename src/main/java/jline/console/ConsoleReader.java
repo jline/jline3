@@ -1211,6 +1211,7 @@ public class ConsoleReader
                 // Handle custom callbacks
                 if (o instanceof ActionListener) {
                     ((ActionListener) o).actionPerformed(null);
+                    sb.setLength( 0 );
                     continue;
                 }
 
