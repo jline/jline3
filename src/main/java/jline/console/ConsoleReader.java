@@ -1477,9 +1477,9 @@ public class ConsoleReader
 
         if (skipLF) {
             skipLF = false;
-            
+
             int i = readCharacter();
-            
+
             if (i == -1 || i == '\r') {
                 return buff.toString();
             } else if (i == '\n') {
@@ -1487,8 +1487,8 @@ public class ConsoleReader
             } else {
                 buff.append((char) i);
             }
-        }        
-        
+        }
+
         while (true) {
             int i = readCharacter();
 
@@ -1985,7 +1985,7 @@ public class ConsoleReader
 
                 if (--showLines == 0) {
                     // Overflow
-                    print(resources.getString("display-more"));
+                    print(resources.getString("DISPLAY_MORE"));
                     flush();
                     int c = readCharater();
                     if (c == '\r' || c == '\n') {
@@ -1997,7 +1997,7 @@ public class ConsoleReader
                         showLines = height - 1;
                     }
 
-                    back(resources.getString("display-more").length());
+                    back(resources.getString("DISPLAY_MORE").length());
                     if (c == 'q') {
                         // cancel
                         break;
