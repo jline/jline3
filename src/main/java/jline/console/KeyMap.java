@@ -177,6 +177,8 @@ public class KeyMap {
         bindIfNotBound( "\033[OH", Operation.BEGINNING_OF_LINE );
         bindIfNotBound( "\033[OF", Operation.END_OF_LINE );
 
+        bindIfNotBound( "\033[3~", Operation.DELETE_CHAR);
+
         // MINGW32
         bindIfNotBound( "\0340H", Operation.PREVIOUS_HISTORY );
         bindIfNotBound( "\0340P", Operation.NEXT_HISTORY );
