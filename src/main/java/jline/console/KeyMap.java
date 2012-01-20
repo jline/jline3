@@ -177,6 +177,8 @@ public class KeyMap {
         bindIfNotBound( "\033[OH", Operation.BEGINNING_OF_LINE );
         bindIfNotBound( "\033[OF", Operation.END_OF_LINE );
 
+        bindIfNotBound( "\033[3~", Operation.DELETE_CHAR);
+
         // MINGW32
         bindIfNotBound( "\0340H", Operation.PREVIOUS_HISTORY );
         bindIfNotBound( "\0340P", Operation.NEXT_HISTORY );
@@ -228,7 +230,7 @@ public class KeyMap {
                         Operation.BEGINNING_OF_LINE,        /* Control-A */
                         Operation.BACKWARD_CHAR,            /* Control-B */
                         null,                               /* Control-C */
-                        Operation.DELETE_CHAR,              /* Control-D */
+                        Operation.EXIT_OR_DELETE_CHAR,      /* Control-D */
                         Operation.END_OF_LINE,              /* Control-E */
                         Operation.FORWARD_CHAR,             /* Control-F */
                         Operation.ABORT,                    /* Control-G */
