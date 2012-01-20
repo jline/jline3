@@ -826,6 +826,18 @@ public class ConsoleReader
         return true;
     }
 
+    private boolean deleteNextWord() throws IOException {
+        while (isDelimiter(buf.nextChar()) && delete()) {
+
+        }
+
+        while (!isDelimiter(buf.nextChar()) && delete()) {
+            // nothing
+        }
+
+        return true;
+    }
+
     private boolean capitalizeWord() throws IOException {
         boolean first = true;
         int i = 1;
@@ -1364,7 +1376,9 @@ public class ConsoleReader
                                 // in theory, those are slightly different
                                 success = deletePreviousWord();
                                 break;
-
+                            case KILL_WORD:
+                                success = deleteNextWord();
+                                break;
                             case BEGINNING_OF_HISTORY:
                                 success = history.moveToFirst();
                                 if (success) {

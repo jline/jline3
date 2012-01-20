@@ -34,6 +34,14 @@ public class CursorBuffer
         return buffer.length();
     }
 
+    public char nextChar() {
+        if (cursor == buffer.length()) {
+            return 0;
+        } else {
+            return buffer.charAt(cursor);
+        }
+    }
+
     public char current() {
         if (cursor <= 0) {
             return 0;
