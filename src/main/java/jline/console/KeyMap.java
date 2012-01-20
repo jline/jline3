@@ -230,7 +230,7 @@ public class KeyMap {
                         Operation.BEGINNING_OF_LINE,        /* Control-A */
                         Operation.BACKWARD_CHAR,            /* Control-B */
                         null,                               /* Control-C */
-                        Operation.DELETE_CHAR,              /* Control-D */
+                        Operation.EXIT_OR_DELETE_CHAR,      /* Control-D */
                         Operation.END_OF_LINE,              /* Control-E */
                         Operation.FORWARD_CHAR,             /* Control-F */
                         Operation.ABORT,                    /* Control-G */

@@ -1355,6 +1355,13 @@ public class ConsoleReader
                                 success = backspace();
                                 break;
 
+                            case EXIT_OR_DELETE_CHAR:
+                                if (buf.buffer.length() == 0) {
+                                    return null;
+                                }
+                                success = deleteCurrentCharacter();
+                                break;
+
                             case DELETE_CHAR: // delete
                                 success = deleteCurrentCharacter();
                                 break;
