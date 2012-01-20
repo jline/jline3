@@ -803,11 +803,11 @@ public class ConsoleReader
     }
 
     private boolean nextWord() throws IOException {
-        while (isDelimiter(buf.current()) && (moveCursor(1) != 0)) {
+        while (isDelimiter(buf.nextChar()) && (moveCursor(1) != 0)) {
             // nothing
         }
 
-        while (!isDelimiter(buf.current()) && (moveCursor(1) != 0)) {
+        while (!isDelimiter(buf.nextChar()) && (moveCursor(1) != 0)) {
             // nothing
         }
 
