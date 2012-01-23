@@ -99,7 +99,6 @@ public class MemoryHistory
         if (isAutoTrim()) {
             item = String.valueOf(item).trim();
         }
-        item = item.toString().replaceAll("\\!", "\\\\!");
 
         if (isIgnoreDuplicates()) {
             if (!items.isEmpty() && item.equals(items.getLast())) {
@@ -139,7 +138,7 @@ public class MemoryHistory
     }
 
     public Iterator<Entry> iterator() {
-        return entries();    
+        return entries();
     }
 
     private static class EntryImpl
