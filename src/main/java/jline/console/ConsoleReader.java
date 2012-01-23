@@ -1989,6 +1989,7 @@ public class ConsoleReader
         for (CharSequence item : items) {
             maxWidth = Math.max(maxWidth, item.length());
         }
+        maxWidth = maxWidth + 3;
         Log.debug("Max width: ", maxWidth);
 
         int showLines;
@@ -2029,7 +2030,7 @@ public class ConsoleReader
 
             // NOTE: toString() is important here due to AnsiString being retarded
             buff.append(item.toString());
-            for (int i = 0; i < (maxWidth + 3 - item.length()); i++) {
+            for (int i = 0; i < (maxWidth - item.length()); i++) {
                 buff.append(' ');
             }
         }
