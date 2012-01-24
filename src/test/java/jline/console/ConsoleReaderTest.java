@@ -265,6 +265,34 @@ public class ConsoleReaderTest
     }
 
     @Test
+    public void testStoringHistory() throws Exception {
+        ConsoleReader reader = createConsole("foo ! bar\r\n");
+        MemoryHistory history = new MemoryHistory();
+        reader.setHistory(history);
+        reader.setExpandEvents(true);
+
+        String line = reader.readLine();
+        assertEquals("foo ! bar", line);
+
+        history.previous();
+        assertEquals("foo \\! bar", history.current());
+    }
+
+    @Test
+    public void testStoringHistoryWithExpandEventsOff() throws Exception {
+        ConsoleReader reader = createConsole("foo ! bar\r\n");
+        MemoryHistory history = new MemoryHistory();
+        reader.setHistory(history);
+        reader.setExpandEvents(false);
+
+        String line = reader.readLine();
+        assertEquals("foo ! bar", line);
+
+        history.previous();
+        assertEquals("foo ! bar", history.current());
+    }
+
+    @Test
     public void testMacro() throws Exception {
         ConsoleReader consoleReader = createConsole("\u0018(foo\u0018)\u0018e\r\n");
         assertNotNull(consoleReader);

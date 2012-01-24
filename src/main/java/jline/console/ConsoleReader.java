@@ -372,9 +372,11 @@ public class ConsoleReader
      */
     final String finishBuffer() throws IOException { // FIXME: Package protected because used by tests
         String str = buf.buffer.toString();
+        String historyLine = str;
 
         if (expandEvents) {
             str = expandEvents(str);
+            historyLine = str.replaceAll("\\!", "\\\\!");
         }
 
         // we only add it to the history if the buffer is not empty
@@ -382,7 +384,7 @@ public class ConsoleReader
         // the string was a password. We clear the mask after this call
         if (str.length() > 0) {
             if (mask == null && isHistoryEnabled()) {
-                history.add(str);
+                history.add(historyLine);
             }
             else {
                 mask = null;
