@@ -11,8 +11,8 @@ License
 Forums
 ------
 
-* [jline-users](https://groups.google.com/forum/?hl=en&fromgroups#!forum/jline-users)
-* [jline-dev](https://groups.google.com/forum/?hl=en&fromgroups#!forum/jline-dev)
+* [jline-users](https://groups.google.com/group/jline-users)
+* [jline-dev](https://groups.google.com/group/jline-dev)
 
 Building
 --------
