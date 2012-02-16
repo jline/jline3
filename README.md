@@ -8,6 +8,12 @@ License
 
 [BSD](http://www.opensource.org/licenses/bsd-license.php)
 
+Forums
+------
+
+[jline-users](https://groups.google.com/forum/?hl=en&fromgroups#!forum/jline-users)
+[jline-dev](https://groups.google.com/forum/?hl=en&fromgroups#!forum/jline-dev)
+
 Building
 --------
 
