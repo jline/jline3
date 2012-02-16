@@ -539,6 +539,9 @@ public class ConsoleReader
                     break;
             }
         }
+        if (escaped) {
+            sb.append('\\');
+        }
         String result = sb.toString();
         if (!str.equals(result)) {
             print(result);
