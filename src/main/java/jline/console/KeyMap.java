@@ -1,8 +1,29 @@
+/*
+ * Copyright (C) 2011 the original author(s).
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package jline.console;
 
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * The KeyMap class contains all bindings from keys to operations.
+ *
+ * @author <a href="mailto:gnodet@gmail.com">Guillaume Nodet</a>
+ * @since 2.6
+ */
 public class KeyMap {
 
     private static final int KEYMAP_LENGTH = 256;
@@ -11,8 +32,6 @@ public class KeyMap {
 
     private Object[] mapping = new Object[KEYMAP_LENGTH];
     private Object anotherKey = null;
-//    private boolean convertMetaCharsToAscii = false;
-
 
     public KeyMap() {
         this(new Object[KEYMAP_LENGTH]);
@@ -95,12 +114,6 @@ public class KeyMap {
                 if (c >= map.mapping.length) {
                     return;
                 }
-//                if (isMeta(c) && isConvertMetaCharsToAscii()) {
-//                    c = unMeta( c );
-//                    if (map.mapping[ESCAPE] instanceof KeyMap) {
-//                        map = (KeyMap) map.mapping[ESCAPE];
-//                    }
-//                }
                 if (i < keySeq.length() - 1) {
                     if (!(map.mapping[c] instanceof KeyMap)) {
                         KeyMap m = new KeyMap();

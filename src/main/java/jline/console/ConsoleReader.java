@@ -59,6 +59,7 @@ import org.fusesource.jansi.AnsiOutputStream;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
+ * @author <a href="mailto:gnodet@gmail.com">Guillaume Nodet</a>
  */
 public class ConsoleReader
 {

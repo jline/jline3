@@ -42,6 +42,8 @@ public interface Terminal
     /**
      * When using native support, return the InputStream to use for reading characters
      * else return the input stream passed as a parameter.
+     *
+     * @since 2.6
      */
     InputStream wrapInIfNeeded(InputStream in) throws IOException;
 

@@ -32,6 +32,7 @@ import java.util.Properties;
  * Provides access to configuration values.
  *
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
+ * @author <a href="mailto:gnodet@gmail.com">Guillaume Nodet</a>
  * @since 2.4
  */
 public class Configuration
