@@ -24,6 +24,9 @@ import static org.junit.Assert.assertNotNull;
  */
 public class ConsoleReaderTest
 {
+    
+    private ByteArrayOutputStream output;
+    
     @Before
     public void setUp() throws Exception {
         TerminalFactory.configure(TerminalFactory.AUTO);
@@ -58,7 +61,8 @@ public class ConsoleReaderTest
     }
     private ConsoleReader createConsole(String appName, byte[] bytes) throws Exception {
         InputStream in = new ByteArrayInputStream(bytes);
-        ConsoleReader reader = new ConsoleReader(appName, in, new ByteArrayOutputStream(), null);
+        output = new ByteArrayOutputStream();
+        ConsoleReader reader = new ConsoleReader(appName, in, output, null);
         reader.setHistory(createSeededHistory());
         return reader;
     }
@@ -86,6 +90,15 @@ public class ConsoleReaderTest
         assertNotNull(consoleReader);
         String line = consoleReader.readLine();
         assertEquals("\u6771\u00E9\u00E8", line);
+    }
+    
+    @Test
+    public void testReadlineWithMask() throws Exception {
+        ConsoleReader consoleReader = createConsole("Sample String\r\n");
+        assertNotNull(consoleReader);
+        String line = consoleReader.readLine('*');
+        assertEquals("Sample String", line);
+        assertEquals("*************", output.toString().trim());
     }
 
     @Test

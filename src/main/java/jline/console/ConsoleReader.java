@@ -557,30 +557,15 @@ public class ConsoleReader
      */
     public final void putString(final CharSequence str) throws IOException {
         buf.write(str);
-        print(str);
-        drawBuffer();
-    }
-
-    /**
-     * Output the specified character, both to the buffer and the output stream.
-     */
-    private void putChar(final int c, final boolean print) throws IOException {
-        buf.write((char) c);
-
-        if (print) {
-            if (mask == null) {
-                // no masking
-                print(c);
-            }
-            else if (mask == NULL_MASK) {
-                // Don't print anything
-            }
-            else {
-                print(mask);
-            }
-
-            drawBuffer();
+        if (mask == null) {
+            // no masking
+            print(str);
+        } else if (mask == NULL_MASK) {
+            // don't print anything
+        } else {
+            print(mask, str.length());
         }
+        drawBuffer();
     }
 
     /**
