@@ -39,6 +39,10 @@ public interface Terminal
      */
     OutputStream wrapOutIfNeeded(OutputStream out);
 
+    /**
+     * When using native support, return the InputStream to use for reading characters
+     * else return the input stream passed as a parameter.
+     */
     InputStream wrapInIfNeeded(InputStream in) throws IOException;
 
     /**
