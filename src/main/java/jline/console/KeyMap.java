@@ -36,14 +36,6 @@ public class KeyMap {
             KeyMap map = this;
             for (int i = 0; i < keySeq.length(); i++) {
                 char c = keySeq.charAt(i);
-//                if (isMeta(c) && isConvertMetaCharsToAscii()) {
-//                    if (map.mapping[ESCAPE] instanceof KeyMap) {
-//                        map = (KeyMap) map.mapping[ESCAPE];
-//                        c = unMeta(c);
-//                    } else {
-//                        return map.mapping[c];
-//                    }
-//                }
                 if (c > 255) {
                     return Operation.SELF_INSERT;
                 }
@@ -69,12 +61,6 @@ public class KeyMap {
                 if (c >= map.mapping.length) {
                     return;
                 }
-//                if (isMeta(c) && isConvertMetaCharsToAscii()) {
-//                    c = unMeta( c );
-//                    if (map.mapping[ESCAPE] instanceof KeyMap) {
-//                        map = (KeyMap) map.mapping[ESCAPE];
-//                    }
-//                }
                 if (i < keySeq.length() - 1) {
                     if (!(map.mapping[c] instanceof KeyMap)) {
                         KeyMap m = new KeyMap();
