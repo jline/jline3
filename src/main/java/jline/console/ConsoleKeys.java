@@ -64,7 +64,8 @@ public class ConsoleKeys {
     }
 
     protected void loadKeys(String appName, URL inputrcUrl) {
-        keys = keyMaps.get("emacs");
+        keys = keyMaps.get(KeyMap.EMACS);
+        
         try {
             InputStream input = inputrcUrl.openStream();
             try {
@@ -80,6 +81,7 @@ public class ConsoleKeys {
             }
         }
         catch (IOException e) {
+            
             if (inputrcUrl.getProtocol().equals("file")) {
                 File file = new File(inputrcUrl.getPath());
                 if (file.exists()) {
@@ -89,8 +91,8 @@ public class ConsoleKeys {
                 Log.warn("Unable to read user configuration: ", inputrcUrl, e);
             }
         }
-        keys.bindArrowKeys();
-        keys = viEditMode ? keyMaps.get("vi") : keyMaps.get("emacs");
+        
+        keys = viEditMode ? keyMaps.get(KeyMap.VI_INSERT) : keyMaps.get(KeyMap.EMACS);
     }
 
     private void loadKeys(InputStream input, String appName) throws IOException {
@@ -360,10 +362,10 @@ public class ConsoleKeys {
             }
         } else if ("editing-mode".equals(key)) {
             if ("vi".equalsIgnoreCase(val)) {
-                keys = keyMaps.get("vi-insert");
+                keys = keyMaps.get(KeyMap.VI_INSERT);
                 viEditMode = true;
             } else if ("emacs".equalsIgnoreCase(key)) {
-                keys = keyMaps.get("emacs");
+                keys = keyMaps.get(KeyMap.EMACS);
                 viEditMode = false;
             }
         }

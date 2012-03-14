@@ -51,27 +51,29 @@ public class Configuration
     public static Configuration getConfig(String fileOrUrl) {
         return getConfig(getUrlFrom(fileOrUrl));
     }
-
+    
     public static Configuration getConfig(URL url) {
-        if (url ==  null) {
-            url = getUrlFrom(new File(getUserHome(), JLINE_RC));
+        
+        if (url != null || configuration == null) {
+            
+            if (url ==  null) {
+                url = getUrlFrom(new File(getUserHome(), JLINE_RC));
+            }
+            if (configuration == null || !url.equals(configuration.jlinercUrl)) {
+                configuration = new Configuration(url);
+            }
         }
-        if (configuration == null || !url.equals(configuration.jlinercUrl)) {
-            configuration = new Configuration(url);
-        }
+        
         return configuration;
     }
 
-
-
     private final Properties props;
-
     private final URL jlinercUrl;
 
     public Configuration() {
         this(getUrlFrom(new File(getUserHome(), JLINE_RC)));
     }
-
+    
     public Configuration(File inputRc) {
         this(getUrlFrom(inputRc));
     }
@@ -168,6 +170,10 @@ public class Configuration
 
     public boolean bool(final String name) {
         return bool(name, false);
+    }
+    
+    public void setString(final String name, final String value) {
+        props.setProperty (name,  value);
     }
 
     public static String getString(final String name, final String defaultValue) {

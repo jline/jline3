@@ -32,7 +32,8 @@ public class ConsoleReaderTest
         TerminalFactory.configure(TerminalFactory.AUTO);
         TerminalFactory.reset();
         System.setProperty(WindowsTerminal.JLINE_WINDOWS_TERMINAL_DIRECT_CONSOLE, "false");
-        Configuration.getConfig(getClass().getResource("/jline/empty-config"));
+        Configuration conf = Configuration.getConfig(getClass().getResource("/jline/empty-config"));
+        conf.setString (Configuration.JLINE_INPUTRC, "/no/such/file");
     }
 
     @After

@@ -141,8 +141,11 @@ public class ConsoleReader
         this.out = new OutputStreamWriter(terminal.wrapOutIfNeeded(out), this.encoding);
         setInput( in );
 
-        this.inputrcUrl = Configuration.getUrlFrom(Configuration.getString(Configuration.JLINE_INPUTRC,
-                            Configuration.getUrlFrom(new File(Configuration.getUserHome(), Configuration.INPUT_RC)).toExternalForm()));
+        this.inputrcUrl = Configuration.getUrlFrom(
+            Configuration.getString(Configuration.JLINE_INPUTRC,
+                Configuration.getUrlFrom(new File(Configuration.getUserHome(),
+                    Configuration.INPUT_RC)).toExternalForm()));
+        
         consoleKeys = new ConsoleKeys(appName, inputrcUrl);
     }
 
@@ -866,6 +869,41 @@ public class ConsoleReader
         moveCursor(i - 1);
         return true;
     }
+    
+    public boolean isKeyMap (String name) {
+        
+        /*
+         * Current keymap.
+         */
+        KeyMap map = consoleKeys.getKeys ();
+        KeyMap mapByName = consoleKeys.getKeyMaps ().get (name);
+        
+        if (mapByName == null)
+            return false;
+        
+        /*
+         * This may not be safe to do, but there doesn't appear to be a
+         * clean way to find this information out.
+         */
+        return map == mapByName;
+    }
+    
+    
+    /**
+     * The equivalent of hitting &lt;RET&gt;.  The line is considered 
+     * complete and is returned.
+     * 
+     * @return The completed line of text.
+     * @throws IOException
+     */
+    public String accept () throws IOException {
+        moveToEnd();
+        println(); // output newline
+        flush();
+        
+        String str = finishBuffer();
+        return str;
+    }
 
     /**
      * Move the cursor <i>where</i> characters.
@@ -1116,6 +1154,25 @@ public class ConsoleReader
     public String readLine(final String prompt) throws IOException {
         return readLine(prompt, null);
     }
+    
+    /**
+     * Sets the current keymap by name. Supported keymaps are "emacs", 
+     * "vi-insert", "vi-move".
+     * @param name The name of the keymap to switch to
+     * @return true if the keymap was set, or false if the keymap is
+     *    not recognized.
+     */
+    public boolean setKeyMap (String name) {
+        
+        KeyMap m = consoleKeys.getKeyMaps().get(name);
+        if (m == null) {
+            
+            return false;
+        }
+        
+        consoleKeys.setKeys(m);
+        return true;
+    }
 
     /**
      * Read a line from the <i>in</i> {@link InputStream}, and return the line
@@ -1285,6 +1342,7 @@ public class ConsoleReader
                 }
                 if (state == NORMAL) {
                     if ( o instanceof Operation) {
+                        
                         switch ( ((Operation) o )) {
                             case COMPLETE: // tab
                                 success = complete();
@@ -1321,10 +1379,18 @@ public class ConsoleReader
                                 break;
 
                             case ACCEPT_LINE:
-                                moveToEnd();
-                                println(); // output newline
-                                flush();
-                                return finishBuffer();
+                                return accept();
+                                
+                            /*
+                             * VI_MOVE_ACCEPT_LINE is the result of an ENTER
+                             * while in move mode. Thisi is the same as a normal
+                             * ACCEPT_LINE, except that we need to enter
+                             * insert mode as well.
+                             */
+                            case VI_MOVE_ACCEPT_LINE:
+                                consoleKeys.setKeys(
+                                    consoleKeys.getKeyMaps().get(KeyMap.VI_INSERT));
+                                return accept();
 
                             case BACKWARD_WORD:
                                 success = previousWord();
@@ -1454,12 +1520,46 @@ public class ConsoleReader
 
                             case VI_EDITING_MODE:
                                 consoleKeys.setViEditMode(true);
-                                consoleKeys.setKeys(consoleKeys.getKeyMaps().get("vi"));
+                                consoleKeys.setKeys(consoleKeys.getKeyMaps().get("vi-insert"));
                                 break;
+                                
+                            case VI_MOVEMENT_MODE:
+                                moveCursor(-1);
+                                consoleKeys.setKeys (consoleKeys.getKeyMaps().get ("vi-move"));
+                                success = true;
+                                break;
+                                
+                            case VI_INSERTION_MODE:
+                                consoleKeys.setKeys (consoleKeys.getKeyMaps().get ("vi-insert"));
+                                success = true;
+                                break;
+                            
+                            case VI_APPEND_MODE:
+                                moveCursor(1);
+                                consoleKeys.setKeys (consoleKeys.getKeyMaps().get ("vi-insert"));
+                                success = true;
+                                break;
+                            
+                            case VI_APPEND_EOL:
+                                success = moveToEnd ();
+                                consoleKeys.setKeys (consoleKeys.getKeyMaps().get ("vi-insert"));
+                                break;
+                                
+                            /*
+                             * Handler for CTRL-D. Attempts to follow readline
+                             * behavior. If the line is empty, then it is an EOF
+                             * otherwise it is as if the user hit enter.
+                             */
+                            case VI_EOF_MAYBE:
+                                if (buf.buffer.length() == 0) {
+                                    return null;
+                                }
+                                return accept();
 
                             case EMACS_EDITING_MODE:
                                 consoleKeys.setViEditMode(false);
                                 consoleKeys.setKeys(consoleKeys.getKeyMaps().get("emacs"));
+                                success = true;
                                 break;
 
                             default:
@@ -1514,6 +1614,15 @@ public class ConsoleReader
                 buff.append((char) i);
             }
         }
+    }
+    
+    private static void print (StringBuilder sb)
+    {
+        System.out.println("0x");
+        for (int i = 0; i < sb.length (); i++) {
+            String.format ("%02x", (int) sb.charAt (i));
+        }
+        System.out.println("\n");
     }
 
     //

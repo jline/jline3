@@ -151,7 +151,6 @@ public enum Operation {
     VI_SUBST,
     VI_TILDE_EXPAND,
     VI_YANK_ARG,
-    VI_YANK_TO;
-
-
+    VI_YANK_TO,
+    VI_MOVE_ACCEPT_LINE
 }
