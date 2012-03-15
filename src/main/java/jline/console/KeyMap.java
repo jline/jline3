@@ -208,20 +208,20 @@ public class KeyMap {
         Map<String, KeyMap> keyMaps = new HashMap<String, KeyMap>();
         
         KeyMap emacs = emacs();
-        bindArrowKeys (emacs);
+        bindArrowKeys(emacs);
         keyMaps.put(EMACS, emacs);
         keyMaps.put(EMACS_STANDARD, emacs);
         keyMaps.put(EMACS_CTLX, (KeyMap) emacs.getBound("\u0018"));
         keyMaps.put(EMACS_META, (KeyMap) emacs.getBound("\u001b"));
         
         KeyMap viMov = viMovement();
-        bindArrowKeys (viMov);
+        bindArrowKeys(viMov);
         keyMaps.put("vi", viMov);
         keyMaps.put(VI_MOVE, viMov);
         keyMaps.put("vi-command", viMov);
         
         KeyMap viIns = viInsertion();
-        bindArrowKeys (viIns);
+        bindArrowKeys(viIns);
         keyMaps.put(VI_INSERT, viIns);
         
         return keyMaps;

@@ -25,7 +25,7 @@ public abstract class ConsoleReaderTestSupport
     @Before
     public void setUp() throws Exception {
         console = new ConsoleReader(null, new ByteArrayOutputStream(), new TerminalSupport(true) { });
-        console.setKeyMap (KeyMap.EMACS);
+        console.setKeyMap(KeyMap.EMACS);
     }
 
     protected void assertBuffer(final String expected, final Buffer buffer) throws IOException {
@@ -158,7 +158,6 @@ public abstract class ConsoleReaderTestSupport
         }
         
         public Buffer enter() {
-            
             return ctrl('J');
         }
 
@@ -171,7 +170,6 @@ public abstract class ConsoleReaderTestSupport
         }
         
         public Buffer escape() {
-            
             return append("\033");
         }
 

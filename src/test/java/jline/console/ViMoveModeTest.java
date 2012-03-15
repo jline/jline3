@@ -30,45 +30,45 @@ public class ViMoveModeTest
          * line is just like hitting enter.  First, test at the end of the line.
          * The escape() puts us in move mode.
          */
-        console.setKeyMap (KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("abc")).escape ().op(VI_EOF_MAYBE);
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("abc")).escape().op(VI_EOF_MAYBE);
         assertLine("abc", b, true);
         
         /*
          * Since VI_EOF_MAYBE is acceptable in both move mode and insert
          * mode, make sure we are testing the right now.
          */
-        assertTrue(console.isKeyMap (KeyMap.VI_MOVE));
+        assertTrue(console.isKeyMap(KeyMap.VI_MOVE));
         
         /*
          * Next, the middle of the line.
          */
-        console.setKeyMap (KeyMap.VI_INSERT);
-        b = (new Buffer("abc")).left ().left ().escape ().op (VI_EOF_MAYBE);
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("abc")).left().left().escape().op(VI_EOF_MAYBE);
         assertLine("abc", b, true);
-        assertTrue(console.isKeyMap (KeyMap.VI_MOVE));
+        assertTrue(console.isKeyMap(KeyMap.VI_MOVE));
         
         /*
          * Beginning of the line.
          */
-        console.setKeyMap (KeyMap.VI_INSERT);
-        b = (new Buffer("abc")).left ().left ().left (). escape (). op (VI_EOF_MAYBE);
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("abc")).left().left().left().escape().op(VI_EOF_MAYBE);
         assertLine("abc", b, true);
-        assertTrue(console.isKeyMap (KeyMap.VI_MOVE));
+        assertTrue(console.isKeyMap(KeyMap.VI_MOVE));
         
         /*
          * Now, check the behavior of an empty buffer. This should cause
          * a null to be returned.  I'll try it in two different ways.
          */
-        console.setKeyMap (KeyMap.VI_INSERT);
-        b = (new Buffer("abc")).back ().back ().back (). escape() .op (VI_EOF_MAYBE);
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("abc")).back().back().back().escape().op(VI_EOF_MAYBE);
         assertLine(null, b, true);
-        assertTrue(console.isKeyMap (KeyMap.VI_MOVE));
+        assertTrue(console.isKeyMap(KeyMap.VI_MOVE));
         
-        console.setKeyMap (KeyMap.VI_INSERT);
-        b = (new Buffer("")).escape (). op(VI_EOF_MAYBE);
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("")).escape().op(VI_EOF_MAYBE);
         assertLine(null, b, true);
-        assertTrue(console.isKeyMap (KeyMap.VI_MOVE));
+        assertTrue(console.isKeyMap(KeyMap.VI_MOVE));
     }
     
     @Test
@@ -80,8 +80,8 @@ public class ViMoveModeTest
          * one character, I then hit ^H to back up another, then
          * insert the letter X and hit enter.
          */
-        console.setKeyMap (KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("abc")).escape ().ctrl ('H').append ("iX").enter ();
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("abc")).escape().ctrl('H').append("iX").enter();
         assertLine("aXbc", b, true);
     }
     
@@ -92,20 +92,20 @@ public class ViMoveModeTest
          * Ctrl-J is enter. I want to test to make sure that I am 
          * re-entering insert mode when enter is hit.
          */
-        console.setKeyMap (KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("abc")).escape ().enter ();
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("abc")).escape().enter();
         assertLine("abc", b, true);
-        assertTrue(console.isKeyMap (KeyMap.VI_INSERT));
+        assertTrue(console.isKeyMap(KeyMap.VI_INSERT));
         
         /*
          * This sort of tests the same thing by actually enter
          * characters after the first enter.
          */
-        console.setKeyMap (KeyMap.VI_INSERT);
-        b = (new Buffer("abc")).escape ().enter ()
-            .append ("def").enter ();
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("abc")).escape().enter()
+            .append("def").enter();
         assertLine("def", b, true);
-        assertTrue(console.isKeyMap (KeyMap.VI_INSERT));
+        assertTrue(console.isKeyMap(KeyMap.VI_INSERT));
     }
     
     @Test
@@ -114,12 +114,12 @@ public class ViMoveModeTest
         /*
          * Ctrl-K should delete to end-of-line 
          */
-        console.setKeyMap (KeyMap.VI_INSERT);
+        console.setKeyMap(KeyMap.VI_INSERT);
         Buffer b = (new Buffer("This is a test"))
-            .escape ()
-            .left ().left ().left ().left ()
-            .ctrl ('K')
-            .enter ();
+            .escape()
+            .left().left().left().left()
+            .ctrl('K')
+            .enter();
         
         assertLine("This is a", b, true);
     }

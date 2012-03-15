@@ -870,13 +870,12 @@ public class ConsoleReader
         return true;
     }
     
-    public boolean isKeyMap (String name) {
-        
+    public boolean isKeyMap(String name) {
         /*
          * Current keymap.
          */
-        KeyMap map = consoleKeys.getKeys ();
-        KeyMap mapByName = consoleKeys.getKeyMaps ().get (name);
+        KeyMap map = consoleKeys.getKeys();
+        KeyMap mapByName = consoleKeys.getKeyMaps().get (name);
         
         if (mapByName == null)
             return false;
@@ -896,7 +895,7 @@ public class ConsoleReader
      * @return The completed line of text.
      * @throws IOException
      */
-    public String accept () throws IOException {
+    public String accept() throws IOException {
         moveToEnd();
         println(); // output newline
         flush();
@@ -1162,11 +1161,10 @@ public class ConsoleReader
      * @return true if the keymap was set, or false if the keymap is
      *    not recognized.
      */
-    public boolean setKeyMap (String name) {
+    public boolean setKeyMap(String name) {
         
         KeyMap m = consoleKeys.getKeyMaps().get(name);
         if (m == null) {
-            
             return false;
         }
         
@@ -1342,7 +1340,6 @@ public class ConsoleReader
                 }
                 if (state == NORMAL) {
                     if ( o instanceof Operation) {
-                        
                         switch ( ((Operation) o )) {
                             case COMPLETE: // tab
                                 success = complete();
@@ -1383,7 +1380,7 @@ public class ConsoleReader
                                 
                             /*
                              * VI_MOVE_ACCEPT_LINE is the result of an ENTER
-                             * while in move mode. Thisi is the same as a normal
+                             * while in move mode. This is the same as a normal
                              * ACCEPT_LINE, except that we need to enter
                              * insert mode as well.
                              */
@@ -1520,29 +1517,34 @@ public class ConsoleReader
 
                             case VI_EDITING_MODE:
                                 consoleKeys.setViEditMode(true);
-                                consoleKeys.setKeys(consoleKeys.getKeyMaps().get("vi-insert"));
+                                consoleKeys.setKeys(consoleKeys.getKeyMaps()
+                                    .get(KeyMap.VI_INSERT));
                                 break;
                                 
                             case VI_MOVEMENT_MODE:
                                 moveCursor(-1);
-                                consoleKeys.setKeys (consoleKeys.getKeyMaps().get ("vi-move"));
+                                consoleKeys.setKeys(
+                                    consoleKeys.getKeyMaps().get(KeyMap.VI_MOVE));
                                 success = true;
                                 break;
                                 
                             case VI_INSERTION_MODE:
-                                consoleKeys.setKeys (consoleKeys.getKeyMaps().get ("vi-insert"));
+                                consoleKeys.setKeys(consoleKeys.getKeyMaps()
+                                    .get(KeyMap.VI_INSERT));
                                 success = true;
                                 break;
                             
                             case VI_APPEND_MODE:
                                 moveCursor(1);
-                                consoleKeys.setKeys (consoleKeys.getKeyMaps().get ("vi-insert"));
+                                consoleKeys.setKeys(
+                                    consoleKeys.getKeyMaps().get(KeyMap.VI_INSERT));
                                 success = true;
                                 break;
                             
                             case VI_APPEND_EOL:
-                                success = moveToEnd ();
-                                consoleKeys.setKeys (consoleKeys.getKeyMaps().get ("vi-insert"));
+                                success = moveToEnd();
+                                consoleKeys.setKeys (
+                                    consoleKeys.getKeyMaps().get(KeyMap.VI_INSERT));
                                 break;
                                 
                             /*
@@ -1558,7 +1560,8 @@ public class ConsoleReader
 
                             case EMACS_EDITING_MODE:
                                 consoleKeys.setViEditMode(false);
-                                consoleKeys.setKeys(consoleKeys.getKeyMaps().get("emacs"));
+                                consoleKeys.setKeys(
+                                    consoleKeys.getKeyMaps().get(KeyMap.EMACS));
                                 success = true;
                                 break;
 
@@ -1616,15 +1619,6 @@ public class ConsoleReader
         }
     }
     
-    private static void print (StringBuilder sb)
-    {
-        System.out.println("0x");
-        for (int i = 0; i < sb.length (); i++) {
-            String.format ("%02x", (int) sb.charAt (i));
-        }
-        System.out.println("\n");
-    }
-
     //
     // Completion
     //

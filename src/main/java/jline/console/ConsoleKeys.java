@@ -81,7 +81,6 @@ public class ConsoleKeys {
             }
         }
         catch (IOException e) {
-            
             if (inputrcUrl.getProtocol().equals("file")) {
                 File file = new File(inputrcUrl.getPath());
                 if (file.exists()) {
