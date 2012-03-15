@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2012, Scott C. Gray. All rights reserved.
+ *
+ * This software is distributable under the BSD license. See the terms of the
+ * BSD license in the documentation provided with this software.
+ */
 package jline.console;
 
 import static jline.console.Operation.*;
@@ -24,7 +30,6 @@ public class ViMoveModeTest
     
     @Test
     public void testCtrlD() throws Exception {
-        
         /*
          * According to bash behavior hitting ^D anywhere in a non-empty
          * line is just like hitting enter.  First, test at the end of the line.
@@ -73,7 +78,6 @@ public class ViMoveModeTest
     
     @Test
     public void testCtrlH() throws Exception {
-        
         /*
          * CTRL-H is supposed to move the cursor backward. This first test
          * is testing that the escape() itself should step the cursor back
@@ -87,7 +91,6 @@ public class ViMoveModeTest
     
     @Test
     public void testCtrlJ() throws Exception {
-        
         /*
          * Ctrl-J is enter. I want to test to make sure that I am 
          * re-entering insert mode when enter is hit.
@@ -110,7 +113,6 @@ public class ViMoveModeTest
     
     @Test
     public void testCtrlK() throws Exception {
-        
         /*
          * Ctrl-K should delete to end-of-line 
          */
