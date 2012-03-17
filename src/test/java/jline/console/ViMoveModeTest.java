@@ -228,41 +228,6 @@ public class ViMoveModeTest
         assertLine("abcdef", b, false);
     }
     
-    @Test
-    public void testCtrlU() throws Exception {
-        /*
-         * CTRL-U is "line discard", it deletes everything prior to the
-         * current cursor position.
-         */
-        console.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("all work and no play"))
-            .escape()            // Move mode
-            .left(3)             // Left to the "p" in play
-            .ctrl('U')           // Line discard
-            .enter();
-        assertLine("play", b, false);
-        
-        /*
-         * Nothing happens at the beginning of the line
-         */
-        b = (new Buffer("donkey punch"))
-            .escape()            // Move mode
-            .append('0')         // Beginning of the line
-            .ctrl('U')           // Line discard
-            .enter();
-        assertLine("donkey punch", b, false);
-        
-        /*
-         * End of the line leaves an empty buffer
-         */
-        b = (new Buffer("rabid hamster"))
-            .escape()            // Move mode
-            .right()             // End of line
-            .ctrl('U')           // Line discard
-            .enter();
-        assertLine("", b, false);
-    }
-    
     /**
      * Used to test various forms of hitting "enter" (return). This can be
      * CTRL-J or CTRL-M...maybe others.

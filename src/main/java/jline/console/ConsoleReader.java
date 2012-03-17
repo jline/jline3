@@ -115,9 +115,7 @@ public class ConsoleReader
     private ConsoleKeys consoleKeys;
 
     private boolean skipLF = false;
-    
-    private boolean closed = false;
-    
+
     public ConsoleReader() throws IOException {
         this(null, new FileInputStream(FileDescriptor.in), System.out, null);
     }
@@ -149,45 +147,13 @@ public class ConsoleReader
                     Configuration.INPUT_RC)).toExternalForm()));
         
         consoleKeys = new ConsoleKeys(appName, inputrcUrl);
-        
-        /*
-         * Register ourselves to be shut down with the JVM shuts down.
-         */
-        ConsoleReaderShutdownHook.register(this);
     }
-    
-    /**
-     * Closes the <code>ConsoleReader</code> and restores the terminal to 
-     * its previous working condition. Once this method is called, the 
-     * <code>ConsoleReader</code> must no longer be used.
-     */
-    public void close() {
-        if (!closed) {
-            try {
-                terminal.restore();
-            }
-            catch (Exception e) {
-                /* IGNORED */
-            }
-            ConsoleReaderShutdownHook.unregister(this);
-            closed = true;
-        }
-    }
-    
-    /**
-     * @return true if the terminal has been {@link #close()}'d.
-     */
-    public boolean isClosed() {
-        return closed;
-    }
-    
+
     public KeyMap getKeys() {
         return consoleKeys.getKeys();
     }
 
     void setInput(final InputStream in) throws IOException {
-        checkClosed();
-        
         final InputStream wrapped = terminal.wrapInIfNeeded( in );
         // Wrap the input stream so that characters are only read one by one
         this.in = new FilterInputStream(wrapped) {
@@ -1244,7 +1210,6 @@ public class ConsoleReader
  *                      was pressed).
      */
     public String readLine(String prompt, final Character mask) throws IOException {
-        checkClosed();
         // prompt may be null
         // mask may be null
 
@@ -2432,15 +2397,5 @@ public class ConsoleReader
         }
 
         return -1; // TODO: throw exception instead?
-    }
-    
-    /**
-     * Used internally to check if the terminal has been restored/closed.
-     * @throws IOException Thrown if the console is closed.
-     */
-    private void checkClosed() throws IOException {
-        if (closed) {
-            throw new IOException("The ConsoleReader has been closed");
-        }
     }
 }

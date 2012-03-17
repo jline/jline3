@@ -180,23 +180,9 @@ public abstract class ConsoleReaderTestSupport
         public Buffer left() {
             return append("\033[D");
         }
-        
-        public Buffer left(int n) {
-            
-            for (int i = 0; i < n; i++)
-                append("\033[D");
-            return this;
-        }
 
         public Buffer right() {
             return append("\033[C");
-        }
-        
-        public Buffer right(int n) {
-            
-            for (int i = 0; i < n; i++)
-                append("\033[C");
-            return this;
         }
 
         public Buffer up() {
