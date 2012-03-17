@@ -419,9 +419,8 @@ public class KeyMap {
                          * Maybe this should be null?
                          */
                         Operation.QUOTED_INSERT,            /* Control-Q */
-                        
                         /*
-                         * TODO - Very broken.  While in forward/reverse 
+                         * TODO: Very broken.  While in forward/reverse 
                          * history search the VI keyset should go out the
                          * window and we need to enter a very simple keymap.
                          */
@@ -429,6 +428,11 @@ public class KeyMap {
                         Operation.FORWARD_SEARCH_HISTORY,   /* Control-S */
                         Operation.TRANSPOSE_CHARS,          /* Control-T */
                         Operation.UNIX_LINE_DISCARD,        /* Control-U */
+                        /*
+                         * TODO: I honestly cannot find a real description of
+                         * what this is supposed to do. If someone needs it and
+                         * can explain it to me, I'll see what I can do.
+                         */
                         Operation.QUOTED_INSERT,            /* Control-V */
                         Operation.UNIX_WORD_RUBOUT,         /* Control-W */
                         null,                               /* Control-X */
