@@ -857,6 +857,69 @@ public class ConsoleReader
             consoleKeys.setKeys(consoleKeys.getKeyMaps().get(KeyMap.VI_INSERT));
         return accept();
     }
+    
+    /**
+     * Implements vi style bracket matching ("%" command). The matching
+     * bracket for the current bracket type that you are sitting on is matched.
+     * The logic works like so:
+     * @return true if it worked, false if the cursor was not on a bracket 
+     *   character or if there was no matching bracket.
+     * @throws IOException
+     */
+    private boolean viMatch() throws IOException {
+        int pos        = buf.cursor;
+        
+        if (pos == buf.length ())
+            return false;
+        
+        int type       = getBracketType(buf.buffer.charAt (pos));
+        int move       = (type < 0) ? -1 : 1;
+        int count      = 1;
+        
+        if (type == 0)
+            return false;
+        
+        while (count > 0) {
+            pos += move;
+            
+            /*
+             * Fell off the start or end.
+             */
+            if (pos < 0 || pos >= buf.buffer.length ()) {
+                return false;
+            }
+            
+            int curType = getBracketType(buf.buffer.charAt (pos));
+            if (curType == type) {
+                ++count;
+            }
+            else if (curType == -type) {
+                --count;
+            }
+        }
+        setCursorPosition(pos);
+        return true;
+    }
+    
+    /**
+     * Given a character determines what type of bracket it is (paren,
+     * square, curly, or none).
+     * @param ch The character to check
+     * @return 1 is square, 2 curly, 3 parent, or zero for none.  The value
+     *   will be negated if it is the closing form of the bracket.
+     */
+    private int getBracketType (char ch) {
+        switch (ch) {
+            case '[': return  1;
+            case ']': return -1;
+            case '{': return  2;
+            case '}': return -2;
+            case '(': return  3;
+            case ')': return -3;
+            default:
+                return 0;
+        }
+    }
 
     private boolean deletePreviousWord() throws IOException {
         while (isDelimiter(buf.current()) && backspace()) {
@@ -1670,6 +1733,10 @@ public class ConsoleReader
                                 
                             case VI_INSERT_COMMENT:
                                 return insertComment (true);
+                                
+                            case VI_MATCH:
+                                success = viMatch ();
+                                break;
                                 
                             case EMACS_EDITING_MODE:
                                 consoleKeys.setViEditMode(false);

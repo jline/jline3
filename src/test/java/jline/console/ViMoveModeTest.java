@@ -318,6 +318,68 @@ public class ViMoveModeTest
         assertTrue(console.isKeyMap(KeyMap.VI_INSERT));
     }
     
+    @Test
+    public void testEndOfLine() throws Exception {
+        /*
+         * The $ key causes the cursor to move to the end of the line
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("chicken sushimi"))
+            .escape()
+            .left(10)
+            .append("$a is tasty!")
+            .enter();
+        assertLine("chicken sushimi is tasty!", b, false);
+        assertTrue(console.isKeyMap(KeyMap.VI_INSERT));
+    }
+    
+    @Test
+    public void testMatch() throws Exception {
+        /*
+         * The % character matches brackets (square, parens, or curly). 
+         * First, test close paren w/nesting
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("ab((cdef[[))"))
+            .escape()       // Move us back one character (on last close)
+            .append("%aX")  // Find match, add an X after it
+            .enter();
+        assertLine("ab(X(cdef[[))", b, false);
+        
+        /*
+         * Open paren, w/nesting
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("ab((cdef[[))"))
+            .escape()       // Move us back one character (on last close)
+            .append('0')    // Beginning of line
+            .right(2)       // Right to first open paren
+            .append("%aX")  // Match closing, add an X after it
+            .enter();
+        assertLine("ab((cdef[[))X", b, false);
+        
+        /*
+         * No match leaves the cursor in place
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("abcd))"))
+            .escape()
+            .append("%aX")
+            .enter();
+        assertLine("abcd))X", b, false);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("(abcd(d"))
+            .escape()
+            .append("0%aX") // Beginning of line, match, append X
+            .enter();
+        assertLine("(Xabcd(d", b, false);
+        
+        /*
+         * TODO: Test other brackets.
+         */
+    }
+    
     /**
      * Used to test various forms of hitting "enter" (return). This can be
      * CTRL-J or CTRL-M...maybe others.
