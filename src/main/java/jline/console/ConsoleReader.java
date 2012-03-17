@@ -113,6 +113,8 @@ public class ConsoleReader
     private URL inputrcUrl;
 
     private ConsoleKeys consoleKeys;
+    
+    private String commentBegin = null;
 
     private boolean skipLF = false;
 
@@ -200,6 +202,31 @@ public class ConsoleReader
 
     public boolean getExpandEvents() {
         return expandEvents;
+    }
+    
+    /**
+     * Sets the string that will be used to start a comment when the
+     * insert-comment key is struck.
+     * @param commentBegin The begin comment string.
+     */
+    public void setCommentBegin (String commentBegin) {
+        this.commentBegin = commentBegin;
+    }
+    
+    /**
+     * @return the string that will be used to start a comment when the
+     * insert-comment key is struck.
+     */
+    public String getCommentBegin () {
+        String str = commentBegin;
+        
+        if (str == null) {
+            str = consoleKeys.getVariable ("comment-begin");
+            if (str == null) {
+                str = "#";
+            }
+        }
+        return str;
     }
 
     public void setPrompt(final String prompt) {
@@ -806,6 +833,29 @@ public class ConsoleReader
         }
 
         return true;
+    }
+    
+    private boolean unixWordRubout() throws IOException {
+        if (buf.cursor == 0)
+            return false;
+        
+        while (isWhitespace (buf.current ()) && backspace()) {
+            /* nothing */
+        }
+        while (!isWhitespace (buf.current ()) && backspace()) {
+            /* nothing */
+        }
+        
+        return true;
+    }
+    
+    private String insertComment(boolean isViMode) throws IOException {
+        String comment = this.getCommentBegin ();
+        setCursorPosition(0);
+        putString(comment);
+        if (isViMode)
+            consoleKeys.setKeys(consoleKeys.getKeyMaps().get(KeyMap.VI_INSERT));
+        return accept();
     }
 
     private boolean deletePreviousWord() throws IOException {
@@ -1484,8 +1534,10 @@ public class ConsoleReader
                                 break;
 
                             case UNIX_WORD_RUBOUT:
+                                success = unixWordRubout();
+                                break;
+                                
                             case BACKWARD_KILL_WORD:
-                                // in theory, those are slightly different
                                 success = deletePreviousWord();
                                 break;
                             case KILL_WORD:
@@ -1612,7 +1664,13 @@ public class ConsoleReader
                             case TRANSPOSE_CHARS:
                                 success = transposeChars ();
                                 break;
-
+                                
+                            case INSERT_COMMENT:
+                                return insertComment (false);
+                                
+                            case VI_INSERT_COMMENT:
+                                return insertComment (true);
+                                
                             case EMACS_EDITING_MODE:
                                 consoleKeys.setViEditMode(false);
                                 consoleKeys.setKeys(
@@ -2338,6 +2396,19 @@ public class ConsoleReader
      */
     private boolean isDelimiter(final char c) {
         return !Character.isLetterOrDigit(c);
+    }
+    
+    /**
+     * Checks to see if a character is a whitespace character. Currently 
+     * this delegates to {@link Character#isWhitespace(char)}, however
+     * eventually it should be hooked up so that the definition of whitespace
+     * can be configured, as readline does.
+     * 
+     * @param c The character to check
+     * @return true if the character is a whitespace
+     */
+    private boolean isWhitespace(final char c) {
+        return Character.isWhitespace (c);
     }
 
     private void printAnsiSequence(String sequence) throws IOException {

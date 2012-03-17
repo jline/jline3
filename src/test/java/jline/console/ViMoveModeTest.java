@@ -228,6 +228,96 @@ public class ViMoveModeTest
         assertLine("abcdef", b, false);
     }
     
+    @Test
+    public void testCtrlU() throws Exception {
+        /*
+         * CTRL-U is "line discard", it deletes everything prior to the
+         * current cursor position.
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("all work and no play"))
+            .escape()            // Move mode
+            .left(3)             // Left to the "p" in play
+            .ctrl('U')           // Line discard
+            .enter();
+        assertLine("play", b, false);
+        
+        /*
+         * Nothing happens at the beginning of the line
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("donkey punch"))
+            .escape()            // Move mode
+            .append('0')         // Beginning of the line
+            .ctrl('U')           // Line discard
+            .enter();
+        assertLine("donkey punch", b, false);
+        
+        /*
+         * End of the line leaves an empty buffer
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("rabid hamster"))
+            .escape()            // Move mode
+            .right()             // End of line
+            .ctrl('U')           // Line discard
+            .enter();
+        assertLine("", b, false);
+    }
+    
+    @Test
+    public void testCtrlW() throws Exception {
+        /*
+         * CTRL-W is word rubout. It deletes to the beginning of the word
+         * you are currently sitting in, or if you are one a break character
+         * it deletes up to the beginning of the previous word.
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("oily rancid badgers"))
+            .escape()
+            .ctrl('W')
+            .ctrl('W')
+            .enter();
+        assertLine("oily s", b, false);
+        
+        /*
+         * Test behavior with non-word characters. 
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("pasty bulimic rats !!!!!"))
+            .escape()
+            .ctrl('W')
+            .ctrl('W')
+            .enter();
+        assertLine("pasty bulimic !", b, false);
+    }
+    
+    @Test
+    public void testSpace() throws Exception {
+        /*
+         * Space acts as a right-arrow while in move mode.
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("big banshee bollocks"))
+            .escape()             // Enter move, back one space
+            .append(" a smell")   // space==right, append, space "smell"
+            .enter();
+        assertLine("big banshee bollocks smell", b, false);
+    }
+    
+    @Test
+    public void testInsertComment() throws Exception {
+        /*
+         * The # key causes a comment to get inserted.
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("putrified whales"))
+            .escape()
+            .append ("#");
+        assertLine("#putrified whales", b, false);
+        assertTrue(console.isKeyMap(KeyMap.VI_INSERT));
+    }
+    
     /**
      * Used to test various forms of hitting "enter" (return). This can be
      * CTRL-J or CTRL-M...maybe others.
@@ -236,7 +326,6 @@ public class ViMoveModeTest
      * @throws Exception
      */
     private void testEnter(char enterChar) throws Exception {
-        
         /*
          * I want to test to make sure that I am re-entering insert mode 
          * when enter is hit.

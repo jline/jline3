@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -36,6 +37,7 @@ public class ConsoleKeys {
     private boolean viEditMode;
 
     private Map<String, KeyMap> keyMaps;
+    private Map<String, String> variables = new HashMap<String,String>();
 
     public ConsoleKeys(String appName, URL inputrcUrl) {
         keyMaps = KeyMap.keyMaps();
@@ -368,7 +370,22 @@ public class ConsoleKeys {
                 viEditMode = false;
             }
         }
-        // TODO
+        
+        /*
+         * Technically variables should be defined as a functor class
+         * so that validation on the variable value can be done at parse
+         * time. This is a stop-gap. 
+         */
+        variables.put(key, val);
     }
-
+    
+    /**
+     * Retrieves the value of a variable that was set in the .inputrc file
+     * during processing
+     * @param var The variable name
+     * @return The variable value.
+     */
+    public String getVariable(String var) {
+        return variables.get (var);
+    }
 }

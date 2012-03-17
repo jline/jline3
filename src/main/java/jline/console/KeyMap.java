@@ -426,23 +426,28 @@ public class KeyMap {
                          * window and we need to enter a very simple keymap.
                          */
                         Operation.REVERSE_SEARCH_HISTORY,   /* Control-R */
+                        /* TODO */
                         Operation.FORWARD_SEARCH_HISTORY,   /* Control-S */
                         Operation.TRANSPOSE_CHARS,          /* Control-T */
                         Operation.UNIX_LINE_DISCARD,        /* Control-U */
+                        /* TODO */
                         Operation.QUOTED_INSERT,            /* Control-V */
                         Operation.UNIX_WORD_RUBOUT,         /* Control-W */
                         null,                               /* Control-X */
+                        /* TODO */
                         Operation.YANK,                     /* Control-Y */
                         null,                               /* Control-Z */
                         emacsMeta(),                        /* Control-[ */
                         null,                               /* Control-\ */
+                        /* TODO */
                         Operation.CHARACTER_SEARCH,         /* Control-] */
                         null,                               /* Control-^ */
+                        /* TODO */
                         Operation.UNDO,                     /* Control-_ */
                         Operation.FORWARD_CHAR,             /* SPACE */
                         null,                               /* ! */
                         null,                               /* " */
-                        Operation.INSERT_COMMENT,           /* # */
+                        Operation.VI_INSERT_COMMENT,        /* # */
                         Operation.END_OF_LINE,              /* $ */
                         Operation.VI_MATCH,                 /* % */
                         Operation.VI_TILDE_EXPAND,          /* & */
