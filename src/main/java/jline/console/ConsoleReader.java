@@ -881,8 +881,7 @@ public class ConsoleReader
      */
     private boolean transposeChars() throws IOException {
         
-        if (buf.cursor == 0 || buf.cursor == buf.buffer.length())
-        {
+        if (buf.cursor == 0 || buf.cursor == buf.buffer.length()) {
             return false;
         }
         
