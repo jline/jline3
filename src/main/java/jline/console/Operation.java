@@ -152,5 +152,7 @@ public enum Operation {
     VI_TILDE_EXPAND,
     VI_YANK_ARG,
     VI_YANK_TO,
-    VI_MOVE_ACCEPT_LINE
+    VI_MOVE_ACCEPT_LINE,
+    VI_NEXT_HISTORY,
+    VI_PREVIOUS_HISTORY
 }

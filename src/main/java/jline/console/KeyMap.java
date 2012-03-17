@@ -411,10 +411,20 @@ public class KeyMap {
                         Operation.KILL_LINE,                /* Control-K */
                         Operation.CLEAR_SCREEN,             /* Control-L */
                         Operation.VI_MOVE_ACCEPT_LINE,      /* Control-M */
-                        Operation.NEXT_HISTORY,             /* Control-N */
+                        Operation.VI_NEXT_HISTORY,          /* Control-N */
                         null,                               /* Control-O */
-                        Operation.PREVIOUS_HISTORY,         /* Control-P */
+                        Operation.VI_PREVIOUS_HISTORY,      /* Control-P */
+                        /*
+                         * My testing with readline is the ^Q is ignored. 
+                         * Maybe this should be null?
+                         */
                         Operation.QUOTED_INSERT,            /* Control-Q */
+                        
+                        /*
+                         * TODO - Very broken.  While in forward/reverse 
+                         * history search the VI keyset should go out the
+                         * window and we need to enter a very simple keymap.
+                         */
                         Operation.REVERSE_SEARCH_HISTORY,   /* Control-R */
                         Operation.FORWARD_SEARCH_HISTORY,   /* Control-S */
                         Operation.TRANSPOSE_CHARS,          /* Control-T */

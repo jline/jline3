@@ -870,6 +870,36 @@ public class ConsoleReader
         return true;
     }
     
+    /**
+     * Performs character transpose. The character prior to the cursor and the
+     * character under the cursor are swapped and the cursor is advanced one
+     * character unless you are already at the end of the line.
+     * 
+     * @return true if the operation succeeded, false otherwise (e.g. transpose
+     *   cannot happen at the beginning of the line).
+     * @throws IOException
+     */
+    private boolean transposeChars() throws IOException {
+        
+        if (buf.cursor == 0 || buf.cursor == buf.buffer.length())
+        {
+            return false;
+        }
+        
+        int first  = buf.cursor-1;
+        int second = buf.cursor;
+        
+        char tmp = buf.buffer.charAt (first);
+        buf.buffer.setCharAt(first, buf.buffer.charAt(second));
+        buf.buffer.setCharAt(second, tmp);
+        
+        moveInternal(-1);
+        drawBuffer();
+        moveInternal(2);
+        
+        return true;
+    }
+    
     public boolean isKeyMap(String name) {
         /*
          * Current keymap.
@@ -1400,9 +1430,31 @@ public class ConsoleReader
                             case PREVIOUS_HISTORY:
                                 success = moveHistory(false);
                                 break;
+                                
+                            /*
+                             * According to bash/readline move through history
+                             * in "vi" mode will move the cursor to the
+                             * start of the line. If there is no previous
+                             * history, then the cursor doesn't move.
+                             */
+                            case VI_PREVIOUS_HISTORY:
+                                success = moveHistory(false)
+                                    && setCursorPosition(0);
+                                break;
 
                             case NEXT_HISTORY:
                                 success = moveHistory(true);
+                                break;
+                                
+                            /*
+                             * According to bash/readline move through history
+                             * in "vi" mode will move the cursor to the
+                             * start of the line. If there is no next history,
+                             * then the cursor doesn't move.
+                             */
+                            case VI_NEXT_HISTORY:
+                                success = moveHistory(true)
+                                    && setCursorPosition(0);
                                 break;
 
                             case BACKWARD_DELETE_CHAR: // backspace
@@ -1557,6 +1609,10 @@ public class ConsoleReader
                                     return null;
                                 }
                                 return accept();
+                                
+                            case TRANSPOSE_CHARS:
+                                success = transposeChars ();
+                                break;
 
                             case EMACS_EDITING_MODE:
                                 consoleKeys.setViEditMode(false);

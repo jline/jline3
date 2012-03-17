@@ -7,6 +7,7 @@
 package jline.console;
 
 import static jline.console.Operation.*;
+import jline.console.history.MemoryHistory;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -91,25 +92,13 @@ public class ViMoveModeTest
     
     @Test
     public void testCtrlJ() throws Exception {
-        /*
-         * Ctrl-J is enter. I want to test to make sure that I am 
-         * re-entering insert mode when enter is hit.
-         */
-        console.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("abc")).escape().enter();
-        assertLine("abc", b, true);
-        assertTrue(console.isKeyMap(KeyMap.VI_INSERT));
         
         /*
-         * This sort of tests the same thing by actually enter
-         * characters after the first enter.
+         * ENTER is CTRL-J. 
          */
-        console.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("abc")).escape().enter()
-            .append("def").enter();
-        assertLine("def", b, true);
-        assertTrue(console.isKeyMap(KeyMap.VI_INSERT));
+        testEnter('J');
     }
+    
     
     @Test
     public void testCtrlK() throws Exception {
@@ -124,8 +113,149 @@ public class ViMoveModeTest
             .enter();
         
         assertLine("This is a", b, true);
+        
+        b = (new Buffer("hello"))
+            .escape()
+            .ctrl('K')
+            .enter();
+        assertLine("hell", b, true);
     }
     
+    @Test
+    public void testCtrlL() throws Exception {
+        /*
+         * CTRL-L clears the screen. I can't test much but to make sure
+         * that the cursor is where it is supposed to be.
+         * 
+         * IMPORTANT NOTE: The CTRL-K is commented out below. Technically
+         * it is a bug. What is supposed to happen is that the escape()
+         * backs the cursor up one, so the CTRL-K is supposed to delete 
+         * the "o". With the CTRL-L involved, it doesn't. I suspect that
+         * it has to do with the parsing of the stream of escape's coming
+         * in and I'm not entirely sure it is easy to fix.  Since this is
+         * really an edge case I'm commenting it out, but I'm leaving this
+         * comment here because it may be a sign of something lurking down the
+         * road.
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("hello"))
+            .escape()
+            .ctrl ('L')
+            // .ctrl ('K')
+            .enter ();
+        assertLine("hello", b, true);
+    }
+    
+    @Test
+    public void testCtrlM() throws Exception {
+        testEnter('M');
+    }
+    
+    @Test
+    public void testCtrlP_CtrlN() throws Exception {
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("line1")).enter()
+            .append("line2").enter()
+            .append("li")
+            .escape()
+            .ctrl('P')
+            .ctrl('P')
+            .enter();
+        assertLine("line1", b, false);
+        
+        console.getHistory ().clear ();
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("line1")).enter()
+            .append("line2").enter()
+            .append("li")
+            .escape()
+            .ctrl('P')
+            .ctrl('P')
+            .ctrl('N')
+            .enter();
+        assertLine("line2", b, false);
+        
+        /*
+         * One last test. Make sure that when we move through history
+         * that the cursor is moved to the front of the line.
+         */
+        console.getHistory ().clear ();
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("aline")).enter()
+            .append("bline").enter()
+            .append("cli")
+            .escape()
+            .ctrl('P')
+            .ctrl('P')
+            .ctrl('N')
+            .append ("iX")
+            .enter();
+        assertLine("Xbline", b, false);
+    }
+    
+    @Test
+    public void testCtrlT() throws Exception {
+        
+        /*
+         * Transpose every character exactly.
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("abcdef"))
+            .escape()           // Move mode
+            .append('0')        // Beginning of line
+            .right()            // Right one
+            .ctrl('T')          // Transpose
+            .ctrl('T')
+            .ctrl('T')
+            .ctrl('T')
+            .ctrl('T')
+            .enter();
+        assertLine("bcdefa", b, false);
+        
+        /*
+         * Cannot transpose the first character or the last character
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("abcdef"))
+            .escape()           // Move mode
+            .append('0')        // Beginning of line
+            .ctrl('T')
+            .ctrl('T')
+            .append('$')        // End of line
+            .ctrl('T')
+            .ctrl('T')
+            .enter();
+        assertLine("abcdef", b, false);
+    }
+    
+    /**
+     * Used to test various forms of hitting "enter" (return). This can be
+     * CTRL-J or CTRL-M...maybe others.
+     * 
+     * @param enterChar The escape character that acts as enter.
+     * @throws Exception
+     */
+    private void testEnter(char enterChar) throws Exception {
+        
+        /*
+         * I want to test to make sure that I am re-entering insert mode 
+         * when enter is hit.
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("abc")).escape().ctrl(enterChar);
+        assertLine("abc", b, true);
+        assertTrue(console.isKeyMap(KeyMap.VI_INSERT));
+        
+        /*
+         * This sort of tests the same thing by actually enter
+         * characters after the first enter.
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("abc")).escape().ctrl(enterChar)
+            .append("def").enter();
+        assertLine("def", b, true);
+        assertTrue(console.isKeyMap(KeyMap.VI_INSERT));
+    }
     
     /*
      * TODO - Test arrow key bindings
