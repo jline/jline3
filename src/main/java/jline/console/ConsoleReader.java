@@ -859,6 +859,160 @@ public class ConsoleReader
     }
     
     /**
+     * Implements vi search ("/" or "?").
+     * @throws IOException
+     */
+    private int viSearch(char searchChar) throws IOException {
+        boolean isForward = (searchChar == '/');
+        
+        /*
+         * This is a little gross, I'm sure there is a more appropriate way
+         * of saving and restoring state.
+         */
+        CursorBuffer origBuffer = buf.clone();
+        
+        /*
+         * Clear the contents of the current line and 
+         */
+        setCursorPosition (0);
+        killLine();
+        
+        /*
+         * Our new "prompt" is the character that got us into search mode.
+         */
+        putString(Character.toString(searchChar));
+        flush();
+        
+        boolean isAborted = false;
+        boolean isComplete = false;
+        
+        /*
+         * Readline doesn't seem to do any special character map handling
+         * here, so I think we are safe.
+         */
+        int ch = -1;
+        while (!isAborted && !isComplete && (ch = readCharacter()) != -1) {
+            switch (ch) {
+                case '\033':  /* ESC */
+                    isAborted = true;
+                    break;
+                case '\010':  /* Backspace */
+                case '\177':  /* Delete */
+                    backspace();
+                    /*
+                     * Backspacing through the "prompt" aborts the search.
+                     */
+                    if (buf.cursor == 0) {
+                        isAborted = true;
+                    }
+                    break;
+                case '\012': /* Enter */
+                    isComplete = true;
+                    break;
+                default:
+                    putString(Character.toString((char) ch));
+            }
+            
+            flush();
+        }
+        
+        /*
+         * If we aborted, then put ourself at the end of the original
+         * buffer.
+         */
+        if (ch == -1 || isAborted) {
+            setCursorPosition(0);
+            killLine();
+            putString(origBuffer.buffer);
+            return -1;
+        }
+        
+        /*
+         * The first character of the buffer was the search character itself
+         * so we discard it.
+         */
+        String searchTerm = buf.buffer.substring(1);
+        int idx = -1;
+        
+        if (isForward) {
+            for (idx = 0; idx < history.size(); idx++) {
+                if (history.get(idx).toString().contains(searchTerm)) {
+                    break;
+                }
+            }
+            if (idx == history.size ()) {
+                idx = -1;
+            }
+        }
+        else {
+            for (idx = history.size()-1; idx > 0; idx--) {
+                if (history.get(idx).toString().contains(searchTerm)) {
+                    break;
+                }
+            }
+        }
+        
+        /*
+         * No match? Then restore what we were working on.
+         */
+        if (idx == -1) {
+            setCursorPosition(0);
+            killLine();
+            putString(origBuffer.buffer);
+            return -1;
+        }
+        
+        /*
+         * Show the match.
+         */
+        setCursorPosition(0);
+        killLine();
+        putString(history.get(idx));
+        setCursorPosition(0);
+        flush();
+        
+        /*
+         * While searching really only the "n" and "N" keys are interpreted
+         * as movement, any other key is treated as if you are editing the 
+         * line with it, so we return it back up to the caller for interpretation.
+         */
+        isComplete = false;
+        while (!isComplete && (ch = readCharacter()) != -1) {
+            switch (ch) {
+                case 'n':
+                case 'N':
+                    if (isForward) {
+                        if (idx < (history.size()-1)) {
+                            ++idx;
+                            setCursorPosition(0);
+                            killLine();
+                            putString(history.get(idx));
+                            setCursorPosition(0);
+                        }
+                    }
+                    else {
+                        if (idx > 0) {
+                            --idx;
+                            setCursorPosition(0);
+                            killLine();
+                            putString(history.get(idx));
+                            setCursorPosition(0);
+                        }
+                    }
+                    break;
+                default:
+                    isComplete = true;
+            }
+            flush();
+        }
+        
+        /* 
+         * Complete?
+         */
+        return ch;
+    }
+    
+    /**
      * Implements vi style bracket matching ("%" command). The matching
      * bracket for the current bracket type that you are sitting on is matched.
      * The logic works like so:
@@ -1313,14 +1467,14 @@ public class ConsoleReader
         consoleKeys.setKeys(m);
         return true;
     }
-
+    
     /**
      * Read a line from the <i>in</i> {@link InputStream}, and return the line
      * (without any trailing newlines).
      *
      * @param prompt    The prompt to issue to the console, may be null.
      * @return          A line that is read from the terminal, or null if there was null input (e.g., <i>CTRL-D</i>
- *                      was pressed).
+     *                  was pressed).
      */
     public String readLine(String prompt, final Character mask) throws IOException {
         // prompt may be null
@@ -1736,6 +1890,13 @@ public class ConsoleReader
                                 
                             case VI_MATCH:
                                 success = viMatch ();
+                                break;
+                                
+                            case VI_SEARCH:
+                                int lastChar = viSearch(sb.charAt (0));
+                                if (lastChar != -1) {
+                                    pushBackChar.add((char)lastChar);
+                                }
                                 break;
                                 
                             case EMACS_EDITING_MODE:

@@ -454,6 +454,7 @@ public class KeyMap {
                         null,                               /* ' */
                         null,                               /* ( */
                         null,                               /* ) */
+                        /* TODO */
                         Operation.VI_COMPLETE,              /* * */
                         Operation.NEXT_HISTORY,             /* + */
                         Operation.VI_CHAR_SEARCH,           /* , */
