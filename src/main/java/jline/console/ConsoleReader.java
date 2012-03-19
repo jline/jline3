@@ -894,6 +894,10 @@ public class ConsoleReader
         while (!isAborted && !isComplete && (ch = readCharacter()) != -1) {
             switch (ch) {
                 case '\033':  /* ESC */
+                    /*
+                     * The ESC behavior doesn't appear to be readline behavior,
+                     * but it is a little tweak of my own. I like it.
+                     */
                     isAborted = true;
                     break;
                 case '\010':  /* Backspace */
@@ -924,6 +928,7 @@ public class ConsoleReader
             setCursorPosition(0);
             killLine();
             putString(origBuffer.buffer);
+            setCursorPosition(origBuffer.cursor);
             return -1;
         }
         
@@ -953,12 +958,14 @@ public class ConsoleReader
         }
         
         /*
-         * No match? Then restore what we were working on.
+         * No match? Then restore what we were working on, but make sure
+         * the cursor is at the beginning of the line.
          */
         if (idx == -1) {
             setCursorPosition(0);
             killLine();
             putString(origBuffer.buffer);
+            setCursorPosition(0);
             return -1;
         }
         

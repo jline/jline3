@@ -176,6 +176,12 @@ public abstract class ConsoleReaderTestSupport
         public Buffer back() {
             return op(Operation.BACKWARD_DELETE_CHAR);
         }
+        
+        public Buffer back(int n) {
+            for (int i = 0; i < n; i++)
+                op(Operation.BACKWARD_DELETE_CHAR);
+            return this;
+        }
 
         public Buffer left() {
             return append("\033[D");

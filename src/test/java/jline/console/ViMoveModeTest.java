@@ -7,6 +7,7 @@
 package jline.console;
 
 import static jline.console.Operation.*;
+import jline.console.history.History;
 import jline.console.history.MemoryHistory;
 
 import org.junit.Before;
@@ -378,6 +379,97 @@ public class ViMoveModeTest
         /*
          * TODO: Test other brackets.
          */
+    }
+    
+    @Test
+    public void testForwardSearch() throws Exception {
+        /*
+         * Tests the "/" forward search
+         */
+        History history = console.getHistory();
+        history.clear();
+        history.add("aaadef");
+        history.add("bbbdef");
+        history.add("cccdef");
+        
+        /*
+         * An aborted search should leave you exactly on the
+         * character you were on of the original term. First, I will
+         * test aborting by deleting back over the search expression.
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("I like frogs"))
+            .escape()
+            .left(4)          // Cursor is on the "f"
+            .append("/def")   // Start a search
+            .back(4)          // Delete everything (aborts search)
+            .append("ibig ")  // Insert mode, type "big "
+            .enter();         // Done
+        assertLine("I like big frogs", b, false);
+        
+        /*
+         * Next, hit escape to abort. This technically isn't readline
+         * behavior, but I added it because I find it useful.
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("I like frogs"))
+            .escape()
+            .left(4)          // Cursor is on the "f"
+            .append("/def")   // Start a search
+            .escape()         // Abort the search
+            .append("ibig ")  // Insert mode, type "big "
+            .enter();         // Done
+        assertLine("I like big frogs", b, false);
+        
+        /*
+         * Test a failed history match. This is like an abort, but it
+         * should leave the cursor at the start of the line.
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("I like frogs"))
+            .escape()
+            .left(4)          // Cursor is on the "f"
+            .append("/III")   // Search (no match)
+            .enter()          // Kick it off.
+            .append("iX")     // With cursor at start, insert an X
+            .enter();
+        assertLine("XI like frogs", b, false);
+        
+        /*
+         * Test a valid search.
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("I like frogs"))
+            .escape()
+            .left(4)          // Cursor is on the "f"
+            .append("/def")   // Search (no match)
+            .enter()          // Kick it off.
+            .append("nNiX")   // Move forward two, insert an X. Note I use
+                              // use "n" and "N" to move.
+            .enter();
+        assertLine("Xcccdef", b, false);
+        
+        /*
+         * The previous test messed with history.
+         */
+        history.clear();
+        history.add("aaadef");
+        history.add("bbbdef");
+        history.add("cccdef");
+        
+        /*
+         * Search backwards
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("I like frogs"))
+            .escape()
+            .left(4)          // Cursor is on the "f"
+            .append("?def")   // Search (no match)
+            .enter()          // Kick it off.
+            .append("nNiX")   // Move forward two, insert an X. Note I use
+                              // use "n" and "N" to move.
+            .enter();
+        assertLine("Xaaadef", b, false);
     }
     
     /**
