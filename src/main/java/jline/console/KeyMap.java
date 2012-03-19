@@ -456,12 +456,13 @@ public class KeyMap {
                         null,                               /* ) */
                         /* TODO */
                         Operation.VI_COMPLETE,              /* * */
-                        Operation.NEXT_HISTORY,             /* + */
+                        Operation.VI_NEXT_HISTORY,          /* + */
                         Operation.VI_CHAR_SEARCH,           /* , */
-                        Operation.PREVIOUS_HISTORY,         /* - */
+                        Operation.VI_PREVIOUS_HISTORY,      /* - */
+                        /* TODO */
                         Operation.VI_REDO,                  /* . */
                         Operation.VI_SEARCH,                /* / */
-                        Operation.BEGINNING_OF_LINE,        /* 0 */
+                        Operation.VI_BEGNNING_OF_LINE_OR_ARG_DIGIT, /* 0 */
                         Operation.VI_ARG_DIGIT,             /* 1 */
                         Operation.VI_ARG_DIGIT,             /* 2 */
                         Operation.VI_ARG_DIGIT,             /* 3 */
@@ -479,6 +480,7 @@ public class KeyMap {
                         Operation.VI_SEARCH,                /* ? */
                         null,                               /* @ */
                         Operation.VI_APPEND_EOL,            /* A */
+                        /* XXXXXX - Need to work on here down */
                         Operation.VI_PREV_WORD,             /* B */
                         Operation.VI_CHANGE_TO,             /* C */
                         Operation.VI_DELETE_TO,             /* D */

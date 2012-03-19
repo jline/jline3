@@ -835,15 +835,27 @@ public class ConsoleReader
         return true;
     }
     
-    private boolean unixWordRubout() throws IOException {
-        if (buf.cursor == 0)
-            return false;
-        
-        while (isWhitespace (buf.current ()) && backspace()) {
-            /* nothing */
-        }
-        while (!isWhitespace (buf.current ()) && backspace()) {
-            /* nothing */
+    /**
+     * Deletes to the beginning of the word that the cursor is sitting on.  
+     * If the cursor is on white-space, it deletes that and to the beginning
+     * of the word before it.  If the user is not on a word or whitespace
+     * it deletes up to the end of the previous word.
+     * 
+     * @param count Number of times to perform the operation
+     * @return true if it worked, false if you tried to delete too many words
+     * @throws IOException
+     */
+    private boolean unixWordRubout(int count) throws IOException {
+        for (; count > 0; --count) {
+            if (buf.cursor == 0)
+                return false;
+            
+            while (isWhitespace (buf.current ()) && backspace()) {
+                /* nothing */
+            }
+            while (!isWhitespace (buf.current ()) && backspace()) {
+                /* nothing */
+            }
         }
         
         return true;
@@ -856,6 +868,32 @@ public class ConsoleReader
         if (isViMode)
             consoleKeys.setKeys(consoleKeys.getKeyMaps().get(KeyMap.VI_INSERT));
         return accept();
+    }
+    
+    /**
+     * Similar to putString() but allows the string to be repeated a specific
+     * number of times, allowing easy support of vi digit arguments to a given
+     * command. The string is placed as the current cursor position.
+     * 
+     * @param count The count of times to insert the string.
+     * @param str The string to insert
+     * @return true if the operation is a success, false otherwise
+     * @throws IOException
+     */
+    private boolean insert(int count, final CharSequence str) throws IOException {
+        for (int i = 0; i < count; i++) {
+            buf.write(str);
+            if (mask == null) {
+                // no masking
+                print(str);
+            } else if (mask == NULL_MASK) {
+                // don't print anything
+            } else {
+                print(mask, str.length());
+            }
+        }
+        drawBuffer();
+        return true;
     }
     
     /**
@@ -1149,26 +1187,31 @@ public class ConsoleReader
      * character under the cursor are swapped and the cursor is advanced one
      * character unless you are already at the end of the line.
      * 
+     * @param count The number of times to perform the transpose
      * @return true if the operation succeeded, false otherwise (e.g. transpose
      *   cannot happen at the beginning of the line).
      * @throws IOException
      */
-    private boolean transposeChars() throws IOException {
-        
-        if (buf.cursor == 0 || buf.cursor == buf.buffer.length()) {
-            return false;
+    private boolean transposeChars(int count) throws IOException {
+        for (; count > 0; --count) {
+            if (buf.cursor == 0 || buf.cursor == buf.buffer.length()) {
+                return false;
+            }
+            
+            int first  = buf.cursor-1;
+            int second = buf.cursor;
+            
+            char tmp = buf.buffer.charAt (first);
+            buf.buffer.setCharAt(first, buf.buffer.charAt(second));
+            buf.buffer.setCharAt(second, tmp);
+            
+            /*
+             * This could be done more efficiently by only re-drawing at the end.
+             */
+            moveInternal(-1);
+            drawBuffer();
+            moveInternal(2);
         }
-        
-        int first  = buf.cursor-1;
-        int second = buf.cursor;
-        
-        char tmp = buf.buffer.charAt (first);
-        buf.buffer.setCharAt(first, buf.buffer.charAt(second));
-        buf.buffer.setCharAt(second, tmp);
-        
-        moveInternal(-1);
-        drawBuffer();
-        moveInternal(2);
         
         return true;
     }
@@ -1486,6 +1529,13 @@ public class ConsoleReader
     public String readLine(String prompt, final Character mask) throws IOException {
         // prompt may be null
         // mask may be null
+        
+        /*
+         * This is the accumulator for VI-mode repeat count. That is, while in
+         * move mode, if you type 30x it will delete 30 characters. This is
+         * where the "30" is accumulated until the command is struck.
+         */
+        int repeatCount = 0;
 
         // FIXME: This blows, each call to readLine will reset the console's state which doesn't seem very nice.
         this.mask = mask;
@@ -1642,6 +1692,25 @@ public class ConsoleReader
                     }
                 }
                 if (state == NORMAL) {
+                    /*
+                     * If this is still false at the end of the switch, then
+                     * we reset our repeatCount to 0.
+                     */
+                    boolean isArgDigit = false;
+                    
+                    /*
+                     * Every command that can be repeated a specified number
+                     * of times, needs to know how many times to repeat, so
+                     * we figure that out here.
+                     */
+                    int count = (repeatCount == 0) ? 1 : repeatCount;
+                    
+                    /*
+                     * Default success to true. You only need to explicitly
+                     * set it if something goes wrong.
+                     */
+                    success = true;
+                    
                     if ( o instanceof Operation) {
                         switch ( ((Operation) o )) {
                             case COMPLETE: // tab
@@ -1650,7 +1719,6 @@ public class ConsoleReader
 
                             case POSSIBLE_COMPLETIONS:
                                 printCompletionCandidates();
-                                success = true;
                                 break;
 
                             case BEGINNING_OF_LINE:
@@ -1674,8 +1742,7 @@ public class ConsoleReader
                                 break;
 
                             case SELF_INSERT:
-                                putString( sb );
-                                success = true;
+                                putString(sb);
                                 break;
 
                             case ACCEPT_LINE:
@@ -1711,7 +1778,7 @@ public class ConsoleReader
                              * history, then the cursor doesn't move.
                              */
                             case VI_PREVIOUS_HISTORY:
-                                success = moveHistory(false)
+                                success = moveHistory(false, count)
                                     && setCursorPosition(0);
                                 break;
 
@@ -1726,7 +1793,7 @@ public class ConsoleReader
                              * then the cursor doesn't move.
                              */
                             case VI_NEXT_HISTORY:
-                                success = moveHistory(true)
+                                success = moveHistory(true, count)
                                     && setCursorPosition(0);
                                 break;
 
@@ -1746,11 +1813,11 @@ public class ConsoleReader
                                 break;
 
                             case BACKWARD_CHAR:
-                                success = moveCursor(-1) != 0;
+                                success = moveCursor(-(count)) != 0;
                                 break;
 
                             case FORWARD_CHAR:
-                                success = moveCursor(1) != 0;
+                                success = moveCursor(count) != 0;
                                 break;
 
                             case UNIX_LINE_DISCARD:
@@ -1758,7 +1825,7 @@ public class ConsoleReader
                                 break;
 
                             case UNIX_WORD_RUBOUT:
-                                success = unixWordRubout();
+                                success = unixWordRubout(count);
                                 break;
                                 
                             case BACKWARD_KILL_WORD:
@@ -1818,12 +1885,10 @@ public class ConsoleReader
 
                             case TAB_INSERT:
                                 putString( "\t" );
-                                success = true;
                                 break;
 
                             case RE_READ_INIT_FILE:
                                 consoleKeys.loadKeys(appName, inputrcUrl);
-                                success = true;
                                 break;
 
                             case START_KBD_MACRO:
@@ -1852,20 +1917,17 @@ public class ConsoleReader
                                 moveCursor(-1);
                                 consoleKeys.setKeys(
                                     consoleKeys.getKeyMaps().get(KeyMap.VI_MOVE));
-                                success = true;
                                 break;
                                 
                             case VI_INSERTION_MODE:
                                 consoleKeys.setKeys(consoleKeys.getKeyMaps()
                                     .get(KeyMap.VI_INSERT));
-                                success = true;
                                 break;
                             
                             case VI_APPEND_MODE:
                                 moveCursor(1);
                                 consoleKeys.setKeys(
                                     consoleKeys.getKeyMaps().get(KeyMap.VI_INSERT));
-                                success = true;
                                 break;
                             
                             case VI_APPEND_EOL:
@@ -1886,7 +1948,7 @@ public class ConsoleReader
                                 return accept();
                                 
                             case TRANSPOSE_CHARS:
-                                success = transposeChars ();
+                                success = transposeChars(count);
                                 break;
                                 
                             case INSERT_COMMENT:
@@ -1906,16 +1968,40 @@ public class ConsoleReader
                                 }
                                 break;
                                 
+                            case VI_ARG_DIGIT: 
+                                repeatCount = (repeatCount * 10) 
+                                    + sb.charAt(0) - '0';
+                                isArgDigit = true;
+                                break;
+                                
+                            case VI_BEGNNING_OF_LINE_OR_ARG_DIGIT:
+                                if (repeatCount > 0) {
+                                    repeatCount = (repeatCount * 10) 
+                                        + sb.charAt(0) - '0';
+                                    isArgDigit = true;
+                                }
+                                else {
+                                    success = setCursorPosition(0);
+                                }
+                                break;
+                                
                             case EMACS_EDITING_MODE:
                                 consoleKeys.setViEditMode(false);
                                 consoleKeys.setKeys(
                                     consoleKeys.getKeyMaps().get(KeyMap.EMACS));
-                                success = true;
                                 break;
 
                             default:
                                 int i = 0;
                                 break;
+                        }
+                        
+                        /*
+                         * If the operation performed wasn't a vi argument
+                         * digit, then clear out the current repeatCount;
+                         */
+                        if (!isArgDigit) {
+                            repeatCount = 0;
                         }
                     }
                 }
@@ -2120,6 +2206,23 @@ public class ConsoleReader
      */
     public boolean isHistoryEnabled() {
         return historyEnabled;
+    }
+    
+    /**
+     * Used in "vi" mode for argumented history move, to move a specific
+     * number of history entries forward or back.
+     * 
+     * @param next If true, move forward
+     * @param count The number of entries to move
+     * @return true if the move was successful
+     * @throws IOException
+     */
+    private boolean moveHistory(final boolean next, int count) throws IOException {
+        boolean ok = true;
+        for (int i = 0; i < count && (ok = moveHistory(next)); i++) {
+            /* empty */
+        }
+        return ok;
     }
 
     /**

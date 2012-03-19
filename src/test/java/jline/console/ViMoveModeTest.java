@@ -30,6 +30,90 @@ public class ViMoveModeTest
         super.setUp();
     }
     
+    @Test 
+    public void testMoveLeft() throws Exception {
+        /*
+         * There are various keys that will move you left.
+         */
+        testMoveLeft("\033[D");  /* Left arrow */
+        testMoveLeft("h");       /* h key */
+        testMoveLeft("\010");    /* CTRL-H */
+    }
+    
+    public void testMoveLeft(String left) throws Exception {
+        /*
+         * Move left
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("0123456789"))
+            .escape()
+            .append(left)
+            .append(left)
+            .append(left)
+            .append("iX")
+            .enter();
+        assertLine("012345X6789", b, true);
+        
+        /* 
+         * Move left - use digit arguments.
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("0123456789"))
+            .escape()
+            .append('3')
+            .append(left)
+            .append("iX")
+            .enter();
+        assertLine("012345X6789", b, true);
+        
+        /* 
+         * Move left - use multi-digit arguments.
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("0123456789ABCDEFHIJLMNOPQRSTUVWXYZ"))
+            .escape()
+            .append("13")
+            .append(left)
+            .append("iX")
+            .enter();
+        assertLine("0123456789ABCDEFHIJLXMNOPQRSTUVWXYZ", b, true);
+    }
+    
+    @Test 
+    public void testMoveRight() throws Exception {
+        testMoveRight("\033[C");  /* right arrow */
+        testMoveRight("l");       /* "l" key */
+        testMoveRight(" ");       /* space */
+    }
+    
+    public void testMoveRight(String right) throws Exception {
+        /*
+         * Move right
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("0123456789"))
+            .escape()
+            .append('0')   // beginning of line
+            .append(right)
+            .append(right)
+            .append(right)
+            .append("iX")
+            .enter();
+        assertLine("012X3456789", b, true);
+        
+        /* 
+         * Move right use digit arguments.
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("0123456789ABCDEFHIJK"))
+            .escape()
+            .append("012")
+            .append(right)
+            .append("iX")
+            .enter();
+        assertLine("0123456789ABXCDEFHIJK", b, true);
+    }
+    
     @Test
     public void testCtrlD() throws Exception {
         /*
@@ -382,7 +466,7 @@ public class ViMoveModeTest
     }
     
     @Test
-    public void testForwardSearch() throws Exception {
+    public void testSearch() throws Exception {
         /*
          * Tests the "/" forward search
          */
