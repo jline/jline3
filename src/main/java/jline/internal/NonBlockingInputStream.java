@@ -31,7 +31,7 @@ public class NonBlockingInputStream
     private int    ch   = -2;             // Recently read character
     
     private boolean     threadIsReading      = false;
-    private boolean     doShutdown           = false;
+    private boolean     isShutdown           = false;
     private IOException exception            = null;
     private boolean     nonBlockingEnabled;
     
@@ -62,20 +62,25 @@ public class NonBlockingInputStream
     /**
      * Shuts down the thread that is handling blocking I/O. Note that if the
      * thread is currently blocked waiting for I/O it will not actually
-     * shut down until the I/O is received.
+     * shut down until the I/O is received.  Shutting down the I/O thread
+     * does not prevent this class from being used, but causes the 
+     * non-blocking methods to fail if called and causes {@link #isNonBlockingEnabled()}
+     * to return false.
      */
     public synchronized void shutdown() {
-        if (nonBlockingEnabled) {
-            doShutdown = true;
+        if (!isShutdown && nonBlockingEnabled) {
+            isShutdown = true;
             notify();
         }
     }
     
     /**
+     * Non-blocking is considered enabled if the feature is enabled and the
+     * I/O thread has not been shut down. 
      * @return true if non-blocking mode is enabled.
      */
     public boolean isNonBlockingEnabled() {
-        return nonBlockingEnabled;
+        return nonBlockingEnabled && !isShutdown;
     }
     
     @Override
@@ -105,7 +110,7 @@ public class NonBlockingInputStream
      * @throws IOException
      */
     public int peek(long timeout) throws IOException {
-        if (!nonBlockingEnabled) {
+        if (!nonBlockingEnabled || isShutdown) {
             throw new UnsupportedOperationException ("peek() "
                 + "cannot be called as non-blocking operation is disabled");
         }
@@ -121,7 +126,7 @@ public class NonBlockingInputStream
      * @throws IOException
      */
     public int read(long timeout) throws IOException {
-        if (!nonBlockingEnabled) {
+        if (!nonBlockingEnabled || isShutdown) {
             throw new UnsupportedOperationException ("read() with timeout "
                 + "cannot be called as non-blocking operation is disabled");
         }
@@ -156,7 +161,7 @@ public class NonBlockingInputStream
         if (ch >= -1) {
             assert exception == null;
         }
-        else if ((timeout == 0L || doShutdown) && !threadIsReading) {
+        else if ((timeout == 0L || isShutdown) && !threadIsReading) {
             ch = in.read();
         }
         else {
@@ -258,7 +263,7 @@ public class NonBlockingInputStream
              * and the accessing thread.
              */
             synchronized (this) {
-                needToShutdown = this.doShutdown;
+                needToShutdown = this.isShutdown;
                 needToRead     = this.threadIsReading;
                 
                 try {

@@ -216,13 +216,13 @@ public class KeyMap {
         
         KeyMap viMov = viMovement();
         bindArrowKeys(viMov);
-        keyMaps.put("vi", viMov);
         keyMaps.put(VI_MOVE, viMov);
         keyMaps.put("vi-command", viMov);
         
         KeyMap viIns = viInsertion();
         bindArrowKeys(viIns);
         keyMaps.put(VI_INSERT, viIns);
+        keyMaps.put("vi", viIns);
         
         return keyMaps;
     }

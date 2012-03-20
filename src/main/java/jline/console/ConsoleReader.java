@@ -868,6 +868,15 @@ public class ConsoleReader
         return ok;
     }
     
+    /**
+     * Switches the case of the current character from upper to lower
+     * or lower to upper as necessary and advances the cursor one
+     * position to the right.
+     * @param count The number of times to repeat
+     * @return true if it completed successfully, false if not all
+     *   case changes could be completed.
+     * @throws IOException
+     */
     private boolean viChangeCase(int count) throws IOException {
         boolean ok = true;
         for (int i = 0; ok && i < count; i++) {
