@@ -480,12 +480,15 @@ public class KeyMap {
                         Operation.VI_SEARCH,                /* ? */
                         null,                               /* @ */
                         Operation.VI_APPEND_EOL,            /* A */
-                        /* XXXXXX - Need to work on here down */
                         Operation.VI_PREV_WORD,             /* B */
+                        /* TODO */
                         Operation.VI_CHANGE_TO,             /* C */
+                        /* TODO */
                         Operation.VI_DELETE_TO,             /* D */
                         Operation.VI_END_WORD,              /* E */
+                        /* TODO */
                         Operation.VI_CHAR_SEARCH,           /* F */
+                        /* I need to read up on what this does */
                         Operation.VI_FETCH_HISTORY,         /* G */
                         null,                               /* H */
                         Operation.VI_INSERT_BEG,            /* I */
@@ -495,15 +498,20 @@ public class KeyMap {
                         null,                               /* M */
                         Operation.VI_SEARCH_AGAIN,          /* N */
                         null,                               /* O */
+                        /* TODO */
                         Operation.VI_PUT,                   /* P */
                         null,                               /* Q */
+                        /* TODO */
                         Operation.VI_REPLACE,               /* R */
                         Operation.VI_SUBST,                 /* S */
+                        /* TODO */
                         Operation.VI_CHAR_SEARCH,           /* T */
+                        /* TODO */
                         Operation.REVERT_LINE,              /* U */
                         null,                               /* V */
                         Operation.VI_NEXT_WORD,             /* W */
                         Operation.VI_RUBOUT,                /* X */
+                        /* TODO */
                         Operation.VI_YANK_TO,               /* Y */
                         null,                               /* Z */
                         null,                               /* [ */
@@ -535,14 +543,14 @@ public class KeyMap {
                         Operation.UNDO,                     /* u */
                         null,                               /* v */
                         Operation.VI_NEXT_WORD,             /* w */
-                        Operation.VI_RUBOUT,                /* x */
+                        Operation.VI_DELETE,                /* x */
                         Operation.VI_YANK_TO,               /* y */
                         null,                               /* z */
                         null,                               /* { */
                         Operation.VI_COLUMN,                /* | */
                         null,                               /* } */
                         Operation.VI_CHANGE_CASE,           /* ~ */
-                        null                                /* DEL */
+                        Operation.VI_DELETE                 /* DEL */
                 };
         System.arraycopy( low, 0, map, 0, low.length );
         for (int i = 128; i < 256; i++) {

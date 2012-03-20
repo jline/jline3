@@ -150,12 +150,13 @@ public class NonBlockingInputStream
             
         /*
          * If there was a pending character from the thread, then
-         * we send it.
+         * we send it. If the timeout is 0L or the thread was shut down
+         * then do a local read.
          */
         if (ch >= -1) {
             assert exception == null;
         }
-        else if (timeout == 0L && !threadIsReading) {
+        else if ((timeout == 0L || doShutdown) && !threadIsReading) {
             ch = in.read();
         }
         else {
@@ -298,6 +299,7 @@ public class NonBlockingInputStream
                 }
             }
         }
+        
         Log.debug("NonBlockingInputStream shutdown");
     }
 }

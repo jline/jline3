@@ -838,7 +838,158 @@ public class ConsoleReader
         drawBuffer(1);
         return true;
     }
-
+    
+    /**
+     * Deletes the previous character from the cursor position
+     * @param count number of times to do it.
+     * @return true if it was done.
+     * @throws IOException
+     */
+    private boolean viRubout(int count) throws IOException {
+        boolean ok = true;
+        for (int i = 0; ok && i < count; i++) {
+            ok = backspace();
+        }
+        return ok;
+    }
+    
+    /**
+     * Deletes the character you are sitting on and sucks the rest of
+     * the line in from the right.
+     * @param count Number of times to perform the operation.
+     * @return true if its works, false if it didn't
+     * @throws IOException
+     */
+    private boolean viDelete(int count) throws IOException {
+        boolean ok = true;
+        for (int i = 0; ok && i < count; i++) {
+            ok = deleteCurrentCharacter();
+        }
+        return ok;
+    }
+    
+    private boolean viChangeCase(int count) throws IOException {
+        boolean ok = true;
+        for (int i = 0; ok && i < count; i++) {
+            
+            ok = buf.cursor < buf.buffer.length ();
+            if (ok) {
+                char ch = buf.buffer.charAt(buf.cursor);
+                if (Character.isUpperCase(ch)) {
+                    ch = Character.toLowerCase(ch);
+                }
+                else if (Character.isLowerCase(ch)) {
+                    ch = Character.toUpperCase(ch);
+                }
+                buf.buffer.setCharAt(buf.cursor, ch);
+                drawBuffer(1);
+                moveCursor(1);
+            }
+        }
+        return ok;
+    }
+    
+    /**
+     * This is a close facsimile of the actual vi previous word logic. In
+     * actual vi words are determined by boundaries of identity characterse.
+     * This logic is a bit more simple and simply looks at white space or
+     * digits or characters.  It should be revised at some point.
+     * 
+     * @param count number of iterations
+     * @return true if the move was successful, false otherwise
+     * @throws IOException
+     */
+    private boolean viPreviousWord(int count) throws IOException {
+        boolean ok = true;
+        if (buf.cursor == 0)
+            return false;
+        
+        int pos = buf.cursor - 1;
+        for (int i = 0; pos > 0 && i < count; i++) {
+            /*
+             * If we are on white space, then move back.
+             */
+            while (pos > 0 && isWhitespace(buf.buffer.charAt(pos))) {
+                --pos;
+            }
+            
+            while (pos > 0 && !isDelimiter(buf.buffer.charAt(pos-1))) {
+                --pos;
+            }
+            
+            if (pos > 0 && i < (count-1))
+                --pos;
+        }
+        setCursorPosition(pos);
+        return ok;
+    }
+    
+    /**
+     * This is a close facsimile of the actual vi next word logic. 
+     * As with viPreviousWord() this probably needs to be improved 
+     * at some point.
+     * 
+     * @param count number of iterations
+     * @return true if the move was successful, false otherwise
+     * @throws IOException
+     */
+    private boolean viNextWord(int count) throws IOException {
+        int pos = buf.cursor;
+        int end = buf.buffer.length();
+        
+        for (int i = 0; pos < end && i < count; i++) {
+            /*
+             * If we are on white space, then move back.
+             */
+            while (pos < end && !isDelimiter(buf.buffer.charAt(pos))) {
+                ++pos;
+            }
+            
+            while (pos < end && isDelimiter(buf.buffer.charAt(pos))) {
+                ++pos;
+            }
+        }
+        setCursorPosition(pos);
+        return true;
+    }
+    
+    /**
+     * Implements a close facsimile of the vi end-of-word movement.
+     * If the character is on white space, it takes you to the end
+     * of the next word.  If it is on the last character of a word
+     * it takes you to the next of the next word.  Any other character
+     * of a word, takes you to the end of the current word.
+     * 
+     * @param count Number of times to repeat the action
+     * @return true if it worked.
+     * @throws IOException
+     */
+    private boolean viEndWord(int count) throws IOException {
+        int pos = buf.cursor;
+        int end = buf.buffer.length();
+        
+        for (int i = 0; pos < end && i < count; i++) {
+            if (pos < (end-1) 
+                    && !isDelimiter(buf.buffer.charAt(pos))
+                    && isDelimiter(buf.buffer.charAt (pos+1))) {
+                ++pos;
+            }
+            
+            /*
+             * If we are on white space, then move back.
+             */
+            while (pos < end && isDelimiter(buf.buffer.charAt(pos))) {
+                ++pos;
+            }
+            
+            while (pos < (end-1) && !isDelimiter(buf.buffer.charAt(pos+1))) {
+                ++pos;
+            }
+        }
+        setCursorPosition(pos);
+        return true;
+    }
+    
     private boolean previousWord() throws IOException {
         while (isDelimiter(buf.current()) && (moveCursor(-1) != 0)) {
             // nothing
@@ -2064,6 +2215,36 @@ public class ConsoleReader
                                 else {
                                     success = setCursorPosition(0);
                                 }
+                                break;
+                                
+                            case VI_PREV_WORD:
+                                success = viPreviousWord(count);
+                                break;
+                                
+                            case VI_NEXT_WORD:
+                                success = viNextWord(count);
+                                break;
+                                
+                            case VI_END_WORD:
+                                success = viEndWord(count);
+                                break;
+                                
+                            case VI_INSERT_BEG:
+                                success = setCursorPosition(0);
+                                consoleKeys.setKeys(
+                                    consoleKeys.getKeyMaps().get(KeyMap.VI_INSERT));
+                                break;
+                                
+                            case VI_RUBOUT:
+                                success = viRubout(count);
+                                break;
+                                
+                            case VI_DELETE:
+                                success = viDelete(count);
+                                break;
+                                
+                            case VI_CHANGE_CASE:
+                                success = viChangeCase(count);
                                 break;
                                 
                             case EMACS_EDITING_MODE:

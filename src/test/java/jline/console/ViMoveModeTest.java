@@ -556,6 +556,149 @@ public class ViMoveModeTest
         assertLine("Xaaadef", b, false);
     }
     
+    @Test
+    public void testWordRight() throws Exception {
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("buttery frog necks"))
+            .escape()
+            .append("0ww")    // Beginning of line, nxt word, nxt word
+            .ctrl('U')        // Kill to beginning of line
+            .enter();         // Kick it off.
+        assertLine("necks", b, false);
+        
+        b = (new Buffer("buttery frog    foo"))
+            .escape()
+            .left(5)
+            .append('w')
+            .ctrl('K')        // Kill to end of line
+            .enter();         // Kick it off.
+        assertLine("buttery frog    ", b, false);
+        
+        b = (new Buffer("a big batch of buttery frog livers"))
+            .escape()
+            .append("05w")    // Beg of line, 5 words right
+            .ctrl('U')        // Kill to beginning of line
+            .enter();         // Kick it off.
+        assertLine("frog livers", b, false);
+    }
+    
+    @Test
+    public void testWordLeft() throws Exception {
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("lucious lark liquid    "))
+            .escape()
+            .append("bb")     // Beginning of line, prv word, prv word
+            .ctrl('K')        // Kill to end of line
+            .enter();         // Kick it off.
+        assertLine("lucious ", b, false);
+        
+        b = (new Buffer("lucious lark liquid"))
+            .escape()
+            .left(2)
+            .append('b')
+            .ctrl('U')
+            .enter();
+        assertLine("liquid", b, false);
+        
+        b = (new Buffer("lively lolling lark liquid"))
+            .escape()
+            .append("3b")
+            .ctrl('K')        // Kill to beginning of line
+            .enter();
+        assertLine("lively ", b, false);
+    }
+    
+    @Test
+    public void testEndWord() throws Exception {
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("putrid pidgen porridge"))
+            .escape()
+            .append("0e")
+            .ctrl('K')        // Kill to end of line
+            .enter();         // Kick it off.
+        assertLine("putri", b, false);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("    putrid pidgen porridge"))
+            .escape()
+            .append("0e")
+            .ctrl('K')        // Kill to end of line
+            .enter();         // Kick it off.
+        assertLine("    putri", b, false);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("putrid pidgen porridge and mash"))
+            .escape()
+            .append("05l") // Beg of line, 5 right
+            .append("3e")  // 3 end-of-word
+            .ctrl('U')     // Kill to beg of line
+            .enter();         // Kick it off.
+        assertLine("d mash", b, false);
+    }
+    
+    @Test
+    public void testInsertBeginningOfLine() throws Exception {
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("dessicated dog droppings"))
+            .escape()
+            .append("Itasty ")
+            .enter();
+        assertLine("tasty dessicated dog droppings", b, false);
+    }
+    
+    @Test
+    public void testRubout() throws Exception {
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("gross animal stuff"))
+            .escape()
+            .left()
+            .append("XXX")
+            .enter();
+        assertLine("gross animal ff", b, false);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("gross animal stuff"))
+            .escape()
+            .left()
+            .append("50X")
+            .enter();
+        assertLine("ff", b, false);
+    }
+    
+    @Test
+    public void testDelete() throws Exception {
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("thing to delete"))
+            .escape()
+            .append("bbxxx")
+            .enter();
+        assertLine("thing delete", b, false);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("thing to delete"))
+            .escape()
+            .append("bb99x")
+            .enter();
+        assertLine("thing ", b, false);
+    }
+    
+    @Test
+    public void testChangeCase() throws Exception {
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("big.LITTLE"))
+            .escape()
+            .append("0~~~~~~~~~~")
+            .enter();
+        assertLine("BIG.little", b, false);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("big.LITTLE"))
+            .escape()
+            .append("020~")
+            .enter();
+        assertLine("BIG.little", b, false);
+    }
+    
     /**
      * Used to test various forms of hitting "enter" (return). This can be
      * CTRL-J or CTRL-M...maybe others.
