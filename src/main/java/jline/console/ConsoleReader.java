@@ -48,6 +48,8 @@ import jline.console.history.MemoryHistory;
 import jline.internal.Configuration;
 import jline.internal.InputStreamReader;
 import jline.internal.Log;
+import jline.internal.NonBlockingInputStream;
+
 import org.fusesource.jansi.AnsiOutputStream;
 
 /**
@@ -64,6 +66,8 @@ import org.fusesource.jansi.AnsiOutputStream;
 public class ConsoleReader
 {
     public static final String JLINE_NOBELL = "jline.nobell";
+    
+    public static final String JLINE_ESC_TIMEOUT = "jline.esc.timeout";
 
     public static final char BACKSPACE = '\b';
 
@@ -100,7 +104,14 @@ public class ConsoleReader
 
     private int searchIndex = -1;
 
-    private Reader reader;
+    /*
+     * The reader and the nonBlockingInput go hand-in-hand.  The reader wraps
+     * the nonBlockingInput, but we have to retain a handle to it so that
+     * we can shut down its blocking read thread when we go away.
+     */
+    private NonBlockingInputStream nonBlockingInput;
+    private long                   escapeTimeout;
+    private Reader                 reader;
 
     private String encoding;
 
@@ -156,28 +167,45 @@ public class ConsoleReader
     }
 
     void setInput(final InputStream in) throws IOException {
+        this.escapeTimeout = Configuration.getLong(JLINE_ESC_TIMEOUT, 150);
+        boolean nonBlockingEnabled =
+               escapeTimeout > 0L
+            && terminal.isSupported()
+            && in != null;
+        
+        /*
+         * If we had a non-blocking thread already going, then shut it down
+         * and start a new one.
+         */
+        if (nonBlockingInput != null) {
+            nonBlockingInput.shutdown();
+        }
+        
         final InputStream wrapped = terminal.wrapInIfNeeded( in );
-        // Wrap the input stream so that characters are only read one by one
-        this.in = new FilterInputStream(wrapped) {
-            @Override
-            public int read(byte[] b, int off, int len) throws IOException {
-                if (b == null) {
-                    throw new NullPointerException();
-                } else if (off < 0 || len < 0 || len > b.length - off) {
-                    throw new IndexOutOfBoundsException();
-                } else if (len == 0) {
-                    return 0;
-                }
-
-                int c = read();
-                if (c == -1) {
-                    return -1;
-                }
-                b[off] = (byte)c;
-                return 1;
-            }
-        };
-        this.reader = new InputStreamReader( this.in, encoding );
+        
+        this.nonBlockingInput = 
+            new NonBlockingInputStream(wrapped, nonBlockingEnabled);
+        this.reader = new InputStreamReader( nonBlockingInput, encoding );
+    }
+    
+    /**
+     * Shuts the console reader down.  This method should be called when you
+     * have completed using the reader as it shuts down and cleans up resources
+     * that would otherwise be "leaked".
+     */
+    public void shutdown() {
+        if (nonBlockingInput != null) {
+            nonBlockingInput.shutdown();
+        }
+    }
+    
+    /**
+     * Shuts down the ConsoleReader if the JVN attempts to clean it up.
+     * @throws Throwable
+     */
+    @Override
+    protected void finalize() throws Throwable {
+        shutdown();
     }
 
     public InputStream getInput() {
@@ -1536,7 +1564,7 @@ public class ConsoleReader
          * where the "30" is accumulated until the command is struck.
          */
         int repeatCount = 0;
-
+        
         // FIXME: This blows, each call to readLine will reset the console's state which doesn't seem very nice.
         this.mask = mask;
         if (prompt != null) {
@@ -1577,19 +1605,71 @@ public class ConsoleReader
                     return null;
                 }
                 sb.append( (char) c );
+                
                 if (recording) {
                     macro += (char) c;
                 }
-
+                
                 Object o = getKeys().getBound( sb );
                 if (o == Operation.DO_LOWERCASE_VERSION) {
                     sb.setLength( sb.length() - 1);
                     sb.append( Character.toLowerCase( (char) c ));
                     o = getKeys().getBound( sb );
                 }
+                
+                /*
+                 * A KeyMap indicates that the key that was struck has a 
+                 * number of keys that can follow it as indicated in the
+                 * map. This is used primarily for Emacs style ESC-META-x
+                 * lookups. Since more keys must follow, go back to waiting 
+                 * for the next key.
+                 */
                 if ( o instanceof KeyMap ) {
-                    continue;
+                    /*
+                     * The ESC key (#27) is special in that it is ambiguous until
+                     * you know what is coming next.  The ESC could be a literal
+                     * escape, like the user entering vi-move mode, or it could
+                     * be part of a terminal control sequence.  The following
+                     * logic attempts to disambiguate things in the same 
+                     * fashion as regular vi or readline.  
+                     * 
+                     * When ESC is encountered and there is no other pending
+                     * character in the pushback queue, then attempt to peek
+                     * into the input stream (if the feature is enabled) for
+                     * 150ms. If nothing else is coming, then assume it is
+                     * not a terminal control sequence, but a raw escape.
+                     */
+                    if (c == 27
+                            && pushBackChar.isEmpty()
+                            && nonBlockingInput.isNonBlockingEnabled()
+                            && nonBlockingInput.peek(150) == -2) {
+                        o = ((KeyMap) o).getAnotherKey();
+                        if (o == null || o instanceof KeyMap) {
+                            continue;
+                        }
+                        sb.setLength(0);
+                    }
+                    else {
+                        continue;
+                    }
                 }
+                
+                /*
+                 * If we didn't find a binding for the key and there is
+                 * more than one character accumulated then start checking
+                 * the largest span of characters from the beginning to
+                 * see if there is a binding for them. 
+                 * 
+                 * For example if our buffer has ESC,CTRL-M,C the getBound() 
+                 * called previously indicated that there is no binding for 
+                 * this sequence, so this then checks ESC,CTRL-M, and failing
+                 * that, just ESC. Each keystroke that is pealed off the end
+                 * during these tests is stuffed onto the pushback buffer so
+                 * they won't be lost. 
+                 * 
+                 * If there is no binding found, then we go back to waiting for
+                 * input.
+                 */
                 while ( o == null && sb.length() > 0 ) {
                     c = sb.charAt( sb.length() - 1 );
                     sb.setLength( sb.length() - 1 );
@@ -1603,6 +1683,7 @@ public class ConsoleReader
                         }
                     }
                 }
+                
                 if ( o == null ) {
                     continue;
                 }

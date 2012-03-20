@@ -187,6 +187,22 @@ public class Configuration
     public static boolean getBoolean(final String name, final boolean defaultValue) {
         return Configuration.getConfig().bool(name, defaultValue);
     }
+    
+    public static int getInteger(final String name, final int defaultValue) {
+        String str = Configuration.getConfig().props.getProperty(name);
+        if (name == null) {
+            return defaultValue;
+        }
+        return Integer.parseInt(str);
+    }
+    
+    public static long getLong(final String name, final long defaultValue) {
+        String str = Configuration.getConfig().props.getProperty(name);
+        if (str == null) {
+            return defaultValue;
+        }
+        return Long.parseLong(str);
+    }
 
     public static boolean getBoolean(final String name) {
         return getBoolean(name, false);
