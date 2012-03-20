@@ -34,15 +34,25 @@ public class ConsoleKeys {
 
     private KeyMap keys;
 
-    private boolean viEditMode;
-
     private Map<String, KeyMap> keyMaps;
     private Map<String, String> variables = new HashMap<String,String>();
 
     public ConsoleKeys(String appName, URL inputrcUrl) {
         keyMaps = KeyMap.keyMaps();
-
         loadKeys(appName, inputrcUrl);
+    }
+    
+    protected boolean isViEditMode() {
+        return keys.isViKeyMap();
+    }
+    
+    protected boolean setKeyMap (String name) {
+        KeyMap map = keyMaps.get(name);
+        if (map == null) {
+            return false;
+        }
+        this.keys = map;
+        return true;
     }
 
     protected Map<String, KeyMap> getKeyMaps() {
@@ -58,11 +68,7 @@ public class ConsoleKeys {
     }
 
     protected boolean getViEditMode() {
-        return viEditMode;
-    }
-
-    protected void setViEditMode(boolean viEditMode) {
-        this.viEditMode = viEditMode;
+        return keys.isViKeyMap ();
     }
 
     protected void loadKeys(String appName, URL inputrcUrl) {
@@ -92,8 +98,6 @@ public class ConsoleKeys {
                 Log.warn("Unable to read user configuration: ", inputrcUrl, e);
             }
         }
-        
-        keys = viEditMode ? keyMaps.get(KeyMap.VI_INSERT) : keyMaps.get(KeyMap.EMACS);
     }
 
     private void loadKeys(InputStream input, String appName) throws IOException {
@@ -130,9 +134,9 @@ public class ConsoleKeys {
                         // TODO
                     } else if (args.startsWith("mode=")) {
                         if (args.equalsIgnoreCase("mode=vi")) {
-                            parsing = viEditMode;
+                            parsing = isViEditMode();
                         } else if (args.equals("mode=emacs")) {
-                            parsing = !viEditMode;
+                            parsing = !isViEditMode();
                         } else {
                             parsing = false;
                         }
@@ -364,10 +368,8 @@ public class ConsoleKeys {
         } else if ("editing-mode".equals(key)) {
             if ("vi".equalsIgnoreCase(val)) {
                 keys = keyMaps.get(KeyMap.VI_INSERT);
-                viEditMode = true;
             } else if ("emacs".equalsIgnoreCase(key)) {
                 keys = keyMaps.get(KeyMap.EMACS);
-                viEditMode = false;
             }
         }
         

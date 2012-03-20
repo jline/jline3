@@ -1054,7 +1054,7 @@ public class ConsoleReader
         setCursorPosition(0);
         putString(comment);
         if (isViMode)
-            consoleKeys.setKeys(consoleKeys.getKeyMaps().get(KeyMap.VI_INSERT));
+            consoleKeys.setKeyMap(KeyMap.VI_INSERT);
         return accept();
     }
     
@@ -1409,7 +1409,7 @@ public class ConsoleReader
          * Current keymap.
          */
         KeyMap map = consoleKeys.getKeys();
-        KeyMap mapByName = consoleKeys.getKeyMaps().get (name);
+        KeyMap mapByName = consoleKeys.getKeyMaps().get(name);
         
         if (mapByName == null)
             return false;
@@ -1696,14 +1696,17 @@ public class ConsoleReader
      *    not recognized.
      */
     public boolean setKeyMap(String name) {
-        
-        KeyMap m = consoleKeys.getKeyMaps().get(name);
-        if (m == null) {
-            return false;
-        }
-        
-        consoleKeys.setKeys(m);
-        return true;
+        return consoleKeys.setKeyMap(name);
+    }
+    
+    /**
+     * Returns the name of the current key mapping.
+     * @return the name of the key mapping. This will be the canonical name
+     *   of the current mode of the key map and may not reflect the name that
+     *   was used with {@link #setKeyMap(String)}.
+     */
+    public String getKeyMap() {
+        return consoleKeys.getKeys().getName();
     }
     
     /**
@@ -1996,8 +1999,7 @@ public class ConsoleReader
                              * insert mode as well.
                              */
                             case VI_MOVE_ACCEPT_LINE:
-                                consoleKeys.setKeys(
-                                    consoleKeys.getKeyMaps().get(KeyMap.VI_INSERT));
+                                consoleKeys.setKeyMap(KeyMap.VI_INSERT);
                                 return accept();
 
                             case BACKWARD_WORD:
@@ -2149,32 +2151,26 @@ public class ConsoleReader
                                 break;
 
                             case VI_EDITING_MODE:
-                                consoleKeys.setViEditMode(true);
-                                consoleKeys.setKeys(consoleKeys.getKeyMaps()
-                                    .get(KeyMap.VI_INSERT));
+                                consoleKeys.setKeyMap(KeyMap.VI_INSERT);
                                 break;
                                 
                             case VI_MOVEMENT_MODE:
                                 moveCursor(-1);
-                                consoleKeys.setKeys(
-                                    consoleKeys.getKeyMaps().get(KeyMap.VI_MOVE));
+                                consoleKeys.setKeyMap(KeyMap.VI_MOVE);
                                 break;
                                 
                             case VI_INSERTION_MODE:
-                                consoleKeys.setKeys(consoleKeys.getKeyMaps()
-                                    .get(KeyMap.VI_INSERT));
+                                consoleKeys.setKeyMap(KeyMap.VI_INSERT);
                                 break;
                             
                             case VI_APPEND_MODE:
                                 moveCursor(1);
-                                consoleKeys.setKeys(
-                                    consoleKeys.getKeyMaps().get(KeyMap.VI_INSERT));
+                                consoleKeys.setKeyMap(KeyMap.VI_INSERT);
                                 break;
                             
                             case VI_APPEND_EOL:
                                 success = moveToEnd();
-                                consoleKeys.setKeys (
-                                    consoleKeys.getKeyMaps().get(KeyMap.VI_INSERT));
+                                consoleKeys.setKeyMap(KeyMap.VI_INSERT);
                                 break;
                                 
                             /*
@@ -2240,8 +2236,7 @@ public class ConsoleReader
                                 
                             case VI_INSERT_BEG:
                                 success = setCursorPosition(0);
-                                consoleKeys.setKeys(
-                                    consoleKeys.getKeyMaps().get(KeyMap.VI_INSERT));
+                                consoleKeys.setKeyMap(KeyMap.VI_INSERT);
                                 break;
                                 
                             case VI_RUBOUT:
@@ -2257,9 +2252,7 @@ public class ConsoleReader
                                 break;
                                 
                             case EMACS_EDITING_MODE:
-                                consoleKeys.setViEditMode(false);
-                                consoleKeys.setKeys(
-                                    consoleKeys.getKeyMaps().get(KeyMap.EMACS));
+                                consoleKeys.setKeyMap(KeyMap.EMACS);
                                 break;
 
                             default:
