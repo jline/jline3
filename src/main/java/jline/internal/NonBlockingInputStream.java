@@ -22,6 +22,8 @@ import java.io.InputStream;
  *   <li> The {@link #shutdown()} method must be called in order to shut down
  *          the thread that handles blocking I/O.
  * </ul>
+ * @since 2.7
+ * @author Scott C. Gray <scottgray1@gmail.com>
  */
 public class NonBlockingInputStream
     extends InputStream

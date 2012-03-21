@@ -236,20 +236,22 @@ public class ConsoleReader
      * Sets the string that will be used to start a comment when the
      * insert-comment key is struck.
      * @param commentBegin The begin comment string.
+     * @since 2.7
      */
-    public void setCommentBegin (String commentBegin) {
+    public void setCommentBegin(String commentBegin) {
         this.commentBegin = commentBegin;
     }
     
     /**
      * @return the string that will be used to start a comment when the
      * insert-comment key is struck.
+     * @since 2.7
      */
-    public String getCommentBegin () {
+    public String getCommentBegin() {
         String str = commentBegin;
         
         if (str == null) {
-            str = consoleKeys.getVariable ("comment-begin");
+            str = consoleKeys.getVariable("comment-begin");
             if (str == null) {
                 str = "#";
             }
@@ -1095,7 +1097,7 @@ public class ConsoleReader
          * This is a little gross, I'm sure there is a more appropriate way
          * of saving and restoring state.
          */
-        CursorBuffer origBuffer = buf.clone();
+        CursorBuffer origBuffer = buf.copy();
         
         /*
          * Clear the contents of the current line and 

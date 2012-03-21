@@ -22,8 +22,7 @@ public class CursorBuffer
 
     public final StringBuilder buffer = new StringBuilder();
     
-    @Override
-    public CursorBuffer clone () {
+    public CursorBuffer copy () {
         CursorBuffer that = new CursorBuffer();
         that.overTyping = this.overTyping;
         that.cursor = this.cursor;
