@@ -8,7 +8,6 @@ package jline.console;
 
 import static jline.console.Operation.*;
 import jline.console.history.History;
-import jline.console.history.MemoryHistory;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -77,6 +76,60 @@ public class ViMoveModeTest
             .append("iX")
             .enter();
         assertLine("0123456789ABCDEFHIJLXMNOPQRSTUVWXYZ", b, true);
+        
+        /*
+         * Delete move left.
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("0123456789ABCDEFHIJLMNOPQRSTUVWXYZ"))
+            .escape()
+            .append("13d")
+            .append(left)
+            .enter();
+        assertLine("0123456789ABCDEFHIJLZ", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("0123456789ABCDEFHIJLMNOPQRSTUVWXYZ"))
+            .escape()
+            .append("d")
+            .append(left)
+            .append("d")
+            .append(left)
+            .enter();
+        assertLine("0123456789ABCDEFHIJLMNOPQRSTUVWZ", b, true);
+        
+        /*
+         * Change move left
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("0123456789ABCDEFHIJLMNOPQRSTUVWXYZ"))
+            .escape()
+            .append("13c")
+            .append(left)
+            .append("_HI")
+            .enter();
+        assertLine("0123456789ABCDEFHIJL_HIZ", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("word"))
+            .escape()
+            .append("c")
+            .append(left)
+            .append("X")
+            .enter();
+        assertLine("woXd", b, true);
+        
+        /*
+         * Yank left
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("word"))
+            .escape()
+            .append("3y")
+            .append(left)
+            .append("p")
+            .enter();
+        assertLine("wordwor", b, true);
     }
     
     @Test 
@@ -112,6 +165,51 @@ public class ViMoveModeTest
             .append("iX")
             .enter();
         assertLine("0123456789ABXCDEFHIJK", b, true);
+        
+        /*
+         * Delete move right
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("a bunch of words"))
+            .escape()
+            .append("05d")
+            .append(right)
+            .enter();
+        assertLine("ch of words", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("a bunch of words"))
+            .escape()
+            .append("0d")
+            .append(right)
+            .append("d")
+            .append(right)
+            .enter();
+        assertLine("bunch of words", b, true);
+        
+        /*
+         * Change move right
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("a bunch of words"))
+            .escape()
+            .append("010c")
+            .append(right)
+            .append("XXX")
+            .enter();
+        assertLine("XXX words", b, true);
+        
+        /*
+         * Yank move right
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("a bunch of words"))
+            .escape()
+            .append("010y")
+            .append(right)
+            .append("$p")
+            .enter();
+        assertLine("a bunch of wordsa bunch of", b, true);
     }
     
     @Test
@@ -163,21 +261,7 @@ public class ViMoveModeTest
     }
     
     @Test
-    public void testCtrlH() throws Exception {
-        /*
-         * CTRL-H is supposed to move the cursor backward. This first test
-         * is testing that the escape() itself should step the cursor back
-         * one character, I then hit ^H to back up another, then
-         * insert the letter X and hit enter.
-         */
-        console.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("abc")).escape().ctrl('H').append("iX").enter();
-        assertLine("aXbc", b, true);
-    }
-    
-    @Test
     public void testCtrlJ() throws Exception {
-        
         /*
          * ENTER is CTRL-J. 
          */
@@ -280,7 +364,6 @@ public class ViMoveModeTest
     
     @Test
     public void testCtrlT() throws Exception {
-        
         /*
          * Transpose every character exactly.
          */
@@ -375,19 +458,14 @@ public class ViMoveModeTest
             .ctrl('W')
             .enter();
         assertLine("pasty bulimic !", b, false);
-    }
-    
-    @Test
-    public void testSpace() throws Exception {
-        /*
-         * Space acts as a right-arrow while in move mode.
-         */
+        
         console.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("big banshee bollocks"))
-            .escape()             // Enter move, back one space
-            .append(" a smell")   // space==right, append, space "smell"
+        b = (new Buffer("pasty bulimic rats !!!!!"))
+            .escape()
+            .append("2")
+            .ctrl('W')
             .enter();
-        assertLine("big banshee bollocks smell", b, false);
+        assertLine("pasty bulimic !", b, false);
     }
     
     @Test
@@ -416,6 +494,36 @@ public class ViMoveModeTest
             .enter();
         assertLine("chicken sushimi is tasty!", b, false);
         assertTrue(console.isKeyMap(KeyMap.VI_INSERT));
+        
+        /*
+         * Delete to EOL
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("chicken sushimi"))
+            .escape()
+            .append("0lld$")
+            .enter();
+        assertLine("ch", b, false);
+        
+        /*
+         * Change to EOL
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("chicken sushimi"))
+            .escape()
+            .append("0llc$opsticks")
+            .enter();
+        assertLine("chopsticks", b, false);
+        
+        /*
+         * Yank to EOL
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("chicken sushimi"))
+            .escape()
+            .append("0lly$$p")
+            .enter();
+        assertLine("chicken sushimiicken sushimi", b, false);
     }
     
     @Test
@@ -461,8 +569,41 @@ public class ViMoveModeTest
         assertLine("(Xabcd(d", b, false);
         
         /*
-         * TODO: Test other brackets.
+         * Delete match
          */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("ab(def)hij"))
+            .escape()
+            .append("0lld%")
+            .enter();
+        assertLine("abhij", b, false);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("ab(def)"))
+            .escape()
+            .append("0lld%")
+            .enter();
+        assertLine("ab", b, false);
+        
+        /*
+         * Yank match
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("ab(def)hij"))
+            .escape()
+            .append("0lly%$p")
+            .enter();
+        assertLine("ab(def)hij(def)", b, false);
+        
+        /*
+         * Change match
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("ab(def)hij"))
+            .escape()
+            .append("0llc%X")
+            .enter();
+        assertLine("abXhij", b, false);
     }
     
     @Test
@@ -580,6 +721,45 @@ public class ViMoveModeTest
             .ctrl('U')        // Kill to beginning of line
             .enter();         // Kick it off.
         assertLine("frog livers", b, false);
+        
+        /*
+         * Delete word right
+         */
+        b = (new Buffer("a big batch of buttery frog livers"))
+            .escape()
+            .append("05dw")
+            .enter();
+        assertLine("frog livers", b, false);
+        
+        b = (new Buffer("another big batch of buttery frog livers"))
+            .escape()
+            .append("0ldw")
+            .enter();
+        assertLine("abig batch of buttery frog livers", b, false);
+        
+        /*
+         * Yank word right
+         */
+        b = (new Buffer("big brown pickles"))
+            .escape()
+            .append("02yw$p")
+            .enter();
+        assertLine("big brown picklesbig brown ", b, false);
+        
+        /*
+         * Change word right
+         */
+        b = (new Buffer("big brown pickles"))
+            .escape()
+            .append("0wcwgreen")
+            .enter();
+        assertLine("big green pickles", b, false);
+        
+        b = (new Buffer("big brown pickles"))
+            .escape()
+            .append("02cwlittle bitty")
+            .enter();
+        assertLine("little bitty pickles", b, false);
     }
     
     @Test
@@ -697,6 +877,303 @@ public class ViMoveModeTest
             .append("020~")
             .enter();
         assertLine("BIG.little", b, false);
+    }
+    
+    @Test
+    public void testChangeChar() throws Exception {
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("abcdefhij"))
+            .escape()
+            .append("0rXiY")
+            .enter();
+        assertLine("YXbcdefhij", b, false);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("abcdefhij"))
+            .escape()
+            .append("04rXiY")
+            .enter();
+        assertLine("XXXYXefhij", b, false);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("abcdefhij"))
+            .escape()
+            .append("099rZ")
+            .enter();
+        assertLine("ZZZZZZZZZ", b, false);
+        
+        
+        /*
+         * Aborted replace.
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("abcdefhij"))
+            .escape()
+            .append("0r")
+            .escape()
+            .append("iX")
+            .enter();
+        assertLine("Xabcdefhij", b, false);
+    }
+    
+    @Test
+    public void testCharSearch_f() throws Exception {
+        /*
+         * f = search forward for character
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+            .escape()
+            .append("03ffiX") // start, find the third f, insert X
+            .enter();
+        assertLine("aaaafaaaafaaaaXfaaaaf", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+            .escape()
+            .append("0ffffffiX") // start, find the third f, insert X
+            .enter();
+        assertLine("aaaafaaaafaaaaXfaaaaf", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+            .escape()
+            .append("0ff;;iX") // start, find f, repeat fwd, repeat fwd
+            .enter();
+        assertLine("aaaafaaaafaaaaXfaaaaf", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+            .escape()
+            .append("0ff;,iX") // start, find f, repeat fwd, repeat back
+            .enter();
+        assertLine("aaaaXfaaaafaaaafaaaaf", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("aaaaXaaaaXaaaaXaaaaX"))
+            .escape()
+            .append("0fX3;iY") // start, find X, repeat fwd x 3, ins Y
+            .enter();
+        assertLine("aaaaXaaaaXaaaaXaaaaYX", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+            .escape()
+            .append("03dff") // start, delete to third f
+            .enter();
+        assertLine("aaaaf", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("aaaaXaaaaXaaaaXaaaaX"))
+            .escape()
+            .append("0fX2d;") // start, find X, 2 x delete repeat last search
+            .enter();
+        assertLine("aaaaaaaaX", b, true);
+    }
+    
+    @Test
+    public void testCharSearch_F() throws Exception {
+        /*
+         * f = search forward for character
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+            .escape()
+            .append("3FfiX") // go 3 f's back, insert X
+            .enter();
+        assertLine("aaaaXfaaaafaaaafaaaaf", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+            .escape()
+            .append("FfFfFfiX") // start, find the third f back, insert X
+            .enter();
+        assertLine("aaaaXfaaaafaaaafaaaaf", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+            .escape()
+            .append("Ff;iX") // start, find f, repeat fwd, repeat fwd
+            .enter();
+        assertLine("aaaafaaaaXfaaaafaaaaf", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+            .escape()
+            .append("Ff;,iX") // start, rev find f, repeat, reverse
+            .enter();
+        assertLine("aaaafaaaafaaaaXfaaaaf", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("aaaaXaaaaXaaaaXaaaaX"))
+            .escape()
+            .append("FX2;iY") // start, rev find X, repeat x 2, ins Y
+            .enter();
+        assertLine("aaaaYXaaaaXaaaaXaaaaX", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+            .escape()
+            .append("3dFf") // start, delete back to third f
+            .enter();
+        assertLine("aaaaf", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("aaaaXaaaaXaaaaXaaaaX"))
+            .escape()
+            .append("FX2d;") // start, find X, 2 x delete repeat last search
+            .enter();
+        assertLine("aaaaXaaaaX", b, true);
+    }
+    
+    @Test
+    public void testCharSearch_t() throws Exception {
+        /*
+         * r = search forward for character, stopping before
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+            .escape()
+            .append("03tfiX")
+            .enter();
+        assertLine("aaaafaaaafaaaXafaaaaf", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+            .escape()
+            .append("0tftftfiX")
+            .enter();
+        assertLine("aaaXafaaaafaaaafaaaaf", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+            .escape()
+            .append("0tf;;iX")
+            .enter();
+        assertLine("aaaXafaaaafaaaafaaaaf", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+            .escape()
+            .append("02tf;,iX")
+            .enter();
+        assertLine("aaaafXaaaafaaaafaaaaf", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("aaaaXaaaaXaaaaXaaaaX"))
+            .escape()
+            .append("0tX3;iY")
+            .enter();
+        assertLine("aaaaXaaaaXaaaYaXaaaaX", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+            .escape()
+            .append("03dtf")
+            .enter();
+        assertLine("faaaaf", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("aaaaXaaaaXaaaaXaaaaX"))
+            .escape()
+            .append("0tX2d;")
+            .enter();
+        assertLine("aaaXaaaaXaaaaX", b, true);
+    }
+    
+    @Test
+    public void testCharSearch_T() throws Exception {
+        /*
+         * r = search backward for character, stopping after
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+            .escape()
+            .append("3TfiX")
+            .enter();
+        assertLine("aaaafXaaaafaaaafaaaaf", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+            .escape()
+            .append("TfTfTfiX")
+            .enter();
+        assertLine("aaaafaaaafaaaafXaaaaf", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+            .escape()
+            .append("Tf;;iX")
+            .enter();
+        assertLine("aaaafaaaafaaaafXaaaaf", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+            .escape()
+            .append("2Tf;,iX")
+            .enter();
+        assertLine("aaaafaaaafaaaXafaaaaf", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("aaaaXaaaaXaaaaXaaaaX"))
+            .escape()
+            .append("TX3;iY")
+            .enter();
+        assertLine("aaaaXYaaaaXaaaaXaaaaX", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+            .escape()
+            .append("3dTf")
+            .enter();
+        assertLine("aaaaff", b, true);
+        
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("aaaaXaaaaXaaaaXaaaaX"))
+            .escape()
+            .append("TX2d;")
+            .enter();
+        assertLine("aaaaXaaaaXaaaaX", b, true);
+    }
+    
+    @Test
+    public void test_dd() throws Exception {
+        /*
+         * This tests "dd" or delete-to + delete-to, which should kill the
+         * current line.
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("abcdef"))
+            .escape()
+            .append("dd")
+            .enter();
+        assertLine("", b, true);
+    }
+    
+    @Test
+    public void test_yy() throws Exception {
+        /*
+         * This tests "yy" or yank-to + yank-to, which should yank the whole line
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("abcdef"))
+            .escape()
+            .append("yyp")
+            .enter();
+        assertLine("abcdefabcdef", b, true);
+    }
+    
+    @Test
+    public void test_cc() throws Exception {
+        /*
+         * This tests "cc" or change-to + change-to, which changes the whole line
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("abcdef"))
+            .escape()
+            .append("ccsuck")
+            .enter();
+        assertLine("suck", b, true);
     }
     
     /**

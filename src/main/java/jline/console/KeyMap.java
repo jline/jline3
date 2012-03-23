@@ -283,6 +283,7 @@ public class KeyMap {
         return new KeyMap(EMACS, map, false);
     }
 
+    public static final char CTRL_D = (char) 4;
     public static final char CTRL_G = (char) 7;
     public static final char CTRL_H = (char) 8;
     public static final char CTRL_I = (char) 9;
@@ -492,12 +493,9 @@ public class KeyMap {
                         null,                               /* @ */
                         Operation.VI_APPEND_EOL,            /* A */
                         Operation.VI_PREV_WORD,             /* B */
-                        /* TODO */
                         Operation.VI_CHANGE_TO,             /* C */
-                        /* TODO */
                         Operation.VI_DELETE_TO,             /* D */
                         Operation.VI_END_WORD,              /* E */
-                        /* TODO */
                         Operation.VI_CHAR_SEARCH,           /* F */
                         /* I need to read up on what this does */
                         Operation.VI_FETCH_HISTORY,         /* G */
@@ -509,20 +507,17 @@ public class KeyMap {
                         null,                               /* M */
                         Operation.VI_SEARCH_AGAIN,          /* N */
                         null,                               /* O */
-                        /* TODO */
                         Operation.VI_PUT,                   /* P */
                         null,                               /* Q */
                         /* TODO */
                         Operation.VI_REPLACE,               /* R */
                         Operation.VI_SUBST,                 /* S */
-                        /* TODO */
                         Operation.VI_CHAR_SEARCH,           /* T */
                         /* TODO */
                         Operation.REVERT_LINE,              /* U */
                         null,                               /* V */
                         Operation.VI_NEXT_WORD,             /* W */
                         Operation.VI_RUBOUT,                /* X */
-                        /* TODO */
                         Operation.VI_YANK_TO,               /* Y */
                         null,                               /* Z */
                         null,                               /* [ */
@@ -569,5 +564,4 @@ public class KeyMap {
         }
         return new KeyMap(VI_MOVE, map, false);
     }
-
 }
