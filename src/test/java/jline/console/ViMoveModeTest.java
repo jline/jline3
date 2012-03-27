@@ -1148,6 +1148,16 @@ public class ViMoveModeTest
             .append("dd")
             .enter();
         assertLine("", b, true);
+        
+        /*
+         * I found a bug here dd didn't work at position 0. This tests the fix.
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("abcdef"))
+            .escape()
+            .append("0dd")
+            .enter();
+        assertLine("", b, true);
     }
     
     @Test

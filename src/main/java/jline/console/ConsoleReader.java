@@ -71,7 +71,7 @@ public class ConsoleReader
     public static final char BACKSPACE = '\b';
 
     public static final char RESET_LINE = '\r';
-
+    
     public static final char KEYBOARD_BELL = '\07';
 
     public static final char NULL_MASK = 0;
@@ -397,6 +397,9 @@ public class ConsoleReader
      * Move the cursor position to the specified absolute index.
      */
     public final boolean setCursorPosition(final int position) throws IOException {
+        if (position == buf.cursor)
+            return true;
+        
         return moveCursor(position - buf.cursor) != 0;
     }
 
@@ -867,6 +870,8 @@ public class ConsoleReader
     }
 
     protected boolean moveToEnd() throws IOException {
+        if (buf.cursor == buf.length())
+            return true;
         return moveCursor(buf.length() - buf.cursor) > 0;
     }
 
