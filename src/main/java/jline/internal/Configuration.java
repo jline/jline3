@@ -51,27 +51,29 @@ public class Configuration
     public static Configuration getConfig(String fileOrUrl) {
         return getConfig(getUrlFrom(fileOrUrl));
     }
-
+    
     public static Configuration getConfig(URL url) {
-        if (url ==  null) {
-            url = getUrlFrom(new File(getUserHome(), JLINE_RC));
+        
+        if (url != null || configuration == null) {
+            
+            if (url ==  null) {
+                url = getUrlFrom(new File(getUserHome(), JLINE_RC));
+            }
+            if (configuration == null || !url.equals(configuration.jlinercUrl)) {
+                configuration = new Configuration(url);
+            }
         }
-        if (configuration == null || !url.equals(configuration.jlinercUrl)) {
-            configuration = new Configuration(url);
-        }
+        
         return configuration;
     }
 
-
-
     private final Properties props;
-
     private final URL jlinercUrl;
 
     public Configuration() {
         this(getUrlFrom(new File(getUserHome(), JLINE_RC)));
     }
-
+    
     public Configuration(File inputRc) {
         this(getUrlFrom(inputRc));
     }
@@ -169,6 +171,10 @@ public class Configuration
     public boolean bool(final String name) {
         return bool(name, false);
     }
+    
+    public void setString(final String name, final String value) {
+        props.setProperty (name,  value);
+    }
 
     public static String getString(final String name, final String defaultValue) {
         return Configuration.getConfig().string(name, defaultValue);
@@ -180,6 +186,22 @@ public class Configuration
 
     public static boolean getBoolean(final String name, final boolean defaultValue) {
         return Configuration.getConfig().bool(name, defaultValue);
+    }
+    
+    public static int getInteger(final String name, final int defaultValue) {
+        String str = Configuration.getConfig().props.getProperty(name);
+        if (name == null) {
+            return defaultValue;
+        }
+        return Integer.parseInt(str);
+    }
+    
+    public static long getLong(final String name, final long defaultValue) {
+        String str = Configuration.getConfig().props.getProperty(name);
+        if (str == null) {
+            return defaultValue;
+        }
+        return Long.parseLong(str);
     }
 
     public static boolean getBoolean(final String name) {

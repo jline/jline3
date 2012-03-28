@@ -43,7 +43,7 @@ public abstract class TerminalSupport
 
     protected TerminalSupport(final boolean supported) {
         this.supported = supported;
-        this.shutdownHookEnabled = Configuration.getBoolean(JLINE_SHUTDOWNHOOK, false);
+        this.shutdownHookEnabled = Configuration.getBoolean(JLINE_SHUTDOWNHOOK, true);
     }
 
     public void init() throws Exception {

@@ -21,6 +21,15 @@ public class CursorBuffer
     public int cursor = 0;
 
     public final StringBuilder buffer = new StringBuilder();
+    
+    public CursorBuffer copy () {
+        CursorBuffer that = new CursorBuffer();
+        that.overTyping = this.overTyping;
+        that.cursor = this.cursor;
+        that.buffer.append (this.toString());
+        
+        return that;
+    }
 
     public boolean isOverTyping() {
         return overTyping;

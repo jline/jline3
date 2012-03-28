@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -33,14 +34,25 @@ public class ConsoleKeys {
 
     private KeyMap keys;
 
-    private boolean viEditMode;
-
     private Map<String, KeyMap> keyMaps;
+    private Map<String, String> variables = new HashMap<String,String>();
 
     public ConsoleKeys(String appName, URL inputrcUrl) {
         keyMaps = KeyMap.keyMaps();
-
         loadKeys(appName, inputrcUrl);
+    }
+    
+    protected boolean isViEditMode() {
+        return keys.isViKeyMap();
+    }
+    
+    protected boolean setKeyMap (String name) {
+        KeyMap map = keyMaps.get(name);
+        if (map == null) {
+            return false;
+        }
+        this.keys = map;
+        return true;
     }
 
     protected Map<String, KeyMap> getKeyMaps() {
@@ -56,15 +68,12 @@ public class ConsoleKeys {
     }
 
     protected boolean getViEditMode() {
-        return viEditMode;
-    }
-
-    protected void setViEditMode(boolean viEditMode) {
-        this.viEditMode = viEditMode;
+        return keys.isViKeyMap ();
     }
 
     protected void loadKeys(String appName, URL inputrcUrl) {
-        keys = keyMaps.get("emacs");
+        keys = keyMaps.get(KeyMap.EMACS);
+        
         try {
             InputStream input = inputrcUrl.openStream();
             try {
@@ -89,8 +98,6 @@ public class ConsoleKeys {
                 Log.warn("Unable to read user configuration: ", inputrcUrl, e);
             }
         }
-        keys.bindArrowKeys();
-        keys = viEditMode ? keyMaps.get("vi") : keyMaps.get("emacs");
     }
 
     private void loadKeys(InputStream input, String appName) throws IOException {
@@ -127,9 +134,9 @@ public class ConsoleKeys {
                         // TODO
                     } else if (args.startsWith("mode=")) {
                         if (args.equalsIgnoreCase("mode=vi")) {
-                            parsing = viEditMode;
+                            parsing = isViEditMode();
                         } else if (args.equals("mode=emacs")) {
-                            parsing = !viEditMode;
+                            parsing = !isViEditMode();
                         } else {
                             parsing = false;
                         }
@@ -360,14 +367,27 @@ public class ConsoleKeys {
             }
         } else if ("editing-mode".equals(key)) {
             if ("vi".equalsIgnoreCase(val)) {
-                keys = keyMaps.get("vi-insert");
-                viEditMode = true;
+                keys = keyMaps.get(KeyMap.VI_INSERT);
             } else if ("emacs".equalsIgnoreCase(key)) {
-                keys = keyMaps.get("emacs");
-                viEditMode = false;
+                keys = keyMaps.get(KeyMap.EMACS);
             }
         }
-        // TODO
+        
+        /*
+         * Technically variables should be defined as a functor class
+         * so that validation on the variable value can be done at parse
+         * time. This is a stop-gap. 
+         */
+        variables.put(key, val);
     }
-
+    
+    /**
+     * Retrieves the value of a variable that was set in the .inputrc file
+     * during processing
+     * @param var The variable name
+     * @return The variable value.
+     */
+    public String getVariable(String var) {
+        return variables.get (var);
+    }
 }
