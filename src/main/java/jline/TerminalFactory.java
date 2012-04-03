@@ -92,7 +92,7 @@ public class TerminalFactory
         try {
             t.init();
         }
-        catch (Exception e) {
+        catch (Throwable e) {
             Log.error("Terminal initialization failed; falling back to unsupported", e);
             return new UnsupportedTerminal();
         }
