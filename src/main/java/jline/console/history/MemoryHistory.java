@@ -93,6 +93,10 @@ public class MemoryHistory
         return items.get(index - offset);
     }
 
+    public void set(int index, CharSequence item) {
+        items.set(index - offset, item);
+    }
+
     public void add(CharSequence item) {
         assert item != null;
 
@@ -107,6 +111,18 @@ public class MemoryHistory
         }
 
         internalAdd(item);
+    }
+
+    public CharSequence remove(int i) {
+        return items.remove(i);
+    }
+
+    public CharSequence removeFirst() {
+        return items.removeFirst();
+    }
+
+    public CharSequence removeLast() {
+        return items.removeLast();
     }
 
     protected void internalAdd(CharSequence item) {

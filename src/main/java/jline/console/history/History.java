@@ -30,7 +30,15 @@ public interface History
 
     CharSequence get(int index);
 
+    void set(int index, CharSequence item);
+
     void add(CharSequence line);
+
+    public CharSequence remove(int i);
+
+    public CharSequence removeFirst();
+
+    public CharSequence removeLast();
 
     void replace(CharSequence item);
 

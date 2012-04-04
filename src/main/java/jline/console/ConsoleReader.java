@@ -93,6 +93,8 @@ public class ConsoleReader
 
     private boolean expandEvents = true;
 
+    private boolean bellEnabled = !Configuration.getBoolean(JLINE_NOBELL, true);
+
     private Character mask;
 
     private Character echoCharacter;
@@ -272,6 +274,14 @@ public class ConsoleReader
 
     public boolean getExpandEvents() {
         return expandEvents;
+    }
+
+    public void setBellEnabled(boolean enabled) {
+        this.bellEnabled = false;
+    }
+
+    public boolean getBellEnabled() {
+        return bellEnabled;
     }
     
     /**
@@ -3131,7 +3141,7 @@ public class ConsoleReader
      * Issue an audible keyboard bell.
      */
     public void beep() throws IOException {
-        if (!Configuration.getBoolean(JLINE_NOBELL, true)) {
+        if (bellEnabled) {
             print(KEYBOARD_BELL);
             // need to flush so the console actually beeps
             flush();
