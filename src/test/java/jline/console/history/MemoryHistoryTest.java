@@ -96,4 +96,48 @@ public class MemoryHistoryTest
 
         assertHistoryContains(0, "a", "c");
     }
+
+    @Test
+    public void testSet() {
+        history.add("a");
+        history.add("b");
+        history.add("c");
+
+        history.set(1, "d");
+
+        assertHistoryContains(0, "a", "d", "c");
+    }
+
+    @Test
+    public void testRemove() {
+        history.add("a");
+        history.add("b");
+        history.add("c");
+
+        history.remove(1);
+
+        assertHistoryContains(0, "a", "c");
+    }
+
+    @Test
+    public void testRemoveFirst() {
+        history.add("a");
+        history.add("b");
+        history.add("c");
+
+        history.removeFirst();
+
+        assertHistoryContains(0, "b", "c");
+    }
+
+    @Test
+    public void testRemoveLast() {
+        history.add("a");
+        history.add("b");
+        history.add("c");
+
+        history.removeLast();
+
+        assertHistoryContains(0, "a", "b");
+    }
 }

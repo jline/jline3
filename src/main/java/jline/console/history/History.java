@@ -30,15 +30,41 @@ public interface History
 
     CharSequence get(int index);
 
-    void set(int index, CharSequence item);
-
     void add(CharSequence line);
 
-    public CharSequence remove(int i);
+    /**
+     * Set the history item at the given index to the given CharSequence.
+     *
+     * @param index the index of the history offset
+     * @param item the new item
+     * @since 2.7
+     */
+    void set(int index, CharSequence item);
 
-    public CharSequence removeFirst();
+    /**
+     * Remove the history element at the given index.
+     *
+     * @param i the index of the element to remove
+     * @return the removed element
+     * @since 2.7
+     */
+    CharSequence remove(int i);
 
-    public CharSequence removeLast();
+    /**
+     * Remove the first element from history.
+     *
+     * @return the removed element
+     * @since 2.7
+     */
+    CharSequence removeFirst();
+
+    /**
+     * Remove the last element from history
+     *
+     * @return the removed element
+     * @since 2.7
+     */
+    CharSequence removeLast();
 
     void replace(CharSequence item);
 

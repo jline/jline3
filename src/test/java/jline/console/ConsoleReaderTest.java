@@ -16,8 +16,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static jline.console.ConsoleReaderTest.WindowsKey.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 /**
  * Tests for the {@link ConsoleReader}.
@@ -344,6 +343,27 @@ public class ConsoleReaderTest
         } finally {
             System.clearProperty(Configuration.JLINE_INPUTRC);
         }
+    }
+
+    @Test
+    public void testBell() throws Exception {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ConsoleReader consoleReader = new ConsoleReader(System.in, baos);
+
+        assertFalse("default bell should be disabled", consoleReader.getBellEnabled());
+
+        consoleReader.beep();
+
+        assertEquals("out should not have received bell", 0, baos.toByteArray().length);
+
+        consoleReader.setBellEnabled(true);
+
+        assertTrue("bell should have been enabled", consoleReader.getBellEnabled());
+
+        consoleReader.beep();
+
+        assertEquals("out should have received bell", 1, baos.toByteArray().length);
+        assertEquals("out should have received bell", ConsoleReader.KEYBOARD_BELL, baos.toByteArray()[0]);
     }
 
     /**

@@ -276,10 +276,22 @@ public class ConsoleReader
         return expandEvents;
     }
 
+    /**
+     * Set whether the console bell is enabled.
+     *
+     * @param enabled true if enabled; false otherwise
+     * @since 2.7
+     */
     public void setBellEnabled(boolean enabled) {
-        this.bellEnabled = false;
+        this.bellEnabled = enabled;
     }
 
+    /**
+     * Get whether the console bell is enabled
+     *
+     * @return true if enabled; false otherwise
+     * @since 2.7
+     */
     public boolean getBellEnabled() {
         return bellEnabled;
     }
