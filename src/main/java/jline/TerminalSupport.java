@@ -27,7 +27,7 @@ public abstract class TerminalSupport
 
     public static final int DEFAULT_HEIGHT = 24;
 
-    private Runnable shutdownHook;
+    private Runnable shutdownTask;
 
     private boolean supported;
 
@@ -40,12 +40,12 @@ public abstract class TerminalSupport
     }
 
     public void init() throws Exception {
-        this.shutdownHook = ShutdownHooks.add(new RestoreHook());
+        this.shutdownTask = ShutdownHooks.add(new RestoreTask());
     }
 
     public void restore() throws Exception {
         TerminalFactory.resetIf(this);
-        ShutdownHooks.remove(shutdownHook);
+        ShutdownHooks.remove(shutdownTask);
     }
 
     public void reset() throws Exception {
@@ -111,10 +111,10 @@ public abstract class TerminalSupport
      *
      * @see ShutdownHooks
      */
-    protected class RestoreHook
-        extends Thread
+    protected class RestoreTask
+        implements Runnable
     {
-        public void start() {
+        public void run() {
             try {
                 restore();
             }
