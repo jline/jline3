@@ -4,7 +4,7 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  */
-package jline.console.runner;
+package jline.console.internal;
  
 import jline.console.ConsoleReader;
  
@@ -18,7 +18,7 @@ import java.util.Enumeration;
  * It is useful for setting up the {@link System#in} for a generic console.
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
- * @since 2.6
+ * @since 2.7
  */
 class ConsoleReaderInputStream
     extends SequenceInputStream
