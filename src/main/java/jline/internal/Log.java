@@ -21,6 +21,8 @@ package jline.internal;
 
 import java.io.PrintStream;
 
+import static jline.internal.Preconditions.checkNotNull;
+
 /**
  * Internal logger.
  *
@@ -53,9 +55,10 @@ public final class Log
     }
 
     public static void setOutput(final PrintStream out) {
-        assert out != null;
-        output = out;
+        output = checkNotNull(out);
     }
+
+    // FIXME: Should just use printf formatting
 
     private static void print(final Object message) {
         if (message instanceof Throwable) {
@@ -81,8 +84,11 @@ public final class Log
         synchronized (output) {
             output.format("[%s] ", level);
 
-            for (Object message : messages) {
-                print(message);
+            for (int i=0; i<messages.length; i++) {
+                print(messages[i]);
+                if (i+1<messages.length) {
+                    output.print(" ");
+                }
             }
 
             output.println();

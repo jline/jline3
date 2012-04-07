@@ -30,9 +30,10 @@ public class ConsoleReaderTest
     public void setUp() throws Exception {
         TerminalFactory.configure(TerminalFactory.AUTO);
         TerminalFactory.reset();
+        System.setProperty(Configuration.JLINE_CONFIGURATION, "/no-such-file");
         System.setProperty(WindowsTerminal.DIRECT_CONSOLE, "false");
-        Configuration conf = Configuration.getConfig(getClass().getResource("/jline/empty-config"));
-        conf.setString (Configuration.JLINE_INPUTRC, "/no/such/file");
+        System.setProperty(ConsoleReader.JLINE_INPUTRC, "/no/such/file");
+        Configuration.reset();
     }
 
     @After
@@ -315,7 +316,7 @@ public class ConsoleReaderTest
 
     @Test
     public void testInput() throws Exception {
-        System.setProperty(Configuration.JLINE_INPUTRC, getClass().getResource("/jline/internal/config1").toExternalForm());
+        System.setProperty(ConsoleReader.JLINE_INPUTRC, getClass().getResource("/jline/internal/config1").toExternalForm());
         try {
             ConsoleReader consoleReader = createConsole("\u0018(foo\u0018)\u0018e\r\n");
             assertNotNull(consoleReader);
@@ -328,20 +329,20 @@ public class ConsoleReaderTest
             assertNotNull(consoleReader);
             assertEquals("\u001bb\"\u001bf\"", consoleReader.getKeys().getBound(((char)('X' - 'A' + 1)) + "q"));
         } finally {
-            System.clearProperty(Configuration.JLINE_INPUTRC);
+            System.clearProperty(ConsoleReader.JLINE_INPUTRC);
         }
     }
 
     @Test
     public void testInput2() throws Exception {
-        System.setProperty(Configuration.JLINE_INPUTRC, getClass().getResource("/jline/internal/config2").toExternalForm());
+        System.setProperty(ConsoleReader.JLINE_INPUTRC, getClass().getResource("/jline/internal/config2").toExternalForm());
         try {
             ConsoleReader consoleReader = createConsole("Bash", new byte[0]);
             assertNotNull(consoleReader);
             assertNotNull(consoleReader.getKeys().getBound("\u001b" + ((char)('V' - 'A' + 1))));
 
         } finally {
-            System.clearProperty(Configuration.JLINE_INPUTRC);
+            System.clearProperty(ConsoleReader.JLINE_INPUTRC);
         }
     }
 

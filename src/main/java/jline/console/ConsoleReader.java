@@ -49,6 +49,7 @@ import jline.internal.InputStreamReader;
 import jline.internal.Log;
 import jline.internal.NonBlockingInputStream;
 
+import jline.internal.Urls;
 import org.fusesource.jansi.AnsiOutputStream;
 
 /**
@@ -67,6 +68,10 @@ public class ConsoleReader
     public static final String JLINE_NOBELL = "jline.nobell";
     
     public static final String JLINE_ESC_TIMEOUT = "jline.esc.timeout";
+
+    public static final String JLINE_INPUTRC = "jline.inputrc";
+
+    public static final String INPUT_RC = ".inputrc";
 
     public static final char BACKSPACE = '\b';
 
@@ -198,10 +203,8 @@ public class ConsoleReader
         this.out = new OutputStreamWriter(terminal.wrapOutIfNeeded(out), this.encoding);
         setInput( in );
 
-        this.inputrcUrl = Configuration.getUrlFrom(
-            Configuration.getString(Configuration.JLINE_INPUTRC,
-                Configuration.getUrlFrom(new File(Configuration.getUserHome(),
-                    Configuration.INPUT_RC)).toExternalForm()));
+        this.inputrcUrl = Urls.create(Configuration.getString(JLINE_INPUTRC,
+                Urls.create(new File(Configuration.getUserHome(), INPUT_RC)).toExternalForm()));
         
         consoleKeys = new ConsoleKeys(appName, inputrcUrl);
     }

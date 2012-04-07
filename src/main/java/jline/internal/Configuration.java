@@ -23,10 +23,12 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.util.Map;
 import java.util.Properties;
+
+import static jline.internal.Preconditions.checkNotNull;
 
 /**
  * Provides access to configuration values.
@@ -37,105 +39,80 @@ import java.util.Properties;
  */
 public class Configuration
 {
-    public static final String JLINE_INPUTRC = "jline.inputrc";
+    /**
+     * @since 2.7
+     */
+    public static final String JLINE_CONFIGURATION = "jline.configuration";
 
+    /**
+     * Default configuration file name loaded from user's home directory.
+     */
     public static final String JLINE_RC = ".jline.rc";
-    public static final String INPUT_RC = ".inputrc";
 
-    private static Configuration configuration;
+    private static final Properties properties = initProperties();
 
-    public static Configuration getConfig() {
-        return getConfig((URL) null);
-    }
-
-    public static Configuration getConfig(String fileOrUrl) {
-        return getConfig(getUrlFrom(fileOrUrl));
-    }
-    
-    public static Configuration getConfig(URL url) {
-        
-        if (url != null || configuration == null) {
-            
-            if (url ==  null) {
-                url = getUrlFrom(new File(getUserHome(), JLINE_RC));
-            }
-            if (configuration == null || !url.equals(configuration.jlinercUrl)) {
-                configuration = new Configuration(url);
-            }
-        }
-        
-        return configuration;
-    }
-
-    private final Properties props;
-    private final URL jlinercUrl;
-
-    public Configuration() {
-        this(getUrlFrom(new File(getUserHome(), JLINE_RC)));
-    }
-    
-    public Configuration(File inputRc) {
-        this(getUrlFrom(inputRc));
-    }
-
-    public Configuration(String fileOrUrl) {
-        this(getUrlFrom(fileOrUrl));
-    }
-
-    public Configuration(URL jlinercUrl) {
-        this.jlinercUrl = jlinercUrl;
-        this.props = loadProps();
-    }
-
-    protected Properties loadProps() {
-        // Load jline resources
+    private static Properties initProperties() {
+        URL url = determineUrl();
         Properties props = new Properties();
         try {
-            InputStream input = this.jlinercUrl.openStream();
-            try {
-                props.load(new BufferedInputStream(input));
-            }
-            finally {
-                try {
-                    input.close();
-                } catch (IOException e) {
-                    // Ignore
-                }
-            }
-        } catch (IOException e) {
-            if (this.jlinercUrl.getProtocol().equals("file")) {
-                File file = new File(this.jlinercUrl.getPath());
-                if (file.exists()) {
-                    Log.warn("Unable to read user configuration: ", this.jlinercUrl, e);
-                }
-            } else {
-                Log.warn("Unable to read user configuration: ", this.jlinercUrl, e);
-            }
+            loadProperties(url, props);
+        }
+        catch (IOException e) {
+            Log.warn("Unable to read configuration from:", url, e);
         }
         return props;
     }
 
-    public static URL getUrlFrom(String fileOrUrl) {
-        if (fileOrUrl == null) {
-            return null;
-        }
+    private static void loadProperties(final URL url, final Properties props) throws IOException {
+        Log.debug("Loading properties from:", url);
+        InputStream input = url.openStream();
         try {
-            return new URL(fileOrUrl);
-        } catch (MalformedURLException e) {
-            return getUrlFrom(new File(fileOrUrl));
+            props.load(new BufferedInputStream(input));
+        }
+        finally {
+            try {
+                input.close();
+            }
+            catch (IOException e) {
+                // ignore
+            }
+        }
+
+        if (Log.DEBUG) {
+            Log.debug("Loaded properties:");
+            for (Map.Entry<Object,Object> entry : props.entrySet()) {
+                Log.debug("  ", entry.getKey(), "=", entry.getValue());
+            }
         }
     }
 
-    public static URL getUrlFrom(File inputRc) {
-        try {
-            return inputRc != null ? inputRc.toURI().toURL() : null;
-        } catch (MalformedURLException e) {
-            throw new IllegalStateException(e);
+    private static URL determineUrl() {
+        // See if user has customized the configuration location via sysprop
+        String tmp = System.getProperty(JLINE_CONFIGURATION);
+        if (tmp != null) {
+            return Urls.create(tmp);
+        }
+        else {
+            // otherwise use the default
+            return Urls.create(new File(getUserHome(), JLINE_RC));
         }
     }
 
-    public String string(final String name, final String defaultValue) {
-        assert name != null;
+    public static void reset() {
+        Log.debug("Resetting");
+        properties.clear();
+        properties.putAll(initProperties());
+    }
+
+    /**
+     * @since 2.7
+     */
+    public static Properties getProperties() {
+        return properties;
+    }
+
+    public static String getString(final String name, final String defaultValue) {
+        checkNotNull(name);
 
         String value;
 
@@ -144,7 +121,7 @@ public class Configuration
 
         if (value == null) {
             // Next try userprops
-            value = props.getProperty(name);
+            value = properties.getProperty(name);
 
             if (value == null) {
                 // else use the default
@@ -155,57 +132,35 @@ public class Configuration
         return value;
     }
 
-    public String string(final String name) {
-        return string(name, null);
-    }
-
-    public boolean bool(final String name, final boolean defaultValue) {
-        String value = string(name, null);
-        if (value == null) {
-            return defaultValue;
-        }
-        return value.length() == 0 || value.equalsIgnoreCase("1")
-                || value.equalsIgnoreCase("on") || value.equalsIgnoreCase("true");
-    }
-
-    public boolean bool(final String name) {
-        return bool(name, false);
-    }
-    
-    public void setString(final String name, final String value) {
-        props.setProperty (name,  value);
-    }
-
-    public static String getString(final String name, final String defaultValue) {
-        return Configuration.getConfig().string(name, defaultValue);
-    }
-
     public static String getString(final String name) {
         return getString(name, null);
     }
 
     public static boolean getBoolean(final String name, final boolean defaultValue) {
-        return Configuration.getConfig().bool(name, defaultValue);
+        String value = getString(name);
+        if (value == null) {
+            return defaultValue;
+        }
+        return value.length() == 0
+            || value.equalsIgnoreCase("1")
+            || value.equalsIgnoreCase("on")
+            || value.equalsIgnoreCase("true");
     }
-    
+
     public static int getInteger(final String name, final int defaultValue) {
-        String str = Configuration.getConfig().props.getProperty(name);
-        if (name == null) {
+        String str = getString(name);
+        if (str == null) {
             return defaultValue;
         }
         return Integer.parseInt(str);
     }
-    
+
     public static long getLong(final String name, final long defaultValue) {
-        String str = Configuration.getConfig().props.getProperty(name);
+        String str = getString(name);
         if (str == null) {
             return defaultValue;
         }
         return Long.parseLong(str);
-    }
-
-    public static boolean getBoolean(final String name) {
-        return getBoolean(name, false);
     }
 
     //
@@ -220,15 +175,15 @@ public class Configuration
         return System.getProperty("os.name").toLowerCase();
     }
 
-    public static String getFileEncoding() {
-        return System.getProperty("file.encoding");
-    }
+    //public static String getFileEncoding() {
+    //    return System.getProperty("file.encoding");
+    //}
 
     public static String getEncoding() {
         // LC_CTYPE is usually in the form en_US.UTF-8
         String ctype = System.getenv("LC_CTYPE");
         if (ctype != null && ctype.indexOf('.') > 0) {
-            return ctype.substring( ctype.indexOf('.') + 1 );
+            return ctype.substring(ctype.indexOf('.') + 1);
         }
         return System.getProperty("input.encoding", Charset.defaultCharset().name());
     }
