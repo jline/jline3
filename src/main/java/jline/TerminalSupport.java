@@ -11,10 +11,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import jline.internal.Configuration;
 import jline.internal.Log;
-
-import static jline.internal.Preconditions.checkNotNull;
+import jline.internal.ShutdownHook;
 
 /**
  * Provides support for {@link Terminal} instances.
@@ -25,15 +23,9 @@ import static jline.internal.Preconditions.checkNotNull;
 public abstract class TerminalSupport
     implements Terminal
 {
-    public static final String JLINE_SHUTDOWNHOOK = "jline.shutdownhook";
-
     public static final int DEFAULT_WIDTH = 80;
 
     public static final int DEFAULT_HEIGHT = 24;
-
-    private Thread shutdownHook;
-    
-    private boolean shutdownHookEnabled;
 
     private boolean supported;
 
@@ -41,66 +33,22 @@ public abstract class TerminalSupport
 
     private boolean ansiSupported;
 
-    private Configuration configuration;
-
     protected TerminalSupport(final boolean supported) {
         this.supported = supported;
-        this.shutdownHookEnabled = Configuration.getBoolean(JLINE_SHUTDOWNHOOK, true);
     }
 
     public void init() throws Exception {
-        installShutdownHook(new RestoreHook());
+        ShutdownHook.install(new RestoreHook());
     }
 
     public void restore() throws Exception {
         TerminalFactory.resetIf(this);
-        removeShutdownHook();
+        ShutdownHook.remove();
     }
 
     public void reset() throws Exception {
         restore();
         init();
-    }
-
-    protected void installShutdownHook(final Thread hook) {
-        checkNotNull(hook);
-
-        if (!shutdownHookEnabled) {
-            Log.debug("Not install shutdown hook " + hook + " because they are disabled.");
-            return;
-        }
-
-        if (shutdownHook != null) {
-            throw new IllegalStateException("Shutdown hook already installed");
-        }
-
-        try {
-            Runtime.getRuntime().addShutdownHook(hook);
-            shutdownHook = hook;
-        }
-        catch (AbstractMethodError e) {
-            // JDK 1.3+ only method. Bummer.
-            Log.trace("Failed to register shutdown hook: ", e);
-        }
-    }
-
-    protected void removeShutdownHook() {
-        if (!shutdownHookEnabled)
-            return;
-      
-        if (shutdownHook != null) {
-            try {
-                Runtime.getRuntime().removeShutdownHook(shutdownHook);
-            }
-            catch (AbstractMethodError e) {
-                // JDK 1.3+ only method. Bummer.
-                Log.trace("Failed to remove shutdown hook: ", e);
-            }
-            catch (IllegalStateException e) {
-                // The VM is shutting down, not a big deal; ignore
-            }
-            shutdownHook = null;
-        }
     }
 
     public final boolean isSupported() {
