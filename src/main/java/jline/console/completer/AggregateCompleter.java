@@ -40,19 +40,42 @@ public class AggregateCompleter
         // empty
     }
 
+    /**
+     * Construct an AggregateCompleter with the given collection of completers.
+     * The completers will be used in the iteration order of the collection.
+     *
+     * @param completers the collection of completers
+     */
     public AggregateCompleter(final Collection<Completer> completers) {
         assert completers != null;
         this.completers.addAll(completers);
     }
 
+    /**
+     * Construct an AggregateCompleter with the given completers.
+     * The completers will be used in the order given.
+     *
+     * @param completers the completers
+     */
     public AggregateCompleter(final Completer... completers) {
         this(Arrays.asList(completers));
     }
 
+    /**
+     * Retrieve the collection of completers currently being aggregated.
+     *
+     * @return the aggregated completers
+     */
     public Collection<Completer> getCompleters() {
         return completers;
     }
 
+    /**
+     * Perform a completion operation across all aggregated completers.
+     *
+     * @see Completer#complete(String, int, java.util.List)
+     * @return the highest completion return value from all completers
+     */
     public int complete(final String buffer, final int cursor, final List<CharSequence> candidates) {
         // buffer could be null
         assert candidates != null;
@@ -81,6 +104,9 @@ public class AggregateCompleter
         return max;
     }
 
+    /**
+     * @return a string representing the aggregated completers
+     */
     @Override
     public String toString() {
         return getClass().getSimpleName() + "{" +
