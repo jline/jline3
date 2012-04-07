@@ -892,8 +892,9 @@ public class ConsoleReader
     }
 
     protected boolean moveToEnd() throws IOException {
-        if (buf.cursor == buf.length())
+        if (buf.cursor == buf.length()) {
             return true;
+        }
         return moveCursor(buf.length() - buf.cursor) > 0;
     }
 
