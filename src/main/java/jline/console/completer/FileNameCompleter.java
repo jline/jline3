@@ -12,6 +12,8 @@ import jline.internal.Configuration;
 import java.io.File;
 import java.util.List;
 
+import static jline.internal.Preconditions.checkNotNull;
+
 /**
  * A file name completer takes the buffer and issues a list of
  * potential completions.
@@ -46,7 +48,7 @@ public class FileNameCompleter
 
     public int complete(String buffer, final int cursor, final List<CharSequence> candidates) {
         // buffer can be null
-        assert candidates != null;
+        checkNotNull(candidates);
 
         if (buffer == null) {
             buffer = "";
@@ -125,9 +127,6 @@ public class FileNameCompleter
     }
 
     protected CharSequence render(final File file, final CharSequence name) {
-        assert file != null;
-        assert name != null;
-
         return name;
     }
 }

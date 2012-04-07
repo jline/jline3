@@ -16,6 +16,8 @@
 
 package jline.console.completer;
 
+import static jline.internal.Preconditions.checkNotNull;
+
 /**
  * {@link Completer} for {@link Enum} names.
  *
@@ -26,7 +28,7 @@ public class EnumCompleter
     extends StringsCompleter
 {
     public EnumCompleter(Class<? extends Enum> source) {
-        assert source != null;
+        checkNotNull(source);
 
         for (Enum<?> n : source.getEnumConstants()) {
             this.getStrings().add(n.name().toLowerCase());

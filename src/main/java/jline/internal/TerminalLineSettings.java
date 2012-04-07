@@ -16,6 +16,8 @@ import java.text.MessageFormat;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static jline.internal.Preconditions.checkNotNull;
+
 /**
  * Provides access to terminal line settings via <tt>stty</tt>.
  *
@@ -82,7 +84,7 @@ public final class TerminalLineSettings
      * @return the stty property value.                        
      */
     public int getProperty(String name) {
-        assert name != null;
+        checkNotNull(name);
         try {
             // tty properties are cached so we don't have to worry too much about getting term widht/height
             if (config == null || System.currentTimeMillis() - configLastFetched > 1000 ) {
@@ -161,17 +163,17 @@ public final class TerminalLineSettings
     }
 
     private String stty(final String args) throws IOException, InterruptedException {
-        assert args != null;
+        checkNotNull(args);
         return exec(String.format("%s %s < /dev/tty", sttyCommand, args));
     }
 
     private String exec(final String cmd) throws IOException, InterruptedException {
-        assert cmd != null;
+        checkNotNull(cmd);
         return exec(shCommand, "-c", cmd);
     }
 
     private String exec(final String... cmd) throws IOException, InterruptedException {
-        assert cmd != null;
+        checkNotNull(cmd);
 
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
 

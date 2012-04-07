@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import static jline.internal.Preconditions.checkNotNull;
+
 /**
  * Completer for a set of strings.
  *
@@ -41,7 +43,7 @@ public class StringsCompleter
     }
 
     public StringsCompleter(final Collection<String> strings) {
-        assert strings != null;
+        checkNotNull(strings);
         getStrings().addAll(strings);
     }
 
@@ -55,7 +57,7 @@ public class StringsCompleter
 
     public int complete(final String buffer, final int cursor, final List<CharSequence> candidates) {
         // buffer could be null
-        assert candidates != null;
+        checkNotNull(candidates);
 
         if (buffer == null) {
             candidates.addAll(strings);

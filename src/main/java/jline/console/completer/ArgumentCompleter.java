@@ -15,6 +15,8 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
+import static jline.internal.Preconditions.checkNotNull;
+
 /**
  * A {@link Completer} implementation that invokes a child completer using the appropriate <i>separator</i> argument.
  * This can be used instead of the individual completers having to know about argument parsing semantics.
@@ -39,9 +41,8 @@ public class ArgumentCompleter
      * @param completers    The embedded completers
      */
     public ArgumentCompleter(final ArgumentDelimiter delimiter, final Collection<Completer> completers) {
-        assert delimiter != null;
-        this.delimiter = delimiter;
-        assert completers != null;
+        this.delimiter = checkNotNull(delimiter);
+        checkNotNull(completers);
         this.completers.addAll(completers);
     }
 
@@ -108,7 +109,7 @@ public class ArgumentCompleter
 
     public int complete(final String buffer, final int cursor, final List<CharSequence> candidates) {
         // buffer can be null
-        assert candidates != null;
+        checkNotNull(candidates);
 
         ArgumentDelimiter delim = getDelimiter();
         ArgumentList list = delim.delimit(buffer, cursor);
@@ -347,9 +348,7 @@ public class ArgumentCompleter
          * @param bufferPosition        The position of the cursor in the whole buffer
          */
         public ArgumentList(final String[] arguments, final int cursorArgumentIndex, final int argumentPosition, final int bufferPosition) {
-            assert arguments != null;
-
-            this.arguments = arguments;
+            this.arguments = checkNotNull(arguments);
             this.cursorArgumentIndex = cursorArgumentIndex;
             this.argumentPosition = argumentPosition;
             this.bufferPosition = bufferPosition;
