@@ -20,6 +20,7 @@ import static jline.WindowsTerminal.ConsoleMode.ENABLE_ECHO_INPUT;
 import static jline.WindowsTerminal.ConsoleMode.ENABLE_LINE_INPUT;
 import static jline.WindowsTerminal.ConsoleMode.ENABLE_PROCESSED_INPUT;
 import static jline.WindowsTerminal.ConsoleMode.ENABLE_WINDOW_INPUT;
+import static jline.internal.Preconditions.checkNotNull;
 
 /**
  * Terminal implementation for Microsoft Windows. Terminal initialization in
@@ -155,7 +156,7 @@ public class WindowsTerminal
     }
 
     protected boolean isSystemIn(final InputStream in) throws IOException {
-        assert in != null;
+        checkNotNull(in);
 
         if (in == System.in) {
             return true;
