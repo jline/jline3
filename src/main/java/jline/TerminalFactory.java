@@ -13,6 +13,9 @@ import java.util.Map;
 
 import jline.internal.Configuration;
 import jline.internal.Log;
+import jline.internal.Preconditions;
+
+import static jline.internal.Preconditions.checkNotNull;
 
 /**
  * Creates terminal instances.
@@ -119,12 +122,12 @@ public class TerminalFactory
     }
 
     public static synchronized void configure(final String type) {
-        assert type != null;
+        checkNotNull(type);
         System.setProperty(JLINE_TERMINAL, type);
     }
 
     public static synchronized void configure(final Type type) {
-        assert type != null;
+        checkNotNull(type);
         configure(type.name().toLowerCase());
     }
 
