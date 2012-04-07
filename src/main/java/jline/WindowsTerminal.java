@@ -11,8 +11,6 @@ import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
-import java.util.Map;
 
 import jline.internal.Configuration;
 import jline.internal.Log;
@@ -53,7 +51,7 @@ import static jline.WindowsTerminal.ConsoleMode.ENABLE_WINDOW_INPUT;
 public class WindowsTerminal
     extends TerminalSupport
 {
-    public static final String JLINE_WINDOWS_TERMINAL_DIRECT_CONSOLE = WindowsTerminal.class.getName() + ".directConsole";
+    public static final String DIRECT_CONSOLE = WindowsTerminal.class.getName() + ".directConsole";
 
     public static final String ANSI = WindowsTerminal.class.getName() + ".ansi";
 
@@ -75,7 +73,7 @@ public class WindowsTerminal
         // FIXME: Need a way to disable direct console and sysin detection muck
         //
 
-        setDirectConsole(Configuration.getBoolean(JLINE_WINDOWS_TERMINAL_DIRECT_CONSOLE, true));
+        setDirectConsole(Configuration.getBoolean(DIRECT_CONSOLE, true));
 
         this.originalMode = getConsoleMode();
         setConsoleMode(originalMode & ~ENABLE_ECHO_INPUT.code);
