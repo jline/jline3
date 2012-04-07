@@ -104,6 +104,11 @@ public abstract class TerminalSupport
     // RestoreHook
     //
 
+    /**
+     * Hook which will {@link Terminal#restore} on shutdown.
+     *
+     * @see ShutdownHook
+     */
     protected class RestoreHook
         extends Thread
     {
