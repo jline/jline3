@@ -62,8 +62,6 @@ public abstract class TerminalSupport
         init();
     }
 
-    // Shutdown hooks causes classloader leakage in sbt,
-    // so they are only installed if -Djline.shutdownhook is true.
     protected void installShutdownHook(final Thread hook) {
         checkNotNull(hook);
 
