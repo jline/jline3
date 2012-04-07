@@ -12,7 +12,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 import jline.internal.Log;
-import jline.internal.ShutdownHook;
+import jline.internal.ShutdownHooks;
 
 /**
  * Provides support for {@link Terminal} instances.
@@ -27,6 +27,8 @@ public abstract class TerminalSupport
 
     public static final int DEFAULT_HEIGHT = 24;
 
+    private Runnable shutdownHook;
+
     private boolean supported;
 
     private boolean echoEnabled;
@@ -38,12 +40,12 @@ public abstract class TerminalSupport
     }
 
     public void init() throws Exception {
-        ShutdownHook.install(new RestoreHook());
+        this.shutdownHook = ShutdownHooks.add(new RestoreHook());
     }
 
     public void restore() throws Exception {
         TerminalFactory.resetIf(this);
-        ShutdownHook.remove();
+        ShutdownHooks.remove(shutdownHook);
     }
 
     public void reset() throws Exception {
@@ -105,9 +107,9 @@ public abstract class TerminalSupport
     //
 
     /**
-     * Hook which will {@link Terminal#restore} on shutdown.
+     * Invoke {@link Terminal#restore} on shutdown.
      *
-     * @see ShutdownHook
+     * @see ShutdownHooks
      */
     protected class RestoreHook
         extends Thread
