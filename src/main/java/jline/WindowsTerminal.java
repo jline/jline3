@@ -53,7 +53,7 @@ import static jline.WindowsTerminal.ConsoleMode.ENABLE_WINDOW_INPUT;
 public class WindowsTerminal
     extends TerminalSupport
 {
-    public static final String JLINE_WINDOWS_TERMINAL_DIRECT_CONSOLE = "jline.WindowsTerminal.directConsole";
+    public static final String JLINE_WINDOWS_TERMINAL_DIRECT_CONSOLE = WindowsTerminal.class.getName() + ".directConsole";
 
     public static final String ANSI = WindowsTerminal.class.getName() + ".ansi";
 
