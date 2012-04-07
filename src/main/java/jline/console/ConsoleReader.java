@@ -52,6 +52,8 @@ import jline.internal.NonBlockingInputStream;
 import jline.internal.Urls;
 import org.fusesource.jansi.AnsiOutputStream;
 
+import static jline.internal.Preconditions.checkNotNull;
+
 /**
  * A reader for console applications. It supports custom tab-completion,
  * saveable command history, and command line editing. On some platforms,
@@ -2835,8 +2837,7 @@ public class ConsoleReader
     }
 
     public void setCompletionHandler(final CompletionHandler handler) {
-        assert handler != null;
-        this.completionHandler = handler;
+        this.completionHandler = checkNotNull(handler);
     }
 
     public CompletionHandler getCompletionHandler() {
@@ -3058,13 +3059,11 @@ public class ConsoleReader
      * Output the specified string to the output stream (but not the buffer).
      */
     public final void print(final CharSequence s) throws IOException {
-        assert s != null;
-        print(s.toString().toCharArray());
+        print(checkNotNull(s).toString().toCharArray());
     }
 
     public final void println(final CharSequence s) throws IOException {
-        assert s != null;
-        print(s.toString().toCharArray());
+        print(checkNotNull(s).toString().toCharArray());
         println();
     }
 

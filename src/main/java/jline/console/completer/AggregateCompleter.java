@@ -25,6 +25,8 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
+import static jline.internal.Preconditions.checkNotNull;
+
 /**
  * Completer which contains multiple completers and aggregates them together.
  *
@@ -47,7 +49,7 @@ public class AggregateCompleter
      * @param completers the collection of completers
      */
     public AggregateCompleter(final Collection<Completer> completers) {
-        assert completers != null;
+        checkNotNull(completers);
         this.completers.addAll(completers);
     }
 
@@ -78,7 +80,7 @@ public class AggregateCompleter
      */
     public int complete(final String buffer, final int cursor, final List<CharSequence> candidates) {
         // buffer could be null
-        assert candidates != null;
+        checkNotNull(candidates);
 
         List<Completion> completions = new ArrayList<Completion>(completers.size());
 
@@ -121,13 +123,12 @@ public class AggregateCompleter
         public int cursor;
 
         public Completion(final List<CharSequence> candidates) {
-            assert candidates != null;
+            checkNotNull(candidates);
             this.candidates = new LinkedList<CharSequence>(candidates);
         }
 
         public void complete(final Completer completer, final String buffer, final int cursor) {
-            assert completer != null;
-
+            checkNotNull(completer);
             this.cursor = completer.complete(buffer, cursor, candidates);
         }
     }

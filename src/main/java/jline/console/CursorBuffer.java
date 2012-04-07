@@ -7,6 +7,8 @@
 
 package jline.console;
 
+import static jline.internal.Preconditions.checkNotNull;
+
 /**
  * A holder for a {@link StringBuilder} that also contains the current cursor position.
  *
@@ -77,7 +79,7 @@ public class CursorBuffer
      * Insert the specified chars into the buffer, setting the cursor to the end of the insertion point.
      */
     public void write(final CharSequence str) {
-        assert str != null;
+        checkNotNull(str);
 
         if (buffer.length() == 0) {
             buffer.append(str);

@@ -21,6 +21,8 @@ import java.io.Reader;
 
 import jline.internal.Log;
 
+import static jline.internal.Preconditions.checkNotNull;
+
 /**
  * {@link History} using a file for persistent backing.
  * <p/>
@@ -37,8 +39,7 @@ public class FileHistory
     private final File file;
 
     public FileHistory(final File file) throws IOException {
-        assert file != null;
-        this.file = file;
+        this.file = checkNotNull(file);
         load(file);
     }
 
@@ -47,7 +48,7 @@ public class FileHistory
     }
 
     public void load(final File file) throws IOException {
-        assert file != null;
+        checkNotNull(file);
         if (file.exists()) {
             Log.trace("Loading history from: ", file);
             load(new FileReader(file));
@@ -55,12 +56,12 @@ public class FileHistory
     }
 
     public void load(final InputStream input) throws IOException {
-        assert input != null;
+        checkNotNull(input);
         load(new InputStreamReader(input));
     }
 
     public void load(final Reader reader) throws IOException {
-        assert reader != null;
+        checkNotNull(reader);
         BufferedReader input = new BufferedReader(reader);
 
         String item;

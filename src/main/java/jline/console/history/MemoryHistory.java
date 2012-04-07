@@ -12,6 +12,8 @@ import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
 
+import static jline.internal.Preconditions.checkNotNull;
+
 /**
  * Non-persistent {@link History}.
  *
@@ -98,7 +100,7 @@ public class MemoryHistory
     }
 
     public void add(CharSequence item) {
-        assert item != null;
+        checkNotNull(item);
 
         if (isAutoTrim()) {
             item = String.valueOf(item).trim();
