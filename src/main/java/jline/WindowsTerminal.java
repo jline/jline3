@@ -156,9 +156,10 @@ public class WindowsTerminal
     }
 
     protected boolean isSystemIn(final InputStream in) throws IOException {
-        checkNotNull(in);
-
-        if (in == System.in) {
+        if (in == null) {
+            return false;
+        }
+        else if (in == System.in) {
             return true;
         }
         else if (in instanceof FileInputStream && ((FileInputStream) in).getFD() == FileDescriptor.in) {
