@@ -17,7 +17,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.StringTokenizer;
- 
+
+// FIXME: Clean up API and move to jline.console.runner package
+
 /**
  * A pass-through application that sets the system input stream to a
  * {@link ConsoleReader} and invokes the specified main method.

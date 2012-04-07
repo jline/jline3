@@ -12,7 +12,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.util.Enumeration;
- 
+
+// FIXME: Clean up API and move to jline.console.runner package
+
 /**
  * An {@link InputStream} implementation that wraps a {@link ConsoleReader}.
  * It is useful for setting up the {@link System#in} for a generic console.
