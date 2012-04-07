@@ -36,11 +36,11 @@ public class ShutdownHooks
 
     private static final boolean enabled = Configuration.getBoolean(JLINE_SHUTDOWNHOOK, true);
 
-    private static final List<Runnable> tasks = new ArrayList<Runnable>();
+    private static final List<Task> tasks = new ArrayList<Task>();
 
     private static Thread hook;
 
-    public static synchronized <T extends Runnable> T add(final T task) {
+    public static synchronized <T extends Task> T add(final T task) {
         checkNotNull(task);
 
         // If not enabled ignore
@@ -70,7 +70,7 @@ public class ShutdownHooks
     private static synchronized void runTasks() {
         Log.trace("Running all shutdown-hook tasks");
 
-        for (Runnable task : tasks) {
+        for (Task task : tasks) {
             Log.trace("Running task:", task);
             try {
                 task.run();
@@ -95,7 +95,7 @@ public class ShutdownHooks
         return thread;
     }
 
-    public static synchronized void remove(final Runnable task) {
+    public static synchronized void remove(final Task task) {
         checkNotNull(task);
 
         // ignore if not enabled or hook never installed
@@ -126,5 +126,13 @@ public class ShutdownHooks
         catch (IllegalStateException e) {
             // The VM is shutting down, not a big deal; ignore
         }
+    }
+
+    /**
+     * Essentially a {@link Runnable} which allows running to throw an exception.
+     */
+    public static interface Task
+    {
+        void run() throws Exception;
     }
 }

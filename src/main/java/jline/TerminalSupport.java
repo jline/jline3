@@ -13,6 +13,7 @@ import java.io.OutputStream;
 
 import jline.internal.Log;
 import jline.internal.ShutdownHooks;
+import jline.internal.ShutdownHooks.Task;
 
 /**
  * Provides support for {@link Terminal} instances.
@@ -27,7 +28,7 @@ public abstract class TerminalSupport
 
     public static final int DEFAULT_HEIGHT = 24;
 
-    private Runnable shutdownTask;
+    private Task shutdownTask;
 
     private boolean supported;
 
@@ -40,7 +41,13 @@ public abstract class TerminalSupport
     }
 
     public void init() throws Exception {
-        this.shutdownTask = ShutdownHooks.add(new RestoreTask());
+        // Register a task to restore the terminal on shutdown
+        this.shutdownTask = ShutdownHooks.add(new Task()
+        {
+            public void run() throws Exception {
+                restore();
+            }
+        });
     }
 
     public void restore() throws Exception {
@@ -100,27 +107,5 @@ public abstract class TerminalSupport
 
     public InputStream wrapInIfNeeded(InputStream in) throws IOException {
         return in;
-    }
-
-    //
-    // RestoreHook
-    //
-
-    /**
-     * Invoke {@link Terminal#restore} on shutdown.
-     *
-     * @see ShutdownHooks
-     */
-    protected class RestoreTask
-        implements Runnable
-    {
-        public void run() {
-            try {
-                restore();
-            }
-            catch (Exception e) {
-                Log.trace("Failed to restore: ", e);
-            }
-        }
     }
 }
