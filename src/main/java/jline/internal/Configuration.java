@@ -40,6 +40,8 @@ import static jline.internal.Preconditions.checkNotNull;
 public class Configuration
 {
     /**
+     * System property which can point to a file or URL containing configuration properties to load.
+     *
      * @since 2.7
      */
     public static final String JLINE_CONFIGURATION = "jline.configuration";
@@ -98,6 +100,9 @@ public class Configuration
         }
     }
 
+    /**
+     * @since 2.7
+     */
     public static void reset() {
         Log.debug("Resetting");
         properties.clear();
