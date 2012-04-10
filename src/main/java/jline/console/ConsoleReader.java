@@ -1387,11 +1387,11 @@ public class ConsoleReader
             if (buf.cursor == 0)
                 return false;
             
-            while (isWhitespace (buf.current ()) && backspace()) {
-                /* nothing */
+            while (isWhitespace(buf.current()) && backspace()) {
+                // nothing
             }
-            while (!isWhitespace (buf.current ()) && backspace()) {
-                /* nothing */
+            while (!isWhitespace(buf.current()) && backspace()) {
+                // nothing
             }
         }
         
