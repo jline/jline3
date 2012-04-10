@@ -10,6 +10,11 @@ License
 
 JLine is distributed under the [BSD License](http://www.opensource.org/licenses/bsd-license.php), meaning that you are completely free to redistribute, modify, or sell it with almost no restrictions.
 
+Documentation
+-------------
+
+* [Wiki](https://github.com/jline/jline2/wiki)
+
 Forums
 ------
 
