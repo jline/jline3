@@ -424,8 +424,9 @@ public class ConsoleReader
      * Move the cursor position to the specified absolute index.
      */
     public final boolean setCursorPosition(final int position) throws IOException {
-        if (position == buf.cursor)
+        if (position == buf.cursor) {
             return true;
+        }
         
         return moveCursor(position - buf.cursor) != 0;
     }
@@ -535,9 +536,6 @@ public class ConsoleReader
     /**
      * Expand event designator such as !!, !#, !3, etc...
      * See http://www.gnu.org/software/bash/manual/html_node/Event-Designators.html
-     *
-     * @param str
-     * @return
      */
     protected String expandEvents(String str) throws IOException {
         StringBuilder sb = new StringBuilder();
@@ -1020,15 +1018,13 @@ public class ConsoleReader
      * @throws IOException
      */
     private boolean viChangeChar(int count, int c) throws IOException {
-        /*
-         * EOF, ESC, or CTRL-C aborts.
-         */
-        if (c < 0 || c == '\033' || c == '\003')
+        // EOF, ESC, or CTRL-C aborts.
+        if (c < 0 || c == '\033' || c == '\003') {
             return true;
+        }
         
         boolean ok = true;
         for (int i = 0; ok && i < count; i++) {
-            
             ok = buf.cursor < buf.buffer.length ();
             if (ok) {
                 buf.buffer.setCharAt(buf.cursor, (char) c);
@@ -1053,14 +1049,13 @@ public class ConsoleReader
      */
     private boolean viPreviousWord(int count) throws IOException {
         boolean ok = true;
-        if (buf.cursor == 0)
+        if (buf.cursor == 0) {
             return false;
+        }
         
         int pos = buf.cursor - 1;
         for (int i = 0; pos > 0 && i < count; i++) {
-            /*
-             * If we are on white space, then move back.
-             */
+            // If we are on white space, then move back.
             while (pos > 0 && isWhitespace(buf.buffer.charAt(pos))) {
                 --pos;
             }
@@ -1069,8 +1064,9 @@ public class ConsoleReader
                 --pos;
             }
             
-            if (pos > 0 && i < (count-1))
+            if (pos > 0 && i < (count-1)) {
                 --pos;
+            }
         }
         setCursorPosition(pos);
         return ok;
@@ -1145,10 +1141,12 @@ public class ConsoleReader
      * @throws IOException
      */
     private boolean viPut(int count) throws IOException {
-        if (yankBuffer.length () == 0)
+        if (yankBuffer.length () == 0) {
             return true;
-        if (buf.cursor < buf.buffer.length ())
+        }
+        if (buf.cursor < buf.buffer.length ()) {
             moveCursor(1);
+        }
         for (int i = 0; i < count; i++) {
             putString(yankBuffer);
         }
@@ -1165,8 +1163,9 @@ public class ConsoleReader
      * @throws IOException
      */
     private boolean viCharSearch(int count, int invokeChar, int ch) throws IOException {
-        if (ch < 0 || invokeChar < 0)
+        if (ch < 0 || invokeChar < 0) {
             return false;
+        }
         
         char    searchChar = (char)ch;
         boolean isForward;
@@ -1182,17 +1181,12 @@ public class ConsoleReader
          *   , - After [fFtT;], reverse the last search, after ',' repeat it
          */
         if (invokeChar == ';' || invokeChar == ',') {
-            
-            /*
-             * No recent search done? Then bail
-             */
+            // No recent search done? Then bail
             if (charSearchChar == 0) {
                 return false;
             }
-            
-            /*
-             * Reverse direction if switching between ',' and ';'
-             */
+
+            // Reverse direction if switching between ',' and ';'
             if (charSearchLastInvokeChar == ';' || charSearchLastInvokeChar == ',') {
                 if (charSearchLastInvokeChar != invokeChar) {
                     charSearchFirstInvokeChar = switchCase(charSearchFirstInvokeChar);
@@ -1241,8 +1235,9 @@ public class ConsoleReader
                  * that the character we ended up on is included in the 
                  * operation
                  */
-                if (isInViMoveOperationState())
+                if (isInViMoveOperationState()) {
                     moveCursor(1);
+                }
             }
         }
         else {
@@ -1296,9 +1291,7 @@ public class ConsoleReader
         int end = buf.buffer.length();
         
         for (int i = 0; pos < end && i < count; i++) {
-            /*
-             * Skip over letter/digits
-             */
+            // Skip over letter/digits
             while (pos < end && !isDelimiter(buf.buffer.charAt(pos))) {
                 ++pos;
             }
@@ -1342,9 +1335,7 @@ public class ConsoleReader
                 ++pos;
             }
             
-            /*
-             * If we are on white space, then move back.
-             */
+            // If we are on white space, then move back.
             while (pos < end && isDelimiter(buf.buffer.charAt(pos))) {
                 ++pos;
             }
@@ -1455,15 +1446,11 @@ public class ConsoleReader
          */
         CursorBuffer origBuffer = buf.copy();
         
-        /*
-         * Clear the contents of the current line and 
-         */
+        // Clear the contents of the current line and
         setCursorPosition (0);
         killLine();
         
-        /*
-         * Our new "prompt" is the character that got us into search mode.
-         */
+        // Our new "prompt" is the character that got us into search mode.
         putString(Character.toString(searchChar));
         flush();
         
@@ -1503,11 +1490,8 @@ public class ConsoleReader
             
             flush();
         }
-        
-        /*
-         * If we aborted, then put ourself at the end of the original
-         * buffer.
-         */
+
+        // If we aborted, then put ourself at the end of the original buffer.
         if (ch == -1 || isAborted) {
             setCursorPosition(0);
             killLine();
@@ -1614,8 +1598,9 @@ public class ConsoleReader
     private boolean viMatch() throws IOException {
         int pos        = buf.cursor;
         
-        if (pos == buf.length ())
+        if (pos == buf.length()) {
             return false;
+        }
         
         int type       = getBracketType(buf.buffer.charAt (pos));
         int move       = (type < 0) ? -1 : 1;
@@ -1626,10 +1611,8 @@ public class ConsoleReader
         
         while (count > 0) {
             pos += move;
-            
-            /*
-             * Fell off the start or end.
-             */
+
+            // Fell off the start or end.
             if (pos < 0 || pos >= buf.buffer.length ()) {
                 return false;
             }
@@ -1758,10 +1741,8 @@ public class ConsoleReader
             char tmp = buf.buffer.charAt (first);
             buf.buffer.setCharAt(first, buf.buffer.charAt(second));
             buf.buffer.setCharAt(second, tmp);
-            
-            /*
-             * This could be done more efficiently by only re-drawing at the end.
-             */
+
+            // This could be done more efficiently by only re-drawing at the end.
             moveInternal(-1);
             drawBuffer();
             moveInternal(2);
@@ -1771,9 +1752,7 @@ public class ConsoleReader
     }
     
     public boolean isKeyMap(String name) {
-        /*
-         * Current keymap.
-         */
+        // Current keymap.
         KeyMap map = consoleKeys.getKeys();
         KeyMap mapByName = consoleKeys.getKeyMaps().get(name);
         
@@ -1799,9 +1778,7 @@ public class ConsoleReader
         moveToEnd();
         println(); // output newline
         flush();
-        
-        String str = finishBuffer();
-        return str;
+        return finishBuffer();
     }
 
     /**
@@ -2075,7 +2052,6 @@ public class ConsoleReader
         return consoleKeys.getKeys().getName();
     }
     
-    
     /**
      * Read a line from the <i>in</i> {@link InputStream}, and return the line
      * (without any trailing newlines).
@@ -2320,7 +2296,7 @@ public class ConsoleReader
                      */
                     success = true;
                     
-                    if ( o instanceof Operation) {
+                    if (o instanceof Operation) {
                         Operation op = (Operation)o;
                         
                         /*
@@ -2601,15 +2577,13 @@ public class ConsoleReader
                                 break;
                                 
                             case VI_ARG_DIGIT: 
-                                repeatCount = (repeatCount * 10) 
-                                    + sb.charAt(0) - '0';
+                                repeatCount = (repeatCount * 10) + sb.charAt(0) - '0';
                                 isArgDigit = true;
                                 break;
                                 
                             case VI_BEGNNING_OF_LINE_OR_ARG_DIGIT:
                                 if (repeatCount > 0) {
-                                    repeatCount = (repeatCount * 10) 
-                                        + sb.charAt(0) - '0';
+                                    repeatCount = (repeatCount * 10) + sb.charAt(0) - '0';
                                     isArgDigit = true;
                                 }
                                 else {
@@ -2659,10 +2633,7 @@ public class ConsoleReader
                                 break;
                                 
                             case VI_YANK_TO:
-                                /*
-                                 * Similar to delete-to, a "yy" yanks the whole
-                                 * line.
-                                 */
+                                // Similar to delete-to, a "yy" yanks the whole line.
                                 if (state == State.VI_YANK_TO) {
                                     yankBuffer = buf.buffer.toString();
                                     state = origState = State.NORMAL;
@@ -2688,10 +2659,7 @@ public class ConsoleReader
                                 break;
                                 
                             case VI_CHAR_SEARCH: {
-                                /* 
-                                 * ';' and ',' don't need another character.
-                                 * They indicate repeat next or repeat prev.
-                                 */
+                                 // ';' and ',' don't need another character. They indicate repeat next or repeat prev.
                                 int searchChar = (c != ';' && c != ',')
                                     ? (pushBackChar.isEmpty() 
                                         ? readCharacter() 
