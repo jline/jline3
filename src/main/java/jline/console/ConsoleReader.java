@@ -1402,8 +1402,9 @@ public class ConsoleReader
         String comment = this.getCommentBegin ();
         setCursorPosition(0);
         putString(comment);
-        if (isViMode)
+        if (isViMode) {
             consoleKeys.setKeyMap(KeyMap.VI_INSERT);
+        }
         return accept();
     }
     
