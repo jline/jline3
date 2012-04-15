@@ -70,7 +70,8 @@ public class ShutdownHooks
     private static synchronized void runTasks() {
         Log.trace("Running all shutdown-hook tasks");
 
-        for (Task task : tasks) {
+        // Iterate through copy of tasks list
+        for (Task task : tasks.toArray(new Task[tasks.size()])) {
             Log.trace("Running task:", task);
             try {
                 task.run();
