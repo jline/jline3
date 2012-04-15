@@ -10,6 +10,7 @@ import jline.console.ConsoleReader;
 import jline.console.completer.ArgumentCompleter;
 import jline.console.completer.Completer;
 import jline.console.history.FileHistory;
+import jline.internal.Configuration;
 
 import java.io.File;
 import java.lang.reflect.Method;
@@ -46,11 +47,11 @@ public class ConsoleRunner
         ConsoleReader reader = new ConsoleReader();
  
         if (historyFileName != null) {
-            reader.setHistory(new FileHistory(new File(System.getProperty("user.home"),
+            reader.setHistory(new FileHistory(new File(Configuration.getUserHome(),
                 String.format(".jline-%s.%s.history", mainClass, historyFileName))));
         }
         else {
-            reader.setHistory(new FileHistory(new File(System.getProperty("user.home"),
+            reader.setHistory(new FileHistory(new File(Configuration.getUserHome(),
                 String.format(".jline-%s.history", mainClass))));
         }
  
