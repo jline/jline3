@@ -61,23 +61,23 @@ public class ShutdownHooks
         }
 
         // Track the task
-        Log.trace("Adding shutdown-hook task: ", task);
+        Log.debug("Adding shutdown-hook task: ", task);
         tasks.add(task);
 
         return task;
     }
 
     private static synchronized void runTasks() {
-        Log.trace("Running all shutdown-hook tasks");
+        Log.debug("Running all shutdown-hook tasks");
 
         // Iterate through copy of tasks list
         for (Task task : tasks.toArray(new Task[tasks.size()])) {
-            Log.trace("Running task:", task);
+            Log.debug("Running task:", task);
             try {
                 task.run();
             }
             catch (Throwable e) {
-                Log.trace("Task failed:", e);
+                Log.warn("Task failed:", e);
             }
         }
 
@@ -85,13 +85,13 @@ public class ShutdownHooks
     }
 
     private static Thread addHook(final Thread thread) {
-        Log.trace("Registering shutdown-hook: ", thread);
+        Log.debug("Registering shutdown-hook: ", thread);
         try {
             Runtime.getRuntime().addShutdownHook(thread);
         }
         catch (AbstractMethodError e) {
             // JDK 1.3+ only method. Bummer.
-            Log.trace("Failed to register shutdown-hook: ", e);
+            Log.debug("Failed to register shutdown-hook: ", e);
         }
         return thread;
     }
@@ -115,14 +115,14 @@ public class ShutdownHooks
     }
 
     private static void removeHook(final Thread thread) {
-        Log.trace("Removing shutdown-hook: ", thread);
+        Log.debug("Removing shutdown-hook: ", thread);
 
         try {
             Runtime.getRuntime().removeShutdownHook(thread);
         }
         catch (AbstractMethodError e) {
             // JDK 1.3+ only method. Bummer.
-            Log.trace("Failed to remove shutdown-hook: ", e);
+            Log.debug("Failed to remove shutdown-hook: ", e);
         }
         catch (IllegalStateException e) {
             // The VM is shutting down, not a big deal; ignore
