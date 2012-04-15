@@ -249,8 +249,7 @@ public class ConsoleReader
     }
     
     /**
-     * Shuts down the ConsoleReader if the JVN attempts to clean it up.
-     * @throws Throwable
+     * Shuts down the ConsoleReader if the JVM attempts to clean it up.
      */
     @Override
     protected void finalize() throws Throwable {
