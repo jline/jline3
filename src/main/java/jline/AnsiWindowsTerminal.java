@@ -18,6 +18,7 @@
 
 package jline;
 
+import jline.internal.Configuration;
 import org.fusesource.jansi.AnsiConsole;
 import org.fusesource.jansi.AnsiOutputStream;
 import org.fusesource.jansi.WindowsAnsiOutputStream;
@@ -48,8 +49,7 @@ public class AnsiWindowsTerminal
      * stream.
      */
     private static OutputStream wrapOutputStream(final OutputStream stream) {
-        String os = System.getProperty("os.name");
-        if( os.startsWith("Windows") ) {
+        if (Configuration.isWindows()) {
             // On windows we know the console does not interpret ANSI codes..
             try {
                 return new WindowsAnsiOutputStream(stream);
