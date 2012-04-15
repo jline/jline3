@@ -2961,7 +2961,7 @@ public class ConsoleReader
     // Printing
     //
 
-    public static final String CR = System.getProperty("line.separator");
+    public static final String CR = Configuration.getLineSeparator();
 
     /**
      * Output the specified character to the output stream without manipulating the current buffer.
