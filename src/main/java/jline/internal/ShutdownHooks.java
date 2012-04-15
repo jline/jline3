@@ -72,12 +72,12 @@ public class ShutdownHooks
 
         // Iterate through copy of tasks list
         for (Task task : tasks.toArray(new Task[tasks.size()])) {
-            Log.debug("Running task:", task);
+            Log.debug("Running task: ", task);
             try {
                 task.run();
             }
             catch (Throwable e) {
-                Log.warn("Task failed:", e);
+                Log.warn("Task failed: ", e);
             }
         }
 

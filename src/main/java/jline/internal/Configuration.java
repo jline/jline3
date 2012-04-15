@@ -60,13 +60,13 @@ public class Configuration
             loadProperties(url, props);
         }
         catch (IOException e) {
-            Log.warn("Unable to read configuration from:", url, e);
+            Log.warn("Unable to read configuration from: ", url, e);
         }
         return props;
     }
 
     private static void loadProperties(final URL url, final Properties props) throws IOException {
-        Log.debug("Loading properties from:", url);
+        Log.debug("Loading properties from: ", url);
         InputStream input = url.openStream();
         try {
             props.load(new BufferedInputStream(input));
