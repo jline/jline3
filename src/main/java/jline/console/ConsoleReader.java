@@ -112,6 +112,8 @@ public class ConsoleReader
 
     private int searchIndex = -1;
 
+    private int parenBlinkTimeout = 500;
+
     /*
      * The reader and the nonBlockingInput go hand-in-hand.  The reader wraps
      * the nonBlockingInput, but we have to retain a handle to it so that
@@ -1587,6 +1589,25 @@ public class ConsoleReader
         return ch;
     }
     
+    public void setParenBlinkTimeout(int timeout) {
+        parenBlinkTimeout = timeout;
+    }
+
+    private void insertClose(String s) throws IOException {
+         putString(s);
+         int closePosition = buf.cursor;
+
+         moveCursor(-1);
+         viMatch();
+
+         try {
+           Thread.sleep(parenBlinkTimeout);
+         } catch (InterruptedException e) {
+         }
+
+         setCursorPosition(closePosition);
+    }
+
     /**
      * Implements vi style bracket matching ("%" command). The matching
      * bracket for the current bracket type that you are sitting on is matched.
@@ -2562,6 +2583,18 @@ public class ConsoleReader
                             case INSERT_COMMENT:
                                 return insertComment (false);
                                 
+                            case INSERT_CLOSE_CURLY:
+                                insertClose("}");
+                                break;
+
+                            case INSERT_CLOSE_PAREN:
+                                insertClose(")");
+                                break;
+
+                            case INSERT_CLOSE_SQUARE:
+                                insertClose("]");
+                                break;
+
                             case VI_INSERT_COMMENT:
                                 return insertComment (true);
                                 
