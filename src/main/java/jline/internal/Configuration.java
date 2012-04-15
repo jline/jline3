@@ -177,13 +177,27 @@ public class Configuration
     //
     // System property helpers
     //
-    
+
+    /**
+     * @since 2.7
+     */
+    public static String getLineSeparator() {
+        return System.getProperty("line.separator");
+    }
+
     public static File getUserHome() {
         return new File(System.getProperty("user.home"));
     }
 
     public static String getOsName() {
         return System.getProperty("os.name").toLowerCase();
+    }
+
+    /**
+     * @since 2.7
+     */
+    public static boolean isWindows() {
+        return getOsName().startsWith("windows");
     }
 
     // FIXME: Sort out use of property access of file.encoding in InputStreamReader, consolidate should configuration access here
