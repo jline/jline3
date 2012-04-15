@@ -43,10 +43,10 @@ public final class Log
     }
 
     @SuppressWarnings({"StringConcatenation"})
-    public static final boolean DEBUG = Boolean.getBoolean(Log.class.getName() + ".debug");
+    public static final boolean TRACE = Boolean.getBoolean(Log.class.getName() + ".trace");
 
     @SuppressWarnings({"StringConcatenation"})
-    public static final boolean TRACE = Boolean.getBoolean(Log.class.getName() + ".trace");
+    public static final boolean DEBUG = TRACE || Boolean.getBoolean(Log.class.getName() + ".debug");
 
     private static PrintStream output = System.err;
 
@@ -58,37 +58,39 @@ public final class Log
         output = checkNotNull(out);
     }
 
-    // FIXME: Should just use printf formatting
-
-    private static void print(final Object message) {
+    /**
+     * Helper to support rendering {@link Throwable} and array messages.
+     */
+    @TestAccessible
+    static void render(final PrintStream out, final Object message) {
         if (message instanceof Throwable) {
-            ((Throwable) message).printStackTrace(output);
+            ((Throwable) message).printStackTrace(out);
         }
         else if (message.getClass().isArray()) {
             Object[] array = (Object[]) message;
 
+            out.print("[");
             for (int i = 0; i < array.length; i++) {
-                output.print(array[i]);
+                out.print(array[i]);
                 if (i + 1 < array.length) {
-                    output.print(",");
+                    out.print(",");
                 }
             }
+            out.print("]");
         }
         else {
-            output.print(message);
+            out.print(message);
         }
     }
 
-    private static void log(final Level level, final Object[] messages) {
+    @TestAccessible
+    static void log(final Level level, final Object... messages) {
         //noinspection SynchronizeOnNonFinalField
         synchronized (output) {
             output.format("[%s] ", level);
 
-            for (int i=0; i<messages.length; i++) {
-                print(messages[i]);
-                if (i+1<messages.length) {
-                    output.print(" ");
-                }
+            for (Object message : messages) {
+                render(output, message);
             }
 
             output.println();
@@ -106,6 +108,13 @@ public final class Log
         if (TRACE || DEBUG) {
             log(Level.DEBUG, messages);
         }
+    }
+
+    /**
+     * @since 2.7
+     */
+    public static void info(final Object... messages) {
+        log(Level.INFO, messages);
     }
 
     public static void warn(final Object... messages) {
