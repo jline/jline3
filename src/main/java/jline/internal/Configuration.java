@@ -152,6 +152,8 @@ public class Configuration
             || value.equalsIgnoreCase("true");
     }
 
+    // NOTE: Not quite sure when these methods were added to the api
+
     public static int getInteger(final String name, final int defaultValue) {
         String str = getString(name);
         if (str == null) {
@@ -180,9 +182,11 @@ public class Configuration
         return System.getProperty("os.name").toLowerCase();
     }
 
-    //public static String getFileEncoding() {
-    //    return System.getProperty("file.encoding");
-    //}
+    // FIXME: Sort out use of property access of file.encoding in InputStreamReader, consolidate should configuration access here
+
+    public static String getFileEncoding() {
+        return System.getProperty("file.encoding");
+    }
 
     public static String getEncoding() {
         // LC_CTYPE is usually in the form en_US.UTF-8
