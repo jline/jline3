@@ -19,7 +19,7 @@ package jline;
 // Based on Apache Karaf impl
 
 /**
- * Non-interruptable (via CTRL-C) {@link UnixTerminal}.
+ * Non-interruptible (via CTRL-C) {@link UnixTerminal}.
  *
  * @since 2.0
  */
