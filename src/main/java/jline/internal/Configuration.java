@@ -152,8 +152,9 @@ public class Configuration
             || value.equalsIgnoreCase("true");
     }
 
-    // NOTE: Not quite sure when these methods were added to the api
-
+    /**
+     * @since 2.6
+     */
     public static int getInteger(final String name, final int defaultValue) {
         String str = getString(name);
         if (str == null) {
@@ -162,6 +163,9 @@ public class Configuration
         return Integer.parseInt(str);
     }
 
+    /**
+     * @since 2.6
+     */
     public static long getLong(final String name, final long defaultValue) {
         String str = getString(name);
         if (str == null) {
