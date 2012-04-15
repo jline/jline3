@@ -74,6 +74,7 @@ public class InputStreamReader extends Reader {
     public InputStreamReader(InputStream in) {
         super(in);
         this.in = in;
+        // FIXME: This should probably use Configuration.getFileEncoding()
         encoding = System.getProperty("file.encoding", "ISO8859_1"); //$NON-NLS-1$//$NON-NLS-2$
         decoder = Charset.forName(encoding).newDecoder().onMalformedInput(
                 CodingErrorAction.REPLACE).onUnmappableCharacter(
