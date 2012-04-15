@@ -254,7 +254,12 @@ public class ConsoleReader
      */
     @Override
     protected void finalize() throws Throwable {
-        shutdown();
+        try {
+            shutdown();
+        }
+        finally {
+            super.finalize();
+        }
     }
 
     public InputStream getInput() {
