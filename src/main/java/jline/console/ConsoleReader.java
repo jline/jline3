@@ -49,6 +49,7 @@ import jline.internal.InputStreamReader;
 import jline.internal.Log;
 import jline.internal.NonBlockingInputStream;
 
+import jline.internal.Nullable;
 import jline.internal.Urls;
 import org.fusesource.jansi.AnsiOutputStream;
 
@@ -184,23 +185,19 @@ public class ConsoleReader
         this(null, new FileInputStream(FileDescriptor.in), System.out, null);
     }
 
-    public ConsoleReader(final InputStream in, final OutputStream out) throws
-        IOException
-    {
+    public ConsoleReader(final InputStream in, final OutputStream out) throws IOException {
         this(null, in, out, null);
     }
 
-    public ConsoleReader(final InputStream in, final OutputStream out, final Terminal term) throws
-        IOException
-    {
+    public ConsoleReader(final InputStream in, final OutputStream out, final Terminal term) throws IOException {
         this(null, in, out, term);
     }
 
-    public ConsoleReader(final String appName, final InputStream in, final OutputStream out, final Terminal term) throws
-        IOException
+    public ConsoleReader(final @Nullable String appName, final InputStream in, final OutputStream out, final @Nullable Terminal term)
+        throws IOException
     {
         this.appName = appName != null ? appName : "JLine";
-        this.encoding = encoding != null ? encoding : Configuration.getEncoding();
+        this.encoding = encoding != null ? encoding : Configuration.getEncoding(); // FIXME: This is fishy, encoding will always be null at this point
         this.terminal = term != null ? term : TerminalFactory.get();
         this.out = new OutputStreamWriter(terminal.wrapOutIfNeeded(out), this.encoding);
         setInput( in );
