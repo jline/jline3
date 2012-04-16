@@ -46,6 +46,15 @@
                 <role>Developer</role>
             </roles>
         </developer>
+        <developer>
+            <id>mprudhom</id>
+            <name>Marc Prud'hommeaux</name>
+            <email>mprudhom@gmail.com</email>
+            <roles>
+                <role>Original Author Jline 1.x</role>
+                <role>Developer Emeritus</role>
+            </roles>
+        </developer>
     </developers>
 
     <properties>
