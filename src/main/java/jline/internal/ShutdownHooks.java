@@ -77,7 +77,7 @@ public class ShutdownHooks
                 task.run();
             }
             catch (Throwable e) {
-                Log.warn("Task failed: ", e);
+                Log.warn("Task failed", e);
             }
         }
 
@@ -91,7 +91,7 @@ public class ShutdownHooks
         }
         catch (AbstractMethodError e) {
             // JDK 1.3+ only method. Bummer.
-            Log.debug("Failed to register shutdown-hook: ", e);
+            Log.debug("Failed to register shutdown-hook", e);
         }
         return thread;
     }
@@ -122,7 +122,7 @@ public class ShutdownHooks
         }
         catch (AbstractMethodError e) {
             // JDK 1.3+ only method. Bummer.
-            Log.debug("Failed to remove shutdown-hook: ", e);
+            Log.debug("Failed to remove shutdown-hook", e);
         }
         catch (IllegalStateException e) {
             // The VM is shutting down, not a big deal; ignore

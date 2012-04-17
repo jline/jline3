@@ -97,7 +97,7 @@ public class UnixTerminal
             super.setEchoEnabled(enabled);
         }
         catch (Exception e) {
-            Log.error("Failed to ", (enabled ? "enable" : "disable"), " echo: ", e);
+            Log.error("Failed to ", (enabled ? "enable" : "disable"), " echo", e);
         }
     }
 
