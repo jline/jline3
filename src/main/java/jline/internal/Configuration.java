@@ -51,7 +51,7 @@ public class Configuration
      */
     public static final String JLINE_RC = ".jline.rc";
 
-    private static final Properties properties = initProperties();
+    private static volatile Properties properties;
 
     private static Properties initProperties() {
         URL url = determineUrl();
@@ -60,7 +60,8 @@ public class Configuration
             loadProperties(url, props);
         }
         catch (IOException e) {
-            Log.warn("Unable to read configuration from: ", url, e);
+            // debug here instead of warn, as this can happen normally if default jline.rc file is missing
+            Log.debug("Unable to read configuration from: ", url, e);
         }
         return props;
     }
@@ -95,8 +96,9 @@ public class Configuration
             return Urls.create(tmp);
         }
         else {
-            // otherwise use the default
-            return Urls.create(new File(getUserHome(), JLINE_RC));
+            // Otherwise try the default
+            File file = new File(getUserHome(), JLINE_RC);
+            return Urls.create(file);
         }
     }
 
@@ -105,14 +107,20 @@ public class Configuration
      */
     public static void reset() {
         Log.debug("Resetting");
-        properties.clear();
-        properties.putAll(initProperties());
+        properties = null;
+
+        // force new properties to load
+        getProperties();
     }
 
     /**
      * @since 2.7
      */
     public static Properties getProperties() {
+        // Not sure its worth to guard this with any synchronization, volatile field probably sufficient
+        if (properties == null) {
+            properties = initProperties();
+        }
         return properties;
     }
 
@@ -126,7 +134,7 @@ public class Configuration
 
         if (value == null) {
             // Next try userprops
-            value = properties.getProperty(name);
+            value = getProperties().getProperty(name);
 
             if (value == null) {
                 // else use the default

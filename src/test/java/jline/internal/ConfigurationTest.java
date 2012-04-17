@@ -38,4 +38,17 @@ public class ConfigurationTest
         int value = Configuration.getInteger("test", 1234);
         assertEquals(1234, value);
     }
+
+    @Test
+    public void resetReconfigures() {
+        System.setProperty(Configuration.JLINE_CONFIGURATION, getClass().getResource("jlinerc1").toExternalForm());
+        Configuration.reset();
+        String value1 = Configuration.getString("a");
+        assertEquals("b", value1);
+
+        System.setProperty(Configuration.JLINE_CONFIGURATION, getClass().getResource("jlinerc2").toExternalForm());
+        Configuration.reset();
+        String value2 = Configuration.getString("c");
+        assertEquals("d", value2);
+    }
 }
