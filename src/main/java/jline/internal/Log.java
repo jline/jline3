@@ -59,14 +59,11 @@ public final class Log
     }
 
     /**
-     * Helper to support rendering {@link Throwable} and array messages.
+     * Helper to support rendering messages.
      */
     @TestAccessible
     static void render(final PrintStream out, final Object message) {
-        if (message instanceof Throwable) {
-            ((Throwable) message).printStackTrace(out);
-        }
-        else if (message.getClass().isArray()) {
+        if (message.getClass().isArray()) {
             Object[] array = (Object[]) message;
 
             out.print("[");
@@ -89,8 +86,15 @@ public final class Log
         synchronized (output) {
             output.format("[%s] ", level);
 
-            for (Object message : messages) {
-                render(output, message);
+            for (int i=0; i<messages.length; i++) {
+                // Special handling for the last message if its a throwable, render its stack on the next line
+                if (i + 1 == messages.length && messages[i] instanceof Throwable) {
+                    output.println();
+                    ((Throwable)messages[i]).printStackTrace(output);
+                }
+                else {
+                    render(output, messages[i]);
+                }
             }
 
             output.println();
