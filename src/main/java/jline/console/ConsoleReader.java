@@ -3383,10 +3383,10 @@ public class ConsoleReader
         // backspace all text, including prompt
         buf.buffer.append(this.prompt);
         buf.cursor += this.prompt.length();
-        this.prompt = "";
+        setPrompt("");
         backspaceAll();
 
-        this.prompt = prompt;
+        setPrompt(prompt);
         redrawLine();
         setBuffer(buffer);
 
