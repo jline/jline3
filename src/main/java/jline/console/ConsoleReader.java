@@ -91,8 +91,6 @@ public class ConsoleReader
 
     private final Terminal terminal;
 
-    private InputStream in;
-
     private final Writer out;
 
     private final CursorBuffer buf = new CursorBuffer();
@@ -118,9 +116,15 @@ public class ConsoleReader
      * the nonBlockingInput, but we have to retain a handle to it so that
      * we can shut down its blocking read thread when we go away.
      */
-    private NonBlockingInputStream nonBlockingInput;
+    private NonBlockingInputStream in;
     private long                   escapeTimeout;
     private Reader                 reader;
+    
+    /*
+     * TODO: Please read the comments about this in setInput(), but this needs
+     * to be done away with.
+     */
+    private boolean                isUnitTestInput;
     
     /**
      * Last character searched for with a vi character search
@@ -213,7 +217,20 @@ public class ConsoleReader
     }
 
     void setInput(final InputStream in) throws IOException {
-        this.escapeTimeout = Configuration.getLong(JLINE_ESC_TIMEOUT, 150);
+        this.escapeTimeout = Configuration.getLong(JLINE_ESC_TIMEOUT, 100);
+        /*
+         * This is gross and here is how to fix it. In getCurrentPosition()
+         * and getCurrentAnsiRow(), the logic is disabled when running unit 
+         * tests and the fact that it is a unit test is determined by knowing
+         * if the original input stream was a ByteArrayInputStream. So, this
+         * is our test to do this.  What SHOULD happen is that the unit
+         * tests should pass in a terminal that is appropriately configured
+         * such that whatever behavior they expect to happen (or not happen)
+         * happens (or doesn't). 
+         * 
+         * So, TODO, get rid of this and fix the unit tests.
+         */
+        this.isUnitTestInput = in instanceof ByteArrayInputStream;
         boolean nonBlockingEnabled =
                escapeTimeout > 0L
             && terminal.isSupported()
@@ -223,15 +240,14 @@ public class ConsoleReader
          * If we had a non-blocking thread already going, then shut it down
          * and start a new one.
          */
-        if (nonBlockingInput != null) {
-            nonBlockingInput.shutdown();
+        if (this.in != null) {
+            this.in.shutdown();
         }
         
         final InputStream wrapped = terminal.wrapInIfNeeded( in );
         
-        this.nonBlockingInput = 
-            new NonBlockingInputStream(wrapped, nonBlockingEnabled);
-        this.reader = new InputStreamReader( nonBlockingInput, encoding );
+        this.in = new NonBlockingInputStream(wrapped, nonBlockingEnabled);
+        this.reader = new InputStreamReader( this.in, encoding );
     }
     
     /**
@@ -240,8 +256,8 @@ public class ConsoleReader
      * that would otherwise be "leaked".
      */
     public void shutdown() {
-        if (nonBlockingInput != null) {
-            nonBlockingInput.shutdown();
+        if (in != null) {
+            in.shutdown();
         }
     }
     
@@ -2147,8 +2163,8 @@ public class ConsoleReader
                      */
                     if (c == 27
                             && pushBackChar.isEmpty()
-                            && nonBlockingInput.isNonBlockingEnabled()
-                            && nonBlockingInput.peek(escapeTimeout) == -2) {
+                            && in.isNonBlockingEnabled()
+                            && in.peek(escapeTimeout) == -2) {
                         o = ((KeyMap) o).getAnotherKey();
                         if (o == null || o instanceof KeyMap) {
                             continue;
@@ -3472,9 +3488,10 @@ public class ConsoleReader
     }
 
     // return column position, reported by the terminal
+    // TODO: This appears to be unused. Delete?
     private int getCurrentPosition() {
         // check for ByteArrayInputStream to disable for unit tests
-        if (terminal.isAnsiSupported() && !(in instanceof ByteArrayInputStream)) {
+        if (terminal.isAnsiSupported() && !this.isUnitTestInput) {
             try {
                 printAnsiSequence("6n");
                 flush();
@@ -3501,7 +3518,7 @@ public class ConsoleReader
     // wrapping terminals - not tested for anything else
     private int getCurrentAnsiRow() {
         // check for ByteArrayInputStream to disable for unit tests
-        if (terminal.isAnsiSupported() && !(in instanceof ByteArrayInputStream)) {
+        if (terminal.isAnsiSupported() && !this.isUnitTestInput) {
             try {
                 printAnsiSequence("6n");
                 flush();
