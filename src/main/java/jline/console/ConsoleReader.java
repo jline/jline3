@@ -96,6 +96,7 @@ public class ConsoleReader
     private final CursorBuffer buf = new CursorBuffer();
 
     private String prompt;
+    private int    promptLen;
 
     private boolean expandEvents = true;
 
@@ -347,6 +348,7 @@ public class ConsoleReader
 
     public void setPrompt(final String prompt) {
         this.prompt = prompt;
+        this.promptLen = ((prompt == null) ? 0 : stripAnsi(lastLine(prompt)).length());
     }
 
     public String getPrompt() {
@@ -404,8 +406,7 @@ public class ConsoleReader
 
     int getCursorPosition() {
         // FIXME: does not handle anything but a line with a prompt absolute position
-        String prompt = getPrompt();
-        return ((prompt == null) ? 0 : stripAnsi(lastLine(prompt)).length()) + buf.cursor;
+        return promptLen + buf.cursor;
     }
 
     /**
