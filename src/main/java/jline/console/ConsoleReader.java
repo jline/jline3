@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -1483,15 +1484,15 @@ public class ConsoleReader
         int ch = -1;
         while (!isAborted && !isComplete && (ch = readCharacter()) != -1) {
             switch (ch) {
-                case '\033':  /* ESC */
+                case '\033':  // ESC
                     /*
                      * The ESC behavior doesn't appear to be readline behavior,
                      * but it is a little tweak of my own. I like it.
                      */
                     isAborted = true;
                     break;
-                case '\010':  /* Backspace */
-                case '\177':  /* Delete */
+                case '\010':  // Backspace
+                case '\177':  // Delete
                     backspace();
                     /*
                      * Backspacing through the "prompt" aborts the search.
@@ -1500,7 +1501,7 @@ public class ConsoleReader
                         isAborted = true;
                     }
                     break;
-                case '\012': /* Enter */
+                case '\012': // Enter
                     isComplete = true;
                     break;
                 default:
@@ -1526,19 +1527,27 @@ public class ConsoleReader
         String searchTerm = buf.buffer.substring(1);
         int idx = -1;
         
+        /*
+         * The semantics of the history thing is gross when you want to 
+         * explicitly iterate over entries (without an iterator) as size()
+         * returns the actual number of entries in the list but get()
+         * doesn't work the way you think.
+         */
+        int end   = history.index();
+        int start = (end <= history.size()) ? 0 : end - history.size();
+        
         if (isForward) {
-            for (idx = 0; idx < history.size(); idx++) {
-                if (history.get(idx).toString().contains(searchTerm)) {
+            for (int i = start; i < end; i++) {
+                if (history.get(i).toString().contains(searchTerm)) {
+                    idx = i;
                     break;
                 }
             }
-            if (idx == history.size ()) {
-                idx = -1;
-            }
         }
         else {
-            for (idx = history.size()-1; idx > 0; idx--) {
-                if (history.get(idx).toString().contains(searchTerm)) {
+            for (int i = end-1; i >= start; i--) {
+                if (history.get(i).toString().contains(searchTerm)) {
+                    idx = i;
                     break;
                 }
             }
@@ -1572,26 +1581,34 @@ public class ConsoleReader
          */
         isComplete = false;
         while (!isComplete && (ch = readCharacter()) != -1) {
+            boolean forward = isForward;
             switch (ch) {
-                case 'n':
-                case 'N':
-                    if (isForward) {
-                        if (idx < (history.size()-1)) {
-                            ++idx;
-                            setCursorPosition(0);
-                            killLine();
-                            putString(history.get(idx));
-                            setCursorPosition(0);
+                case 'p': case 'P':
+                    forward = !isForward;
+                    // Fallthru
+                case 'n': case 'N':
+                    boolean isMatch = false;
+                    if (forward) {
+                        for (int i = idx+1; !isMatch && i < end; i++) {
+                            if (history.get(i).toString().contains(searchTerm)) {
+                                idx = i;
+                                isMatch = true;
+                            }
                         }
                     }
                     else {
-                        if (idx > 0) {
-                            --idx;
-                            setCursorPosition(0);
-                            killLine();
-                            putString(history.get(idx));
-                            setCursorPosition(0);
+                        for (int i = idx - 1; !isMatch && i >= start; i--) {
+                            if (history.get(i).toString().contains(searchTerm)) {
+                                idx = i;
+                                isMatch = true;
+                            }
                         }
+                    }
+                    if (isMatch) {
+                        setCursorPosition(0);
+                        killLine();
+                        putString(history.get(idx));
+                        setCursorPosition(0);
                     }
                     break;
                 default:
