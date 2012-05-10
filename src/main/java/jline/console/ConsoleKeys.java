@@ -248,8 +248,12 @@ public class ConsoleKeys {
                 if (val.length() > 0 && (val.charAt(0) == '\'' || val.charAt(0) == '\"')) {
                     keys.bind( keySeq, translateQuoted(val) );
                 } else {
-                    val = val.replace('-', '_').toUpperCase();
-                    keys.bind( keySeq, Operation.valueOf(val) );
+                    String operationName = val.replace('-', '_').toUpperCase();
+                    try {
+                      keys.bind(keySeq, Operation.valueOf(operationName));
+                    } catch(IllegalArgumentException e) {
+                      Log.info("Unable to bind key for unsupported operation: ", val);
+                    }
                 }
             }
         }

@@ -1,0 +1,4 @@
+# Don't bomb on unsupported operations
+"\C-fake": some-fake-operation
+
+"\C-xq": "\eb\"\ef\""
