@@ -98,9 +98,6 @@ public class ConsoleKeys {
                 Log.warn("Unable to read user configuration: ", inputrcUrl, e);
             }
         }
-        catch (IllegalArgumentException e) {
-            Log.warn("Unable to parse user configuration: ", inputrcUrl, e);
-        }
     }
 
     private void loadKeys(InputStream input, String appName) throws IOException {
@@ -109,6 +106,7 @@ public class ConsoleKeys {
         boolean parsing = true;
         List<Boolean> ifsStack = new ArrayList<Boolean>();
         while ( (line = reader.readLine()) != null ) {
+            try {
             line = line.trim();
             if (line.length() == 0) {
                 continue;
@@ -259,8 +257,10 @@ public class ConsoleKeys {
                     }
                 }
             }
+            } catch (IllegalArgumentException e) {
+              Log.warn("Unable to parse user configuration: ", e);
+            }
         }
-
     }
 
     private String translateQuoted(String keySeq) {
