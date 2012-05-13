@@ -2,3 +2,5 @@
 "\C-fake": some-fake-operation
 
 "\C-xq": "\eb\"\ef\""
+
+"\C-bad: nothing

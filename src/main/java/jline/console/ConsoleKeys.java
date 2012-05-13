@@ -98,6 +98,9 @@ public class ConsoleKeys {
                 Log.warn("Unable to read user configuration: ", inputrcUrl, e);
             }
         }
+        catch (IllegalArgumentException e) {
+            Log.warn("Unable to parse user configuration: ", inputrcUrl, e);
+        }
     }
 
     private void loadKeys(InputStream input, String appName) throws IOException {
