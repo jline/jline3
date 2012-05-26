@@ -1600,7 +1600,10 @@ public class ConsoleReader
          moveCursor(-1);
          viMatch();
 
+
+         if (nonBlockingInput.isNonBlockingEnabled()) {
          nonBlockingInput.peek(parenBlinkTimeout);
+         }
 
          setCursorPosition(closePosition);
     }
