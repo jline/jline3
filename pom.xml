@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright (c) 2002-2012, the original author or authors.
+
+    This software is distributable under the BSD license. See the terms of the
+    BSD license in the documentation provided with this software.
+
+    http://www.opensource.org/licenses/bsd-license.php
+
+-->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
@@ -56,6 +66,20 @@
             </roles>
         </developer>
     </developers>
+
+    <contributors>
+        <contributor>
+            <!--<id>scgray</id>-->
+            <name>Scott Gray</name>
+            <email>scottgray1@gmail.com</email>
+        </contributor>
+
+        <contributor>
+            <!--<id>chirino</id>-->
+            <name>Hiram Chirino</name>
+            <email>hiram@hiramchirino.com</email>
+        </contributor>
+    </contributors>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -264,6 +288,54 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+
+            <!--
+            mvn license:format -N
+            If its a new year, update the year range in the header.txt file
+            -->
+            <plugin>
+                <groupId>com.mycila.maven-license-plugin</groupId>
+                <artifactId>maven-license-plugin</artifactId>
+                <version>1.9.0</version>
+                <configuration>
+                    <aggregate>true</aggregate>
+                    <strictCheck>true</strictCheck>
+                    <header>${project.basedir}/header.txt</header>
+                    <useDefaultExcludes>false</useDefaultExcludes>
+                    <includes>
+                        <include>**/pom.xml</include>
+                        <include>**/*.xml</include>
+                        <include>**/*.xsd</include>
+                        <include>**/*.xjb</include>
+                        <include>**/*.properties</include>
+                        <include>**/*.ini</include>
+                        <include>**/*.java</include>
+                        <include>**/*.groovy</include>
+                        <include>**/*.scala</include>
+                        <include>**/*.aj</include>
+                        <include>**/*.js</include>
+                        <include>**/*.css</include>
+                        <include>**/*.help</include>
+                        <include>**/*.proto</include>
+                        <include>**/*.sm</include>
+                        <include>**/*.bat</include>
+                        <include>**/*.vm</include>
+                    </includes>
+                    <excludes>
+                        <exclude>**/target/**</exclude>
+                        <exclude>**/.*/**</exclude>
+                    </excludes>
+                    <mapping>
+                        <scala>SLASHSTAR_STYLE</scala>
+                        <java>SLASHSTAR_STYLE</java>
+                        <xjb>XML_STYLE</xjb>
+                        <proto>DOUBLESLASH_STYLE</proto>
+                        <sm>DOUBLESLASH_STYLE</sm>
+                        <help>SCRIPT_STYLE</help>
+                        <ini>SCRIPT_STYLE</ini>
+                    </mapping>
+                </configuration>
             </plugin>
         </plugins>
     </build>
