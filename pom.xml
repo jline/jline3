@@ -91,7 +91,11 @@
 
         <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     </properties>
-    
+
+    <prerequisites>
+        <maven>2.2.1</maven>
+    </prerequisites>
+
     <dependencies>
         <dependency>
             <groupId>org.fusesource.jansi</groupId>
