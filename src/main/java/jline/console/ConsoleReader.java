@@ -1832,15 +1832,6 @@ public class ConsoleReader
                 int oldLine = (cursor - where) / width;
                 int newLine = cursor / width;
                 if (newLine > oldLine) {
-                    if (terminal.hasWeirdWrap()) {
-                        // scroll up if at bottom
-                        // note:
-                        //   on rxvt cywgin terminal.getHeight() is incorrect
-                        //   MacOs xterm does not seem to support scrolling
-                        if (getCurrentAnsiRow() == terminal.getHeight()) {
-                            printAnsiSequence((newLine - oldLine) + "S");
-                        }
-                    }
                     printAnsiSequence((newLine - oldLine) + "B");
                 }
                 printAnsiSequence(1 +(cursor % width) + "G");
@@ -3470,57 +3461,5 @@ public class ConsoleReader
         print('[');
         print(sequence);
         flush(); // helps with step debugging
-    }
-
-    // return column position, reported by the terminal
-    private int getCurrentPosition() {
-        // check for ByteArrayInputStream to disable for unit tests
-        if (terminal.isAnsiSupported() && !(in instanceof ByteArrayInputStream)) {
-            try {
-                printAnsiSequence("6n");
-                flush();
-                StringBuffer b = new StringBuffer(8);
-                // position is sent as <ESC>[{ROW};{COLUMN}R
-                int r;
-                while((r = in.read()) > -1 && r != 'R') {
-                    if (r != 27 && r != '[') {
-                        b.append((char) r);
-                    }
-                }
-                String[] pos = b.toString().split(";");
-                return Integer.parseInt(pos[1]);
-            } catch (Exception x) {
-                // no luck
-            }
-        }
-
-        return -1; // TODO: throw exception instead?
-    }
-
-    // return row position, reported by the terminal
-    // needed to know whether to scroll up on cursor move in last col for weird
-    // wrapping terminals - not tested for anything else
-    private int getCurrentAnsiRow() {
-        // check for ByteArrayInputStream to disable for unit tests
-        if (terminal.isAnsiSupported() && !(in instanceof ByteArrayInputStream)) {
-            try {
-                printAnsiSequence("6n");
-                flush();
-                StringBuffer b = new StringBuffer(8);
-                // position is sent as <ESC>[{ROW};{COLUMN}R
-                int r;
-                while((r = in.read()) > -1 && r != 'R') {
-                    if (r != 27 && r != '[') {
-                        b.append((char) r);
-                    }
-                }
-                String[] pos = b.toString().split(";");
-                return Integer.parseInt(pos[0]);
-            } catch (Exception x) {
-                // no luck
-            }
-        }
-
-        return -1; // TODO: throw exception instead?
     }
 }
