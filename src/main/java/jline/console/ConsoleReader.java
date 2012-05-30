@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -92,13 +93,12 @@ public class ConsoleReader
 
     private final Terminal terminal;
 
-    private InputStream in;
-
     private final Writer out;
 
     private final CursorBuffer buf = new CursorBuffer();
 
     private String prompt;
+    private int    promptLen;
 
     private boolean expandEvents = true;
 
@@ -119,9 +119,15 @@ public class ConsoleReader
      * the nonBlockingInput, but we have to retain a handle to it so that
      * we can shut down its blocking read thread when we go away.
      */
-    private NonBlockingInputStream nonBlockingInput;
+    private NonBlockingInputStream in;
     private long                   escapeTimeout;
     private Reader                 reader;
+    
+    /*
+     * TODO: Please read the comments about this in setInput(), but this needs
+     * to be done away with.
+     */
+    private boolean                isUnitTestInput;
     
     /**
      * Last character searched for with a vi character search
@@ -214,7 +220,20 @@ public class ConsoleReader
     }
 
     void setInput(final InputStream in) throws IOException {
-        this.escapeTimeout = Configuration.getLong(JLINE_ESC_TIMEOUT, 150);
+        this.escapeTimeout = Configuration.getLong(JLINE_ESC_TIMEOUT, 100);
+        /*
+         * This is gross and here is how to fix it. In getCurrentPosition()
+         * and getCurrentAnsiRow(), the logic is disabled when running unit 
+         * tests and the fact that it is a unit test is determined by knowing
+         * if the original input stream was a ByteArrayInputStream. So, this
+         * is our test to do this.  What SHOULD happen is that the unit
+         * tests should pass in a terminal that is appropriately configured
+         * such that whatever behavior they expect to happen (or not happen)
+         * happens (or doesn't). 
+         * 
+         * So, TODO, get rid of this and fix the unit tests.
+         */
+        this.isUnitTestInput = in instanceof ByteArrayInputStream;
         boolean nonBlockingEnabled =
                escapeTimeout > 0L
             && terminal.isSupported()
@@ -224,15 +243,14 @@ public class ConsoleReader
          * If we had a non-blocking thread already going, then shut it down
          * and start a new one.
          */
-        if (nonBlockingInput != null) {
-            nonBlockingInput.shutdown();
+        if (this.in != null) {
+            this.in.shutdown();
         }
         
         final InputStream wrapped = terminal.wrapInIfNeeded( in );
         
-        this.nonBlockingInput = 
-            new NonBlockingInputStream(wrapped, nonBlockingEnabled);
-        this.reader = new InputStreamReader( nonBlockingInput, encoding );
+        this.in = new NonBlockingInputStream(wrapped, nonBlockingEnabled);
+        this.reader = new InputStreamReader( this.in, encoding );
     }
     
     /**
@@ -241,8 +259,8 @@ public class ConsoleReader
      * that would otherwise be "leaked".
      */
     public void shutdown() {
-        if (nonBlockingInput != null) {
-            nonBlockingInput.shutdown();
+        if (in != null) {
+            in.shutdown();
         }
     }
     
@@ -332,6 +350,7 @@ public class ConsoleReader
 
     public void setPrompt(final String prompt) {
         this.prompt = prompt;
+        this.promptLen = ((prompt == null) ? 0 : stripAnsi(lastLine(prompt)).length());
     }
 
     public String getPrompt() {
@@ -389,8 +408,7 @@ public class ConsoleReader
 
     int getCursorPosition() {
         // FIXME: does not handle anything but a line with a prompt absolute position
-        String prompt = getPrompt();
-        return ((prompt == null) ? 0 : stripAnsi(lastLine(prompt)).length()) + buf.cursor;
+        return promptLen + buf.cursor;
     }
 
     /**
@@ -1467,15 +1485,15 @@ public class ConsoleReader
         int ch = -1;
         while (!isAborted && !isComplete && (ch = readCharacter()) != -1) {
             switch (ch) {
-                case '\033':  /* ESC */
+                case '\033':  // ESC
                     /*
                      * The ESC behavior doesn't appear to be readline behavior,
                      * but it is a little tweak of my own. I like it.
                      */
                     isAborted = true;
                     break;
-                case '\010':  /* Backspace */
-                case '\177':  /* Delete */
+                case '\010':  // Backspace
+                case '\177':  // Delete
                     backspace();
                     /*
                      * Backspacing through the "prompt" aborts the search.
@@ -1484,7 +1502,7 @@ public class ConsoleReader
                         isAborted = true;
                     }
                     break;
-                case '\012': /* Enter */
+                case '\012': // Enter
                     isComplete = true;
                     break;
                 default:
@@ -1510,19 +1528,27 @@ public class ConsoleReader
         String searchTerm = buf.buffer.substring(1);
         int idx = -1;
         
+        /*
+         * The semantics of the history thing is gross when you want to 
+         * explicitly iterate over entries (without an iterator) as size()
+         * returns the actual number of entries in the list but get()
+         * doesn't work the way you think.
+         */
+        int end   = history.index();
+        int start = (end <= history.size()) ? 0 : end - history.size();
+        
         if (isForward) {
-            for (idx = 0; idx < history.size(); idx++) {
-                if (history.get(idx).toString().contains(searchTerm)) {
+            for (int i = start; i < end; i++) {
+                if (history.get(i).toString().contains(searchTerm)) {
+                    idx = i;
                     break;
                 }
             }
-            if (idx == history.size ()) {
-                idx = -1;
-            }
         }
         else {
-            for (idx = history.size()-1; idx > 0; idx--) {
-                if (history.get(idx).toString().contains(searchTerm)) {
+            for (int i = end-1; i >= start; i--) {
+                if (history.get(i).toString().contains(searchTerm)) {
+                    idx = i;
                     break;
                 }
             }
@@ -1556,26 +1582,34 @@ public class ConsoleReader
          */
         isComplete = false;
         while (!isComplete && (ch = readCharacter()) != -1) {
+            boolean forward = isForward;
             switch (ch) {
-                case 'n':
-                case 'N':
-                    if (isForward) {
-                        if (idx < (history.size()-1)) {
-                            ++idx;
-                            setCursorPosition(0);
-                            killLine();
-                            putString(history.get(idx));
-                            setCursorPosition(0);
+                case 'p': case 'P':
+                    forward = !isForward;
+                    // Fallthru
+                case 'n': case 'N':
+                    boolean isMatch = false;
+                    if (forward) {
+                        for (int i = idx+1; !isMatch && i < end; i++) {
+                            if (history.get(i).toString().contains(searchTerm)) {
+                                idx = i;
+                                isMatch = true;
+                            }
                         }
                     }
                     else {
-                        if (idx > 0) {
-                            --idx;
-                            setCursorPosition(0);
-                            killLine();
-                            putString(history.get(idx));
-                            setCursorPosition(0);
+                        for (int i = idx - 1; !isMatch && i >= start; i--) {
+                            if (history.get(i).toString().contains(searchTerm)) {
+                                idx = i;
+                                isMatch = true;
+                            }
                         }
+                    }
+                    if (isMatch) {
+                        setCursorPosition(0);
+                        killLine();
+                        putString(history.get(idx));
+                        setCursorPosition(0);
                     }
                     break;
                 default:
@@ -2139,8 +2173,8 @@ public class ConsoleReader
                      */
                     if (c == 27
                             && pushBackChar.isEmpty()
-                            && nonBlockingInput.isNonBlockingEnabled()
-                            && nonBlockingInput.peek(escapeTimeout) == -2) {
+                            && in.isNonBlockingEnabled()
+                            && in.peek(escapeTimeout) == -2) {
                         o = ((KeyMap) o).getAnotherKey();
                         if (o == null || o instanceof KeyMap) {
                             continue;
@@ -3358,10 +3392,10 @@ public class ConsoleReader
         // backspace all text, including prompt
         buf.buffer.append(this.prompt);
         buf.cursor += this.prompt.length();
-        this.prompt = "";
+        setPrompt("");
         backspaceAll();
 
-        this.prompt = prompt;
+        setPrompt(prompt);
         redrawLine();
         setBuffer(buffer);
 
@@ -3461,5 +3495,58 @@ public class ConsoleReader
         print('[');
         print(sequence);
         flush(); // helps with step debugging
+    }
+
+    // return column position, reported by the terminal
+    // TODO: This appears to be unused. Delete?
+    private int getCurrentPosition() {
+        // check for ByteArrayInputStream to disable for unit tests
+        if (terminal.isAnsiSupported() && !this.isUnitTestInput) {
+            try {
+                printAnsiSequence("6n");
+                flush();
+                StringBuffer b = new StringBuffer(8);
+                // position is sent as <ESC>[{ROW};{COLUMN}R
+                int r;
+                while((r = in.read()) > -1 && r != 'R') {
+                    if (r != 27 && r != '[') {
+                        b.append((char) r);
+                    }
+                }
+                String[] pos = b.toString().split(";");
+                return Integer.parseInt(pos[1]);
+            } catch (Exception x) {
+                // no luck
+            }
+        }
+
+        return -1; // TODO: throw exception instead?
+    }
+
+    // return row position, reported by the terminal
+    // needed to know whether to scroll up on cursor move in last col for weird
+    // wrapping terminals - not tested for anything else
+    private int getCurrentAnsiRow() {
+        // check for ByteArrayInputStream to disable for unit tests
+        if (terminal.isAnsiSupported() && !this.isUnitTestInput) {
+            try {
+                printAnsiSequence("6n");
+                flush();
+                StringBuffer b = new StringBuffer(8);
+                // position is sent as <ESC>[{ROW};{COLUMN}R
+                int r;
+                while((r = in.read()) > -1 && r != 'R') {
+                    if (r != 27 && r != '[') {
+                        b.append((char) r);
+                    }
+                }
+                String[] pos = b.toString().split(";");
+                return Integer.parseInt(pos[0]);
+            } catch (Exception x) {
+                // no luck
+            }
+        }
+
+        return -1; // TODO: throw exception instead?
     }
 }
