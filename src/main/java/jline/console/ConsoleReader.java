@@ -31,7 +31,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -50,7 +49,6 @@ import jline.internal.Configuration;
 import jline.internal.InputStreamReader;
 import jline.internal.Log;
 import jline.internal.NonBlockingInputStream;
-
 import jline.internal.Nullable;
 import jline.internal.Urls;
 import org.fusesource.jansi.AnsiOutputStream;
@@ -113,6 +111,8 @@ public class ConsoleReader
     private String previousSearchTerm = "";
 
     private int searchIndex = -1;
+
+    private int parenBlinkTimeout = 500;
 
     /*
      * The reader and the nonBlockingInput go hand-in-hand.  The reader wraps
@@ -1624,6 +1624,25 @@ public class ConsoleReader
         return ch;
     }
     
+    public void setParenBlinkTimeout(int timeout) {
+        parenBlinkTimeout = timeout;
+    }
+
+    private void insertClose(String s) throws IOException {
+         putString(s);
+         int closePosition = buf.cursor;
+
+         moveCursor(-1);
+         viMatch();
+
+
+         if (in.isNonBlockingEnabled()) {
+            in.peek(parenBlinkTimeout);
+         }
+
+         setCursorPosition(closePosition);
+    }
+
     /**
      * Implements vi style bracket matching ("%" command). The matching
      * bracket for the current bracket type that you are sitting on is matched.
@@ -2590,6 +2609,18 @@ public class ConsoleReader
                             case INSERT_COMMENT:
                                 return insertComment (false);
                                 
+                            case INSERT_CLOSE_CURLY:
+                                insertClose("}");
+                                break;
+
+                            case INSERT_CLOSE_PAREN:
+                                insertClose(")");
+                                break;
+
+                            case INSERT_CLOSE_SQUARE:
+                                insertClose("]");
+                                break;
+
                             case VI_INSERT_COMMENT:
                                 return insertComment (true);
                                 

@@ -139,6 +139,14 @@ public class KeyMap {
         }
     }
 
+    public void setBlinkMatchingParen(boolean on) {
+        if (on) {
+            bind( "}", Operation.INSERT_CLOSE_CURLY );
+            bind( ")", Operation.INSERT_CLOSE_PAREN );
+            bind( "]", Operation.INSERT_CLOSE_SQUARE );
+        }
+    }
+
     private static void bindArrowKeys(KeyMap map) {
         
         // MS-DOS

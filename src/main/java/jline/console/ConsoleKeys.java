@@ -371,6 +371,12 @@ public class ConsoleKeys {
             } else if ("emacs".equalsIgnoreCase(key)) {
                 keys = keyMaps.get(KeyMap.EMACS);
             }
+        } else if ("blink-matching-paren".equals(key)) {
+            if ("on".equalsIgnoreCase(val)) {
+              keys.setBlinkMatchingParen(true);
+            } else if ("off".equalsIgnoreCase(val)) {
+              keys.setBlinkMatchingParen(false);
+            }
         }
 
         /*
