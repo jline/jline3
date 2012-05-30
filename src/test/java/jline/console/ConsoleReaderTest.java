@@ -355,6 +355,18 @@ public class ConsoleReaderTest
     }
 
     @Test
+    public void testInputBadConfig() throws Exception {
+        System.setProperty(ConsoleReader.JLINE_INPUTRC, getClass().getResource("/jline/internal/config-bad").toExternalForm());
+        try {
+            ConsoleReader consoleReader = createConsole("Bash", new byte[0]);
+            assertNotNull(consoleReader);
+            assertEquals("\u001bb\"\u001bf\"", consoleReader.getKeys().getBound(((char)('X' - 'A' + 1)) + "q"));
+        } finally {
+            System.clearProperty(ConsoleReader.JLINE_INPUTRC);
+        }
+    }
+
+    @Test
     public void testBell() throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ConsoleReader consoleReader = new ConsoleReader(System.in, baos);
