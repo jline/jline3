@@ -22,7 +22,7 @@
     <groupId>jline</groupId>
     <artifactId>jline</artifactId>
     <name>JLine</name>
-    <version>2.7-SNAPSHOT</version>
+    <version>2.7</version>
 
     <licenses>
         <license>
@@ -87,7 +87,7 @@
 
         <maven.build.timestamp.format>yyyyMMddHHmm</maven.build.timestamp.format>
         <build.timestamp>${maven.build.timestamp}</build.timestamp>
-        <build.number/>
+        <build.number />
 
         <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     </properties>
