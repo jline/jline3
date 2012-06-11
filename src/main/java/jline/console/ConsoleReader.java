@@ -76,6 +76,8 @@ public class ConsoleReader
 
     public static final String INPUT_RC = ".inputrc";
 
+    public static final String DEFAULT_INPUT_RC = "/etc/inputrc";
+
     public static final char BACKSPACE = '\b';
 
     public static final char RESET_LINE = '\r';
@@ -209,10 +211,22 @@ public class ConsoleReader
         this.out = new OutputStreamWriter(terminal.wrapOutIfNeeded(out), this.encoding);
         setInput( in );
 
-        this.inputrcUrl = Urls.create(Configuration.getString(JLINE_INPUTRC,
-                Urls.create(new File(Configuration.getUserHome(), INPUT_RC)).toExternalForm()));
-        
+        this.inputrcUrl = getInputRc();
+
         consoleKeys = new ConsoleKeys(appName, inputrcUrl);
+    }
+
+    private URL getInputRc() throws IOException {
+        String path = Configuration.getString(JLINE_INPUTRC);
+        if (path == null) {
+            File f = new File(Configuration.getUserHome(), INPUT_RC);
+            if (!f.exists()) {
+                f = new File(DEFAULT_INPUT_RC);
+            }
+            return f.toURI().toURL();
+        } else {
+            return Urls.create(path);
+        }
     }
 
     public KeyMap getKeys() {
