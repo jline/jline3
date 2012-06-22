@@ -1971,7 +1971,9 @@ public class ConsoleReader
         if (c >= 0) {
             Log.trace("Keystroke: ", c);
             // clear any echo characters
+            if (terminal.isSupported()) {
             clearEcho(c);
+        }
         }
         return c;
     }
