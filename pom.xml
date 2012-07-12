@@ -90,6 +90,8 @@
         <build.number />
 
         <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
+
+		<jansi-version>1.8</jansi-version>
     </properties>
 
     <prerequisites>
@@ -100,7 +102,7 @@
         <dependency>
             <groupId>org.fusesource.jansi</groupId>
             <artifactId>jansi</artifactId>
-            <version>1.8</version>
+            <version>${jansi-version}</version>
             <!--<scope>provided</scope>-->
         </dependency>
 
@@ -231,7 +233,13 @@
                         </goals>
                         <configuration>
                             <instructions>
-                                <Import-Package>!jline*,javax.swing;resolution:=optional,*</Import-Package>
+								<Export-Package>
+									jline;jline.console;jline.console.completer;jline.console.history;version:=${project.version};-noimport:=true,
+									=org.fusesource.jansi;version=${jansi-version}
+								</Export-Package>
+                                <Import-Package>
+									javax.swing;resolution:=optional
+								</Import-Package>
                                 <DynamicImport-Package>*</DynamicImport-Package>
                             </instructions>
                         </configuration>
