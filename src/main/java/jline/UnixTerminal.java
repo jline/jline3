@@ -49,7 +49,8 @@ public class UnixTerminal
         setAnsiSupported(true);
 
         // set the console to be character-buffered instead of line-buffered
-        settings.set("-icanon min 1");
+        // also make sure we're distinguishing carriage return from newline
+        settings.set("-icanon min 1 -icrnl -inlcr");
 
         setEchoEnabled(false);
     }
