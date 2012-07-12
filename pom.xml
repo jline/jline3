@@ -91,7 +91,7 @@
 
         <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
 
-		<jansi-version>1.8</jansi-version>
+		<jansi-version>1.9</jansi-version>
     </properties>
 
     <prerequisites>
