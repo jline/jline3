@@ -2833,6 +2833,10 @@ public class ConsoleReader
         while (true) {
             int i = readCharacter();
 
+            if (i == -1 && buff.length() == 0) {
+              return null;
+            }
+
             if (i == -1 || i == '\n') {
                 return buff.toString();
             } else if (i == '\r') {
