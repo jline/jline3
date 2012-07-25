@@ -2287,6 +2287,7 @@ public class ConsoleReader
                             break;
 
                         case REVERSE_SEARCH_HISTORY:
+                        case HISTORY_SEARCH_BACKWARD:
                             if (searchTerm.length() == 0) {
                                 searchTerm.append(previousSearchTerm);
                             }
@@ -2517,6 +2518,7 @@ public class ConsoleReader
                                 break;
 
                             case REVERSE_SEARCH_HISTORY:
+                            case HISTORY_SEARCH_BACKWARD:
                                 if (searchTerm != null) {
                                     previousSearchTerm = searchTerm.toString();
                                 }
