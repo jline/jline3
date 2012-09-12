@@ -202,11 +202,15 @@ public class ConsoleReader
         this(null, in, out, term);
     }
 
-    public ConsoleReader(final @Nullable String appName, final InputStream in, final OutputStream out, final @Nullable Terminal term)
+    public ConsoleReader(final @Nullable String appName, final InputStream in, final OutputStream out, final @Nullable Terminal term) throws IOException {
+        this(appName, in, out, term, null);
+    }
+
+    public ConsoleReader(final @Nullable String appName, final InputStream in, final OutputStream out, final @Nullable Terminal term, final @Nullable String encoding)
         throws IOException
     {
         this.appName = appName != null ? appName : "JLine";
-        this.encoding = encoding != null ? encoding : Configuration.getEncoding(); // FIXME: This is fishy, encoding will always be null at this point
+        this.encoding = encoding != null ? encoding : Configuration.getEncoding();
         this.terminal = term != null ? term : TerminalFactory.get();
         this.out = new OutputStreamWriter(terminal.wrapOutIfNeeded(out), this.encoding);
         setInput( in );
