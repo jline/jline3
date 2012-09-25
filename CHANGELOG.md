@@ -1,4 +1,20 @@
-## [JLine 2.7][2_7], PENDING
+## [Jline 2.9][2_9]
+[2_9]: https://oss.sonatype.org/content/groups/public/jline/jline/2.9
+                                                                     
+* Ability to control terminal encoding
+
+## [Jline 2.8][2_8]
+[2_8]: https://oss.sonatype.org/content/groups/public/jline/jline/2.8
+                                                                     
+* Backward history searching
+* Update to jansi 2.9
+* Handle EOF / Ctrl-D on unsupported terminals
+* Distinguish carriage return from newline
+* Correcting Manifest to make jline work as a bundle in OSGi
+* Handle TERM=dumb as an UnsupportedTerminal
+* Add back PasswordReader
+
+## [JLine 2.7][2_7]
 [2_7]: https://oss.sonatype.org/content/groups/public/jline/jline/2.7
 
 * Updated license headers to be consistent BSD version
