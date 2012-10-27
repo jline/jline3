@@ -162,6 +162,10 @@ public abstract class ConsoleReaderTestSupport
         public Buffer enter() {
             return ctrl('J');
         }
+        
+        public Buffer CR() {
+        	return ctrl('M');
+        }
 
         public Buffer ctrlU() {
             return append("\025");
