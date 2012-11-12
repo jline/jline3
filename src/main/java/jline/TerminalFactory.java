@@ -51,7 +51,7 @@ public class TerminalFactory
         }
 
         String type = Configuration.getString(JLINE_TERMINAL, AUTO);
-        if (System.getenv("TERM").equals("dumb")) {
+        if ("dumb".equals(System.getenv("TERM"))) {
             type = "none";
             Log.debug("$TERM=dumb; setting type=", type);
         }
