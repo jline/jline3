@@ -1520,7 +1520,8 @@ public class ConsoleReader
                         isAborted = true;
                     }
                     break;
-                case '\012': // Enter
+                case '\012': // NL
+                case '\015': // CR
                     isComplete = true;
                     break;
                 default:

@@ -697,6 +697,23 @@ public class ViMoveModeTest
                               // use "n" and "N" to move.
             .enter();
         assertLine("Xaaadef", b, false);
+        
+        /*
+         * Test bug fix: use CR to terminate seach instead of newline
+         */
+        console.setKeyMap(KeyMap.VI_INSERT);
+        b = (new Buffer("abc"))
+            .enter()
+            .append("def")
+            .enter()
+            .append("hij")
+            .enter()
+            .escape()
+            .append("/bc")
+            .CR()
+            .append("iX")
+            .enter();
+        assertLine("Xabc", b, false);
     }
     
     @Test
