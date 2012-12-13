@@ -708,14 +708,14 @@ public class ConsoleReader
                                     throw new IllegalArgumentException((neg ? "!-" : "!") + str.substring(i1, i) + ": event not found");
                                 }
                                 if (neg) {
-                                    if (idx < history.size()) {
+                                    if (idx > 0 && idx <= history.size()) {
                                         rep = (history.get(history.index() - idx)).toString();
                                     } else {
                                         throw new IllegalArgumentException((neg ? "!-" : "!") + str.substring(i1, i) + ": event not found");
                                     }
                                 } else {
-                                    if (idx >= history.index() - history.size() && idx < history.index()) {
-                                        rep = (history.get(idx)).toString();
+                                    if (idx > history.index() - history.size() && idx <= history.index()) {
+                                        rep = (history.get(idx - 1)).toString();
                                     } else {
                                         throw new IllegalArgumentException((neg ? "!-" : "!") + str.substring(i1, i) + ": event not found");
                                     }

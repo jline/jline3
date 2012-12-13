@@ -263,6 +263,7 @@ public class ConsoleReaderTest
         assertEquals("mkdir monkey", reader.expandEvents("!mk"));
         try {
             reader.expandEvents("!mz");
+            fail("expected IllegalArgumentException");
         } catch (IllegalArgumentException e) {
             assertEquals("!mz: event not found", e.getMessage());
         }
@@ -272,17 +273,91 @@ public class ConsoleReaderTest
 
         assertEquals("mkdir monkey", reader.expandEvents("!-1"));
         assertEquals("cd c:\\", reader.expandEvents("!-2"));
-        assertEquals("cd c:\\", reader.expandEvents("!2"));
-        assertEquals("mkdir monkey", reader.expandEvents("!3"));
+        assertEquals("cd c:\\", reader.expandEvents("!3"));
+        assertEquals("mkdir monkey", reader.expandEvents("!4"));
         try {
             reader.expandEvents("!20");
+            fail("expected IllegalArgumentException");
         } catch (IllegalArgumentException e) {
             assertEquals("!20: event not found", e.getMessage());
         }
         try {
             reader.expandEvents("!-20");
+            fail("expected IllegalArgumentException");
         } catch (IllegalArgumentException e) {
             assertEquals("!-20: event not found", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testNumericExpansions() throws Exception {
+        ConsoleReader reader = new ConsoleReader();
+        MemoryHistory history = new MemoryHistory();
+        history.setMaxSize(3);
+
+        // Seed history with three entries:
+        // 1 history1
+        // 2 history2
+        // 3 history3
+        history.add("history1");
+        history.add("history2");
+        history.add("history3");
+        reader.setHistory(history);
+
+        // Validate !n
+        assertExpansionIllegalArgumentException(reader, "!0");
+        assertEquals("history1", reader.expandEvents("!1"));
+        assertEquals("history2", reader.expandEvents("!2"));
+        assertEquals("history3", reader.expandEvents("!3"));
+        assertExpansionIllegalArgumentException(reader, "!4");
+
+        // Validate !-n
+        assertExpansionIllegalArgumentException(reader, "!-0");
+        assertEquals("history3", reader.expandEvents("!-1"));
+        assertEquals("history2", reader.expandEvents("!-2"));
+        assertEquals("history1", reader.expandEvents("!-3"));
+        assertExpansionIllegalArgumentException(reader, "!-4");
+
+        // Validate !!
+        assertEquals("history3", reader.expandEvents("!!"));
+
+        // Add two new entries. Because maxSize=3, history is:
+        // 3 history3
+        // 4 history4
+        // 5 history5
+        history.add("history4");
+        history.add("history5");
+
+        // Validate !n
+        assertExpansionIllegalArgumentException(reader, "!0");
+        assertExpansionIllegalArgumentException(reader, "!1");
+        assertExpansionIllegalArgumentException(reader, "!2");
+        assertEquals("history3", reader.expandEvents("!3"));
+        assertEquals("history4", reader.expandEvents("!4"));
+        assertEquals("history5", reader.expandEvents("!5"));
+        assertExpansionIllegalArgumentException(reader, "!6");
+
+        // Validate !-n
+        assertExpansionIllegalArgumentException(reader, "!-0");
+        assertEquals("history5", reader.expandEvents("!-1"));
+        assertEquals("history4", reader.expandEvents("!-2"));
+        assertEquals("history3", reader.expandEvents("!-3"));
+        assertExpansionIllegalArgumentException(reader, "!-4");
+
+        // Validate !!
+        assertEquals("history5", reader.expandEvents("!!"));
+    }
+
+	/**
+	 * Validates that an 'event not found' IllegalArgumentException is thrown
+	 * for the expansion event.
+	 */
+    protected void assertExpansionIllegalArgumentException(ConsoleReader reader, String event) throws Exception {
+        try {
+            reader.expandEvents(event);
+            fail("Expected IllegalArgumentException for " + event);
+        } catch (IllegalArgumentException e) {
+            assertEquals(event + ": event not found", e.getMessage());
         }
     }
 
