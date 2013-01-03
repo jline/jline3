@@ -350,9 +350,9 @@ public class ConsoleReader
      *
      * @since 2.10
      */
-    public void setHandleUserInterrupt(boolean handleUserInterrupt)
+    public void setHandleUserInterrupt(boolean enabled)
     {
-        this.handleUserInterrupt = handleUserInterrupt;
+        this.handleUserInterrupt = enabled;
     }
 
     /**
@@ -2458,7 +2458,9 @@ public class ConsoleReader
                                 if (handleUserInterrupt) {
                                     println();
                                     flush();
-                                    throw new UserInterruptException();
+                                    String partialLine = buf.buffer.toString();
+                                    buf.clear();
+                                    throw new UserInterruptException(partialLine);
                                 }
                                 break;
 
