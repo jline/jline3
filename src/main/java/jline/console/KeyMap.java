@@ -246,7 +246,7 @@ public class KeyMap {
                         Operation.SET_MARK,                 /* Control-@ */
                         Operation.BEGINNING_OF_LINE,        /* Control-A */
                         Operation.BACKWARD_CHAR,            /* Control-B */
-                        null,                               /* Control-C */
+                        Operation.INTERRUPT,                /* Control-C */
                         Operation.EXIT_OR_DELETE_CHAR,      /* Control-D */
                         Operation.END_OF_LINE,              /* Control-E */
                         Operation.FORWARD_CHAR,             /* Control-F */
@@ -409,7 +409,7 @@ public class KeyMap {
                         null,                               /* Control-@ */
                         null,                               /* Control-A */
                         null,                               /* Control-B */
-                        null,                               /* Control-C */
+                        Operation.INTERRUPT,                /* Control-C */
                         /* 
                          * ^D is supposed to move down half a screen. In bash
                          * appears to be ignored.
