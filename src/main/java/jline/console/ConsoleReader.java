@@ -40,6 +40,7 @@ import java.util.Stack;
 
 import jline.Terminal;
 import jline.TerminalFactory;
+import jline.UnixTerminal;
 import jline.console.completer.CandidateListCompletionHandler;
 import jline.console.completer.Completer;
 import jline.console.completer.CompletionHandler;
@@ -103,6 +104,8 @@ public class ConsoleReader
     private boolean expandEvents = true;
 
     private boolean bellEnabled = !Configuration.getBoolean(JLINE_NOBELL, true);
+
+    private boolean handleUserInterrupt = false;
 
     private Character mask;
 
@@ -337,6 +340,30 @@ public class ConsoleReader
      */
     public boolean getBellEnabled() {
         return bellEnabled;
+    }
+
+    /**
+     * Set whether user interrupts (ctrl-C) are handled by having JLine
+     * throw {@link UserInterruptException} from {@link #readLine}.
+     * Otherwise, the JVM will handle {@code SIGINT} as normal, which
+     * usually causes it to exit. The default is {@code false}.
+     *
+     * @since 2.10
+     */
+    public void setHandleUserInterrupt(boolean enabled)
+    {
+        this.handleUserInterrupt = enabled;
+    }
+
+    /**
+     * Get whether user interrupt handling is enabled
+     *
+     * @return true if enabled; false otherwise
+     * @since 2.10
+     */
+    public boolean getHandleUserInterrupt()
+    {
+        return handleUserInterrupt;
     }
 
     /**
@@ -2163,6 +2190,10 @@ public class ConsoleReader
                 return readLineSimple();
             }
 
+            if (handleUserInterrupt && (terminal instanceof UnixTerminal)) {
+                ((UnixTerminal) terminal).disableInterruptCharacter();
+            }
+
             String originalPrompt = this.prompt;
 
             state = State.NORMAL;
@@ -2422,6 +2453,16 @@ public class ConsoleReader
 
                             case ACCEPT_LINE:
                                 return accept();
+
+                            case INTERRUPT:
+                                if (handleUserInterrupt) {
+                                    println();
+                                    flush();
+                                    String partialLine = buf.buffer.toString();
+                                    buf.clear();
+                                    throw new UserInterruptException(partialLine);
+                                }
+                                break;
 
                             /*
                              * VI_MOVE_ACCEPT_LINE is the result of an ENTER
@@ -2813,6 +2854,9 @@ public class ConsoleReader
         finally {
             if (!terminal.isSupported()) {
                 afterReadLine();
+            }
+            if (handleUserInterrupt && (terminal instanceof UnixTerminal)) {
+                ((UnixTerminal) terminal).enableInterruptCharacter();
             }
         }
     }

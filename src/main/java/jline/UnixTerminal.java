@@ -103,4 +103,29 @@ public class UnixTerminal
         }
     }
 
+    public void disableInterruptCharacter()
+    {
+        try {
+            settings.set("intr undef");
+        }
+        catch (Exception e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            Log.error("Failed to disable interrupt character", e);
+        }
+    }
+
+    public void enableInterruptCharacter()
+    {
+        try {
+            settings.set("intr ^C");
+        }
+        catch (Exception e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            Log.error("Failed to enable interrupt character", e);
+        }
+    }
 }
