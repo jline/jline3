@@ -9,7 +9,8 @@
     http://www.opensource.org/licenses/bsd-license.php
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
 
@@ -37,6 +38,13 @@
         <developerConnection>scm:git:ssh://git@github.com/jline/jline2.git</developerConnection>
         <url>http://github.com/jline/jline2</url>
     </scm>
+
+    <distributionManagement>
+        <site>
+            <id>github-project-site</id>
+            <url>gitsite:git@github.com/jline/jline2.git</url>
+        </site>
+    </distributionManagement>
 
     <developers>
         <developer>
@@ -87,11 +95,11 @@
 
         <maven.build.timestamp.format>yyyyMMddHHmm</maven.build.timestamp.format>
         <build.timestamp>${maven.build.timestamp}</build.timestamp>
-        <build.number />
+        <build.number/>
 
         <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
 
-		<jansi-version>1.9</jansi-version>
+        <jansi.version>1.9</jansi.version>
     </properties>
 
     <prerequisites>
@@ -102,7 +110,7 @@
         <dependency>
             <groupId>org.fusesource.jansi</groupId>
             <artifactId>jansi</artifactId>
-            <version>${jansi-version}</version>
+            <version>${jansi.version}</version>
             <!--<scope>provided</scope>-->
         </dependency>
 
@@ -115,6 +123,27 @@
     </dependencies>
 
     <build>
+        <extensions>
+            <!-- Configure gitsite wagon for site deployment https://github.com/stephenc/wagon-gitsite -->
+            <extension>
+                <groupId>org.apache.maven.scm</groupId>
+                <artifactId>maven-scm-provider-gitexe</artifactId>
+                <version>1.8.1</version>
+            </extension>
+
+            <extension>
+                <groupId>org.apache.maven.scm</groupId>
+                <artifactId>maven-scm-manager-plexus</artifactId>
+                <version>1.8.1</version>
+            </extension>
+
+            <extension>
+                <groupId>com.github.stephenc.wagon</groupId>
+                <artifactId>wagon-gitsite</artifactId>
+                <version>0.4.1</version>
+            </extension>
+        </extensions>
+
         <defaultGoal>install</defaultGoal>
 
         <resources>
@@ -153,13 +182,52 @@
             </testResource>
         </testResources>
 
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-site-plugin</artifactId>
+                    <version>3.2</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.apache.maven.doxia</groupId>
+                            <artifactId>doxia-module-markdown</artifactId>
+                            <version>1.3</version>
+                        </dependency>
+                    </dependencies>
+                    <configuration>
+                        <inputEncoding>UTF-8</inputEncoding>
+                        <outputEncoding>UTF-8</outputEncoding>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>attach-descriptor</id>
+                            <goals>
+                                <goal>attach-descriptor</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>2.9</version>
+                    <configuration>
+                        <source>1.5</source>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.12</version>
                 <configuration>
-                    <redirectTestOutputToFile>${maven.test.redirectTestOutputToFile}</redirectTestOutputToFile><!-- force use of property -->
+                    <redirectTestOutputToFile>${maven.test.redirectTestOutputToFile}</redirectTestOutputToFile>
+                    <!-- force use of property -->
                     <forkMode>once</forkMode>
                     <argLine>-ea</argLine>
                     <failIfNoTests>false</failIfNoTests>
@@ -204,7 +272,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>animal-sniffer-maven-plugin</artifactId>
-                <version>1.7</version>
+                <version>1.9</version>
                 <executions>
                     <execution>
                         <goals>
@@ -233,13 +301,13 @@
                         </goals>
                         <configuration>
                             <instructions>
-								<Export-Package>
-									jline;jline.console;jline.console.completer;jline.console.history;version:=${project.version};-noimport:=true,
-									=org.fusesource.jansi;version=${jansi-version}
-								</Export-Package>
+                                <Export-Package>
+                                    jline;jline.console;jline.console.completer;jline.console.history;version:=${project.version};-noimport:=true,
+                                    =org.fusesource.jansi;version=${jansi.version}
+                                </Export-Package>
                                 <Import-Package>
-									javax.swing;resolution:=optional
-								</Import-Package>
+                                    javax.swing;resolution:=optional
+                                </Import-Package>
                                 <DynamicImport-Package>*</DynamicImport-Package>
                             </instructions>
                         </configuration>
@@ -268,7 +336,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-scm-plugin</artifactId>
-                <version>1.7</version>
+                <version>1.8.1</version>
             </plugin>
 
             <!-- include all the dependencies into the jar so it can run standalone -->
@@ -308,6 +376,19 @@
                 </executions>
             </plugin>
 
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-site-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-descriptor</id>
+                        <goals>
+                            <goal>attach-descriptor</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
             <!--
             mvn license:format -N
             If its a new year, update the year range in the header.txt file
@@ -339,6 +420,7 @@
                         <include>**/*.sm</include>
                         <include>**/*.bat</include>
                         <include>**/*.vm</include>
+                        <include>**/*.md</include>
                     </includes>
                     <excludes>
                         <exclude>**/target/**</exclude>
@@ -352,14 +434,131 @@
                         <sm>DOUBLESLASH_STYLE</sm>
                         <help>SCRIPT_STYLE</help>
                         <ini>SCRIPT_STYLE</ini>
+                        <md>XML_STYLE</md>
                     </mapping>
                 </configuration>
             </plugin>
         </plugins>
     </build>
 
+    <reporting>
+        <plugins>
+            <!--
+            Strip out reports which are useless or generate incorrect information.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-project-info-reports-plugin</artifactId>
+                <version>2.6</version>
+                <reportSets>
+                    <reportSet>
+                        <reports>
+                            <!--<report>index</report>-->
+                            <!--<report>summary</report>-->
+                            <!--<report>issue-tracking</report>-->
+                            <!--<report>mailing-list</report>-->
+                            <!--<report>cim</report>-->
+                            <!--<report>scm</report>-->
+                            <report>project-team</report>
+                            <report>modules</report>
+                            <report>license</report>
+                            <report>dependencies</report>
+                            <report>dependency-convergence</report>
+                            <report>dependency-info</report>
+                            <report>dependency-management</report>
+                            <report>plugins</report>
+                            <report>plugin-management</report>
+                            <report>distribution-management</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
+            </plugin>
+
+            <!--
+            Doclava needs -d <output-directory> parameter, and to avoid clobber main javadoc with test-javadoc, just disable the test-javadoc for now.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.9</version>
+                <configuration>
+                    <docletArtifact>
+                        <groupId>com.google.doclava</groupId>
+                        <artifactId>doclava</artifactId>
+                        <version>1.0.5</version>
+                    </docletArtifact>
+                    <doclet>com.google.doclava.Doclava</doclet>
+                    <source>1.5</source>
+                    <bootclasspath>${sun.boot.class.path}</bootclasspath>
+                    <additionalparam>
+                        -quiet
+                        -federate JDK http://download.oracle.com/javase/6/docs/api/index.html?
+                        -federationxml JDK http://doclava.googlecode.com/svn/static/api/openjdk-6.xml
+                        -hdf project.name "${project.name}"
+                        -d ${project.build.directory}/site/apidocs
+                    </additionalparam>
+                    <useStandardDocletOptions>false</useStandardDocletOptions>
+                </configuration>
+                <reportSets>
+                    <reportSet>
+                        <id>default</id>
+                        <reports>
+                            <report>javadoc</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <version>2.7.1</version>
+                <configuration>
+                    <targetJdk>1.5</targetJdk>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jxr-plugin</artifactId>
+                <version>2.3</version>
+                <configuration>
+                    <linkJavadoc>true</linkJavadoc>
+                </configuration>
+                <reportSets>
+                    <reportSet>
+                        <id>default</id>
+                        <reports>
+                            <report>jxr</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <version>2.5.2</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>cobertura-maven-plugin</artifactId>
+                <version>2.5.2</version>
+            </plugin>
+        </plugins>
+    </reporting>
+
     <profiles>
-       <profile>
+        <profile>
+            <id>site-stage</id>
+
+            <build>
+                <defaultGoal>clean install site:site site:stage</defaultGoal>
+            </build>
+        </profile>
+
+        <profile>
             <id>retro</id>
             <activation>
                 <property>
