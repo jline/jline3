@@ -46,12 +46,15 @@
     <mailingLists>
         <mailingList>
             <name>jline-users</name>
+            <post>mailto:jline-users@googlegroups.com</post>
+            <unsubscribe>mailto:jline-users+unsubscribe@googlegroups.com</unsubscribe>
+            <subscribe>https://groups.google.com/group/jline-users</subscribe>
             <archive>https://groups.google.com/group/jline-users</archive>
         </mailingList>
-        <mailingList>
-            <name>jline-dev</name>
-            <archive>https://groups.google.com/group/jline-dev</archive>
-        </mailingList>
+        <!--<mailingList>-->
+            <!--<name>jline-dev</name>-->
+            <!--<archive>https://groups.google.com/group/jline-dev</archive>-->
+        <!--</mailingList>-->
     </mailingLists>
 
     <distributionManagement>
