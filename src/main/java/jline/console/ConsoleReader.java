@@ -161,6 +161,15 @@ public class ConsoleReader
     private String commentBegin = null;
 
     private boolean skipLF = false;
+    
+    /**
+     * Set to true if the reader should attempt to detect copy-n-paste. The
+     * effect of this that an attempt is made to detect if tab is quickly 
+     * followed by another character, then it is assumed that the tab was
+     * a literal tab as part of a copy-and-paste operation and is inserted as
+     * such.
+     */
+    private boolean copyPasteDetection = false;
 
     /*
      * Current internal state of the line reader
@@ -320,6 +329,23 @@ public class ConsoleReader
 
     public boolean getExpandEvents() {
         return expandEvents;
+    }
+
+    /**
+     * Enables or disables copy and paste detection. The effect of enabling this
+     * this setting is that when a tab is received immediately followed by another
+     * character, the tab will not be treated as a completion, but as a tab literal.
+     * @param onoff true if detection is enabled
+     */
+    public void setCopyPasteDetection(final boolean onoff) {
+        copyPasteDetection = onoff;
+    }
+    
+    /**
+     * @return true if copy and paste detection is enabled.
+     */
+    public boolean isCopyPasteDetectionEnabled() {
+        return copyPasteDetection;
     }
 
     /**
@@ -2420,7 +2446,25 @@ public class ConsoleReader
 
                         switch ( op ) {
                             case COMPLETE: // tab
+                                // There is an annoyance with tab completion in that
+                                // sometimes the user is actually pasting input in that
+                                // has physical tabs in it.  This attempts to look at how
+                                // quickly a character follows the tab, if the character
+                                // follows *immediately*, we assume it is a tab literal.
+                                boolean isTabLiteral = false;
+                                if (copyPasteDetection
+                                    && c == 9 
+                                    && (!pushBackChar.isEmpty() 
+                                        || (in.isNonBlockingEnabled() && in.peek(escapeTimeout) != -2))) {
+                            		isTabLiteral = true;
+                            	}
+                                
+                                if (! isTabLiteral) {
                                 success = complete();
+                                }
+                                else {
+                                    putString(sb);
+                                }
                                 break;
 
                             case POSSIBLE_COMPLETIONS:
