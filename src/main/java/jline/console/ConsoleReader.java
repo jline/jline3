@@ -2456,11 +2456,11 @@ public class ConsoleReader
                                     && c == 9 
                                     && (!pushBackChar.isEmpty() 
                                         || (in.isNonBlockingEnabled() && in.peek(escapeTimeout) != -2))) {
-                            		isTabLiteral = true;
-                            	}
+                                    isTabLiteral = true;
+                                }
                                 
                                 if (! isTabLiteral) {
-                                success = complete();
+                                    success = complete();
                                 }
                                 else {
                                     putString(sb);
