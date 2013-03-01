@@ -64,9 +64,6 @@ public class UnixTerminal
     public void restore() throws Exception {
         settings.restore();
         super.restore();
-        // print a newline after the terminal exits.
-        // this should probably be a configurable.
-        System.out.println();
     }
 
     /**
