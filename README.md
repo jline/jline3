@@ -39,7 +39,7 @@ Use the following definition to use JLine in your maven project:
     <dependency>
       <groupId>jline</groupId>
       <artifactId>jline</artifactId>
-      <version>2.9</version>
+      <version>2.10</version>
     </dependency>
 
 Building
