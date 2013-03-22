@@ -28,7 +28,9 @@ import java.nio.charset.UnmappableCharacterException;
  * NOTE for JLine: the default InputStreamReader that comes from the JRE
  * usually read more bytes than needed from the input stream, which
  * is not usable in a character per character model used in the console.
- * We thus use the harmony code which only reads the minimal number of bytes.
+ * We thus use the harmony code which only reads the minimal number of bytes,
+ * with a modification to ensure we can read larger characters (UTF-16 has
+ * up to 4 bytes, and UTF-32, rare as it is, may have up to 8).
  */
 /**
  * A class for turning a byte stream into a character stream. Data read from the
@@ -192,8 +194,8 @@ public class InputStreamReader extends Reader {
                 throw new IOException("InputStreamReader is closed.");
             }
 
-            char buf[] = new char[1];
-            return read(buf, 0, 1) != -1 ? buf[0] : -1;
+            char buf[] = new char[4];
+            return read(buf, 0, 4) != -1 ? Character.codePointAt(buf, 0) : -1;
         }
     }
 
