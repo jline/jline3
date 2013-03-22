@@ -2233,10 +2233,10 @@ public class ConsoleReader
                 if (c == -1) {
                     return null;
                 }
-                sb.append( (char) c );
+                sb.appendCodePoint(c);
 
                 if (recording) {
-                    macro += (char) c;
+                    macro += new String(new int[]{c}, 0, 1);
                 }
 
                 Object o = getKeys().getBound( sb );
