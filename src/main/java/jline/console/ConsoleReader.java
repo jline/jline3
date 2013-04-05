@@ -161,10 +161,10 @@ public class ConsoleReader
     private String commentBegin = null;
 
     private boolean skipLF = false;
-    
+
     /**
      * Set to true if the reader should attempt to detect copy-n-paste. The
-     * effect of this that an attempt is made to detect if tab is quickly 
+     * effect of this that an attempt is made to detect if tab is quickly
      * followed by another character, then it is assumed that the tab was
      * a literal tab as part of a copy-and-paste operation and is inserted as
      * such.
@@ -188,6 +188,7 @@ public class ConsoleReader
          * In the middle of a emacs seach
          */
         SEARCH,
+        FORWARD_SEARCH,
         /**
          * VI "yank-to" operation ("y" during move mode)
          */
@@ -340,7 +341,7 @@ public class ConsoleReader
     public void setCopyPasteDetection(final boolean onoff) {
         copyPasteDetection = onoff;
     }
-    
+
     /**
      * @return true if copy and paste detection is enabled.
      */
@@ -2348,7 +2349,7 @@ public class ConsoleReader
                 // Note that we have to do this first, because if there is a command
                 // not linked to a search command, we leave the search mode and fall
                 // through to the normal state.
-                if (state == State.SEARCH) {
+                if (state == State.SEARCH || state == State.FORWARD_SEARCH) {
                     int cursorDest = -1;
                     switch ( ((Operation) o )) {
                         case ABORT:
@@ -2357,14 +2358,25 @@ public class ConsoleReader
 
                         case REVERSE_SEARCH_HISTORY:
                         case HISTORY_SEARCH_BACKWARD:
+                            state = State.SEARCH;
                             if (searchTerm.length() == 0) {
                                 searchTerm.append(previousSearchTerm);
                             }
 
-                            if (searchIndex == -1) {
-                                searchIndex = searchBackwards(searchTerm.toString());
-                            } else {
+                            if (searchIndex > 0) {
                                 searchIndex = searchBackwards(searchTerm.toString(), searchIndex);
+                            }
+                            break;
+
+                        case FORWARD_SEARCH_HISTORY:
+                        case HISTORY_SEARCH_FORWARD:
+                            state = State.FORWARD_SEARCH;
+                            if (searchTerm.length() == 0) {
+                                searchTerm.append(previousSearchTerm);
+                            }
+
+                            if (searchIndex > -1 && searchIndex < history.size() - 1) {
+                                searchIndex = searchForwards(searchTerm.toString(), searchIndex);
                             }
                             break;
 
@@ -2392,15 +2404,21 @@ public class ConsoleReader
                     }
 
                     // if we're still in search mode, print the search status
-                    if (state == State.SEARCH) {
+                    if (state == State.SEARCH || state == State.FORWARD_SEARCH) {
                         if (searchTerm.length() == 0) {
-                            printSearchStatus("", "");
+                            if (state == State.SEARCH) {
+                                printSearchStatus("", "");
+                            } else {
+                                printForwardSearchStatus("", "");
+                            }
                             searchIndex = -1;
                         } else {
                             if (searchIndex == -1) {
                                 beep();
-                            } else {
+                            } else if (state == State.SEARCH) {
                                 printSearchStatus(searchTerm.toString(), history.get(searchIndex).toString());
+                            } else {
+                                printForwardSearchStatus(searchTerm.toString(), history.get(searchIndex).toString());
                             }
                         }
                     }
@@ -2409,7 +2427,7 @@ public class ConsoleReader
                         restoreLine(originalPrompt, cursorDest);
                     }
                 }
-                if (state != State.SEARCH) {
+                if (state != State.SEARCH && state != State.FORWARD_SEARCH) {
                     /*
                      * If this is still false at the end of the switch, then
                      * we reset our repeatCount to 0.
@@ -2460,12 +2478,12 @@ public class ConsoleReader
                                 // follows *immediately*, we assume it is a tab literal.
                                 boolean isTabLiteral = false;
                                 if (copyPasteDetection
-                                    && c == 9 
-                                    && (!pushBackChar.isEmpty() 
+                                    && c == 9
+                                    && (!pushBackChar.isEmpty()
                                         || (in.isNonBlockingEnabled() && in.peek(escapeTimeout) != -2))) {
                                     isTabLiteral = true;
                                 }
-                                
+
                                 if (! isTabLiteral) {
                                     success = complete();
                                 }
@@ -2635,6 +2653,26 @@ public class ConsoleReader
                                 } else {
                                     searchIndex = -1;
                                     printSearchStatus("", "");
+                                }
+                                break;
+
+                            case FORWARD_SEARCH_HISTORY:
+                            case HISTORY_SEARCH_FORWARD:
+                                if (searchTerm != null) {
+                                    previousSearchTerm = searchTerm.toString();
+                                }
+                                searchTerm = new StringBuffer(buf.buffer);
+                                state = State.FORWARD_SEARCH;
+                                if (searchTerm.length() > 0) {
+                                    searchIndex = searchForwards(searchTerm.toString());
+                                    if (searchIndex == -1) {
+                                        beep();
+                                    }
+                                    printForwardSearchStatus(searchTerm.toString(),
+                                            searchIndex > -1 ? history.get(searchIndex).toString() : "");
+                                } else {
+                                    searchIndex = -1;
+                                    printForwardSearchStatus("", "");
                                 }
                                 break;
 
@@ -3548,7 +3586,12 @@ public class ConsoleReader
 
         // backspace all text, including prompt
         buf.buffer.append(this.prompt);
-        buf.cursor += this.prompt.length();
+        int promptLength = 0;
+        if (this.prompt != null) {
+            promptLength = this.prompt.length();
+        }
+
+        buf.cursor += promptLength;
         setPrompt("");
         backspaceAll();
 
@@ -3564,10 +3607,17 @@ public class ConsoleReader
     }
 
     public void printSearchStatus(String searchTerm, String match) throws IOException {
-        String prompt = "(reverse-i-search)`" + searchTerm + "': ";
-        String buffer = match;
+        printSearchStatus(searchTerm, match, "(reverse-i-search)`");
+    }
+
+    public void printForwardSearchStatus(String searchTerm, String match) throws IOException {
+        printSearchStatus(searchTerm, match, "(i-search)`");
+    }
+
+    private void printSearchStatus(String searchTerm, String match, String searchLabel) throws IOException {
+        String prompt = searchLabel + searchTerm + "': ";
         int cursorDest = match.indexOf(searchTerm);
-        resetPromptLine(prompt, buffer, cursorDest);
+        resetPromptLine(prompt, match, cursorDest);
     }
 
     public void restoreLine(String originalPrompt, int cursorDest) throws IOException {
@@ -3606,6 +3656,48 @@ public class ConsoleReader
         ListIterator<History.Entry> it = history.entries(startIndex);
         while (it.hasPrevious()) {
             History.Entry e = it.previous();
+            if (startsWith) {
+                if (e.value().toString().startsWith(searchTerm)) {
+                    return e.index();
+                }
+            } else {
+                if (e.value().toString().contains(searchTerm)) {
+                    return e.index();
+                }
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Search forward in history from a given position.
+     *
+     * @param searchTerm substring to search for.
+     * @param startIndex the index from which on to search
+     * @return index where this substring has been found, or -1 else.
+     */
+    public int searchForwards(String searchTerm, int startIndex) {
+        return searchForwards(searchTerm, startIndex, false);
+    }
+    /**
+     * Search forwards in history from the current position.
+     *
+     * @param searchTerm substring to search for.
+     * @return index where the substring has been found, or -1 else.
+     */
+    public int searchForwards(String searchTerm) {
+        return searchForwards(searchTerm, history.index());
+    }
+
+    public int searchForwards(String searchTerm, int startIndex, boolean startsWith) {
+        ListIterator<History.Entry> it = history.entries(startIndex);
+
+        if (searchIndex != -1 && it.hasNext()) {
+            it.next();
+        }
+
+        while (it.hasNext()) {
+            History.Entry e = it.next();
             if (startsWith) {
                 if (e.value().toString().startsWith(searchTerm)) {
                     return e.index();

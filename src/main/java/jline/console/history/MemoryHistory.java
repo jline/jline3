@@ -337,5 +337,12 @@ public class MemoryHistory
         return true;
     }
 
-
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        for (Entry e : this) {
+            sb.append(e.toString() + "\n");
+        }
+        return sb.toString();
+    }
 }

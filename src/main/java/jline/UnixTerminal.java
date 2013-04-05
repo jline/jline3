@@ -48,9 +48,10 @@ public class UnixTerminal
 
         setAnsiSupported(true);
 
-        // set the console to be character-buffered instead of line-buffered
-        // also make sure we're distinguishing carriage return from newline
-        settings.set("-icanon min 1 -icrnl -inlcr");
+        // Set the console to be character-buffered instead of line-buffered.
+        // Make sure we're distinguishing carriage return from newline.
+        // Allow ctrl-s keypress to be used (as forward search)
+        settings.set("-icanon min 1 -icrnl -inlcr -ixon");
 
         setEchoEnabled(false);
     }

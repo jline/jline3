@@ -298,6 +298,7 @@ public class KeyMap {
     public static final char CTRL_J = (char) 10;
     public static final char CTRL_M = (char) 13;
     public static final char CTRL_R = (char) 18;
+    public static final char CTRL_S = (char) 19;
     public static final char CTRL_U = (char) 21;
     public static final char CTRL_X = (char) 24;
     public static final char CTRL_Y = (char) 25;
