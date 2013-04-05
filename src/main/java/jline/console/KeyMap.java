@@ -180,12 +180,12 @@ public class KeyMap {
         bind( map, "\033[H", Operation.BEGINNING_OF_LINE );
         bind( map, "\033[F", Operation.END_OF_LINE );
 
-        bind( map, "\033[OA", Operation.PREVIOUS_HISTORY );
-        bind( map, "\033[OB", Operation.NEXT_HISTORY );
-        bind( map, "\033[OC", Operation.FORWARD_CHAR );
-        bind( map, "\033[OD", Operation.BACKWARD_CHAR );
-        bind( map, "\033[OH", Operation.BEGINNING_OF_LINE );
-        bind( map, "\033[OF", Operation.END_OF_LINE );
+        bind( map, "\033OA", Operation.PREVIOUS_HISTORY );
+        bind( map, "\033OB", Operation.NEXT_HISTORY );
+        bind( map, "\033OC", Operation.FORWARD_CHAR );
+        bind( map, "\033OD", Operation.BACKWARD_CHAR );
+        bind( map, "\033OH", Operation.BEGINNING_OF_LINE );
+        bind( map, "\033OF", Operation.END_OF_LINE );
 
         bind( map, "\033[3~", Operation.DELETE_CHAR);
 
