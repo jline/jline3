@@ -602,7 +602,10 @@ public class ConsoleReader
 
         if (expandEvents) {
             str = expandEvents(str);
-            historyLine = str.replaceAll("\\!", "\\\\!");
+            // all post-expansion occurrences of '!' must have been escaped, so re-add escape to each
+            historyLine = str.replace("!", "\\!");
+            // only leading '^' results in expansion, so only re-add escape for that case
+            historyLine = historyLine.replaceAll("^\\^", "\\\\^");
         }
 
         // we only add it to the history if the buffer is not empty
@@ -631,20 +634,22 @@ public class ConsoleReader
      */
     protected String expandEvents(String str) throws IOException {
         StringBuilder sb = new StringBuilder();
-        boolean escaped = false;
         for (int i = 0; i < str.length(); i++) {
             char c = str.charAt(i);
-            if (escaped) {
-                sb.append(c);
-                escaped = false;
-                continue;
-            } else if (c == '\\') {
-                escaped = true;
-                continue;
-            } else {
-                escaped = false;
-            }
             switch (c) {
+                case '\\':
+                    // any '\!' should be considered an expansion escape, so skip expansion and strip the escape character
+                    // a leading '\^' should be considered an expansion escape, so skip expansion and strip the escape character
+                    // otherwise, add the escape
+                    if (i + 1 < str.length()) {
+                        char nextChar = str.charAt(i+1);
+                        if (nextChar == '!' || (nextChar == '^' && i == 0)) {
+                            c = nextChar;
+                            i++;
+                        }
+                    }
+                    sb.append(c);
+                    break;
                 case '!':
                     if (i + 1 < str.length()) {
                         c = str.charAt(++i);
@@ -761,9 +766,6 @@ public class ConsoleReader
                     sb.append(c);
                     break;
             }
-        }
-        if (escaped) {
-            sb.append('\\');
         }
         String result = sb.toString();
         if (!str.equals(result)) {

@@ -376,6 +376,106 @@ public class ConsoleReaderTest
 
         history.previous();
         assertEquals("foo \\! bar", history.current());
+
+        reader = createConsole("cd c:\\docs\r\n");
+        history = new MemoryHistory();
+        reader.setHistory(history);
+        reader.setExpandEvents(true);
+
+        line = reader.readLine();
+        assertEquals("cd c:\\docs", line);
+
+        history.previous();
+        assertEquals("cd c:\\docs", history.current());
+    }
+
+    @Test
+    public void testExpansionAndHistoryWithEscapes() throws Exception {
+
+        /*
+         * Tests the results of the ConsoleReader.readLine() call and the line
+         * stored in history. For each input, it tests the with-expansion and
+         * without-expansion case.
+         */
+
+        ConsoleReader reader = null;
+
+        // \! (escaped expansion v1)
+        reader = createConsole("echo ab\\!ef", true, "cd");
+        assertReadLine("echo ab!ef", reader);
+        assertHistory("echo ab\\!ef", reader);
+
+        reader = createConsole("echo ab\\!ef", false, "cd");
+        assertReadLine("echo ab\\!ef", reader);
+        assertHistory("echo ab\\!ef", reader);
+
+        // \!\! (escaped expansion v2)
+        reader = createConsole("echo ab\\!\\!ef", true, "cd");
+        assertReadLine("echo ab!!ef", reader);
+        assertHistory("echo ab\\!\\!ef", reader);
+
+        reader = createConsole("echo ab\\!\\!ef", false, "cd");
+        assertReadLine("echo ab\\!\\!ef", reader);
+        assertHistory("echo ab\\!\\!ef", reader);
+
+        // !! (expansion)
+        reader = createConsole("echo ab!!ef", true, "cd");
+        assertReadLine("echo abcdef", reader);
+        assertHistory("echo abcdef", reader);
+
+        reader = createConsole("echo ab!!ef", false, "cd");
+        assertReadLine("echo ab!!ef", reader);
+        assertHistory("echo ab!!ef", reader);
+
+        // \G (backslash no expansion)
+        reader = createConsole("echo abc\\Gdef", true, "cd");
+        assertReadLine("echo abc\\Gdef", reader);
+        assertHistory("echo abc\\Gdef", reader);
+
+        reader = createConsole("echo abc\\Gdef", false, "cd");
+        assertReadLine("echo abc\\Gdef", reader);
+        assertHistory("echo abc\\Gdef", reader);
+
+        // \^ (escaped expansion)
+        reader = createConsole("\\^abc^def", true, "echo abc");
+        assertReadLine("^abc^def", reader);
+        assertHistory("\\^abc^def", reader);
+
+        reader = createConsole("\\^abc^def", false, "echo abc");
+        assertReadLine("\\^abc^def", reader);
+        assertHistory("\\^abc^def", reader);
+
+        // ^^ (expansion)
+        reader = createConsole("^abc^def", true, "echo abc");
+        assertReadLine("echo def", reader);
+        assertHistory("echo def", reader);
+
+        reader = createConsole("^abc^def", false, "echo abc");
+        assertReadLine("^abc^def", reader);
+        assertHistory("^abc^def", reader);
+    }
+
+    private ConsoleReader createConsole(String input, boolean expandEvents, String... historyItems) throws Exception {
+        ConsoleReader consoleReader = createConsole(input + "\r\n");
+        MemoryHistory history = new MemoryHistory();
+        if (historyItems != null) {
+            for (String historyItem : historyItems) {
+                history.add(historyItem);
+            }
+        }
+        consoleReader.setHistory(history);
+        consoleReader.setExpandEvents(expandEvents);
+        return consoleReader;
+    }
+
+    private void assertReadLine(String expected, ConsoleReader consoleReader) throws Exception {
+        assertEquals(expected, consoleReader.readLine());
+    }
+
+    private void assertHistory(String expected, ConsoleReader consoleReader) {
+        History history = consoleReader.getHistory();
+        history.previous();
+        assertEquals(expected, history.current());
     }
 
     @Test
