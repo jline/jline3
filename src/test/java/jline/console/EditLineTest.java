@@ -170,4 +170,21 @@ public class EditLineTest
     public void testBuffer() throws Exception {
         assertBuffer("This is a test", new Buffer("This is a test"));
     }
+
+    @Test
+    public void testAbortPartialBuffer() throws Exception {
+        console.setBellEnabled(true);
+        assertBuffer("", new Buffer("This is a test").ctrl('G'));
+        assertConsoleOutputContains('\n');
+        assertBeeped();
+
+        consoleOutputStream.reset();
+
+        assertBuffer("",
+            new Buffer("This is a test").op(BACKWARD_WORD)
+                                        .op(BACKWARD_WORD)
+                                        .ctrl('G'));
+        assertConsoleOutputContains('\n');
+        assertBeeped();
+    }
 }

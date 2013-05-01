@@ -1909,6 +1909,13 @@ public class ConsoleReader
         return finishBuffer();
     }
 
+    private void abort() throws IOException {
+      beep();
+      buf.clear();
+      println();
+      redrawLine();
+    }
+
     /**
      * Move the cursor <i>where</i> characters.
      *
@@ -2497,6 +2504,10 @@ public class ConsoleReader
 
                             case ACCEPT_LINE:
                                 return accept();
+
+                            case ABORT:
+                                abort();
+                                break;
 
                             case INTERRUPT:
                                 if (handleUserInterrupt) {
