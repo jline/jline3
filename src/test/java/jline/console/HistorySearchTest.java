@@ -122,4 +122,22 @@ public class HistorySearchTest {
         assertEquals("ff", reader.getCursorBuffer().toString());
         assertEquals(3, history.size());
     }
+
+    @Test
+    public void testAbortingAfterSearchingPreviousLinesGivesBlank() throws Exception {
+        MemoryHistory history = setupHistory();
+
+        String readLineResult;
+        reader.setInput(new ByteArrayInputStream(new byte[]{
+                'f', KeyMap.CTRL_R, 'f', '\n',
+                'f', 'o', 'o', KeyMap.CTRL_G
+        }));
+        readLineResult = reader.readLine();
+        assertEquals("", readLineResult);
+
+        readLineResult = reader.readLine();
+        assertEquals(null, readLineResult);
+        assertEquals("", reader.getCursorBuffer().toString());
+        assertEquals(3, history.size());
+    }
 }

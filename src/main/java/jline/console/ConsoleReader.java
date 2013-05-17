@@ -1911,10 +1911,10 @@ public class ConsoleReader
     }
 
     private void abort() throws IOException {
-      beep();
-      buf.clear();
-      println();
-      redrawLine();
+        beep();
+        buf.clear();
+        println();
+        redrawLine();
     }
 
     /**
@@ -2535,7 +2535,9 @@ public class ConsoleReader
                                 return accept();
 
                             case ABORT:
-                                abort();
+                                if (searchTerm == null) {
+                                    abort();
+                                }
                                 break;
 
                             case INTERRUPT:
@@ -2945,6 +2947,12 @@ public class ConsoleReader
                              * digit, then clear out the current repeatCount;
                              */
                             repeatCount = 0;
+                        }
+
+                        if (state != State.SEARCH && state != State.FORWARD_SEARCH) {
+                            previousSearchTerm = "";
+                            searchTerm = null;
+                            searchIndex = -1;
                         }
                     }
                 }
