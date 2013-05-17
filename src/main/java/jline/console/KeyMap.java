@@ -167,17 +167,17 @@ public class KeyMap {
         bind( map, "\340\121", Operation.END_OF_HISTORY );
         bind( map, "\340\122", Operation.OVERWRITE_MODE );
         bind( map, "\340\123", Operation.DELETE_CHAR );
-		
-		bind( map, "\000\107", Operation.BEGINNING_OF_LINE );
-		bind( map, "\000\110", Operation.PREVIOUS_HISTORY );
+
+        bind( map, "\000\107", Operation.BEGINNING_OF_LINE );
+        bind( map, "\000\110", Operation.PREVIOUS_HISTORY );
         bind( map, "\000\111", Operation.BEGINNING_OF_HISTORY );
         bind( map, "\000\110", Operation.PREVIOUS_HISTORY );
         bind( map, "\000\113", Operation.BACKWARD_CHAR );
         bind( map, "\000\115", Operation.FORWARD_CHAR );
-		bind( map, "\000\117", Operation.END_OF_LINE );
+        bind( map, "\000\117", Operation.END_OF_LINE );
         bind( map, "\000\120", Operation.NEXT_HISTORY );
-		bind( map, "\000\121", Operation.END_OF_HISTORY );
-		bind( map, "\000\122", Operation.OVERWRITE_MODE );
+        bind( map, "\000\121", Operation.END_OF_HISTORY );
+        bind( map, "\000\122", Operation.OVERWRITE_MODE );
         bind( map, "\000\123", Operation.DELETE_CHAR );
 
         bind( map, "\033[A", Operation.PREVIOUS_HISTORY );
@@ -186,7 +186,6 @@ public class KeyMap {
         bind( map, "\033[D", Operation.BACKWARD_CHAR );
         bind( map, "\033[H", Operation.BEGINNING_OF_LINE );
         bind( map, "\033[F", Operation.END_OF_LINE );
-        
 
         bind( map, "\033OA", Operation.PREVIOUS_HISTORY );
         bind( map, "\033OB", Operation.NEXT_HISTORY );
@@ -196,7 +195,6 @@ public class KeyMap {
         bind( map, "\033OF", Operation.END_OF_LINE );
 
         bind( map, "\033[3~", Operation.DELETE_CHAR);
-		
 
         // MINGW32
         bind( map, "\0340H", Operation.PREVIOUS_HISTORY );
