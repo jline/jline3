@@ -9,6 +9,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class HistorySearchTest {
     private ConsoleReader reader;
@@ -104,6 +105,21 @@ public class HistorySearchTest {
         }));
         readLineResult = reader.readLine();
         assertEquals("", readLineResult);
+        assertEquals(3, history.size());
+    }
+
+    @Test
+    public void testAbortingSearchRetainsCurrentBufferAndPrintsDetails() throws Exception {
+        MemoryHistory history = setupHistory();
+
+        String readLineResult;
+        reader.setInput(new ByteArrayInputStream(new byte[]{
+                'f', KeyMap.CTRL_R, 'f', KeyMap.CTRL_G
+        }));
+        readLineResult = reader.readLine();
+        assertEquals(null, readLineResult);
+        assertTrue(output.toString().contains("(reverse-i-search)`ff':"));
+        assertEquals("ff", reader.getCursorBuffer().toString());
         assertEquals(3, history.size());
     }
 }

@@ -2354,6 +2354,8 @@ public class ConsoleReader
                     switch ( ((Operation) o )) {
                         case ABORT:
                             state = State.NORMAL;
+                            buf.clear();
+                            buf.buffer.append(searchTerm);
                             break;
 
                         case REVERSE_SEARCH_HISTORY:
@@ -2383,13 +2385,21 @@ public class ConsoleReader
                         case BACKWARD_DELETE_CHAR:
                             if (searchTerm.length() > 0) {
                                 searchTerm.deleteCharAt(searchTerm.length() - 1);
-                                searchIndex = searchBackwards(searchTerm.toString());
+                                if (state == State.SEARCH) {
+                                    searchIndex = searchBackwards(searchTerm.toString());
+                                } else {
+                                    searchIndex = searchForwards(searchTerm.toString());
+                                }
                             }
                             break;
 
                         case SELF_INSERT:
                             searchTerm.appendCodePoint(c);
-                            searchIndex = searchBackwards(searchTerm.toString());
+                            if (state == State.SEARCH) {
+                                searchIndex = searchBackwards(searchTerm.toString());
+                            } else {
+                                searchIndex = searchForwards(searchTerm.toString());
+                            }
                             break;
 
                         default:
@@ -2415,6 +2425,7 @@ public class ConsoleReader
                         } else {
                             if (searchIndex == -1) {
                                 beep();
+                                printSearchStatus(searchTerm.toString(), "");
                             } else if (state == State.SEARCH) {
                                 printSearchStatus(searchTerm.toString(), history.get(searchIndex).toString());
                             } else {
