@@ -59,15 +59,18 @@ public class ConsoleReaderTest
         assertEquals(expected, line);
     }
 
+    private ConsoleReader createConsole() throws Exception {
+        return createConsole("");
+    }
+
     private ConsoleReader createConsole(String chars) throws Exception {
-        System.err.println(Configuration.getEncoding());
-        System.err.println(chars);
         return createConsole(chars.getBytes(Configuration.getEncoding()));
     }
 
     private ConsoleReader createConsole(byte[] bytes) throws Exception {
         return createConsole(null, bytes);
     }
+
     private ConsoleReader createConsole(String appName, byte[] bytes) throws Exception {
         InputStream in = new ByteArrayInputStream(bytes);
         output = new ByteArrayOutputStream();
@@ -239,7 +242,7 @@ public class ConsoleReaderTest
 
     @Test
     public void testExpansion() throws Exception {
-        ConsoleReader reader = new ConsoleReader();
+        ConsoleReader reader = createConsole();
         MemoryHistory history = new MemoryHistory();
         history.setMaxSize(3);
         history.add("foo");
@@ -291,7 +294,7 @@ public class ConsoleReaderTest
 
     @Test
     public void testNumericExpansions() throws Exception {
-        ConsoleReader reader = new ConsoleReader();
+        ConsoleReader reader = createConsole();
         MemoryHistory history = new MemoryHistory();
         history.setMaxSize(3);
 
