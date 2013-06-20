@@ -24,8 +24,8 @@
         <version>1.3.0</version>
     </skin>
 
+    <publishDate position="right"/>
     <version position="right"/>
-    <publishDate position="none"/>
 
     <custom>
         <fluidoSkin>
