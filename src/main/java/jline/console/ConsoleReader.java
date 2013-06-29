@@ -146,6 +146,8 @@ public class ConsoleReader
      */
     private String yankBuffer = "";
 
+    private KillRing killRing = new KillRing();
+
     private String encoding;
 
     private boolean recording;
@@ -1789,25 +1791,54 @@ public class ConsoleReader
     }
 
     private boolean deletePreviousWord() throws IOException {
-        while (isDelimiter(buf.current()) && backspace()) {
-            // nothing
+        StringBuilder killed = new StringBuilder();
+        char c;
+
+        while (isDelimiter((c = buf.current()))) {
+            if (c != 0) {
+                killed.append(c);
+                backspace();
+            }
         }
 
-        while (!isDelimiter(buf.current()) && backspace()) {
-            // nothing
+        while (!isDelimiter((c = buf.current()))) {
+            if (c != 0) {
+                killed.append(c);
+            }
+            if (!backspace()) {
+                break;
+            }
         }
 
+        String copy = killed.reverse().toString();
+        killRing.add(copy);
         return true;
     }
 
     private boolean deleteNextWord() throws IOException {
-        while (isDelimiter(buf.nextChar()) && delete()) {
+        StringBuilder killed = new StringBuilder();
+        char c;
 
+        while (isDelimiter((c = buf.nextChar()))) {
+            if (c != 0) {
+                killed.append(c);
+            }
+            if (!delete()) {
+                break;
+            }
         }
 
-        while (!isDelimiter(buf.nextChar()) && delete()) {
-            // nothing
+        while (!isDelimiter((c = buf.nextChar()))) {
+            if (c != 0) {
+                killed.append(c);
+            }
+            if (!delete()) {
+                break;
+            }
         }
+
+        String copy = killed.toString();
+        killRing.add(copy);
 
         return true;
     }
@@ -2250,6 +2281,21 @@ public class ConsoleReader
                 }
 
                 Object o = getKeys().getBound( sb );
+                /*
+                 * The kill ring keeps record of whether or not the
+                 * previous command was a yank or a kill. We reset
+                 * that state here if needed.
+                 */
+                if (!recording && !(o instanceof KeyMap)) {
+                    if (o != Operation.YANK_POP && o != Operation.YANK) {
+                        killRing.resetLastYank();
+                    }
+                    if (o != Operation.KILL_LINE && o != Operation.KILL_WHOLE_LINE
+                        && o != Operation.BACKWARD_KILL_WORD && o != Operation.KILL_WORD) {
+                        killRing.resetLastKill();
+                    }
+                }
+
                 if (o == Operation.DO_LOWERCASE_VERSION) {
                     sb.setLength( sb.length() - 1);
                     sb.append( Character.toLowerCase( (char) c ));
@@ -2462,7 +2508,6 @@ public class ConsoleReader
 
                     if (o instanceof Operation) {
                         Operation op = (Operation)o;
-
                         /*
                          * Current location of the cursor (prior to the operation).
                          * These are used by vi *-to operation (e.g. delete-to)
@@ -2511,6 +2556,14 @@ public class ConsoleReader
 
                             case BEGINNING_OF_LINE:
                                 success = setCursorPosition(0);
+                                break;
+
+                            case YANK:
+                                success = yank();
+                                break;
+
+                            case YANK_POP:
+                                success = yankPop();
                                 break;
 
                             case KILL_LINE: // CTRL-K
@@ -2634,9 +2687,11 @@ public class ConsoleReader
                             case BACKWARD_KILL_WORD:
                                 success = deletePreviousWord();
                                 break;
+
                             case KILL_WORD:
                                 success = deleteNextWord();
                                 break;
+
                             case BEGINNING_OF_HISTORY:
                                 success = history.moveToFirst();
                                 if (success) {
@@ -3335,13 +3390,46 @@ public class ConsoleReader
             return false;
         }
 
-        int num = buf.buffer.length() - cp;
+        int num = len - cp;
         clearAhead(num, 0);
 
-        for (int i = 0; i < num; i++) {
-            buf.buffer.deleteCharAt(len - i - 1);
+        char[] killed = new char[num];
+        buf.buffer.getChars(cp, (cp + num), killed, 0);
+        buf.buffer.delete(cp, (cp + num));
+
+        String copy = new String(killed);
+        killRing.add(copy);
+
+        return true;
+    }
+
+    public boolean yank() throws IOException {
+        String yanked = killRing.yank();
+
+        if (yanked == null) {
+            return false;
+        }
+        putString(yanked);
+        return true;
+    }
+
+    public boolean yankPop() throws IOException {
+        if (!killRing.lastYank()) {
+            return false;
+        }
+        String current = killRing.yank();
+        if (current == null) {
+            // This shouldn't happen.
+            return false;
+        }
+        backspace(current.length());
+        String yanked = killRing.yankPop();
+        if (yanked == null) {
+            // This shouldn't happen.
+            return false;
         }
 
+        putString(yanked);
         return true;
     }
 
