@@ -351,6 +351,38 @@ public class ConsoleReaderTest
         assertEquals("history5", reader.expandEvents("!!"));
     }
 
+    @Test
+    public void testArgsExpansion() throws Exception {
+        ConsoleReader reader = createConsole();
+        MemoryHistory history = new MemoryHistory();
+        history.setMaxSize(3);
+        reader.setHistory(history);
+
+        // we can't go back to previous arguments if there are none
+        try {
+            reader.expandEvents("!$");
+            fail("expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertEquals("!#: event not found", e.getMessage());
+        }
+
+        // if no arguments were given, it should expand to the command itself
+        history.add("ls");
+        assertEquals("ls", reader.expandEvents("!$"));
+
+        // now we can expand to the last argument
+        history.add("ls /home");
+        assertEquals("/home", reader.expandEvents("!$"));
+
+        //we always take the last argument
+        history.add("ls /home /etc");
+        assertEquals("/etc", reader.expandEvents("!$"));
+
+        //make sure we don't add spaces accidentally
+        history.add("ls /home  /foo ");
+        assertEquals("/foo", reader.expandEvents("!$"));
+    }
+
 	/**
 	 * Validates that an 'event not found' IllegalArgumentException is thrown
 	 * for the expansion event.

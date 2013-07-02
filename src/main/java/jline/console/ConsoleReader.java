@@ -680,6 +680,18 @@ public class ConsoleReader
                                     rep = history.get(idx).toString();
                                 }
                                 break;
+                            case '$':
+                                if (history.size() == 0) {
+                                    throw new IllegalArgumentException("!#: event not found");
+                                }
+                                String previous = history.get(history.index() - 1).toString().trim();
+                                int lastSpace = previous.lastIndexOf(' ');
+                                if(lastSpace != -1) {
+                                    rep = previous.substring(lastSpace+1);
+                                } else {
+                                    rep = previous;
+                                }
+                                break;
                             case ' ':
                             case '\t':
                                 sb.append('!');
