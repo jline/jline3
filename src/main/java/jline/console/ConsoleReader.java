@@ -1795,19 +1795,21 @@ public class ConsoleReader
         char c;
 
         while (isDelimiter((c = buf.current()))) {
-            if (c != 0) {
-                killed.append(c);
-                backspace();
+            if (c == 0) {
+                break;
             }
+
+            killed.append(c);
+            backspace();
         }
 
         while (!isDelimiter((c = buf.current()))) {
-            if (c != 0) {
-                killed.append(c);
-            }
-            if (!backspace()) {
+            if (c == 0) {
                 break;
             }
+
+            killed.append(c);
+            backspace();
         }
 
         String copy = killed.reverse().toString();
@@ -1820,21 +1822,19 @@ public class ConsoleReader
         char c;
 
         while (isDelimiter((c = buf.nextChar()))) {
-            if (c != 0) {
-                killed.append(c);
-            }
-            if (!delete()) {
+            if (c == 0) {
                 break;
             }
+            killed.append(c);
+            delete();
         }
 
         while (!isDelimiter((c = buf.nextChar()))) {
-            if (c != 0) {
-                killed.append(c);
-            }
-            if (!delete()) {
+            if (c == 0) {
                 break;
             }
+            killed.append(c);
+            delete();
         }
 
         String copy = killed.toString();
