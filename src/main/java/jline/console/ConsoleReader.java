@@ -1171,10 +1171,13 @@ public class ConsoleReader
      * span of the input line.
      * @param startPos The start position
      * @param endPos The end position.
+     * @param isChange If true, then the delete is part of a change operationg
+     *    (e.g. "c$" is change-to-end-of line, so we first must delete to end 
+     *    of line to start the change
      * @return true if it succeeded, false otherwise
      * @throws IOException
      */
-    private boolean viDeleteTo(int startPos, int endPos) throws IOException {
+    private boolean viDeleteTo(int startPos, int endPos, boolean isChange) throws IOException {
         if (startPos == endPos) {
             return true;
         }
@@ -1189,6 +1192,15 @@ public class ConsoleReader
         buf.cursor = startPos;
         buf.buffer.delete(startPos, endPos);
         drawBuffer(endPos - startPos);
+        
+        // If we are doing a delete operation (e.g. "d$") then don't leave the
+        // cursor dangling off the end. In reality the "isChange" flag is silly
+        // what is really happening is that if we are in "move-mode" then the
+        // cursor can't be moved off the end of the line, but in "edit-mode" it
+        // is ok, but I have no easy way of knowing which mode we are in.
+        if (! isChange && startPos > 0 && startPos == buf.length()) {
+            moveCursor(-1);
+        }
         return true;
     }
 
@@ -2884,6 +2896,11 @@ public class ConsoleReader
                                     state = State.VI_CHANGE_TO;
                                 }
                                 break;
+                            
+                            case VI_KILL_WHOLE_LINE:
+                                success = setCursorPosition(0) && killLine();
+                                consoleKeys.setKeyMap(KeyMap.VI_INSERT);
+                                break;
 
                             case VI_PUT:
                                 success = viPut(count);
@@ -2911,6 +2928,15 @@ public class ConsoleReader
                                         ? readCharacter()
                                         : pushBackChar.pop());
                                 break;
+                            
+                            case VI_DELETE_TO_EOL:
+                                success = viDeleteTo(buf.cursor, buf.buffer.length(), false);
+                                break;
+                                
+                            case VI_CHANGE_TO_EOL:
+                                success = viDeleteTo(buf.cursor, buf.buffer.length(), true);
+                                consoleKeys.setKeyMap(KeyMap.VI_INSERT);
+                                break;
 
                             case EMACS_EDITING_MODE:
                                 consoleKeys.setKeyMap(KeyMap.EMACS);
@@ -2926,10 +2952,10 @@ public class ConsoleReader
                          */
                         if (origState != State.NORMAL) {
                             if (origState == State.VI_DELETE_TO) {
-                                success = viDeleteTo(cursorStart, buf.cursor);
+                                success = viDeleteTo(cursorStart, buf.cursor, false);
                             }
                             else if (origState == State.VI_CHANGE_TO) {
-                                success = viDeleteTo(cursorStart, buf.cursor);
+                                success = viDeleteTo(cursorStart, buf.cursor, true);
                                 consoleKeys.setKeyMap(KeyMap.VI_INSERT);
                             }
                             else if (origState == State.VI_YANK_TO) {

@@ -484,6 +484,45 @@ public class ViMoveModeTest
     }
     
     @Test
+    public void testD() throws Exception {
+        // D is a vim extension for delete-to-end-of-line
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("banana"))
+            .escape()
+            .left(2)
+            .append("Dadaid")
+            .enter();
+        assertLine("bandaid", b, false);
+        assertTrue(console.isKeyMap(KeyMap.VI_INSERT));
+    }
+    
+    @Test
+    public void testC() throws Exception {
+        // C is a vim extension for change-to-end-of-line
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("yogurt"))
+            .escape()
+            .left(3)
+            .append("Cyo")
+            .enter();
+        assertLine("yoyo", b, false);
+        assertTrue(console.isKeyMap(KeyMap.VI_INSERT));
+    }
+    
+    @Test
+    public void testS() throws Exception {
+        // S is a vim extension that is a synonum for 'cc' (clear whole line)
+        console.setKeyMap(KeyMap.VI_INSERT);
+        Buffer b = (new Buffer("great lakes brewery"))
+            .escape()
+            .left(3)
+            .append("Sdogfishhead")
+            .enter();
+        assertLine("dogfishhead", b, false);
+        assertTrue(console.isKeyMap(KeyMap.VI_INSERT));
+    }
+    
+    @Test
     public void testEndOfLine() throws Exception {
         /*
          * The $ key causes the cursor to move to the end of the line

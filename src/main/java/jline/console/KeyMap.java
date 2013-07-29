@@ -502,8 +502,8 @@ public class KeyMap {
                         null,                               /* @ */
                         Operation.VI_APPEND_EOL,            /* A */
                         Operation.VI_PREV_WORD,             /* B */
-                        Operation.VI_CHANGE_TO,             /* C */
-                        Operation.VI_DELETE_TO,             /* D */
+                        Operation.VI_CHANGE_TO_EOL,         /* C */
+                        Operation.VI_DELETE_TO_EOL,         /* D */
                         Operation.VI_END_WORD,              /* E */
                         Operation.VI_CHAR_SEARCH,           /* F */
                         /* I need to read up on what this does */
@@ -520,7 +520,7 @@ public class KeyMap {
                         null,                               /* Q */
                         /* TODO */
                         Operation.VI_REPLACE,               /* R */
-                        Operation.VI_SUBST,                 /* S */
+                        Operation.VI_KILL_WHOLE_LINE,       /* S */
                         Operation.VI_CHAR_SEARCH,           /* T */
                         /* TODO */
                         Operation.REVERT_LINE,              /* U */
