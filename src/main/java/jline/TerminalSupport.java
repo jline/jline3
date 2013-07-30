@@ -42,6 +42,9 @@ public abstract class TerminalSupport
     }
 
     public void init() throws Exception {
+        if (shutdownTask != null) {
+            ShutdownHooks.remove(shutdownTask);
+        }
         // Register a task to restore the terminal on shutdown
         this.shutdownTask = ShutdownHooks.add(new Task()
         {
@@ -54,6 +57,7 @@ public abstract class TerminalSupport
     public void restore() throws Exception {
         TerminalFactory.resetIf(this);
         ShutdownHooks.remove(shutdownTask);
+        shutdownTask = null;
     }
 
     public void reset() throws Exception {
