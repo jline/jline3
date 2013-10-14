@@ -97,6 +97,9 @@ public class UnixTerminal
             super.setEchoEnabled(enabled);
         }
         catch (Exception e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             Log.error("Failed to ", (enabled ? "enable" : "disable"), " echo", e);
         }
     }

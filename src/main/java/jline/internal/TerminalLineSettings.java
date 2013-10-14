@@ -94,7 +94,10 @@ public final class TerminalLineSettings
             }
             return this.getProperty(name, config);
         } catch (Exception e) {
-            Log.warn("Failed to query stty ", name, e);            
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            Log.warn("Failed to query stty ", name, e);
             return -1;
         }
     }
