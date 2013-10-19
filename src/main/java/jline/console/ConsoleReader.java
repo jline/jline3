@@ -2560,6 +2560,7 @@ public class ConsoleReader
                                     flush();
                                     String partialLine = buf.buffer.toString();
                                     buf.clear();
+                                    history.moveToEnd();
                                     throw new UserInterruptException(partialLine);
                                 }
                                 break;
