@@ -564,6 +564,16 @@ public class ConsoleReader
         setBuffer(String.valueOf(buffer));
     }
 
+    private void setBufferKeepPos(final String buffer) throws IOException {
+        int pos = buf.cursor;
+        setBuffer(buffer);
+        setCursorPosition(pos);
+    }
+
+    private void setBufferKeepPos(final CharSequence buffer) throws IOException {
+        setBufferKeepPos(String.valueOf(buffer));
+    }
+
     /**
      * Output put the prompt + the current buffer
      */
@@ -2373,7 +2383,6 @@ public class ConsoleReader
                             break;
 
                         case REVERSE_SEARCH_HISTORY:
-                        case HISTORY_SEARCH_BACKWARD:
                             state = State.SEARCH;
                             if (searchTerm.length() == 0) {
                                 searchTerm.append(previousSearchTerm);
@@ -2385,7 +2394,6 @@ public class ConsoleReader
                             break;
 
                         case FORWARD_SEARCH_HISTORY:
-                        case HISTORY_SEARCH_FORWARD:
                             state = State.FORWARD_SEARCH;
                             if (searchTerm.length() == 0) {
                                 searchTerm.append(previousSearchTerm);
@@ -2663,8 +2671,43 @@ public class ConsoleReader
                                 }
                                 break;
 
-                            case REVERSE_SEARCH_HISTORY:
                             case HISTORY_SEARCH_BACKWARD:
+                                searchTerm = new StringBuffer(buf.upToCursor());
+                                searchIndex = searchBackwards(searchTerm.toString(), history.index(), true);
+
+                                if (searchIndex == -1) {
+                                    beep();
+                                } else {
+                                    // Maintain cursor position while searching.
+                                    success = history.moveTo(searchIndex);
+                                    if (success) {
+                                        setBufferKeepPos(history.current());
+                                    }
+                                }
+                                break;
+
+                            case HISTORY_SEARCH_FORWARD:
+                                searchTerm = new StringBuffer(buf.upToCursor());
+                                int index = history.index() + 1;
+
+                                if (index == history.size()) {
+                                    history.moveToEnd();
+                                    setBufferKeepPos(searchTerm.toString());
+                                } else if (index < history.size()) {
+                                    searchIndex = searchForwards(searchTerm.toString(), index, true);
+                                    if (searchIndex == -1) {
+                                        beep();
+                                    } else {
+                                        // Maintain cursor position while searching.
+                                        success = history.moveTo(searchIndex);
+                                        if (success) {
+                                            setBufferKeepPos(history.current());
+                                        }
+                                    }
+                                }
+                                break;
+
+                            case REVERSE_SEARCH_HISTORY:
                                 if (searchTerm != null) {
                                     previousSearchTerm = searchTerm.toString();
                                 }
@@ -2684,7 +2727,6 @@ public class ConsoleReader
                                 break;
 
                             case FORWARD_SEARCH_HISTORY:
-                            case HISTORY_SEARCH_FORWARD:
                                 if (searchTerm != null) {
                                     previousSearchTerm = searchTerm.toString();
                                 }
@@ -3737,6 +3779,10 @@ public class ConsoleReader
     }
 
     public int searchForwards(String searchTerm, int startIndex, boolean startsWith) {
+        if (startIndex >= history.size()) {
+            startIndex = history.size() - 1;
+        }
+
         ListIterator<History.Entry> it = history.entries(startIndex);
 
         if (searchIndex != -1 && it.hasNext()) {
