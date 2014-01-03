@@ -230,7 +230,7 @@ public class ConsoleReader
 
         this.inputrcUrl = getInputRc();
 
-        consoleKeys = new ConsoleKeys(appName, inputrcUrl);
+        consoleKeys = new ConsoleKeys(this.appName, inputrcUrl);
     }
 
     private URL getInputRc() throws IOException {
