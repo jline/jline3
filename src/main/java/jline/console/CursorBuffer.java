@@ -106,6 +106,14 @@ public class CursorBuffer
         return true;
     }
 
+    public String upToCursor() {
+        if (cursor <= 0) {
+            return "";
+        }
+
+        return buffer.substring(0, cursor);
+    }
+
     @Override
     public String toString() {
         return buffer.toString();
