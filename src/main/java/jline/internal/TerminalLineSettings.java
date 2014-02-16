@@ -43,12 +43,14 @@ public final class TerminalLineSettings
     private String shCommand;
 
     private String config;
+    private String initialConfig;
 
     private long configLastFetched;
 
     public TerminalLineSettings() throws IOException, InterruptedException {
         sttyCommand = Configuration.getString(JLINE_STTY, DEFAULT_STTY);
         shCommand = Configuration.getString(JLINE_SH, DEFAULT_SH);
+        initialConfig = get("-g").trim();
         config = get("-a");
         configLastFetched = System.currentTimeMillis();
 
@@ -65,7 +67,7 @@ public final class TerminalLineSettings
     }
 
     public void restore() throws IOException, InterruptedException {
-        set("sane");
+        set(initialConfig);
     }
 
     public String get(final String args) throws IOException, InterruptedException {
