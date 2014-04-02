@@ -194,6 +194,8 @@ public class KeyMap {
         bind( map, "\033OH", Operation.BEGINNING_OF_LINE );
         bind( map, "\033OF", Operation.END_OF_LINE );
 
+        bind( map, "\033[1~", Operation.BEGINNING_OF_LINE);
+        bind( map, "\033[4~", Operation.END_OF_LINE);
         bind( map, "\033[3~", Operation.DELETE_CHAR);
 
         // MINGW32
