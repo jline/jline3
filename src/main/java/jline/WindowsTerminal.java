@@ -253,6 +253,12 @@ public class WindowsTerminal
                         sb.append(escapeSequence);
                     }
                 }
+            } else {
+                // key up event
+                // support ALT+NumPad input method
+                if (keyEvent.keyCode == 0x12/*VK_MENU ALT key*/ && keyEvent.uchar > 0) {
+                    sb.append(keyEvent.uchar);
+                }
             }
         }
         return sb.toString().getBytes();
