@@ -60,4 +60,6 @@ public interface Terminal
 
     void setEchoEnabled(boolean enabled);
 
+    String getOutputEncoding();
+
 }

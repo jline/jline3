@@ -16,6 +16,7 @@ import java.io.InputStream;
 import jline.internal.Configuration;
 import jline.internal.Log;
 import org.fusesource.jansi.internal.WindowsSupport;
+import org.fusesource.jansi.internal.Kernel32;
 import static org.fusesource.jansi.internal.Kernel32.*;
 
 import static jline.WindowsTerminal.ConsoleMode.ENABLE_ECHO_INPUT;
@@ -180,6 +181,12 @@ public class WindowsTerminal
         return false;
     }
 
+    @Override
+    public String getOutputEncoding() {
+        int codepage = getConsoleOutputCodepage();
+        return "cp" + codepage;
+    }
+
     //
     // Native Bits
     //
@@ -262,6 +269,10 @@ public class WindowsTerminal
             }
         }
         return sb.toString().getBytes();
+    }
+
+    private int getConsoleOutputCodepage() {
+        return Kernel32.GetConsoleOutputCP();
     }
 
     private int getWindowsTerminalWidth() {
