@@ -115,14 +115,14 @@ public class WindowsTerminal
             setConsoleMode(getConsoleMode() |
                 ENABLE_ECHO_INPUT.code |
                 ENABLE_LINE_INPUT.code |
-                //ENABLE_PROCESSED_INPUT.code |
+                ENABLE_PROCESSED_INPUT.code |
                 ENABLE_WINDOW_INPUT.code);
         }
         else {
             setConsoleMode(getConsoleMode() &
                 ~(ENABLE_LINE_INPUT.code |
                     ENABLE_ECHO_INPUT.code |
-                    //ENABLE_PROCESSED_INPUT.code |
+                    ENABLE_PROCESSED_INPUT.code |
                     ENABLE_WINDOW_INPUT.code));
         }
         super.setEchoEnabled(enabled);
