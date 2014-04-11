@@ -16,6 +16,8 @@ import java.io.InputStream;
 import jline.internal.Configuration;
 import jline.internal.Log;
 import org.fusesource.jansi.internal.WindowsSupport;
+import org.fusesource.jansi.internal.Kernel32;
+import static org.fusesource.jansi.internal.Kernel32.*;
 
 import static jline.WindowsTerminal.ConsoleMode.ENABLE_ECHO_INPUT;
 import static jline.WindowsTerminal.ConsoleMode.ENABLE_LINE_INPUT;
@@ -146,9 +148,18 @@ public class WindowsTerminal
     public InputStream wrapInIfNeeded(InputStream in) throws IOException {
         if (directConsole && isSystemIn(in)) {
             return new InputStream() {
+                private byte[] buf = null;
+                int bufIdx = 0;
+
                 @Override
                 public int read() throws IOException {
-                    return readByte();
+                    while (buf == null || bufIdx == buf.length) {
+                        buf = readConsoleInput();
+                        bufIdx = 0;
+                    }
+                    int c = buf[bufIdx] & 0xFF;
+                    bufIdx++;
+                    return c;
                 }
             };
         } else {
@@ -170,6 +181,12 @@ public class WindowsTerminal
         return false;
     }
 
+    @Override
+    public String getOutputEncoding() {
+        int codepage = getConsoleOutputCodepage();
+        return "cp" + codepage;
+    }
+
     //
     // Native Bits
     //
@@ -181,8 +198,81 @@ public class WindowsTerminal
         WindowsSupport.setConsoleMode(mode);
     }
 
-    private int readByte() {
-        return WindowsSupport.readByte();
+    private byte[] readConsoleInput() {
+        // XXX does how many events to read in one call matter?
+        INPUT_RECORD[] events = null;
+        try {
+            events = WindowsSupport.readConsoleInput(1);
+        } catch (IOException e) {
+            Log.debug("read Windows console input error: ", e);
+        }
+        if (events == null) {
+            return new byte[0];
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < events.length; i++ ) {
+            KEY_EVENT_RECORD keyEvent = events[i].keyEvent;
+            //Log.trace(keyEvent.keyDown? "KEY_DOWN" : "KEY_UP", "key code:", keyEvent.keyCode, "char:", (long)keyEvent.uchar); 
+            if (keyEvent.keyDown) {
+                if (keyEvent.uchar > 0) {
+                    sb.append(keyEvent.uchar);
+                    continue;
+                }
+                // virtual keycodes: http://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
+                // just add support for basic editing keys (no control state, no numpad keys)
+                String escapeSequence = null;
+                switch (keyEvent.keyCode) {
+                case 0x21: // VK_PRIOR PageUp
+                    escapeSequence = "\u001B[5~";
+                    break;
+                case 0x22: // VK_NEXT PageDown
+                    escapeSequence = "\u001B[6~";
+                    break;
+                case 0x23: // VK_END
+                    escapeSequence = "\u001B[4~";
+                    break;
+                case 0x24: // VK_HOME
+                    escapeSequence = "\u001B[1~";
+                    break;
+                case 0x25: // VK_LEFT
+                    escapeSequence = "\u001B[D";
+                    break;
+                case 0x26: // VK_UP
+                    escapeSequence = "\u001B[A";
+                    break;
+                case 0x27: // VK_RIGHT
+                    escapeSequence = "\u001B[C";
+                    break;
+                case 0x28: // VK_DOWN
+                    escapeSequence = "\u001B[B";
+                    break;
+                case 0x2D: // VK_INSERT
+                    escapeSequence = "\u001B[2~";
+                    break;
+                case 0x2E: // VK_DELETE
+                    escapeSequence = "\u001B[3~";
+                    break;
+                default:
+                    break;
+                }
+                if (escapeSequence != null) {
+                    for (int k = 0; k < keyEvent.repeatCount; k++) {
+                        sb.append(escapeSequence);
+                    }
+                }
+            } else {
+                // key up event
+                // support ALT+NumPad input method
+                if (keyEvent.keyCode == 0x12/*VK_MENU ALT key*/ && keyEvent.uchar > 0) {
+                    sb.append(keyEvent.uchar);
+                }
+            }
+        }
+        return sb.toString().getBytes();
+    }
+
+    private int getConsoleOutputCodepage() {
+        return Kernel32.GetConsoleOutputCP();
     }
 
     private int getWindowsTerminalWidth() {

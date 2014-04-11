@@ -225,7 +225,8 @@ public class ConsoleReader
         this.appName = appName != null ? appName : "JLine";
         this.encoding = encoding != null ? encoding : Configuration.getEncoding();
         this.terminal = term != null ? term : TerminalFactory.get();
-        this.out = new OutputStreamWriter(terminal.wrapOutIfNeeded(out), this.encoding);
+        String outEncoding = terminal.getOutputEncoding() != null? terminal.getOutputEncoding() : this.encoding;
+        this.out = new OutputStreamWriter(terminal.wrapOutIfNeeded(out), outEncoding);
         setInput( in );
 
         this.inputrcUrl = getInputRc();

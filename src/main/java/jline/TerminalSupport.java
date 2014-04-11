@@ -109,4 +109,9 @@ public abstract class TerminalSupport
     public InputStream wrapInIfNeeded(InputStream in) throws IOException {
         return in;
     }
+
+    public String getOutputEncoding() {
+        // null for unknown
+        return null;
+    }
 }
