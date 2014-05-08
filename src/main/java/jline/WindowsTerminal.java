@@ -184,7 +184,17 @@ public class WindowsTerminal
     @Override
     public String getOutputEncoding() {
         int codepage = getConsoleOutputCodepage();
-        return "cp" + codepage;
+        //http://docs.oracle.com/javase/6/docs/technotes/guides/intl/encoding.doc.html
+        String charsetMS = "ms" + codepage;
+        if (java.nio.charset.Charset.isSupported(charsetMS)) {
+            return charsetMS;
+        }
+        String charsetCP = "cp" + codepage;
+        if (java.nio.charset.Charset.isSupported(charsetCP)) {
+            return charsetCP;
+        }
+        Log.debug("can't figure out the Java Charset of this code page (" + codepage + ")...");
+        return super.getOutputEncoding();
     }
 
     //
