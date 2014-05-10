@@ -70,7 +70,7 @@ public class FileNameCompleter
         else if (translated.startsWith("~")) {
             translated = homeDir.getParentFile().getAbsolutePath();
         }
-        else if (!(translated.startsWith(separator()))) {
+        else if (!(new File(translated).isAbsolute())) {
             String cwd = getUserDir().getAbsolutePath();
             translated = cwd + separator() + translated;
         }
