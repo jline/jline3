@@ -34,6 +34,14 @@ public class EditLineTest
     }
 
     @Test
+    public void testDeleteNextWord() throws Exception {
+        Buffer b = new Buffer("This is a test").op(END_OF_LINE);
+
+        assertBuffer("This is a test", b = b.op(KILL_WORD));
+        assertBuffer("This is a ", b = b.op(BACKWARD_WORD).op(KILL_WORD));
+    }
+
+    @Test
     public void testMoveToEnd() throws Exception {
         Buffer b = new Buffer("This is a test");
 

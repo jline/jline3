@@ -3367,29 +3367,14 @@ public class ConsoleReader
      * @return true if successful
      */
     public final boolean delete() throws IOException {
-        return delete(1) == 1;
-    }
-
-    // FIXME: delete(int) only used by above + the return is always 1 and num is ignored
-
-    /**
-     * Issue <em>num</em> deletes.
-     *
-     * @return the number of characters backed up
-     */
-    private int delete(final int num) throws IOException {
-        // TODO: Try to use jansi for this
-
-        /* Commented out because of DWA-2949:
-        if (buf.cursor == 0) {
-            return 0;
+        if (buf.cursor == buf.buffer.length()) {
+          return false;
         }
-        */
 
         buf.buffer.delete(buf.cursor, buf.cursor + 1);
         drawBuffer(1);
 
-        return 1;
+        return true;
     }
 
     /**

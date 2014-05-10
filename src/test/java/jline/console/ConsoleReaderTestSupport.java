@@ -117,6 +117,7 @@ public abstract class ConsoleReaderTestSupport
             case BACKWARD_WORD:        return "\u001Bb";
             case BEGINNING_OF_LINE:    return "\033[H";
             case END_OF_LINE:          return "\u0005";
+            case KILL_WORD:            return "\u001Bd";
             case UNIX_WORD_RUBOUT:     return "\u0017";
             case ACCEPT_LINE:          return "\n";
             case PREVIOUS_HISTORY:     return "\033[A";
