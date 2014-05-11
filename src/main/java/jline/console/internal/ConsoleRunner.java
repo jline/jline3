@@ -37,7 +37,7 @@ public class ConsoleRunner
     // FIXME: This is really ugly... re-write this
 
     public static void main(final String[] args) throws Exception {
-        List<String> argList = Arrays.asList(args);
+        List<String> argList = new ArrayList(Arrays.asList(args));
         if (argList.size() == 0) {
             usage();
             return;
