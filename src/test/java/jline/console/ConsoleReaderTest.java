@@ -397,6 +397,22 @@ public class ConsoleReaderTest
     }
 
     @Test
+    public void testIllegalExpansionDoesntCrashReadLine() throws Exception {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        InputStream in = new ByteArrayInputStream("!f\r\n".getBytes());
+        ConsoleReader reader = new ConsoleReader(in, baos);
+        reader.setExpandEvents(true);
+        reader.setBellEnabled(true);
+        MemoryHistory history = new MemoryHistory();
+        reader.setHistory(history);
+
+        String line = reader.readLine();
+
+        assertEquals("", line);
+        assertEquals(0, history.size());
+    }
+
+    @Test
     public void testStoringHistory() throws Exception {
         ConsoleReader reader = createConsole("foo ! bar\r\n");
         MemoryHistory history = new MemoryHistory();

@@ -612,11 +612,18 @@ public class ConsoleReader
         String historyLine = str;
 
         if (expandEvents) {
-            str = expandEvents(str);
-            // all post-expansion occurrences of '!' must have been escaped, so re-add escape to each
-            historyLine = str.replace("!", "\\!");
-            // only leading '^' results in expansion, so only re-add escape for that case
-            historyLine = historyLine.replaceAll("^\\^", "\\\\^");
+            try {
+                str = expandEvents(str);
+                // all post-expansion occurrences of '!' must have been escaped, so re-add escape to each
+                historyLine = str.replace("!", "\\!");
+                // only leading '^' results in expansion, so only re-add escape for that case
+                historyLine = historyLine.replaceAll("^\\^", "\\\\^");
+            } catch(IllegalArgumentException e) {
+                Log.error("Could not expand event", e);
+                beep();
+                buf.clear();
+                str = "";
+            }
         }
 
         // we only add it to the history if the buffer is not empty
