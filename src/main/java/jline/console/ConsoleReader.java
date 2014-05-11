@@ -682,7 +682,7 @@ public class ConsoleReader
                                 break;
                             case '$':
                                 if (history.size() == 0) {
-                                    throw new IllegalArgumentException("!#: event not found");
+                                    throw new IllegalArgumentException("!$: event not found");
                                 }
                                 String previous = history.get(history.index() - 1).toString().trim();
                                 int lastSpace = previous.lastIndexOf(' ');

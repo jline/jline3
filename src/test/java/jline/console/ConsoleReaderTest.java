@@ -363,7 +363,7 @@ public class ConsoleReaderTest
             reader.expandEvents("!$");
             fail("expected IllegalArgumentException");
         } catch (IllegalArgumentException e) {
-            assertEquals("!#: event not found", e.getMessage());
+            assertEquals("!$: event not found", e.getMessage());
         }
 
         // if no arguments were given, it should expand to the command itself
