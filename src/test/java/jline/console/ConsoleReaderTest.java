@@ -25,6 +25,7 @@ import org.junit.Test;
 
 import static jline.console.ConsoleReaderTest.WindowsKey.*;
 import static org.junit.Assert.*;
+import static org.junit.Assume.*;
 
 /**
  * Tests for the {@link ConsoleReader}.
@@ -116,9 +117,7 @@ public class ConsoleReaderTest
     @Test
     public void testDeleteOnWindowsTerminal() throws Exception {
         // test only works on Windows
-        if (!(TerminalFactory.get() instanceof WindowsTerminal)) {
-            return;
-        }
+        assumeTrue(TerminalFactory.get() instanceof WindowsTerminal);
 
         char[] characters = new char[]{
             'S', 's',
@@ -133,9 +132,7 @@ public class ConsoleReaderTest
     @Test
     public void testNumpadDeleteOnWindowsTerminal() throws Exception {
         // test only works on Windows
-        if (!(TerminalFactory.get() instanceof WindowsTerminal)) {
-            return;
-        }
+        assumeTrue(TerminalFactory.get() instanceof WindowsTerminal);
 
         char[] characters = new char[]{
             'S', 's',
@@ -150,9 +147,7 @@ public class ConsoleReaderTest
     @Test
     public void testHomeKeyOnWindowsTerminal() throws Exception {
         // test only works on Windows
-        if (!(TerminalFactory.get() instanceof WindowsTerminal)) {
-            return;
-        }
+        assumeTrue(TerminalFactory.get() instanceof WindowsTerminal);
 
         char[] characters = new char[]{
             'S', 's',
@@ -166,9 +161,7 @@ public class ConsoleReaderTest
     @Test
     public void testEndKeyOnWindowsTerminal() throws Exception {
         // test only works on Windows
-        if (!(TerminalFactory.get() instanceof WindowsTerminal)) {
-            return;
-        }
+        assumeTrue(TerminalFactory.get() instanceof WindowsTerminal);
 
         char[] characters = new char[]{
             'S', 's',
@@ -183,9 +176,7 @@ public class ConsoleReaderTest
     @Test
     public void testPageUpOnWindowsTerminal() throws Exception {
         // test only works on Windows
-        if (!(TerminalFactory.get() instanceof WindowsTerminal)) {
-            return;
-        }
+        assumeTrue(TerminalFactory.get() instanceof WindowsTerminal);
 
         char[] characters = new char[]{
             (char) SPECIAL_KEY_INDICATOR.code,
@@ -197,9 +188,7 @@ public class ConsoleReaderTest
     @Test
     public void testPageDownOnWindowsTerminal() throws Exception {
         // test only works on Windows
-        if (!(TerminalFactory.get() instanceof WindowsTerminal)) {
-            return;
-        }
+        assumeTrue(TerminalFactory.get() instanceof WindowsTerminal);
 
         char[] characters = new char[]{
             (char) SPECIAL_KEY_INDICATOR.code,
@@ -211,9 +200,7 @@ public class ConsoleReaderTest
     @Test
     public void testEscapeOnWindowsTerminal() throws Exception {
         // test only works on Windows
-        if (!(TerminalFactory.get() instanceof WindowsTerminal)) {
-            return;
-        }
+        assumeTrue(TerminalFactory.get() instanceof WindowsTerminal);
 
         char[] characters = new char[]{
             's', 's', 's',
@@ -226,9 +213,7 @@ public class ConsoleReaderTest
     @Test
     public void testInsertOnWindowsTerminal() throws Exception {
         // test only works on Windows
-        if (!(TerminalFactory.get() instanceof WindowsTerminal)) {
-            return;
-        }
+        assumeTrue(TerminalFactory.get() instanceof WindowsTerminal);
 
         char[] characters = new char[]{
             'o', 'p', 's',
