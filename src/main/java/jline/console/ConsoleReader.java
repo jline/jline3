@@ -475,7 +475,20 @@ public class ConsoleReader
             return false;
         }
 
-        backspaceAll();
+        StringBuilder killed = new StringBuilder();
+
+        while (buf.cursor > 0) {
+            char c = buf.current();
+            if (c == 0) {
+                break;
+            }
+
+            killed.append(c);
+            backspace();
+        }
+
+        String copy = killed.reverse().toString();
+        killRing.addBackwards(copy);
 
         return true;
     }
@@ -1479,19 +1492,40 @@ public class ConsoleReader
      * @throws IOException
      */
     private boolean unixWordRubout(int count) throws IOException {
-        for (; count > 0; --count) {
-            if (buf.cursor == 0)
-                return false;
+        boolean success = true;
+        StringBuilder killed = new StringBuilder();
 
-            while (isWhitespace(buf.current()) && backspace()) {
-                // nothing
+        for (; count > 0; --count) {
+            if (buf.cursor == 0) {
+                success = false;
+                break;
             }
-            while (!isWhitespace(buf.current()) && backspace()) {
-                // nothing
+
+            while (isWhitespace(buf.current())) {
+                char c = buf.current();
+                if (c == 0) {
+                    break;
+                }
+
+                killed.append(c);
+                backspace();
+            }
+
+            while (!isWhitespace(buf.current())) {
+                char c = buf.current();
+                if (c == 0) {
+                    break;
+                }
+
+                killed.append(c);
+                backspace();
             }
         }
 
-        return true;
+        String copy = killed.reverse().toString();
+        killRing.addBackwards(copy);
+
+        return success;
     }
 
     private String insertComment(boolean isViMode) throws IOException {
@@ -1813,7 +1847,7 @@ public class ConsoleReader
         }
 
         String copy = killed.reverse().toString();
-        killRing.add(copy);
+        killRing.addBackwards(copy);
         return true;
     }
 
@@ -2291,7 +2325,8 @@ public class ConsoleReader
                         killRing.resetLastYank();
                     }
                     if (o != Operation.KILL_LINE && o != Operation.KILL_WHOLE_LINE
-                        && o != Operation.BACKWARD_KILL_WORD && o != Operation.KILL_WORD) {
+                        && o != Operation.BACKWARD_KILL_WORD && o != Operation.KILL_WORD
+                        && o != Operation.UNIX_LINE_DISCARD && o != Operation.UNIX_WORD_RUBOUT) {
                         killRing.resetLastKill();
                     }
                 }
