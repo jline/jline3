@@ -85,6 +85,28 @@ public final class KillRing {
     }
 
     /**
+     * Adds the string to the kill-ring product of killing
+     * backwards. If the previous command was a kill text one then
+     * adds the text at the beginning of the previous kill to avoid
+     * that two consecutive backwards kills followed by a yank leaves
+     * things reversed.
+     */
+    public void addBackwards(String str) {
+        lastYank = false;
+
+        if (lastKill) {
+            if (slots[head] != null) {
+                slots[head] = str + slots[head];
+                return;
+            }
+        }
+
+        lastKill = true;
+        next();
+        slots[head] = str;
+    }
+
+    /**
      * Yanks a previously killed text. Returns {@code null} if the
      * ring is empty.
      */
