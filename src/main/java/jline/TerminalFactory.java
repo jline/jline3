@@ -42,7 +42,7 @@ public class TerminalFactory
 
     public static final String FALSE = "false";
 
-    private static final InheritableThreadLocal<Terminal> holder = new InheritableThreadLocal<Terminal>();
+    private static Terminal term = null;
 
     public static synchronized Terminal create() {
         if (Log.TRACE) {
@@ -109,11 +109,11 @@ public class TerminalFactory
     }
 
     public static synchronized void reset() {
-        holder.remove();
+        term = null;
     }
 
     public static synchronized void resetIf(final Terminal t) {
-        if (holder.get() == t) {
+        if(t == term) {
             reset();
         }
     }
@@ -154,12 +154,10 @@ public class TerminalFactory
     }
 
     public static synchronized Terminal get() {
-        Terminal t = holder.get();
-        if (t == null) {
-            t = create();
-            holder.set(t);
+        if (term == null) {
+            term = create();
         }
-        return t;
+        return term;
     }
 
     public static Terminal getFlavor(final Flavor flavor) throws Exception {
