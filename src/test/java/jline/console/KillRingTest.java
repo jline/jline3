@@ -8,6 +8,7 @@
  */
 package jline.console;
 
+import static jline.console.Operation.*;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -15,7 +16,7 @@ import static org.junit.Assert.*;
 /**
  * Tests for the {@link KillRing}.
  */
-public class KillRingTest {
+public class KillRingTest extends ConsoleReaderTestSupport {
 
     @Test
     public void testEmptyKillRing() {
@@ -118,5 +119,53 @@ public class KillRingTest {
         yanked = killRing.yankPop();
         assertNotNull(yanked);
         assertEquals(yanked, "baz");
+    }
+
+    // Those tests are run using a buffer.
+
+    @Test
+    public void testBufferEmptyRing() throws Exception {
+        Buffer b = new Buffer("This is a test");
+        assertBuffer("This is a test", b = b.op(BACKWARD_WORD));
+        assertBuffer("This is a test", b = b.op(YANK));
+    }
+
+    @Test
+    public void testBufferWordRuboutOnce() throws Exception {
+        Buffer b = new Buffer("This is a test");
+        assertBuffer("This is a ", b = b.op(UNIX_WORD_RUBOUT));
+        assertBuffer("This is a test", b = b.op(YANK));
+    }
+
+    @Test
+    public void testBufferWordRuboutTwice() throws Exception {
+        Buffer b = new Buffer("This is a test");
+        assertBuffer("This is a ", b = b.op(UNIX_WORD_RUBOUT));
+        assertBuffer("This is ", b = b.op(UNIX_WORD_RUBOUT));
+        assertBuffer("This is a test", b = b.op(YANK));
+    }
+
+    @Test
+    public void testBufferYankPop() throws Exception {
+        Buffer b = new Buffer("This is a test");
+        b = b.op(BACKWARD_WORD);
+        b = b.op(BACKWARD_WORD);
+        assertBuffer("This a test", b = b.op(UNIX_WORD_RUBOUT));
+        assertBuffer("This a test", b = b.op(BACKWARD_WORD));
+        assertBuffer(" a test", b = b.op(KILL_WORD));
+        assertBuffer("This a test", b = b.op(YANK));
+        assertBuffer("is  a test", b = b.op(YANK_POP));
+    }
+
+    @Test
+    public void testBufferMixedKillsAndYank() throws Exception {
+        Buffer b = new Buffer("This is a test");
+        b = b.op(BACKWARD_WORD);
+        b = b.op(BACKWARD_WORD);
+        assertBuffer("This is  test", b = b.op(KILL_WORD));
+        assertBuffer("This  test", b = b.op(BACKWARD_KILL_WORD));
+        assertBuffer("This ", b = b.op(KILL_WORD));
+        assertBuffer("", b = b.op(BACKWARD_KILL_WORD));
+        assertBuffer("This is a test", b = b.op(YANK));
     }
 }
