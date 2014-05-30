@@ -115,7 +115,7 @@ public final class TerminalLineSettings
      */
     protected static int getProperty(String name, String stty) {
         // try the first kind of regex
-        Pattern pattern = Pattern.compile(name + "\\s+=\\s+([^;]*)[;\\n\\r]");
+        Pattern pattern = Pattern.compile(name + "\\s+=\\s+(.*?)[;\\n\\r]");
         Matcher matcher = pattern.matcher(stty);
         if (!matcher.find()) {
             // try a second kind of regex
