@@ -566,6 +566,16 @@ public class ViMoveModeTest
             .enter();
         assertLine("chicken sushimiicken sushimi", b, false);
     }
+
+    @Test
+    public void firstPrintable() throws Exception {
+      console.setKeyMap(KeyMap.VI_INSERT);
+      Buffer b = (new Buffer(" foo bar"))
+        .escape()
+        .append("^dw")
+        .enter();
+      assertLine(" bar", b, false);
+    }
     
     @Test
     public void testMatch() throws Exception {

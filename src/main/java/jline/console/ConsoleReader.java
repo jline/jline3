@@ -2890,6 +2890,10 @@ public class ConsoleReader
                                 }
                                 break;
 
+                            case VI_FIRST_PRINT:
+                                success = setCursorPosition(0) && viNextWord(1);
+                                break;
+
                             case VI_PREV_WORD:
                                 success = viPreviousWord(count);
                                 break;
