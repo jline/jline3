@@ -56,8 +56,10 @@ public abstract class TerminalSupport
 
     public void restore() throws Exception {
         TerminalFactory.resetIf(this);
-        ShutdownHooks.remove(shutdownTask);
-        shutdownTask = null;
+        if (shutdownTask != null) {
+          ShutdownHooks.remove(shutdownTask);
+          shutdownTask = null;
+        }
     }
 
     public void reset() throws Exception {
@@ -79,7 +81,7 @@ public abstract class TerminalSupport
     }
 
     /**
-     * Subclass to change behavior if needed. 
+     * Subclass to change behavior if needed.
      * @return the passed out
      */
     public OutputStream wrapOutIfNeeded(OutputStream out) {
