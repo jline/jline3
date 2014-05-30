@@ -81,18 +81,21 @@ public final class TerminalLineSettings
      * </p>
      *
      * @param name the stty property.
-     * @return the stty property value.                        
+     * @return the stty property value.
      */
     public int getProperty(String name) {
         checkNotNull(name);
         long currentTime = System.currentTimeMillis();
         try {
-            // tty properties are cached so we don't have to worry too much about getting term widht/height
+            // tty properties are cached so we don't have to worry too much about getting term width/height
             if (config == null || currentTime - configLastFetched > 1000) {
                 config = get("-a");
             }
         } catch (Exception e) {
             Log.debug("Failed to query stty ", name, "\n", e);
+            if (config == null) {
+                return -1;
+            }
         }
 
         // always update the last fetched time and try to parse the output
