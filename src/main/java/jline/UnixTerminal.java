@@ -52,6 +52,7 @@ public class UnixTerminal
         // Make sure we're distinguishing carriage return from newline.
         // Allow ctrl-s keypress to be used (as forward search)
         settings.set("-icanon min 1 -icrnl -inlcr -ixon");
+        settings.set("dsusp undef");
 
         setEchoEnabled(false);
     }
