@@ -216,8 +216,6 @@ public class ArgumentCompleter
     public abstract static class AbstractArgumentDelimiter
         implements ArgumentDelimiter
     {
-        // TODO: handle argument quoting and escape characters
-        
         private char[] quoteChars = {'\'', '"'};
 
         private char[] escapeChars = {'\\'};
@@ -243,8 +241,9 @@ public class ArgumentCompleter
             StringBuilder arg = new StringBuilder();
             int argpos = -1;
             int bindex = -1;
+            int quoteStart = -1;
 
-            for (int i = 0; (buffer != null) && (i <= buffer.length()); i++) {
+            for (int i = 0; (buffer != null) && (i < buffer.length()); i++) {
                 // once we reach the cursor, set the
                 // position of the selected index
                 if (i == cursor) {
@@ -254,15 +253,41 @@ public class ArgumentCompleter
                     argpos = arg.length();
                 }
 
-                if ((i == buffer.length()) || isDelimiter(buffer, i)) {
-                    if (arg.length() > 0) {
+                if (quoteStart < 0 && isQuoteChar(buffer, i)) {
+                    // Start a quote block
+                    quoteStart = i;
+                } else if (quoteStart >= 0) {
+                    // In a quote block
+                    if (buffer.charAt(quoteStart) == buffer.charAt(i) && !isEscaped(buffer, i)) {
+                        // End the block; arg could be empty, but that's fine
                         args.add(arg.toString());
-                        arg.setLength(0); // reset the arg
+                        arg.setLength(0);
+                        quoteStart = -1;
+                    } else if (!isEscapeChar(buffer, i)) {
+                        // Take the next character
+                        arg.append(buffer.charAt(i));
+                    }
+                } else {
+                    // Not in a quote block
+                    if (isDelimiter(buffer, i)) {
+                        if (arg.length() > 0) {
+                            args.add(arg.toString());
+                            arg.setLength(0); // reset the arg
+                        }
+                    } else if (!isEscapeChar(buffer, i)) {
+                        arg.append(buffer.charAt(i));
                     }
                 }
-                else {
-                    arg.append(buffer.charAt(i));
-                }
+            }
+
+            if (cursor == buffer.length()) {
+                bindex = args.size();
+                // the position in the current argument is just the
+                // length of the current argument
+                argpos = arg.length();
+            }
+            if (arg.length() > 0) {
+                args.add(arg.toString());
             }
 
             return new ArgumentList(args.toArray(new String[args.size()]), bindex, argpos, cursor);
@@ -285,19 +310,57 @@ public class ArgumentCompleter
             return false;
         }
 
+        public boolean isQuoteChar(final CharSequence buffer, final int pos) {
+            if (pos < 0) {
+                return false;
+            }
+
+            for (int i = 0; (quoteChars != null) && (i < quoteChars.length); i++) {
+                if (buffer.charAt(pos) == quoteChars[i]) {
+                    return !isEscaped(buffer, pos);
+                }
+            }
+
+            return false;
+        }
+
+        /**
+         * Check if this character is a valid escape char (i.e. one that has not been escaped)
+         *
+         * @param buffer
+         * @param pos
+         * @return
+         */
+        public boolean isEscapeChar(final CharSequence buffer, final int pos) {
+            if (pos < 0) {
+                return false;
+            }
+
+            for (int i = 0; (escapeChars != null) && (i < escapeChars.length); i++) {
+                if (buffer.charAt(pos) == escapeChars[i]) {
+                    return !isEscaped(buffer, pos); // escape escape
+                }
+            }
+
+            return false;
+        }
+
+        /**
+         * Check if a character is escaped (i.e. if the previous character is an escape)
+         *
+         * @param buffer
+         *          the buffer to check in
+         * @param pos
+         *          the position of the character to check
+         * @return true if the character at the specified position in the given buffer is an escape character and the character immediately preceding it is not an
+         *         escape character.
+         */
         public boolean isEscaped(final CharSequence buffer, final int pos) {
             if (pos <= 0) {
                 return false;
             }
 
-            for (int i = 0; (escapeChars != null) && (i < escapeChars.length);
-                 i++) {
-                if (buffer.charAt(pos) == escapeChars[i]) {
-                    return !isEscaped(buffer, pos - 1); // escape escape
-                }
-            }
-
-            return false;
+            return isEscapeChar(buffer, pos - 1);
         }
 
         /**
