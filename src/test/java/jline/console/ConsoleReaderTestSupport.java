@@ -129,7 +129,6 @@ public abstract class ConsoleReaderTestSupport
             case BACKWARD_KILL_WORD:   return new String(new char[]{27, 127});
             case YANK:                 return "\u0019";
             case YANK_POP:             return new String(new char[]{27, 121});
-            case KILL_WORD:            return new String(new char[]{27, 100});
         }
         throw new IllegalArgumentException(key.toString());
     }
