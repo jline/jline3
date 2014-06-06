@@ -108,6 +108,9 @@ public class Example
                 if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) {
                     break;
                 }
+                if (line.equalsIgnoreCase("cls")) {
+                    reader.clearScreen();
+                }
             }
         }
         catch (Throwable t) {

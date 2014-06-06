@@ -2651,6 +2651,7 @@ public class ConsoleReader
 
                             case CLEAR_SCREEN: // CTRL-L
                                 success = clearScreen();
+                                redrawLine();
                                 break;
 
                             case OVERWRITE_MODE:
@@ -3559,8 +3560,6 @@ public class ConsoleReader
 
         // then send the ANSI code to go to position 1,1
         printAnsiSequence("1;1H");
-
-        redrawLine();
 
         return true;
     }
