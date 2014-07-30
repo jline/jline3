@@ -197,6 +197,10 @@ public class Configuration
         return getOsName().startsWith("windows");
     }
 
+    public static boolean isHpux() {
+        return getOsName().startsWith("hp");
+    }
+
     // FIXME: Sort out use of property access of file.encoding in InputStreamReader, consolidate should configuration access here
 
     public static String getFileEncoding() {

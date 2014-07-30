@@ -38,6 +38,15 @@ public final class TerminalLineSettings
 
     public static final String DEFAULT_SH = "sh";
 
+    private static final String UNDEFINED;
+    static {
+        if (Configuration.isHpux()) {
+            UNDEFINED = "^-";
+        } else {
+            UNDEFINED = "undef";
+        }
+    }
+
     private String sttyCommand;
 
     private String shCommand;
@@ -76,6 +85,10 @@ public final class TerminalLineSettings
 
     public void set(final String args) throws IOException, InterruptedException {
         stty(args);
+    }
+
+    public void undef(final String args) throws IOException, InterruptedException {
+        stty(String.format("%s %s", args, UNDEFINED));
     }
 
     /**
