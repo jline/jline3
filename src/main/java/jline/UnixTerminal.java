@@ -22,16 +22,21 @@ import jline.internal.TerminalLineSettings;
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:dwkemp@gmail.com">Dale Kemp</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
- * @author <a href="mailto:jbonofre@apache.org">Jean-Baptiste Onofré</a>
+ * @author <a href="mailto:jbonofre@apache.org">Jean-Baptiste Onofr��</a>
  * @since 2.0
  */
 public class UnixTerminal
     extends TerminalSupport
 {
-    private final TerminalLineSettings settings = new TerminalLineSettings();
+    private final TerminalLineSettings settings;
 
     public UnixTerminal() throws Exception {
+    	this("/dev/tty");
+    }
+    
+    public UnixTerminal(String ttyDevice) throws Exception {
         super(true);
+        settings = new TerminalLineSettings(ttyDevice);
     }
 
     protected TerminalLineSettings getSettings() {

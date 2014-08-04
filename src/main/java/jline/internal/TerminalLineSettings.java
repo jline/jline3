@@ -25,7 +25,7 @@ import static jline.internal.Preconditions.checkNotNull;
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:dwkemp@gmail.com">Dale Kemp</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
- * @author <a href="mailto:jbonofre@apache.org">Jean-Baptiste Onofré</a>
+ * @author <a href="mailto:jbonofre@apache.org">Jean-Baptiste Onofr��</a>
  * @since 2.0
  */
 public final class TerminalLineSettings
@@ -42,17 +42,24 @@ public final class TerminalLineSettings
 
     private String shCommand;
 
+    private String ttyDevice;
+    
     private String config;
     private String initialConfig;
 
     private long configLastFetched;
 
     public TerminalLineSettings() throws IOException, InterruptedException {
-        sttyCommand = Configuration.getString(JLINE_STTY, DEFAULT_STTY);
-        shCommand = Configuration.getString(JLINE_SH, DEFAULT_SH);
-        initialConfig = get("-g").trim();
-        config = get("-a");
-        configLastFetched = System.currentTimeMillis();
+    	this("/dev/tty");
+    }
+    
+    public TerminalLineSettings(String ttyDevice) throws IOException, InterruptedException {
+        this.sttyCommand = Configuration.getString(JLINE_STTY, DEFAULT_STTY);
+        this.shCommand = Configuration.getString(JLINE_SH, DEFAULT_SH);
+        this.ttyDevice = ttyDevice;
+        this.initialConfig = get("-g").trim();
+        this.config = get("-a");
+        this.configLastFetched = System.currentTimeMillis();
 
         Log.debug("Config: ", config);
 
@@ -178,7 +185,7 @@ public final class TerminalLineSettings
 
     private String stty(final String args) throws IOException, InterruptedException {
         checkNotNull(args);
-        return exec(String.format("%s %s < /dev/tty", sttyCommand, args));
+        return exec(String.format("%s %s < %s", sttyCommand, args, ttyDevice));
     }
 
     private String exec(final String cmd) throws IOException, InterruptedException {
