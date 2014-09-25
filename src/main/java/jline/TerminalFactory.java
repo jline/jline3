@@ -56,11 +56,8 @@ public class TerminalFactory
             Log.trace(new Throwable("CREATE MARKER"));
         }
 
-        String type = Configuration.getString(JLINE_TERMINAL, AUTO);
-        if ("dumb".equals(System.getenv("TERM"))) {
-            type = "none";
-            Log.debug("$TERM=dumb; setting type=", type);
-        }
+        String defaultType = "dumb".equals(System.getenv("TERM")) ? NONE : AUTO;
+        String type = Configuration.getString(JLINE_TERMINAL, defaultType);
 
         Log.debug("Creating terminal; type=", type);
 
