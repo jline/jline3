@@ -2399,7 +2399,16 @@ public class ConsoleReader
                             && pushBackChar.isEmpty()
                             && in.isNonBlockingEnabled()
                             && in.peek(escapeTimeout) == -2) {
-                        o = ((KeyMap) o).getAnotherKey();
+                        Object otherKey = ((KeyMap) o).getAnotherKey();
+                        if (otherKey == null) {
+                            // Tne next line is in case a binding was set up inside this secondary
+                            // KeyMap (like EMACS_META).  For example, a binding could be put
+                            // there for an ActionListener for the ESC key.  This way, the var 'o' won't
+                            // be null and the code can proceed to let the ActionListener be
+                            // handled, below.
+                            otherKey = ((KeyMap) o).getBound(Character.toString((char) c));
+                        }
+                        o = otherKey;
                         if (o == null || o instanceof KeyMap) {
                             continue;
                         }
@@ -3093,6 +3102,10 @@ public class ConsoleReader
                             case EMACS_EDITING_MODE:
                                 consoleKeys.setKeyMap(KeyMap.EMACS);
                                 break;
+
+                            case QUIT:
+                                getCursorBuffer().clear();
+                                return accept();
 
                             default:
                                 break;
