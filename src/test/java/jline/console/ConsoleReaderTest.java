@@ -8,6 +8,8 @@
  */
 package jline.console;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -598,7 +600,20 @@ public class ConsoleReaderTest
         assertEquals("out should have received bell", ConsoleReader.KEYBOARD_BELL, baos.toByteArray()[0]);
     }
 
-    /**
+  @Test
+  public void testCallbacks() throws Exception {
+      final ConsoleReader consoleReader = createConsole("sample stringx\r\n");
+      consoleReader.addTriggeredAction('x', new ActionListener() {
+          public void actionPerformed(ActionEvent e) {
+              consoleReader.getCursorBuffer().clear();
+          }
+      });
+      String line = consoleReader.readLine();
+      // The line would have "sample stringx" in it, if a callback to clear it weren't mapped to the 'x' key:
+      assertEquals("", line);
+  }
+
+  /**
      * Windows keys.
      * <p/>
      * Constants copied <tt>wincon.h</tt>.

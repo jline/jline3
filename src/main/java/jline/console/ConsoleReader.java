@@ -27,16 +27,8 @@ import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
 import java.net.URL;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.*;
 import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.ResourceBundle;
-import java.util.Stack;
 
 import jline.Terminal;
 import jline.TerminalFactory;
@@ -3659,12 +3651,6 @@ public class ConsoleReader
         }
     }
 
-    //
-    // Triggered Actions
-    //
-
-    private final Map<Character, ActionListener> triggeredActions = new HashMap<Character, ActionListener>();
-
     /**
      * Adding a triggered Action allows to give another curse of action if a character passed the pre-processing.
      * <p/>
@@ -3672,7 +3658,7 @@ public class ConsoleReader
      * addTriggerAction('q', new ActionListener(){ System.exit(0); }); would do the trick.
      */
     public void addTriggeredAction(final char c, final ActionListener listener) {
-        triggeredActions.put(c, listener);
+      getKeys().bind(Character.toString(c), listener);
     }
 
     //
