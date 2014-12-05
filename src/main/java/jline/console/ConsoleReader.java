@@ -2136,12 +2136,36 @@ public class ConsoleReader
      * @return the character, or -1 if an EOF is received.
      */
     public final int readCharacter() throws IOException {
+      return readCharacter(false);
+    }
+
+    /**
+     * Read a character from the console.  If boolean parameter is "true", it will check whether the keystroke was an "alt-" key combination, and
+     * if so add 1000 to the value returned.  Better way...?
+     *
+     * @return the character, or -1 if an EOF is received.
+     */
+    public final int readCharacter(boolean checkForAltKeyCombo) throws IOException {
         int c = reader.read();
         if (c >= 0) {
             Log.trace("Keystroke: ", c);
             // clear any echo characters
             if (terminal.isSupported()) {
                 clearEcho(c);
+            }
+            if (c == 27 && checkForAltKeyCombo && in.peek(escapeTimeout) >= 32) {
+              /* When ESC is encountered and there is a pending
+               * character in the pushback queue, then it seems to be
+               * an Alt-[key] combination.  Is this true, cross-platform?
+               * It's working for me on Debian GNU/Linux at the moment anyway.
+               * I removed the "isNonBlockingEnabled" check, though it was
+               * in the similar code in "readLine(String prompt, final Character mask)" (way down),
+               * as I am not sure / didn't look up what it's about, and things are working so far w/o it.
+               */
+              int next = reader.read();
+              // with research, there's probably a much cleaner way to do this, but, this is now it flags an Alt key combination for now:
+              next = next + 1000;
+              return next;
             }
         }
         return c;
@@ -2222,12 +2246,16 @@ public class ConsoleReader
     }
 
     public final int readCharacter(final char... allowed) throws IOException {
+      return readCharacter(false, allowed);
+    }
+
+    public final int readCharacter(boolean checkForAltKeyCombo, final char... allowed) throws IOException {
         // if we restrict to a limited set and the current character is not in the set, then try again.
         char c;
 
         Arrays.sort(allowed); // always need to sort before binarySearch
 
-        while (Arrays.binarySearch(allowed, c = (char) readCharacter()) < 0) {
+        while (Arrays.binarySearch(allowed, c = (char) readCharacter(checkForAltKeyCombo)) < 0) {
             // nothing
         }
 
