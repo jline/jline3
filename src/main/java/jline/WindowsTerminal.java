@@ -228,9 +228,9 @@ public class WindowsTerminal
                     // support some C1 control sequences: ALT + [@-_] (and [a-z]?) => ESC <ascii>
                     // http://en.wikipedia.org/wiki/C0_and_C1_control_codes#C1_set
                     final int altState = KEY_EVENT_RECORD.LEFT_ALT_PRESSED | KEY_EVENT_RECORD.RIGHT_ALT_PRESSED;
-					// Pressing "Alt Gr" is translated to Alt-Ctrl, hence it has to be checked that Ctrl is _not_ pressed, 
-					// otherwise inserting of "Alt Gr" codes on non-US keyboards would yield errors
-					final int ctrlState = KEY_EVENT_RECORD.LEFT_CTRL_PRESSED | KEY_EVENT_RECORD.RIGHT_CTRL_PRESSED;
+                    // Pressing "Alt Gr" is translated to Alt-Ctrl, hence it has to be checked that Ctrl is _not_ pressed,
+                    // otherwise inserting of "Alt Gr" codes on non-US keyboards would yield errors
+                    final int ctrlState = KEY_EVENT_RECORD.LEFT_CTRL_PRESSED | KEY_EVENT_RECORD.RIGHT_CTRL_PRESSED;
                     if (((keyEvent.uchar >= '@' && keyEvent.uchar <= '_') || (keyEvent.uchar >= 'a' && keyEvent.uchar <= 'z'))
                         && ((keyEvent.controlKeyState & altState) != 0) && ((keyEvent.controlKeyState & ctrlState) == 0)) {
                         sb.append('\u001B'); // ESC
