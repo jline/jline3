@@ -32,6 +32,8 @@ public class TerminalFactory
 
     public static final String UNIX = "unix";
 
+    public static final String OSV = "osv";
+
     public static final String WIN = "win";
 
     public static final String WINDOWS = "windows";
@@ -65,6 +67,9 @@ public class TerminalFactory
             if (tmp.equals(UNIX)) {
                 t = getFlavor(Flavor.UNIX);
             }
+            else if (tmp.equals(OSV)) {
+                t = getFlavor(Flavor.OSV);
+            }
             else if (tmp.equals(WIN) | tmp.equals(WINDOWS)) {
                 t = getFlavor(Flavor.WINDOWS);
             }
@@ -77,6 +82,8 @@ public class TerminalFactory
                     Flavor flavor = Flavor.UNIX;
                     if (os.contains(WINDOWS)) {
                         flavor = Flavor.WINDOWS;
+                    } else if (System.getenv("OSV_CPUS") != null) {
+                        flavor = Flavor.OSV;
                     }
                     t = getFlavor(flavor);
                 }
@@ -123,6 +130,7 @@ public class TerminalFactory
         AUTO,
         WINDOWS,
         UNIX,
+        OSV,
         NONE
     }
 
@@ -143,7 +151,8 @@ public class TerminalFactory
     public static enum Flavor
     {
         WINDOWS,
-        UNIX
+        UNIX,
+        OSV
     }
 
     private static final Map<Flavor, Class<? extends Terminal>> FLAVORS = new HashMap<Flavor, Class<? extends Terminal>>();
@@ -151,6 +160,7 @@ public class TerminalFactory
     static {
         registerFlavor(Flavor.WINDOWS, AnsiWindowsTerminal.class);
         registerFlavor(Flavor.UNIX, UnixTerminal.class);
+        registerFlavor(Flavor.OSV, OSvTerminal.class);
     }
 
     public static synchronized Terminal get() {
