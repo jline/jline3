@@ -74,7 +74,8 @@ public class ConsoleRunner
         try {
             Class<?> type = Class.forName(mainClass);
             Method method = type.getMethod("main", String[].class);
-            method.invoke(null);
+            String[] mainArgs = argList.toArray(new String[argList.size()]);
+            method.invoke(null, (Object) mainArgs);
         }
         finally {
             // just in case this main method is called from another program
