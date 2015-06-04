@@ -665,6 +665,7 @@ public class ConsoleReader
      * Expand event designator such as !!, !#, !3, etc...
      * See http://www.gnu.org/software/bash/manual/html_node/Event-Designators.html
      */
+    @SuppressWarnings("fallthrough")
     protected String expandEvents(String str) throws IOException {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < str.length(); i++) {
@@ -1367,7 +1368,7 @@ public class ConsoleReader
             while (count-- > 0) {
                 int pos = buf.cursor + 1;
                 while (pos < buf.buffer.length()) {
-                    if (buf.buffer.charAt(pos) == (char) searchChar) {
+                    if (buf.buffer.charAt(pos) == searchChar) {
                         setCursorPosition(pos);
                         ok = true;
                         break;
@@ -1395,7 +1396,7 @@ public class ConsoleReader
             while (count-- > 0) {
                 int pos = buf.cursor - 1;
                 while (pos >= 0) {
-                    if (buf.buffer.charAt(pos) == (char) searchChar) {
+                    if (buf.buffer.charAt(pos) == searchChar) {
                         setCursorPosition(pos);
                         ok = true;
                         break;
@@ -1610,6 +1611,7 @@ public class ConsoleReader
      * Implements vi search ("/" or "?").
      * @throws IOException
      */
+    @SuppressWarnings("fallthrough")
     private int viSearch(char searchChar) throws IOException {
         boolean isForward = (searchChar == '/');
 
@@ -2909,7 +2911,7 @@ public class ConsoleReader
                                  * only move on an expclit entry to movement
                                  * mode.
                                  */
-                                if (state == state.NORMAL) {
+                                if (state == State.NORMAL) {
                                     moveCursor(-1);
                                 }
                                 consoleKeys.setKeyMap(KeyMap.VI_MOVE);
@@ -3600,6 +3602,7 @@ public class ConsoleReader
         }
 
         try {
+            @SuppressWarnings("deprecation")
             Object content = transferable.getTransferData(DataFlavor.plainTextFlavor);
 
             // This fix was suggested in bug #1060649 at

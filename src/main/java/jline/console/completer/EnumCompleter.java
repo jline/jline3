@@ -19,7 +19,7 @@ import static jline.internal.Preconditions.checkNotNull;
 public class EnumCompleter
     extends StringsCompleter
 {
-    public EnumCompleter(Class<? extends Enum> source) {
+    public EnumCompleter(Class<? extends Enum<?>> source) {
         checkNotNull(source);
 
         for (Enum<?> n : source.getEnumConstants()) {

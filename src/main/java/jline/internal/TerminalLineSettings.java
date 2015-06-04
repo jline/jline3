@@ -109,7 +109,7 @@ public final class TerminalLineSettings
             configLastFetched = currentTime;
         }
 
-        return this.getProperty(name, config);
+        return getProperty(name, config);
     }
 
     /**

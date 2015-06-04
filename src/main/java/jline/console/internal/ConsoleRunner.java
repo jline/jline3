@@ -37,7 +37,7 @@ public class ConsoleRunner
     // FIXME: This is really ugly... re-write this
 
     public static void main(final String[] args) throws Exception {
-        List<String> argList = new ArrayList(Arrays.asList(args));
+        List<String> argList = new ArrayList<String>(Arrays.asList(args));
         if (argList.size() == 0) {
             usage();
             return;
@@ -72,8 +72,8 @@ public class ConsoleRunner
         ConsoleReaderInputStream.setIn(reader);
  
         try {
-            Class type = Class.forName(mainClass);
-            Method method = type.getMethod("main", new Class[]{String[].class});
+            Class<?> type = Class.forName(mainClass);
+            Method method = type.getMethod("main", String[].class);
             method.invoke(null);
         }
         finally {
