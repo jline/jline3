@@ -324,9 +324,8 @@
                                     =org.fusesource.jansi;version=${jansi.version}
                                 </Export-Package>
                                 <Import-Package>
-                                    javax.swing;resolution:=optional
+                                    !javax.swing
                                 </Import-Package>
-                                <DynamicImport-Package>*</DynamicImport-Package>
                             </instructions>
                         </configuration>
                     </execution>
