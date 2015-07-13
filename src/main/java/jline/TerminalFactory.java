@@ -8,6 +8,7 @@
  */
 package jline;
 
+import java.lang.reflect.Constructor;
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,7 +16,6 @@ import java.util.Map;
 import jline.internal.Configuration;
 import jline.internal.Log;
 import jline.internal.Preconditions;
-
 import static jline.internal.Preconditions.checkNotNull;
 
 /**
@@ -47,6 +47,10 @@ public class TerminalFactory
     private static Terminal term = null;
 
     public static synchronized Terminal create() {
+    	return create(null);
+    }
+        
+    public static synchronized Terminal create(String ttyDevice) {
         if (Log.TRACE) {
             //noinspection ThrowableInstanceNeverThrown
             Log.trace(new Throwable("CREATE MARKER"));
@@ -85,7 +89,7 @@ public class TerminalFactory
                     } else if (System.getenv("OSV_CPUS") != null) {
                         flavor = Flavor.OSV;
                     }
-                    t = getFlavor(flavor);
+                    t = getFlavor(flavor, ttyDevice);
                 }
                 else {
                     try {
@@ -163,20 +167,43 @@ public class TerminalFactory
         registerFlavor(Flavor.OSV, OSvTerminal.class);
     }
 
-    public static synchronized Terminal get() {
+    public static synchronized Terminal get(String ttyDevice) {
+    	// The code is assuming we've got only one terminal per process.
+    	// Continuing this assumption, if this terminal is already initialized,
+    	// we don't check if it's using the same tty line either. Both assumptions
+    	// are a bit crude. TODO: check single terminal assumption.
         if (term == null) {
-            term = create();
+            term = create(ttyDevice);
         }
         return term;
     }
+    
+    public static synchronized Terminal get() {
+        return get(null);
+    }
 
     public static Terminal getFlavor(final Flavor flavor) throws Exception {
+    	return getFlavor(flavor, null);
+    }
+    
+    public static Terminal getFlavor(final Flavor flavor, String ttyDevice) throws Exception {
         Class<? extends Terminal> type = FLAVORS.get(flavor);
+        Terminal result = null;
         if (type != null) {
-            return type.newInstance();
+        	if (ttyDevice != null) {
+        		Constructor<?> ttyDeviceConstructor = type.getConstructor(String.class);
+        		if (ttyDeviceConstructor != null) {
+        			result = (Terminal) ttyDeviceConstructor.newInstance(ttyDevice);
+        		} else {
+        			result = type.newInstance();
+        		}
+        	} else {
+                result = type.newInstance();
+        	}
+        } else {
+            throw new InternalError();
         }
-
-        throw new InternalError();
+        return result;
     }
 
     public static void registerFlavor(final Flavor flavor, final Class<? extends Terminal> type) {
