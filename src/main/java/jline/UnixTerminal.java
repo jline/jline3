@@ -57,7 +57,7 @@ public class UnixTerminal
         // Make sure we're distinguishing carriage return from newline.
         // Allow ctrl-s keypress to be used (as forward search)
         settings.set("-icanon min 1 -icrnl -inlcr -ixon");
-        settings.set("dsusp undef");
+        settings.undef("dsusp");
 
         setEchoEnabled(false);
     }
@@ -113,7 +113,7 @@ public class UnixTerminal
     public void disableInterruptCharacter()
     {
         try {
-            settings.set("intr undef");
+            settings.undef("intr");
         }
         catch (Exception e) {
             if (e instanceof InterruptedException) {

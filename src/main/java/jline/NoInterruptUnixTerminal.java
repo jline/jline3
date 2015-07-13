@@ -25,7 +25,7 @@ public class NoInterruptUnixTerminal
     @Override
     public void init() throws Exception {
         super.init();
-        getSettings().set("intr undef");
+        getSettings().undef("intr");
     }
 
     @Override
