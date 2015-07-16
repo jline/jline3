@@ -417,7 +417,7 @@ public class ConsoleReader
 
     public void setPrompt(final String prompt) {
         this.prompt = prompt;
-        this.promptLen = ((prompt == null) ? 0 : stripAnsi(lastLine(prompt)).length());
+        this.promptLen = ((prompt == null) ? 0 : WCWidth.wcwidth(stripAnsi(lastLine(prompt))));
     }
 
     public String getPrompt() {
@@ -943,18 +943,16 @@ public class ConsoleReader
     protected void back(final int num) throws IOException {
         if (num == 0) return;
         if (terminal.isAnsiSupported()) {
+            int i0 = promptLen + WCWidth.wcwidth(buf.buffer, 0, buf.cursor);
+            int i1 = i0 + WCWidth.wcwidth(buf.buffer, buf.cursor, buf.cursor + num);
             int width = getTerminal().getWidth();
-            int cursor = getCursorPosition();
-            int realCursor = cursor + num;
-            int realCol  = realCursor % width;
-            int newCol = cursor % width;
-            int moveup = num / width;
-            int delta = realCol - newCol;
-            if (delta < 0) moveup++;
-            if (moveup > 0) {
-                printAnsiSequence(moveup + "A");
+            int l0 = i0 / width;
+            int c0 = i0 % width;
+            int l1 = i1 / width;
+            if (l0 != l1) {
+                printAnsiSequence((l1 - l0) + "A");
             }
-            printAnsiSequence((1 + newCol) + "G");
+            printAnsiSequence((1 + c0) + "G");
             return;
         }
         print(BACKSPACE, num);
@@ -2061,16 +2059,18 @@ public class ConsoleReader
 
         if (terminal.isAnsiSupported()) {
             if (where < 0) {
-                back(Math.abs(where));
+                back(-where);
             } else {
+                int i0 = promptLen + WCWidth.wcwidth(buf.buffer, 0, buf.cursor - where);
+                int i1 = i0 + WCWidth.wcwidth(buf.buffer, buf.cursor - where, buf.cursor);
                 int width = getTerminal().getWidth();
-                int cursor = getCursorPosition();
-                int oldLine = (cursor - where) / width;
-                int newLine = cursor / width;
-                if (newLine > oldLine) {
-                    printAnsiSequence((newLine - oldLine) + "B");
+                int l0 = i0 / width;
+                int l1 = i1 / width;
+                int c1 = i1 % width;
+                if (l0 != l1) {
+                    printAnsiSequence((l1 - l0) + "B");
                 }
-                printAnsiSequence(1 +(cursor % width) + "G");
+                printAnsiSequence((1 + c1) + "G");
             }
 //            flush();
             return;
@@ -2193,12 +2193,12 @@ public class ConsoleReader
         // to cancel based on what out current cursor position is
         if (c == 9) {
             int tabStop = 8; // will this ever be different?
-            int position = getCursorPosition();
+            int position = promptLen + WCWidth.wcwidth(buf.buffer, 0, buf.cursor);
 
             return tabStop - (position % tabStop);
         }
 
-        return getPrintableCharacters(c).length();
+        return WCWidth.wcwidth(getPrintableCharacters(c));
     }
 
     /**
