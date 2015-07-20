@@ -33,6 +33,16 @@ import java.util.Set;
 public class CandidateListCompletionHandler
     implements CompletionHandler
 {
+    private boolean printSpaceAfterFullCompletion = true;
+
+    public boolean getPrintSpaceAfterFullCompletion() {
+        return printSpaceAfterFullCompletion;
+    }
+
+    public void setPrintSpaceAfterFullCompletion(boolean printSpaceAfterFullCompletion) {
+        this.printSpaceAfterFullCompletion = printSpaceAfterFullCompletion;
+    }
+
     // TODO: handle quotes and escaped quotes && enable automatic escaping of whitespace
 
     public boolean complete(final ConsoleReader reader, final List<CharSequence> candidates, final int pos) throws
@@ -44,7 +54,7 @@ public class CandidateListCompletionHandler
         if (candidates.size() == 1) {
             CharSequence value = candidates.get(0);
 
-            if (buf.cursor == buf.buffer.length()) {
+            if (buf.cursor == buf.buffer.length() && printSpaceAfterFullCompletion) {
                 value = value + " ";
             }
 
