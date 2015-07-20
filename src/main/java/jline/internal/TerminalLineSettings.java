@@ -108,6 +108,21 @@ public final class TerminalLineSettings
      */
     public int getProperty(String name) {
         checkNotNull(name);
+        if (!fetchConfig(name)) {
+            return -1;
+        }
+        return getProperty(name, config);
+    }
+
+    public String getPropertyAsString(String name) {
+        checkNotNull(name);
+        if (!fetchConfig(name)) {
+            return null;
+        }
+        return getPropertyAsString(name, config);
+    }
+
+    private boolean fetchConfig(String name) {
         long currentTime = System.currentTimeMillis();
         try {
             // tty properties are cached so we don't have to worry too much about getting term width/height
@@ -120,7 +135,7 @@ public final class TerminalLineSettings
             }
             Log.debug("Failed to query stty ", name, "\n", e);
             if (config == null) {
-                return -1;
+                return false;
             }
         }
 
@@ -128,8 +143,7 @@ public final class TerminalLineSettings
         if (currentTime - configLastFetched > 1000) {
             configLastFetched = currentTime;
         }
-
-        return getProperty(name, config);
+        return true;
     }
 
     /**
@@ -141,7 +155,7 @@ public final class TerminalLineSettings
      * @param stty string resulting of stty -a execution.
      * @return value of the given property.
      */
-    protected static int getProperty(String name, String stty) {
+    protected static String getPropertyAsString(String name, String stty) {
         // try the first kind of regex
         Pattern pattern = Pattern.compile(name + "\\s+=\\s+(.*?)[;\\n\\r]");
         Matcher matcher = pattern.matcher(stty);
@@ -154,11 +168,16 @@ public final class TerminalLineSettings
                 pattern = Pattern.compile("(\\S*)\\s+" + name);
                 matcher = pattern.matcher(stty);
                 if (!matcher.find()) {
-                    return -1;
+                    return null;
                 }
             }
         }
-        return parseControlChar(matcher.group(1));
+        return matcher.group(1);
+    }
+
+    protected static int getProperty(String name, String stty) {
+        String str = getPropertyAsString(name, stty);
+        return str != null ? parseControlChar(str) : -1;
     }
 
     private static int parseControlChar(String str) {

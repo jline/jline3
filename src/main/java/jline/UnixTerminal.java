@@ -29,6 +29,8 @@ public class UnixTerminal
     extends TerminalSupport
 {
     private final TerminalLineSettings settings;
+    private String intr;
+    private String lnext;
 
     public UnixTerminal() throws Exception {
     	this("/dev/tty");
@@ -113,6 +115,10 @@ public class UnixTerminal
     public void disableInterruptCharacter()
     {
         try {
+            intr = getSettings().getPropertyAsString("intr");
+            if ("<undef>".equals(intr)) {
+                intr = null;
+            }
             settings.undef("intr");
         }
         catch (Exception e) {
@@ -126,7 +132,9 @@ public class UnixTerminal
     public void enableInterruptCharacter()
     {
         try {
-            settings.set("intr ^C");
+            if (intr != null) {
+                settings.set("intr " + intr);
+            }
         }
         catch (Exception e) {
             if (e instanceof InterruptedException) {
@@ -139,6 +147,10 @@ public class UnixTerminal
     public void disableLitteralNextCharacter()
     {
         try {
+            lnext = getSettings().getPropertyAsString("lnext");
+            if ("<undef>".equals(lnext)) {
+                lnext = null;
+            }
             settings.undef("lnext");
         }
         catch (Exception e) {
@@ -152,7 +164,9 @@ public class UnixTerminal
     public void enableLitteralNextCharacter()
     {
         try {
-            settings.set("lnext ^V");
+            if (lnext != null) {
+                settings.set("lnext " + lnext);
+            }
         }
         catch (Exception e) {
             if (e instanceof InterruptedException) {

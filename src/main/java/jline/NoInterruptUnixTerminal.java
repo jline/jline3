@@ -18,6 +18,8 @@ package jline;
 public class NoInterruptUnixTerminal
     extends UnixTerminal
 {
+    private String intr;
+
     public NoInterruptUnixTerminal() throws Exception {
         super();
     }
@@ -25,12 +27,20 @@ public class NoInterruptUnixTerminal
     @Override
     public void init() throws Exception {
         super.init();
-        getSettings().undef("intr");
+        intr = getSettings().getPropertyAsString("intr");
+        if ("<undef>".equals(intr)) {
+            intr = null;
+        }
+        if (intr != null) {
+            getSettings().undef("intr");
+        }
     }
 
     @Override
     public void restore() throws Exception {
-        getSettings().set("intr ^C");
+        if (intr != null) {
+            getSettings().set("intr " + intr);
+        }
         super.restore();
     }
 }
