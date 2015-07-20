@@ -99,6 +99,8 @@ public class ConsoleReader
 
     private boolean handleUserInterrupt = false;
 
+    private boolean handleLitteralNext = true;
+
     private Character mask;
 
     private Character echoCharacter;
@@ -141,6 +143,8 @@ public class ConsoleReader
     private KillRing killRing = new KillRing();
 
     private String encoding;
+
+    private boolean quotedInsert;
 
     private boolean recording;
 
@@ -386,6 +390,24 @@ public class ConsoleReader
     public boolean getHandleUserInterrupt()
     {
         return handleUserInterrupt;
+    }
+
+    /**
+     * Set wether literal next are handled by JLine.
+     *
+     * @since 2.13
+     */
+    public void setHandleLitteralNext(boolean handleLitteralNext) {
+        this.handleLitteralNext = handleLitteralNext;
+    }
+
+    /**
+     * Get wether literal next are handled by JLine.
+     *
+     * @since 2.13
+     */
+    public boolean getHandleLitteralNext() {
+        return handleLitteralNext;
     }
 
     /**
@@ -2358,6 +2380,9 @@ public class ConsoleReader
             if (handleUserInterrupt && (terminal instanceof UnixTerminal)) {
                 ((UnixTerminal) terminal).disableInterruptCharacter();
             }
+            if (handleLitteralNext && (terminal instanceof UnixTerminal)) {
+                ((UnixTerminal) terminal).disableLitteralNextCharacter();
+            }
 
             String originalPrompt = this.prompt;
 
@@ -2378,7 +2403,13 @@ public class ConsoleReader
                     macro += new String(new int[]{c}, 0, 1);
                 }
 
-                Object o = getKeys().getBound( sb );
+                Object o;
+                if (quotedInsert) {
+                    o = Operation.SELF_INSERT;
+                    quotedInsert = false;
+                } else {
+                    o = getKeys().getBound(sb);
+                }
                 /*
                  * The kill ring keeps record of whether or not the
                  * previous command was a yank or a kill. We reset
@@ -3134,6 +3165,10 @@ public class ConsoleReader
                             case QUIT:
                                 getCursorBuffer().clear();
                                 return accept();
+
+                            case QUOTED_INSERT:
+                                quotedInsert = true;
+                                break;
 
                             default:
                                 break;

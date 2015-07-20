@@ -135,4 +135,30 @@ public class UnixTerminal
             Log.error("Failed to enable interrupt character", e);
         }
     }
+
+    public void disableLitteralNextCharacter()
+    {
+        try {
+            settings.undef("lnext");
+        }
+        catch (Exception e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            Log.error("Failed to disable litteral next character", e);
+        }
+    }
+
+    public void enableLitteralNextCharacter()
+    {
+        try {
+            settings.set("lnext ^V");
+        }
+        catch (Exception e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            Log.error("Failed to enable litteral next character", e);
+        }
+    }
 }
