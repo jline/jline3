@@ -10,18 +10,6 @@ package jline.console;
 
 public class WCWidth {
 
-    public static int wcwidth(CharSequence cs) {
-        return wcwidth(cs, 0, cs.length());
-    }
-
-    public static int wcwidth(CharSequence cs, int start, int end) {
-        int nb = 0;
-        for (int i = start; i < end; i++) {
-            nb += WCWidth.wcwidth((int) cs.charAt(i));
-        }
-        return nb;
-    }
-
     /* The following two functions define the column width of an ISO 10646
      * character as follows:
      *

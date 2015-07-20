@@ -79,7 +79,7 @@ public class ConsoleReader
 
     public static final char NULL_MASK = 0;
 
-    public static final int TAB_WIDTH = 4;
+    public static final int TAB_WIDTH = 8;
 
     private static final ResourceBundle
         resources = ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName());
@@ -439,7 +439,7 @@ public class ConsoleReader
 
     public void setPrompt(final String prompt) {
         this.prompt = prompt;
-        this.promptLen = ((prompt == null) ? 0 : WCWidth.wcwidth(stripAnsi(lastLine(prompt))));
+        this.promptLen = ((prompt == null) ? 0 : wcwidth(stripAnsi(lastLine(prompt)), 0));
     }
 
     public String getPrompt() {
@@ -508,9 +508,52 @@ public class ConsoleReader
         return true;
     }
 
+    int wcwidth(CharSequence str, int pos) {
+        return wcwidth(str, 0, str.length(), pos);
+    }
+
+    int wcwidth(CharSequence str, int start, int end, int pos) {
+        int cur = pos;
+        for (int i = start; i < end;) {
+            int ucs;
+            char c1 = str.charAt(i++);
+            if (!Character.isHighSurrogate(c1) || i >= end) {
+                ucs = c1;
+            } else {
+                char c2 = str.charAt(i);
+                if (Character.isLowSurrogate(c2)) {
+                    i++;
+                    ucs = Character.toCodePoint(c1, c2);
+                } else {
+                    ucs = c1;
+                }
+            }
+            cur += wcwidth(ucs, cur);
+        }
+        return cur - pos;
+    }
+
+    int wcwidth(int ucs, int pos) {
+        if (ucs == '\t') {
+            return nextTabStop(pos);
+        } else if (ucs < 32) {
+            return 2;
+        } else  {
+            int w = WCWidth.wcwidth(ucs);
+            return w > 0 ? w : 0;
+        }
+    }
+
+    int nextTabStop(int pos) {
+        int tabWidth = TAB_WIDTH;
+        int width = getTerminal().getWidth();
+        int mod = (pos + tabWidth - 1) % tabWidth;
+        int npos = pos + tabWidth - mod;
+        return npos < width ? npos - pos : width - pos;
+    }
+
     int getCursorPosition() {
-        // FIXME: does not handle anything but a line with a prompt absolute position
-        return promptLen + buf.cursor;
+        return promptLen + wcwidth(buf.buffer, 0, buf.cursor, promptLen);
     }
 
     /**
@@ -626,7 +669,7 @@ public class ConsoleReader
      * Clear the line and redraw it.
      */
     public final void redrawLine() throws IOException {
-        print(RESET_LINE);
+        rawPrint(RESET_LINE);
 //        flush();
         drawLine();
     }
@@ -841,14 +884,15 @@ public class ConsoleReader
      * Write out the specified string to the buffer and the output stream.
      */
     public final void putString(final CharSequence str) throws IOException {
+        int pos = getCursorPosition();
         buf.write(str);
         if (mask == null) {
             // no masking
-            print(str);
+            print(str, pos);
         } else if (mask == NULL_MASK) {
             // don't print anything
         } else {
-            print(mask, str.length());
+            rawPrint(mask, str.length());
         }
         drawBuffer();
     }
@@ -861,46 +905,49 @@ public class ConsoleReader
      */
     private void drawBuffer(final int clear) throws IOException {
         // debug ("drawBuffer: " + clear);
-        if (buf.cursor == buf.length() && clear == 0) {
-        } else {
-            char[] chars = buf.buffer.substring(buf.cursor).toCharArray();
+        if (buf.cursor != buf.length() || clear != 0) {
+            int nbChars = buf.length() - buf.cursor;
+            int cursorPos = getCursorPosition();
             if (mask != null) {
-                Arrays.fill(chars, mask);
-            }
-            if (terminal.hasWeirdWrap()) {
+                if (mask != NULL_MASK) {
+                    rawPrint(mask, nbChars);
+                    cursorPos += nbChars;
+                } else {
+                    nbChars = 0;
+                }
+            } else if (terminal.hasWeirdWrap()) {
                 // need to determine if wrapping will occur:
                 int width = terminal.getWidth();
-                int pos = getCursorPosition();
-                for (int i = 0; i < chars.length; i++) {
-                    print(chars[i]);
-                    if ((pos + i + 1) % width == 0) {
-                        print(32); // move cursor to next line by printing dummy space
-                        print(13); // CR / not newline.
+                for (int i = buf.cursor; i < buf.length(); i++) {
+                    int w = wcwidth(buf.buffer, i, i + 1, cursorPos);
+                    if (cursorPos + w >= width) {
+                        while (cursorPos++ <= width) {
+                            rawPrint(32); // move cursor to next line by printing dummy space
+                        }
+                        rawPrint(13); // CR / not newline.
+                        cursorPos = 0;
                     }
+                    print(buf.buffer, i, i + 1, cursorPos);
+                    cursorPos += w;
                 }
             } else {
-                print(chars);
+                print(buf.buffer, buf.cursor, buf.length());
             }
-            clearAhead(clear, chars.length);
-            if (terminal.isAnsiSupported()) {
-                if (chars.length > 0) {
-                    back(chars.length);
-                }
-            } else {
-                back(chars.length);
-            }
+            clearAhead(clear, cursorPos);
+            back(nbChars);
         }
         if (terminal.hasWeirdWrap()) {
             int width = terminal.getWidth();
             // best guess on whether the cursor is in that weird location...
             // Need to do this without calling ansi cursor location methods
             // otherwise it breaks paste of wrapped lines in xterm.
-            if (getCursorPosition() > 0 && (getCursorPosition() % width == 0)
+            int cursorPos = getCursorPosition();
+            if (cursorPos > 0 && (cursorPos % width == 0)
                     && buf.cursor == buf.length() && clear == 0) {
                 // the following workaround is reverse-engineered from looking
                 // at what bash sent to the terminal in the same situation
-                print(32); // move cursor to next line by printing dummy space
-                print(13); // CR / not newline.
+                rawPrint(32); // move cursor to next line by printing dummy space
+                rawPrint(13); // CR / not newline.
             }
         }
     }
@@ -917,23 +964,20 @@ public class ConsoleReader
      * Clear ahead the specified number of characters without moving the cursor.
      *
      * @param num the number of characters to clear
-     * @param delta the difference between the internal cursor and the screen
-     * cursor - if > 0, assume some stuff was printed and weird wrap has to be
-     * checked
+     * @param pos the current screen cursor position
      */
-    private void clearAhead(final int num, int delta) throws IOException {
+    private void clearAhead(final int num, int pos) throws IOException {
         if (num == 0) {
             return;
         }
 
         if (terminal.isAnsiSupported()) {
             int width = terminal.getWidth();
-            int screenCursorCol = getCursorPosition() + delta;
             // clear current line
             printAnsiSequence("K");
             // if cursor+num wraps, then we need to clear the line(s) below too
-            int curCol = screenCursorCol % width;
-            int endCol = (screenCursorCol + num - 1) % width;
+            int curCol = pos % width;
+            int endCol = (pos + num - 1) % width;
             int lines = num / width;
             if (endCol < curCol) lines++;
             for (int i = 0; i < lines; i++) {
@@ -947,7 +991,7 @@ public class ConsoleReader
         }
 
         // print blank extra characters
-        print(' ', num);
+        rawPrint(' ', num);
 
         // we need to flush here so a "clever" console doesn't just ignore the redundancy
         // of a space followed by a backspace.
@@ -965,8 +1009,8 @@ public class ConsoleReader
     protected void back(final int num) throws IOException {
         if (num == 0) return;
         if (terminal.isAnsiSupported()) {
-            int i0 = promptLen + WCWidth.wcwidth(buf.buffer, 0, buf.cursor);
-            int i1 = i0 + WCWidth.wcwidth(buf.buffer, buf.cursor, buf.cursor + num);
+            int i0 = promptLen + wcwidth(buf.buffer, 0, buf.cursor, promptLen);
+            int i1 = i0 + ((mask != null) ? num : wcwidth(buf.buffer, buf.cursor, buf.cursor + num, i0));
             int width = getTerminal().getWidth();
             int l0 = i0 / width;
             int c0 = i0 % width;
@@ -977,7 +1021,7 @@ public class ConsoleReader
             printAnsiSequence((1 + c0) + "G");
             return;
         }
-        print(BACKSPACE, num);
+        rawPrint(BACKSPACE, num);
 //        flush();
     }
 
@@ -1008,6 +1052,7 @@ public class ConsoleReader
         int termwidth = getTerminal().getWidth();
         int lines = getCursorPosition() / termwidth;
         count = moveCursor(-1 * num) * -1;
+        int nbChars = wcwidth(buf.buffer, buf.cursor, buf.cursor + count, getCursorPosition());
         buf.buffer.delete(buf.cursor, buf.cursor + count);
         if (getCursorPosition() / termwidth != lines) {
             if (terminal.isAnsiSupported()) {
@@ -1032,7 +1077,7 @@ public class ConsoleReader
 */
             }
         }
-        drawBuffer(count);
+        drawBuffer(nbChars);
 
         return count;
     }
@@ -1612,7 +1657,7 @@ public class ConsoleReader
             } else if (mask == NULL_MASK) {
                 // don't print anything
             } else {
-                print(mask, str.length());
+                rawPrint(mask, str.length());
             }
         }
         drawBuffer();
@@ -2083,8 +2128,8 @@ public class ConsoleReader
             if (where < 0) {
                 back(-where);
             } else {
-                int i0 = promptLen + WCWidth.wcwidth(buf.buffer, 0, buf.cursor - where);
-                int i1 = i0 + WCWidth.wcwidth(buf.buffer, buf.cursor - where, buf.cursor);
+                int i0 = promptLen + wcwidth(buf.buffer, 0, buf.cursor - where, promptLen);
+                int i1 = i0 + wcwidth(buf.buffer, buf.cursor - where, buf.cursor, i0);
                 int width = getTerminal().getWidth();
                 int l0 = i0 / width;
                 int l1 = i1 / width;
@@ -2124,7 +2169,8 @@ public class ConsoleReader
             c = mask;
         }
         else {
-            print(buf.buffer.substring(buf.cursor - where, buf.cursor).toCharArray());
+            print(buf.buffer, buf.cursor - where, buf.cursor);
+            print(buf.buffer.substring(buf.cursor - where, buf.cursor));
             return;
         }
 
@@ -2133,7 +2179,7 @@ public class ConsoleReader
             return;
         }
 
-        print(c, Math.abs(where));
+        rawPrint(c, Math.abs(where));
     }
 
     // FIXME: replace() is not used
@@ -2203,24 +2249,11 @@ public class ConsoleReader
         }
 
         // otherwise, clear
-        int num = countEchoCharacters(c);
+        int num = wcwidth(c, getCursorPosition());
         back(num);
         drawBuffer(num);
 
         return num;
-    }
-
-    private int countEchoCharacters(final int c) {
-        // tabs as special: we need to determine the number of spaces
-        // to cancel based on what out current cursor position is
-        if (c == 9) {
-            int tabStop = 8; // will this ever be different?
-            int position = promptLen + WCWidth.wcwidth(buf.buffer, 0, buf.cursor);
-
-            return tabStop - (position % tabStop);
-        }
-
-        return WCWidth.wcwidth(getPrintableCharacters(c));
     }
 
     /**
@@ -3461,75 +3494,50 @@ public class ConsoleReader
     public static final String CR = Configuration.getLineSeparator();
 
     /**
-     * Output the specified character to the output stream without manipulating the current buffer.
-     */
-    private void print(final int c) throws IOException {
-        if (c == '\t') {
-            char chars[] = new char[TAB_WIDTH];
-            Arrays.fill(chars, ' ');
-            out.write(chars);
-            return;
-        }
-
-        out.write(c);
-    }
-
-    /**
      * Output the specified characters to the output stream without manipulating the current buffer.
      */
-    private void print(final char... buff) throws IOException {
-        int len = 0;
-        for (char c : buff) {
-            if (c == '\t') {
-                len += TAB_WIDTH;
-            }
-            else {
-                len++;
-            }
-        }
-
-        char chars[];
-        if (len == buff.length) {
-            chars = buff;
-        }
-        else {
-            chars = new char[len];
-            int pos = 0;
-            for (char c : buff) {
-                if (c == '\t') {
-                    Arrays.fill(chars, pos, pos + TAB_WIDTH, ' ');
-                    pos += TAB_WIDTH;
-                }
-                else {
-                    chars[pos] = c;
-                    pos++;
-                }
-            }
-        }
-
-        out.write(chars);
+    private int print(final CharSequence buff, int cursorPos) throws IOException {
+        return print(buff, 0, buff.length(), cursorPos);
     }
 
-    private void print(final char c, final int num) throws IOException {
-        if (num == 1) {
-            print(c);
+    private int print(final CharSequence buff, int start, int end) throws IOException {
+        return print(buff, start, end, getCursorPosition());
+    }
+
+    private int print(final CharSequence buff, int start, int end, int cursorPos) throws IOException {
+        checkNotNull(buff);
+        for (int i = start; i < end; i++) {
+            char c = buff.charAt(i);
+            if (c == '\t') {
+                int nb = nextTabStop(cursorPos);
+                cursorPos += nb;
+                while (nb-- > 0) {
+                    out.write(' ');
+                }
+            } else if (c < 32) {
+                out.write('^');
+                out.write((char) (c + '@'));
+                cursorPos += 2;
+            } else {
+                int w = WCWidth.wcwidth(c);
+                if (w > 0) {
+                    out.write(c);
+                    cursorPos += w;
+                }
+            }
         }
-        else {
-            char[] chars = new char[num];
-            Arrays.fill(chars, c);
-            print(chars);
-        }
+        return cursorPos;
     }
 
     /**
      * Output the specified string to the output stream (but not the buffer).
      */
     public final void print(final CharSequence s) throws IOException {
-        print(checkNotNull(s).toString().toCharArray());
+        print(s, getCursorPosition());
     }
 
     public final void println(final CharSequence s) throws IOException {
-        print(checkNotNull(s).toString().toCharArray());
+        print(s);
         println();
     }
 
@@ -3537,9 +3545,27 @@ public class ConsoleReader
      * Output a platform-dependant newline.
      */
     public final void println() throws IOException {
-        print(CR);
+        rawPrint(CR);
 //        flush();
     }
+
+    /**
+     * Raw output printing
+     */
+    final void rawPrint(final int c) throws IOException {
+        out.write(c);
+    }
+
+    final void rawPrint(final String str) throws IOException {
+        out.write(str);
+    }
+
+    private void rawPrint(final char c, final int num) throws IOException {
+        for (int i = 0; i < num; i++) {
+            rawPrint(c);
+        }
+    }
+
 
     //
     // Actions
@@ -3575,7 +3601,7 @@ public class ConsoleReader
         }
 
         int num = len - cp;
-        clearAhead(num, 0);
+        clearAhead(num, getCursorPosition());
 
         char[] killed = new char[num];
         buf.buffer.getChars(cp, (cp + num), killed, 0);
@@ -3639,7 +3665,7 @@ public class ConsoleReader
      */
     public void beep() throws IOException {
         if (bellEnabled) {
-            print(KEYBOARD_BELL);
+            rawPrint(KEYBOARD_BELL);
             // need to flush so the console actually beeps
             flush();
         }
@@ -4030,9 +4056,9 @@ public class ConsoleReader
     }
 
     private void printAnsiSequence(String sequence) throws IOException {
-        print(27);
-        print('[');
-        print(sequence);
+        rawPrint(27);
+        rawPrint('[');
+        rawPrint(sequence);
         flush(); // helps with step debugging
     }
 
