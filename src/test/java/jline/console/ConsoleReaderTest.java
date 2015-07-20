@@ -13,11 +13,18 @@ import java.awt.event.ActionListener;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
 import jline.TerminalFactory;
 import jline.WindowsTerminal;
+import jline.console.completer.AggregateCompleter;
+import jline.console.completer.ArgumentCompleter;
+import jline.console.completer.Completer;
+import jline.console.completer.NullCompleter;
+import jline.console.completer.StringsCompleter;
 import jline.console.history.History;
 import jline.console.history.MemoryHistory;
 import jline.internal.Configuration;
@@ -600,18 +607,43 @@ public class ConsoleReaderTest
         assertEquals("out should have received bell", ConsoleReader.KEYBOARD_BELL, baos.toByteArray()[0]);
     }
 
-  @Test
-  public void testCallbacks() throws Exception {
-      final ConsoleReader consoleReader = createConsole("sample stringx\r\n");
-      consoleReader.addTriggeredAction('x', new ActionListener() {
-          public void actionPerformed(ActionEvent e) {
-              consoleReader.getCursorBuffer().clear();
-          }
-      });
-      String line = consoleReader.readLine();
-      // The line would have "sample stringx" in it, if a callback to clear it weren't mapped to the 'x' key:
-      assertEquals("", line);
-  }
+    @Test
+    public void testCallbacks() throws Exception {
+        final ConsoleReader consoleReader = createConsole("sample stringx\r\n");
+        consoleReader.addTriggeredAction('x', new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                consoleReader.getCursorBuffer().clear();
+            }
+        });
+        String line = consoleReader.readLine();
+        // The line would have "sample stringx" in it, if a callback to clear it weren't mapped to the 'x' key:
+        assertEquals("", line);
+    }
+
+    @Test
+    public void testComplete() throws Exception {
+        PipedInputStream in = new PipedInputStream();
+        PipedOutputStream out = new PipedOutputStream(in);
+        output = new ByteArrayOutputStream();
+
+        ConsoleReader console = new ConsoleReader(in, output);
+        Completer nil = new NullCompleter();
+        Completer read = new StringsCompleter("read");
+        Completer and = new StringsCompleter("and");
+        Completer save = new StringsCompleter("save");
+        Completer aggregator = new AggregateCompleter(
+                new ArgumentCompleter(read, and, save, nil)
+        );
+        console.addCompleter(aggregator);
+
+        out.write("read an\t\n".getBytes());
+
+        assertEquals("read and ", console.readLine());
+
+        out.write("read and\033[D\033[D\t\n".getBytes());
+
+        assertEquals("read andnd", console.readLine());
+    }
 
   /**
      * Windows keys.

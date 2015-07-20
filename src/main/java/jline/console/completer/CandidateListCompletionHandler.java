@@ -44,6 +44,10 @@ public class CandidateListCompletionHandler
         if (candidates.size() == 1) {
             CharSequence value = candidates.get(0);
 
+            if (buf.cursor == buf.buffer.length()) {
+                value = value + " ";
+            }
+
             // fail if the only candidate is the same as the current buffer
             if (value.equals(buf.toString())) {
                 return false;

@@ -61,10 +61,6 @@ public class StringsCompleter
             }
         }
 
-        if (candidates.size() == 1) {
-            candidates.set(0, candidates.get(0) + " ");
-        }
-
         return candidates.isEmpty() ? -1 : 0;
     }
 }
