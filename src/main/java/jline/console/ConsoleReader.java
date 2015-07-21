@@ -109,6 +109,8 @@ public class ConsoleReader
 
     private Character echoCharacter;
 
+    private CursorBuffer originalBuffer = null;
+
     private StringBuffer searchTerm = null;
 
     private String previousSearchTerm = "";
@@ -2630,11 +2632,13 @@ public class ConsoleReader
                 // through to the normal state.
                 if (state == State.SEARCH || state == State.FORWARD_SEARCH) {
                     int cursorDest = -1;
+                    // TODO: check the isearch-terminators variable terminating the search
                     switch ( ((Operation) o )) {
                         case ABORT:
                             state = State.NORMAL;
                             buf.clear();
-                            buf.buffer.append(searchTerm);
+                            buf.write(originalBuffer.buffer);
+                            buf.cursor = originalBuffer.cursor;
                             break;
 
                         case REVERSE_SEARCH_HISTORY:
@@ -2685,6 +2689,9 @@ public class ConsoleReader
                                 history.moveTo(searchIndex);
                                 // set cursor position to the found string
                                 cursorDest = history.current().toString().indexOf(searchTerm.toString());
+                            }
+                            if (o != Operation.ACCEPT_LINE) {
+                                o = null;
                             }
                             state = State.NORMAL;
                             break;
@@ -2974,6 +2981,9 @@ public class ConsoleReader
                                 break;
 
                             case REVERSE_SEARCH_HISTORY:
+                                originalBuffer = new CursorBuffer();
+                                originalBuffer.write(buf.buffer);
+                                originalBuffer.cursor = buf.cursor;
                                 if (searchTerm != null) {
                                     previousSearchTerm = searchTerm.toString();
                                 }
@@ -2993,6 +3003,9 @@ public class ConsoleReader
                                 break;
 
                             case FORWARD_SEARCH_HISTORY:
+                                originalBuffer = new CursorBuffer();
+                                originalBuffer.write(buf.buffer);
+                                originalBuffer.cursor = buf.cursor;
                                 if (searchTerm != null) {
                                     previousSearchTerm = searchTerm.toString();
                                 }
@@ -3298,6 +3311,7 @@ public class ConsoleReader
                         }
 
                         if (state != State.SEARCH && state != State.FORWARD_SEARCH) {
+                            originalBuffer = null;
                             previousSearchTerm = "";
                             searchTerm = null;
                             searchIndex = -1;
