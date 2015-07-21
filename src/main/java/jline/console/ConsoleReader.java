@@ -693,10 +693,10 @@ public class ConsoleReader
     public final void drawLine() throws IOException {
         String prompt = getPrompt();
         if (prompt != null) {
-            print(prompt);
+            rawPrint(prompt);
         }
 
-        print(buf.buffer.toString());
+        print(buf.buffer, 0, buf.length(), promptLen);
 
         if (buf.length() != buf.cursor) { // not at end of line
             back(buf.length() - buf.cursor - 1);
