@@ -36,4 +36,23 @@ public class ArgumentCompleterTest
         assertBuffer("foo ba baz", new Buffer("foo b baz").left().left().left().left().tab());
         assertBuffer("foo foo baz", new Buffer("foo f baz").left().left().left().left().tab());
     }
+
+    @Test
+    public void testMultiple() throws Exception {
+        ArgumentCompleter argCompleter = new ArgumentCompleter(
+                new StringsCompleter("bar", "baz"),
+                new StringsCompleter("foo"),
+                new StringsCompleter("ree"));
+        console.addCompleter(argCompleter);
+
+        assertBuffer("bar foo ", new Buffer("bar f").tab());
+        assertBuffer("baz foo ", new Buffer("baz f").tab());
+        // co completion of 2nd arg in strict mode when 1st argument is not matched exactly
+        assertBuffer("ba f", new Buffer("ba f").tab());
+        assertBuffer("bar fo r", new Buffer("bar fo r").tab());
+
+        argCompleter.setStrict(false);
+        assertBuffer("ba foo ", new Buffer("ba f").tab());
+        assertBuffer("ba fo ree ", new Buffer("ba fo r").tab());
+    }
 }

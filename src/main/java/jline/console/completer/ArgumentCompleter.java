@@ -144,7 +144,7 @@ public class ArgumentCompleter
                 return -1;
             }
 
-            if (subCandidates.size() == 0) {
+            if (!subCandidates.contains(arg)) {
                 return -1;
             }
         }
