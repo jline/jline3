@@ -26,6 +26,9 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.net.URL;
 import java.util.*;
 import java.util.List;
@@ -43,6 +46,7 @@ import jline.internal.InputStreamReader;
 import jline.internal.Log;
 import jline.internal.NonBlockingInputStream;
 import jline.internal.Nullable;
+import jline.internal.TerminalLineSettings;
 import jline.internal.Urls;
 import org.fusesource.jansi.AnsiOutputStream;
 
@@ -230,6 +234,42 @@ public class ConsoleReader
         this.inputrcUrl = getInputRc();
 
         consoleKeys = new ConsoleKeys(this.appName, inputrcUrl);
+
+        if (terminal instanceof UnixTerminal
+                && TerminalLineSettings.DEFAULT_TTY.equals(((UnixTerminal) terminal).getSettings().getTtyDevice())
+                && Configuration.getBoolean("jline.sigcont", false)) {
+            setupSigCont();
+        }
+    }
+
+    private void setupSigCont() {
+        // Check that sun.misc.SignalHandler and sun.misc.Signal exists
+        try {
+            Class<?> signalClass = Class.forName("sun.misc.Signal");
+            Class<?> signalHandlerClass = Class.forName("sun.misc.SignalHandler");
+            // Implement signal handler
+            Object signalHandler = Proxy.newProxyInstance(getClass().getClassLoader(),
+                    new Class<?>[]{signalHandlerClass}, new InvocationHandler() {
+                        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                            // only method we are proxying is handle()
+                            terminal.init();
+                            try {
+                                drawLine();
+                                flush();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                            return null;
+                        }
+                    });
+            // Register the signal handler, this code is equivalent to:
+            // Signal.handle(new Signal("CONT"), signalHandler);
+            signalClass.getMethod("handle", signalClass, signalHandlerClass).invoke(null, signalClass.getConstructor(String.class).newInstance("CONT"), signalHandler);
+        } catch (ClassNotFoundException cnfe) {
+            // sun.misc Signal handler classes don't exist
+        } catch (Exception e) {
+            // Ignore this one too, if the above failed, the signal API is incompatible with what we're expecting
+        }
     }
 
     private URL getInputRc() throws IOException {

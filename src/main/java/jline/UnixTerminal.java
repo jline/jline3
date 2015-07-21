@@ -11,6 +11,8 @@ package jline;
 import jline.internal.Log;
 import jline.internal.TerminalLineSettings;
 
+import static jline.internal.Preconditions.checkNotNull;
+
 /**
  * Terminal that is used for unix platforms. Terminal initialization
  * is handled by issuing the <em>stty</em> command against the
@@ -33,15 +35,16 @@ public class UnixTerminal
     private String lnext;
 
     public UnixTerminal() throws Exception {
-    	this(TerminalLineSettings.TTY);
+    	this(TerminalLineSettings.DEFAULT_TTY);
     }
     
     public UnixTerminal(String ttyDevice) throws Exception {
         super(true);
+        checkNotNull(ttyDevice);
         settings = new TerminalLineSettings(ttyDevice);
     }
 
-    protected TerminalLineSettings getSettings() {
+    public TerminalLineSettings getSettings() {
         return settings;
     }
 
