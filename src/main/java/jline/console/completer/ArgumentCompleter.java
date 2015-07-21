@@ -326,10 +326,6 @@ public class ArgumentCompleter
 
         /**
          * Check if this character is a valid escape char (i.e. one that has not been escaped)
-         *
-         * @param buffer
-         * @param pos
-         * @return
          */
         public boolean isEscapeChar(final CharSequence buffer, final int pos) {
             if (pos < 0) {

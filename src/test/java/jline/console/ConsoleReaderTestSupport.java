@@ -90,7 +90,6 @@ public abstract class ConsoleReaderTestSupport
      * @param buffer The buffer
      * @param clear If true, the current buffer of the console
      *    is cleared.
-     * @throws IOException
      */
     protected void assertLine(final String expected, final Buffer buffer,
             final boolean clear) throws IOException {

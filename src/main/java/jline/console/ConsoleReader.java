@@ -1211,7 +1211,6 @@ public class ConsoleReader
      * Deletes the previous character from the cursor position
      * @param count number of times to do it.
      * @return true if it was done.
-     * @throws IOException
      */
     private boolean viRubout(int count) throws IOException {
         boolean ok = true;
@@ -1226,7 +1225,6 @@ public class ConsoleReader
      * the line in from the right.
      * @param count Number of times to perform the operation.
      * @return true if its works, false if it didn't
-     * @throws IOException
      */
     private boolean viDelete(int count) throws IOException {
         boolean ok = true;
@@ -1243,7 +1241,6 @@ public class ConsoleReader
      * @param count The number of times to repeat
      * @return true if it completed successfully, false if not all
      *   case changes could be completed.
-     * @throws IOException
      */
     private boolean viChangeCase(int count) throws IOException {
         boolean ok = true;
@@ -1272,7 +1269,6 @@ public class ConsoleReader
      * @param count Number of times to perform the action
      * @param c The character to change to
      * @return Whether or not there were problems encountered
-     * @throws IOException
      */
     private boolean viChangeChar(int count, int c) throws IOException {
         // EOF, ESC, or CTRL-C aborts.
@@ -1302,7 +1298,6 @@ public class ConsoleReader
      *
      * @param count number of iterations
      * @return true if the move was successful, false otherwise
-     * @throws IOException
      */
     private boolean viPreviousWord(int count) throws IOException {
         boolean ok = true;
@@ -1338,7 +1333,6 @@ public class ConsoleReader
      *    (e.g. "c$" is change-to-end-of line, so we first must delete to end 
      *    of line to start the change
      * @return true if it succeeded, false otherwise
-     * @throws IOException
      */
     private boolean viDeleteTo(int startPos, int endPos, boolean isChange) throws IOException {
         if (startPos == endPos) {
@@ -1375,7 +1369,6 @@ public class ConsoleReader
      * @param startPos The starting position from which to yank
      * @param endPos The ending position to which to yank
      * @return true if the yank succeeded
-     * @throws IOException
      */
     private boolean viYankTo(int startPos, int endPos) throws IOException {
         int cursorPos = startPos;
@@ -1407,7 +1400,6 @@ public class ConsoleReader
      *
      * @param count Number of times to perform the operation.
      * @return true if it worked, false otherwise
-     * @throws IOException
      */
     private boolean viPut(int count) throws IOException {
         if (yankBuffer.length () == 0) {
@@ -1429,7 +1421,6 @@ public class ConsoleReader
      * @param count Number of times to repeat the process.
      * @param ch The character to search for
      * @return true if the char was found, false otherwise
-     * @throws IOException
      */
     private boolean viCharSearch(int count, int invokeChar, int ch) throws IOException {
         if (ch < 0 || invokeChar < 0) {
@@ -1553,7 +1544,6 @@ public class ConsoleReader
      *
      * @param count number of iterations
      * @return true if the move was successful, false otherwise
-     * @throws IOException
      */
     private boolean viNextWord(int count) throws IOException {
         int pos = buf.cursor;
@@ -1591,7 +1581,6 @@ public class ConsoleReader
      *
      * @param count Number of times to repeat the action
      * @return true if it worked.
-     * @throws IOException
      */
     private boolean viEndWord(int count) throws IOException {
         int pos = buf.cursor;
@@ -1649,7 +1638,6 @@ public class ConsoleReader
      *
      * @param count Number of times to perform the operation
      * @return true if it worked, false if you tried to delete too many words
-     * @throws IOException
      */
     private boolean unixWordRubout(int count) throws IOException {
         boolean success = true;
@@ -1706,7 +1694,6 @@ public class ConsoleReader
      * @param count The count of times to insert the string.
      * @param str The string to insert
      * @return true if the operation is a success, false otherwise
-     * @throws IOException
      */
     private boolean insert(int count, final CharSequence str) throws IOException {
         for (int i = 0; i < count; i++) {
@@ -1726,7 +1713,6 @@ public class ConsoleReader
 
     /**
      * Implements vi search ("/" or "?").
-     * @throws IOException
      */
     @SuppressWarnings("fallthrough")
     private int viSearch(char searchChar) throws IOException {
@@ -1921,7 +1907,6 @@ public class ConsoleReader
      * The logic works like so:
      * @return true if it worked, false if the cursor was not on a bracket
      *   character or if there was no matching bracket.
-     * @throws IOException
      */
     private boolean viMatch() throws IOException {
         int pos        = buf.cursor;
@@ -2084,7 +2069,6 @@ public class ConsoleReader
      * @param count The number of times to perform the transpose
      * @return true if the operation succeeded, false otherwise (e.g. transpose
      *   cannot happen at the beginning of the line).
-     * @throws IOException
      */
     private boolean transposeChars(int count) throws IOException {
         for (; count > 0; --count) {
@@ -2129,7 +2113,6 @@ public class ConsoleReader
      * complete and is returned.
      *
      * @return The completed line of text.
-     * @throws IOException
      */
     public String accept() throws IOException {
         moveToEnd();
@@ -3534,7 +3517,6 @@ public class ConsoleReader
      * @param next If true, move forward
      * @param count The number of entries to move
      * @return true if the move was successful
-     * @throws IOException
      */
     private boolean moveHistory(final boolean next, int count) throws IOException {
         boolean ok = true;

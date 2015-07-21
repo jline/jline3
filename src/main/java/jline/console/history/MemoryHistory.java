@@ -261,8 +261,6 @@ public class MemoryHistory
 
     /**
      * Move to the specified index in the history
-     * @param index
-     * @return
      */
     public boolean moveTo(int index) {
         index -= offset;
