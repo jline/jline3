@@ -1025,6 +1025,24 @@ public class ConsoleReader
 //        flush();
     }
 
+    protected void rawBack(int num, int cursorPos) throws IOException {
+        if (num == 0) return;
+        if (terminal.isAnsiSupported()) {
+            int i0 = cursorPos - num;
+            int i1 = cursorPos;
+            int width = getTerminal().getWidth();
+            int l0 = i0 / width;
+            int c0 = i0 % width;
+            int l1 = i1 / width;
+            if (l0 != l1) {
+                printAnsiSequence((l1 - l0) + "A"); // cursor up (l1 - l0) lines
+            }
+            printAnsiSequence((1 + c0) + "G"); // move cursor to column (1 + c0)
+            return;
+        }
+        rawPrint(BACKSPACE, num);
+    }
+
     /**
      * Flush the console output stream. This is important for printout out single characters (like a backspace or
      * keyboard) that we want the console to handle immediately.
@@ -2249,8 +2267,9 @@ public class ConsoleReader
         }
 
         // otherwise, clear
-        int num = wcwidth(c, getCursorPosition());
-        back(num);
+        int pos = getCursorPosition();
+        int num = wcwidth(c, pos);
+        rawBack(num, pos + num);
         drawBuffer(num);
 
         return num;
