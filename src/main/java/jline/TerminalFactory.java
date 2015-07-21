@@ -56,8 +56,20 @@ public class TerminalFactory
             Log.trace(new Throwable("CREATE MARKER"));
         }
 
-        String defaultType = "dumb".equals(System.getenv("TERM")) ? NONE : AUTO;
-        String type = Configuration.getString(JLINE_TERMINAL, defaultType);
+        String type  = Configuration.getString(JLINE_TERMINAL);
+        if (type == null) {
+            type = AUTO;
+            if ("dumb".equals(System.getenv("TERM"))) {
+                // emacs communicates with shell through a 'dumb' terminal
+                // but sets these env variables to let programs know
+                // it is ok to send ANSI control sequences
+                String emacs = System.getenv("EMACS");
+                String insideEmacs = System.getenv("INSIDE_EMACS");
+                if (emacs == null || insideEmacs == null) {
+                    type = NONE;
+                }
+            }
+        }
 
         Log.debug("Creating terminal; type=", type);
 
