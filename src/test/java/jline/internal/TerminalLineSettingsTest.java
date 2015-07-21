@@ -119,7 +119,7 @@ public class TerminalLineSettingsTest
     @Test
     public void testGetConfig() throws Exception {
         if (!Configuration.getOsName().contains("win")) {
-            TerminalLineSettings settings = new TerminalLineSettings();
+            TerminalLineSettings settings = TerminalLineSettings.getSettings(TerminalLineSettings.DEFAULT_TTY);
             String config = settings.getConfig();
             System.out.println(config);
         }

@@ -14,6 +14,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.MessageFormat;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -45,6 +47,8 @@ public final class TerminalLineSettings
 
     private static final boolean SUPPORTS_REDIRECT;
 
+    private static final Map<String, TerminalLineSettings> SETTINGS = new HashMap<String, TerminalLineSettings>();
+
     static {
         if (Configuration.isHpux()) {
             UNDEFINED = "^-";
@@ -75,11 +79,17 @@ public final class TerminalLineSettings
 
     private boolean useRedirect;
 
+    @Deprecated
     public TerminalLineSettings() throws IOException, InterruptedException {
     	this(DEFAULT_TTY);
     }
-    
+
+    @Deprecated
     public TerminalLineSettings(String ttyDevice) throws IOException, InterruptedException {
+        this(ttyDevice, false);
+    }
+
+    private TerminalLineSettings(String ttyDevice, boolean unused) throws IOException, InterruptedException {
         checkNotNull(ttyDevice);
         this.sttyCommand = Configuration.getString(JLINE_STTY, DEFAULT_STTY);
         this.shCommand = Configuration.getString(JLINE_SH, DEFAULT_SH);
@@ -95,6 +105,15 @@ public final class TerminalLineSettings
         if (config.length() == 0) {
             throw new IOException(MessageFormat.format("Unrecognized stty code: {0}", config));
         }
+    }
+
+    public static synchronized TerminalLineSettings getSettings(String device) throws IOException, InterruptedException {
+        TerminalLineSettings settings = SETTINGS.get(device);
+        if (settings == null) {
+            settings = new TerminalLineSettings(device, false);
+            SETTINGS.put(device, settings);
+        }
+        return settings;
     }
 
     public String getTtyDevice() {

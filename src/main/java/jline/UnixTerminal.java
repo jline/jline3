@@ -41,7 +41,7 @@ public class UnixTerminal
     public UnixTerminal(String ttyDevice) throws Exception {
         super(true);
         checkNotNull(ttyDevice);
-        settings = new TerminalLineSettings(ttyDevice);
+        settings = TerminalLineSettings.getSettings(ttyDevice);
     }
 
     public TerminalLineSettings getSettings() {
