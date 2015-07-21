@@ -13,6 +13,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Method;
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
@@ -47,6 +48,9 @@ public final class TerminalLineSettings
 
     private static final boolean SUPPORTS_REDIRECT;
 
+    private static final Object REDIRECT_INHERIT;
+    private static final Method REDIRECT_INPUT_METHOD;
+
     private static final Map<String, TerminalLineSettings> SETTINGS = new HashMap<String, TerminalLineSettings>();
 
     static {
@@ -57,13 +61,19 @@ public final class TerminalLineSettings
         }
 
         boolean supportsRedirect;
+        Object redirectInherit = null;
+        Method redirectInputMethod = null;
         try {
-            Class.forName("java.lang.ProcessBuilder$Redirect");
+            Class<?> redirect = Class.forName("java.lang.ProcessBuilder$Redirect");
+            redirectInherit = redirect.getField("INHERIT").get(null);
+            redirectInputMethod = ProcessBuilder.class.getMethod("redirectInput", redirect);
             supportsRedirect = System.class.getMethod("console").invoke(null) != null;
         } catch (Throwable t) {
             supportsRedirect = false;
         }
         SUPPORTS_REDIRECT = supportsRedirect;
+        REDIRECT_INHERIT = redirectInherit;
+        REDIRECT_INPUT_METHOD = redirectInputMethod;
     }
 
     private String sttyCommand;
@@ -306,10 +316,7 @@ public final class TerminalLineSettings
     }
 
     private static ProcessBuilder inheritInput(ProcessBuilder pb) throws Exception {
-        Class<?> redirect = Class.forName("java.lang.ProcessBuilder$Redirect");
-        Object input = redirect.getField("INHERIT").get(null);
-        pb.getClass().getMethod("redirectInput", redirect)
-                .invoke(pb, input);
+        REDIRECT_INPUT_METHOD.invoke(pb, REDIRECT_INHERIT);
         return pb;
     }
 
