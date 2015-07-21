@@ -119,7 +119,7 @@ public class HistorySearchTest {
         readLineResult = reader.readLine();
         assertEquals(null, readLineResult);
         assertTrue(output.toString().contains("(reverse-i-search)`ff':"));
-        assertEquals("ff", reader.getCursorBuffer().toString());
+        assertEquals("f", reader.getCursorBuffer().toString());
         assertEquals(3, history.size());
     }
 
