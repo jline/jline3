@@ -33,7 +33,7 @@ public class UnixTerminal
     private String lnext;
 
     public UnixTerminal() throws Exception {
-    	this("/dev/tty");
+    	this(TerminalLineSettings.TTY);
     }
     
     public UnixTerminal(String ttyDevice) throws Exception {
