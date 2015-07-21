@@ -15,7 +15,6 @@ import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionListener;
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileDescriptor;
@@ -127,12 +126,6 @@ public class ConsoleReader
     private NonBlockingInputStream in;
     private long                   escapeTimeout;
     private Reader                 reader;
-
-    /*
-     * TODO: Please read the comments about this in setInput(), but this needs
-     * to be done away with.
-     */
-    private boolean                isUnitTestInput;
 
     /**
      * Last character searched for with a vi character search
@@ -293,19 +286,6 @@ public class ConsoleReader
 
     void setInput(final InputStream in) throws IOException {
         this.escapeTimeout = Configuration.getLong(JLINE_ESC_TIMEOUT, 100);
-        /*
-         * This is gross and here is how to fix it. In getCurrentPosition()
-         * and getCurrentAnsiRow(), the logic is disabled when running unit
-         * tests and the fact that it is a unit test is determined by knowing
-         * if the original input stream was a ByteArrayInputStream. So, this
-         * is our test to do this.  What SHOULD happen is that the unit
-         * tests should pass in a terminal that is appropriately configured
-         * such that whatever behavior they expect to happen (or not happen)
-         * happens (or doesn't).
-         *
-         * So, TODO, get rid of this and fix the unit tests.
-         */
-        this.isUnitTestInput = in instanceof ByteArrayInputStream;
         boolean nonBlockingEnabled =
                escapeTimeout > 0L
             && terminal.isSupported()
@@ -620,7 +600,7 @@ public class ConsoleReader
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             AnsiOutputStream aos = new AnsiOutputStream(baos);
             aos.write(str.getBytes());
-            aos.flush();
+            aos.close();
             return baos.toString();
         } catch (IOException e) {
             return str;
@@ -1687,31 +1667,6 @@ public class ConsoleReader
     }
 
     /**
-     * Similar to putString() but allows the string to be repeated a specific
-     * number of times, allowing easy support of vi digit arguments to a given
-     * command. The string is placed as the current cursor position.
-     *
-     * @param count The count of times to insert the string.
-     * @param str The string to insert
-     * @return true if the operation is a success, false otherwise
-     */
-    private boolean insert(int count, final CharSequence str) throws IOException {
-        for (int i = 0; i < count; i++) {
-            buf.write(str);
-            if (mask == null) {
-                // no masking
-                print(str);
-            } else if (mask == NULL_MASK) {
-                // don't print anything
-            } else {
-                rawPrint(mask, str.length());
-            }
-        }
-        drawBuffer();
-        return true;
-    }
-
-    /**
      * Implements vi search ("/" or "?").
      */
     @SuppressWarnings("fallthrough")
@@ -2298,50 +2253,6 @@ public class ConsoleReader
         drawBuffer(num);
 
         return num;
-    }
-
-    /**
-     * Return the number of characters that will be printed when the specified
-     * character is echoed to the screen
-     *
-     * Adapted from cat by Torbjorn Granlund, as repeated in stty by David MacKenzie.
-     */
-    private StringBuilder getPrintableCharacters(final int ch) {
-        StringBuilder sbuff = new StringBuilder();
-
-        if (ch >= 32) {
-            if (ch < 127) {
-                sbuff.append(ch);
-            }
-            else if (ch == 127) {
-                sbuff.append('^');
-                sbuff.append('?');
-            }
-            else {
-                sbuff.append('M');
-                sbuff.append('-');
-
-                if (ch >= (128 + 32)) {
-                    if (ch < (128 + 127)) {
-                        sbuff.append((char) (ch - 128));
-                    }
-                    else {
-                        sbuff.append('^');
-                        sbuff.append('?');
-                    }
-                }
-                else {
-                    sbuff.append('^');
-                    sbuff.append((char) (ch - 128 + 64));
-                }
-            }
-        }
-        else {
-            sbuff.append('^');
-            sbuff.append((char) (ch + 64));
-        }
-
-        return sbuff;
     }
 
     public final int readCharacter(final char... allowed) throws IOException {

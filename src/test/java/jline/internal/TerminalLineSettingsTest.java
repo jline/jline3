@@ -20,8 +20,6 @@ import static org.junit.Assert.assertEquals;
  */
 public class TerminalLineSettingsTest
 {
-    private TerminalLineSettings settings;
-
     private final String linuxSttySample = "speed 38400 baud; rows 85; columns 244; line = 0;\n" +
             "intr = ^C; quit = ^\\; erase = ^?; kill = ^U; eof = ^D; eol = M-^?; eol2 = M-^?; swtch = M-^?; start = ^Q; stop = ^S; susp = ^Z; rprnt = ^R; werase = ^W; lnext = ^V; flush = ^O; min = 1; time = 0;\n" +
             "-parenb -parodd cs8 hupcl -cstopb cread -clocal -crtscts\n" +

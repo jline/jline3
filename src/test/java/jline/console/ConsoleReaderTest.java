@@ -643,6 +643,8 @@ public class ConsoleReaderTest
         out.write("read and\033[D\033[D\t\n".getBytes());
 
         assertEquals("read andnd", console.readLine());
+
+        out.close();
     }
 
   /**

@@ -43,8 +43,6 @@ public class EditLineTest
 
     @Test
     public void testMoveToEnd() throws Exception {
-        Buffer b = new Buffer("This is a test");
-
         assertBuffer("This is a XtestX",
             new Buffer("This is a test").op(BACKWARD_WORD)
                 .append('X')

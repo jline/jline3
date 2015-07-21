@@ -56,9 +56,11 @@ public abstract class ConsoleReaderTestSupport
         console.setInput(new ByteArrayInputStream(buffer.getBytes()));
 
         // run it through the reader
-        String line;
-        while ((line = console.readLine((String) null)) != null) {
+        //String line;
+        //while ((line = console.readLine((String) null)) != null) {
             //System.err.println("Read line: " + line);
+        while ((console.readLine((String) null)) != null) {
+            // noop
         }
 
         assertEquals(expected, console.getCursorBuffer().toString());
@@ -74,9 +76,11 @@ public abstract class ConsoleReaderTestSupport
         console.setInput(new ByteArrayInputStream(buffer.getBytes()));
 
         // run it through the reader
-        String line;
-        while ((line = console.readLine((String) null)) != null) {
+        //String line;
+        //while ((line = console.readLine((String) null)) != null) {
             //System.err.println("Read line: " + line);
+        while ((console.readLine((String) null)) != null) {
+            // noop
         }
 
         assertEquals(pos, console.getCursorPosition ());
