@@ -39,7 +39,7 @@ public class NoInterruptUnixTerminal
     @Override
     public void restore() throws Exception {
         if (intr != null) {
-            getSettings().set("intr " + intr);
+            getSettings().set("intr", intr);
         }
         super.restore();
     }

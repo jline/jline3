@@ -25,7 +25,8 @@ import static jline.internal.Preconditions.checkNotNull;
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:dwkemp@gmail.com">Dale Kemp</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
- * @author <a href="mailto:jbonofre@apache.org">Jean-Baptiste Onofr��</a>
+ * @author <a href="mailto:jbonofre@apache.org">Jean-Baptiste Onofré</a>
+ * @author <a href="mailto:gnodet@gmail.com">Guillaume Nodet</a>
  * @since 2.0
  */
 public final class TerminalLineSettings
@@ -39,12 +40,40 @@ public final class TerminalLineSettings
     public static final String DEFAULT_SH = "sh";
 
     private static final String UNDEFINED;
+
+    public static final String TTY;
+
+    public static final String DEFAULT_TTY = "/dev/tty";
+
+    private static final boolean SUPPORTS_REDIRECT;
+
     static {
         if (Configuration.isHpux()) {
             UNDEFINED = "^-";
         } else {
             UNDEFINED = "undef";
         }
+
+        boolean supportsRedirect;
+        try {
+            Class.forName("java.lang.ProcessBuilder$Redirect");
+            supportsRedirect = System.class.getMethod("console").invoke(null) != null;
+        } catch (Throwable t) {
+            supportsRedirect = false;
+        }
+        SUPPORTS_REDIRECT = supportsRedirect;
+
+        String tty;
+        if (supportsRedirect) {
+            try {
+                tty = waitAndCapture(inheritInput(new ProcessBuilder("tty")).start());
+            } catch (Throwable t) {
+                tty = DEFAULT_TTY;
+            }
+        } else {
+            tty = DEFAULT_TTY;
+        }
+        TTY = tty;
     }
 
     private String sttyCommand;
@@ -58,14 +87,17 @@ public final class TerminalLineSettings
 
     private long configLastFetched;
 
+    private boolean useRedirect;
+
     public TerminalLineSettings() throws IOException, InterruptedException {
-    	this("/dev/tty");
+    	this(TTY);
     }
     
     public TerminalLineSettings(String ttyDevice) throws IOException, InterruptedException {
         this.sttyCommand = Configuration.getString(JLINE_STTY, DEFAULT_STTY);
         this.shCommand = Configuration.getString(JLINE_SH, DEFAULT_SH);
         this.ttyDevice = ttyDevice;
+        this.useRedirect = SUPPORTS_REDIRECT && TTY.equals(ttyDevice);
         this.initialConfig = get("-g").trim();
         this.config = get("-a");
         this.configLastFetched = System.currentTimeMillis();
@@ -87,15 +119,23 @@ public final class TerminalLineSettings
     }
 
     public String get(final String args) throws IOException, InterruptedException {
+        checkNotNull(args);
         return stty(args);
     }
 
     public void set(final String args) throws IOException, InterruptedException {
+        checkNotNull(args);
+        stty(args.split(" "));
+    }
+
+    public void set(final String... args) throws IOException, InterruptedException {
+        checkNotNull(args);
         stty(args);
     }
 
-    public void undef(final String args) throws IOException, InterruptedException {
-        stty(String.format("%s %s", args, UNDEFINED));
+    public void undef(final String name) throws IOException, InterruptedException {
+        checkNotNull(name);
+        stty(name, UNDEFINED);
     }
 
     /**
@@ -215,25 +255,56 @@ public final class TerminalLineSettings
         }
     }
 
-    private String stty(final String args) throws IOException, InterruptedException {
-        checkNotNull(args);
-        return exec(String.format("%s %s < %s", sttyCommand, args, ttyDevice));
-    }
-
-    private String exec(final String cmd) throws IOException, InterruptedException {
-        checkNotNull(cmd);
-        return exec(shCommand, "-c", cmd);
+    private String stty(final String... args) throws IOException, InterruptedException {
+        String[] s = new String[args.length + 1];
+        s[0] = sttyCommand;
+        System.arraycopy(args, 0, s, 1, args.length);
+        return exec(s);
     }
 
     private String exec(final String... cmd) throws IOException, InterruptedException {
         checkNotNull(cmd);
 
-        ByteArrayOutputStream bout = new ByteArrayOutputStream();
-
         Log.trace("Running: ", cmd);
 
-        Process p = Runtime.getRuntime().exec(cmd);
+        Process p = null;
+        if (useRedirect) {
+            try {
+                p = inheritInput(new ProcessBuilder(cmd)).start();
+            } catch (Throwable t) {
+                useRedirect = false;
+            }
+        }
+        if (p == null) {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < cmd.length; i++) {
+                if (i > 0) {
+                    sb.append(' ');
+                }
+                sb.append(cmd[i]);
+            }
+            sb.append(" < ");
+            sb.append(ttyDevice);
+            p = new ProcessBuilder(shCommand, "-c", sb.toString()).start();
+        }
 
+        String result = waitAndCapture(p);
+
+        Log.trace("Result: ", result);
+
+        return result;
+    }
+
+    private static ProcessBuilder inheritInput(ProcessBuilder pb) throws Exception {
+        Class<?> redirect = Class.forName("java.lang.ProcessBuilder$Redirect");
+        Object input = redirect.getField("INHERIT").get(null);
+        pb.getClass().getMethod("redirectInput", redirect)
+                .invoke(pb, input);
+        return pb;
+    }
+
+    static String waitAndCapture(Process p) throws IOException, InterruptedException {
+        ByteArrayOutputStream bout = new ByteArrayOutputStream();
         InputStream in = null;
         InputStream err = null;
         OutputStream out = null;
@@ -254,20 +325,17 @@ public final class TerminalLineSettings
             close(in, out, err);
         }
 
-        String result = bout.toString();
-
-        Log.trace("Result: ", result);
-
-        return result;
+        return bout.toString();
     }
 
     private static void close(final Closeable... closeables) {
         for (Closeable c : closeables) {
-            try {
-                c.close();
-            }
-            catch (Exception e) {
-                // Ignore
+            if (c != null) {
+                try {
+                    c.close();
+                } catch (Exception e) {
+                    // Ignore
+                }
             }
         }
     }

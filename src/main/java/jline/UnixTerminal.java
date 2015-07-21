@@ -133,7 +133,7 @@ public class UnixTerminal
     {
         try {
             if (intr != null) {
-                settings.set("intr " + intr);
+                settings.set("intr", intr);
             }
         }
         catch (Exception e) {
@@ -165,7 +165,7 @@ public class UnixTerminal
     {
         try {
             if (lnext != null) {
-                settings.set("lnext " + lnext);
+                settings.set("lnext", lnext);
             }
         }
         catch (Exception e) {
