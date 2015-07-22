@@ -55,4 +55,14 @@ public class ArgumentCompleterTest
         assertBuffer("ba foo ", new Buffer("ba f").tab());
         assertBuffer("ba fo ree ", new Buffer("ba fo r").tab());
     }
+
+    @Test
+    public void test2() throws Exception {
+        console.addCompleter(
+                new ArgumentCompleter(
+                        new StringsCompleter("some", "any"),
+                        new StringsCompleter("foo", "bar", "baz")));
+
+        assertBuffer("some foo ", new Buffer("some fo").tab());
+    }
 }
