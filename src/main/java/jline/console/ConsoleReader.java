@@ -15,7 +15,6 @@ import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionListener;
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
@@ -40,6 +39,7 @@ import jline.console.completer.Completer;
 import jline.console.completer.CompletionHandler;
 import jline.console.history.History;
 import jline.console.history.MemoryHistory;
+import jline.internal.Ansi;
 import jline.internal.Configuration;
 import jline.internal.InputStreamReader;
 import jline.internal.Log;
@@ -47,7 +47,6 @@ import jline.internal.NonBlockingInputStream;
 import jline.internal.Nullable;
 import jline.internal.TerminalLineSettings;
 import jline.internal.Urls;
-import org.fusesource.jansi.AnsiOutputStream;
 
 import static jline.internal.Preconditions.checkNotNull;
 
@@ -461,7 +460,7 @@ public class ConsoleReader
 
     public void setPrompt(final String prompt) {
         this.prompt = prompt;
-        this.promptLen = ((prompt == null) ? 0 : wcwidth(stripAnsi(lastLine(prompt)), 0));
+        this.promptLen = ((prompt == null) ? 0 : wcwidth(Ansi.stripAnsi(lastLine(prompt)), 0));
     }
 
     public String getPrompt() {
@@ -592,19 +591,6 @@ public class ConsoleReader
         }
 
         return str;
-    }
-
-    private String stripAnsi(String str) {
-        if (str == null) return "";
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            AnsiOutputStream aos = new AnsiOutputStream(baos);
-            aos.write(str.getBytes());
-            aos.close();
-            return baos.toString();
-        } catch (IOException e) {
-            return str;
-        }
     }
 
     /**
@@ -3536,6 +3522,11 @@ public class ConsoleReader
         }
     }
 
+    private void rawPrintln(final String s) throws IOException {
+        rawPrint(s);
+        println();
+    }
+
 
     //
     // Actions
@@ -3730,7 +3721,7 @@ public class ConsoleReader
      * addTriggerAction('q', new ActionListener(){ System.exit(0); }); would do the trick.
      */
     public void addTriggeredAction(final char c, final ActionListener listener) {
-      getKeys().bind(Character.toString(c), listener);
+        getKeys().bind(Character.toString(c), listener);
     }
 
     //
@@ -3750,7 +3741,9 @@ public class ConsoleReader
 
         int maxWidth = 0;
         for (CharSequence item : items) {
-            maxWidth = Math.max(maxWidth, item.length());
+            // we use 0 here, as we don't really support tabulations inside candidates
+            int len = wcwidth(Ansi.stripAnsi(item.toString()), 0);
+            maxWidth = Math.max(maxWidth, len);
         }
         maxWidth = maxWidth + 3;
         Log.debug("Max width: ", maxWidth);
@@ -3764,10 +3757,12 @@ public class ConsoleReader
         }
 
         StringBuilder buff = new StringBuilder();
+        int realLength = 0;
         for (CharSequence item : items) {
-            if ((buff.length() + maxWidth) > width) {
-                println(buff);
+            if ((realLength + maxWidth) > width) {
+                rawPrintln(buff.toString());
                 buff.setLength(0);
+                realLength = 0;
 
                 if (--showLines == 0) {
                     // Overflow
@@ -3793,13 +3788,15 @@ public class ConsoleReader
 
             // NOTE: toString() is important here due to AnsiString being retarded
             buff.append(item.toString());
-            for (int i = 0; i < (maxWidth - item.length()); i++) {
+            int strippedItemLength = wcwidth(Ansi.stripAnsi(item.toString()), 0);
+            for (int i = 0; i < (maxWidth - strippedItemLength); i++) {
                 buff.append(' ');
             }
+            realLength += maxWidth;
         }
 
         if (buff.length() > 0) {
-            println(buff);
+            rawPrintln(buff.toString());
         }
     }
 

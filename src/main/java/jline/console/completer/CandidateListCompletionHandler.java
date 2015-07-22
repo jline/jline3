@@ -10,6 +10,7 @@ package jline.console.completer;
 
 import jline.console.ConsoleReader;
 import jline.console.CursorBuffer;
+import jline.internal.Ansi;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -34,6 +35,7 @@ public class CandidateListCompletionHandler
     implements CompletionHandler
 {
     private boolean printSpaceAfterFullCompletion = true;
+    private boolean stripAnsi;
 
     public boolean getPrintSpaceAfterFullCompletion() {
         return printSpaceAfterFullCompletion;
@@ -41,6 +43,14 @@ public class CandidateListCompletionHandler
 
     public void setPrintSpaceAfterFullCompletion(boolean printSpaceAfterFullCompletion) {
         this.printSpaceAfterFullCompletion = printSpaceAfterFullCompletion;
+    }
+
+    public boolean isStripAnsi() {
+        return stripAnsi;
+    }
+
+    public void setStripAnsi(boolean stripAnsi) {
+        this.stripAnsi = stripAnsi;
     }
 
     // TODO: handle quotes and escaped quotes && enable automatic escaping of whitespace
@@ -52,7 +62,7 @@ public class CandidateListCompletionHandler
 
         // if there is only one completion, then fill in the buffer
         if (candidates.size() == 1) {
-            CharSequence value = candidates.get(0);
+            String value = Ansi.stripAnsi(candidates.get(0).toString());
 
             if (buf.cursor == buf.buffer.length() && printSpaceAfterFullCompletion) {
                 value = value + " ";
@@ -157,10 +167,25 @@ public class CandidateListCompletionHandler
             return null;
         }
 
-        // convert to an array for speed
-        String[] strings = candidates.toArray(new String[candidates.size()]);
+        if (candidates.size() == 1) {
+            return candidates.get(0).toString();
+        }
 
-        String first = strings[0];
+        // convert to an array for speed
+        String first = null;
+        String[] strings = new String[candidates.size() - 1];
+        for (int i = 0; i < candidates.size(); i++) {
+            String str = candidates.get(i).toString();
+            if (stripAnsi) {
+                str = Ansi.stripAnsi(str);
+            }
+            if (first == null) {
+                first = str;
+            } else {
+                strings[i - 1] = str;
+            }
+        }
+
         StringBuilder candidate = new StringBuilder();
 
         for (int i = 0; i < first.length(); i++) {
