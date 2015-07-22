@@ -583,7 +583,7 @@ public class ConsoleReader
     /**
      * Move the cursor position to the specified absolute index.
      */
-    public final boolean setCursorPosition(final int position) throws IOException {
+    public boolean setCursorPosition(final int position) throws IOException {
         if (position == buf.cursor) {
             return true;
         }
@@ -645,7 +645,7 @@ public class ConsoleReader
     /**
      * Output put the prompt + the current buffer
      */
-    public final void drawLine() throws IOException {
+    public void drawLine() throws IOException {
         String prompt = getPrompt();
         if (prompt != null) {
             rawPrint(prompt);
@@ -663,7 +663,7 @@ public class ConsoleReader
     /**
      * Clear the line and redraw it.
      */
-    public final void redrawLine() throws IOException {
+    public void redrawLine() throws IOException {
         rawPrint(RESET_LINE);
 //        flush();
         drawLine();
@@ -878,7 +878,7 @@ public class ConsoleReader
     /**
      * Write out the specified string to the buffer and the output stream.
      */
-    public final void putString(final CharSequence str) throws IOException {
+    public void putString(final CharSequence str) throws IOException {
         int pos = getCursorPosition();
         buf.write(str);
         if (mask == null) {
@@ -2155,7 +2155,7 @@ public class ConsoleReader
 
     // FIXME: replace() is not used
 
-    public final boolean replace(final int num, final String replacement) {
+    public boolean replace(final int num, final String replacement) {
         buf.buffer.replace(buf.cursor - num, buf.cursor, replacement);
         try {
             moveCursor(-num);
@@ -2174,7 +2174,7 @@ public class ConsoleReader
      *
      * @return the character, or -1 if an EOF is received.
      */
-    public final int readCharacter() throws IOException {
+    public int readCharacter() throws IOException {
       return readCharacter(false);
     }
 
@@ -2184,7 +2184,7 @@ public class ConsoleReader
      *
      * @return the character, or -1 if an EOF is received.
      */
-    public final int readCharacter(boolean checkForAltKeyCombo) throws IOException {
+    public int readCharacter(boolean checkForAltKeyCombo) throws IOException {
         int c = reader.read();
         if (c >= 0) {
             Log.trace("Keystroke: ", c);
@@ -2228,11 +2228,11 @@ public class ConsoleReader
         return num;
     }
 
-    public final int readCharacter(final char... allowed) throws IOException {
+    public int readCharacter(final char... allowed) throws IOException {
       return readCharacter(false, allowed);
     }
 
-    public final int readCharacter(boolean checkForAltKeyCombo, final char... allowed) throws IOException {
+    public int readCharacter(boolean checkForAltKeyCombo, final char... allowed) throws IOException {
         // if we restrict to a limited set and the current character is not in the set, then try again.
         char c;
 
@@ -3492,11 +3492,11 @@ public class ConsoleReader
     /**
      * Output the specified string to the output stream (but not the buffer).
      */
-    public final void print(final CharSequence s) throws IOException {
+    public void print(final CharSequence s) throws IOException {
         print(s, getCursorPosition());
     }
 
-    public final void println(final CharSequence s) throws IOException {
+    public void println(final CharSequence s) throws IOException {
         print(s);
         println();
     }
@@ -3504,7 +3504,7 @@ public class ConsoleReader
     /**
      * Output a platform-dependant newline.
      */
-    public final void println() throws IOException {
+    public void println() throws IOException {
         rawPrint(CR);
 //        flush();
     }
@@ -3541,7 +3541,7 @@ public class ConsoleReader
      *
      * @return true if successful
      */
-    public final boolean delete() throws IOException {
+    public boolean delete() throws IOException {
         if (buf.cursor == buf.buffer.length()) {
           return false;
         }
