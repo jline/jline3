@@ -139,6 +139,10 @@ public class Configuration
         return getString(name, null);
     }
 
+    public static boolean getBoolean(final String name) {
+        return getBoolean(name, false);
+    }
+
     public static boolean getBoolean(final String name, final boolean defaultValue) {
         String value = getString(name);
         if (value == null) {
