@@ -72,7 +72,7 @@ public class Example
                 }
                 else if (args[0].equals("color")) {
                     color = true;
-                    reader.setPrompt("\u001B[1mfoo\u001B[0m@bar\u001B[32m@baz\u001B[0m> ");
+                    reader.setPrompt("\u001B[42mfoo\u001B[0m@bar\u001B[32m@baz\u001B[0m> ");
                     completors.add(new AnsiStringsCompleter("\u001B[1mfoo\u001B[0m", "bar", "\u001B[32mbaz\u001B[0m"));
                     CandidateListCompletionHandler handler = new CandidateListCompletionHandler();
                     handler.setStripAnsi(true);
