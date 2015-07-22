@@ -3169,6 +3169,10 @@ public class ConsoleReader
                                 quotedInsert = true;
                                 break;
 
+                            case PASTE_FROM_CLIPBOARD:
+                                paste();
+                                break;
+
                             default:
                                 break;
                         }
