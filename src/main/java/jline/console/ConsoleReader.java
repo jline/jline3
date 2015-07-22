@@ -469,24 +469,11 @@ public class ConsoleReader
 
     /**
      * Set the echo character. For example, to have "*" entered when a password is typed:
-     * <p/>
      * <pre>
      * myConsoleReader.setEchoCharacter(new Character('*'));
      * </pre>
-     * <p/>
-     * Setting the character to
-     * <p/>
-     * <pre>
-     * null
-     * </pre>
-     * <p/>
-     * will restore normal character echoing. Setting the character to
-     * <p/>
-     * <pre>
-     * new Character(0)
-     * </pre>
-     * <p/>
-     * will cause nothing to be echoed.
+     * Setting the character to <code>null</code> will restore normal character echoing.<p/>
+     * Setting the character to <code>Character.valueOf(0)</code> will cause nothing to be echoed.
      *
      * @param c the character to echo to the console in place of the typed character.
      */
@@ -2341,7 +2328,7 @@ public class ConsoleReader
         int repeatCount = 0;
 
         // FIXME: This blows, each call to readLine will reset the console's state which doesn't seem very nice.
-        this.mask = mask;
+        this.mask = mask != null ? mask : this.echoCharacter;
         if (prompt != null) {
             setPrompt(prompt);
         }
