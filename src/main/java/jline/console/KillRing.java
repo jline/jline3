@@ -38,7 +38,7 @@ public final class KillRing {
     }
 
     /**
-     * Creates a new kill ring of the default size. {@see DEFAULT_SIZE}.
+     * Creates a new kill ring of the default size. See {@link #DEFAULT_SIZE}.
      */
     public KillRing() {
         this(DEFAULT_SIZE);

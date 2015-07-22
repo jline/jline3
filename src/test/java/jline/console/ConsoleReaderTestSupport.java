@@ -56,9 +56,11 @@ public abstract class ConsoleReaderTestSupport
         console.setInput(new ByteArrayInputStream(buffer.getBytes()));
 
         // run it through the reader
-        String line;
-        while ((line = console.readLine((String) null)) != null) {
+        //String line;
+        //while ((line = console.readLine((String) null)) != null) {
             //System.err.println("Read line: " + line);
+        while ((console.readLine((String) null)) != null) {
+            // noop
         }
 
         assertEquals(expected, console.getCursorBuffer().toString());
@@ -74,9 +76,11 @@ public abstract class ConsoleReaderTestSupport
         console.setInput(new ByteArrayInputStream(buffer.getBytes()));
 
         // run it through the reader
-        String line;
-        while ((line = console.readLine((String) null)) != null) {
+        //String line;
+        //while ((line = console.readLine((String) null)) != null) {
             //System.err.println("Read line: " + line);
+        while ((console.readLine((String) null)) != null) {
+            // noop
         }
 
         assertEquals(pos, console.getCursorPosition ());
@@ -90,7 +94,6 @@ public abstract class ConsoleReaderTestSupport
      * @param buffer The buffer
      * @param clear If true, the current buffer of the console
      *    is cleared.
-     * @throws IOException
      */
     protected void assertLine(final String expected, final Buffer buffer,
             final boolean clear) throws IOException {
@@ -129,8 +132,9 @@ public abstract class ConsoleReaderTestSupport
             case BACKWARD_KILL_WORD:   return new String(new char[]{27, 127});
             case YANK:                 return "\u0019";
             case YANK_POP:             return new String(new char[]{27, 121});
+            default:
+              throw new IllegalArgumentException(key.toString());
         }
-        throw new IllegalArgumentException(key.toString());
     }
 
     protected class Buffer

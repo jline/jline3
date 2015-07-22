@@ -31,10 +31,8 @@ public final class Log
         ERROR
     }
 
-    @SuppressWarnings({"StringConcatenation"})
     public static final boolean TRACE = Boolean.getBoolean(Log.class.getName() + ".trace");
 
-    @SuppressWarnings({"StringConcatenation"})
     public static final boolean DEBUG = TRACE || Boolean.getBoolean(Log.class.getName() + ".debug");
 
     private static PrintStream output = System.err;

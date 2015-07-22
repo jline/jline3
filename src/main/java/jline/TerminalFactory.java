@@ -15,7 +15,6 @@ import java.util.Map;
 
 import jline.internal.Configuration;
 import jline.internal.Log;
-import jline.internal.Preconditions;
 import static jline.internal.Preconditions.checkNotNull;
 
 /**

@@ -1259,7 +1259,6 @@ public class ViMoveModeTest
      * CTRL-J or CTRL-M...maybe others.
      * 
      * @param enterChar The escape character that acts as enter.
-     * @throws Exception
      */
     private void testEnter(char enterChar) throws Exception {
         /*

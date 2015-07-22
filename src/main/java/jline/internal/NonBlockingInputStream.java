@@ -111,7 +111,6 @@ public class NonBlockingInputStream
      * @param timeout The amount of time to wait, 0 == forever
      * @return -1 on eof, -2 if the timeout expired with no available input
      *   or the character that was read (without consuming it).
-     * @throws IOException
      */
     public int peek(long timeout) throws IOException {
         if (!nonBlockingEnabled || isShutdown) {
@@ -127,7 +126,6 @@ public class NonBlockingInputStream
      * @param timeout The amount of time to wait for the character
      * @return The character read, -1 if EOF is reached, or -2 if the
      *   read timed out.
-     * @throws IOException
      */
     public int read(long timeout) throws IOException {
         if (!nonBlockingEnabled || isShutdown) {
@@ -143,7 +141,6 @@ public class NonBlockingInputStream
      * @param timeout The amount of time to wait for the character
      * @return The character read, -1 if EOF is reached, or -2 if the
      *   read timed out.
-     * @throws IOException
      */
     private synchronized int read(long timeout, boolean isPeek) throws IOException {
         /*
