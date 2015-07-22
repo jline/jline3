@@ -567,7 +567,7 @@ public class ConsoleReaderTest
         try {
             ConsoleReader consoleReader = createConsole("Bash", new byte[0]);
             assertNotNull(consoleReader);
-            assertNotNull(consoleReader.getKeys().getBound("\u001b" + ((char)('V' - 'A' + 1))));
+            assertNotNull(consoleReader.getKeys().getBound("\u001b" + ((char) ('V' - 'A' + 1))));
 
         } finally {
             System.clearProperty(ConsoleReader.JLINE_INPUTRC);
@@ -580,7 +580,7 @@ public class ConsoleReaderTest
         try {
             ConsoleReader consoleReader = createConsole("Bash", new byte[0]);
             assertNotNull(consoleReader);
-            assertEquals("\u001bb\"\u001bf\"", consoleReader.getKeys().getBound(((char)('X' - 'A' + 1)) + "q"));
+            assertEquals("\u001bb\"\u001bf\"", consoleReader.getKeys().getBound(((char) ('X' - 'A' + 1)) + "q"));
         } finally {
             System.clearProperty(ConsoleReader.JLINE_INPUTRC);
         }
@@ -645,6 +645,14 @@ public class ConsoleReaderTest
         assertEquals("read andnd", console.readLine());
 
         out.close();
+    }
+
+    @Test
+    public void testDefaultBuffer() throws Exception {
+        ConsoleReader consoleReader = createConsole("\r\n");
+        assertNotNull(consoleReader);
+        String line = consoleReader.readLine(null, null, "foo");
+        assertEquals("foo", line);
     }
 
   /**

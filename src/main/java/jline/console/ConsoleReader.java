@@ -2288,6 +2288,18 @@ public class ConsoleReader
     }
 
     /**
+     * Read a line from the <i>in</i> {@link InputStream}, and return the line
+     * (without any trailing newlines).
+     *
+     * @param prompt    The prompt to issue to the console, may be null.
+     * @return          A line that is read from the terminal, or null if there was null input (e.g., <i>CTRL-D</i>
+     *                  was pressed).
+     */
+    public String readLine(String prompt, final Character mask) throws IOException {
+        return readLine(prompt, mask, null);
+    }
+
+    /**
      * Sets the current keymap by name. Supported keymaps are "emacs",
      * "vi-insert", "vi-move".
      * @param name The name of the keymap to switch to
@@ -2316,9 +2328,10 @@ public class ConsoleReader
      * @return          A line that is read from the terminal, or null if there was null input (e.g., <i>CTRL-D</i>
      *                  was pressed).
      */
-    public String readLine(String prompt, final Character mask) throws IOException {
+    public String readLine(String prompt, final Character mask, String buffer) throws IOException {
         // prompt may be null
         // mask may be null
+        // buffer may be null
 
         /*
          * This is the accumulator for VI-mode repeat count. That is, while in
@@ -2337,6 +2350,10 @@ public class ConsoleReader
         }
 
         try {
+            if (buffer != null) {
+                buf.write(buffer);
+            }
+
             if (!terminal.isSupported()) {
                 beforeReadLine(prompt, mask);
             }
