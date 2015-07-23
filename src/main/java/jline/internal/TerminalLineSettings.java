@@ -320,7 +320,7 @@ public final class TerminalLineSettings
         return pb;
     }
 
-    static String waitAndCapture(Process p) throws IOException, InterruptedException {
+    public static String waitAndCapture(Process p) throws IOException, InterruptedException {
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
         InputStream in = null;
         InputStream err = null;

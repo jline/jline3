@@ -28,10 +28,18 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.net.URL;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
+import java.util.ResourceBundle;
+import java.util.Stack;
 
+import jline.DefaultTerminal2;
 import jline.Terminal;
+import jline.Terminal2;
 import jline.TerminalFactory;
 import jline.UnixTerminal;
 import jline.console.completer.CandidateListCompletionHandler;
@@ -41,6 +49,7 @@ import jline.console.history.History;
 import jline.console.history.MemoryHistory;
 import jline.internal.Ansi;
 import jline.internal.Configuration;
+import jline.internal.Curses;
 import jline.internal.InputStreamReader;
 import jline.internal.Log;
 import jline.internal.NonBlockingInputStream;
@@ -86,11 +95,12 @@ public class ConsoleReader
     private static final ResourceBundle
         resources = ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName());
 
-    private final Terminal terminal;
+    private final Terminal2 terminal;
 
     private final Writer out;
 
     private final CursorBuffer buf = new CursorBuffer();
+    private boolean cursorOk;
 
     private String prompt;
     private int    promptLen;
@@ -220,7 +230,8 @@ public class ConsoleReader
     {
         this.appName = appName != null ? appName : "JLine";
         this.encoding = encoding != null ? encoding : Configuration.getEncoding();
-        this.terminal = term != null ? term : TerminalFactory.get();
+        Terminal terminal = term != null ? term : TerminalFactory.get();
+        this.terminal = terminal instanceof Terminal2 ? (Terminal2) terminal : new DefaultTerminal2(terminal);
         String outEncoding = terminal.getOutputEncoding() != null? terminal.getOutputEncoding() : this.encoding;
         this.out = new OutputStreamWriter(terminal.wrapOutIfNeeded(out), outEncoding);
         setInput( in );
@@ -664,8 +675,7 @@ public class ConsoleReader
      * Clear the line and redraw it.
      */
     public void redrawLine() throws IOException {
-        rawPrint(RESET_LINE);
-//        flush();
+        tputs("carriage_return");
         drawLine();
     }
 
@@ -900,51 +910,34 @@ public class ConsoleReader
      */
     private void drawBuffer(final int clear) throws IOException {
         // debug ("drawBuffer: " + clear);
+        int nbChars = buf.length() - buf.cursor;
         if (buf.cursor != buf.length() || clear != 0) {
-            int nbChars = buf.length() - buf.cursor;
-            int cursorPos = getCursorPosition();
             if (mask != null) {
                 if (mask != NULL_MASK) {
                     rawPrint(mask, nbChars);
-                    cursorPos += nbChars;
                 } else {
                     nbChars = 0;
-                }
-            } else if (terminal.hasWeirdWrap()) {
-                // need to determine if wrapping will occur:
-                int width = terminal.getWidth();
-                for (int i = buf.cursor; i < buf.length(); i++) {
-                    int w = wcwidth(buf.buffer, i, i + 1, cursorPos);
-                    if (cursorPos + w >= width) {
-                        while (cursorPos++ <= width) {
-                            rawPrint(32); // move cursor to next line by printing dummy space
-                        }
-                        rawPrint(13); // CR / not newline.
-                        cursorPos = 0;
-                    }
-                    print(buf.buffer, i, i + 1, cursorPos);
-                    cursorPos += w;
                 }
             } else {
                 print(buf.buffer, buf.cursor, buf.length());
             }
-            clearAhead(clear, cursorPos);
-            back(nbChars);
         }
-        if (terminal.hasWeirdWrap()) {
+        int cursorPos = promptLen + wcwidth(buf.buffer, 0, buf.length(), promptLen);
+        if (terminal.hasWeirdWrap() && !cursorOk) {
             int width = terminal.getWidth();
             // best guess on whether the cursor is in that weird location...
             // Need to do this without calling ansi cursor location methods
             // otherwise it breaks paste of wrapped lines in xterm.
-            int cursorPos = getCursorPosition();
-            if (cursorPos > 0 && (cursorPos % width == 0)
-                    && buf.cursor == buf.length() && clear == 0) {
+            if (cursorPos > 0 && (cursorPos % width == 0)) {
                 // the following workaround is reverse-engineered from looking
                 // at what bash sent to the terminal in the same situation
-                rawPrint(32); // move cursor to next line by printing dummy space
-                rawPrint(13); // CR / not newline.
+                rawPrint(' '); // move cursor to next line by printing dummy space
+                tputs("carriage_return"); // CR / not newline.
             }
+            cursorOk = true;
         }
+        clearAhead(clear, cursorPos);
+        back(nbChars);
     }
 
     /**
@@ -961,81 +954,67 @@ public class ConsoleReader
      * @param num the number of characters to clear
      * @param pos the current screen cursor position
      */
-    private void clearAhead(final int num, int pos) throws IOException {
-        if (num == 0) {
-            return;
-        }
+    private void clearAhead(int num, final int pos) throws IOException {
+        if (num == 0) return;
 
-        if (terminal.isAnsiSupported()) {
-            int width = terminal.getWidth();
-            // clear current line
-            printAnsiSequence("K");
-            // if cursor+num wraps, then we need to clear the line(s) below too
-            int curCol = pos % width;
-            int endCol = (pos + num - 1) % width;
-            int lines = num / width;
-            if (endCol < curCol) lines++;
-            for (int i = 0; i < lines; i++) {
-                printAnsiSequence("B");
-                printAnsiSequence("2K");
+        int width = terminal.getWidth();
+        // Use kill line
+        if (terminal.getStringCapability("clr_eol") != null) {
+            int cur = pos;
+            int c0 = cur % width;
+            // Erase end of current line
+            int nb = Math.min(num, width - c0);
+            tputs("clr_eol");
+            num -= nb;
+            // Loop
+            while (num > 0) {
+                // Move to beginning of next line
+                int prev = cur;
+                cur = cur - cur % width + width;
+                moveCursorFromTo(prev, cur);
+                // Erase
+                nb = Math.min(num, width);
+                tputs("clr_eol");
+                num -= nb;
             }
-            for (int i = 0; i < lines; i++) {
-                printAnsiSequence("A");
-            }
-            return;
+            moveCursorFromTo(cur, pos);
         }
-
-        // print blank extra characters
-        rawPrint(' ', num);
-
-        // we need to flush here so a "clever" console doesn't just ignore the redundancy
-        // of a space followed by a backspace.
-//        flush();
-
-        // reset the visual cursor
-        back(num);
-
-//        flush();
+        // Terminal does not wrap on the right margin
+        else if (!terminal.getBooleanCapability("auto_right_margin")) {
+            int cur = pos;
+            int c0 = cur % width;
+            // Erase end of current line
+            int nb = Math.min(num, width - c0);
+            rawPrint(' ', nb);
+            num -= nb;
+            cur += nb;
+            // Loop
+            while (num > 0) {
+                // Move to beginning of next line
+                moveCursorFromTo(cur, ++cur);
+                // Erase
+                nb = Math.min(num, width);
+                rawPrint(' ', nb);
+                num -= nb;
+                cur += nb;
+            }
+            moveCursorFromTo(cur, pos);
+        }
+        // Simple erasure
+        else {
+            rawPrint(' ', num);
+            moveCursorFromTo(pos + num, pos);
+        }
     }
 
     /**
-     * Move the visual cursor backwards without modifying the buffer cursor.
+     * Move the visual cursor backward without modifying the buffer cursor.
      */
     protected void back(final int num) throws IOException {
         if (num == 0) return;
-        if (terminal.isAnsiSupported()) {
-            int i0 = promptLen + wcwidth(buf.buffer, 0, buf.cursor, promptLen);
-            int i1 = i0 + ((mask != null) ? num : wcwidth(buf.buffer, buf.cursor, buf.cursor + num, i0));
-            int width = getTerminal().getWidth();
-            int l0 = i0 / width;
-            int c0 = i0 % width;
-            int l1 = i1 / width;
-            if (l0 != l1) {
-                printAnsiSequence((l1 - l0) + "A");
-            }
-            printAnsiSequence((1 + c0) + "G");
-            return;
-        }
-        rawPrint(BACKSPACE, num);
-//        flush();
-    }
-
-    protected void rawBack(int num, int cursorPos) throws IOException {
-        if (num == 0) return;
-        if (terminal.isAnsiSupported()) {
-            int i0 = cursorPos - num;
-            int i1 = cursorPos;
-            int width = getTerminal().getWidth();
-            int l0 = i0 / width;
-            int c0 = i0 % width;
-            int l1 = i1 / width;
-            if (l0 != l1) {
-                printAnsiSequence((l1 - l0) + "A"); // cursor up (l1 - l0) lines
-            }
-            printAnsiSequence((1 + c0) + "G"); // move cursor to column (1 + c0)
-            return;
-        }
-        rawPrint(BACKSPACE, num);
+        int i0 = promptLen + wcwidth(buf.buffer, 0, buf.cursor, promptLen);
+        int i1 = i0 + ((mask != null) ? num : wcwidth(buf.buffer, buf.cursor, buf.cursor + num, i0));
+        moveCursorFromTo(i1, i0);
     }
 
     /**
@@ -1060,38 +1039,11 @@ public class ConsoleReader
             return 0;
         }
 
-        int count = 0;
-
-        int termwidth = getTerminal().getWidth();
-        int lines = getCursorPosition() / termwidth;
-        count = moveCursor(-1 * num) * -1;
-        int nbChars = wcwidth(buf.buffer, buf.cursor, buf.cursor + count, getCursorPosition());
+        int count = - moveCursor(-num);
+        int clear = wcwidth(buf.buffer, buf.cursor, buf.cursor + count, getCursorPosition());
         buf.buffer.delete(buf.cursor, buf.cursor + count);
-        if (getCursorPosition() / termwidth != lines) {
-            if (terminal.isAnsiSupported()) {
-                // debug("doing backspace redraw: " + getCursorPosition() + " on " + termwidth + ": " + lines);
-                printAnsiSequence("K");
-                // if cursor+num wraps, then we need to clear the line(s) below too
-                // last char printed is one pos less than cursor so we subtract
-                // one
-/*
-                // TODO: fixme (does not work - test with reverse search with wrapping line and CTRL-E)
-                int endCol = (getCursorPosition() + num - 1) % termwidth;
-                int curCol = getCursorPosition() % termwidth;
-                if (endCol < curCol) lines++;
-                for (int i = 1; i < lines; i++) {
-                    printAnsiSequence("B");
-                    printAnsiSequence("2K");
-                }
-                for (int i = 1; i < lines; i++) {
-                    printAnsiSequence("A");
-                }
-                return count;
-*/
-            }
-        }
-        drawBuffer(nbChars);
 
+        drawBuffer(clear);
         return count;
     }
 
@@ -1630,7 +1582,7 @@ public class ConsoleReader
     }
 
     private String insertComment(boolean isViMode) throws IOException {
-        String comment = this.getCommentBegin ();
+        String comment = this.getCommentBegin();
         setCursorPosition(0);
         putString(comment);
         if (isViMode) {
@@ -1815,18 +1767,19 @@ public class ConsoleReader
     }
 
     private void insertClose(String s) throws IOException {
-         putString(s);
-         int closePosition = buf.cursor;
+        putString(s);
+        int closePosition = buf.cursor;
 
-         moveCursor(-1);
-         viMatch();
+        moveCursor(-1);
+        viMatch();
 
 
-         if (in.isNonBlockingEnabled()) {
+        if (in.isNonBlockingEnabled()) {
             in.peek(parenBlinkTimeout);
-         }
+        }
 
-         setCursorPosition(closePosition);
+        setCursorPosition(closePosition);
+        flush();
     }
 
     /**
@@ -1875,6 +1828,7 @@ public class ConsoleReader
             ++pos;
 
         setCursorPosition(pos);
+        flush();
         return true;
     }
 
@@ -2095,78 +2049,65 @@ public class ConsoleReader
         // + buf.cursor + " => " + (buf.cursor + where) + ")");
         buf.cursor += where;
 
-        if (terminal.isAnsiSupported()) {
+        int i0;
+        int i1;
+        if (mask == null) {
             if (where < 0) {
-                back(-where);
+                i1 = promptLen + wcwidth(buf.buffer, 0, buf.cursor, promptLen);
+                i0 = i1 + wcwidth(buf.buffer, buf.cursor, buf.cursor - where, i1);
             } else {
-                int i0 = promptLen + wcwidth(buf.buffer, 0, buf.cursor - where, promptLen);
-                int i1 = i0 + wcwidth(buf.buffer, buf.cursor - where, buf.cursor, i0);
-                int width = getTerminal().getWidth();
-                int l0 = i0 / width;
-                int l1 = i1 / width;
-                int c1 = i1 % width;
-                if (l0 != l1) {
-                    printAnsiSequence((l1 - l0) + "B");
-                }
-                printAnsiSequence((1 + c1) + "G");
+                i0 = promptLen + wcwidth(buf.buffer, 0, buf.cursor - where, promptLen);
+                i1 = i0 + wcwidth(buf.buffer, buf.cursor - where, buf.cursor, i0);
             }
-//            flush();
+        } else if (mask != NULL_MASK) {
+            i1 = promptLen + buf.cursor;
+            i0 = i1 - where;
+        } else {
             return;
         }
-
-        char c;
-
-        if (where < 0) {
-            int len = 0;
-            for (int i = buf.cursor; i < buf.cursor - where; i++) {
-                if (buf.buffer.charAt(i) == '\t') {
-                    len += TAB_WIDTH;
-                }
-                else {
-                    len++;
-                }
-            }
-
-            char chars[] = new char[len];
-            Arrays.fill(chars, BACKSPACE);
-            out.write(chars);
-
-            return;
-        }
-        else if (buf.cursor == 0) {
-            return;
-        }
-        else if (mask != null) {
-            c = mask;
-        }
-        else {
-            print(buf.buffer, buf.cursor - where, buf.cursor);
-            print(buf.buffer.substring(buf.cursor - where, buf.cursor));
-            return;
-        }
-
-        // null character mask: don't output anything
-        if (mask == NULL_MASK) {
-            return;
-        }
-
-        rawPrint(c, Math.abs(where));
+        moveCursorFromTo(i0, i1);
     }
 
-    // FIXME: replace() is not used
-
-    public boolean replace(final int num, final String replacement) {
-        buf.buffer.replace(buf.cursor - num, buf.cursor, replacement);
-        try {
-            moveCursor(-num);
-            drawBuffer(Math.max(0, num - replacement.length()));
-            moveCursor(replacement.length());
+    private void moveCursorFromTo(int i0, int i1) throws IOException {
+        if (i0 == i1) return;
+        int width = getTerminal().getWidth();
+        int l0 = i0 / width;
+        int c0 = i0 % width;
+        int l1 = i1 / width;
+        int c1 = i1 % width;
+        if (l0 == l1 + 1) {
+            if (!tputs("cursor_up")) {
+                tputs("parm_up_cursor", 1);
+            }
+        } else if (l0 > l1) {
+            if (!tputs("parm_up_cursor", l0 - l1)) {
+                for (int i = l1; i < l0; i++) {
+                    tputs("cursor_up");
+                }
+            }
+        } else if (l0 < l1) {
+            tputs("carriage_return");
+            rawPrint('\n', l1 - l0);
+            c0 = 0;
         }
-        catch (IOException e) {
-            e.printStackTrace();
-            return false;
+        if (c0 == c1 - 1) {
+            tputs("cursor_right");
+        } else if (c0 == c1 + 1) {
+            tputs("cursor_left");
+        } else if (c0 < c1) {
+            if (!tputs("parm_right_cursor", c1 - c0)) {
+                for (int i = c0; i < c1; i++) {
+                    tputs("cursor_right");
+                }
+            }
+        } else if (c0 > c1) {
+            if (!tputs("parm_left_cursor", c0 - c1)) {
+                for (int i = c1; i < c0; i++) {
+                    tputs("cursor_left");
+                }
+            }
         }
-        return true;
+        cursorOk = true;
     }
 
     /**
@@ -2222,7 +2163,7 @@ public class ConsoleReader
         // otherwise, clear
         int pos = getCursorPosition();
         int num = wcwidth(c, pos);
-        rawBack(num, pos + num);
+        moveCursorFromTo(pos + num, pos);
         drawBuffer(num);
 
         return num;
@@ -2378,7 +2319,7 @@ public class ConsoleReader
                 sb.appendCodePoint(c);
 
                 if (recording) {
-                    macro += new String(new int[]{c}, 0, 1);
+                    macro += new String(Character.toChars(c));
                 }
 
                 Object o;
@@ -2508,6 +2449,10 @@ public class ConsoleReader
                     sb.setLength( 0 );
                     continue;
                 }
+
+                CursorBuffer oldBuf = new CursorBuffer();
+                oldBuf.buffer.append(buf.buffer);
+                oldBuf.cursor = buf.cursor;
 
                 // Search mode.
                 //
@@ -3210,6 +3155,7 @@ public class ConsoleReader
                     beep();
                 }
                 sb.setLength( 0 );
+
                 flush();
             }
         }
@@ -3486,6 +3432,7 @@ public class ConsoleReader
                 }
             }
         }
+        cursorOk = false;
         return cursorPos;
     }
 
@@ -3505,8 +3452,8 @@ public class ConsoleReader
      * Output a platform-dependant newline.
      */
     public void println() throws IOException {
-        rawPrint(CR);
-//        flush();
+        tputs("carriage_return");
+        rawPrint('\n');
     }
 
     /**
@@ -3514,10 +3461,12 @@ public class ConsoleReader
      */
     final void rawPrint(final int c) throws IOException {
         out.write(c);
+        cursorOk = false;
     }
 
     final void rawPrint(final String str) throws IOException {
         out.write(str);
+        cursorOk = false;
     }
 
     private void rawPrint(final char c, final int num) throws IOException {
@@ -3566,7 +3515,9 @@ public class ConsoleReader
         }
 
         int num = len - cp;
-        clearAhead(num, getCursorPosition());
+        int pos = getCursorPosition();
+        int width = wcwidth(buf.buffer, cp, len, pos);
+        clearAhead(width, pos);
 
         char[] killed = new char[num];
         buf.buffer.getChars(cp, (cp + num), killed, 0);
@@ -3612,16 +3563,9 @@ public class ConsoleReader
      * Clear the screen by issuing the ANSI "clear screen" code.
      */
     public boolean clearScreen() throws IOException {
-        if (!terminal.isAnsiSupported()) {
-            return false;
+        if (!tputs("clear_screen")) {
+            println();
         }
-
-        // send the ANSI code to clear the screen
-        printAnsiSequence("2J");
-
-        // then send the ANSI code to go to position 1,1
-        printAnsiSequence("1;1H");
-
         return true;
     }
 
@@ -3630,9 +3574,10 @@ public class ConsoleReader
      */
     public void beep() throws IOException {
         if (bellEnabled) {
-            rawPrint(KEYBOARD_BELL);
-            // need to flush so the console actually beeps
-            flush();
+            if (tputs("bell")) {
+                // need to flush so the console actually beeps
+                flush();
+            }
         }
     }
 
@@ -4026,11 +3971,13 @@ public class ConsoleReader
         return Character.isWhitespace (c);
     }
 
-    private void printAnsiSequence(String sequence) throws IOException {
-        rawPrint(27);
-        rawPrint('[');
-        rawPrint(sequence);
-        flush(); // helps with step debugging
+    private boolean tputs(String cap, Object... params) throws IOException {
+        String str = terminal.getStringCapability(cap);
+        if (str == null) {
+            return false;
+        }
+        Curses.tputs(out, str, params);
+        return true;
     }
 
 }

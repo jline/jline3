@@ -8,6 +8,10 @@
  */
 package jline;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import jline.internal.InfoCmp;
 import jline.internal.Log;
 import jline.internal.TerminalLineSettings;
 
@@ -29,19 +33,33 @@ import static jline.internal.Preconditions.checkNotNull;
  */
 public class UnixTerminal
     extends TerminalSupport
+    implements Terminal2
 {
     private final TerminalLineSettings settings;
+    private final String type;
     private String intr;
     private String lnext;
+    private Map<String, String> strings = new HashMap<String, String>();
+    private Map<String, Integer> ints = new HashMap<String, Integer>();
+    private Map<String, Boolean> bools = new HashMap<String, Boolean>();
 
     public UnixTerminal() throws Exception {
-    	this(TerminalLineSettings.DEFAULT_TTY);
+    	this(TerminalLineSettings.DEFAULT_TTY, null);
     }
     
     public UnixTerminal(String ttyDevice) throws Exception {
+        this(ttyDevice, null);
+    }
+
+    public UnixTerminal(String ttyDevice, String type) throws Exception {
         super(true);
         checkNotNull(ttyDevice);
-        settings = TerminalLineSettings.getSettings(ttyDevice);
+        this.settings = TerminalLineSettings.getSettings(ttyDevice);
+        if (type == null) {
+            type = System.getenv("TERM");
+        }
+        this.type = type;
+        parseInfoCmp();
     }
 
     public TerminalLineSettings getSettings() {
@@ -65,6 +83,8 @@ public class UnixTerminal
         settings.undef("dsusp");
 
         setEchoEnabled(false);
+
+        parseInfoCmp();
     }
 
     /**
@@ -94,6 +114,12 @@ public class UnixTerminal
     public int getHeight() {
         int h = settings.getProperty("rows");
         return h < 1 ? DEFAULT_HEIGHT : h;
+    }
+
+    @Override
+    public boolean hasWeirdWrap() {
+        return getBooleanCapability("auto_right_margin")
+                && getBooleanCapability("eat_newline_glitch");
     }
 
     @Override
@@ -177,5 +203,32 @@ public class UnixTerminal
             }
             Log.error("Failed to enable litteral next character", e);
         }
+    }
+
+    public String getStringCapability(String capability) {
+        return strings.get(capability);
+    }
+
+    public int getNumericCapability(String capability) {
+        return ints.get(capability);
+    }
+
+    public boolean getBooleanCapability(String capability) {
+        Boolean b = bools.get(capability);
+        return b != null && b;
+    }
+
+    private void parseInfoCmp() {
+        String capabilities = null;
+        if (type != null) {
+            try {
+                capabilities = InfoCmp.getInfoCmp(type);
+            } catch (Exception e) {
+            }
+        }
+        if (capabilities == null) {
+            capabilities = InfoCmp.getAnsiCaps();
+        }
+        InfoCmp.parseInfoCmp(capabilities, strings, bools, ints);
     }
 }
