@@ -64,8 +64,10 @@ public class CandidateListCompletionHandler
         if (candidates.size() == 1) {
             String value = Ansi.stripAnsi(candidates.get(0).toString());
 
-            if (buf.cursor == buf.buffer.length() && printSpaceAfterFullCompletion) {
-                value = value + " ";
+            if (buf.cursor == buf.buffer.length()
+                    && printSpaceAfterFullCompletion
+                    && !value.endsWith(" ")) {
+                value += " ";
             }
 
             // fail if the only candidate is the same as the current buffer
