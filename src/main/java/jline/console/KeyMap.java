@@ -489,7 +489,7 @@ public class KeyMap {
                         /* TODO */
                         Operation.VI_REDO,                  /* . */
                         Operation.VI_SEARCH,                /* / */
-                        Operation.VI_BEGNNING_OF_LINE_OR_ARG_DIGIT, /* 0 */
+                        Operation.VI_BEGINNING_OF_LINE_OR_ARG_DIGIT, /* 0 */
                         Operation.VI_ARG_DIGIT,             /* 1 */
                         Operation.VI_ARG_DIGIT,             /* 2 */
                         Operation.VI_ARG_DIGIT,             /* 3 */

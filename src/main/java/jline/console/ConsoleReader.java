@@ -1100,7 +1100,7 @@ public class ConsoleReader
             case FORWARD_CHAR:
             case END_OF_LINE:
             case VI_MATCH:
-            case VI_BEGNNING_OF_LINE_OR_ARG_DIGIT:
+            case VI_BEGINNING_OF_LINE_OR_ARG_DIGIT:
             case VI_ARG_DIGIT:
             case VI_PREV_WORD:
             case VI_END_WORD:
@@ -3009,7 +3009,7 @@ public class ConsoleReader
                                 isArgDigit = true;
                                 break;
 
-                            case VI_BEGNNING_OF_LINE_OR_ARG_DIGIT:
+                            case VI_BEGINNING_OF_LINE_OR_ARG_DIGIT:
                                 if (repeatCount > 0) {
                                     repeatCount = (repeatCount * 10) + opBuffer.charAt(0) - '0';
                                     isArgDigit = true;
