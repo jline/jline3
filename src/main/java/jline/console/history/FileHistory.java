@@ -40,7 +40,7 @@ public class FileHistory
     private final File file;
 
     public FileHistory(final File file) throws IOException {
-        this.file = checkNotNull(file);
+        this.file = checkNotNull(file).getAbsoluteFile();
         load(file);
     }
 
