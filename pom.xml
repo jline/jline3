@@ -358,7 +358,7 @@
                         <configuration>
                             <instructions>
                                 <Export-Package>
-                                    jline;jline.console;jline.console.completer;jline.console.history;version:=${project.version};-noimport:=true,
+                                    jline.*;-noimport:=true,
                                     =org.fusesource.jansi;version=${jansi.version}
                                 </Export-Package>
                                 <Import-Package>
