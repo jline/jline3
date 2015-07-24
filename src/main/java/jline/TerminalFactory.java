@@ -82,7 +82,7 @@ public class TerminalFactory
             else if (tmp.equals(OSV)) {
                 t = getFlavor(Flavor.OSV);
             }
-            else if (tmp.equals(WIN) | tmp.equals(WINDOWS)) {
+            else if (tmp.equals(WIN) || tmp.equals(WINDOWS)) {
                 t = getFlavor(Flavor.WINDOWS);
             }
             else if (tmp.equals(NONE) || tmp.equals(OFF) || tmp.equals(FALSE)) {
