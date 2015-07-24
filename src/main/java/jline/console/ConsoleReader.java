@@ -2195,9 +2195,18 @@ public class ConsoleReader
 
     /**
      * Read from the input stream and decode an operation from the key map.
+     *
+     * The input stream will be read character by character until a matching
+     * binding can be found.  Characters that can't possibly be matched to
+     * any binding will be discarded.
+     *
+     * @param keys the KeyMap to use for decoding the input stream
+     * @return the decoded binding or <code>null</code> if the end of
+     *         stream has been reached
      */
     public Object readBinding(KeyMap keys) throws IOException {
         Object o;
+        opBuffer.setLength(0);
         do {
             int c = pushBackChar.isEmpty() ? readCharacter() : pushBackChar.pop();
             if (c == -1) {
@@ -2316,6 +2325,10 @@ public class ConsoleReader
         } while (o == null || o instanceof KeyMap);
 
         return o;
+    }
+
+    public String getLastBinding() {
+        return opBuffer.toString();
     }
 
     //
@@ -2441,7 +2454,6 @@ public class ConsoleReader
 
             boolean success = true;
 
-            opBuffer.setLength(0);
             pushBackChar.clear();
             while (true) {
 

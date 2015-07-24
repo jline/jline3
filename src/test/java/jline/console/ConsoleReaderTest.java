@@ -655,6 +655,25 @@ public class ConsoleReaderTest
         assertEquals("foo", line);
     }
 
+    @Test
+    public void testReadBinding() throws Exception {
+        ConsoleReader consoleReader = createConsole("abcde");
+        assertNotNull(consoleReader);
+
+        KeyMap map = new KeyMap("custom");
+        map.bind("bc", 1l);
+        map.bind("e", 2l);
+
+        Object b = consoleReader.readBinding(map);
+        assertEquals(1l, b);
+        assertEquals("bc", consoleReader.getLastBinding());
+        b = consoleReader.readBinding(map);
+        assertEquals(2l, b);
+        assertEquals("e", consoleReader.getLastBinding());
+        b = consoleReader.readBinding(map);
+        assertNull(b);
+    }
+
   /**
      * Windows keys.
      * <p/>

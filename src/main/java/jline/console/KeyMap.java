@@ -34,7 +34,11 @@ public class KeyMap {
     private Object anotherKey = null;
     private String name;
     private boolean isViKeyMap;
-    
+
+    public KeyMap(String name) {
+        this(name, false);
+    }
+
     public KeyMap(String name, boolean isViKeyMap) {
         this(name, new Object[KEYMAP_LENGTH], isViKeyMap);
     }
