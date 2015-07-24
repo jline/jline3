@@ -9,7 +9,9 @@
 package jline;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import jline.internal.InfoCmp;
 import jline.internal.Log;
@@ -39,9 +41,9 @@ public class UnixTerminal
     private final String type;
     private String intr;
     private String lnext;
-    private Map<String, String> strings = new HashMap<String, String>();
+    private Set<String> bools = new HashSet<String>();
     private Map<String, Integer> ints = new HashMap<String, Integer>();
-    private Map<String, Boolean> bools = new HashMap<String, Boolean>();
+    private Map<String, String> strings = new HashMap<String, String>();
 
     public UnixTerminal() throws Exception {
     	this(TerminalLineSettings.DEFAULT_TTY, null);
@@ -205,17 +207,16 @@ public class UnixTerminal
         }
     }
 
-    public String getStringCapability(String capability) {
-        return strings.get(capability);
+    public boolean getBooleanCapability(String capability) {
+        return bools.contains(capability);
     }
 
-    public int getNumericCapability(String capability) {
+    public Integer getNumericCapability(String capability) {
         return ints.get(capability);
     }
 
-    public boolean getBooleanCapability(String capability) {
-        Boolean b = bools.get(capability);
-        return b != null && b;
+    public String getStringCapability(String capability) {
+        return strings.get(capability);
     }
 
     private void parseInfoCmp() {
@@ -229,6 +230,6 @@ public class UnixTerminal
         if (capabilities == null) {
             capabilities = InfoCmp.getAnsiCaps();
         }
-        InfoCmp.parseInfoCmp(capabilities, strings, bools, ints);
+        InfoCmp.parseInfoCmp(capabilities, bools, ints, strings);
     }
 }

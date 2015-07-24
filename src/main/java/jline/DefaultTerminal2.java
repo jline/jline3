@@ -11,8 +11,13 @@ package jline;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+
+import jline.internal.InfoCmp;
 
 /**
  * Terminal wrapper with default ansi capabilities
@@ -20,28 +25,28 @@ import java.util.Map;
 public class DefaultTerminal2 implements Terminal2 {
 
     private final Terminal terminal;
+    private final Set<String> bools = new HashSet<String>();
     private final Map<String, String> strings = new HashMap<String, String>();
-    private final Map<String, Boolean> bools = new HashMap<String, Boolean>();
 
     public DefaultTerminal2(Terminal terminal) {
         this.terminal = terminal;
-        registerCap("^H", "key_backspace", "kbs", "kb");
-        registerCap("^G", "bell", "bel", "bl");
-        registerCap("^M", "carriage_return", "cr");
+        registerCap("key_backspace", "^H");
+        registerCap("bell", "^G");
+        registerCap("carriage_return", "^M");
         if (isSupported() && isAnsiSupported()) {
-            registerCap("\\E[K", "clr_eol", "el", "ce");
-            registerCap("\\E[1K", "clr_bol", "el1", "cb");
-            registerCap("\\E[A", "cursor_up", "cuu1", "up");
-            registerCap("^J", "cursor_down", "cud1", "do");
-            registerCap("\\E[%i%p1%dG", "column_address", "hpa", "ch");
-            registerCap("\\E[H\\E[2J", "clear_screen", "clear", "cl");
-            registerCap("\\E[%p1%dB", "parm_down_cursor", "cud", "DO");
-            registerCap("^H", "cursor_left", "cub1", "le");
-            registerCap("\\E[C", "cursor_right", "cuf1", "nd");
+            registerCap("clr_eol", "\\E[K");
+            registerCap("clr_bol", "\\E[1K");
+            registerCap("cursor_up", "\\E[A");
+            registerCap("cursor_down", "^J");
+            registerCap("column_address", "\\E[%i%p1%dG");
+            registerCap("clear_screen", "\\E[H\\E[2J");
+            registerCap("parm_down_cursor", "\\E[%p1%dB");
+            registerCap("cursor_left", "^H");
+            registerCap("cursor_right", "\\E[C");
         }
         if (hasWeirdWrap()) {
-            registerCap(true, "eat_newline_glitch", "xenl", "xn");
-            registerCap(true, "auto_right_margin", "am");
+            registerCap("eat_newline_glitch");
+            registerCap("auto_right_margin");
         }
     }
 
@@ -97,28 +102,26 @@ public class DefaultTerminal2 implements Terminal2 {
         return terminal.getOutputEncoding();
     }
 
-    private void registerCap(String value, String... keys) {
-        for (String key : keys) {
+    private void registerCap(String cap, String value) {
+        for (String key : InfoCmp.getNames(cap)) {
             strings.put(key, value);
         }
     }
 
-    private void registerCap(boolean value, String... keys) {
-        for (String key : keys) {
-            bools.put(key, value);
-        }
+    private void registerCap(String cap) {
+        Collections.addAll(bools, InfoCmp.getNames(cap));
+    }
+
+    public boolean getBooleanCapability(String capability) {
+        return bools.contains(capability);
+    }
+
+    public Integer getNumericCapability(String capability) {
+        return null;
     }
 
     public String getStringCapability(String capability) {
         return strings.get(capability);
     }
 
-    public int getNumericCapability(String capability) {
-        return 0;
-    }
-
-    public boolean getBooleanCapability(String capability) {
-        Boolean b = bools.get(capability);
-        return b != null && b;
-    }
 }

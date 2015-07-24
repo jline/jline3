@@ -9,7 +9,9 @@
 package jline.internal;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.Test;
 
@@ -23,12 +25,12 @@ public class InfoCmpTest {
 
     @Test
     public void testInfoCmp() {
-        Map<String, String> strings = new HashMap<String, String>();
-        Map<String, Boolean> bools = new HashMap<String, Boolean>();
+        Set<String> bools = new HashSet<String>();
         Map<String, Integer> ints = new HashMap<String, Integer>();
+        Map<String, String> strings = new HashMap<String, String>();
 
         String infocmp = InfoCmp.getAnsiCaps();
-        InfoCmp.parseInfoCmp(infocmp, strings, bools, ints);
+        InfoCmp.parseInfoCmp(infocmp, bools, ints, strings);
         assertEquals(12, bools.size());
         assertTrue(strings.containsKey("acsc"));
     }

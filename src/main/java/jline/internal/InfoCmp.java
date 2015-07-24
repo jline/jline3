@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -42,9 +43,9 @@ public class InfoCmp {
 
     public static void parseInfoCmp(
             String capabilities,
-            Map<String, String> strings,
-            Map<String, Boolean> bools,
-            Map<String, Integer> ints
+            Set<String> bools,
+            Map<String, Integer> ints,
+            Map<String, String> strings
     ) {
         String[] lines = capabilities.split("\n");
         for (int i = 2; i < lines.length; i++) {
@@ -68,14 +69,14 @@ public class InfoCmp {
                     }
                 } else {
                     for (String name : getNames(cap)) {
-                        bools.put(name, Boolean.TRUE);
+                        bools.add(name);
                     }
                 }
             }
         }
     }
 
-    private static String[] getNames(String name) {
+    public static String[] getNames(String name) {
         String[] names = NAMES.get(name);
         return names != null ? names : new String[] { name };
     }

@@ -16,10 +16,10 @@ package jline;
  */
 public interface Terminal2 extends Terminal
 {
-    String getStringCapability(String capability);
-
-    int getNumericCapability(String capability);
-
     boolean getBooleanCapability(String capability);
+
+    Integer getNumericCapability(String capability);
+
+    String getStringCapability(String capability);
 
 }
