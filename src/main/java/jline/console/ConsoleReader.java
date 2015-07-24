@@ -95,6 +95,9 @@ public class ConsoleReader
     private static final ResourceBundle
         resources = ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName());
 
+    private static final int ESCAPE = 27;
+    private static final int READ_EXPIRED = -2;
+
     private final Terminal2 terminal;
 
     private final Writer out;
@@ -126,6 +129,10 @@ public class ConsoleReader
     private int searchIndex = -1;
 
     private int parenBlinkTimeout = 500;
+
+    // Reading buffers
+    private final StringBuilder opBuffer = new StringBuilder();
+    private final Stack<Character> pushBackChar = new Stack<Character>();
 
     /*
      * The reader and the nonBlockingInput go hand-in-hand.  The reader wraps
@@ -2133,7 +2140,7 @@ public class ConsoleReader
             if (terminal.isSupported()) {
                 clearEcho(c);
             }
-            if (c == 27 && checkForAltKeyCombo && in.peek(escapeTimeout) >= 32) {
+            if (c == ESCAPE && checkForAltKeyCombo && in.peek(escapeTimeout) >= 32) {
               /* When ESC is encountered and there is a pending
                * character in the pushback queue, then it seems to be
                * an Alt-[key] combination.  Is this true, cross-platform?
@@ -2184,6 +2191,131 @@ public class ConsoleReader
         }
 
         return c;
+    }
+
+    /**
+     * Read from the input stream and decode an operation from the key map.
+     */
+    public Object readBinding(KeyMap keys) throws IOException {
+        Object o;
+        do {
+            int c = pushBackChar.isEmpty() ? readCharacter() : pushBackChar.pop();
+            if (c == -1) {
+                return null;
+            }
+            opBuffer.appendCodePoint(c);
+
+            if (recording) {
+                macro += new String(Character.toChars(c));
+            }
+
+            if (quotedInsert) {
+                o = Operation.SELF_INSERT;
+                quotedInsert = false;
+            } else {
+                o = keys.getBound(opBuffer);
+            }
+
+            /*
+             * The kill ring keeps record of whether or not the
+             * previous command was a yank or a kill. We reset
+             * that state here if needed.
+             */
+            if (!recording && !(o instanceof KeyMap)) {
+                if (o != Operation.YANK_POP && o != Operation.YANK) {
+                    killRing.resetLastYank();
+                }
+                if (o != Operation.KILL_LINE && o != Operation.KILL_WHOLE_LINE
+                        && o != Operation.BACKWARD_KILL_WORD && o != Operation.KILL_WORD
+                        && o != Operation.UNIX_LINE_DISCARD && o != Operation.UNIX_WORD_RUBOUT) {
+                    killRing.resetLastKill();
+                }
+            }
+
+            if (o == Operation.DO_LOWERCASE_VERSION) {
+                opBuffer.setLength(opBuffer.length() - 1);
+                opBuffer.append(Character.toLowerCase((char) c));
+                o = keys.getBound(opBuffer);
+            }
+
+            /*
+             * A KeyMap indicates that the key that was struck has a
+             * number of keys that can follow it as indicated in the
+             * map. This is used primarily for Emacs style ESC-META-x
+             * lookups. Since more keys must follow, go back to waiting
+             * for the next key.
+             */
+            if (o instanceof KeyMap) {
+                /*
+                 * The ESC key (#27) is special in that it is ambiguous until
+                 * you know what is coming next.  The ESC could be a literal
+                 * escape, like the user entering vi-move mode, or it could
+                 * be part of a terminal control sequence.  The following
+                 * logic attempts to disambiguate things in the same
+                 * fashion as regular vi or readline.
+                 *
+                 * When ESC is encountered and there is no other pending
+                 * character in the pushback queue, then attempt to peek
+                 * into the input stream (if the feature is enabled) for
+                 * 150ms. If nothing else is coming, then assume it is
+                 * not a terminal control sequence, but a raw escape.
+                 */
+                if (c == ESCAPE
+                        && pushBackChar.isEmpty()
+                        && in.isNonBlockingEnabled()
+                        && in.peek(escapeTimeout) == READ_EXPIRED) {
+                    Object otherKey = ((KeyMap) o).getAnotherKey();
+                    if (otherKey == null) {
+                        // Tne next line is in case a binding was set up inside this secondary
+                        // KeyMap (like EMACS_META).  For example, a binding could be put
+                        // there for an ActionListener for the ESC key.  This way, the var 'o' won't
+                        // be null and the code can proceed to let the ActionListener be
+                        // handled, below.
+                        otherKey = ((KeyMap) o).getBound(Character.toString((char) c));
+                    }
+                    o = otherKey;
+                    if (o == null || o instanceof KeyMap) {
+                        continue;
+                    }
+                    opBuffer.setLength(0);
+                } else {
+                    continue;
+                }
+            }
+
+            /*
+             * If we didn't find a binding for the key and there is
+             * more than one character accumulated then start checking
+             * the largest span of characters from the beginning to
+             * see if there is a binding for them.
+             *
+             * For example if our buffer has ESC,CTRL-M,C the getBound()
+             * called previously indicated that there is no binding for
+             * this sequence, so this then checks ESC,CTRL-M, and failing
+             * that, just ESC. Each keystroke that is pealed off the end
+             * during these tests is stuffed onto the pushback buffer so
+             * they won't be lost.
+             *
+             * If there is no binding found, then we go back to waiting for
+             * input.
+             */
+            while (o == null && opBuffer.length() > 0) {
+                c = opBuffer.charAt(opBuffer.length() - 1);
+                opBuffer.setLength(opBuffer.length() - 1);
+                Object o2 = keys.getBound(opBuffer);
+                if (o2 instanceof KeyMap) {
+                    o = ((KeyMap) o2).getAnotherKey();
+                    if (o == null) {
+                        continue;
+                    } else {
+                        pushBackChar.push((char) c);
+                    }
+                }
+            }
+
+        } while (o == null || o instanceof KeyMap);
+
+        return o;
     }
 
     //
@@ -2309,126 +2441,17 @@ public class ConsoleReader
 
             boolean success = true;
 
-            StringBuilder sb = new StringBuilder();
-            Stack<Character> pushBackChar = new Stack<Character>();
+            opBuffer.setLength(0);
+            pushBackChar.clear();
             while (true) {
-                int c = pushBackChar.isEmpty() ? readCharacter() : pushBackChar.pop ();
-                if (c == -1) {
+
+                Object o = readBinding(getKeys());
+                if (o == null) {
                     return null;
                 }
-                sb.appendCodePoint(c);
-
-                if (recording) {
-                    macro += new String(Character.toChars(c));
-                }
-
-                Object o;
-                if (quotedInsert) {
-                    o = Operation.SELF_INSERT;
-                    quotedInsert = false;
-                } else {
-                    o = getKeys().getBound(sb);
-                }
-                /*
-                 * The kill ring keeps record of whether or not the
-                 * previous command was a yank or a kill. We reset
-                 * that state here if needed.
-                 */
-                if (!recording && !(o instanceof KeyMap)) {
-                    if (o != Operation.YANK_POP && o != Operation.YANK) {
-                        killRing.resetLastYank();
-                    }
-                    if (o != Operation.KILL_LINE && o != Operation.KILL_WHOLE_LINE
-                        && o != Operation.BACKWARD_KILL_WORD && o != Operation.KILL_WORD
-                        && o != Operation.UNIX_LINE_DISCARD && o != Operation.UNIX_WORD_RUBOUT) {
-                        killRing.resetLastKill();
-                    }
-                }
-
-                if (o == Operation.DO_LOWERCASE_VERSION) {
-                    sb.setLength( sb.length() - 1);
-                    sb.append( Character.toLowerCase( (char) c ));
-                    o = getKeys().getBound( sb );
-                }
-
-                /*
-                 * A KeyMap indicates that the key that was struck has a
-                 * number of keys that can follow it as indicated in the
-                 * map. This is used primarily for Emacs style ESC-META-x
-                 * lookups. Since more keys must follow, go back to waiting
-                 * for the next key.
-                 */
-                if ( o instanceof KeyMap ) {
-                    /*
-                     * The ESC key (#27) is special in that it is ambiguous until
-                     * you know what is coming next.  The ESC could be a literal
-                     * escape, like the user entering vi-move mode, or it could
-                     * be part of a terminal control sequence.  The following
-                     * logic attempts to disambiguate things in the same
-                     * fashion as regular vi or readline.
-                     *
-                     * When ESC is encountered and there is no other pending
-                     * character in the pushback queue, then attempt to peek
-                     * into the input stream (if the feature is enabled) for
-                     * 150ms. If nothing else is coming, then assume it is
-                     * not a terminal control sequence, but a raw escape.
-                     */
-                    if (c == 27
-                            && pushBackChar.isEmpty()
-                            && in.isNonBlockingEnabled()
-                            && in.peek(escapeTimeout) == -2) {
-                        Object otherKey = ((KeyMap) o).getAnotherKey();
-                        if (otherKey == null) {
-                            // Tne next line is in case a binding was set up inside this secondary
-                            // KeyMap (like EMACS_META).  For example, a binding could be put
-                            // there for an ActionListener for the ESC key.  This way, the var 'o' won't
-                            // be null and the code can proceed to let the ActionListener be
-                            // handled, below.
-                            otherKey = ((KeyMap) o).getBound(Character.toString((char) c));
-                        }
-                        o = otherKey;
-                        if (o == null || o instanceof KeyMap) {
-                            continue;
-                        }
-                        sb.setLength(0);
-                    }
-                    else {
-                        continue;
-                    }
-                }
-
-                /*
-                 * If we didn't find a binding for the key and there is
-                 * more than one character accumulated then start checking
-                 * the largest span of characters from the beginning to
-                 * see if there is a binding for them.
-                 *
-                 * For example if our buffer has ESC,CTRL-M,C the getBound()
-                 * called previously indicated that there is no binding for
-                 * this sequence, so this then checks ESC,CTRL-M, and failing
-                 * that, just ESC. Each keystroke that is pealed off the end
-                 * during these tests is stuffed onto the pushback buffer so
-                 * they won't be lost.
-                 *
-                 * If there is no binding found, then we go back to waiting for
-                 * input.
-                 */
-                while ( o == null && sb.length() > 0 ) {
-                    c = sb.charAt( sb.length() - 1 );
-                    sb.setLength( sb.length() - 1 );
-                    Object o2 = getKeys().getBound( sb );
-                    if ( o2 instanceof KeyMap ) {
-                        o = ((KeyMap) o2).getAnotherKey();
-                        if ( o == null ) {
-                            continue;
-                        } else {
-                            pushBackChar.push( (char) c );
-                        }
-                    }
-                }
-
-                if ( o == null ) {
-                    continue;
+                int c = 0;
+                if (opBuffer.length() > 0) {
+                    c = opBuffer.codePointBefore(opBuffer.length());
                 }
                 Log.trace("Binding: ", o);
 
@@ -2439,14 +2462,14 @@ public class ConsoleReader
                     for (int i = 0; i < macro.length(); i++) {
                         pushBackChar.push(macro.charAt(macro.length() - 1 - i));
                     }
-                    sb.setLength( 0 );
+                    opBuffer.setLength(0);
                     continue;
                 }
 
                 // Handle custom callbacks
                 if (o instanceof ActionListener) {
                     ((ActionListener) o).actionPerformed(null);
-                    sb.setLength( 0 );
+                    opBuffer.setLength(0);
                     continue;
                 }
 
@@ -2611,7 +2634,7 @@ public class ConsoleReader
                                     success = complete();
                                 }
                                 else {
-                                    putString(sb);
+                                    putString(opBuffer);
                                 }
                                 break;
 
@@ -2649,7 +2672,7 @@ public class ConsoleReader
                                 break;
 
                             case SELF_INSERT:
-                                putString(sb);
+                                putString(opBuffer);
                                 break;
 
                             case ACCEPT_LINE:
@@ -2883,14 +2906,14 @@ public class ConsoleReader
 
                             case END_KBD_MACRO:
                                 recording = false;
-                                macro = macro.substring(0, macro.length() - sb.length());
+                                macro = macro.substring(0, macro.length() - opBuffer.length());
                                 break;
 
                             case CALL_LAST_KBD_MACRO:
                                 for (int i = 0; i < macro.length(); i++) {
                                     pushBackChar.push(macro.charAt(macro.length() - 1 - i));
                                 }
-                                sb.setLength( 0 );
+                                opBuffer.setLength(0);
                                 break;
 
                             case VI_EDITING_MODE:
@@ -2963,20 +2986,20 @@ public class ConsoleReader
                                 break;
 
                             case VI_SEARCH:
-                                int lastChar = viSearch(sb.charAt (0));
+                                int lastChar = viSearch(opBuffer.charAt(0));
                                 if (lastChar != -1) {
                                     pushBackChar.push((char)lastChar);
                                 }
                                 break;
 
                             case VI_ARG_DIGIT:
-                                repeatCount = (repeatCount * 10) + sb.charAt(0) - '0';
+                                repeatCount = (repeatCount * 10) + opBuffer.charAt(0) - '0';
                                 isArgDigit = true;
                                 break;
 
                             case VI_BEGNNING_OF_LINE_OR_ARG_DIGIT:
                                 if (repeatCount > 0) {
-                                    repeatCount = (repeatCount * 10) + sb.charAt(0) - '0';
+                                    repeatCount = (repeatCount * 10) + opBuffer.charAt(0) - '0';
                                     isArgDigit = true;
                                 }
                                 else {
@@ -3154,7 +3177,7 @@ public class ConsoleReader
                 if (!success) {
                     beep();
                 }
-                sb.setLength( 0 );
+                opBuffer.setLength(0);
 
                 flush();
             }
