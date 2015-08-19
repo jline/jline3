@@ -243,6 +243,9 @@
                     <artifactId>maven-javadoc-plugin</artifactId>
                     <version>2.10.3</version>
 					<configuration>
+	                    <additionalparam>
+							-Xdoclint:none
+	                    </additionalparam>
 						<failOnError>false</failOnError>
 					</configuration>
                 </plugin>
@@ -446,6 +449,19 @@
                     </execution>
                 </executions>
             </plugin>
+			
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>javadoc</id>
+						<goals>
+							<goal>javadoc:jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 
             <!--
             mvn license:format -N
