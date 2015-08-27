@@ -29,6 +29,8 @@ public interface Console extends Closeable {
 
     PrintWriter writer();
 
+    boolean echo() throws IOException;
+
     boolean echo(boolean echo) throws IOException;
 
     //

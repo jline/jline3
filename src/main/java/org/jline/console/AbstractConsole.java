@@ -25,6 +25,10 @@ public abstract class AbstractConsole implements Console {
         this.type = type;
     }
 
+    public boolean echo() throws IOException {
+        return getAttributes().getLocalFlag(Pty.ECHO);
+    }
+
     public boolean echo(boolean echo) throws IOException {
         Attributes attr = getAttributes();
         boolean prev = attr.getLocalFlag(Pty.ECHO);
