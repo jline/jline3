@@ -70,7 +70,15 @@ public class ReaderImpl implements Reader
     private static final int ESCAPE = 27;
     private static final int READ_EXPIRED = -2;
 
+    /** The console to use */
     private final Console console;
+    /** The inputrc url */
+    private final URL inputrc;
+    /** The application name, used when parsing the inputrc */
+    private final String appName;
+    /** The console keys mapping */
+    private final ConsoleKeys consoleKeys;
+
 
     private final CursorBuffer buf = new CursorBuffer();
     private boolean cursorOk;
@@ -132,12 +140,6 @@ public class ReaderImpl implements Reader
     private boolean recording;
 
     private String macro = "";
-
-    private String appName;
-
-    private URL inputrc;
-
-    private ConsoleKeys consoleKeys;
 
     private String commentBegin = null;
 
@@ -250,10 +252,6 @@ public class ReaderImpl implements Reader
 
     public String getAppName() {
         return appName;
-    }
-
-    public void setAppName(String appName) {
-        this.appName = appName;
     }
 
     public KeyMap getKeys() {
