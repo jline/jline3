@@ -17,7 +17,7 @@ import java.net.URL;
 import org.jline.console.EmulatedConsole;
 import org.jline.console.PosixPtyConsole;
 import org.jline.console.PosixSysConsole;
-import org.jline.console.WindowsConsole;
+import org.jline.console.WinSysConsole;
 import org.jline.reader.ReaderImpl;
 
 public final class JLine {
@@ -75,7 +75,7 @@ public final class JLine {
             boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
             if ((system != null && system) || (system == null && in == null && out == null)) {
                 if (isWindows) {
-                    return new WindowsConsole();
+                    return new WinSysConsole();
                 } else {
                     return new PosixSysConsole(type, encoding);
                 }

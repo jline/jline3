@@ -1,3 +1,11 @@
+/*
+ * Copyright (c) 2002-2015, the original author or authors.
+ *
+ * This software is distributable under the BSD license. See the terms of the
+ * BSD license in the documentation provided with this software.
+ *
+ * http://www.opensource.org/licenses/bsd-license.php
+ */
 package org.jline.console;
 
 import java.io.FileDescriptor;
@@ -19,7 +27,7 @@ import org.fusesource.jansi.internal.WindowsSupport;
 import org.jline.utils.Log;
 import org.jline.utils.NonBlockingReader;
 
-public class WindowsConsole extends AbstractConsole {
+public class WinSysConsole extends AbstractConsole {
 
     private final String encoding;
     private final InputStream in;
@@ -27,7 +35,7 @@ public class WindowsConsole extends AbstractConsole {
     private final NonBlockingReader reader;
     private final PrintWriter writer;
 
-    public WindowsConsole() throws IOException {
+    public WinSysConsole() throws IOException {
         super("ansi");
         this.in = new DirectInputStream();
         this.out = new WindowsAnsiOutputStream(new FileOutputStream(FileDescriptor.out));
