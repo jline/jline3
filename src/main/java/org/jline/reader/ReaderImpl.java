@@ -60,6 +60,10 @@ public class ReaderImpl implements Reader
 
     public static final int TAB_WIDTH = 8;
 
+    public static final int NO_BELL = 0;
+    public static final int AUDIBLE_BELL = 1;
+    public static final int VISIBLE_BELL = 2;
+
     private static final ResourceBundle
         resources = ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName());
 
@@ -78,7 +82,7 @@ public class ReaderImpl implements Reader
 
     private boolean expandEvents = true;
 
-    private boolean bellEnabled = false;
+    private int bellStyle = -1;
 
     private boolean handleUserInterrupt = false;
 
@@ -290,23 +294,17 @@ public class ReaderImpl implements Reader
     }
 
     /**
-     * Set whether the console bell is enabled.
-     *
-     * @param enabled true if enabled; false otherwise
-     * @since 2.7
+     * Set whether the bell style.
      */
-    public void setBellEnabled(boolean enabled) {
-        this.bellEnabled = enabled;
+    public void setBellStyle(int bellStyle) {
+        this.bellStyle = bellStyle;
     }
 
     /**
-     * Get whether the console bell is enabled
-     *
-     * @return true if enabled; false otherwise
-     * @since 2.7
+     * Get whether the console bell style
      */
-    public boolean getBellEnabled() {
-        return bellEnabled;
+    public int getBellStyle() {
+        return bellStyle;
     }
 
     /**
@@ -3385,9 +3383,33 @@ public class ReaderImpl implements Reader
      * Issue an audible keyboard bell.
      */
     public void beep() throws IOException {
-        if (bellEnabled) {
+        int bell_preference = AUDIBLE_BELL;
+        if (bellStyle >= 0) {
+            bell_preference = bellStyle;
+        } else {
+            String bellStyle = consoleKeys.getVariable("bell-style");
+            if ("none".equals(bellStyle) || "off".equals(bellStyle)) {
+                bell_preference = NO_BELL;
+            } else if ("audible".equals(bellStyle)) {
+                bell_preference = AUDIBLE_BELL;
+            } else if ("visible".equals(bellStyle)) {
+                bell_preference = VISIBLE_BELL;
+            } else if ("on".equals(bellStyle)) {
+                String preferVisibleBellStr = consoleKeys.getVariable("prefer-visible-bell");
+                if ("off".equals(preferVisibleBellStr)) {
+                    bell_preference = AUDIBLE_BELL;
+                } else {
+                    bell_preference = VISIBLE_BELL;
+                }
+            }
+        }
+        if (bell_preference == VISIBLE_BELL) {
+            if (console.puts(Capability.flash_screen)
+                    || console.puts(Capability.bell)) {
+                flush();
+            }
+        } else if (bell_preference == AUDIBLE_BELL) {
             if (console.puts(Capability.bell)) {
-                // need to flush so the console actually beeps
                 flush();
             }
         }

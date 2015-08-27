@@ -424,7 +424,7 @@ public class ReaderImplTest
         Console console = JLine.console().streams(in, baos).build();
         ReaderImpl reader = new ReaderImpl(console);
         reader.setExpandEvents(true);
-        reader.setBellEnabled(true);
+        reader.setBellStyle(ReaderImpl.AUDIBLE_BELL);
         MemoryHistory history = new MemoryHistory();
         reader.setHistory(history);
 
@@ -612,15 +612,19 @@ public class ReaderImplTest
         Console console = JLine.console().streams(System.in, baos).build();
         ReaderImpl consoleReader = new ReaderImpl(console);
 
-        assertFalse("default bell should be disabled", consoleReader.getBellEnabled());
+        assertEquals("default bell should be disabled", -1, consoleReader.getBellStyle());
+
+        consoleReader.setBellStyle(ReaderImpl.NO_BELL);
+
+        assertEquals("bell should have been disabled", ReaderImpl.NO_BELL, consoleReader.getBellStyle());
 
         consoleReader.beep();
 
         assertEquals("out should not have received bell", 0, baos.toByteArray().length);
 
-        consoleReader.setBellEnabled(true);
+        consoleReader.setBellStyle(ReaderImpl.AUDIBLE_BELL);
 
-        assertTrue("bell should have been enabled", consoleReader.getBellEnabled());
+        assertEquals("bell should have been enabled", ReaderImpl.AUDIBLE_BELL, consoleReader.getBellStyle());
 
         consoleReader.beep();
 
