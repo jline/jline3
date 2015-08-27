@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.fusesource.jansi.Pty.Attributes;
 import org.jline.utils.Log;
 
 /**
@@ -30,8 +31,8 @@ public class ConsoleKeys {
     private Map<String, KeyMap> keyMaps;
     private Map<String, String> variables = new HashMap<String,String>();
 
-    public ConsoleKeys(String appName, URL inputrcUrl) {
-        keyMaps = KeyMap.keyMaps();
+    public ConsoleKeys(String appName, URL inputrcUrl, Attributes attributes) {
+        keyMaps = KeyMap.keyMaps(attributes);
         loadKeys(appName, inputrcUrl);
     }
 

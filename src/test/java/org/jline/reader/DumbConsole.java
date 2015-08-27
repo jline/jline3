@@ -15,6 +15,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 
+import org.fusesource.jansi.Pty;
 import org.fusesource.jansi.Pty.Attributes;
 import org.fusesource.jansi.Pty.Size;
 import org.jline.console.AbstractConsole;
@@ -35,6 +36,10 @@ public class DumbConsole extends AbstractConsole {
         this.reader = new NonBlockingReader(new InputStreamReader(in));
         this.writer = new PrintWriter(new OutputStreamWriter(out));
         this.attributes = new Attributes();
+        this.attributes.setControlChar(Pty.VERASE,  (char) 127);
+        this.attributes.setControlChar(Pty.VWERASE, (char) 23);
+        this.attributes.setControlChar(Pty.VKILL,   (char) 21);
+        this.attributes.setControlChar(Pty.VLNEXT,  (char) 22);
         this.size = new Size(160, 50);
         parseInfoCmp();
     }

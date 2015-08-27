@@ -205,9 +205,15 @@ public class ReaderImpl implements Reader
     }
 
     public ReaderImpl(Console console, String appName, URL inputrc) throws IOException {
+        this(console, appName, inputrc, true);
+    }
+
+    public ReaderImpl(Console console, String appName, URL inputrc, boolean rebind) throws IOException {
         checkNotNull(console);
         this.console = console;
-        this.appName = appName != null ? appName : "JLine";
+        if (appName == null) {
+            appName = "JLine";
+        }
         if (inputrc == null) {
             File f = new File(System.getProperty("user.home"), ".inputrc");
             if (!f.exists()) {
@@ -215,8 +221,10 @@ public class ReaderImpl implements Reader
             }
             inputrc = f.toURI().toURL();
         }
+        this.appName = appName;
         this.inputrc = inputrc;
-        this.consoleKeys = new ConsoleKeys(this.appName, inputrc);
+        this.consoleKeys = new ConsoleKeys(appName, inputrc,
+                                    rebind ? console.getAttributes() : null);
     }
 
     private void setupSigCont() {
