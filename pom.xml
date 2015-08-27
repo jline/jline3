@@ -22,7 +22,7 @@
     <groupId>jline</groupId>
     <artifactId>jline</artifactId>
     <name>JLine</name>
-    <version>2.14-SNAPSHOT</version>
+    <version>3.0.0-SNAPSHOT</version>
 
     <licenses>
         <license>
@@ -119,7 +119,7 @@
         <maven.compiler.source>1.5</maven.compiler.source>
         <maven.compiler.target>1.5</maven.compiler.target>
 
-        <jansi.version>1.11</jansi.version>
+        <jansi.version>1.12-SNAPSHOT</jansi.version>
     </properties>
 
     <prerequisites>
@@ -363,13 +363,6 @@
                         </goals>
                         <configuration>
                             <instructions>
-                                <Export-Package>
-                                    jline.*;-noimport:=true,
-                                    =org.fusesource.jansi;version=${jansi.version}
-                                </Export-Package>
-                                <Import-Package>
-                                    !javax.swing
-                                </Import-Package>
                             </instructions>
                         </configuration>
                     </execution>
@@ -400,43 +393,6 @@
                 <version>1.9.4</version>
             </plugin>
 
-            <!-- include all the dependencies into the jar so it can run standalone -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>2.4.1</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <artifactSet>
-                                <excludes>
-                                    <exclude>junit:junit</exclude>
-                                </excludes>
-                            </artifactSet>
-                            <filters>
-                                <filter>
-                                    <artifact>org.fusesource.jansi:jansi</artifact>
-                                    <excludes>
-                                        <exclude>META-INF/maven/**</exclude>
-                                        <exclude>*.txt</exclude>
-                                        <exclude>junit/**</exclude>
-                                        <exclude>org/junit/**</exclude>
-                                        <exclude>org/hamcrest/**</exclude>
-                                        <exclude>org/fusesource/hawtjni/runtime/Jni*</exclude>
-                                        <exclude>org/fusesource/hawtjni/runtime/*Flag*</exclude>
-                                        <exclude>org/fusesource/hawtjni/runtime/T32*</exclude>
-                                        <exclude>org/fusesource/hawtjni/runtime/NativeStats*</exclude>
-                                    </excludes>
-                                </filter>
-                            </filters>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-site-plugin</artifactId>
@@ -457,7 +413,7 @@
 					<execution>
 						<id>javadoc</id>
 						<goals>
-							<goal>javadoc:jar</goal>
+							<goal>jar</goal>
 						</goals>
 					</execution>
 				</executions>
