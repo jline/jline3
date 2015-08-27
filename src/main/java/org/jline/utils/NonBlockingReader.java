@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.io.Reader;
 
 /**
- * This class wraps a regular input stream and allows it to appear as if it
+ * This class wraps a regular reader and allows it to appear as if it
  * is non-blocking; that is, reads can be performed against it that timeout
  * if no data is seen for a period of time.  This effect is achieved by having
  * a separate thread perform all non-blocking read requests and then
