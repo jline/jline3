@@ -8,12 +8,15 @@
  */
 package org.jline.reader;
 
+import java.io.EOFException;
+
 import org.jline.History;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.jline.reader.Operation.VI_EOF_MAYBE;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Unit tests for the greatest keymap binding in the world! Vi!!!!
@@ -222,7 +225,7 @@ public class ViMoveModeTest
          * The escape() puts us in move mode.
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("abc")).escape().op(VI_EOF_MAYBE);
+        Buffer b = (new Buffer("abc")).escape().ctrlD();
         assertLine("abc", b, true);
         
         /*
@@ -235,7 +238,7 @@ public class ViMoveModeTest
          * Next, the middle of the line.
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("abc")).left().left().escape().op(VI_EOF_MAYBE);
+        b = (new Buffer("abc")).left().left().escape().ctrlD();
         assertLine("abc", b, true);
         assertTrue(reader.isKeyMap(KeyMap.VI_MOVE));
         
@@ -243,7 +246,7 @@ public class ViMoveModeTest
          * Beginning of the line.
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("abc")).left().left().left().escape().op(VI_EOF_MAYBE);
+        b = (new Buffer("abc")).left().left().left().escape().ctrlD();
         assertLine("abc", b, true);
         assertTrue(reader.isKeyMap(KeyMap.VI_MOVE));
         
@@ -252,13 +255,23 @@ public class ViMoveModeTest
          * a null to be returned.  I'll try it in two different ways.
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("abc")).back().back().back().escape().op(VI_EOF_MAYBE);
-        assertLine(null, b, true);
+        b = (new Buffer("abc")).back().back().back().escape().ctrlD();
+        try {
+            assertLine(null, b, true);
+            fail("Expected EOFException");
+        } catch (EOFException e) {
+            // ignore
+        }
         assertTrue(reader.isKeyMap(KeyMap.VI_MOVE));
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("")).escape().op(VI_EOF_MAYBE);
-        assertLine(null, b, true);
+        b = (new Buffer("")).escape().ctrlD();
+        try {
+            assertLine(null, b, true);
+            fail("Expected EOFException");
+        } catch (EOFException e) {
+            // ignore
+        }
         assertTrue(reader.isKeyMap(KeyMap.VI_MOVE));
     }
     

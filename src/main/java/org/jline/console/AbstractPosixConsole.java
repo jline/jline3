@@ -24,10 +24,6 @@ public abstract class AbstractPosixConsole extends AbstractConsole {
         return pty;
     }
 
-    public String getPtyName() {
-        return pty.getName();
-    }
-
     public Attributes getAttributes() throws IOException {
         return pty.getAttr();
     }

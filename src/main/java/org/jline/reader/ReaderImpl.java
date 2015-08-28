@@ -8,19 +8,16 @@
  */
 package org.jline.reader;
 
-import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionListener;
 import java.io.BufferedReader;
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
@@ -31,19 +28,23 @@ import java.util.ListIterator;
 import java.util.ResourceBundle;
 import java.util.Stack;
 
-import org.fusesource.jansi.Pty;
 import org.fusesource.jansi.Pty.Attributes;
 import org.fusesource.jansi.Pty.Size;
 import org.jline.Completer;
 import org.jline.Console;
+import org.jline.Console.Signal;
+import org.jline.Console.SignalHandler;
 import org.jline.History;
 import org.jline.Reader;
 import org.jline.reader.history.MemoryHistory;
 import org.jline.utils.Ansi;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.Log;
+import org.jline.utils.Signals;
 import org.jline.utils.WCWidth;
 
+import static org.jline.reader.KeyMap.ESCAPE;
+import static org.jline.utils.NonBlockingReader.READ_EXPIRED;
 import static org.jline.utils.Preconditions.checkNotNull;
 
 /**
@@ -67,8 +68,11 @@ public class ReaderImpl implements Reader
     private static final ResourceBundle
         resources = ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName());
 
-    private static final int ESCAPE = 27;
-    private static final int READ_EXPIRED = -2;
+
+
+    //
+    // Constructor variables
+    //
 
     /** The console to use */
     private final Console console;
@@ -80,6 +84,54 @@ public class ReaderImpl implements Reader
     private final ConsoleKeys consoleKeys;
 
 
+
+    //
+    // Configuration
+    //
+
+    /**
+     * Delay to blink the opening parenthesis in milliseconds.
+     */
+    private long parenBlinkTimeout = 500;
+
+    private long escapeTimeout = 100;
+
+    private boolean expandEvents = true;
+
+    private int bellStyle = -1;
+
+    private String commentBegin = null;
+
+    /**
+     * Set to true if the reader should attempt to detect copy-n-paste. The
+     * effect of this that an attempt is made to detect if tab is quickly
+     * followed by another character, then it is assumed that the tab was
+     * a literal tab as part of a copy-and-paste operation and is inserted as
+     * such.
+     */
+    private boolean copyPasteDetection = false;
+
+    /**
+     * The number of tab-completion candidates above which a warning will be
+     * prompted before showing all the candidates.
+     */
+    private int autoprintThreshold = 100; // same default as bash
+
+    private boolean paginationEnabled;
+
+    /**
+     * Set to true if the reader should save accepted lines into the history.
+     * If a character mask is specified when reading a line, the line
+     * will not be saved to history, irrespective of this value.
+     */
+    private boolean historyEnabled = true;
+
+
+
+    //
+    // State variables
+    //
+
     private final CursorBuffer buf = new CursorBuffer();
     private boolean cursorOk;
 
@@ -88,17 +140,7 @@ public class ReaderImpl implements Reader
     private String prompt;
     private int    promptLen;
 
-    private boolean expandEvents = true;
-
-    private int bellStyle = -1;
-
-    private boolean handleUserInterrupt = false;
-
-    private boolean handleLitteralNext = true;
-
     private Character mask;
-
-    private Character echoCharacter;
 
     private CursorBuffer originalBuffer = null;
 
@@ -108,18 +150,11 @@ public class ReaderImpl implements Reader
 
     private int searchIndex = -1;
 
-    private int parenBlinkTimeout = 500;
 
     // Reading buffers
     private final StringBuilder opBuffer = new StringBuilder();
     private final Stack<Character> pushBackChar = new Stack<Character>();
 
-    /*
-     * The reader and the nonBlockingInput go hand-in-hand.  The reader wraps
-     * the nonBlockingInput, but we have to retain a handle to it so that
-     * we can shut down its blocking read thread when we go away.
-     */
-    private long                   escapeTimeout = 100;
 
     /**
      * Last character searched for with a vi character search
@@ -141,33 +176,13 @@ public class ReaderImpl implements Reader
 
     private String macro = "";
 
-    private String commentBegin = null;
-
-    /**
-     * Set to true if the reader should attempt to detect copy-n-paste. The
-     * effect of this that an attempt is made to detect if tab is quickly
-     * followed by another character, then it is assumed that the tab was
-     * a literal tab as part of a copy-and-paste operation and is inserted as
-     * such.
-     */
-    private boolean copyPasteDetection = false;
-
     /*
      * Current internal state of the line reader
      */
     private State   state = State.NORMAL;
 
-    /**
-     * The number of tab-completion candidates above which a warning will be
-     * prompted before showing all the candidates.
-     */
-    private int autoprintThreshold = 100; // same default as bash
-
-    private boolean paginationEnabled;
 
     private History history = new MemoryHistory();
-
-    private boolean historyEnabled = true;
 
     private final List<Completer> completers = new LinkedList<Completer>();
 
@@ -228,46 +243,34 @@ public class ReaderImpl implements Reader
     }
 
     private void setupSigCont() {
-        // Check that sun.misc.SignalHandler and sun.misc.Signal exists
-        try {
-            Class<?> signalClass = Class.forName("sun.misc.Signal");
-            Class<?> signalHandlerClass = Class.forName("sun.misc.SignalHandler");
-            // Implement signal handler
-            Object signalHandler = Proxy.newProxyInstance(getClass().getClassLoader(),
-                    new Class<?>[]{signalHandlerClass}, new InvocationHandler() {
-                        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-                            // only method we are proxying is handle()
-//                            console.init();
-                            // TODO: enter raw mode
-                            try {
-                                drawLine();
-                                flush();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                            return null;
-                        }
-                    });
-            // Register the signal handler, this code is equivalent to:
-            // Signal.handle(new Signal("CONT"), signalHandler);
-            signalClass.getMethod("handle", signalClass, signalHandlerClass).invoke(null, signalClass.getConstructor(String.class).newInstance("CONT"), signalHandler);
-        } catch (ClassNotFoundException cnfe) {
-            // sun.misc Signal handler classes don't exist
-        } catch (Exception e) {
-            // Ignore this one too, if the above failed, the signal API is incompatible with what we're expecting
-        }
+        Signals.register("CONT", new Runnable() {
+            public void run() {
+//                console.init();
+                // TODO: enter raw mode
+                try {
+                    drawLine();
+                    flush();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
+    public Console getConsole() {
+        return console;
     }
 
     public String getAppName() {
         return appName;
     }
 
-    public KeyMap getKeys() {
-        return consoleKeys.getKeys();
+    public URL getInputrc() {
+        return inputrc;
     }
 
-    public Console getConsole() {
-        return console;
+    public KeyMap getKeys() {
+        return consoleKeys.getKeys();
     }
 
     public CursorBuffer getCursorBuffer() {
@@ -314,48 +317,6 @@ public class ReaderImpl implements Reader
     }
 
     /**
-     * Set whether user interrupts (ctrl-C) are handled by having JLine
-     * throw {@link UserInterruptException} from {@link #readLine}.
-     * Otherwise, the JVM will handle {@code SIGINT} as normal, which
-     * usually causes it to exit. The default is {@code false}.
-     *
-     * @since 2.10
-     */
-    public void setHandleUserInterrupt(boolean enabled)
-    {
-        this.handleUserInterrupt = enabled;
-    }
-
-    /**
-     * Get whether user interrupt handling is enabled
-     *
-     * @return true if enabled; false otherwise
-     * @since 2.10
-     */
-    public boolean getHandleUserInterrupt()
-    {
-        return handleUserInterrupt;
-    }
-
-    /**
-     * Set wether literal next are handled by JLine.
-     *
-     * @since 2.13
-     */
-    public void setHandleLitteralNext(boolean handleLitteralNext) {
-        this.handleLitteralNext = handleLitteralNext;
-    }
-
-    /**
-     * Get wether literal next are handled by JLine.
-     *
-     * @since 2.13
-     */
-    public boolean getHandleLitteralNext() {
-        return handleLitteralNext;
-    }
-
-    /**
      * Sets the string that will be used to start a comment when the
      * insert-comment key is struck.
      * @param commentBegin The begin comment string.
@@ -382,34 +343,9 @@ public class ReaderImpl implements Reader
         return str;
     }
 
-    public void setPrompt(final String prompt) {
+    private void setPrompt(final String prompt) {
         this.prompt = prompt;
         this.promptLen = ((prompt == null) ? 0 : wcwidth(Ansi.stripAnsi(lastLine(prompt)), 0));
-    }
-
-    public String getPrompt() {
-        return prompt;
-    }
-
-    /**
-     * Set the echo character. For example, to have "*" entered when a password is typed:
-     * <pre>
-     * myConsoleReader.setEchoCharacter(new Character('*'));
-     * </pre>
-     * Setting the character to <code>null</code> will restore normal character echoing.<p/>
-     * Setting the character to <code>Character.valueOf(0)</code> will cause nothing to be echoed.
-     *
-     * @param c the character to echo to the console in place of the typed character.
-     */
-    public void setEchoCharacter(final Character c) {
-        this.echoCharacter = c;
-    }
-
-    /**
-     * Returns the echo character.
-     */
-    public Character getEchoCharacter() {
-        return echoCharacter;
     }
 
     /**
@@ -570,7 +506,6 @@ public class ReaderImpl implements Reader
      * Output put the prompt + the current buffer
      */
     public void drawLine() throws IOException {
-        String prompt = getPrompt();
         if (prompt != null) {
             rawPrint(prompt);
         }
@@ -1493,7 +1428,7 @@ public class ReaderImpl implements Reader
     }
 
     private String insertComment(boolean isViMode) throws IOException {
-        String comment = this.getCommentBegin();
+        String comment = getCommentBegin();
         setCursorPosition(0);
         putString(comment);
         if (isViMode) {
@@ -1673,7 +1608,7 @@ public class ReaderImpl implements Reader
         return ch;
     }
 
-    public void setParenBlinkTimeout(int timeout) {
+    public void setParenBlinkTimeout(long timeout) {
         parenBlinkTimeout = timeout;
     }
 
@@ -2250,26 +2185,28 @@ public class ReaderImpl implements Reader
         // mask may be null
         // buffer may be null
 
-        this.size = console.getSize();
-
-        /*
-         * This is the accumulator for VI-mode repeat count. That is, while in
-         * move mode, if you type 30x it will delete 30 characters. This is
-         * where the "30" is accumulated until the command is struck.
-         */
-        int repeatCount = 0;
-
-        // FIXME: This blows, each call to readLine will reset the console's state which doesn't seem very nice.
-        this.mask = mask != null ? mask : this.echoCharacter;
-        if (prompt != null) {
-            setPrompt(prompt);
-        }
-        else {
-            prompt = getPrompt();
-        }
-
-        Attributes originalAttributes = console.getAttributes();
+        SignalHandler previousIntrHandler = null;
+        Attributes originalAttributes = null;
         try {
+            previousIntrHandler = console.handle(Signal.INT, SignalHandler.SIG_IGN);
+            originalAttributes = console.enterRawMode();
+
+            /*
+             * This is the accumulator for VI-mode repeat count. That is, while in
+             * move mode, if you type 30x it will delete 30 characters. This is
+             * where the "30" is accumulated until the command is struck.
+             */
+            int repeatCount = 0;
+
+            this.mask = mask;
+            setPrompt(prompt);
+
+            String originalPrompt = this.prompt;
+
+            state = State.NORMAL;
+
+            pushBackChar.clear();
+
             if (buffer != null) {
                 buf.write(buffer);
             }
@@ -2279,22 +2216,6 @@ public class ReaderImpl implements Reader
                 console.writer().flush();
             }
 
-            Attributes attr = console.getAttributes();
-            attr.setLocalFlag(Pty.ICANON | Pty.ECHO, false);
-            attr.setInputFlag(Pty.IXON | Pty.ICRNL | Pty.INLCR, false);
-            attr.setControlChar(Pty.VMIN, 1);
-            attr.setControlChar(Pty.VTIME, 0);
-            attr.setControlChar(Pty.VLNEXT, 0);
-            attr.setControlChar(Pty.VDSUSP, 0);
-            attr.setControlChar(Pty.VINTR, 0);
-
-            String originalPrompt = this.prompt;
-
-            state = State.NORMAL;
-
-            boolean success = true;
-
-            pushBackChar.clear();
             while (true) {
 
                 Object o = readBinding(getKeys());
@@ -2325,11 +2246,12 @@ public class ReaderImpl implements Reader
                     continue;
                 }
 
+                boolean success = true;
+
+                // Cache console size for the duration of the binding processing
                 this.size = console.getSize();
 
-                CursorBuffer oldBuf = new CursorBuffer();
-                oldBuf.buffer.append(buf.buffer);
-                oldBuf.cursor = buf.cursor;
+                CursorBuffer oldBuf = buf.copy();
 
                 // Search mode.
                 //
@@ -2539,15 +2461,12 @@ public class ReaderImpl implements Reader
                                 break;
 
                             case INTERRUPT:
-                                if (handleUserInterrupt) {
-                                    println();
-                                    flush();
-                                    String partialLine = buf.buffer.toString();
-                                    buf.clear();
-                                    history.moveToEnd();
-                                    throw new UserInterruptException(partialLine);
-                                }
-                                break;
+                                println();
+                                flush();
+                                String partialLine = buf.buffer.toString();
+                                buf.clear();
+                                history.moveToEnd();
+                                throw new UserInterruptException(partialLine);
 
                             /*
                              * VI_MOVE_ACCEPT_LINE is the result of an ENTER
@@ -2603,7 +2522,9 @@ public class ReaderImpl implements Reader
 
                             case EXIT_OR_DELETE_CHAR:
                                 if (buf.buffer.length() == 0) {
-                                    return null;
+                                    println();
+                                    flush();
+                                    throw new EOFException();
                                 }
                                 success = deleteCurrentCharacter();
                                 break;
@@ -2809,7 +2730,9 @@ public class ReaderImpl implements Reader
                              */
                             case VI_EOF_MAYBE:
                                 if (buf.buffer.length() == 0) {
-                                    return null;
+                                    println();
+                                    flush();
+                                    throw new EOFException();
                                 }
                                 return accept();
 
@@ -3037,7 +2960,12 @@ public class ReaderImpl implements Reader
             }
         }
         finally {
-            console.setAttributes(originalAttributes);
+            if (originalAttributes != null) {
+                console.setAttributes(originalAttributes);
+            }
+            if (previousIntrHandler != null) {
+                console.handle(Signal.INT, previousIntrHandler);
+            }
         }
     }
 
@@ -3429,7 +3357,7 @@ public class ReaderImpl implements Reader
     public boolean paste() throws IOException {
         Clipboard clipboard;
         try { // May throw ugly exception on system without X
-            clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+            clipboard = java.awt.Toolkit.getDefaultToolkit().getSystemClipboard();
         }
         catch (Exception e) {
             return false;

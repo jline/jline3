@@ -1,7 +1,10 @@
 package org.jline;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+
+import org.jline.reader.UserInterruptException;
 
 public interface Reader {
 
@@ -18,7 +21,7 @@ public interface Reader {
      *
      * Equivalent to <code>readLine(null, mask, null)</code>
      */
-    String readLine(final Character mask) throws IOException;
+    String readLine(Character mask) throws IOException;
 
     /**
      * Read the next line with the specified prompt.
@@ -26,20 +29,15 @@ public interface Reader {
      *
      * Equivalent to <code>readLine(prompt, null, null)</code>
      */
-    String readLine(final String prompt) throws IOException;
+    String readLine(String prompt) throws IOException;
 
     /**
      * Read a line from the <i>in</i> {@link InputStream}, and return the line
      * (without any trailing newlines).
      *
      * Equivalent to <code>readLine(prompt, mask, null)</code>
-     *
-     * @param prompt    The prompt to issue to the console, may be null.
-     * @param mask      The character mask, may be null
-     * @return          A line that is read from the console, or null if there was null input (e.g., <i>CTRL-D</i>
-     *                  was pressed).
      */
-    String readLine(String prompt, final Character mask) throws IOException;
+    String readLine(String prompt, Character mask) throws IOException;
 
     /**
      * Read a line from the <i>in</i> {@link InputStream}, and return the line
@@ -48,9 +46,12 @@ public interface Reader {
      * @param prompt    The prompt to issue to the console, may be null.
      * @param mask      The character mask, may be null.
      * @param buffer    The default value presented to the user to edit, may be null.
-     * @return          A line that is read from the console, or null if there was null input (e.g., <i>CTRL-D</i>
-     *                  was pressed).
+     * @return          A line that is read from the console, can never be null.
+     *
+     * @throws UserInterruptException if readLine was interrupted (using Ctrl-C for example)
+     * @throws EOFException if an EOF has been found (using Ctrl-D for example)
+     * @throws IOException in case of other i/o errors
      */
-    String readLine(String prompt, final Character mask, String buffer) throws IOException;
+    String readLine(String prompt, Character mask, String buffer) throws IOException;
 
 }

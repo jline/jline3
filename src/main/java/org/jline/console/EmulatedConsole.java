@@ -1,3 +1,11 @@
+/*
+ * Copyright (c) 2002-2015, the original author or authors.
+ *
+ * This software is distributable under the BSD license. See the terms of the
+ * BSD license in the documentation provided with this software.
+ *
+ * http://www.opensource.org/licenses/bsd-license.php
+ */
 package org.jline.console;
 
 import java.io.IOException;
@@ -62,28 +70,12 @@ public class EmulatedConsole extends AbstractConsole {
         this.pumpThread.start();
     }
 
-    public String getPtyName() {
-        return "emulated";
-    }
-
     public NonBlockingReader reader() {
         return reader;
     }
 
     public PrintWriter writer() {
         return writer;
-    }
-
-    public InputStream getInput() {
-        return in;
-    }
-
-    public OutputStream getOutput() {
-        return out;
-    }
-
-    public String getEncoding() {
-        return charset.name();
     }
 
     public Attributes getAttributes() throws IOException {
@@ -119,7 +111,37 @@ public class EmulatedConsole extends AbstractConsole {
         writer.close();
     }
 
+    @Override
+    public void raise(Signal signal) {
+        checkNotNull(signal);
+        if (!attributes.getLocalFlag(Pty.NOFLSH)) {
+            try {
+                while (reader.ready()) {
+                    reader.read();
+                }
+            } catch (IOException e) {
+                // Ignore
+            }
+        }
+        echoSignal(signal);
+        super.raise(signal);
+    }
+
     private void processInputChar(int c) throws IOException {
+        if (attributes.getInputFlag(Pty.ISIG)) {
+            if (c == attributes.getControlChar(Pty.VINTR)) {
+                raise(Signal.INT);
+                return;
+            } else if (c == attributes.getControlChar(Pty.VQUIT)) {
+                raise(Signal.QUIT);
+                return;
+            } else if (c == attributes.getControlChar(Pty.VSUSP)) {
+                raise(Signal.TSTP);
+                return;
+            } else if (c == attributes.getControlChar(Pty.VSTATUS)) {
+                raise(Signal.INFO);
+            }
+        }
         if (c == '\r') {
             if (attributes.getInputFlag(Pty.IGNCR)) {
                 return;

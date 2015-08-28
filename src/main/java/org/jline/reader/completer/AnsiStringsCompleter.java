@@ -15,8 +15,8 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.jline.utils.Ansi;
 import org.jline.Completer;
+import org.jline.utils.Ansi;
 
 import static org.jline.utils.Preconditions.checkNotNull;
 

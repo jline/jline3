@@ -16,6 +16,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.fusesource.jansi.Pty.Attributes;
 import org.fusesource.jansi.Pty.Size;
@@ -26,6 +28,7 @@ import org.fusesource.jansi.internal.Kernel32.KEY_EVENT_RECORD;
 import org.fusesource.jansi.internal.WindowsSupport;
 import org.jline.utils.Log;
 import org.jline.utils.NonBlockingReader;
+import org.jline.utils.Signals;
 
 public class WinSysConsole extends AbstractConsole {
 
@@ -34,8 +37,9 @@ public class WinSysConsole extends AbstractConsole {
     private final OutputStream out;
     private final NonBlockingReader reader;
     private final PrintWriter writer;
+    private final Map<Signal, Object> nativeHandlers = new HashMap<Signal, Object>();
 
-    public WinSysConsole() throws IOException {
+    public WinSysConsole(boolean nativeSignals) throws IOException {
         super("ansi");
         this.in = new DirectInputStream();
         this.out = new WindowsAnsiOutputStream(new FileOutputStream(FileDescriptor.out));
@@ -46,6 +50,16 @@ public class WinSysConsole extends AbstractConsole {
         } else {
             this.reader = new NonBlockingReader(new InputStreamReader(in, encoding));
             this.writer = new PrintWriter(new OutputStreamWriter(out, encoding));
+        }
+        parseInfoCmp();
+        if (nativeSignals) {
+            for (final Signal signal : Signal.values()) {
+                nativeHandlers.put(signal, Signals.register(signal.name(), new Runnable() {
+                    public void run() {
+                        raise(signal);
+                    }
+                }));
+            }
         }
     }
 
@@ -63,28 +77,12 @@ public class WinSysConsole extends AbstractConsole {
         return null;
     }
 
-    public String getPtyName() {
-        return "windows";
-    }
-
     public NonBlockingReader reader() {
         return reader;
     }
 
     public PrintWriter writer() {
         return writer;
-    }
-
-    public InputStream getInput() {
-        return in;
-    }
-
-    public OutputStream getOutput() {
-        return out;
-    }
-
-    public String getEncoding() {
-        return encoding;
     }
 
     public Attributes getAttributes() throws IOException {
@@ -111,7 +109,9 @@ public class WinSysConsole extends AbstractConsole {
     }
 
     public void close() throws IOException {
-
+        for (Map.Entry<Signal, Object> entry : nativeHandlers.entrySet()) {
+            Signals.unregister(entry.getKey().name(), entry.getValue());
+        }
     }
 
     private byte[] readConsoleInput() {

@@ -8,6 +8,7 @@
  */
 package org.jline.example;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.LinkedList;
@@ -17,9 +18,11 @@ import org.jline.Completer;
 import org.jline.JLine;
 import org.jline.reader.CandidateListCompletionHandler;
 import org.jline.reader.ReaderImpl;
+import org.jline.reader.UserInterruptException;
 import org.jline.reader.completer.AnsiStringsCompleter;
 import org.jline.reader.completer.FileNameCompleter;
 import org.jline.reader.completer.StringsCompleter;
+import org.jline.utils.Signals;
 
 
 public class Example
@@ -47,13 +50,14 @@ public class Example
 
     public static void main(String[] args) throws IOException {
         try {
+            Signals.registerIgnore("INT");
+
+            String prompt = "prompt> ";
             Character mask = null;
             String trigger = null;
             boolean color = false;
 
             ReaderImpl reader = new ReaderImpl(JLine.console().build());
-
-            reader.setPrompt("prompt> ");
 
             if ((args == null) || (args.length == 0)) {
                 usage();
@@ -74,7 +78,7 @@ public class Example
                 }
                 else if (args[0].equals("color")) {
                     color = true;
-                    reader.setPrompt("\u001B[42mfoo\u001B[0m@bar\u001B[32m@baz\u001B[0m> ");
+                    prompt = "\u001B[42mfoo\u001B[0m@bar\u001B[32m@baz\u001B[0m> ";
                     completors.add(new AnsiStringsCompleter("\u001B[1mfoo\u001B[0m", "bar", "\u001B[32mbaz\u001B[0m"));
                     CandidateListCompletionHandler handler = new CandidateListCompletionHandler();
                     handler.setStripAnsi(true);
@@ -99,7 +103,19 @@ public class Example
             String line;
             PrintWriter out = reader.getConsole().writer();
 
-            while ((line = reader.readLine()) != null) {
+            while (true) {
+                line = null;
+                try {
+                    line = reader.readLine(prompt);
+                } catch (UserInterruptException e) {
+                    // Ignore
+                } catch (EOFException e) {
+                    return;
+                }
+                if (line == null) {
+                    continue;
+                }
+
                 if (color){
                     out.println("\u001B[33m======>\u001B[0m\"" + line + "\"");
 
@@ -118,6 +134,9 @@ public class Example
                 }
                 if (line.equalsIgnoreCase("cls")) {
                     reader.clearScreen();
+                }
+                if (line.equalsIgnoreCase("sleep")) {
+                    Thread.sleep(3000);
                 }
             }
         }

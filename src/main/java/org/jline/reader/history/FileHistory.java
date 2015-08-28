@@ -19,8 +19,8 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.Reader;
 
-import org.jline.utils.Log;
 import org.jline.History;
+import org.jline.utils.Log;
 
 import static org.jline.utils.Preconditions.checkNotNull;
 

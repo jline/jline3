@@ -8,7 +8,6 @@
  */
 package org.jline.utils;
 
-import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -40,9 +39,7 @@ public final class Signals {
     }
 
     public static Object register(String name, final Runnable handler, ClassLoader loader) {
-        // Check that sun.misc.SignalHandler and sun.misc.Signal exists
         try {
-            Class<?> signalClass = Class.forName("sun.misc.Signal");
             Class<?> signalHandlerClass = Class.forName("sun.misc.SignalHandler");
             // Implement signal handler
             Object signalHandler = Proxy.newProxyInstance(loader,
@@ -53,13 +50,27 @@ public final class Signals {
                             return null;
                         }
                     });
-            // Register the signal handler, this code is equivalent to:
-            // Signal.handle(new Signal("CONT"), signalHandler);
-            Object signal = signalClass.getConstructor(String.class).newInstance(name);
-            return signalClass.getMethod("handle", signalClass, signalHandlerClass)
-                    .invoke(null, signal, signalHandler);
-        } catch (ClassNotFoundException cnfe) {
-            // sun.misc Signal handler classes don't exist
+            doRegister(name, signalHandler);
+        } catch (Exception e) {
+            // Ignore this one too, if the above failed, the signal API is incompatible with what we're expecting
+        }
+        return null;
+    }
+
+    public static Object registerDefault(String name) {
+        try {
+            Class<?> signalHandlerClass = Class.forName("sun.misc.SignalHandler");
+            doRegister(name, signalHandlerClass.getField("SIG_DFL").get(null));
+        } catch (Exception e) {
+            // Ignore this one too, if the above failed, the signal API is incompatible with what we're expecting
+        }
+        return null;
+    }
+
+    public static Object registerIgnore(String name) {
+        try {
+            Class<?> signalHandlerClass = Class.forName("sun.misc.SignalHandler");
+            doRegister(name, signalHandlerClass.getField("SIG_IGN").get(null));
         } catch (Exception e) {
             // Ignore this one too, if the above failed, the signal API is incompatible with what we're expecting
         }
@@ -68,14 +79,19 @@ public final class Signals {
 
     public static void unregister(String name, Object previous) {
         try {
-            Class<?> signalClass = Class.forName("sun.misc.Signal");
-            Class<?> signalHandlerClass = Class.forName("sun.misc.SignalHandler");
-            Object signal = signalClass.getConstructor(String.class).newInstance(name);
-            signalClass.getMethod("handle", signalClass, signalHandlerClass)
-                    .invoke(null, signal, previous);
+            // We should make sure the current signal is the one we registered
+            doRegister(name, previous);
         } catch (Exception e) {
             // Ignore
         }
+    }
+
+    private static Object doRegister(String name, Object handler) throws Exception {
+        Class<?> signalClass = Class.forName("sun.misc.Signal");
+        Class<?> signalHandlerClass = Class.forName("sun.misc.SignalHandler");
+        Object signal = signalClass.getConstructor(String.class).newInstance(name);
+        return signalClass.getMethod("handle", signalClass, signalHandlerClass)
+                .invoke(null, signal, handler);
     }
 
 }

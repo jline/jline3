@@ -29,8 +29,7 @@ public class CursorBuffer
         CursorBuffer that = new CursorBuffer();
         that.overTyping = this.overTyping;
         that.cursor = this.cursor;
-        that.buffer.append (this.toString());
-        
+        that.buffer.append(this.buffer);
         return that;
     }
 

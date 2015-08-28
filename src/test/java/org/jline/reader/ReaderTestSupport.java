@@ -172,6 +172,10 @@ public abstract class ReaderTestSupport
             return append("\001");
         }
 
+        public Buffer ctrlD() {
+            return append("\004");
+        }
+
         /**
          * Generate a CTRL-X sequence where 'X' is the control character
          * you wish to generate.

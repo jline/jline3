@@ -9,7 +9,6 @@
 package org.jline;
 
 import java.io.Flushable;
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.ListIterator;
 

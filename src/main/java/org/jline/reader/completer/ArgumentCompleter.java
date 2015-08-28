@@ -14,8 +14,8 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.jline.utils.Log;
 import org.jline.Completer;
+import org.jline.utils.Log;
 
 import static org.jline.utils.Preconditions.checkNotNull;
 

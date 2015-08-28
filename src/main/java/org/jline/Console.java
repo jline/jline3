@@ -11,44 +11,58 @@ package org.jline;
 import java.io.Closeable;
 import java.io.Flushable;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 
 import org.fusesource.jansi.Pty.Attributes;
 import org.fusesource.jansi.Pty.Size;
+import org.jline.console.NativeSignalHandler;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.NonBlockingReader;
 
 public interface Console extends Closeable, Flushable {
 
     //
-    // High-level access
+    // Signal support
+    //
+
+    enum Signal {
+        INT,
+        QUIT,
+        TSTP,
+        CONT,
+        INFO,
+        WINCH
+    }
+
+    interface SignalHandler {
+
+        SignalHandler SIG_DFL = NativeSignalHandler.SIG_DFL;
+        SignalHandler SIG_IGN = NativeSignalHandler.SIG_DFL;
+
+        void handle(Signal signal);
+    }
+
+    SignalHandler handle(Signal signal, SignalHandler handler);
+
+    void raise(Signal signal);
+
+    //
+    // Input / output
     //
 
     NonBlockingReader reader();
 
     PrintWriter writer();
 
+    //
+    // Pty settings
+    //
+
+    Attributes enterRawMode() throws IOException;
+
     boolean echo() throws IOException;
 
     boolean echo(boolean echo) throws IOException;
-
-    //
-    // Low-level access
-    //
-
-    // Streams
-
-    InputStream getInput();
-
-    OutputStream getOutput();
-
-    String getEncoding();
-
-    // Pty settings
-
-    String getPtyName();
 
     Attributes getAttributes() throws IOException;
 
@@ -60,7 +74,9 @@ public interface Console extends Closeable, Flushable {
 
     void setSize(Size size) throws IOException;
 
+    //
     // Infocmp capabilities
+    //
 
     String getType();
 

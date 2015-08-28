@@ -1,3 +1,11 @@
+/*
+ * Copyright (c) 2002-2015, the original author or authors.
+ *
+ * This software is distributable under the BSD license. See the terms of the
+ * BSD license in the documentation provided with this software.
+ *
+ * http://www.opensource.org/licenses/bsd-license.php
+ */
 package org.jline.console;
 
 import java.io.IOException;
@@ -14,15 +22,77 @@ import org.jline.utils.InfoCmp;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.Log;
 
+import static org.jline.utils.Preconditions.checkNotNull;
+
 public abstract class AbstractConsole implements Console {
 
     private final String type;
+    private final Map<Signal, SignalHandler> handlers = new HashMap<Signal, SignalHandler>();
     private Set<Capability> bools = new HashSet<Capability>();
     private Map<Capability, Integer> ints = new HashMap<Capability, Integer>();
     private Map<Capability, String> strings = new HashMap<Capability, String>();
 
     public AbstractConsole(String type) {
         this.type = type;
+        for (Signal signal : Signal.values()) {
+            handlers.put(signal, SignalHandler.SIG_DFL);
+        }
+    }
+
+    public SignalHandler handle(Signal signal, SignalHandler handler) {
+        checkNotNull(signal);
+        checkNotNull(handler);
+        return handlers.put(signal, handler);
+    }
+
+    public void raise(Signal signal) {
+        checkNotNull(signal);
+        SignalHandler handler = handlers.get(signal);
+        if (handler == SignalHandler.SIG_DFL) {
+            handleDefaultSignal(signal);
+        } else if (handler != SignalHandler.SIG_IGN) {
+            handler.handle(signal);
+        }
+    }
+
+    protected void handleDefaultSignal(Signal signal) {
+    }
+
+    protected void echoSignal(Signal signal) {
+        try {
+            int cc = -1;
+            switch (signal) {
+                case INT:
+                    cc = Pty.VINTR;
+                    break;
+                case QUIT:
+                    cc = Pty.VQUIT;
+                    break;
+                case TSTP:
+                    cc = Pty.VSUSP;
+                    break;
+            }
+            if (cc >= 0) {
+                int vcc = getAttributes().getControlChar(cc);
+                if (vcc > 0 && vcc < 32) {
+                    writer().write(new char[]{'^', (char) (vcc + '@')}, 0, 2);
+                }
+            }
+        } catch (IOException e) {
+            // Ignore
+        }
+    }
+
+    public Attributes enterRawMode() throws IOException {
+        Attributes prvAttr = getAttributes();
+        Attributes newAttr = new Attributes();
+        newAttr.copy(prvAttr);
+        newAttr.setLocalFlag(Pty.ICANON | Pty.ECHO, false);
+        newAttr.setInputFlag(Pty.IXON | Pty.ICRNL | Pty.INLCR, false);
+        newAttr.setControlChar(Pty.VMIN, 1);
+        newAttr.setControlChar(Pty.VTIME, 0);
+        setAttributes(newAttr);
+        return prvAttr;
     }
 
     public boolean echo() throws IOException {

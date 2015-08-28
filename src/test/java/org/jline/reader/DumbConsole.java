@@ -52,22 +52,6 @@ public class DumbConsole extends AbstractConsole {
         return writer;
     }
 
-    public InputStream getInput() {
-        return in;
-    }
-
-    public OutputStream getOutput() {
-        return out;
-    }
-
-    public String getEncoding() {
-        return null;
-    }
-
-    public String getPtyName() {
-        return null;
-    }
-
     public Attributes getAttributes() throws IOException {
         Attributes attr = new Attributes();
         attr.copy(attributes);
