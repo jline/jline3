@@ -110,6 +110,11 @@ public class NonBlockingReader
         return read(timeout, false);
     }
 
+    @Override
+    public synchronized boolean ready() throws IOException {
+        return ch >= 0 || in.ready();
+    }
+
     /**
      * Attempts to read a character from the input stream for a specific
      * period of time.
