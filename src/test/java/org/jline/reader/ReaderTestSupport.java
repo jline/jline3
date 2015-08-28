@@ -13,6 +13,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.net.URL;
 
 import org.jline.Console;
 import org.jline.utils.Curses;
@@ -37,7 +38,7 @@ public abstract class ReaderTestSupport
         in = new EofPipedInputStream();
         out = new ByteArrayOutputStream();
         console = new DumbConsole(in, out);
-        reader = new ReaderImpl(console);
+        reader = new ReaderImpl(console, null, new URL("file:/do/not/exists"));
         reader.setKeyMap(KeyMap.EMACS);
     }
 

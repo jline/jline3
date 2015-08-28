@@ -422,7 +422,7 @@ public class ReaderImplTest
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         InputStream in = new ByteArrayInputStream("!f\r\n".getBytes());
         Console console = JLine.console().streams(in, baos).build();
-        ReaderImpl reader = new ReaderImpl(console);
+        ReaderImpl reader = new ReaderImpl(console, null, new URL("file:/do/not/exists"));
         reader.setExpandEvents(true);
         reader.setBellStyle(ReaderImpl.AUDIBLE_BELL);
         MemoryHistory history = new MemoryHistory();
@@ -610,7 +610,7 @@ public class ReaderImplTest
     public void testBell() throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Console console = JLine.console().streams(System.in, baos).build();
-        ReaderImpl consoleReader = new ReaderImpl(console);
+        ReaderImpl consoleReader = new ReaderImpl(console, null, new URL("file:/do/not/exists"));
 
         assertEquals("default bell should be disabled", -1, consoleReader.getBellStyle());
 
@@ -653,7 +653,7 @@ public class ReaderImplTest
         PipedOutputStream out = new PipedOutputStream(in);
         output = new ByteArrayOutputStream();
 
-        ReaderImpl console = new ReaderImpl(JLine.console().streams(in, output).build());
+        ReaderImpl console = new ReaderImpl(JLine.console().streams(in, output).build(), null, new URL("file:/do/not/exists"));
         Completer nil = new NullCompleter();
         Completer read = new StringsCompleter("read");
         Completer and = new StringsCompleter("and");
