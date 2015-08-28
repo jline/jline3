@@ -37,7 +37,7 @@ public interface Console extends Closeable, Flushable {
     interface SignalHandler {
 
         SignalHandler SIG_DFL = NativeSignalHandler.SIG_DFL;
-        SignalHandler SIG_IGN = NativeSignalHandler.SIG_DFL;
+        SignalHandler SIG_IGN = NativeSignalHandler.SIG_IGN;
 
         void handle(Signal signal);
     }
