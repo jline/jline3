@@ -74,27 +74,27 @@ public class EmulatedConsole extends AbstractConsole {
         return writer;
     }
 
-    public Attributes getAttributes() throws IOException {
+    public Attributes getAttributes() {
         Attributes attr = new Attributes();
         attr.copy(attributes);
         return attr;
     }
 
-    public void setAttributes(Attributes attr) throws IOException {
+    public void setAttributes(Attributes attr) {
         attributes.copy(attr);
     }
 
-    public void setAttributes(Attributes attr, int actions) throws IOException {
+    public void setAttributes(Attributes attr, int actions) {
         setAttributes(attr);
     }
 
-    public Size getSize() throws IOException {
+    public Size getSize() {
         Size sz = new Size();
         sz.copy(size);
         return sz;
     }
 
-    public void setSize(Size sz) throws IOException {
+    public void setSize(Size sz) {
         size.copy(sz);
     }
 

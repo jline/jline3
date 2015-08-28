@@ -58,21 +58,21 @@ public interface Console extends Closeable, Flushable {
     // Pty settings
     //
 
-    Attributes enterRawMode() throws IOException;
+    Attributes enterRawMode();
 
-    boolean echo() throws IOException;
+    boolean echo();
 
-    boolean echo(boolean echo) throws IOException;
+    boolean echo(boolean echo);
 
-    Attributes getAttributes() throws IOException;
+    Attributes getAttributes();
 
-    void setAttributes(Attributes attr) throws IOException;
+    void setAttributes(Attributes attr);
 
-    void setAttributes(Attributes attr, int actions) throws IOException;
+    void setAttributes(Attributes attr, int actions);
 
-    Size getSize() throws IOException;
+    Size getSize();
 
-    void setSize(Size size) throws IOException;
+    void setSize(Size size);
 
     //
     // Infocmp capabilities
@@ -80,7 +80,7 @@ public interface Console extends Closeable, Flushable {
 
     String getType();
 
-    boolean puts(Capability capability, Object... params) throws IOException;
+    boolean puts(Capability capability, Object... params);
 
     boolean getBooleanCapability(Capability capability);
 

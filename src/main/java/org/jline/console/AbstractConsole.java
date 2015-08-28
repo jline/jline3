@@ -8,6 +8,7 @@
  */
 package org.jline.console;
 
+import java.io.IOError;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -59,31 +60,27 @@ public abstract class AbstractConsole implements Console {
     }
 
     protected void echoSignal(Signal signal) {
-        try {
-            int cc = -1;
-            switch (signal) {
-                case INT:
-                    cc = Pty.VINTR;
-                    break;
-                case QUIT:
-                    cc = Pty.VQUIT;
-                    break;
-                case TSTP:
-                    cc = Pty.VSUSP;
-                    break;
+        int cc = -1;
+        switch (signal) {
+            case INT:
+                cc = Pty.VINTR;
+                break;
+            case QUIT:
+                cc = Pty.VQUIT;
+                break;
+            case TSTP:
+                cc = Pty.VSUSP;
+                break;
+        }
+        if (cc >= 0) {
+            int vcc = getAttributes().getControlChar(cc);
+            if (vcc > 0 && vcc < 32) {
+                writer().write(new char[]{'^', (char) (vcc + '@')}, 0, 2);
             }
-            if (cc >= 0) {
-                int vcc = getAttributes().getControlChar(cc);
-                if (vcc > 0 && vcc < 32) {
-                    writer().write(new char[]{'^', (char) (vcc + '@')}, 0, 2);
-                }
-            }
-        } catch (IOException e) {
-            // Ignore
         }
     }
 
-    public Attributes enterRawMode() throws IOException {
+    public Attributes enterRawMode() {
         Attributes prvAttr = getAttributes();
         Attributes newAttr = new Attributes();
         newAttr.copy(prvAttr);
@@ -95,11 +92,11 @@ public abstract class AbstractConsole implements Console {
         return prvAttr;
     }
 
-    public boolean echo() throws IOException {
+    public boolean echo() {
         return getAttributes().getLocalFlag(Pty.ECHO);
     }
 
-    public boolean echo(boolean echo) throws IOException {
+    public boolean echo(boolean echo) {
         Attributes attr = getAttributes();
         boolean prev = attr.getLocalFlag(Pty.ECHO);
         if (prev != echo) {
@@ -117,12 +114,16 @@ public abstract class AbstractConsole implements Console {
         writer().flush();
     }
 
-    public boolean puts(Capability capability, Object... params) throws IOException {
+    public boolean puts(Capability capability, Object... params) {
         String str = getStringCapability(capability);
         if (str == null) {
             return false;
         }
-        Curses.tputs(writer(), str, params);
+        try {
+            Curses.tputs(writer(), str, params);
+        } catch (IOException e) {
+            throw new IOError(e);
+        }
         return true;
     }
 

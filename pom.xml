@@ -116,8 +116,8 @@
         <build.number />
 
         <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
-        <maven.compiler.source>1.5</maven.compiler.source>
-        <maven.compiler.target>1.5</maven.compiler.target>
+        <maven.compiler.source>1.7</maven.compiler.source>
+        <maven.compiler.target>1.7</maven.compiler.target>
 
         <jansi.version>1.12-SNAPSHOT</jansi.version>
     </properties>
@@ -343,7 +343,7 @@
                         <configuration>
                             <signature>
                                 <groupId>org.codehaus.mojo.signature</groupId>
-                                <artifactId>java15</artifactId>
+                                <artifactId>java17</artifactId>
                                 <version>1.0</version>
                             </signature>
                         </configuration>

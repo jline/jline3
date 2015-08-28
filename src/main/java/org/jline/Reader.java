@@ -13,7 +13,7 @@ public interface Reader {
      *
      * Equivalent to <code>readLine(null, null, null)</code>
      */
-    String readLine() throws IOException;
+    String readLine() throws UserInterruptException, EOFException;
 
     /**
      * Read the next line with the specified character mask. If null, then
@@ -21,7 +21,7 @@ public interface Reader {
      *
      * Equivalent to <code>readLine(null, mask, null)</code>
      */
-    String readLine(Character mask) throws IOException;
+    String readLine(Character mask) throws UserInterruptException, EOFException;
 
     /**
      * Read the next line with the specified prompt.
@@ -29,7 +29,7 @@ public interface Reader {
      *
      * Equivalent to <code>readLine(prompt, null, null)</code>
      */
-    String readLine(String prompt) throws IOException;
+    String readLine(String prompt) throws UserInterruptException, EOFException;
 
     /**
      * Read a line from the <i>in</i> {@link InputStream}, and return the line
@@ -37,7 +37,7 @@ public interface Reader {
      *
      * Equivalent to <code>readLine(prompt, mask, null)</code>
      */
-    String readLine(String prompt, Character mask) throws IOException;
+    String readLine(String prompt, Character mask) throws UserInterruptException, EOFException;
 
     /**
      * Read a line from the <i>in</i> {@link InputStream}, and return the line
@@ -52,6 +52,6 @@ public interface Reader {
      * @throws EOFException if an EOF has been found (using Ctrl-D for example)
      * @throws IOException in case of other i/o errors
      */
-    String readLine(String prompt, Character mask, String buffer) throws IOException;
+    String readLine(String prompt, Character mask, String buffer) throws UserInterruptException, EOFException;
 
 }

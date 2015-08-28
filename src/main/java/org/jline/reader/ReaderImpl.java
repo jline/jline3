@@ -16,6 +16,7 @@ import java.awt.event.ActionListener;
 import java.io.BufferedReader;
 import java.io.EOFException;
 import java.io.File;
+import java.io.IOError;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -2144,7 +2145,7 @@ public class ReaderImpl implements Reader
     /**
      * Read the next line and return the contents of the buffer.
      */
-    public String readLine() throws IOException {
+    public String readLine() throws UserInterruptException, EOFException {
         return readLine(null, null, null);
     }
 
@@ -2152,11 +2153,11 @@ public class ReaderImpl implements Reader
      * Read the next line with the specified character mask. If null, then
      * characters will be echoed. If 0, then no characters will be echoed.
      */
-    public String readLine(final Character mask) throws IOException {
+    public String readLine(final Character mask) throws UserInterruptException, EOFException {
         return readLine(null, mask, null);
     }
 
-    public String readLine(final String prompt) throws IOException {
+    public String readLine(final String prompt) throws UserInterruptException, EOFException {
         return readLine(prompt, null, null);
     }
 
@@ -2168,7 +2169,7 @@ public class ReaderImpl implements Reader
      * @return          A line that is read from the console, or null if there was null input (e.g., <i>CTRL-D</i>
      *                  was pressed).
      */
-    public String readLine(String prompt, final Character mask) throws IOException {
+    public String readLine(String prompt, final Character mask) throws UserInterruptException, EOFException {
         return readLine(prompt, mask, null);
     }
 
@@ -2180,7 +2181,7 @@ public class ReaderImpl implements Reader
      * @return          A line that is read from the console, or null if there was null input (e.g., <i>CTRL-D</i>
      *                  was pressed).
      */
-    public String readLine(String prompt, final Character mask, String buffer) throws IOException {
+    public String readLine(String prompt, final Character mask, String buffer) throws UserInterruptException, EOFException {
         // prompt may be null
         // mask may be null
         // buffer may be null
@@ -2958,6 +2959,12 @@ public class ReaderImpl implements Reader
 
                 flush();
             }
+        } catch (UserInterruptException e) {
+            throw e;
+        } catch (EOFException e) {
+            throw e;
+        } catch (IOException e) {
+            throw new IOError(e);
         }
         finally {
             if (originalAttributes != null) {

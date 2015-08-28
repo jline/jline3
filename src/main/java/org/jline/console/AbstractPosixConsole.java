@@ -1,5 +1,6 @@
 package org.jline.console;
 
+import java.io.IOError;
 import java.io.IOException;
 
 import org.fusesource.jansi.Pty;
@@ -24,24 +25,44 @@ public abstract class AbstractPosixConsole extends AbstractConsole {
         return pty;
     }
 
-    public Attributes getAttributes() throws IOException {
-        return pty.getAttr();
+    public Attributes getAttributes() {
+        try {
+            return pty.getAttr();
+        } catch (IOException e) {
+            throw new IOError(e);
+        }
     }
 
-    public void setAttributes(Attributes attr) throws IOException {
-        pty.setAttr(attr);
+    public void setAttributes(Attributes attr) {
+        try {
+            pty.setAttr(attr);
+        } catch (IOException e) {
+            throw new IOError(e);
+        }
     }
 
-    public void setAttributes(Attributes attr, int actions) throws IOException {
-        pty.setAttr(attr, actions);
+    public void setAttributes(Attributes attr, int actions) {
+        try {
+            pty.setAttr(attr, actions);
+        } catch (IOException e) {
+            throw new IOError(e);
+        }
     }
 
-    public Size getSize() throws IOException {
-        return pty.getSize();
+    public Size getSize() {
+        try {
+            return pty.getSize();
+        } catch (IOException e) {
+            throw new IOError(e);
+        }
     }
 
-    public void setSize(Size size) throws IOException {
-        pty.setSize(size);
+    public void setSize(Size size) {
+        try {
+            pty.setSize(size);
+        } catch (IOException e) {
+            throw new IOError(e);
+        }
     }
 
     public void close() throws IOException {

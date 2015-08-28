@@ -82,26 +82,26 @@ public class WinSysConsole extends AbstractConsole {
         return writer;
     }
 
-    public Attributes getAttributes() throws IOException {
+    public Attributes getAttributes() {
         return null;
     }
 
-    public void setAttributes(Attributes attr) throws IOException {
+    public void setAttributes(Attributes attr) {
 
     }
 
-    public void setAttributes(Attributes attr, int actions) throws IOException {
+    public void setAttributes(Attributes attr, int actions) {
 
     }
 
-    public Size getSize() throws IOException {
+    public Size getSize() {
         Size size = new Size();
         size.setColumns(WindowsSupport.getWindowsTerminalWidth());
         size.setRows(WindowsSupport.getWindowsTerminalHeight());
         return size;
     }
 
-    public void setSize(Size size) throws IOException {
+    public void setSize(Size size) {
         throw new UnsupportedOperationException("Can not resize windows console");
     }
 
