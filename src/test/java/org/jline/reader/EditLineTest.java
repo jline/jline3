@@ -181,7 +181,7 @@ public class EditLineTest
 
     @Test
     public void testAbortPartialBuffer() throws Exception {
-        reader.setBellStyle(ReaderImpl.AUDIBLE_BELL);
+        reader.setVariable(ReaderImpl.BELL_STYLE, "audible");
         assertBuffer("", new Buffer("This is a test").ctrl('G'));
         assertConsoleOutputContains("\n");
         assertBeeped();

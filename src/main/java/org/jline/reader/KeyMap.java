@@ -11,9 +11,6 @@ package org.jline.reader;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.fusesource.jansi.Pty;
-import org.fusesource.jansi.Pty.Attributes;
-
 /**
  * The KeyMap class contains all bindings from keys to operations.
  *
@@ -231,15 +228,10 @@ public class KeyMap {
     }
     
     public static Map<String, KeyMap> keyMaps() {
-        return keyMaps(null);
-    }
-
-    public static Map<String, KeyMap> keyMaps(Attributes attributes) {
         Map<String, KeyMap> keyMaps = new HashMap<String, KeyMap>();
         
         KeyMap emacs = emacs();
         bindArrowKeys(emacs);
-        bindConsoleChars(emacs, attributes);
         keyMaps.put(EMACS, emacs);
         keyMaps.put(EMACS_STANDARD, emacs);
         keyMaps.put(EMACS_CTLX, (KeyMap) emacs.getBound("\u0018"));
@@ -253,38 +245,9 @@ public class KeyMap {
 
         KeyMap viIns = viInsertion();
         bindArrowKeys(viIns);
-        bindConsoleChars(viIns, attributes);
         keyMaps.put(VI_INSERT, viIns);
 
         return keyMaps;
-    }
-
-    /**
-     * Bind special chars defined by the console instead of
-     * the default bindings
-     */
-    private static void bindConsoleChars(KeyMap keyMap, Attributes attr) {
-        if (attr != null) {
-            rebind(keyMap, Operation.BACKWARD_DELETE_CHAR,
-                           /* C-? */ (char) 127, (char) attr.getControlChar(Pty.VERASE));
-            rebind(keyMap, Operation.UNIX_WORD_RUBOUT,
-                           /* C-W */ (char) 23,  (char) attr.getControlChar(Pty.VWERASE));
-            rebind(keyMap, Operation.UNIX_LINE_DISCARD,
-                           /* C-U */ (char) 21,  (char) attr.getControlChar(Pty.VKILL));
-            rebind(keyMap, Operation.QUOTED_INSERT,
-                           /* C-V */ (char) 22,  (char) attr.getControlChar(Pty.VLNEXT));
-        }
-    }
-
-    private static void rebind(KeyMap keyMap, Operation operation, char prevBinding, char newBinding) {
-        if (prevBinding > 0 && prevBinding < 255) {
-            if (keyMap.getBound("" + prevBinding) == operation) {
-                keyMap.bind("" + prevBinding, Operation.SELF_INSERT);
-                if (newBinding > 0 && newBinding < 255) {
-                    keyMap.bind("" + newBinding, operation);
-                }
-            }
-        }
     }
 
     public static KeyMap emacs() {

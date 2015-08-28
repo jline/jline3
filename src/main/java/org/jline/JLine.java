@@ -13,6 +13,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.jline.console.EmulatedConsole;
 import org.jline.console.PosixPtyConsole;
@@ -106,9 +108,7 @@ public final class JLine {
         private String appName;
         private URL inputrc;
         private String keyMap;
-        private Integer autoprintThreshold;
-        private Boolean paginationEnabled;
-        private Integer parenBlinkTimeout;
+        private final Map<String, String> variables = new HashMap<>();
 
         private ReaderBuilder() {
         }
@@ -133,23 +133,19 @@ public final class JLine {
             return this;
         }
 
+        public ReaderBuilder variable(String name, String value) {
+            this.variables.put(name, value);
+            return this;
+        }
+
         public Reader build() throws IOException {
             Console console = this.console;
             if (console == null) {
                 console = JLine.console().build();
             }
-            ReaderImpl reader = new ReaderImpl(console, appName, inputrc);
+            ReaderImpl reader = new ReaderImpl(console, appName, inputrc, variables);
             if (keyMap != null) {
                 reader.setKeyMap(keyMap);
-            }
-            if (autoprintThreshold != null) {
-                reader.setAutoprintThreshold(autoprintThreshold);
-            }
-            if (paginationEnabled != null) {
-                reader.setPaginationEnabled(paginationEnabled);
-            }
-            if (parenBlinkTimeout != null) {
-                reader.setParenBlinkTimeout(parenBlinkTimeout);
             }
             return reader;
         }

@@ -23,12 +23,15 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.Stack;
 
+import org.fusesource.jansi.Pty;
 import org.fusesource.jansi.Pty.Attributes;
 import org.fusesource.jansi.Pty.Size;
 import org.jline.Completer;
@@ -62,13 +65,37 @@ public class ReaderImpl implements Reader
 
     public static final int TAB_WIDTH = 8;
 
-    public static final int NO_BELL = 0;
-    public static final int AUDIBLE_BELL = 1;
-    public static final int VISIBLE_BELL = 2;
+    public static final String BIND_TTY_SPECIAL_CHARS = "bind-tty-special-chars";
+    public static final String COMMENT_BEGIN = "comment-begin";
+    public static final String BELL_STYLE = "bell-style";
+    public static final String PREFER_VISIBLE_BELL = "prefer-visible-bell";
+    public static final String COMPLETION_QUERY_ITEMS = "completion-query-items";
+    public static final String PAGE_COMPLETIONS = "page-completions";
+    public static final String DISABLE_HISTORY = "disable-history";
+    public static final String DISABLE_COMPLETION = "disable-completion";
+    public static final String EDITING_MODE = "editing-mode";
+    public static final String KEYMAP = "keymap";
+    public static final String BLINK_MATCHING_PAREN = "blink-matching-paren";
+    public static final String DISABLE_EVENT_EXPANSION = "disable-event-expansion";
+    /**
+     * Set to true if the reader should attempt to detect copy-n-paste. The
+     * effect of this that an attempt is made to detect if tab is quickly
+     * followed by another character, then it is assumed that the tab was
+     * a literal tab as part of a copy-and-paste operation and is inserted as
+     * such.
+     */
+    public static final String COPY_PASTE_DETECTION = "copy-paste-detection";
+
+    public static final long COPY_PASTE_DETECTION_TIMEOUT = 50l;
+    public static final long BLINK_MATCHING_PAREN_TIMEOUT = 500l;
+    public static final long ESCAPE_TIMEOUT = 100l;
 
     private static final ResourceBundle
-        resources = ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName());
+            resources = ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName());
 
+    private static final int NO_BELL = 0;
+    private static final int AUDIBLE_BELL = 1;
+    private static final int VISIBLE_BELL = 2;
 
 
     //
@@ -89,45 +116,7 @@ public class ReaderImpl implements Reader
     //
     // Configuration
     //
-
-    /**
-     * Delay to blink the opening parenthesis in milliseconds.
-     */
-    private long parenBlinkTimeout = 500;
-
-    private long escapeTimeout = 100;
-
-    private boolean expandEvents = true;
-
-    private int bellStyle = -1;
-
-    private String commentBegin = null;
-
-    /**
-     * Set to true if the reader should attempt to detect copy-n-paste. The
-     * effect of this that an attempt is made to detect if tab is quickly
-     * followed by another character, then it is assumed that the tab was
-     * a literal tab as part of a copy-and-paste operation and is inserted as
-     * such.
-     */
-    private boolean copyPasteDetection = false;
-
-    /**
-     * The number of tab-completion candidates above which a warning will be
-     * prompted before showing all the candidates.
-     */
-    private int autoprintThreshold = 100; // same default as bash
-
-    private boolean paginationEnabled;
-
-    /**
-     * Set to true if the reader should save accepted lines into the history.
-     * If a character mask is specified when reading a line, the line
-     * will not be saved to history, irrespective of this value.
-     */
-    private boolean historyEnabled = true;
-
-
+    private final Map<String, String> variables = new HashMap<>();
 
     //
     // State variables
@@ -221,10 +210,10 @@ public class ReaderImpl implements Reader
     }
 
     public ReaderImpl(Console console, String appName, URL inputrc) throws IOException {
-        this(console, appName, inputrc, true);
+        this(console, appName, inputrc, null);
     }
 
-    public ReaderImpl(Console console, String appName, URL inputrc, boolean rebind) throws IOException {
+    public ReaderImpl(Console console, String appName, URL inputrc, Map<String, String> variables) throws IOException {
         checkNotNull(console);
         this.console = console;
         if (appName == null) {
@@ -239,8 +228,44 @@ public class ReaderImpl implements Reader
         }
         this.appName = appName;
         this.inputrc = inputrc;
-        this.consoleKeys = new ConsoleKeys(appName, inputrc,
-                                    rebind ? console.getAttributes() : null);
+        if (variables != null) {
+            this.variables.putAll(variables);
+        }
+        this.consoleKeys = new ConsoleKeys(appName, inputrc);
+
+        if (getBoolean(BIND_TTY_SPECIAL_CHARS, true)) {
+            Attributes attr = console.getAttributes();
+            bindConsoleChars(consoleKeys.getKeyMaps().get(KeyMap.EMACS), attr);
+            bindConsoleChars(consoleKeys.getKeyMaps().get(KeyMap.VI_INSERT), attr);
+        }
+    }
+
+    /**
+     * Bind special chars defined by the console instead of
+     * the default bindings
+     */
+    private static void bindConsoleChars(KeyMap keyMap, Attributes attr) {
+        if (attr != null) {
+            rebind(keyMap, Operation.BACKWARD_DELETE_CHAR,
+                           /* C-? */ (char) 127, (char) attr.getControlChar(Pty.VERASE));
+            rebind(keyMap, Operation.UNIX_WORD_RUBOUT,
+                           /* C-W */ (char) 23,  (char) attr.getControlChar(Pty.VWERASE));
+            rebind(keyMap, Operation.UNIX_LINE_DISCARD,
+                           /* C-U */ (char) 21,  (char) attr.getControlChar(Pty.VKILL));
+            rebind(keyMap, Operation.QUOTED_INSERT,
+                           /* C-V */ (char) 22,  (char) attr.getControlChar(Pty.VLNEXT));
+        }
+    }
+
+    private static void rebind(KeyMap keyMap, Operation operation, char prevBinding, char newBinding) {
+        if (prevBinding > 0 && prevBinding < 255) {
+            if (keyMap.getBound("" + prevBinding) == operation) {
+                keyMap.bind("" + prevBinding, Operation.SELF_INSERT);
+                if (newBinding > 0 && newBinding < 255) {
+                    keyMap.bind("" + newBinding, operation);
+                }
+            }
+        }
     }
 
     private void setupSigCont() {
@@ -276,72 +301,6 @@ public class ReaderImpl implements Reader
 
     public CursorBuffer getCursorBuffer() {
         return buf;
-    }
-
-    public void setExpandEvents(final boolean expand) {
-        this.expandEvents = expand;
-    }
-
-    public boolean getExpandEvents() {
-        return expandEvents;
-    }
-
-    /**
-     * Enables or disables copy and paste detection. The effect of enabling this
-     * this setting is that when a tab is received immediately followed by another
-     * character, the tab will not be treated as a completion, but as a tab literal.
-     * @param onoff true if detection is enabled
-     */
-    public void setCopyPasteDetection(final boolean onoff) {
-        copyPasteDetection = onoff;
-    }
-
-    /**
-     * @return true if copy and paste detection is enabled.
-     */
-    public boolean isCopyPasteDetectionEnabled() {
-        return copyPasteDetection;
-    }
-
-    /**
-     * Set whether the bell style.
-     */
-    public void setBellStyle(int bellStyle) {
-        this.bellStyle = bellStyle;
-    }
-
-    /**
-     * Get whether the console bell style
-     */
-    public int getBellStyle() {
-        return bellStyle;
-    }
-
-    /**
-     * Sets the string that will be used to start a comment when the
-     * insert-comment key is struck.
-     * @param commentBegin The begin comment string.
-     * @since 2.7
-     */
-    public void setCommentBegin(String commentBegin) {
-        this.commentBegin = commentBegin;
-    }
-
-    /**
-     * @return the string that will be used to start a comment when the
-     * insert-comment key is struck.
-     * @since 2.7
-     */
-    public String getCommentBegin() {
-        String str = commentBegin;
-
-        if (str == null) {
-            str = consoleKeys.getVariable("comment-begin");
-            if (str == null) {
-                str = "#";
-            }
-        }
-        return str;
     }
 
     private void setPrompt(final String prompt) {
@@ -537,7 +496,7 @@ public class ReaderImpl implements Reader
         String str = buf.buffer.toString();
         String historyLine = str;
 
-        if (expandEvents) {
+        if (!getBoolean(DISABLE_EVENT_EXPANSION, false)) {
             try {
                 str = expandEvents(str);
                 // all post-expansion occurrences of '!' must have been escaped, so re-add escape to each
@@ -556,7 +515,7 @@ public class ReaderImpl implements Reader
         // and if mask is null, since having a mask typically means
         // the string was a password. We clear the mask after this call
         if (str.length() > 0) {
-            if (mask == null && isHistoryEnabled()) {
+            if (mask == null && !getBoolean(DISABLE_HISTORY, false)) {
                 history.add(historyLine);
             }
             else {
@@ -1429,7 +1388,10 @@ public class ReaderImpl implements Reader
     }
 
     private String insertComment(boolean isViMode) throws IOException {
-        String comment = getCommentBegin();
+        String comment = getVariable(COMMENT_BEGIN);
+        if (comment == null) {
+            comment = "#";
+        }
         setCursorPosition(0);
         putString(comment);
         if (isViMode) {
@@ -1609,19 +1571,15 @@ public class ReaderImpl implements Reader
         return ch;
     }
 
-    public void setParenBlinkTimeout(long timeout) {
-        parenBlinkTimeout = timeout;
-    }
-
     private void insertClose(String s) throws IOException {
         putString(s);
+
         int closePosition = buf.cursor;
 
         moveCursor(-1);
         viMatch();
 
-
-        console.reader().peek(parenBlinkTimeout);
+        console.reader().peek(BLINK_MATCHING_PAREN_TIMEOUT);
 
         setCursorPosition(closePosition);
         flush();
@@ -2056,7 +2014,7 @@ public class ReaderImpl implements Reader
                  */
                 if (c == ESCAPE
                         && pushBackChar.isEmpty()
-                        && console.reader().peek(escapeTimeout) == READ_EXPIRED) {
+                        && console.reader().peek(ESCAPE_TIMEOUT) == READ_EXPIRED) {
                     Object otherKey = ((KeyMap) o).getAnotherKey();
                     if (otherKey == null) {
                         // Tne next line is in case a binding was set up inside this secondary
@@ -2400,10 +2358,12 @@ public class ReaderImpl implements Reader
                                 // quickly a character follows the tab, if the character
                                 // follows *immediately*, we assume it is a tab literal.
                                 boolean isTabLiteral = false;
-                                if (copyPasteDetection
-                                    && c == 9
+                                if (getBoolean(COPY_PASTE_DETECTION, false)
+                                    && c == '\t'
                                     && (!pushBackChar.isEmpty()
-                                        || console.reader().peek(escapeTimeout) != READ_EXPIRED)) {
+                                        || console.reader().peek(COPY_PASTE_DETECTION_TIMEOUT) != READ_EXPIRED)) {
+                                    isTabLiteral = true;
+                                } else if (getBoolean(DISABLE_COMPLETION, false)) {
                                     isTabLiteral = true;
                                 }
 
@@ -3060,34 +3020,6 @@ public class ReaderImpl implements Reader
         drawLine();
     }
 
-    /**
-     * @param threshold the number of candidates to print without issuing a warning.
-     */
-    public void setAutoprintThreshold(final int threshold) {
-        this.autoprintThreshold = threshold;
-    }
-
-    /**
-     * @return the number of candidates to print without issuing a warning.
-     */
-    public int getAutoprintThreshold() {
-        return autoprintThreshold;
-    }
-
-    /**
-     * Whether to use pagination when the number of rows of candidates exceeds the height of the console.
-     */
-    public void setPaginationEnabled(final boolean enabled) {
-        this.paginationEnabled = enabled;
-    }
-
-    /**
-     * Whether to use pagination when the number of rows of candidates exceeds the height of the console.
-     */
-    public boolean isPaginationEnabled() {
-        return paginationEnabled;
-    }
-
     //
     // History
     //
@@ -3098,20 +3030,6 @@ public class ReaderImpl implements Reader
 
     public History getHistory() {
         return history;
-    }
-
-    /**
-     * Whether or not to add new commands to the history buffer.
-     */
-    public void setHistoryEnabled(final boolean enabled) {
-        this.historyEnabled = enabled;
-    }
-
-    /**
-     * Whether or not to add new commands to the history buffer.
-     */
-    public boolean isHistoryEnabled() {
-        return historyEnabled;
     }
 
     /**
@@ -3325,23 +3243,19 @@ public class ReaderImpl implements Reader
      */
     public void beep() throws IOException {
         int bell_preference = AUDIBLE_BELL;
-        if (bellStyle >= 0) {
-            bell_preference = bellStyle;
-        } else {
-            String bellStyle = consoleKeys.getVariable("bell-style");
-            if ("none".equals(bellStyle) || "off".equals(bellStyle)) {
-                bell_preference = NO_BELL;
-            } else if ("audible".equals(bellStyle)) {
+        String bellStyle = getVariable(BELL_STYLE);
+        if ("none".equals(bellStyle) || "off".equals(bellStyle)) {
+            bell_preference = NO_BELL;
+        } else if ("audible".equals(bellStyle)) {
+            bell_preference = AUDIBLE_BELL;
+        } else if ("visible".equals(bellStyle)) {
+            bell_preference = VISIBLE_BELL;
+        } else if ("on".equals(bellStyle)) {
+            String preferVisibleBellStr = getVariable(PREFER_VISIBLE_BELL);
+            if ("off".equals(preferVisibleBellStr)) {
                 bell_preference = AUDIBLE_BELL;
-            } else if ("visible".equals(bellStyle)) {
+            } else {
                 bell_preference = VISIBLE_BELL;
-            } else if ("on".equals(bellStyle)) {
-                String preferVisibleBellStr = consoleKeys.getVariable("prefer-visible-bell");
-                if ("off".equals(preferVisibleBellStr)) {
-                    bell_preference = AUDIBLE_BELL;
-                } else {
-                    bell_preference = VISIBLE_BELL;
-                }
             }
         }
         if (bell_preference == VISIBLE_BELL) {
@@ -3473,7 +3387,7 @@ public class ReaderImpl implements Reader
         Log.debug("Max width: ", maxWidth);
 
         int showLines;
-        if (isPaginationEnabled()) {
+        if (getBoolean(PAGE_COMPLETIONS, true)) {
             showLines = height - 1; // page limit
         }
         else {
@@ -3696,6 +3610,34 @@ public class ReaderImpl implements Reader
      */
     private boolean isWhitespace(final char c) {
         return Character.isWhitespace(c);
+    }
+
+    public String getVariable(String name) {
+        String v = variables.get(name);
+        return v != null ? v : consoleKeys.getVariable(name);
+    }
+
+    public void setVariable(String name, String value) {
+        variables.put(name, value);
+    }
+
+    boolean getBoolean(String name, boolean def) {
+        String v = getVariable(name);
+        return v != null ? v.isEmpty() || v.equalsIgnoreCase("on") || v.equalsIgnoreCase("1") : def;
+    }
+
+    int getInt(String name, int def) {
+        int nb = def;
+        String v = getVariable(name);
+        if (v != null) {
+            nb = 0;
+            try {
+                nb = Integer.parseInt(v);
+            } catch (NumberFormatException e) {
+                // Ignore
+            }
+        }
+        return nb;
     }
 
 }

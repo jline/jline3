@@ -423,8 +423,7 @@ public class ReaderImplTest
         InputStream in = new ByteArrayInputStream("!f\r\n".getBytes());
         Console console = JLine.console().streams(in, baos).build();
         ReaderImpl reader = new ReaderImpl(console, null, new URL("file:/do/not/exists"));
-        reader.setExpandEvents(true);
-        reader.setBellStyle(ReaderImpl.AUDIBLE_BELL);
+        reader.setVariable(ReaderImpl.BELL_STYLE, "audible");
         MemoryHistory history = new MemoryHistory();
         reader.setHistory(history);
 
@@ -439,7 +438,6 @@ public class ReaderImplTest
         ReaderImpl reader = createConsole("foo ! bar\r\n");
         MemoryHistory history = new MemoryHistory();
         reader.setHistory(history);
-        reader.setExpandEvents(true);
 
         String line = reader.readLine();
         assertEquals("foo ! bar", line);
@@ -450,7 +448,6 @@ public class ReaderImplTest
         reader = createConsole("cd c:\\docs\r\n");
         history = new MemoryHistory();
         reader.setHistory(history);
-        reader.setExpandEvents(true);
 
         line = reader.readLine();
         assertEquals("cd c:\\docs", line);
@@ -534,7 +531,7 @@ public class ReaderImplTest
             }
         }
         consoleReader.setHistory(history);
-        consoleReader.setExpandEvents(expandEvents);
+        consoleReader.setVariable(ReaderImpl.DISABLE_EVENT_EXPANSION, expandEvents ? "off" : "on");
         return consoleReader;
     }
 
@@ -553,7 +550,7 @@ public class ReaderImplTest
         ReaderImpl reader = createConsole("foo ! bar\r\n");
         MemoryHistory history = new MemoryHistory();
         reader.setHistory(history);
-        reader.setExpandEvents(false);
+        reader.setVariable(ReaderImpl.DISABLE_EVENT_EXPANSION, "on");
 
         String line = reader.readLine();
         assertEquals("foo ! bar", line);
@@ -612,22 +609,12 @@ public class ReaderImplTest
         Console console = JLine.console().streams(System.in, baos).build();
         ReaderImpl consoleReader = new ReaderImpl(console, null, new URL("file:/do/not/exists"));
 
-        assertEquals("default bell should be disabled", -1, consoleReader.getBellStyle());
-
-        consoleReader.setBellStyle(ReaderImpl.NO_BELL);
-
-        assertEquals("bell should have been disabled", ReaderImpl.NO_BELL, consoleReader.getBellStyle());
-
+        consoleReader.setVariable(ReaderImpl.BELL_STYLE, "off");
         consoleReader.beep();
-
         assertEquals("out should not have received bell", 0, baos.toByteArray().length);
 
-        consoleReader.setBellStyle(ReaderImpl.AUDIBLE_BELL);
-
-        assertEquals("bell should have been enabled", ReaderImpl.AUDIBLE_BELL, consoleReader.getBellStyle());
-
+        consoleReader.setVariable(ReaderImpl.BELL_STYLE, "audible");
         consoleReader.beep();
-
         String bellCap = console.getStringCapability(Capability.bell);
         StringWriter sw = new StringWriter();
         Curses.tputs(sw, bellCap);

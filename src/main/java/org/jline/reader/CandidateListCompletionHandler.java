@@ -103,7 +103,7 @@ public class CandidateListCompletionHandler
 
     /**
      * Print out the candidates. If the size of the candidates is greater than the
-     * {@link ReaderImpl#getAutoprintThreshold}, they prompt with a warning.
+     * {@link ReaderImpl#getCompletionQueryItems}, they prompt with a warning.
      *
      * @param candidates the list of candidates to print
      */
@@ -112,7 +112,8 @@ public class CandidateListCompletionHandler
     {
         Set<CharSequence> distinct = new HashSet<CharSequence>(candidates);
 
-        if (distinct.size() > reader.getAutoprintThreshold()) {
+        int max = reader.getInt(ReaderImpl.COMPLETION_QUERY_ITEMS, 100);
+        if (max > 0 && distinct.size() >= max) {
             //noinspection StringConcatenation
             reader.println();
             reader.print(Messages.DISPLAY_CANDIDATES.format(candidates.size()));
@@ -213,7 +214,7 @@ public class CandidateListCompletionHandler
         return true;
     }
 
-    private static enum Messages
+    private enum Messages
     {
         DISPLAY_CANDIDATES,
         DISPLAY_CANDIDATES_YES,

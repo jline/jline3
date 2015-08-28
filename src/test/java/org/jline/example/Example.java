@@ -57,7 +57,7 @@ public class Example
             String trigger = null;
             boolean color = false;
 
-            ReaderImpl reader = new ReaderImpl(JLine.console().build());
+            ReaderImpl reader = (ReaderImpl) JLine.reader().build();
 
             if ((args == null) || (args.length == 0)) {
                 usage();

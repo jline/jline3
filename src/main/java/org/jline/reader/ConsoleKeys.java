@@ -18,7 +18,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.fusesource.jansi.Pty.Attributes;
 import org.jline.utils.Log;
 
 /**
@@ -31,8 +30,8 @@ public class ConsoleKeys {
     private Map<String, KeyMap> keyMaps;
     private Map<String, String> variables = new HashMap<String,String>();
 
-    public ConsoleKeys(String appName, URL inputrcUrl, Attributes attributes) {
-        keyMaps = KeyMap.keyMaps(attributes);
+    public ConsoleKeys(String appName, URL inputrcUrl) {
+        keyMaps = KeyMap.keyMaps();
         loadKeys(appName, inputrcUrl);
     }
 
@@ -363,30 +362,30 @@ public class ConsoleKeys {
     }
 
     private void setVar(String key, String val) {
-        if ("keymap".equalsIgnoreCase(key)) {
-            if (keyMaps.containsKey(val)) {
-                keys = keyMaps.get(val);
-            }
-        } else if ("editing-mode".equals(key)) {
-            if ("vi".equalsIgnoreCase(val)) {
-                keys = keyMaps.get(KeyMap.VI_INSERT);
-            } else if ("emacs".equalsIgnoreCase(key)) {
-                keys = keyMaps.get(KeyMap.EMACS);
-            }
-        } else if ("blink-matching-paren".equals(key)) {
-            if ("on".equalsIgnoreCase(val)) {
-              keys.setBlinkMatchingParen(true);
-            } else if ("off".equalsIgnoreCase(val)) {
-              keys.setBlinkMatchingParen(false);
-            }
-        }
-
         /*
          * Technically variables should be defined as a functor class
          * so that validation on the variable value can be done at parse
          * time. This is a stop-gap.
          */
         variables.put(key, val);
+
+        if (ReaderImpl.KEYMAP.equalsIgnoreCase(key)) {
+            if (keyMaps.containsKey(val)) {
+                keys = keyMaps.get(val);
+            }
+        } else if (ReaderImpl.EDITING_MODE.equals(key)) {
+            if ("vi".equalsIgnoreCase(val)) {
+                keys = keyMaps.get(KeyMap.VI_INSERT);
+            } else if ("emacs".equalsIgnoreCase(key)) {
+                keys = keyMaps.get(KeyMap.EMACS);
+            }
+        } else if (ReaderImpl.BLINK_MATCHING_PAREN.equals(key)) {
+            if ("on".equalsIgnoreCase(val)) {
+                keys.setBlinkMatchingParen(true);
+            } else if ("off".equalsIgnoreCase(val)) {
+                keys.setBlinkMatchingParen(false);
+            }
+        }
     }
 
     /**
