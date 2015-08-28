@@ -43,6 +43,10 @@ public abstract class AbstractConsole implements Console {
         return type;
     }
 
+    public void flush() throws IOException {
+        writer().flush();
+    }
+
     public boolean puts(Capability capability, Object... params) throws IOException {
         String str = getStringCapability(capability);
         if (str == null) {

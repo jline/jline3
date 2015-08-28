@@ -9,6 +9,7 @@
 package org.jline;
 
 import java.io.Closeable;
+import java.io.Flushable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -19,7 +20,7 @@ import org.fusesource.jansi.Pty.Size;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.NonBlockingReader;
 
-public interface Console extends Closeable {
+public interface Console extends Closeable, Flushable {
 
     //
     // High-level access
