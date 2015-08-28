@@ -26,9 +26,6 @@ import static org.jline.utils.Preconditions.checkNotNull;
 
 public class PosixPtyConsole extends AbstractPosixConsole {
 
-    private final InputStream in;
-    private final OutputStream out;
-    private final String encoding;
     private final NonBlockingReader reader;
     private final PrintWriter writer;
     private final Thread inputPumpThread;
@@ -38,11 +35,10 @@ public class PosixPtyConsole extends AbstractPosixConsole {
         super(type, Pty.open(attributes, size));
         checkNotNull(in);
         checkNotNull(out);
-        this.in = new FileInputStream(getPty().getSlaveFD());
-        this.out = new FileOutputStream(getPty().getSlaveFD());
-        this.encoding = encoding;
-        this.reader = new NonBlockingReader(new InputStreamReader(in, encoding));
-        this.writer = new PrintWriter(new OutputStreamWriter(out, encoding));
+        FileInputStream sin = new FileInputStream(getPty().getSlaveFD());
+        FileOutputStream sout = new FileOutputStream(getPty().getSlaveFD());
+        this.reader = new NonBlockingReader(new InputStreamReader(sin, encoding));
+        this.writer = new PrintWriter(new OutputStreamWriter(sout, encoding));
         this.inputPumpThread = new PumpThread(in, new FileOutputStream(getPty().getMasterFD()));
         this.outputPumpThread = new PumpThread(new FileInputStream(getPty().getMasterFD()), out);
         parseInfoCmp();

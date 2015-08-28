@@ -28,9 +28,6 @@ import static org.jline.utils.Preconditions.checkNotNull;
 
 public class PosixSysConsole extends AbstractPosixConsole {
 
-    private final InputStream in;
-    private final OutputStream out;
-    private final String encoding;
     private final NonBlockingReader reader;
     private final PrintWriter writer;
     private final Map<Signal, Object> nativeHandlers = new HashMap<Signal, Object>();
@@ -38,9 +35,8 @@ public class PosixSysConsole extends AbstractPosixConsole {
     public PosixSysConsole(String type, String encoding, boolean nativeSignals) throws IOException {
         super(type, Pty.current());
         checkNotNull(encoding);
-        this.in = new FileInputStream(FileDescriptor.in);
-        this.out = new FileOutputStream(FileDescriptor.out);
-        this.encoding = encoding;
+        InputStream in = new FileInputStream(FileDescriptor.in);
+        OutputStream out = new FileOutputStream(FileDescriptor.out);
         this.reader = new NonBlockingReader(new InputStreamReader(in, encoding));
         this.writer = new PrintWriter(new OutputStreamWriter(out, encoding));
         parseInfoCmp();

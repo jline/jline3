@@ -33,8 +33,6 @@ import static org.jline.utils.Preconditions.checkNotNull;
 
 public class EmulatedConsole extends AbstractConsole {
 
-    private final InputStream in;
-    private final OutputStream out;
     private final PipedInputStream filterIn;
     private final PipedOutputStream filterInOut;
     private final OutputStream filterOut;
@@ -52,8 +50,6 @@ public class EmulatedConsole extends AbstractConsole {
         super(type);
         checkNotNull(in);
         checkNotNull(out);
-        this.in = in;
-        this.out = out;
         this.charset = encoding != null ? Charset.forName(encoding) : Charset.defaultCharset();
         this.filterIn = new PipedInputStream();
         this.filterInOut = new PipedOutputStream(filterIn);

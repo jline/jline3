@@ -32,18 +32,15 @@ import org.jline.utils.Signals;
 
 public class WinSysConsole extends AbstractConsole {
 
-    private final String encoding;
-    private final InputStream in;
-    private final OutputStream out;
     private final NonBlockingReader reader;
     private final PrintWriter writer;
     private final Map<Signal, Object> nativeHandlers = new HashMap<Signal, Object>();
 
     public WinSysConsole(boolean nativeSignals) throws IOException {
         super("ansi");
-        this.in = new DirectInputStream();
-        this.out = new WindowsAnsiOutputStream(new FileOutputStream(FileDescriptor.out));
-        this.encoding = getConsoleEncoding();
+        InputStream in = new DirectInputStream();
+        OutputStream out = new WindowsAnsiOutputStream(new FileOutputStream(FileDescriptor.out));
+        String encoding = getConsoleEncoding();
         if (encoding == null) {
             this.reader = new NonBlockingReader(new InputStreamReader(in));
             this.writer = new PrintWriter(new OutputStreamWriter(out));
