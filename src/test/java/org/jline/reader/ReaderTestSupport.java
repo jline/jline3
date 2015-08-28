@@ -14,8 +14,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.net.URL;
+import java.util.Collections;
 
 import org.jline.Console;
+import org.jline.console.AbstractConsole;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp.Capability;
 import org.junit.Before;
@@ -29,7 +31,7 @@ import static org.junit.Assert.assertTrue;
 public abstract class ReaderTestSupport
 {
     protected Console console;
-    protected ReaderImpl reader;
+    protected ConsoleReader reader;
     protected EofPipedInputStream in;
     protected ByteArrayOutputStream out;
 
@@ -37,8 +39,8 @@ public abstract class ReaderTestSupport
     public void setUp() throws Exception {
         in = new EofPipedInputStream();
         out = new ByteArrayOutputStream();
-        console = new DumbConsole(in, out);
-        reader = new ReaderImpl(console, null, new URL("file:/do/not/exists"));
+        console = new DumbConsole(null, new URL("file:/do/not/exists"), null, in, out);
+        reader = ((AbstractConsole) console).getConsoleReader();
         reader.setKeyMap(KeyMap.EMACS);
     }
 

@@ -9,7 +9,7 @@
 package org.jline.reader;
 
 /**
- * This exception is thrown by {@link org.jline.Reader#readLine} when
+ * This exception is thrown by {@link org.jline.Console#readLine} when
  * user interrupt handling is enabled and the user types the
  * interrupt character (ctrl-C). The partially entered line is
  * available via the {@link #getPartialLine()} method.

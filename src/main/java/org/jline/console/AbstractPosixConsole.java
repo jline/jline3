@@ -2,6 +2,8 @@ package org.jline.console;
 
 import java.io.IOError;
 import java.io.IOException;
+import java.net.URL;
+import java.util.Map;
 
 import org.fusesource.jansi.Pty;
 import org.fusesource.jansi.Pty.Attributes;
@@ -14,8 +16,8 @@ public abstract class AbstractPosixConsole extends AbstractConsole {
     private final Pty pty;
     private final Attributes originalAttributes;
 
-    public AbstractPosixConsole(String type, Pty pty) throws IOException {
-        super(type);
+    public AbstractPosixConsole(String type, String appName, URL inputrc, Map<String, String> variables, Pty pty) throws IOException {
+        super(type, appName, inputrc, variables);
         checkNotNull(pty);
         this.pty = pty;
         this.originalAttributes = this.pty.getAttr();

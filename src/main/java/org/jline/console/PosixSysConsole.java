@@ -16,6 +16,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,8 +33,8 @@ public class PosixSysConsole extends AbstractPosixConsole {
     private final PrintWriter writer;
     private final Map<Signal, Object> nativeHandlers = new HashMap<Signal, Object>();
 
-    public PosixSysConsole(String type, String encoding, boolean nativeSignals) throws IOException {
-        super(type, Pty.current());
+    public PosixSysConsole(String type, String appName, URL inputrc, Map<String, String> variables, String encoding, boolean nativeSignals) throws IOException {
+        super(type, appName, inputrc, variables, Pty.current());
         checkNotNull(encoding);
         InputStream in = new FileInputStream(FileDescriptor.in);
         OutputStream out = new FileOutputStream(FileDescriptor.out);

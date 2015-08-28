@@ -20,19 +20,18 @@ import org.jline.console.EmulatedConsole;
 import org.jline.console.PosixPtyConsole;
 import org.jline.console.PosixSysConsole;
 import org.jline.console.WinSysConsole;
-import org.jline.reader.ReaderImpl;
 
 public final class JLine {
 
     private JLine() {
     }
 
-    public static ConsoleBuilder console() {
-        return new ConsoleBuilder();
+    public static Console console() throws IOException {
+        return builder().build();
     }
 
-    public static ReaderBuilder reader() {
-        return new ReaderBuilder();
+    public static ConsoleBuilder builder() {
+        return new ConsoleBuilder();
     }
 
     public static class ConsoleBuilder {
@@ -44,6 +43,9 @@ public final class JLine {
         private Boolean system;
         private Boolean posix;
         private boolean nativeSignals = true;
+        private String appName;
+        private URL inputrc;
+        private final Map<String, String> variables = new HashMap<>();
 
         private ConsoleBuilder() {
         }
@@ -74,11 +76,26 @@ public final class JLine {
             return this;
         }
 
+        public ConsoleBuilder appName(String appName) {
+            this.appName = appName;
+            return this;
+        }
+
+        public ConsoleBuilder inputrc(URL inputrc) {
+            this.inputrc = inputrc;
+            return this;
+        }
+
+        public ConsoleBuilder variable(String name, String value) {
+            this.variables.put(name, value);
+            return this;
+        }
+
         public Console build() throws IOException {
             boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
             if ((system != null && system) || (system == null && in == null && out == null)) {
                 if (isWindows) {
-                    return new WinSysConsole(nativeSignals);
+                    return new WinSysConsole(appName, inputrc, variables, nativeSignals);
                 } else {
                     String type = this.type;
                     if (type == null) {
@@ -88,66 +105,17 @@ public final class JLine {
                     if (encoding == null) {
                         encoding = Charset.defaultCharset().name();
                     }
-                    return new PosixSysConsole(type, encoding, nativeSignals);
+                    return new PosixSysConsole(type, appName, inputrc, variables, encoding, nativeSignals);
                 }
             } else if (system != null || (in != null && out != null)) {
                 if (isWindows || posix == null || !posix) {
-                    return new EmulatedConsole(type, in, out, encoding);
+                    return new EmulatedConsole(type, appName, inputrc, variables, in, out, encoding);
                 } else {
-                    return new PosixPtyConsole(type, in, out, encoding, null, null);
+                    return new PosixPtyConsole(type, appName, inputrc, variables, in, out, encoding, null, null);
                 }
             } else {
                 throw new IllegalArgumentException();
             }
-        }
-    }
-
-    public static class ReaderBuilder {
-
-        private Console console;
-        private String appName;
-        private URL inputrc;
-        private String keyMap;
-        private final Map<String, String> variables = new HashMap<>();
-
-        private ReaderBuilder() {
-        }
-
-        public ReaderBuilder console(Console console) {
-            this.console = console;
-            return this;
-        }
-
-        public ReaderBuilder appName(String appName) {
-            this.appName = appName;
-            return this;
-        }
-
-        public ReaderBuilder inputrc(URL inputrc) {
-            this.inputrc = inputrc;
-            return this;
-        }
-
-        public ReaderBuilder keyMap(String keymapName) {
-            this.keyMap = keymapName;
-            return this;
-        }
-
-        public ReaderBuilder variable(String name, String value) {
-            this.variables.put(name, value);
-            return this;
-        }
-
-        public Reader build() throws IOException {
-            Console console = this.console;
-            if (console == null) {
-                console = JLine.console().build();
-            }
-            ReaderImpl reader = new ReaderImpl(console, appName, inputrc, variables);
-            if (keyMap != null) {
-                reader.setKeyMap(keyMap);
-            }
-            return reader;
         }
     }
 

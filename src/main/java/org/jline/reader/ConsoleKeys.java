@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.jline.Console;
 import org.jline.utils.Log;
 
 /**
@@ -369,17 +370,17 @@ public class ConsoleKeys {
          */
         variables.put(key, val);
 
-        if (ReaderImpl.KEYMAP.equalsIgnoreCase(key)) {
+        if (Console.KEYMAP.equalsIgnoreCase(key)) {
             if (keyMaps.containsKey(val)) {
                 keys = keyMaps.get(val);
             }
-        } else if (ReaderImpl.EDITING_MODE.equals(key)) {
+        } else if (Console.EDITING_MODE.equals(key)) {
             if ("vi".equalsIgnoreCase(val)) {
                 keys = keyMaps.get(KeyMap.VI_INSERT);
             } else if ("emacs".equalsIgnoreCase(key)) {
                 keys = keyMaps.get(KeyMap.EMACS);
             }
-        } else if (ReaderImpl.BLINK_MATCHING_PAREN.equals(key)) {
+        } else if (Console.BLINK_MATCHING_PAREN.equals(key)) {
             if ("on".equalsIgnoreCase(val)) {
                 keys.setBlinkMatchingParen(true);
             } else if ("off".equalsIgnoreCase(val)) {

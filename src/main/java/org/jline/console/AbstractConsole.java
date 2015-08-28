@@ -8,8 +8,10 @@
  */
 package org.jline.console;
 
+import java.io.EOFException;
 import java.io.IOError;
 import java.io.IOException;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -18,6 +20,8 @@ import java.util.Set;
 import org.fusesource.jansi.Pty;
 import org.fusesource.jansi.Pty.Attributes;
 import org.jline.Console;
+import org.jline.reader.ConsoleReader;
+import org.jline.reader.UserInterruptException;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.InfoCmp.Capability;
@@ -28,15 +32,31 @@ import static org.jline.utils.Preconditions.checkNotNull;
 public abstract class AbstractConsole implements Console {
 
     private final String type;
-    private final Map<Signal, SignalHandler> handlers = new HashMap<Signal, SignalHandler>();
-    private Set<Capability> bools = new HashSet<Capability>();
-    private Map<Capability, Integer> ints = new HashMap<Capability, Integer>();
-    private Map<Capability, String> strings = new HashMap<Capability, String>();
+    private final String appName;
+    private final URL inputrc;
+    private final Map<String, String> variables;
+    private final Map<Signal, SignalHandler> handlers = new HashMap<>();
+    private Set<Capability> bools = new HashSet<>();
+    private Map<Capability, Integer> ints = new HashMap<>();
+    private Map<Capability, String> strings = new HashMap<>();
+    private ConsoleReader consoleReader;
 
-    public AbstractConsole(String type) {
+    public AbstractConsole(String type, String appName, URL inputrc, Map<String, String> variables) throws IOException {
         this.type = type;
         for (Signal signal : Signal.values()) {
             handlers.put(signal, SignalHandler.SIG_DFL);
+        }
+        this.appName = appName;
+        this.inputrc = inputrc;
+        this.variables = variables;
+    }
+
+    public ConsoleReader getConsoleReader() {
+        synchronized (this) {
+            if (consoleReader == null) {
+                consoleReader = new ConsoleReader(this, appName, inputrc, variables);
+            }
+            return consoleReader;
         }
     }
 
@@ -154,4 +174,28 @@ public abstract class AbstractConsole implements Console {
         InfoCmp.parseInfoCmp(capabilities, bools, ints, strings);
     }
 
+    @Override
+    public String readLine() throws UserInterruptException, EOFException {
+        return getConsoleReader().readLine();
+    }
+
+    @Override
+    public String readLine(Character mask) throws UserInterruptException, EOFException {
+        return getConsoleReader().readLine(mask);
+    }
+
+    @Override
+    public String readLine(String prompt) throws UserInterruptException, EOFException {
+        return getConsoleReader().readLine(prompt);
+    }
+
+    @Override
+    public String readLine(String prompt, Character mask) throws UserInterruptException, EOFException {
+        return getConsoleReader().readLine(prompt, mask);
+    }
+
+    @Override
+    public String readLine(String prompt, Character mask, String buffer) throws UserInterruptException, EOFException {
+        return getConsoleReader().readLine(prompt, mask, buffer);
+    }
 }

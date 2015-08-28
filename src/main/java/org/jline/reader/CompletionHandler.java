@@ -20,5 +20,5 @@ import java.util.List;
  */
 public interface CompletionHandler
 {
-    boolean complete(ReaderImpl reader, List<CharSequence> candidates, int position) throws IOException;
+    boolean complete(ConsoleReader reader, List<CharSequence> candidates, int position) throws IOException;
 }

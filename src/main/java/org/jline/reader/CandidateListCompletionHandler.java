@@ -9,13 +9,7 @@
 package org.jline.reader;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
-import java.util.ResourceBundle;
-import java.util.Set;
 
 import org.jline.utils.Ansi;
 
@@ -53,7 +47,7 @@ public class CandidateListCompletionHandler
 
     // TODO: handle quotes and escaped quotes && enable automatic escaping of whitespace
 
-    public boolean complete(final ReaderImpl reader, final List<CharSequence> candidates, final int pos) throws
+    public boolean complete(final ConsoleReader reader, final List<CharSequence> candidates, final int pos) throws
         IOException
     {
         CursorBuffer buf = reader.getCursorBuffer();
@@ -82,7 +76,7 @@ public class CandidateListCompletionHandler
             setBuffer(reader, value, pos);
         }
 
-        printCandidates(reader, candidates);
+        reader.printCandidates(candidates);
 
         // redraw the current console buffer
         reader.drawLine();
@@ -90,7 +84,8 @@ public class CandidateListCompletionHandler
         return true;
     }
 
-    public static void setBuffer(final ReaderImpl reader, final CharSequence value, final int offset) throws
+    @SuppressWarnings("StatementWithEmptyBody")
+    public static void setBuffer(final ConsoleReader reader, final CharSequence value, final int offset) throws
         IOException
     {
         while ((reader.getCursorBuffer().cursor > offset) && reader.backspace()) {
@@ -99,63 +94,6 @@ public class CandidateListCompletionHandler
 
         reader.putString(value);
         reader.setCursorPosition(offset + value.length());
-    }
-
-    /**
-     * Print out the candidates. If the size of the candidates is greater than the
-     * {@link ReaderImpl#getCompletionQueryItems}, they prompt with a warning.
-     *
-     * @param candidates the list of candidates to print
-     */
-    public static void printCandidates(final ReaderImpl reader, Collection<CharSequence> candidates) throws
-        IOException
-    {
-        Set<CharSequence> distinct = new HashSet<CharSequence>(candidates);
-
-        int max = reader.getInt(ReaderImpl.COMPLETION_QUERY_ITEMS, 100);
-        if (max > 0 && distinct.size() >= max) {
-            //noinspection StringConcatenation
-            reader.println();
-            reader.print(Messages.DISPLAY_CANDIDATES.format(candidates.size()));
-            reader.flush();
-
-            int c;
-
-            String noOpt = Messages.DISPLAY_CANDIDATES_NO.format();
-            String yesOpt = Messages.DISPLAY_CANDIDATES_YES.format();
-            char[] allowed = {yesOpt.charAt(0), noOpt.charAt(0)};
-
-            while ((c = reader.readCharacter(allowed)) != -1) {
-                String tmp = new String(new char[]{(char) c});
-
-                if (noOpt.startsWith(tmp)) {
-                    reader.println();
-                    return;
-                }
-                else if (yesOpt.startsWith(tmp)) {
-                    break;
-                }
-                else {
-                    reader.beep();
-                }
-            }
-        }
-
-        // copy the values and make them distinct, without otherwise affecting the ordering. Only do it if the sizes differ.
-        if (distinct.size() != candidates.size()) {
-            Collection<CharSequence> copy = new ArrayList<CharSequence>();
-
-            for (CharSequence next : candidates) {
-                if (!copy.contains(next)) {
-                    copy.add(next);
-                }
-            }
-
-            candidates = copy;
-        }
-
-        reader.println();
-        reader.printColumns(candidates);
     }
 
     /**
@@ -214,22 +152,4 @@ public class CandidateListCompletionHandler
         return true;
     }
 
-    private enum Messages
-    {
-        DISPLAY_CANDIDATES,
-        DISPLAY_CANDIDATES_YES,
-        DISPLAY_CANDIDATES_NO,;
-
-        private static final
-        ResourceBundle
-            bundle =
-            ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName(), Locale.getDefault());
-
-        public String format(final Object... args) {
-            if (bundle == null)
-                return "";
-            else
-                return String.format(bundle.getString(name()), args);
-        }
-    }
 }

@@ -11,8 +11,8 @@ package org.jline.example;
 
 import java.io.IOException;
 
+import org.jline.Console;
 import org.jline.JLine;
-import org.jline.Reader;
 
 public class PasswordReader
 {
@@ -22,7 +22,7 @@ public class PasswordReader
     }
 
     public static void main(String[] args) throws IOException {
-        Reader reader = JLine.reader().build();
+        Console console = JLine.console();
 
         Character mask = (args.length == 0)
             ? new Character((char) 0)
@@ -30,7 +30,7 @@ public class PasswordReader
 
         String line;
         do {
-            line = reader.readLine("Enter password> ", mask);
+            line = console.readLine("Enter password> ", mask);
             System.out.println("Got password: " + line);
         }
         while (line != null && line.length() > 0);

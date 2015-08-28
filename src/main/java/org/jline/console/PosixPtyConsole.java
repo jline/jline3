@@ -15,6 +15,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.net.URL;
+import java.util.Map;
 
 import org.fusesource.jansi.Pty;
 import org.fusesource.jansi.Pty.Attributes;
@@ -31,8 +33,8 @@ public class PosixPtyConsole extends AbstractPosixConsole {
     private final Thread inputPumpThread;
     private final Thread outputPumpThread;
 
-    public PosixPtyConsole(String type, InputStream in, OutputStream out, String encoding, Attributes attributes, Size size) throws IOException {
-        super(type, Pty.open(attributes, size));
+    public PosixPtyConsole(String type, String appName, URL inputrc, Map<String, String> variables, InputStream in, OutputStream out, String encoding, Attributes attributes, Size size) throws IOException {
+        super(type, appName, inputrc, variables, Pty.open(attributes, size));
         checkNotNull(in);
         checkNotNull(out);
         FileInputStream sin = new FileInputStream(getPty().getSlaveFD());

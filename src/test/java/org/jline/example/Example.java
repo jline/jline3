@@ -10,18 +10,19 @@ package org.jline.example;
 
 import java.io.EOFException;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.jline.Completer;
+import org.jline.Console;
 import org.jline.JLine;
+import org.jline.console.AbstractConsole;
 import org.jline.reader.CandidateListCompletionHandler;
-import org.jline.reader.ReaderImpl;
 import org.jline.reader.UserInterruptException;
 import org.jline.reader.completer.AnsiStringsCompleter;
 import org.jline.reader.completer.FileNameCompleter;
 import org.jline.reader.completer.StringsCompleter;
+import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.Signals;
 
 
@@ -57,7 +58,7 @@ public class Example
             String trigger = null;
             boolean color = false;
 
-            ReaderImpl reader = (ReaderImpl) JLine.reader().build();
+            Console console = JLine.console();
 
             if ((args == null) || (args.length == 0)) {
                 usage();
@@ -82,7 +83,7 @@ public class Example
                     completors.add(new AnsiStringsCompleter("\u001B[1mfoo\u001B[0m", "bar", "\u001B[32mbaz\u001B[0m"));
                     CandidateListCompletionHandler handler = new CandidateListCompletionHandler();
                     handler.setStripAnsi(true);
-                    reader.setCompletionHandler(handler);
+                    ((AbstractConsole) console).getConsoleReader().setCompletionHandler(handler);
                 }
                 else {
                     usage();
@@ -97,16 +98,13 @@ public class Example
             }
 
             for (Completer c : completors) {
-                reader.addCompleter(c);
+                ((AbstractConsole) console).getConsoleReader().addCompleter(c);
             }
 
-            String line;
-            PrintWriter out = reader.getConsole().writer();
-
             while (true) {
-                line = null;
+                String line = null;
                 try {
-                    line = reader.readLine(prompt);
+                    line = console.readLine(prompt);
                 } catch (UserInterruptException e) {
                     // Ignore
                 } catch (EOFException e) {
@@ -117,23 +115,24 @@ public class Example
                 }
 
                 if (color){
-                    out.println("\u001B[33m======>\u001B[0m\"" + line + "\"");
+                    console.writer().println("\u001B[33m======>\u001B[0m\"" + line + "\"");
 
                 } else {
-                    out.println("======>\"" + line + "\"");
+                    console.writer().println("======>\"" + line + "\"");
                 }
-                out.flush();
+                console.flush();
 
                 // If we input the special word then we will mask
                 // the next line.
                 if ((trigger != null) && (line.compareTo(trigger) == 0)) {
-                    line = reader.readLine("password> ", mask);
+                    line = console.readLine("password> ", mask);
                 }
                 if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) {
                     break;
                 }
                 if (line.equalsIgnoreCase("cls")) {
-                    reader.clearScreen();
+                    console.puts(Capability.clear_screen);
+                    console.flush();
                 }
                 if (line.equalsIgnoreCase("sleep")) {
                     Thread.sleep(3000);

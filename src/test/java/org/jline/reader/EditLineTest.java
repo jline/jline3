@@ -8,6 +8,7 @@
  */
 package org.jline.reader;
 
+import org.jline.Console;
 import org.junit.Test;
 
 import static org.jline.reader.Operation.BACKWARD_WORD;
@@ -181,7 +182,7 @@ public class EditLineTest
 
     @Test
     public void testAbortPartialBuffer() throws Exception {
-        reader.setVariable(ReaderImpl.BELL_STYLE, "audible");
+        reader.setVariable(Console.BELL_STYLE, "audible");
         assertBuffer("", new Buffer("This is a test").ctrl('G'));
         assertConsoleOutputContains("\n");
         assertBeeped();

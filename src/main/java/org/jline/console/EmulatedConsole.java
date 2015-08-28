@@ -18,11 +18,13 @@ import java.io.PipedOutputStream;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.Writer;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CodingErrorAction;
+import java.util.Map;
 
 import org.fusesource.jansi.Pty;
 import org.fusesource.jansi.Pty.Attributes;
@@ -46,8 +48,8 @@ public class EmulatedConsole extends AbstractConsole {
     private final Size size;
     private final Thread pumpThread;
 
-    public EmulatedConsole(String type, InputStream in, OutputStream out, final String encoding) throws IOException {
-        super(type);
+    public EmulatedConsole(String type, String appName, URL inputrc, Map<String, String> variables, InputStream in, OutputStream out, final String encoding) throws IOException {
+        super(type, appName, inputrc, variables);
         checkNotNull(in);
         checkNotNull(out);
         this.charset = encoding != null ? Charset.forName(encoding) : Charset.defaultCharset();

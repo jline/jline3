@@ -19,16 +19,21 @@ import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Locale;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.Set;
 import java.util.Stack;
 
 import org.fusesource.jansi.Pty;
@@ -39,7 +44,6 @@ import org.jline.Console;
 import org.jline.Console.Signal;
 import org.jline.Console.SignalHandler;
 import org.jline.History;
-import org.jline.Reader;
 import org.jline.reader.history.MemoryHistory;
 import org.jline.utils.Ansi;
 import org.jline.utils.InfoCmp.Capability;
@@ -59,39 +63,35 @@ import static org.jline.utils.Preconditions.checkNotNull;
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  * @author <a href="mailto:gnodet@gmail.com">Guillaume Nodet</a>
  */
-public class ReaderImpl implements Reader
+public class ConsoleReader
 {
     public static final char NULL_MASK = 0;
 
     public static final int TAB_WIDTH = 8;
 
-    public static final String BIND_TTY_SPECIAL_CHARS = "bind-tty-special-chars";
-    public static final String COMMENT_BEGIN = "comment-begin";
-    public static final String BELL_STYLE = "bell-style";
-    public static final String PREFER_VISIBLE_BELL = "prefer-visible-bell";
-    public static final String COMPLETION_QUERY_ITEMS = "completion-query-items";
-    public static final String PAGE_COMPLETIONS = "page-completions";
-    public static final String DISABLE_HISTORY = "disable-history";
-    public static final String DISABLE_COMPLETION = "disable-completion";
-    public static final String EDITING_MODE = "editing-mode";
-    public static final String KEYMAP = "keymap";
-    public static final String BLINK_MATCHING_PAREN = "blink-matching-paren";
-    public static final String DISABLE_EVENT_EXPANSION = "disable-event-expansion";
-    /**
-     * Set to true if the reader should attempt to detect copy-n-paste. The
-     * effect of this that an attempt is made to detect if tab is quickly
-     * followed by another character, then it is assumed that the tab was
-     * a literal tab as part of a copy-and-paste operation and is inserted as
-     * such.
-     */
-    public static final String COPY_PASTE_DETECTION = "copy-paste-detection";
-
     public static final long COPY_PASTE_DETECTION_TIMEOUT = 50l;
     public static final long BLINK_MATCHING_PAREN_TIMEOUT = 500l;
     public static final long ESCAPE_TIMEOUT = 100l;
 
-    private static final ResourceBundle
-            resources = ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName());
+    private enum Messages
+    {
+        DISPLAY_CANDIDATES,
+        DISPLAY_CANDIDATES_YES,
+        DISPLAY_CANDIDATES_NO,
+        DISPLAY_MORE;
+
+        private static final
+        ResourceBundle
+                bundle =
+                ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName(), Locale.getDefault());
+
+        public String format(final Object... args) {
+            if (bundle == null)
+                return "";
+            else
+                return String.format(bundle.getString(name()), args);
+        }
+    }
 
     private static final int NO_BELL = 0;
     private static final int AUDIBLE_BELL = 1;
@@ -205,15 +205,15 @@ public class ReaderImpl implements Reader
         VI_CHANGE_TO
     }
 
-    public ReaderImpl(Console console) throws IOException {
+    public ConsoleReader(Console console) throws IOException {
         this(console, null, null);
     }
 
-    public ReaderImpl(Console console, String appName, URL inputrc) throws IOException {
+    public ConsoleReader(Console console, String appName, URL inputrc) throws IOException {
         this(console, appName, inputrc, null);
     }
 
-    public ReaderImpl(Console console, String appName, URL inputrc, Map<String, String> variables) throws IOException {
+    public ConsoleReader(Console console, String appName, URL inputrc, Map<String, String> variables) {
         checkNotNull(console);
         this.console = console;
         if (appName == null) {
@@ -224,7 +224,11 @@ public class ReaderImpl implements Reader
             if (!f.exists()) {
                 f = new File("/etc/inputrc");
             }
-            inputrc = f.toURI().toURL();
+            try {
+                inputrc = f.toURI().toURL();
+            } catch (MalformedURLException e) {
+                throw new IllegalArgumentException();
+            }
         }
         this.appName = appName;
         this.inputrc = inputrc;
@@ -233,7 +237,7 @@ public class ReaderImpl implements Reader
         }
         this.consoleKeys = new ConsoleKeys(appName, inputrc);
 
-        if (getBoolean(BIND_TTY_SPECIAL_CHARS, true)) {
+        if (getBoolean(Console.BIND_TTY_SPECIAL_CHARS, true)) {
             Attributes attr = console.getAttributes();
             bindConsoleChars(consoleKeys.getKeyMaps().get(KeyMap.EMACS), attr);
             bindConsoleChars(consoleKeys.getKeyMaps().get(KeyMap.VI_INSERT), attr);
@@ -496,7 +500,7 @@ public class ReaderImpl implements Reader
         String str = buf.buffer.toString();
         String historyLine = str;
 
-        if (!getBoolean(DISABLE_EVENT_EXPANSION, false)) {
+        if (!getBoolean(Console.DISABLE_EVENT_EXPANSION, false)) {
             try {
                 str = expandEvents(str);
                 // all post-expansion occurrences of '!' must have been escaped, so re-add escape to each
@@ -515,7 +519,7 @@ public class ReaderImpl implements Reader
         // and if mask is null, since having a mask typically means
         // the string was a password. We clear the mask after this call
         if (str.length() > 0) {
-            if (mask == null && !getBoolean(DISABLE_HISTORY, false)) {
+            if (mask == null && !getBoolean(Console.DISABLE_HISTORY, false)) {
                 history.add(historyLine);
             }
             else {
@@ -1388,7 +1392,7 @@ public class ReaderImpl implements Reader
     }
 
     private String insertComment(boolean isViMode) throws IOException {
-        String comment = getVariable(COMMENT_BEGIN);
+        String comment = getVariable(Console.COMMENT_BEGIN);
         if (comment == null) {
             comment = "#";
         }
@@ -2358,12 +2362,12 @@ public class ReaderImpl implements Reader
                                 // quickly a character follows the tab, if the character
                                 // follows *immediately*, we assume it is a tab literal.
                                 boolean isTabLiteral = false;
-                                if (getBoolean(COPY_PASTE_DETECTION, false)
+                                if (getBoolean(Console.COPY_PASTE_DETECTION, false)
                                     && c == '\t'
                                     && (!pushBackChar.isEmpty()
                                         || console.reader().peek(COPY_PASTE_DETECTION_TIMEOUT) != READ_EXPIRED)) {
                                     isTabLiteral = true;
-                                } else if (getBoolean(DISABLE_COMPLETION, false)) {
+                                } else if (getBoolean(Console.DISABLE_COMPLETION, false)) {
                                     isTabLiteral = true;
                                 }
 
@@ -2986,7 +2990,7 @@ public class ReaderImpl implements Reader
             return false;
         }
 
-        List<CharSequence> candidates = new LinkedList<CharSequence>();
+        List<CharSequence> candidates = new LinkedList<>();
         String bufstr = buf.buffer.toString();
         int cursor = buf.cursor;
 
@@ -3007,7 +3011,7 @@ public class ReaderImpl implements Reader
             return;
         }
 
-        List<CharSequence> candidates = new LinkedList<CharSequence>();
+        List<CharSequence> candidates = new LinkedList<>();
         String bufstr = buf.buffer.toString();
         int cursor = buf.cursor;
 
@@ -3016,7 +3020,7 @@ public class ReaderImpl implements Reader
                 break;
             }
         }
-        CandidateListCompletionHandler.printCandidates(this, candidates);
+        printCandidates(candidates);
         drawLine();
     }
 
@@ -3243,7 +3247,7 @@ public class ReaderImpl implements Reader
      */
     public void beep() throws IOException {
         int bell_preference = AUDIBLE_BELL;
-        String bellStyle = getVariable(BELL_STYLE);
+        String bellStyle = getVariable(Console.BELL_STYLE);
         if ("none".equals(bellStyle) || "off".equals(bellStyle)) {
             bell_preference = NO_BELL;
         } else if ("audible".equals(bellStyle)) {
@@ -3251,7 +3255,7 @@ public class ReaderImpl implements Reader
         } else if ("visible".equals(bellStyle)) {
             bell_preference = VISIBLE_BELL;
         } else if ("on".equals(bellStyle)) {
-            String preferVisibleBellStr = getVariable(PREFER_VISIBLE_BELL);
+            String preferVisibleBellStr = getVariable(Console.PREFER_VISIBLE_BELL);
             if ("off".equals(preferVisibleBellStr)) {
                 bell_preference = AUDIBLE_BELL;
             } else {
@@ -3367,6 +3371,62 @@ public class ReaderImpl implements Reader
     //
 
     /**
+     * Print out the candidates. If the size of the candidates is greater than the
+     * {@link Console#COMPLETION_QUERY_ITEMS}, they prompt with a warning.
+     *
+     * @param candidates the list of candidates to print
+     */
+    public void printCandidates(Collection<CharSequence> candidates) throws
+            IOException
+    {
+        Set<CharSequence> distinct = new HashSet<>(candidates);
+
+        int max = getInt(Console.COMPLETION_QUERY_ITEMS, 100);
+        if (max > 0 && distinct.size() >= max) {
+            println();
+            print(Messages.DISPLAY_CANDIDATES.format(candidates.size()));
+            flush();
+
+            int c;
+
+            String noOpt = Messages.DISPLAY_CANDIDATES_NO.format();
+            String yesOpt = Messages.DISPLAY_CANDIDATES_YES.format();
+            char[] allowed = {yesOpt.charAt(0), noOpt.charAt(0)};
+
+            while ((c = readCharacter(allowed)) != -1) {
+                String tmp = new String(new char[]{(char) c});
+
+                if (noOpt.startsWith(tmp)) {
+                    println();
+                    return;
+                }
+                else if (yesOpt.startsWith(tmp)) {
+                    break;
+                }
+                else {
+                    beep();
+                }
+            }
+        }
+
+        // copy the values and make them distinct, without otherwise affecting the ordering. Only do it if the sizes differ.
+        if (distinct.size() != candidates.size()) {
+            Collection<CharSequence> copy = new ArrayList<CharSequence>();
+
+            for (CharSequence next : candidates) {
+                if (!copy.contains(next)) {
+                    copy.add(next);
+                }
+            }
+
+            candidates = copy;
+        }
+
+        println();
+        printColumns(candidates);
+    }
+
+    /**
      * Output the specified {@link Collection} in proper columns.
      */
     public void printColumns(final Collection<? extends CharSequence> items) throws IOException {
@@ -3387,7 +3447,7 @@ public class ReaderImpl implements Reader
         Log.debug("Max width: ", maxWidth);
 
         int showLines;
-        if (getBoolean(PAGE_COMPLETIONS, true)) {
+        if (getBoolean(Console.PAGE_COMPLETIONS, true)) {
             showLines = height - 1; // page limit
         }
         else {
@@ -3404,7 +3464,8 @@ public class ReaderImpl implements Reader
 
                 if (--showLines == 0) {
                     // Overflow
-                    print(resources.getString("DISPLAY_MORE"));
+                    String more = Messages.DISPLAY_MORE.format();
+                    print(more);
                     flush();
                     int c = readCharacter();
                     if (c == '\r' || c == '\n') {
@@ -3416,7 +3477,7 @@ public class ReaderImpl implements Reader
                         showLines = height - 1;
                     }
 
-                    back(resources.getString("DISPLAY_MORE").length());
+                    back(more.length());
                     if (c == 'q') {
                         // cancel
                         break;

@@ -19,7 +19,7 @@ public class EmulatedConsoleTest {
         PipedInputStream in = new PipedInputStream();
         PipedOutputStream outIn = new PipedOutputStream(in);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        EmulatedConsole console = new EmulatedConsole("ansi", in, out, "UTF-8");
+        EmulatedConsole console = new EmulatedConsole("ansi", null, null, null, in, out, "UTF-8");
 
         testConsole(outIn, out, console);
     }
@@ -30,7 +30,7 @@ public class EmulatedConsoleTest {
         PipedOutputStream outIn = new PipedOutputStream(in);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-        Console console = new PosixPtyConsole("ansi", in, out, "UTF-8", null, null);
+        Console console = new PosixPtyConsole("ansi", null, null, null, in, out, "UTF-8", null, null);
 
         testConsole(outIn, out, console);
     }

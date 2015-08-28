@@ -14,6 +14,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.net.URL;
+import java.util.Map;
 
 import org.fusesource.jansi.Pty;
 import org.fusesource.jansi.Pty.Attributes;
@@ -27,8 +29,8 @@ public class DumbConsole extends AbstractConsole {
     private final Attributes attributes;
     private final Size size;
 
-    public DumbConsole(InputStream in, OutputStream out) {
-        super("ansi");
+    public DumbConsole(String appName, URL inputrc, Map<String, String> variables, InputStream in, OutputStream out) throws IOException {
+        super("ansi", appName, inputrc, variables);
         this.reader = new NonBlockingReader(new InputStreamReader(in));
         this.writer = new PrintWriter(new OutputStreamWriter(out));
         this.attributes = new Attributes();

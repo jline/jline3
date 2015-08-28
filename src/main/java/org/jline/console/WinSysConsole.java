@@ -16,6 +16,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -36,8 +37,8 @@ public class WinSysConsole extends AbstractConsole {
     private final PrintWriter writer;
     private final Map<Signal, Object> nativeHandlers = new HashMap<Signal, Object>();
 
-    public WinSysConsole(boolean nativeSignals) throws IOException {
-        super("ansi");
+    public WinSysConsole(String appName, URL inputrc, Map<String, String> variables, boolean nativeSignals) throws IOException {
+        super("ansi", appName, inputrc, variables);
         InputStream in = new DirectInputStream();
         OutputStream out = new WindowsAnsiOutputStream(new FileOutputStream(FileDescriptor.out));
         String encoding = getConsoleEncoding();
