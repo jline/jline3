@@ -22,8 +22,6 @@ import org.jline.console.AbstractConsole;
 import org.jline.utils.NonBlockingReader;
 
 public class DumbConsole extends AbstractConsole {
-    private final InputStream in;
-    private final OutputStream out;
     private final NonBlockingReader reader;
     private final PrintWriter writer;
     private final Attributes attributes;
@@ -31,8 +29,6 @@ public class DumbConsole extends AbstractConsole {
 
     public DumbConsole(InputStream in, OutputStream out) {
         super("ansi");
-        this.in = in;
-        this.out = out;
         this.reader = new NonBlockingReader(new InputStreamReader(in));
         this.writer = new PrintWriter(new OutputStreamWriter(out));
         this.attributes = new Attributes();
