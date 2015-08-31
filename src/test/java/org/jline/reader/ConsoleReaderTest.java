@@ -20,12 +20,14 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.jline.Completer;
 import org.jline.Console;
+import org.jline.ConsoleReader;
 import org.jline.History;
 import org.jline.JLine;
+import org.jline.JLine.ConsoleReaderBuilder;
 import org.jline.reader.completer.AggregateCompleter;
 import org.jline.reader.completer.ArgumentCompleter;
+import org.jline.Completer;
 import org.jline.reader.completer.NullCompleter;
 import org.jline.reader.completer.StringsCompleter;
 import org.jline.reader.history.MemoryHistory;
@@ -44,14 +46,12 @@ import static org.jline.reader.ConsoleReaderTest.WindowsKey.PAGE_DOWN_KEY;
 import static org.jline.reader.ConsoleReaderTest.WindowsKey.PAGE_UP_KEY;
 import static org.jline.reader.ConsoleReaderTest.WindowsKey.SPECIAL_KEY_INDICATOR;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
- * Tests for the {@link ConsoleReader}.
+ * Tests for the {@link ConsoleReaderImpl}.
  */
 public class ConsoleReaderTest
 {
@@ -77,42 +77,43 @@ public class ConsoleReaderTest
     private void assertWindowsKeyBehavior(String expected, char[] input) throws Exception {
         StringBuilder buffer = new StringBuilder();
         buffer.append(input);
-        ConsoleReader reader = createConsole(buffer.toString());
+        ConsoleReaderImpl reader = createConsole(buffer.toString());
         assertNotNull(reader);
         String line = reader.readLine();
         assertEquals(expected, line);
     }
 
-    private ConsoleReader createConsole() throws Exception {
+    private ConsoleReaderImpl createConsole() throws Exception {
         return createConsole("");
     }
 
-    private ConsoleReader createConsole(String chars) throws Exception {
+    private ConsoleReaderImpl createConsole(String chars) throws Exception {
         return createConsole(chars.getBytes());
     }
 
-    private ConsoleReader createConsole(String chars, URL inputrc) throws Exception {
+    private ConsoleReaderImpl createConsole(String chars, URL inputrc) throws Exception {
         return createConsole(chars.getBytes(), inputrc);
     }
 
-    private ConsoleReader createConsole(byte[] bytes) throws Exception {
+    private ConsoleReaderImpl createConsole(byte[] bytes) throws Exception {
         return createConsole(null, bytes);
     }
 
-    private ConsoleReader createConsole(byte[] bytes, URL inputrc) throws Exception {
+    private ConsoleReaderImpl createConsole(byte[] bytes, URL inputrc) throws Exception {
         return createConsole(null, bytes, inputrc);
     }
 
-    private ConsoleReader createConsole(String appName, byte[] bytes) throws Exception {
+    private ConsoleReaderImpl createConsole(String appName, byte[] bytes) throws Exception {
         return createConsole(appName, bytes, new URL("file:/do/not/exists"));
     }
 
-    private ConsoleReader createConsole(String appName, byte[] bytes, URL inputrc) throws Exception {
+    private ConsoleReaderImpl createConsole(String appName, byte[] bytes, URL inputrc) throws Exception {
         InputStream in = new ByteArrayInputStream(bytes);
         output = new ByteArrayOutputStream();
-        DumbConsole console = new DumbConsole(appName, inputrc, null, in, output);
-        ConsoleReader reader = console.getConsoleReader();
-        reader.setHistory(createSeededHistory());
+        DumbConsole console = new DumbConsole(
+                new ConsoleReaderBuilder().appName(appName).inputrc(inputrc).history(createSeededHistory()),
+                in, output);
+        ConsoleReaderImpl reader = (ConsoleReaderImpl) console.newConsoleReader();
         return reader;
     }
 
@@ -126,7 +127,7 @@ public class ConsoleReaderTest
 
     @Test
     public void testReadline() throws Exception {
-        ConsoleReader consoleReader = createConsole("Sample String\r\n");
+        ConsoleReaderImpl consoleReader = createConsole("Sample String\r\n");
         assertNotNull(consoleReader);
         String line = consoleReader.readLine();
         assertEquals("Sample String", line);
@@ -135,7 +136,7 @@ public class ConsoleReaderTest
     @Test
     public void testReadlineWithUnicode() throws Exception {
         System.setProperty("input.encoding", "UTF-8");
-        ConsoleReader consoleReader = createConsole("\u6771\u00E9\u00E8\r\n");
+        ConsoleReaderImpl consoleReader = createConsole("\u6771\u00E9\u00E8\r\n");
         assertNotNull(consoleReader);
         String line = consoleReader.readLine();
         assertEquals("\u6771\u00E9\u00E8", line);
@@ -143,7 +144,7 @@ public class ConsoleReaderTest
     
     @Test
     public void testReadlineWithMask() throws Exception {
-        ConsoleReader consoleReader = createConsole("Sample String\r\n");
+        ConsoleReaderImpl consoleReader = createConsole("Sample String\r\n");
         assertNotNull(consoleReader);
         String line = consoleReader.readLine('*');
         assertEquals("Sample String", line);
@@ -263,7 +264,7 @@ public class ConsoleReaderTest
 
     @Test
     public void testExpansion() throws Exception {
-        ConsoleReader reader = createConsole();
+        ConsoleReaderImpl reader = createConsole();
         MemoryHistory history = new MemoryHistory();
         history.setMaxSize(3);
         history.add("foo");
@@ -315,7 +316,7 @@ public class ConsoleReaderTest
 
     @Test
     public void testNumericExpansions() throws Exception {
-        ConsoleReader reader = createConsole();
+        ConsoleReaderImpl reader = createConsole();
         MemoryHistory history = new MemoryHistory();
         history.setMaxSize(3);
 
@@ -374,7 +375,7 @@ public class ConsoleReaderTest
 
     @Test
     public void testArgsExpansion() throws Exception {
-        ConsoleReader reader = createConsole();
+        ConsoleReaderImpl reader = createConsole();
         MemoryHistory history = new MemoryHistory();
         history.setMaxSize(3);
         reader.setHistory(history);
@@ -408,7 +409,7 @@ public class ConsoleReaderTest
 	 * Validates that an 'event not found' IllegalArgumentException is thrown
 	 * for the expansion event.
 	 */
-    protected void assertExpansionIllegalArgumentException(ConsoleReader reader, String event) throws Exception {
+    protected void assertExpansionIllegalArgumentException(ConsoleReaderImpl reader, String event) throws Exception {
         try {
             reader.expandEvents(event);
             fail("Expected IllegalArgumentException for " + event);
@@ -422,8 +423,8 @@ public class ConsoleReaderTest
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         InputStream in = new ByteArrayInputStream("!f\r\n".getBytes());
         Console console = JLine.builder().streams(in, baos).build();
-        ConsoleReader reader = new ConsoleReader(console, null, new URL("file:/do/not/exists"));
-        reader.setVariable(Console.BELL_STYLE, "audible");
+        ConsoleReaderImpl reader = new ConsoleReaderImpl(console, null, new URL("file:/do/not/exists"));
+        reader.setVariable(ConsoleReader.BELL_STYLE, "audible");
         MemoryHistory history = new MemoryHistory();
         reader.setHistory(history);
 
@@ -435,7 +436,7 @@ public class ConsoleReaderTest
 
     @Test
     public void testStoringHistory() throws Exception {
-        ConsoleReader reader = createConsole("foo ! bar\r\n");
+        ConsoleReaderImpl reader = createConsole("foo ! bar\r\n");
         MemoryHistory history = new MemoryHistory();
         reader.setHistory(history);
 
@@ -465,7 +466,7 @@ public class ConsoleReaderTest
          * without-expansion case.
          */
 
-        ConsoleReader reader = null;
+        ConsoleReaderImpl reader = null;
 
         // \! (escaped expansion v1)
         reader = createConsole("echo ab\\!ef", true, "cd");
@@ -522,8 +523,8 @@ public class ConsoleReaderTest
         assertHistory("^abc^def", reader);
     }
 
-    private ConsoleReader createConsole(String input, boolean expandEvents, String... historyItems) throws Exception {
-        ConsoleReader consoleReader = createConsole(input + "\r\n");
+    private ConsoleReaderImpl createConsole(String input, boolean expandEvents, String... historyItems) throws Exception {
+        ConsoleReaderImpl consoleReader = createConsole(input + "\r\n");
         MemoryHistory history = new MemoryHistory();
         if (historyItems != null) {
             for (String historyItem : historyItems) {
@@ -531,15 +532,15 @@ public class ConsoleReaderTest
             }
         }
         consoleReader.setHistory(history);
-        consoleReader.setVariable(Console.DISABLE_EVENT_EXPANSION, expandEvents ? "off" : "on");
+        consoleReader.setVariable(ConsoleReader.DISABLE_EVENT_EXPANSION, expandEvents ? "off" : "on");
         return consoleReader;
     }
 
-    private void assertReadLine(String expected, ConsoleReader consoleReader) throws Exception {
+    private void assertReadLine(String expected, ConsoleReaderImpl consoleReader) throws Exception {
         assertEquals(expected, consoleReader.readLine());
     }
 
-    private void assertHistory(String expected, ConsoleReader consoleReader) {
+    private void assertHistory(String expected, ConsoleReaderImpl consoleReader) {
         History history = consoleReader.getHistory();
         history.previous();
         assertEquals(expected, history.current());
@@ -547,10 +548,10 @@ public class ConsoleReaderTest
 
     @Test
     public void testStoringHistoryWithExpandEventsOff() throws Exception {
-        ConsoleReader reader = createConsole("foo ! bar\r\n");
+        ConsoleReaderImpl reader = createConsole("foo ! bar\r\n");
         MemoryHistory history = new MemoryHistory();
         reader.setHistory(history);
-        reader.setVariable(Console.DISABLE_EVENT_EXPANSION, "on");
+        reader.setVariable(ConsoleReader.DISABLE_EVENT_EXPANSION, "on");
 
         String line = reader.readLine();
         assertEquals("foo ! bar", line);
@@ -561,7 +562,7 @@ public class ConsoleReaderTest
 
     @Test
     public void testMacro() throws Exception {
-        ConsoleReader consoleReader = createConsole("\u0018(foo\u0018)\u0018e\r\n");
+        ConsoleReaderImpl consoleReader = createConsole("\u0018(foo\u0018)\u0018e\r\n");
         assertNotNull(consoleReader);
         String line = consoleReader.readLine();
         assertEquals("foofoo", line);
@@ -569,7 +570,7 @@ public class ConsoleReaderTest
 
     @Test
     public void testInput() throws Exception {
-        ConsoleReader consoleReader = createConsole(
+        ConsoleReaderImpl consoleReader = createConsole(
                 "\u0018(foo\u0018)\u0018e\r\n",
                 getClass().getResource("/jline/internal/config1"));
         assertNotNull(consoleReader);
@@ -587,7 +588,7 @@ public class ConsoleReaderTest
 
     @Test
     public void testInput2() throws Exception {
-        ConsoleReader consoleReader = createConsole(
+        ConsoleReaderImpl consoleReader = createConsole(
                 "Bash", new byte[0],
                 getClass().getResource("/jline/internal/config2"));
         assertNotNull(consoleReader);
@@ -596,7 +597,7 @@ public class ConsoleReaderTest
 
     @Test
     public void testInputBadConfig() throws Exception {
-        ConsoleReader consoleReader = createConsole(
+        ConsoleReaderImpl consoleReader = createConsole(
                 "Bash", new byte[0],
                 getClass().getResource("/jline/internal/config-bad"));
         assertNotNull(consoleReader);
@@ -607,13 +608,13 @@ public class ConsoleReaderTest
     public void testBell() throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Console console = JLine.builder().streams(System.in, baos).build();
-        ConsoleReader consoleReader = new ConsoleReader(console, null, new URL("file:/do/not/exists"));
+        ConsoleReaderImpl consoleReader = new ConsoleReaderImpl(console, null, new URL("file:/do/not/exists"));
 
-        consoleReader.setVariable(Console.BELL_STYLE, "off");
+        consoleReader.setVariable(ConsoleReader.BELL_STYLE, "off");
         consoleReader.beep();
         assertEquals("out should not have received bell", 0, baos.toByteArray().length);
 
-        consoleReader.setVariable(Console.BELL_STYLE, "audible");
+        consoleReader.setVariable(ConsoleReader.BELL_STYLE, "audible");
         consoleReader.beep();
         String bellCap = console.getStringCapability(Capability.bell);
         StringWriter sw = new StringWriter();
@@ -623,7 +624,7 @@ public class ConsoleReaderTest
 
     @Test
     public void testCallbacks() throws Exception {
-        final ConsoleReader consoleReader = createConsole("sample stringx\r\n");
+        final ConsoleReaderImpl consoleReader = createConsole("sample stringx\r\n");
         consoleReader.addTriggeredAction('x', new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 consoleReader.getCursorBuffer().clear();
@@ -640,7 +641,7 @@ public class ConsoleReaderTest
         PipedOutputStream out = new PipedOutputStream(in);
         output = new ByteArrayOutputStream();
 
-        ConsoleReader console = new ConsoleReader(JLine.builder().streams(in, output).build(), null, new URL("file:/do/not/exists"));
+        ConsoleReaderImpl console = new ConsoleReaderImpl(JLine.builder().streams(in, output).build(), null, new URL("file:/do/not/exists"));
         Completer nil = new NullCompleter();
         Completer read = new StringsCompleter("read");
         Completer and = new StringsCompleter("and");
@@ -663,7 +664,7 @@ public class ConsoleReaderTest
 
     @Test
     public void testDefaultBuffer() throws Exception {
-        ConsoleReader consoleReader = createConsole("\r\n");
+        ConsoleReaderImpl consoleReader = createConsole("\r\n");
         assertNotNull(consoleReader);
         String line = consoleReader.readLine(null, null, "foo");
         assertEquals("foo", line);
@@ -671,7 +672,7 @@ public class ConsoleReaderTest
 
     @Test
     public void testReadBinding() throws Exception {
-        ConsoleReader consoleReader = createConsole("abcde");
+        ConsoleReaderImpl consoleReader = createConsole("abcde");
         assertNotNull(consoleReader);
 
         KeyMap map = new KeyMap("custom");

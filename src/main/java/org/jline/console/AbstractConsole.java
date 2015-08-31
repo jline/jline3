@@ -11,16 +11,18 @@ package org.jline.console;
 import java.io.EOFException;
 import java.io.IOError;
 import java.io.IOException;
-import java.net.URL;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.fusesource.jansi.Pty;
-import org.fusesource.jansi.Pty.Attributes;
 import org.jline.Console;
-import org.jline.reader.ConsoleReader;
+import org.jline.ConsoleReader;
+import org.jline.JLine.ConsoleReaderBuilder;
+import org.jline.console.Attributes.ControlChar;
+import org.jline.console.Attributes.InputFlag;
+import org.jline.console.Attributes.LocalFlag;
 import org.jline.reader.UserInterruptException;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp;
@@ -32,32 +34,27 @@ import static org.jline.utils.Preconditions.checkNotNull;
 public abstract class AbstractConsole implements Console {
 
     private final String type;
-    private final String appName;
-    private final URL inputrc;
-    private final Map<String, String> variables;
     private final Map<Signal, SignalHandler> handlers = new HashMap<>();
     private Set<Capability> bools = new HashSet<>();
     private Map<Capability, Integer> ints = new HashMap<>();
     private Map<Capability, String> strings = new HashMap<>();
-    private ConsoleReader consoleReader;
+    private ConsoleReaderBuilder consoleReaderBuilder;
 
-    public AbstractConsole(String type, String appName, URL inputrc, Map<String, String> variables) throws IOException {
+    public AbstractConsole(String type, ConsoleReaderBuilder consoleReaderBuilder) throws IOException {
         this.type = type;
         for (Signal signal : Signal.values()) {
             handlers.put(signal, SignalHandler.SIG_DFL);
         }
-        this.appName = appName;
-        this.inputrc = inputrc;
-        this.variables = variables;
+        this.consoleReaderBuilder = consoleReaderBuilder;
     }
 
-    public ConsoleReader getConsoleReader() {
-        synchronized (this) {
-            if (consoleReader == null) {
-                consoleReader = new ConsoleReader(this, appName, inputrc, variables);
-            }
-            return consoleReader;
-        }
+    @Override
+    public ConsoleReaderBuilder getConsoleReaderBuilder() {
+        return consoleReaderBuilder;
+    }
+
+    public ConsoleReader newConsoleReader() {
+        return consoleReaderBuilder.console(this).build();
     }
 
     public SignalHandler handle(Signal signal, SignalHandler handler) {
@@ -80,19 +77,19 @@ public abstract class AbstractConsole implements Console {
     }
 
     protected void echoSignal(Signal signal) {
-        int cc = -1;
+        ControlChar cc = null;
         switch (signal) {
             case INT:
-                cc = Pty.VINTR;
+                cc = ControlChar.VINTR;
                 break;
             case QUIT:
-                cc = Pty.VQUIT;
+                cc = ControlChar.VQUIT;
                 break;
             case TSTP:
-                cc = Pty.VSUSP;
+                cc = ControlChar.VSUSP;
                 break;
         }
-        if (cc >= 0) {
+        if (cc != null) {
             int vcc = getAttributes().getControlChar(cc);
             if (vcc > 0 && vcc < 32) {
                 writer().write(new char[]{'^', (char) (vcc + '@')}, 0, 2);
@@ -102,25 +99,24 @@ public abstract class AbstractConsole implements Console {
 
     public Attributes enterRawMode() {
         Attributes prvAttr = getAttributes();
-        Attributes newAttr = new Attributes();
-        newAttr.copy(prvAttr);
-        newAttr.setLocalFlag(Pty.ICANON | Pty.ECHO, false);
-        newAttr.setInputFlag(Pty.IXON | Pty.ICRNL | Pty.INLCR, false);
-        newAttr.setControlChar(Pty.VMIN, 1);
-        newAttr.setControlChar(Pty.VTIME, 0);
+        Attributes newAttr = new Attributes(prvAttr);
+        newAttr.setLocalFlags(EnumSet.of(LocalFlag.ICANON, LocalFlag.ECHO), false);
+        newAttr.setInputFlags(EnumSet.of(InputFlag.IXON, InputFlag.ICRNL, InputFlag.INLCR), false);
+        newAttr.setControlChar(ControlChar.VMIN, 1);
+        newAttr.setControlChar(ControlChar.VTIME, 0);
         setAttributes(newAttr);
         return prvAttr;
     }
 
     public boolean echo() {
-        return getAttributes().getLocalFlag(Pty.ECHO);
+        return getAttributes().getLocalFlag(LocalFlag.ECHO);
     }
 
     public boolean echo(boolean echo) {
         Attributes attr = getAttributes();
-        boolean prev = attr.getLocalFlag(Pty.ECHO);
+        boolean prev = attr.getLocalFlag(LocalFlag.ECHO);
         if (prev != echo) {
-            attr.setLocalFlag(Pty.ECHO, echo);
+            attr.setLocalFlag(LocalFlag.ECHO, echo);
             setAttributes(attr);
         }
         return prev;
@@ -176,26 +172,26 @@ public abstract class AbstractConsole implements Console {
 
     @Override
     public String readLine() throws UserInterruptException, EOFException {
-        return getConsoleReader().readLine();
+        return newConsoleReader().readLine();
     }
 
     @Override
     public String readLine(Character mask) throws UserInterruptException, EOFException {
-        return getConsoleReader().readLine(mask);
+        return newConsoleReader().readLine(mask);
     }
 
     @Override
     public String readLine(String prompt) throws UserInterruptException, EOFException {
-        return getConsoleReader().readLine(prompt);
+        return newConsoleReader().readLine(prompt);
     }
 
     @Override
     public String readLine(String prompt, Character mask) throws UserInterruptException, EOFException {
-        return getConsoleReader().readLine(prompt, mask);
+        return newConsoleReader().readLine(prompt, mask);
     }
 
     @Override
     public String readLine(String prompt, Character mask, String buffer) throws UserInterruptException, EOFException {
-        return getConsoleReader().readLine(prompt, mask, buffer);
+        return newConsoleReader().readLine(prompt, mask, buffer);
     }
 }

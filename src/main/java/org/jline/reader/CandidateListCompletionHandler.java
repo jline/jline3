@@ -47,7 +47,7 @@ public class CandidateListCompletionHandler
 
     // TODO: handle quotes and escaped quotes && enable automatic escaping of whitespace
 
-    public boolean complete(final ConsoleReader reader, final List<CharSequence> candidates, final int pos) throws
+    public boolean complete(final ConsoleReaderImpl reader, final List<CharSequence> candidates, final int pos) throws
         IOException
     {
         CursorBuffer buf = reader.getCursorBuffer();
@@ -85,7 +85,7 @@ public class CandidateListCompletionHandler
     }
 
     @SuppressWarnings("StatementWithEmptyBody")
-    public static void setBuffer(final ConsoleReader reader, final CharSequence value, final int offset) throws
+    public static void setBuffer(final ConsoleReaderImpl reader, final CharSequence value, final int offset) throws
         IOException
     {
         while ((reader.getCursorBuffer().cursor > offset) && reader.backspace()) {

@@ -13,13 +13,13 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.jline.Completer;
 import org.jline.Console;
 import org.jline.JLine;
-import org.jline.console.AbstractConsole;
+import org.jline.JLine.ConsoleBuilder;
 import org.jline.reader.CandidateListCompletionHandler;
 import org.jline.reader.UserInterruptException;
 import org.jline.reader.completer.AnsiStringsCompleter;
+import org.jline.Completer;
 import org.jline.reader.completer.FileNameCompleter;
 import org.jline.reader.completer.StringsCompleter;
 import org.jline.utils.InfoCmp.Capability;
@@ -58,7 +58,7 @@ public class Example
             String trigger = null;
             boolean color = false;
 
-            Console console = JLine.console();
+            ConsoleBuilder builder = JLine.builder();
 
             if ((args == null) || (args.length == 0)) {
                 usage();
@@ -66,24 +66,52 @@ public class Example
                 return;
             }
 
-            List<Completer> completors = new LinkedList<Completer>();
+            List<Completer> completers = new LinkedList<>();
 
-            if (args.length > 0) {
-                if (args[0].equals("none")) {
+            int index = 0;
+            while (args.length > index) {
+                if (args[index].equals("-posix")) {
+                    builder.posix(false);
+                    index++;
                 }
-                else if (args[0].equals("files")) {
-                    completors.add(new FileNameCompleter());
+                else if (args[index].equals("+posix")) {
+                    builder.posix(true);
+                    index++;
                 }
-                else if (args[0].equals("simple")) {
-                    completors.add(new StringsCompleter("foo", "bar", "baz"));
+                else if (args[index].equals("-system")) {
+                    builder.system(false);
+                    index++;
                 }
-                else if (args[0].equals("color")) {
+                else if (args[index].equals("+system")) {
+                    builder.system(true);
+                    index++;
+                }
+                else if (args[index].equals("-native-pty")) {
+                    builder.nativePty(false);
+                    index++;
+                }
+                else if (args[index].equals("+native-pty")) {
+                    builder.nativePty(true);
+                    index++;
+                }
+                else if (args[index].equals("none")) {
+                    break;
+                } else if (args[index].equals("files")) {
+                    completers.add(new FileNameCompleter());
+                    break;
+                }
+                else if (args[index].equals("simple")) {
+                    completers.add(new StringsCompleter("foo", "bar", "baz"));
+                    break;
+                }
+                else if (args[index].equals("color")) {
                     color = true;
                     prompt = "\u001B[42mfoo\u001B[0m@bar\u001B[32m@baz\u001B[0m> ";
-                    completors.add(new AnsiStringsCompleter("\u001B[1mfoo\u001B[0m", "bar", "\u001B[32mbaz\u001B[0m"));
+                    completers.add(new AnsiStringsCompleter("\u001B[1mfoo\u001B[0m", "bar", "\u001B[32mbaz\u001B[0m"));
                     CandidateListCompletionHandler handler = new CandidateListCompletionHandler();
                     handler.setStripAnsi(true);
-                    ((AbstractConsole) console).getConsoleReader().setCompletionHandler(handler);
+                    builder.completionHandler(handler);
+                    break;
                 }
                 else {
                     usage();
@@ -92,14 +120,14 @@ public class Example
                 }
             }
 
-            if (args.length == 3) {
-                mask = args[2].charAt(0);
-                trigger = args[1];
+            if (args.length == index + 2) {
+                mask = args[index+1].charAt(0);
+                trigger = args[index];
             }
 
-            for (Completer c : completors) {
-                ((AbstractConsole) console).getConsoleReader().addCompleter(c);
-            }
+            builder.completers(completers);
+
+            Console console = builder.build();
 
             while (true) {
                 String line = null;

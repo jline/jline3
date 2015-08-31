@@ -16,17 +16,15 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.fusesource.jansi.Pty.Attributes;
-import org.fusesource.jansi.Pty.Size;
 import org.fusesource.jansi.WindowsAnsiOutputStream;
 import org.fusesource.jansi.internal.Kernel32;
 import org.fusesource.jansi.internal.Kernel32.INPUT_RECORD;
 import org.fusesource.jansi.internal.Kernel32.KEY_EVENT_RECORD;
 import org.fusesource.jansi.internal.WindowsSupport;
+import org.jline.JLine.ConsoleReaderBuilder;
 import org.jline.utils.Log;
 import org.jline.utils.NonBlockingReader;
 import org.jline.utils.Signals;
@@ -37,8 +35,8 @@ public class WinSysConsole extends AbstractConsole {
     private final PrintWriter writer;
     private final Map<Signal, Object> nativeHandlers = new HashMap<Signal, Object>();
 
-    public WinSysConsole(String appName, URL inputrc, Map<String, String> variables, boolean nativeSignals) throws IOException {
-        super("ansi", appName, inputrc, variables);
+    public WinSysConsole(boolean nativeSignals, ConsoleReaderBuilder consoleReaderBuilder) throws IOException {
+        super("ansi", consoleReaderBuilder);
         InputStream in = new DirectInputStream();
         OutputStream out = new WindowsAnsiOutputStream(new FileOutputStream(FileDescriptor.out));
         String encoding = getConsoleEncoding();

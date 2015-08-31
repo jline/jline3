@@ -8,60 +8,37 @@
  */
 package org.jline;
 
-import java.io.Closeable;
 import java.io.EOFException;
-import java.io.Flushable;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintWriter;
 
-import org.jline.JLine.ConsoleReaderBuilder;
-import org.jline.console.Attributes;
-import org.jline.console.NativeSignalHandler;
-import org.jline.console.Size;
-import org.jline.reader.ConsoleReaderImpl;
 import org.jline.reader.UserInterruptException;
-import org.jline.utils.InfoCmp.Capability;
-import org.jline.utils.NonBlockingReader;
 
-public interface Console extends Closeable, Flushable {
+public interface ConsoleReader {
 
     //
-    // Signal support
+    // Variable names
     //
 
-    enum Signal {
-        INT,
-        QUIT,
-        TSTP,
-        CONT,
-        INFO,
-        WINCH
-    }
-
-    interface SignalHandler {
-
-        SignalHandler SIG_DFL = NativeSignalHandler.SIG_DFL;
-        SignalHandler SIG_IGN = NativeSignalHandler.SIG_IGN;
-
-        void handle(Signal signal);
-    }
-
-    SignalHandler handle(Signal signal, SignalHandler handler);
-
-    void raise(Signal signal);
-
-    //
-    // Input / output
-    //
-
-    NonBlockingReader reader();
-
-    PrintWriter writer();
-
-    //
-    // Readline
-    //
+    String BIND_TTY_SPECIAL_CHARS = "bind-tty-special-chars";
+    String COMMENT_BEGIN = "comment-begin";
+    String BELL_STYLE = "bell-style";
+    String PREFER_VISIBLE_BELL = "prefer-visible-bell";
+    String COMPLETION_QUERY_ITEMS = "completion-query-items";
+    String PAGE_COMPLETIONS = "page-completions";
+    String DISABLE_HISTORY = "disable-history";
+    String DISABLE_COMPLETION = "disable-completion";
+    String EDITING_MODE = "editing-mode";
+    String KEYMAP = "keymap";
+    String BLINK_MATCHING_PAREN = "blink-matching-paren";
+    String DISABLE_EVENT_EXPANSION = "disable-event-expansion";
+    /**
+     * Set to true if the reader should attempt to detect copy-n-paste. The
+     * effect of this that an attempt is made to detect if tab is quickly
+     * followed by another character, then it is assumed that the tab was
+     * a literal tab as part of a copy-and-paste operation and is inserted as
+     * such.
+     */
+    String COPY_PASTE_DETECTION = "copy-paste-detection";
 
     /**
      * Read the next line and return the contents of the buffer.
@@ -108,44 +85,4 @@ public interface Console extends Closeable, Flushable {
      * @throws java.io.IOError in case of other i/o errors
      */
     String readLine(String prompt, Character mask, String buffer) throws UserInterruptException, EOFException;
-
-    //
-    // Pty settings
-    //
-
-    Attributes enterRawMode();
-
-    boolean echo();
-
-    boolean echo(boolean echo);
-
-    Attributes getAttributes();
-
-    void setAttributes(Attributes attr);
-
-    Size getSize();
-
-    void setSize(Size size);
-
-    //
-    // Infocmp capabilities
-    //
-
-    String getType();
-
-    boolean puts(Capability capability, Object... params);
-
-    boolean getBooleanCapability(Capability capability);
-
-    Integer getNumericCapability(Capability capability);
-
-    String getStringCapability(Capability capability);
-
-    //
-    // ConsoleReader access
-    //
-    ConsoleReader newConsoleReader();
-
-    ConsoleReaderBuilder getConsoleReaderBuilder();
-
 }

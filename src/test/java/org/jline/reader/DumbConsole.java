@@ -8,19 +8,19 @@ package org.jline.reader;
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.net.URL;
-import java.util.Map;
 
-import org.fusesource.jansi.Pty;
-import org.fusesource.jansi.Pty.Attributes;
-import org.fusesource.jansi.Pty.Size;
+import org.jline.JLine.ConsoleReaderBuilder;
 import org.jline.console.AbstractConsole;
+import org.jline.console.Attributes;
+import org.jline.console.Attributes.ControlChar;
+import org.jline.console.Size;
 import org.jline.utils.NonBlockingReader;
 
 public class DumbConsole extends AbstractConsole {
@@ -29,15 +29,15 @@ public class DumbConsole extends AbstractConsole {
     private final Attributes attributes;
     private final Size size;
 
-    public DumbConsole(String appName, URL inputrc, Map<String, String> variables, InputStream in, OutputStream out) throws IOException {
-        super("ansi", appName, inputrc, variables);
+    public DumbConsole(ConsoleReaderBuilder consoleReaderBuilder, InputStream in, OutputStream out) throws IOException {
+        super("ansi", consoleReaderBuilder);
         this.reader = new NonBlockingReader(new InputStreamReader(in));
         this.writer = new PrintWriter(new OutputStreamWriter(out));
         this.attributes = new Attributes();
-        this.attributes.setControlChar(Pty.VERASE,  (char) 127);
-        this.attributes.setControlChar(Pty.VWERASE, (char) 23);
-        this.attributes.setControlChar(Pty.VKILL,   (char) 21);
-        this.attributes.setControlChar(Pty.VLNEXT,  (char) 22);
+        this.attributes.setControlChar(ControlChar.VERASE,  (char) 127);
+        this.attributes.setControlChar(ControlChar.VWERASE, (char) 23);
+        this.attributes.setControlChar(ControlChar.VKILL,   (char) 21);
+        this.attributes.setControlChar(ControlChar.VLNEXT,  (char) 22);
         this.size = new Size(160, 50);
         parseInfoCmp();
     }

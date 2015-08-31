@@ -14,12 +14,18 @@ import java.io.OutputStream;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.jline.console.EmulatedConsole;
+import org.jline.console.ExecPty;
+import org.jline.console.NativePty;
 import org.jline.console.PosixPtyConsole;
 import org.jline.console.PosixSysConsole;
+import org.jline.console.Pty;
 import org.jline.console.WinSysConsole;
+import org.jline.reader.CompletionHandler;
+import org.jline.reader.ConsoleReaderImpl;
 
 public final class JLine {
 
@@ -34,6 +40,10 @@ public final class JLine {
         return new ConsoleBuilder();
     }
 
+    public static ConsoleReaderBuilder readerBuilder() {
+        return new ConsoleReaderBuilder();
+    }
+
     public static class ConsoleBuilder {
 
         private InputStream in;
@@ -43,11 +53,10 @@ public final class JLine {
         private Boolean system;
         private Boolean posix;
         private boolean nativeSignals = true;
-        private String appName;
-        private URL inputrc;
-        private final Map<String, String> variables = new HashMap<>();
+        private boolean nativePty = true;
+        private final ConsoleReaderBuilder consoleReaderBuilder = JLine.readerBuilder();
 
-        private ConsoleBuilder() {
+        public ConsoleBuilder() {
         }
 
         public ConsoleBuilder streams(InputStream in, OutputStream out) {
@@ -56,8 +65,8 @@ public final class JLine {
             return this;
         }
 
-        public ConsoleBuilder system() {
-            this.system = true;
+        public ConsoleBuilder system(boolean system) {
+            this.system = system;
             return this;
         }
 
@@ -77,17 +86,37 @@ public final class JLine {
         }
 
         public ConsoleBuilder appName(String appName) {
-            this.appName = appName;
+            consoleReaderBuilder.appName(appName);
             return this;
         }
 
         public ConsoleBuilder inputrc(URL inputrc) {
-            this.inputrc = inputrc;
+            consoleReaderBuilder.inputrc(inputrc);
             return this;
         }
 
         public ConsoleBuilder variable(String name, String value) {
-            this.variables.put(name, value);
+            consoleReaderBuilder.variable(name, value);
+            return this;
+        }
+
+        public ConsoleBuilder history(History history) {
+            consoleReaderBuilder.history(history);
+            return this;
+        }
+
+        public ConsoleBuilder completers(List<Completer> completers) {
+            consoleReaderBuilder.completers(completers);
+            return this;
+        }
+
+        public ConsoleBuilder completionHandler(CompletionHandler completionHandler) {
+            consoleReaderBuilder.completionHandler(completionHandler);
+            return this;
+        }
+
+        public ConsoleBuilder nativePty(boolean nativePty) {
+            this.nativePty = nativePty;
             return this;
         }
 
@@ -95,7 +124,7 @@ public final class JLine {
             boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
             if ((system != null && system) || (system == null && in == null && out == null)) {
                 if (isWindows) {
-                    return new WinSysConsole(appName, inputrc, variables, nativeSignals);
+                    return new WinSysConsole(nativeSignals, consoleReaderBuilder);
                 } else {
                     String type = this.type;
                     if (type == null) {
@@ -105,13 +134,15 @@ public final class JLine {
                     if (encoding == null) {
                         encoding = Charset.defaultCharset().name();
                     }
-                    return new PosixSysConsole(type, appName, inputrc, variables, encoding, nativeSignals);
+                    Pty pty = nativePty ? NativePty.current() : ExecPty.current();
+                    return new PosixSysConsole(type, consoleReaderBuilder, pty, encoding, nativeSignals);
                 }
-            } else if (system != null || (in != null && out != null)) {
+            } else if ((system != null && !system) || (system == null && in != null && out != null)) {
                 if (isWindows || posix == null || !posix) {
-                    return new EmulatedConsole(type, appName, inputrc, variables, in, out, encoding);
+                    return new EmulatedConsole(type, consoleReaderBuilder, in, out, encoding);
                 } else {
-                    return new PosixPtyConsole(type, appName, inputrc, variables, in, out, encoding, null, null);
+                    Pty pty = NativePty.open(null, null); // TODO: non native pty are not supported
+                    return new PosixPtyConsole(type, consoleReaderBuilder, pty, in, out, encoding);
                 }
             } else {
                 throw new IllegalArgumentException();
@@ -119,4 +150,66 @@ public final class JLine {
         }
     }
 
+    public static class ConsoleReaderBuilder {
+
+        Console console;
+        String appName;
+        URL inputrc;
+        Map<String, String> variables = new HashMap<>();
+        History history;
+        List<Completer> completers;
+        CompletionHandler completionHandler;
+
+        public ConsoleReaderBuilder() {
+        }
+
+        public ConsoleReaderBuilder console(Console console) {
+            this.console = console;
+            return this;
+        }
+
+        public ConsoleReaderBuilder appName(String appName) {
+            this.appName = appName;
+            return this;
+        }
+
+        public ConsoleReaderBuilder inputrc(URL inputrc) {
+            this.inputrc = inputrc;
+            return this;
+        }
+
+        public ConsoleReaderBuilder variable(String name, String value) {
+            this.variables.put(name, value);
+            return this;
+        }
+
+        public ConsoleReaderBuilder history(History history) {
+            this.history = history;
+            return this;
+        }
+
+        public ConsoleReaderBuilder completers(List<Completer> completers) {
+            this.completers = completers;
+            return this;
+        }
+
+        public ConsoleReaderBuilder completionHandler(CompletionHandler completionHandler) {
+            this.completionHandler = completionHandler;
+            return this;
+        }
+
+        public ConsoleReader build() {
+            ConsoleReaderImpl reader = new ConsoleReaderImpl(console, appName, inputrc, variables);
+            if (history != null) {
+                reader.setHistory(history);
+            }
+            if (completers != null) {
+                reader.setCompleters(completers);
+            }
+            if (completionHandler != null) {
+                reader.setCompletionHandler(completionHandler);
+            }
+            return reader;
+        }
+    }
 }

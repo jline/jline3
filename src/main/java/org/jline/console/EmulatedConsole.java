@@ -18,17 +18,17 @@ import java.io.PipedOutputStream;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.Writer;
-import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CodingErrorAction;
-import java.util.Map;
 
-import org.fusesource.jansi.Pty;
-import org.fusesource.jansi.Pty.Attributes;
-import org.fusesource.jansi.Pty.Size;
+import org.jline.JLine.ConsoleReaderBuilder;
+import org.jline.console.Attributes.ControlChar;
+import org.jline.console.Attributes.InputFlag;
+import org.jline.console.Attributes.LocalFlag;
+import org.jline.console.Attributes.OutputFlag;
 import org.jline.utils.NonBlockingReader;
 
 import static org.jline.utils.Preconditions.checkNotNull;
@@ -48,8 +48,8 @@ public class EmulatedConsole extends AbstractConsole {
     private final Size size;
     private final Thread pumpThread;
 
-    public EmulatedConsole(String type, String appName, URL inputrc, Map<String, String> variables, InputStream in, OutputStream out, final String encoding) throws IOException {
-        super(type, appName, inputrc, variables);
+    public EmulatedConsole(String type, ConsoleReaderBuilder consoleReaderBuilder, InputStream in, OutputStream out, final String encoding) throws IOException {
+        super(type, consoleReaderBuilder);
         checkNotNull(in);
         checkNotNull(out);
         this.charset = encoding != null ? Charset.forName(encoding) : Charset.defaultCharset();
@@ -112,7 +112,7 @@ public class EmulatedConsole extends AbstractConsole {
     @Override
     public void raise(Signal signal) {
         checkNotNull(signal);
-        if (!attributes.getLocalFlag(Pty.NOFLSH)) {
+        if (!attributes.getLocalFlag(LocalFlag.NOFLSH)) {
             try {
                 while (reader.ready()) {
                     reader.read();
@@ -126,31 +126,31 @@ public class EmulatedConsole extends AbstractConsole {
     }
 
     private void processInputChar(int c) throws IOException {
-        if (attributes.getInputFlag(Pty.ISIG)) {
-            if (c == attributes.getControlChar(Pty.VINTR)) {
+        if (attributes.getLocalFlag(LocalFlag.ISIG)) {
+            if (c == attributes.getControlChar(ControlChar.VINTR)) {
                 raise(Signal.INT);
                 return;
-            } else if (c == attributes.getControlChar(Pty.VQUIT)) {
+            } else if (c == attributes.getControlChar(ControlChar.VQUIT)) {
                 raise(Signal.QUIT);
                 return;
-            } else if (c == attributes.getControlChar(Pty.VSUSP)) {
+            } else if (c == attributes.getControlChar(ControlChar.VSUSP)) {
                 raise(Signal.TSTP);
                 return;
-            } else if (c == attributes.getControlChar(Pty.VSTATUS)) {
+            } else if (c == attributes.getControlChar(ControlChar.VSTATUS)) {
                 raise(Signal.INFO);
             }
         }
         if (c == '\r') {
-            if (attributes.getInputFlag(Pty.IGNCR)) {
+            if (attributes.getInputFlag(InputFlag.IGNCR)) {
                 return;
             }
-            if (attributes.getInputFlag(Pty.ICRNL)) {
+            if (attributes.getInputFlag(InputFlag.ICRNL)) {
                 c = '\n';
             }
-        } else if (c == '\n' && attributes.getInputFlag(Pty.INLCR)) {
+        } else if (c == '\n' && attributes.getInputFlag(InputFlag.INLCR)) {
             c = '\r';
         }
-        if (attributes.getLocalFlag(Pty.ECHO)) {
+        if (attributes.getLocalFlag(LocalFlag.ECHO)) {
             processOutputChar(c);
         }
         filterInOutWriter.write(c);
@@ -158,9 +158,9 @@ public class EmulatedConsole extends AbstractConsole {
     }
 
     private void processOutputChar(int c) throws IOException {
-        if (attributes.getOutputFlag(Pty.OPOST)) {
+        if (attributes.getOutputFlag(OutputFlag.OPOST)) {
             if (c == '\n') {
-                if (attributes.getOutputFlag(Pty.ONLCR)) {
+                if (attributes.getOutputFlag(OutputFlag.ONLCR)) {
                     outWriter.write('\r');
                     outWriter.write('\n');
                     outWriter.flush();

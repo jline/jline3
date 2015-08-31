@@ -36,14 +36,15 @@ import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.Stack;
 
-import org.fusesource.jansi.Pty;
-import org.fusesource.jansi.Pty.Attributes;
-import org.fusesource.jansi.Pty.Size;
-import org.jline.Completer;
 import org.jline.Console;
 import org.jline.Console.Signal;
 import org.jline.Console.SignalHandler;
+import org.jline.ConsoleReader;
 import org.jline.History;
+import org.jline.console.Attributes;
+import org.jline.console.Attributes.ControlChar;
+import org.jline.console.Size;
+import org.jline.Completer;
 import org.jline.reader.history.MemoryHistory;
 import org.jline.utils.Ansi;
 import org.jline.utils.InfoCmp.Capability;
@@ -63,7 +64,7 @@ import static org.jline.utils.Preconditions.checkNotNull;
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  * @author <a href="mailto:gnodet@gmail.com">Guillaume Nodet</a>
  */
-public class ConsoleReader
+public class ConsoleReaderImpl implements ConsoleReader
 {
     public static final char NULL_MASK = 0;
 
@@ -205,15 +206,15 @@ public class ConsoleReader
         VI_CHANGE_TO
     }
 
-    public ConsoleReader(Console console) throws IOException {
+    public ConsoleReaderImpl(Console console) throws IOException {
         this(console, null, null);
     }
 
-    public ConsoleReader(Console console, String appName, URL inputrc) throws IOException {
+    public ConsoleReaderImpl(Console console, String appName, URL inputrc) throws IOException {
         this(console, appName, inputrc, null);
     }
 
-    public ConsoleReader(Console console, String appName, URL inputrc, Map<String, String> variables) {
+    public ConsoleReaderImpl(Console console, String appName, URL inputrc, Map<String, String> variables) {
         checkNotNull(console);
         this.console = console;
         if (appName == null) {
@@ -237,7 +238,7 @@ public class ConsoleReader
         }
         this.consoleKeys = new ConsoleKeys(appName, inputrc);
 
-        if (getBoolean(Console.BIND_TTY_SPECIAL_CHARS, true)) {
+        if (getBoolean(BIND_TTY_SPECIAL_CHARS, true)) {
             Attributes attr = console.getAttributes();
             bindConsoleChars(consoleKeys.getKeyMaps().get(KeyMap.EMACS), attr);
             bindConsoleChars(consoleKeys.getKeyMaps().get(KeyMap.VI_INSERT), attr);
@@ -251,13 +252,13 @@ public class ConsoleReader
     private static void bindConsoleChars(KeyMap keyMap, Attributes attr) {
         if (attr != null) {
             rebind(keyMap, Operation.BACKWARD_DELETE_CHAR,
-                           /* C-? */ (char) 127, (char) attr.getControlChar(Pty.VERASE));
+                           /* C-? */ (char) 127, (char) attr.getControlChar(ControlChar.VERASE));
             rebind(keyMap, Operation.UNIX_WORD_RUBOUT,
-                           /* C-W */ (char) 23,  (char) attr.getControlChar(Pty.VWERASE));
+                           /* C-W */ (char) 23,  (char) attr.getControlChar(ControlChar.VWERASE));
             rebind(keyMap, Operation.UNIX_LINE_DISCARD,
-                           /* C-U */ (char) 21,  (char) attr.getControlChar(Pty.VKILL));
+                           /* C-U */ (char) 21,  (char) attr.getControlChar(ControlChar.VKILL));
             rebind(keyMap, Operation.QUOTED_INSERT,
-                           /* C-V */ (char) 22,  (char) attr.getControlChar(Pty.VLNEXT));
+                           /* C-V */ (char) 22,  (char) attr.getControlChar(ControlChar.VLNEXT));
         }
     }
 
@@ -500,7 +501,7 @@ public class ConsoleReader
         String str = buf.buffer.toString();
         String historyLine = str;
 
-        if (!getBoolean(Console.DISABLE_EVENT_EXPANSION, false)) {
+        if (!getBoolean(DISABLE_EVENT_EXPANSION, false)) {
             try {
                 str = expandEvents(str);
                 // all post-expansion occurrences of '!' must have been escaped, so re-add escape to each
@@ -519,7 +520,7 @@ public class ConsoleReader
         // and if mask is null, since having a mask typically means
         // the string was a password. We clear the mask after this call
         if (str.length() > 0) {
-            if (mask == null && !getBoolean(Console.DISABLE_HISTORY, false)) {
+            if (mask == null && !getBoolean(DISABLE_HISTORY, false)) {
                 history.add(historyLine);
             }
             else {
@@ -1392,7 +1393,7 @@ public class ConsoleReader
     }
 
     private String insertComment(boolean isViMode) throws IOException {
-        String comment = getVariable(Console.COMMENT_BEGIN);
+        String comment = getVariable(COMMENT_BEGIN);
         if (comment == null) {
             comment = "#";
         }
@@ -2115,11 +2116,11 @@ public class ConsoleReader
      * Read the next line with the specified character mask. If null, then
      * characters will be echoed. If 0, then no characters will be echoed.
      */
-    public String readLine(final Character mask) throws UserInterruptException, EOFException {
+    public String readLine(Character mask) throws UserInterruptException, EOFException {
         return readLine(null, mask, null);
     }
 
-    public String readLine(final String prompt) throws UserInterruptException, EOFException {
+    public String readLine(String prompt) throws UserInterruptException, EOFException {
         return readLine(prompt, null, null);
     }
 
@@ -2131,7 +2132,7 @@ public class ConsoleReader
      * @return          A line that is read from the console, or null if there was null input (e.g., <i>CTRL-D</i>
      *                  was pressed).
      */
-    public String readLine(String prompt, final Character mask) throws UserInterruptException, EOFException {
+    public String readLine(String prompt, Character mask) throws UserInterruptException, EOFException {
         return readLine(prompt, mask, null);
     }
 
@@ -2143,7 +2144,7 @@ public class ConsoleReader
      * @return          A line that is read from the console, or null if there was null input (e.g., <i>CTRL-D</i>
      *                  was pressed).
      */
-    public String readLine(String prompt, final Character mask, String buffer) throws UserInterruptException, EOFException {
+    public String readLine(String prompt, Character mask, String buffer) throws UserInterruptException, EOFException {
         // prompt may be null
         // mask may be null
         // buffer may be null
@@ -2362,12 +2363,12 @@ public class ConsoleReader
                                 // quickly a character follows the tab, if the character
                                 // follows *immediately*, we assume it is a tab literal.
                                 boolean isTabLiteral = false;
-                                if (getBoolean(Console.COPY_PASTE_DETECTION, false)
+                                if (getBoolean(COPY_PASTE_DETECTION, false)
                                     && c == '\t'
                                     && (!pushBackChar.isEmpty()
                                         || console.reader().peek(COPY_PASTE_DETECTION_TIMEOUT) != READ_EXPIRED)) {
                                     isTabLiteral = true;
-                                } else if (getBoolean(Console.DISABLE_COMPLETION, false)) {
+                                } else if (getBoolean(DISABLE_COMPLETION, false)) {
                                     isTabLiteral = true;
                                 }
 
@@ -2964,6 +2965,12 @@ public class ConsoleReader
         return completers.remove(completer);
     }
 
+    public void setCompleters(Collection<Completer> completers) {
+        checkNotNull(completers);
+        this.completers.clear();
+        this.completers.addAll(completers);
+    }
+
     /**
      * Returns an unmodifiable list of all the completers.
      */
@@ -3247,7 +3254,7 @@ public class ConsoleReader
      */
     public void beep() throws IOException {
         int bell_preference = AUDIBLE_BELL;
-        String bellStyle = getVariable(Console.BELL_STYLE);
+        String bellStyle = getVariable(BELL_STYLE);
         if ("none".equals(bellStyle) || "off".equals(bellStyle)) {
             bell_preference = NO_BELL;
         } else if ("audible".equals(bellStyle)) {
@@ -3255,7 +3262,7 @@ public class ConsoleReader
         } else if ("visible".equals(bellStyle)) {
             bell_preference = VISIBLE_BELL;
         } else if ("on".equals(bellStyle)) {
-            String preferVisibleBellStr = getVariable(Console.PREFER_VISIBLE_BELL);
+            String preferVisibleBellStr = getVariable(PREFER_VISIBLE_BELL);
             if ("off".equals(preferVisibleBellStr)) {
                 bell_preference = AUDIBLE_BELL;
             } else {
@@ -3372,7 +3379,7 @@ public class ConsoleReader
 
     /**
      * Print out the candidates. If the size of the candidates is greater than the
-     * {@link Console#COMPLETION_QUERY_ITEMS}, they prompt with a warning.
+     * {@link ConsoleReader#COMPLETION_QUERY_ITEMS}, they prompt with a warning.
      *
      * @param candidates the list of candidates to print
      */
@@ -3381,7 +3388,7 @@ public class ConsoleReader
     {
         Set<CharSequence> distinct = new HashSet<>(candidates);
 
-        int max = getInt(Console.COMPLETION_QUERY_ITEMS, 100);
+        int max = getInt(COMPLETION_QUERY_ITEMS, 100);
         if (max > 0 && distinct.size() >= max) {
             println();
             print(Messages.DISPLAY_CANDIDATES.format(candidates.size()));
@@ -3447,7 +3454,7 @@ public class ConsoleReader
         Log.debug("Max width: ", maxWidth);
 
         int showLines;
-        if (getBoolean(Console.PAGE_COMPLETIONS, true)) {
+        if (getBoolean(PAGE_COMPLETIONS, true)) {
             showLines = height - 1; // page limit
         }
         else {

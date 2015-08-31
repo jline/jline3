@@ -14,7 +14,6 @@ import org.jline.History;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.jline.reader.Operation.VI_EOF_MAYBE;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 

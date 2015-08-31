@@ -16,11 +16,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.fusesource.jansi.Pty;
+import org.jline.JLine.ConsoleReaderBuilder;
 import org.jline.utils.InputStreamReader;
 import org.jline.utils.NonBlockingReader;
 import org.jline.utils.Signals;
@@ -31,10 +30,10 @@ public class PosixSysConsole extends AbstractPosixConsole {
 
     private final NonBlockingReader reader;
     private final PrintWriter writer;
-    private final Map<Signal, Object> nativeHandlers = new HashMap<Signal, Object>();
+    private final Map<Signal, Object> nativeHandlers = new HashMap<>();
 
-    public PosixSysConsole(String type, String appName, URL inputrc, Map<String, String> variables, String encoding, boolean nativeSignals) throws IOException {
-        super(type, appName, inputrc, variables, Pty.current());
+    public PosixSysConsole(String type, ConsoleReaderBuilder consoleReaderBuilder, Pty pty, String encoding, boolean nativeSignals) throws IOException {
+        super(type, consoleReaderBuilder, pty);
         checkNotNull(encoding);
         InputStream in = new FileInputStream(FileDescriptor.in);
         OutputStream out = new FileOutputStream(FileDescriptor.out);
