@@ -74,7 +74,6 @@ public class ConsoleReaderImpl implements ConsoleReader
 
     public static final long COPY_PASTE_DETECTION_TIMEOUT = 50l;
     public static final long BLINK_MATCHING_PAREN_TIMEOUT = 500l;
-    public static final long ESCAPE_TIMEOUT = 100l;
 
     private enum Messages
     {
@@ -2004,46 +2003,34 @@ public class ConsoleReaderImpl implements ConsoleReader
             }
 
             /*
-             * A KeyMap indicates that the key that was struck has a
-             * number of keys that can follow it as indicated in the
-             * map. This is used primarily for Emacs style ESC-META-x
-             * lookups. Since more keys must follow, go back to waiting
-             * for the next key.
+             * The ESC key (#27) is special in that it is ambiguous until
+             * you know what is coming next.  The ESC could be a literal
+             * escape, like the user entering vi-move mode, or it could
+             * be part of a console control sequence.  The following
+             * logic attempts to disambiguate things in the same
+             * fashion as regular vi or readline.
+             *
+             * When ESC is encountered and there is no other pending
+             * character in the pushback queue, then attempt to peek
+             * into the input stream (if the feature is enabled) for
+             * 150ms. If nothing else is coming, then assume it is
+             * not a console control sequence, but a raw escape.
              */
-            if (o instanceof KeyMap) {
-                /*
-                 * The ESC key (#27) is special in that it is ambiguous until
-                 * you know what is coming next.  The ESC could be a literal
-                 * escape, like the user entering vi-move mode, or it could
-                 * be part of a console control sequence.  The following
-                 * logic attempts to disambiguate things in the same
-                 * fashion as regular vi or readline.
-                 *
-                 * When ESC is encountered and there is no other pending
-                 * character in the pushback queue, then attempt to peek
-                 * into the input stream (if the feature is enabled) for
-                 * 150ms. If nothing else is coming, then assume it is
-                 * not a console control sequence, but a raw escape.
-                 */
-                if (c == ESCAPE
-                        && pushBackChar.isEmpty()
-                        && console.reader().peek(ESCAPE_TIMEOUT) == READ_EXPIRED) {
+            if (o instanceof KeyMap && opBuffer.length() == 1 && c == ESCAPE && pushBackChar.isEmpty()) {
+                long t = getLong(ESCAPE_TIMEOUT, 0l);
+                if (t > 0 && console.reader().peek(t) == READ_EXPIRED) {
                     Object otherKey = ((KeyMap) o).getAnotherKey();
                     if (otherKey == null) {
-                        // Tne next line is in case a binding was set up inside this secondary
+                        // The next line is in case a binding was set up inside this secondary
                         // KeyMap (like EMACS_META).  For example, a binding could be put
                         // there for an ActionListener for the ESC key.  This way, the var 'o' won't
                         // be null and the code can proceed to let the ActionListener be
                         // handled, below.
                         otherKey = ((KeyMap) o).getBound(Character.toString((char) c));
                     }
-                    o = otherKey;
-                    if (o == null || o instanceof KeyMap) {
-                        continue;
+                    if (otherKey != null && !(otherKey instanceof KeyMap)) {
+                        return otherKey;
                     }
-                    opBuffer.setLength(0);
-                } else {
-                    continue;
                 }
             }
 
@@ -3726,6 +3713,20 @@ public class ConsoleReaderImpl implements ConsoleReader
             nb = 0;
             try {
                 nb = Integer.parseInt(v);
+            } catch (NumberFormatException e) {
+                // Ignore
+            }
+        }
+        return nb;
+    }
+
+    long getLong(String name, long def) {
+        long nb = def;
+        String v = getVariable(name);
+        if (v != null) {
+            nb = 0;
+            try {
+                nb = Long.parseLong(v);
             } catch (NumberFormatException e) {
                 // Ignore
             }

@@ -39,6 +39,15 @@ public interface ConsoleReader {
      * such.
      */
     String COPY_PASTE_DETECTION = "copy-paste-detection";
+    /**
+     * Timeout for the ESCAPE key.
+     * By default, when pressing the ESCAPE key, the next key press will
+     * be waited for to find the sequence entered.  If there's no matching
+     * sequence, the raw ESCAPE character will be used.
+     * When the timeout is defined to a positive value, the raw ESCAPE key
+     * will be sent after the timeout elapsed if there's no key pressed
+     */
+    String ESCAPE_TIMEOUT = "escape-timeout";
 
     /**
      * Read the next line and return the contents of the buffer.
