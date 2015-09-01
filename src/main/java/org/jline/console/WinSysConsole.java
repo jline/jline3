@@ -25,6 +25,7 @@ import org.fusesource.jansi.internal.Kernel32.INPUT_RECORD;
 import org.fusesource.jansi.internal.Kernel32.KEY_EVENT_RECORD;
 import org.fusesource.jansi.internal.WindowsSupport;
 import org.jline.JLine.ConsoleReaderBuilder;
+import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.Log;
 import org.jline.utils.NonBlockingReader;
 import org.jline.utils.Signals;
@@ -48,6 +49,11 @@ public class WinSysConsole extends AbstractConsole {
             this.writer = new PrintWriter(new OutputStreamWriter(out, encoding));
         }
         parseInfoCmp();
+        // Scroll up/down are not supported on jansi < 1.12
+        // TODO: detect jansi version ?
+        strings.remove(Capability.parm_index);
+        strings.remove(Capability.parm_rindex);
+        // Handle signals
         if (nativeSignals) {
             for (final Signal signal : Signal.values()) {
                 nativeHandlers.put(signal, Signals.register(signal.name(), new Runnable() {

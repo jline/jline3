@@ -33,12 +33,12 @@ import static org.jline.utils.Preconditions.checkNotNull;
 
 public abstract class AbstractConsole implements Console {
 
-    private final String type;
-    private final Map<Signal, SignalHandler> handlers = new HashMap<>();
-    private Set<Capability> bools = new HashSet<>();
-    private Map<Capability, Integer> ints = new HashMap<>();
-    private Map<Capability, String> strings = new HashMap<>();
-    private ConsoleReaderBuilder consoleReaderBuilder;
+    protected final String type;
+    protected final Map<Signal, SignalHandler> handlers = new HashMap<>();
+    protected Set<Capability> bools = new HashSet<>();
+    protected Map<Capability, Integer> ints = new HashMap<>();
+    protected Map<Capability, String> strings = new HashMap<>();
+    protected ConsoleReaderBuilder consoleReaderBuilder;
 
     public AbstractConsole(String type, ConsoleReaderBuilder consoleReaderBuilder) throws IOException {
         this.type = type;
