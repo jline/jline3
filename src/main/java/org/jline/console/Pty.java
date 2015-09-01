@@ -12,8 +12,6 @@ import java.io.FileDescriptor;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 
-import org.fusesource.jansi.internal.CLibrary;
-
 public abstract class Pty {
 
     private final int master;
