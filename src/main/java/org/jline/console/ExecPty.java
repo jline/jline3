@@ -56,7 +56,7 @@ public class ExecPty extends Pty {
 
     @Override
     public Attributes getAttr() throws IOException {
-        String cfg = exec(sttyCommand, "-f", getName(), "-a");
+        String cfg = doGetConfig();
         return doGetAttr(cfg);
     }
 
@@ -116,35 +116,38 @@ public class ExecPty extends Pty {
 
     @Override
     public Size getSize() throws IOException {
-        String cfg = exec(sttyCommand, "-f", getName(), "-a");
+        String cfg = doGetConfig();
         return doGetSize(cfg);
+    }
+
+    protected String doGetConfig() throws IOException {
+        return exec(sttyCommand, "-f", getName(), "-a");
     }
 
     static Attributes doGetAttr(String cfg) throws IOException {
         Attributes attributes = new Attributes();
         for (InputFlag flag : InputFlag.values()) {
-            Matcher matcher = Pattern.compile("(?:^|[\\s;])(\\-?" + flag.name().toLowerCase() + ")(?:[\\s;]|$)").matcher(cfg);
-            if (matcher.find()) {
-                String group = matcher.group(1);
-                attributes.setInputFlag(flag, !group.startsWith("-"));
+            Boolean value = doGetFlag(cfg, flag);
+            if (value != null) {
+                attributes.setInputFlag(flag, value);
             }
         }
         for (OutputFlag flag : OutputFlag.values()) {
-            Matcher matcher = Pattern.compile("(?:^|[\\s;])(-?" + flag.name().toLowerCase() + ")(?:[\\s;]|$)").matcher(cfg);
-            if (matcher.find()) {
-                attributes.setOutputFlag(flag, !matcher.group(1).startsWith("-"));
+            Boolean value = doGetFlag(cfg, flag);
+            if (value != null) {
+                attributes.setOutputFlag(flag, value);
             }
         }
         for (ControlFlag flag : ControlFlag.values()) {
-            Matcher matcher = Pattern.compile("(?:^|[\\s;])(-?" + flag.name().toLowerCase() + ")(?:[\\s;]|$)").matcher(cfg);
-            if (matcher.find()) {
-                attributes.setControlFlag(flag, !matcher.group(1).startsWith("-"));
+            Boolean value = doGetFlag(cfg, flag);
+            if (value != null) {
+                attributes.setControlFlag(flag, value);
             }
         }
         for (LocalFlag flag : LocalFlag.values()) {
-            Matcher matcher = Pattern.compile("(?:^|[\\s;])(-?" + flag.name().toLowerCase() + ")(?:[\\s;]|$)").matcher(cfg);
-            if (matcher.find()) {
-                attributes.setLocalFlag(flag, !matcher.group(1).startsWith("-"));
+            Boolean value = doGetFlag(cfg, flag);
+            if (value != null) {
+                attributes.setLocalFlag(flag, value);
             }
         }
         for (ControlChar cchar : ControlChar.values()) {
@@ -158,6 +161,11 @@ public class ExecPty extends Pty {
             }
         }
         return attributes;
+    }
+
+    private static Boolean doGetFlag(String cfg, Enum<?> flag) {
+        Matcher matcher = Pattern.compile("(?:^|[\\s;])(\\-?" + flag.name().toLowerCase() + ")(?:[\\s;]|$)").matcher(cfg);
+        return matcher.find() ? !matcher.group(1).startsWith("-") : null;
     }
 
     static int parseControlChar(String str) {
