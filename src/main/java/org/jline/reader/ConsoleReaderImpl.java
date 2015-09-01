@@ -3048,6 +3048,7 @@ public class ConsoleReaderImpl implements ConsoleReader
     //
 
     public void setHistory(final History history) {
+        checkNotNull(history);
         this.history = history;
     }
 

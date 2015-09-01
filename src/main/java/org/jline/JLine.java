@@ -26,6 +26,7 @@ import org.jline.console.Pty;
 import org.jline.console.WinSysConsole;
 import org.jline.reader.CompletionHandler;
 import org.jline.reader.ConsoleReaderImpl;
+import org.jline.reader.history.MemoryHistory;
 
 public final class JLine {
 
@@ -159,6 +160,7 @@ public final class JLine {
         History history;
         List<Completer> completers;
         CompletionHandler completionHandler;
+        History memoryHistory;
 
         public ConsoleReaderBuilder() {
         }
@@ -202,6 +204,11 @@ public final class JLine {
             ConsoleReaderImpl reader = new ConsoleReaderImpl(console, appName, inputrc, variables);
             if (history != null) {
                 reader.setHistory(history);
+            } else {
+                if (memoryHistory == null) {
+                    memoryHistory = new MemoryHistory();
+                }
+                reader.setHistory(memoryHistory);
             }
             if (completers != null) {
                 reader.setCompleters(completers);
