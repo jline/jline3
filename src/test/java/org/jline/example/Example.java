@@ -51,8 +51,6 @@ public class Example
 
     public static void main(String[] args) throws IOException {
         try {
-            Signals.registerIgnore("INT");
-
             String prompt = "prompt> ";
             Character mask = null;
             String trigger = null;

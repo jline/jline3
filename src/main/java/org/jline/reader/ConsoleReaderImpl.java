@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InterruptedIOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -36,6 +37,7 @@ import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.Stack;
 
+import org.jline.Completer;
 import org.jline.Console;
 import org.jline.Console.Signal;
 import org.jline.Console.SignalHandler;
@@ -44,11 +46,11 @@ import org.jline.History;
 import org.jline.console.Attributes;
 import org.jline.console.Attributes.ControlChar;
 import org.jline.console.Size;
-import org.jline.Completer;
 import org.jline.reader.history.MemoryHistory;
 import org.jline.utils.Ansi;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.Log;
+import org.jline.utils.NonBlockingReader;
 import org.jline.utils.Signals;
 import org.jline.utils.WCWidth;
 
@@ -178,6 +180,8 @@ public class ConsoleReaderImpl implements ConsoleReader
     private final List<Completer> completers = new LinkedList<Completer>();
 
     private CompletionHandler completionHandler = new CandidateListCompletionHandler();
+
+    private Thread readLineThread;
 
     /**
      * Possible states in which the current readline operation may be in.
@@ -1924,7 +1928,11 @@ public class ConsoleReaderImpl implements ConsoleReader
      * @return the character, or -1 if an EOF is received.
      */
     public int readCharacter() throws IOException {
-        return console.reader().read();
+        int c = NonBlockingReader.READ_EXPIRED;
+        while (c == NonBlockingReader.READ_EXPIRED) {
+            c = console.reader().read(100);
+        }
+        return c;
     }
 
     public int readCharacter(final char... allowed) throws IOException {
@@ -2149,10 +2157,18 @@ public class ConsoleReaderImpl implements ConsoleReader
         // mask may be null
         // buffer may be null
 
+        readLineThread = Thread.currentThread();
         SignalHandler previousIntrHandler = null;
         Attributes originalAttributes = null;
         try {
-            previousIntrHandler = console.handle(Signal.INT, SignalHandler.SIG_IGN);
+            previousIntrHandler = console.handle(Signal.INT, new SignalHandler() {
+                @Override
+                public void handle(Signal signal) {
+                    if (signal == Signal.INT) {
+                        readLineThread.interrupt();
+                    }
+                }
+            });
             originalAttributes = console.enterRawMode();
 
             /*
@@ -2924,9 +2940,18 @@ public class ConsoleReaderImpl implements ConsoleReader
 
                 flush();
             }
-        } catch (UserInterruptException e) {
-            throw e;
-        } catch (EOFException e) {
+        } catch (InterruptedIOException e) {
+            try {
+                println();
+                flush();
+            } catch (Exception e2) {
+                // Ignore
+            }
+            String partialLine = buf.buffer.toString();
+            buf.clear();
+            history.moveToEnd();
+            throw new UserInterruptException(partialLine);
+        } catch (UserInterruptException | EOFException e) {
             throw e;
         } catch (IOException e) {
             throw new IOError(e);

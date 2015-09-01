@@ -16,12 +16,17 @@ import java.util.EnumSet;
 
 import org.jline.Console;
 import org.jline.JLine.ConsoleReaderBuilder;
+import org.jline.console.Attributes.ControlChar;
 import org.jline.console.Attributes.InputFlag;
 import org.jline.console.Attributes.LocalFlag;
 import org.jline.console.Attributes.OutputFlag;
+import org.jline.reader.ConsoleReaderImpl;
+import org.jline.reader.UserInterruptException;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 public class EmulatedConsoleTest {
 
@@ -61,5 +66,41 @@ public class EmulatedConsoleTest {
         String output = out.toString();
         assertEquals("a\nb", output);
     }
+
+    @Test
+    public void testInterrupt() throws Exception {
+        PipedInputStream in = new PipedInputStream();
+        final PipedOutputStream outIn = new PipedOutputStream(in);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        EmulatedConsole console = new EmulatedConsole("ansi", new ConsoleReaderBuilder(), in, out, "UTF-8");
+        Attributes attributes = console.getAttributes();
+        attributes.setLocalFlag(LocalFlag.ISIG, true);
+        attributes.setControlChar(ControlChar.VINTR, 3);
+        console.setAttributes(attributes);
+        ConsoleReaderImpl consoleReader = (ConsoleReaderImpl) console.newConsoleReader();
+        assertNotNull(consoleReader);
+        new Thread() {
+            public void run() {
+                try {
+                    outIn.write('a');
+                    outIn.write('b');
+                    outIn.flush();
+                    Thread.sleep(50);
+                    outIn.write(3);
+                    outIn.write('c');
+                    outIn.flush();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }.start();
+        try {
+            consoleReader.readLine();
+            fail("Expected UserInterruptException");
+        } catch (UserInterruptException e) {
+            assertEquals("ab", e.getPartialLine());
+        }
+    }
+
 
 }

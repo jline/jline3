@@ -9,6 +9,7 @@
 package org.jline.utils;
 
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.io.Reader;
 
 /**
@@ -168,7 +169,7 @@ public class NonBlockingReader
                     wait(timeout);
                 }
                 catch (InterruptedException e) {
-                    /* IGNORED */
+                    exception = (IOException) new InterruptedIOException().initCause(e);
                 }
 
                 if (exception != null) {
@@ -287,6 +288,12 @@ public class NonBlockingReader
             synchronized (this) {
                 thread = null;
             }
+        }
+    }
+
+    public synchronized void clear() throws IOException {
+        while (ready()) {
+            read();
         }
     }
 }

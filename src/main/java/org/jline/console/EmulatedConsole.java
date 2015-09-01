@@ -10,7 +10,6 @@ package org.jline.console;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PipedInputStream;
@@ -29,6 +28,7 @@ import org.jline.console.Attributes.ControlChar;
 import org.jline.console.Attributes.InputFlag;
 import org.jline.console.Attributes.LocalFlag;
 import org.jline.console.Attributes.OutputFlag;
+import org.jline.utils.InputStreamReader;
 import org.jline.utils.NonBlockingReader;
 
 import static org.jline.utils.Preconditions.checkNotNull;
@@ -114,9 +114,7 @@ public class EmulatedConsole extends AbstractConsole {
         checkNotNull(signal);
         if (!attributes.getLocalFlag(LocalFlag.NOFLSH)) {
             try {
-                while (reader.ready()) {
-                    reader.read();
-                }
+                reader.clear();
             } catch (IOException e) {
                 // Ignore
             }
