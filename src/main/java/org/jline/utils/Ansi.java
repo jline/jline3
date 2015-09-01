@@ -37,6 +37,10 @@ public final class Ansi {
         }
     }
 
+    /**
+     * Simplified version of org.fusesource.jansi.AnsiOutputStream
+     * that only discards recognized escape sequences.
+     */
     private static class AnsiRemovalOutputStream extends FilterOutputStream {
 
         public AnsiRemovalOutputStream(OutputStream os) {
@@ -83,8 +87,7 @@ public final class Ansi {
                     } else if (data == SECOND_OSC_CHAR) {
                         state = LOOKING_FOR_OSC_COMMAND;
                     } else {
-                        out.write(buffer, 0, pos);
-                        reset();
+                        reset(false);
                     }
                     break;
 
@@ -95,7 +98,7 @@ public final class Ansi {
                     } else if ('0' <= data && data <= '9') {
                         state = LOOKING_FOR_INT_ARG_END;
                     } else if (data != ';' && data != '?' && data != '=') {
-                        reset();
+                        reset(true);
                     }
                     break;
 
@@ -105,7 +108,7 @@ public final class Ansi {
                         if (data == ';') {
                             state = LOOKING_FOR_NEXT_ARG;
                         } else {
-                            reset();
+                            reset(true);
                         }
                     }
                     break;
@@ -116,7 +119,7 @@ public final class Ansi {
                         if (data == ';') {
                             state = LOOKING_FOR_NEXT_ARG;
                         } else {
-                            reset();
+                            reset(true);
                         }
                     }
                     break;
@@ -126,8 +129,7 @@ public final class Ansi {
                     if ('0' <= data && data <= '9') {
                         state = LOOKING_FOR_OSC_COMMAND_END;
                     } else {
-                        out.write(buffer, 0, pos);
-                        reset();
+                        reset(false);
                     }
                     break;
 
@@ -136,27 +138,23 @@ public final class Ansi {
                     if (';' == data) {
                         state = LOOKING_FOR_OSC_PARAM;
                     } else if (!('0' <= data && data <= '9')) {
-                        // oops, did not expect this
-                        out.write(buffer, 0, pos);
-                        reset();
+                        reset(false);
                     }
                     break;
 
                 case LOOKING_FOR_OSC_PARAM:
                     buffer[pos++] = (byte) data;
                     if (BEL == data) {
-                        reset();
+                        reset(true);
                     } else if (FIRST_ESC_CHAR == data) {
                         state = LOOKING_FOR_ST;
-                    } else {
-                        // just keep looking while adding text
                     }
                     break;
 
                 case LOOKING_FOR_ST:
                     buffer[pos++] = (byte) data;
                     if (SECOND_ST_CHAR == data) {
-                        reset();
+                        reset(true);
                     } else {
                         state = LOOKING_FOR_OSC_PARAM;
                     }
@@ -165,15 +163,17 @@ public final class Ansi {
 
             // Is it just too long?
             if (pos >= buffer.length) {
-                out.write(buffer, 0, pos);
-                reset();
+                reset(false);
             }
         }
 
         /**
          * Resets all state to continue with regular parsing
          */
-        private void reset() {
+        private void reset(boolean valid) throws IOException {
+            if (!valid) {
+                out.write(buffer, 0, pos);
+            }
             pos = 0;
             state = LOOKING_FOR_FIRST_ESC_CHAR;
         }
