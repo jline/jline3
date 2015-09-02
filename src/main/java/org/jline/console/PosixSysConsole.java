@@ -25,10 +25,10 @@ import static org.jline.utils.Preconditions.checkNotNull;
 
 public class PosixSysConsole extends AbstractPosixConsole {
 
-    private final NonBlockingReader reader;
-    private final PrintWriter writer;
-    private final Map<Signal, Object> nativeHandlers = new HashMap<>();
-    private final Task closer;
+    protected final NonBlockingReader reader;
+    protected final PrintWriter writer;
+    protected final Map<Signal, Object> nativeHandlers = new HashMap<>();
+    protected final Task closer;
 
     public PosixSysConsole(String type, ConsoleReaderBuilder consoleReaderBuilder, Pty pty, String encoding, boolean nativeSignals) throws IOException {
         super(type, consoleReaderBuilder, pty);

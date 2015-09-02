@@ -9,8 +9,8 @@ import static org.jline.utils.Preconditions.checkNotNull;
 
 public abstract class AbstractPosixConsole extends AbstractConsole {
 
-    private final Pty pty;
-    private final Attributes originalAttributes;
+    protected final Pty pty;
+    protected final Attributes originalAttributes;
 
     public AbstractPosixConsole(String type, ConsoleReaderBuilder consoleReaderBuilder, Pty pty) throws IOException {
         super(type, consoleReaderBuilder);

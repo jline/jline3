@@ -34,18 +34,18 @@ import static org.jline.utils.Preconditions.checkNotNull;
 public abstract class AbstractConsole implements Console {
 
     protected final String type;
+    protected final ConsoleReaderBuilder consoleReaderBuilder;
     protected final Map<Signal, SignalHandler> handlers = new HashMap<>();
-    protected Set<Capability> bools = new HashSet<>();
-    protected Map<Capability, Integer> ints = new HashMap<>();
-    protected Map<Capability, String> strings = new HashMap<>();
-    protected ConsoleReaderBuilder consoleReaderBuilder;
+    protected final Set<Capability> bools = new HashSet<>();
+    protected final Map<Capability, Integer> ints = new HashMap<>();
+    protected final Map<Capability, String> strings = new HashMap<>();
 
     public AbstractConsole(String type, ConsoleReaderBuilder consoleReaderBuilder) throws IOException {
         this.type = type;
+        this.consoleReaderBuilder = consoleReaderBuilder;
         for (Signal signal : Signal.values()) {
             handlers.put(signal, SignalHandler.SIG_DFL);
         }
-        this.consoleReaderBuilder = consoleReaderBuilder;
     }
 
     @Override

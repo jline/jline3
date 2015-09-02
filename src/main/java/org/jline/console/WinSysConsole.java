@@ -12,10 +12,10 @@ import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,15 +26,19 @@ import org.fusesource.jansi.internal.Kernel32.KEY_EVENT_RECORD;
 import org.fusesource.jansi.internal.WindowsSupport;
 import org.jline.JLine.ConsoleReaderBuilder;
 import org.jline.utils.InfoCmp.Capability;
+import org.jline.utils.InputStreamReader;
 import org.jline.utils.Log;
 import org.jline.utils.NonBlockingReader;
+import org.jline.utils.ShutdownHooks;
+import org.jline.utils.ShutdownHooks.Task;
 import org.jline.utils.Signals;
 
 public class WinSysConsole extends AbstractConsole {
 
-    private final NonBlockingReader reader;
-    private final PrintWriter writer;
-    private final Map<Signal, Object> nativeHandlers = new HashMap<Signal, Object>();
+    protected final NonBlockingReader reader;
+    protected final PrintWriter writer;
+    protected final Map<Signal, Object> nativeHandlers = new HashMap<Signal, Object>();
+    protected final Task closer;
 
     public WinSysConsole(boolean nativeSignals, ConsoleReaderBuilder consoleReaderBuilder) throws IOException {
         super("ansi", consoleReaderBuilder);
@@ -42,12 +46,10 @@ public class WinSysConsole extends AbstractConsole {
         OutputStream out = new WindowsAnsiOutputStream(new FileOutputStream(FileDescriptor.out));
         String encoding = getConsoleEncoding();
         if (encoding == null) {
-            this.reader = new NonBlockingReader(new InputStreamReader(in));
-            this.writer = new PrintWriter(new OutputStreamWriter(out));
-        } else {
-            this.reader = new NonBlockingReader(new InputStreamReader(in, encoding));
-            this.writer = new PrintWriter(new OutputStreamWriter(out, encoding));
+            encoding = Charset.defaultCharset().name();
         }
+        this.reader = new NonBlockingReader(new InputStreamReader(in, encoding));
+        this.writer = new PrintWriter(new OutputStreamWriter(out, encoding));
         parseInfoCmp();
         // Scroll up/down are not supported on jansi < 1.12
         // TODO: detect jansi version ?
@@ -63,9 +65,16 @@ public class WinSysConsole extends AbstractConsole {
                 }));
             }
         }
+        closer = new Task() {
+            @Override
+            public void run() throws Exception {
+                close();
+            }
+        };
+        ShutdownHooks.add(closer);
     }
 
-    private String getConsoleEncoding() {
+    protected static String getConsoleEncoding() {
         int codepage = Kernel32.GetConsoleOutputCP();
         //http://docs.oracle.com/javase/6/docs/technotes/guides/intl/encoding.doc.html
         String charsetMS = "ms" + codepage;
@@ -111,9 +120,12 @@ public class WinSysConsole extends AbstractConsole {
     }
 
     public void close() throws IOException {
+        ShutdownHooks.remove(closer);
         for (Map.Entry<Signal, Object> entry : nativeHandlers.entrySet()) {
             Signals.unregister(entry.getKey().name(), entry.getValue());
         }
+        reader.close();
+        writer.close();
     }
 
     private byte[] readConsoleInput() {
