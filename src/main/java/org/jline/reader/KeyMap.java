@@ -33,24 +33,14 @@ public class KeyMap {
     private Object[] mapping = new Object[KEYMAP_LENGTH];
     private Object anotherKey = null;
     private String name;
-    private boolean isViKeyMap;
 
     public KeyMap(String name) {
-        this(name, false);
+        this(name, new Object[KEYMAP_LENGTH]);
     }
 
-    public KeyMap(String name, boolean isViKeyMap) {
-        this(name, new Object[KEYMAP_LENGTH], isViKeyMap);
-    }
-
-    protected KeyMap(String name, Object[] mapping, boolean isViKeyMap) {
+    protected KeyMap(String name, Object[] mapping) {
         this.mapping = mapping;
         this.name = name;
-        this.isViKeyMap = isViKeyMap;
-    }
-    
-    public boolean isViKeyMap() {
-        return isViKeyMap;
     }
     
     public String getName() {
@@ -114,7 +104,7 @@ public class KeyMap {
                 }
                 if (i < keySeq.length() - 1) {
                     if (!(map.mapping[c] instanceof KeyMap)) {
-                        KeyMap m = new KeyMap("anonymous", false);
+                        KeyMap m = new KeyMap("anonymous");
                         if (map.mapping[c] != Operation.DO_LOWERCASE_VERSION) {
                             m.anotherKey = map.mapping[c];
                         }
@@ -292,7 +282,7 @@ public class KeyMap {
             map[i] = Operation.SELF_INSERT;
         }
         map[DELETE] = Operation.BACKWARD_DELETE_CHAR;
-        return new KeyMap(EMACS, map, false);
+        return new KeyMap(EMACS, map);
     }
 
     public static final char CTRL_D = (char) 4;
@@ -325,7 +315,7 @@ public class KeyMap {
         }
         map['e'] = Operation.CALL_LAST_KBD_MACRO;
         map[DELETE] = Operation.KILL_LINE;
-        return new KeyMap(EMACS_CTLX, map, false);
+        return new KeyMap(EMACS_CTLX, map);
     }
 
     public static KeyMap emacsMeta() {
@@ -366,7 +356,7 @@ public class KeyMap {
         map['y'] = Operation.YANK_POP;
         map['~'] = Operation.TILDE_EXPAND;
         map[DELETE] = Operation.BACKWARD_KILL_WORD;
-        return new KeyMap(EMACS_META, map, false);
+        return new KeyMap(EMACS_META, map);
     }
 
     public static KeyMap viInsertion() {
@@ -411,7 +401,7 @@ public class KeyMap {
             map[i] = Operation.SELF_INSERT;
         }
         map[DELETE] = Operation.BACKWARD_DELETE_CHAR;
-        return new KeyMap(VI_INSERT, map, false);
+        return new KeyMap(VI_INSERT, map);
     }
 
     public static KeyMap viMovement() {
@@ -575,6 +565,6 @@ public class KeyMap {
         for (int i = 128; i < 256; i++) {
             map[i] = null;
         }
-        return new KeyMap(VI_MOVE, map, false);
+        return new KeyMap(VI_MOVE, map);
     }
 }
