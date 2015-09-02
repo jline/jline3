@@ -20,6 +20,7 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.jline.Completer;
 import org.jline.Console;
 import org.jline.ConsoleReader;
 import org.jline.History;
@@ -27,7 +28,6 @@ import org.jline.JLine;
 import org.jline.JLine.ConsoleReaderBuilder;
 import org.jline.reader.completer.AggregateCompleter;
 import org.jline.reader.completer.ArgumentCompleter;
-import org.jline.Completer;
 import org.jline.reader.completer.NullCompleter;
 import org.jline.reader.completer.StringsCompleter;
 import org.jline.reader.history.MemoryHistory;

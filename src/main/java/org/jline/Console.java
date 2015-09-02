@@ -11,7 +11,6 @@ package org.jline;
 import java.io.Closeable;
 import java.io.EOFException;
 import java.io.Flushable;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 
@@ -19,7 +18,6 @@ import org.jline.JLine.ConsoleReaderBuilder;
 import org.jline.console.Attributes;
 import org.jline.console.NativeSignalHandler;
 import org.jline.console.Size;
-import org.jline.reader.ConsoleReaderImpl;
 import org.jline.reader.UserInterruptException;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.NonBlockingReader;

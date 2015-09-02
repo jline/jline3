@@ -17,7 +17,6 @@ import java.net.URL;
 
 import org.jline.Console;
 import org.jline.JLine.ConsoleReaderBuilder;
-import org.jline.console.AbstractConsole;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp.Capability;
 import org.junit.Before;
