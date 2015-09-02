@@ -57,5 +57,6 @@ public abstract class AbstractPosixConsole extends AbstractConsole {
 
     public void close() throws IOException {
         pty.setAttr(originalAttributes);
+        pty.close();
     }
 }

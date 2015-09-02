@@ -8,12 +8,7 @@
  */
 package org.jline.console;
 
-import java.io.FileDescriptor;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.HashMap;
@@ -22,6 +17,8 @@ import java.util.Map;
 import org.jline.JLine.ConsoleReaderBuilder;
 import org.jline.utils.InputStreamReader;
 import org.jline.utils.NonBlockingReader;
+import org.jline.utils.ShutdownHooks;
+import org.jline.utils.ShutdownHooks.Task;
 import org.jline.utils.Signals;
 
 import static org.jline.utils.Preconditions.checkNotNull;
@@ -31,14 +28,13 @@ public class PosixSysConsole extends AbstractPosixConsole {
     private final NonBlockingReader reader;
     private final PrintWriter writer;
     private final Map<Signal, Object> nativeHandlers = new HashMap<>();
+    private final Task closer;
 
     public PosixSysConsole(String type, ConsoleReaderBuilder consoleReaderBuilder, Pty pty, String encoding, boolean nativeSignals) throws IOException {
         super(type, consoleReaderBuilder, pty);
         checkNotNull(encoding);
-        InputStream in = new FileInputStream(FileDescriptor.in);
-        OutputStream out = new FileOutputStream(FileDescriptor.out);
-        this.reader = new NonBlockingReader(new InputStreamReader(in, encoding));
-        this.writer = new PrintWriter(new OutputStreamWriter(out, encoding));
+        this.reader = new NonBlockingReader(new InputStreamReader(pty.getSlaveInput(), encoding));
+        this.writer = new PrintWriter(new OutputStreamWriter(pty.getSlaveOutput(), encoding));
         parseInfoCmp();
         if (nativeSignals) {
             for (final Signal signal : Signal.values()) {
@@ -49,6 +45,13 @@ public class PosixSysConsole extends AbstractPosixConsole {
                 }));
             }
         }
+        closer = new Task() {
+            @Override
+            public void run() throws Exception {
+                close();
+            }
+        };
+        ShutdownHooks.add(closer);
     }
 
     public NonBlockingReader reader() {
@@ -61,6 +64,7 @@ public class PosixSysConsole extends AbstractPosixConsole {
 
     @Override
     public void close() throws IOException {
+        ShutdownHooks.remove(closer);
         for (Map.Entry<Signal, Object> entry : nativeHandlers.entrySet()) {
             Signals.unregister(entry.getKey().name(), entry.getValue());
         }

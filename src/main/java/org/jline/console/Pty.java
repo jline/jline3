@@ -8,58 +8,27 @@
  */
 package org.jline.console;
 
-import java.io.FileDescriptor;
+import java.io.Closeable;
 import java.io.IOException;
-import java.lang.reflect.Constructor;
+import java.io.InputStream;
+import java.io.OutputStream;
 
-public abstract class Pty {
+public interface Pty extends Closeable {
 
-    private final int master;
-    private final int slave;
-    private final String name;
+    InputStream getMasterInput() throws IOException;
 
-    Pty(int master, int slave, String name) {
-        this.master = master;
-        this.slave = slave;
-        this.name = name;
-    }
+    OutputStream getMasterOutput() throws IOException;
 
-    public int getMaster() {
-        return master;
-    }
+    InputStream getSlaveInput() throws IOException;
 
-    public int getSlave() {
-        return slave;
-    }
+    OutputStream getSlaveOutput() throws IOException;
 
-    public FileDescriptor getMasterFD() {
-        return newDescriptor(master);
-    }
+    Attributes getAttr() throws IOException;
 
-    public FileDescriptor getSlaveFD() {
-        return newDescriptor(slave);
-    }
+    void setAttr(Attributes attr) throws IOException;
 
-    private FileDescriptor newDescriptor(int fd) {
-        try {
-            Constructor<FileDescriptor> cns = FileDescriptor.class.getDeclaredConstructor(int.class);
-            cns.setAccessible(true);
-            return cns.newInstance(fd);
-        } catch (Exception e) {
-            throw new RuntimeException("Unable to create FileDescriptor", e);
-        }
-    }
+    Size getSize() throws IOException;
 
-    public String getName() {
-        return name;
-    }
-
-    public abstract Attributes getAttr() throws IOException;
-
-    public abstract void setAttr(Attributes attr) throws IOException;
-
-    public abstract Size getSize() throws IOException;
-
-    public abstract void setSize(Size size) throws IOException;
+    void setSize(Size size) throws IOException;
 
 }

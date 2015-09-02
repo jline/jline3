@@ -8,8 +8,12 @@
  */
 package org.jline.console;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InterruptedIOException;
+import java.io.OutputStream;
 import java.lang.ProcessBuilder.Redirect;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,31 +31,57 @@ import org.jline.utils.Log;
 
 import static org.jline.utils.Preconditions.checkNotNull;
 
-public class ExecPty extends Pty {
+public class ExecPty implements Pty {
 
     private String sttyCommand = "stty";
 
-    public ExecPty(int master, int slave, String name) {
-        super(master, slave, name);
-    }
+    private final String name;
 
     public static Pty current() throws IOException {
         try {
             Process p = new ProcessBuilder("tty")
                     .redirectInput(Redirect.INHERIT)
                     .start();
-            String result = ExecHelper.waitAndCapture(p);
+            String result = ExecHelper.waitAndCapture(p).trim();
             if (p.exitValue() != 0) {
                 throw new IOException("Not a tty");
             }
-            return new ExecPty(-1, 0, result.trim());
+            return new ExecPty(result);
         } catch (InterruptedException e) {
             throw (IOException) new InterruptedIOException("Command interrupted").initCause(e);
         }
     }
 
-    public static Pty open(Attributes attr, Size size) throws IOException {
+    protected ExecPty(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public void close() throws IOException {
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public InputStream getMasterInput() {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public OutputStream getMasterOutput() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public InputStream getSlaveInput() throws IOException {
+        return new FileInputStream(getName());
+    }
+
+    @Override
+    public OutputStream getSlaveOutput() throws IOException {
+        return new FileOutputStream(getName());
     }
 
     @Override

@@ -8,21 +8,31 @@
  */
 package org.jline.console;
 
+import java.io.FileDescriptor;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.lang.reflect.Constructor;
 
 import org.fusesource.jansi.internal.CLibrary;
 import org.fusesource.jansi.internal.CLibrary.Termios;
 import org.fusesource.jansi.internal.CLibrary.WinSize;
 
-public class NativePty extends Pty {
+public class NativePty implements Pty {
 
-    NativePty(int master, int slave, String name) {
-        super(master, slave, name);
-    }
+    private final int master;
+    private final int slave;
+    private final String name;
+    private final FileDescriptor masterFD;
+    private final FileDescriptor slaveFD;
 
     public static NativePty current() throws IOException {
-        if (CLibrary.isatty(0) == 1) {
-            return new NativePty(-1, 0, "/dev/tty");
+        int slave = 0;
+        String name = CLibrary.ttyname(slave);
+        if (name != null) {
+            return new NativePty(-1, null, slave, FileDescriptor.in, name);
         }
         throw new IOException("Not a tty");
     }
@@ -46,7 +56,91 @@ public class NativePty extends Pty {
                 size != null ? new WinSize((short) size.getRows(), (short) size.getColumns()) : null));
         int i = 0;
         while (name[i++] != 0) ;
-        return new NativePty(master[0], slave[0], new String(name, 0, i - 1));
+        return new NativePty(master[0], newDescriptor(master[0]), slave[0], newDescriptor(slave[0]), new String(name, 0, i - 1));
+    }
+
+    /*
+    public static NativePty openUnix98(Attributes attr, Size size) throws IOException {
+        int master = CLibrary.open("/dev/ptmx", CLibrary.O_RDWR | CLibrary.O_NOCTTY);
+        verify("open", master < 0 ? 1 : 0);
+        verify("granpt", CLibrary.grantpt(master));
+        verify("unlockpt", CLibrary.unlockpt(master));
+        String name = CLibrary.ptsname(master);
+        int slave = CLibrary.open(name, CLibrary.O_RDWR);
+        verify("open", slave < 0 ? 1 : 0);
+        NativePty pty = new NativePty(master, slave, name);
+        if (attr != null) {
+            pty.setAttr(attr);
+        }
+        if (size != null) {
+            pty.setSize(size);
+        }
+        return pty;
+    }
+    */
+
+    protected NativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, String name) {
+        this.master = master;
+        this.slave = slave;
+        this.name = name;
+        this.masterFD = masterFD;
+        this.slaveFD = slaveFD;
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (master > 0) {
+            getMasterInput().close();
+        }
+        if (slave > 0) {
+            getSlaveInput().close();
+        }
+    }
+
+    protected int getMaster() {
+        return master;
+    }
+
+    protected int getSlave() {
+        return slave;
+    }
+
+    protected String getName() {
+        return name;
+    }
+
+    protected FileDescriptor getMasterFD() {
+        return masterFD;
+    }
+
+    protected FileDescriptor getSlaveFD() {
+        return slaveFD;
+    }
+
+    public InputStream getMasterInput() {
+        return new FileInputStream(getMasterFD());
+    }
+
+    public OutputStream getMasterOutput() {
+        return new FileOutputStream(getMasterFD());
+    }
+
+    public InputStream getSlaveInput() {
+        return new FileInputStream(getSlaveFD());
+    }
+
+    public OutputStream getSlaveOutput() {
+        return new FileOutputStream(getSlaveFD());
+    }
+
+    private static FileDescriptor newDescriptor(int fd) {
+        try {
+            Constructor<FileDescriptor> cns = FileDescriptor.class.getDeclaredConstructor(int.class);
+            cns.setAccessible(true);
+            return cns.newInstance(fd);
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to create FileDescriptor", e);
+        }
     }
 
     public Attributes getAttr() throws IOException {

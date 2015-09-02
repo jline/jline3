@@ -12,16 +12,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
+import java.io.PipedReader;
+import java.io.PipedWriter;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.Writer;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
 import java.nio.charset.Charset;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CodingErrorAction;
 
 import org.jline.JLine.ConsoleReaderBuilder;
 import org.jline.console.Attributes.ControlChar;
@@ -35,33 +31,33 @@ import static org.jline.utils.Preconditions.checkNotNull;
 
 public class EmulatedConsole extends AbstractConsole {
 
-    private final PipedInputStream filterIn;
-    private final PipedOutputStream filterInOut;
-    private final OutputStream filterOut;
-    private final Charset charset;
+    private final PipedReader filterIn;
+    private final PipedWriter filterInOut;
     private final NonBlockingReader reader;
     private final PrintWriter writer;
     private final Reader inReader;
     private final Writer outWriter;
-    private final Writer filterInOutWriter;
     private final Attributes attributes;
     private final Size size;
     private final Thread pumpThread;
 
     public EmulatedConsole(String type, ConsoleReaderBuilder consoleReaderBuilder, InputStream in, OutputStream out, final String encoding) throws IOException {
+        this(type, consoleReaderBuilder,
+                new InputStreamReader(in, encoding != null ? encoding : Charset.defaultCharset().name()),
+                new OutputStreamWriter(out, encoding != null ? encoding : Charset.defaultCharset().name()));
+    }
+
+    public EmulatedConsole(String type, ConsoleReaderBuilder consoleReaderBuilder, Reader in, Writer out) throws IOException {
         super(type, consoleReaderBuilder);
         checkNotNull(in);
         checkNotNull(out);
-        this.charset = encoding != null ? Charset.forName(encoding) : Charset.defaultCharset();
-        this.filterIn = new PipedInputStream();
-        this.filterInOut = new PipedOutputStream(filterIn);
-        this.filterOut = new FilteringOutputStream();
+        this.filterIn = new PipedReader();
+        this.filterInOut = new PipedWriter(filterIn);
         this.pumpThread = new PumpThread();
-        this.reader = new NonBlockingReader(new InputStreamReader(filterIn, charset));
-        this.inReader = new InputStreamReader(in, charset);
-        this.outWriter = new OutputStreamWriter(out, charset);
+        this.reader = new NonBlockingReader(filterIn);
+        this.inReader = in;
+        this.outWriter = out;
         this.writer = new PrintWriter(new FilteringWriter());
-        this.filterInOutWriter = new OutputStreamWriter(filterInOut, charset);
         this.attributes = new Attributes();
         this.size = new Size(160, 50);
         parseInfoCmp();
@@ -86,10 +82,6 @@ public class EmulatedConsole extends AbstractConsole {
         attributes.copy(attr);
     }
 
-    public void setAttributes(Attributes attr, int actions) {
-        setAttributes(attr);
-    }
-
     public Size getSize() {
         Size sz = new Size();
         sz.copy(size);
@@ -104,7 +96,6 @@ public class EmulatedConsole extends AbstractConsole {
         pumpThread.interrupt();
         filterIn.close();
         filterInOut.close();
-        filterOut.close();
         reader.close();
         writer.close();
     }
@@ -151,8 +142,8 @@ public class EmulatedConsole extends AbstractConsole {
         if (attributes.getLocalFlag(LocalFlag.ECHO)) {
             processOutputChar(c);
         }
-        filterInOutWriter.write(c);
-        filterInOutWriter.flush();
+        filterInOut.write(c);
+        filterInOut.flush();
     }
 
     private void processOutputChar(int c) throws IOException {
@@ -168,26 +159,6 @@ public class EmulatedConsole extends AbstractConsole {
         }
         outWriter.write(c);
         outWriter.flush();
-    }
-
-    private class FilteringOutputStream extends OutputStream {
-
-        private ByteBuffer outBuffer = ByteBuffer.allocate(4);
-
-        private CharsetDecoder decoder = charset.newDecoder().onMalformedInput(
-                CodingErrorAction.REPLACE).onUnmappableCharacter(
-                CodingErrorAction.REPLACE);
-
-        @Override
-        public void write(int b) throws IOException {
-            CharBuffer inChars = CharBuffer.allocate(1);
-            outBuffer.put((byte) b);
-            decoder.decode(outBuffer, inChars, false);
-            while (inChars.hasRemaining()) {
-                int c = inChars.get();
-                processOutputChar(c);
-            }
-        }
     }
 
     private class PumpThread extends Thread {

@@ -33,12 +33,10 @@ public class PosixPtyConsole extends AbstractPosixConsole {
         super(type, consoleReaderBuilder, pty);
         checkNotNull(in);
         checkNotNull(out);
-        FileInputStream sin = new FileInputStream(getPty().getSlaveFD());
-        FileOutputStream sout = new FileOutputStream(getPty().getSlaveFD());
-        this.reader = new NonBlockingReader(new InputStreamReader(sin, encoding));
-        this.writer = new PrintWriter(new OutputStreamWriter(sout, encoding));
-        this.inputPumpThread = new PumpThread(in, new FileOutputStream(getPty().getMasterFD()));
-        this.outputPumpThread = new PumpThread(new FileInputStream(getPty().getMasterFD()), out);
+        this.reader = new NonBlockingReader(new InputStreamReader(pty.getSlaveInput(), encoding));
+        this.writer = new PrintWriter(new OutputStreamWriter(pty.getSlaveOutput(), encoding));
+        this.inputPumpThread = new PumpThread(in, getPty().getMasterOutput());
+        this.outputPumpThread = new PumpThread(getPty().getMasterInput(), out);
         parseInfoCmp();
         this.inputPumpThread.start();
         this.outputPumpThread.start();
