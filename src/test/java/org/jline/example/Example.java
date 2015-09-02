@@ -13,17 +13,17 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.jline.Completer;
 import org.jline.Console;
 import org.jline.JLine;
 import org.jline.JLine.ConsoleBuilder;
 import org.jline.reader.CandidateListCompletionHandler;
 import org.jline.reader.UserInterruptException;
 import org.jline.reader.completer.AnsiStringsCompleter;
-import org.jline.Completer;
+import org.jline.reader.completer.ArgumentCompleter;
 import org.jline.reader.completer.FileNameCompleter;
 import org.jline.reader.completer.StringsCompleter;
 import org.jline.utils.InfoCmp.Capability;
-import org.jline.utils.Signals;
 
 
 public class Example
@@ -100,6 +100,12 @@ public class Example
                 }
                 else if (args[index].equals("simple")) {
                     completers.add(new StringsCompleter("foo", "bar", "baz"));
+                    break;
+                }
+                else if (args[index].equals("foo")) {
+                    completers.add(new ArgumentCompleter(
+                            new StringsCompleter("foo11", "foo12", "foo13"),
+                            new StringsCompleter("foo21", "foo22", "foo23")));
                     break;
                 }
                 else if (args[index].equals("color")) {
