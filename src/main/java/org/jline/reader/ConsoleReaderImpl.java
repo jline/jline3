@@ -16,6 +16,7 @@ import java.awt.event.ActionListener;
 import java.io.BufferedReader;
 import java.io.EOFException;
 import java.io.File;
+import java.io.Flushable;
 import java.io.IOError;
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,11 +29,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.Stack;
@@ -53,6 +56,7 @@ import org.jline.utils.Log;
 import org.jline.utils.NonBlockingReader;
 import org.jline.utils.Signals;
 import org.jline.utils.WCWidth;
+import org.jline.utils.DiffHelper;
 
 import static org.jline.reader.KeyMap.ESCAPE;
 import static org.jline.utils.NonBlockingReader.READ_EXPIRED;
@@ -66,7 +70,7 @@ import static org.jline.utils.Preconditions.checkNotNull;
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  * @author <a href="mailto:gnodet@gmail.com">Guillaume Nodet</a>
  */
-public class ConsoleReaderImpl implements ConsoleReader
+public class ConsoleReaderImpl implements ConsoleReader, Flushable
 {
     public static final char NULL_MASK = 0;
 
@@ -125,7 +129,6 @@ public class ConsoleReaderImpl implements ConsoleReader
     //
 
     private final CursorBuffer buf = new CursorBuffer();
-    private boolean cursorOk;
 
     private Size size;
 
@@ -181,6 +184,10 @@ public class ConsoleReaderImpl implements ConsoleReader
     private CompletionHandler completionHandler = new CandidateListCompletionHandler();
 
     private Thread readLineThread;
+
+    private String oldBuf;
+    private int oldCursor;
+    private String oldPrompt;
 
     /**
      * Possible states in which the current readline operation may be in.
@@ -259,9 +266,9 @@ public class ConsoleReaderImpl implements ConsoleReader
             rebind(keyMap, Operation.UNIX_WORD_RUBOUT,
                            /* C-W */ (char) 23,  (char) attr.getControlChar(ControlChar.VWERASE));
             rebind(keyMap, Operation.UNIX_LINE_DISCARD,
-                           /* C-U */ (char) 21,  (char) attr.getControlChar(ControlChar.VKILL));
+                           /* C-U */ (char) 21, (char) attr.getControlChar(ControlChar.VKILL));
             rebind(keyMap, Operation.QUOTED_INSERT,
-                           /* C-V */ (char) 22,  (char) attr.getControlChar(ControlChar.VLNEXT));
+                           /* C-V */ (char) 22, (char) attr.getControlChar(ControlChar.VLNEXT));
         }
     }
 
@@ -282,7 +289,8 @@ public class ConsoleReaderImpl implements ConsoleReader
 //                console.init();
                 // TODO: enter raw mode
                 try {
-                    drawLine();
+                    redrawLine();
+                    redisplay();
                     flush();
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -312,8 +320,8 @@ public class ConsoleReaderImpl implements ConsoleReader
     }
 
     private void setPrompt(final String prompt) {
-        this.prompt = prompt;
-        this.promptLen = ((prompt == null) ? 0 : wcwidth(Ansi.stripAnsi(lastLine(prompt)), 0));
+        this.prompt = prompt != null ? prompt : "";
+        this.promptLen = wcwidth(Ansi.stripAnsi(lastLine(this.prompt)), 0);
     }
 
     /**
@@ -398,6 +406,7 @@ public class ConsoleReaderImpl implements ConsoleReader
      * null is returned if prompt is null.
      */
     private String lastLine(String str) {
+        // TODO: use ansi splitter to support ansi sequences propagation across lines
         if (str == null) return "";
         int last = str.lastIndexOf("\n");
 
@@ -471,25 +480,12 @@ public class ConsoleReaderImpl implements ConsoleReader
     }
 
     /**
-     * Output put the prompt + the current buffer
-     */
-    public void drawLine() throws IOException {
-        if (prompt != null) {
-            rawPrint(prompt);
-        }
-
-        print(buf.buffer, 0, buf.cursor, promptLen);
-
-        // force drawBuffer to check for weird wrap (after clear screen)
-        drawBuffer();
-    }
-
-    /**
      * Clear the line and redraw it.
      */
     public void redrawLine() throws IOException {
-        console.puts(Capability.carriage_return);
-        drawLine();
+        oldBuf = "";
+        oldCursor = 0;
+        oldPrompt = "";
     }
 
     /**
@@ -694,137 +690,8 @@ public class ConsoleReaderImpl implements ConsoleReader
     /**
      * Write out the specified string to the buffer and the output stream.
      */
-    @SuppressWarnings("StatementWithEmptyBody")
     public void putString(final CharSequence str) throws IOException {
-        int pos = getCursorPosition();
         buf.write(str);
-        if (mask == null) {
-            // no masking
-            print(str, pos);
-        } else if (mask == NULL_MASK) {
-            // don't print anything
-        } else {
-            rawPrint(mask, str.length());
-        }
-        drawBuffer();
-    }
-
-    /**
-     * Redraw the rest of the buffer from the cursor onwards. This is necessary
-     * for inserting text into the buffer.
-     *
-     * @param clear the number of characters to clear after the end of the buffer
-     */
-    private void drawBuffer(final int clear) throws IOException {
-        // debug ("drawBuffer: " + clear);
-        int nbChars = buf.length() - buf.cursor;
-        if (buf.cursor != buf.length() || clear != 0) {
-            if (mask != null) {
-                if (mask != NULL_MASK) {
-                    rawPrint(mask, nbChars);
-                } else {
-                    nbChars = 0;
-                }
-            } else {
-                print(buf.buffer, buf.cursor, buf.length());
-            }
-        }
-        int cursorPos = promptLen + wcwidth(buf.buffer, 0, buf.length(), promptLen);
-
-        if (console.getBooleanCapability(Capability.auto_right_margin)
-                && console.getBooleanCapability(Capability.eat_newline_glitch)
-                && !cursorOk) {
-            int width = size.getColumns();
-            // best guess on whether the cursor is in that weird location...
-            // Need to do this without calling ansi cursor location methods
-            // otherwise it breaks paste of wrapped lines in xterm.
-            if (cursorPos > 0 && (cursorPos % width == 0)) {
-                // the following workaround is reverse-engineered from looking
-                // at what bash sent to the console in the same situation
-                rawPrint(' '); // move cursor to next line by printing dummy space
-                console.puts(Capability.carriage_return); // CR / not newline.
-            }
-            cursorOk = true;
-        }
-        clearAhead(clear, cursorPos);
-        back(nbChars);
-    }
-
-    /**
-     * Redraw the rest of the buffer from the cursor onwards. This is necessary
-     * for inserting text into the buffer.
-     */
-    private void drawBuffer() throws IOException {
-        drawBuffer(0);
-    }
-
-    /**
-     * Clear ahead the specified number of characters without moving the cursor.
-     *
-     * @param num the number of characters to clear
-     * @param pos the current screen cursor position
-     */
-    private void clearAhead(int num, final int pos) throws IOException {
-        if (num == 0) return;
-
-        int width = size.getColumns();
-        // Use kill line
-        if (console.getStringCapability(Capability.clr_eol) != null) {
-            int cur = pos;
-            int c0 = cur % width;
-            // Erase end of current line
-            int nb = Math.min(num, width - c0);
-            console.puts(Capability.clr_eol);
-            num -= nb;
-            // Loop
-            while (num > 0) {
-                // Move to beginning of next line
-                int prev = cur;
-                cur = cur - cur % width + width;
-                moveCursorFromTo(prev, cur);
-                // Erase
-                nb = Math.min(num, width);
-                console.puts(Capability.clr_eol);
-                num -= nb;
-            }
-            moveCursorFromTo(cur, pos);
-        }
-        // Terminal does not wrap on the right margin
-        else if (!console.getBooleanCapability(Capability.auto_right_margin)) {
-            int cur = pos;
-            int c0 = cur % width;
-            // Erase end of current line
-            int nb = Math.min(num, width - c0);
-            rawPrint(' ', nb);
-            num -= nb;
-            cur += nb;
-            // Loop
-            while (num > 0) {
-                // Move to beginning of next line
-                moveCursorFromTo(cur, ++cur);
-                // Erase
-                nb = Math.min(num, width);
-                rawPrint(' ', nb);
-                num -= nb;
-                cur += nb;
-            }
-            moveCursorFromTo(cur, pos);
-        }
-        // Simple erasure
-        else {
-            rawPrint(' ', num);
-            moveCursorFromTo(pos + num, pos);
-        }
-    }
-
-    /**
-     * Move the visual cursor backward without modifying the buffer cursor.
-     */
-    protected void back(final int num) throws IOException {
-        if (num == 0) return;
-        int i0 = promptLen + wcwidth(buf.buffer, 0, buf.cursor, promptLen);
-        int i1 = i0 + ((mask != null) ? num : wcwidth(buf.buffer, buf.cursor, buf.cursor + num, i0));
-        moveCursorFromTo(i1, i0);
     }
 
     /**
@@ -850,10 +717,8 @@ public class ConsoleReaderImpl implements ConsoleReader
         }
 
         int count = - moveCursor(-num);
-        int clear = wcwidth(buf.buffer, buf.cursor, buf.cursor + count, getCursorPosition());
         buf.buffer.delete(buf.cursor, buf.cursor + count);
 
-        drawBuffer(clear);
         return count;
     }
 
@@ -882,7 +747,6 @@ public class ConsoleReaderImpl implements ConsoleReader
         }
 
         buf.buffer.deleteCharAt(buf.cursor);
-        drawBuffer(1);
         return true;
     }
 
@@ -971,7 +835,6 @@ public class ConsoleReaderImpl implements ConsoleReader
                     ch = Character.toUpperCase(ch);
                 }
                 buf.buffer.setCharAt(buf.cursor, ch);
-                drawBuffer(1);
                 moveCursor(1);
             }
         }
@@ -996,7 +859,6 @@ public class ConsoleReaderImpl implements ConsoleReader
             ok = buf.cursor < buf.buffer.length ();
             if (ok) {
                 buf.buffer.setCharAt(buf.cursor, (char) c);
-                drawBuffer(1);
                 if (i < (count-1)) {
                     moveCursor(1);
                 }
@@ -1062,7 +924,6 @@ public class ConsoleReaderImpl implements ConsoleReader
         setCursorPosition(startPos);
         buf.cursor = startPos;
         buf.buffer.delete(startPos, endPos);
-        drawBuffer(endPos - startPos);
 
         // If we are doing a delete operation (e.g. "d$") then don't leave the
         // cursor dangling off the end. In reality the "isChange" flag is silly
@@ -1722,7 +1583,6 @@ public class ConsoleReaderImpl implements ConsoleReader
             first = false;
             i++;
         }
-        drawBuffer();
         moveCursor(i - 1);
         return true;
     }
@@ -1734,7 +1594,6 @@ public class ConsoleReaderImpl implements ConsoleReader
             buf.buffer.setCharAt(buf.cursor + i - 1, Character.toUpperCase(c));
             i++;
         }
-        drawBuffer();
         moveCursor(i - 1);
         return true;
     }
@@ -1746,7 +1605,6 @@ public class ConsoleReaderImpl implements ConsoleReader
             buf.buffer.setCharAt(buf.cursor + i - 1, Character.toLowerCase(c));
             i++;
         }
-        drawBuffer();
         moveCursor(i - 1);
         return true;
     }
@@ -1773,10 +1631,7 @@ public class ConsoleReaderImpl implements ConsoleReader
             buf.buffer.setCharAt(first, buf.buffer.charAt(second));
             buf.buffer.setCharAt(second, tmp);
 
-            // This could be done more efficiently by only re-drawing at the end.
-            moveInternal(-1);
-            drawBuffer();
-            moveInternal(2);
+            buf.cursor++;
         }
 
         return true;
@@ -1842,42 +1697,13 @@ public class ConsoleReaderImpl implements ConsoleReader
             where = buf.buffer.length() - buf.cursor;
         }
 
-        moveInternal(where);
+        buf.cursor += where;
 
         return where;
     }
 
-    /**
-     * Move the cursor <i>where</i> characters, without checking the current buffer.
-     *
-     * @param where the number of characters to move to the right or left.
-     */
-    private void moveInternal(final int where) throws IOException {
-        // debug ("move cursor " + where + " ("
-        // + buf.cursor + " => " + (buf.cursor + where) + ")");
-        buf.cursor += where;
-
-        int i0;
-        int i1;
-        if (mask == null) {
-            if (where < 0) {
-                i1 = promptLen + wcwidth(buf.buffer, 0, buf.cursor, promptLen);
-                i0 = i1 + wcwidth(buf.buffer, buf.cursor, buf.cursor - where, i1);
-            } else {
-                i0 = promptLen + wcwidth(buf.buffer, 0, buf.cursor - where, promptLen);
-                i1 = i0 + wcwidth(buf.buffer, buf.cursor - where, buf.cursor, i0);
-            }
-        } else if (mask != NULL_MASK) {
-            i1 = promptLen + buf.cursor;
-            i0 = i1 - where;
-        } else {
-            return;
-        }
-        moveCursorFromTo(i0, i1);
-    }
-
-    private void moveCursorFromTo(int i0, int i1) throws IOException {
-        if (i0 == i1) return;
+    private int moveCursorFromTo(int i0, int i1) throws IOException {
+        if (i0 == i1) return i1;
         int width = size.getColumns();
         int l0 = i0 / width;
         int c0 = i0 % width;
@@ -1915,7 +1741,7 @@ public class ConsoleReaderImpl implements ConsoleReader
                 }
             }
         }
-        cursorOk = true;
+        return i1;
     }
 
     /**
@@ -2155,6 +1981,8 @@ public class ConsoleReaderImpl implements ConsoleReader
             });
             originalAttributes = console.enterRawMode();
 
+            this.mask = mask;
+
             /*
              * This is the accumulator for VI-mode repeat count. That is, while in
              * move mode, if you type 30x it will delete 30 characters. This is
@@ -2162,23 +1990,23 @@ public class ConsoleReaderImpl implements ConsoleReader
              */
             int repeatCount = 0;
 
-            this.mask = mask;
-            setPrompt(prompt);
-
-            String originalPrompt = this.prompt;
-
             state = State.NORMAL;
 
             pushBackChar.clear();
 
+            size = console.getSize();
+
+            setPrompt(prompt);
+            buf.clear();
             if (buffer != null) {
                 buf.write(buffer);
             }
+            String originalPrompt = this.prompt;
 
-            if (prompt != null && prompt.length() > 0) {
-                console.writer().write(prompt);
-                console.writer().flush();
-            }
+            // Draw initial prompt
+            redrawLine();
+            redisplay();
+            flush();
 
             while (true) {
 
@@ -2214,8 +2042,6 @@ public class ConsoleReaderImpl implements ConsoleReader
 
                 // Cache console size for the duration of the binding processing
                 this.size = console.getSize();
-
-                CursorBuffer oldBuf = buf.copy();
 
                 // Search mode.
                 //
@@ -2406,7 +2232,6 @@ public class ConsoleReaderImpl implements ConsoleReader
 
                             case CLEAR_SCREEN: // CTRL-L
                                 success = clearScreen();
-                                redrawLine();
                                 break;
 
                             case OVERWRITE_MODE:
@@ -2917,6 +2742,7 @@ public class ConsoleReaderImpl implements ConsoleReader
                         }
                     }
                 }
+                redisplay();
                 if (!success) {
                     beep();
                 }
@@ -2948,6 +2774,222 @@ public class ConsoleReaderImpl implements ConsoleReader
                 console.handle(Signal.INT, previousIntrHandler);
             }
         }
+    }
+
+    static class CodePointIterator implements Iterator<Integer> {
+
+        final String str;
+        int cur = 0;
+
+        public CodePointIterator(String str) {
+            this.str = str;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return cur < str.length();
+        }
+
+        @Override
+        public Integer next() {
+            final int length = str.length();
+            if (cur >= length) {
+                throw new NoSuchElementException();
+            }
+            char c1 = str.charAt(cur++);
+            if (Character.isHighSurrogate(c1) && cur < length) {
+                char c2 = str.charAt(cur);
+                if (Character.isLowSurrogate(c2)) {
+                    cur++;
+                    return Character.toCodePoint(c1, c2);
+                }
+            }
+            return (int) c1;
+        }
+    }
+
+    private void redisplay() throws IOException {
+
+        if (!oldPrompt.equals(prompt)) {
+            console.puts(Capability.carriage_return);
+            console.puts(Capability.clr_eol);
+            rawPrint(prompt);
+            oldCursor = 0;
+        }
+
+        String newBuf = buf.buffer.toString();
+        int newCursor = buf.cursor;
+        List<String> oldLines = new ArrayList<>();
+        List<String> newLines = new ArrayList<>();
+        int oldCursorPos = promptLen;
+        int newCursorPos = promptLen;
+
+        //
+        // Split lines and compute old/new cursor position
+        //
+
+        // Old buffer
+        StringBuilder sb = new StringBuilder();
+        int curCol = promptLen;
+        int cursorIndex = 0;
+        for (CodePointIterator it = new CodePointIterator(oldBuf); it.hasNext();) {
+            int ucs = it.next();
+            int width = wcwidth(ucs, curCol);
+            if (curCol + width > size.getColumns()) {
+                oldLines.add(sb.toString());
+                sb.setLength(0);
+                curCol = 0;
+            }
+            curCol += width;
+            if (cursorIndex++ < oldCursor) {
+                oldCursorPos += width;
+            }
+            sb.appendCodePoint(ucs);
+        }
+        oldLines.add(sb.toString());
+
+        // New buffer
+        curCol = promptLen;
+        cursorIndex = 0;
+        sb.setLength(0);
+        for (CodePointIterator it = new CodePointIterator(newBuf); it.hasNext();) {
+            int ucs = it.next();
+            int width = wcwidth(ucs, curCol);
+            if (curCol + width > size.getColumns()) {
+                newLines.add(sb.toString());
+                sb.setLength(0);
+                curCol = 0;
+            }
+            curCol += width;
+            if (cursorIndex++ < newCursor) {
+                newCursorPos += width;
+            }
+            sb.appendCodePoint(ucs);
+        }
+        newLines.add(sb.toString());
+
+        int cursorPos = oldCursorPos;
+        int lineIndex = 0;
+        int currentPos = promptLen;
+        while (lineIndex < Math.min(oldLines.size(), newLines.size())) {
+            String oldLine = oldLines.get(lineIndex);
+            String newLine = newLines.get(lineIndex);
+            lineIndex++;
+
+            LinkedList<DiffHelper.Diff> diffs = DiffHelper.diff(oldLine, newLine);
+            boolean ident = true;
+            boolean cleared = false;
+            curCol = currentPos;
+            for (int i = 0; i < diffs.size(); i++) {
+                DiffHelper.Diff diff = diffs.get(i);
+                int width = wcwidth(diff.text, currentPos);
+                switch (diff.operation) {
+                    case EQUAL:
+                        if (!ident) {
+                            cursorPos = moveCursorFromTo(cursorPos, currentPos);
+                            print(diff.text, cursorPos);
+                            cursorPos += width;
+                            currentPos = cursorPos;
+                        } else {
+                            currentPos += width;
+                        }
+                        break;
+                    case INSERT:
+                        if (i <= diffs.size() - 2
+                                && diffs.get(i+1).operation == DiffHelper.Operation.EQUAL) {
+                            cursorPos = moveCursorFromTo(cursorPos, currentPos);
+                            boolean hasIch = console.getStringCapability(Capability.parm_ich) != null;
+                            boolean hasIch1 = console.getStringCapability(Capability.insert_character) != null;
+                            if (hasIch) {
+                                console.puts(Capability.parm_ich, width);
+                                print(diff.text, cursorPos);
+                                cursorPos += width;
+                                currentPos = cursorPos;
+                                break;
+                            } else if (hasIch1) {
+                                for (int j = 0; j < width; j++) {
+                                    console.puts(Capability.insert_character);
+                                }
+                                print(diff.text, cursorPos);
+                                cursorPos += width;
+                                currentPos = cursorPos;
+                                break;
+                            }
+                        }
+                        cursorPos = moveCursorFromTo(cursorPos, currentPos);
+                        print(diff.text, cursorPos);
+                        cursorPos += width;
+                        currentPos = cursorPos;
+                        ident = false;
+                        break;
+                    case DELETE:
+                        if (cleared) {
+                            continue;
+                        }
+                        if (currentPos - curCol >= size.getColumns()) {
+                            continue;
+                        }
+                        if (i <= diffs.size() - 2
+                                && diffs.get(i+1).operation == DiffHelper.Operation.EQUAL) {
+                            if (currentPos + wcwidth(diffs.get(i+1).text, cursorPos) < size.getColumns()) {
+                                cursorPos = moveCursorFromTo(cursorPos, currentPos);
+                                boolean hasDch = console.getStringCapability(Capability.parm_dch) != null;
+                                boolean hasDch1 = console.getStringCapability(Capability.delete_character) != null;
+                                if (hasDch) {
+                                    console.puts(Capability.parm_dch, width);
+                                    break;
+                                } else if (hasDch1) {
+                                    for (int j = 0; j < width; j++) {
+                                        console.puts(Capability.delete_character);
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        int oldLen = wcwidth(oldLine, 0);
+                        int newLen = wcwidth(newLine, 0);
+                        int nb = Math.max(oldLen, newLen) - currentPos;
+                        moveCursorFromTo(cursorPos, currentPos);
+                        cursorPos = currentPos;
+                        if (!console.puts(Capability.clr_eol)) {
+                            rawPrint(' ', nb);
+                            cursorPos += nb;
+                        }
+                        cleared = true;
+                        ident = false;
+                        break;
+                }
+            }
+            if (console.getBooleanCapability(Capability.auto_right_margin)
+                    && console.getBooleanCapability(Capability.eat_newline_glitch)
+                    && cursorPos > curCol && cursorPos % size.getColumns() == 0) {
+                rawPrint(' '); // move cursor to next line by printing dummy space
+                console.puts(Capability.carriage_return); // CR / not newline.
+            }
+        }
+        boolean isOnNextLine = (currentPos % size.getColumns() == 0);
+        while (lineIndex < Math.max(oldLines.size(), newLines.size())) {
+            cursorPos = moveCursorFromTo(cursorPos, currentPos - currentPos % size.getColumns() + (isOnNextLine ? 0 : size.getColumns()));
+            if (lineIndex < oldLines.size()) {
+                if (console.getStringCapability(Capability.clr_eol) != null) {
+                    console.puts(Capability.clr_eol);
+                } else {
+                    int nb = wcwidth(newLines.get(lineIndex), cursorPos);
+                    rawPrint(' ', nb);
+                    cursorPos += nb;
+                }
+            } else {
+                print(newLines.get(lineIndex));
+                cursorPos += wcwidth(newLines.get(lineIndex), cursorPos);
+            }
+            lineIndex++;
+            isOnNextLine = false;
+            currentPos = cursorPos;
+        }
+        moveCursorFromTo(cursorPos, newCursorPos);
+        oldBuf = newBuf;
+        oldCursor = newCursor;
+        oldPrompt = prompt;
     }
 
     //
@@ -3037,7 +3079,6 @@ public class ConsoleReaderImpl implements ConsoleReader
             }
         }
         printCandidates(candidates);
-        drawLine();
     }
 
     //
@@ -3122,7 +3163,6 @@ public class ConsoleReaderImpl implements ConsoleReader
                 }
             }
         }
-        cursorOk = false;
         return cursorPos;
     }
 
@@ -3144,6 +3184,7 @@ public class ConsoleReaderImpl implements ConsoleReader
     public void println() throws IOException {
         console.puts(Capability.carriage_return);
         rawPrint('\n');
+        redrawLine();
     }
 
     /**
@@ -3151,12 +3192,10 @@ public class ConsoleReaderImpl implements ConsoleReader
      */
     final void rawPrint(final int c) throws IOException {
         console.writer().write(c);
-        cursorOk = false;
     }
 
     final void rawPrint(final String str) throws IOException {
         console.writer().write(str);
-        cursorOk = false;
     }
 
     private void rawPrint(final char c, final int num) throws IOException {
@@ -3186,7 +3225,6 @@ public class ConsoleReaderImpl implements ConsoleReader
         }
 
         buf.buffer.delete(buf.cursor, buf.cursor + 1);
-        drawBuffer(1);
 
         return true;
     }
@@ -3205,9 +3243,6 @@ public class ConsoleReaderImpl implements ConsoleReader
         }
 
         int num = len - cp;
-        int pos = getCursorPosition();
-        int width = wcwidth(buf.buffer, cp, len, pos);
-        clearAhead(width, pos);
 
         char[] killed = new char[num];
         buf.buffer.getChars(cp, (cp + num), killed, 0);
@@ -3253,7 +3288,9 @@ public class ConsoleReaderImpl implements ConsoleReader
      * Clear the screen by issuing the ANSI "clear screen" code.
      */
     public boolean clearScreen() throws IOException {
-        if (!console.puts(Capability.clear_screen)) {
+        if (console.puts(Capability.clear_screen)) {
+            redrawLine();
+        } else {
             println();
         }
         return true;
@@ -3494,7 +3531,7 @@ public class ConsoleReaderImpl implements ConsoleReader
                         showLines = height - 1;
                     }
 
-                    back(more.length());
+                    console.puts(Capability.carriage_return);
                     if (c == 'q') {
                         // cancel
                         break;
@@ -3528,7 +3565,6 @@ public class ConsoleReaderImpl implements ConsoleReader
      *            -1 for end of line.
      * */
     public void resetPromptLine(String prompt, String buffer, int cursorDest) throws IOException {
-        // move cursor to end of line
         moveToEnd();
 
         // backspace all text, including prompt
@@ -3543,7 +3579,6 @@ public class ConsoleReaderImpl implements ConsoleReader
         backspaceAll();
 
         setPrompt(prompt);
-        redrawLine();
         setBuffer(buffer);
 
         // move cursor to destination (-1 will move to end of line)
@@ -3562,16 +3597,24 @@ public class ConsoleReaderImpl implements ConsoleReader
     }
 
     private void printSearchStatus(String searchTerm, String match, String searchLabel) throws IOException {
-        String prompt = searchLabel + searchTerm + "': ";
         int cursorDest = match.indexOf(searchTerm);
-        resetPromptLine(prompt, match, cursorDest);
+
+        setPrompt(searchLabel + searchTerm + "': ");
+        setBuffer(match);
+        redrawLine();
     }
 
     public void restoreLine(String originalPrompt, int cursorDest) throws IOException {
         // TODO move cursor to matched string
-        String prompt = lastLine(originalPrompt);
-        String buffer = buf.buffer.toString();
-        resetPromptLine(prompt, buffer, cursorDest);
+        setPrompt(originalPrompt);
+        oldPrompt = prompt;
+        oldBuf = "";
+        oldCursor = 0;
+
+        console.puts(Capability.carriage_return);
+        console.puts(Capability.clr_eol);
+        rawPrint(lastLine(originalPrompt));
+        redisplay();
     }
 
     //

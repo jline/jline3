@@ -110,7 +110,7 @@ public class Example
                 }
                 else if (args[index].equals("color")) {
                     color = true;
-                    prompt = "\u001B[42mfoo\u001B[0m@bar\u001B[32m@baz\u001B[0m> ";
+                    prompt = "\u001B[42mfoo\u001B[0m@bar\u001B[32m\nbaz\u001B[0m> ";
                     completers.add(new AnsiStringsCompleter("\u001B[1mfoo\u001B[0m", "bar", "\u001B[32mbaz\u001B[0m"));
                     CandidateListCompletionHandler handler = new CandidateListCompletionHandler();
                     handler.setStripAnsi(true);

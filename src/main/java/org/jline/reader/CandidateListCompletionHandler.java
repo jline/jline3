@@ -73,15 +73,16 @@ public class CandidateListCompletionHandler
         }
         else if (candidates.size() > 1) {
             String value = getUnambiguousCompletions(candidates);
-            setBuffer(reader, value, pos);
+            if (!buf.buffer.substring(pos, buf.cursor).equals(value)) {
+                setBuffer(reader, value, pos);
+            } else {
+                reader.printCandidates(candidates);
+            }
+            return true;
         }
-
-        reader.printCandidates(candidates);
-
-        // redraw the current console buffer
-        reader.drawLine();
-
-        return true;
+        else {
+            return false;
+        }
     }
 
     @SuppressWarnings("StatementWithEmptyBody")
