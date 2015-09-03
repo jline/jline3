@@ -16,7 +16,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.jline.Completer;
-import org.jline.utils.Ansi;
+import org.jline.utils.AnsiHelper;
 
 import static org.jline.utils.Preconditions.checkNotNull;
 
@@ -38,7 +38,7 @@ public class AnsiStringsCompleter
     public AnsiStringsCompleter(final Collection<String> strings) {
         checkNotNull(strings);
         for (String str : strings) {
-            this.strings.put(Ansi.stripAnsi(str), str);
+            this.strings.put(AnsiHelper.strip(str), str);
         }
     }
 
@@ -50,7 +50,7 @@ public class AnsiStringsCompleter
         return strings.values();
     }
 
-    public int complete(String buffer, final int cursor, final List<CharSequence> candidates) {
+    public int complete(String buffer, final int cursor, final List<String> candidates) {
         // buffer could be null
         checkNotNull(candidates);
 
@@ -58,7 +58,7 @@ public class AnsiStringsCompleter
             candidates.addAll(strings.values());
         }
         else {
-            buffer = Ansi.stripAnsi(buffer);
+            buffer = AnsiHelper.strip(buffer);
             for (Map.Entry<String, String> match : strings.tailMap(buffer).entrySet()) {
                 if (!match.getKey().startsWith(buffer)) {
                     break;

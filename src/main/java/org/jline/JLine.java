@@ -116,6 +116,11 @@ public final class JLine {
             return this;
         }
 
+        public ConsoleBuilder highlighter(Highlighter highlighter) {
+            consoleReaderBuilder.highlighter(highlighter);
+            return this;
+        }
+
         public ConsoleBuilder nativePty(boolean nativePty) {
             this.nativePty = nativePty;
             return this;
@@ -161,6 +166,7 @@ public final class JLine {
         List<Completer> completers;
         CompletionHandler completionHandler;
         History memoryHistory;
+        Highlighter highlighter;
 
         public ConsoleReaderBuilder() {
         }
@@ -200,6 +206,11 @@ public final class JLine {
             return this;
         }
 
+        public ConsoleReaderBuilder highlighter(Highlighter highlighter) {
+            this.highlighter = highlighter;
+            return this;
+        }
+
         public ConsoleReader build() {
             ConsoleReaderImpl reader = new ConsoleReaderImpl(console, appName, inputrc, variables);
             if (history != null) {
@@ -215,6 +226,9 @@ public final class JLine {
             }
             if (completionHandler != null) {
                 reader.setCompletionHandler(completionHandler);
+            }
+            if (highlighter != null) {
+                reader.setHighlighter(highlighter);
             }
             return reader;
         }

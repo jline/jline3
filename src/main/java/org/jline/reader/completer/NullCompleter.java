@@ -24,7 +24,7 @@ public final class NullCompleter
 {
     public static final NullCompleter INSTANCE = new NullCompleter();
 
-    public int complete(final String buffer, final int cursor, final List<CharSequence> candidates) {
+    public int complete(final String buffer, final int cursor, final List<String> candidates) {
         return -1;
     }
 }

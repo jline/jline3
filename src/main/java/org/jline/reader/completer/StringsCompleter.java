@@ -46,7 +46,7 @@ public class StringsCompleter
         return strings;
     }
 
-    public int complete(final String buffer, final int cursor, final List<CharSequence> candidates) {
+    public int complete(final String buffer, final int cursor, final List<String> candidates) {
         // buffer could be null
         checkNotNull(candidates);
 

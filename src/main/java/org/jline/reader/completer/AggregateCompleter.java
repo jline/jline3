@@ -69,7 +69,7 @@ public class AggregateCompleter
      * @see Completer#complete(String, int, List)
      * @return the highest completion return value from all completers
      */
-    public int complete(final String buffer, final int cursor, final List<CharSequence> candidates) {
+    public int complete(final String buffer, final int cursor, final List<String> candidates) {
         // buffer could be null
         checkNotNull(candidates);
 
@@ -109,13 +109,13 @@ public class AggregateCompleter
 
     private class Completion
     {
-        public final List<CharSequence> candidates;
+        public final List<String> candidates;
 
         public int cursor;
 
-        public Completion(final List<CharSequence> candidates) {
+        public Completion(final List<String> candidates) {
             checkNotNull(candidates);
-            this.candidates = new LinkedList<CharSequence>(candidates);
+            this.candidates = new LinkedList<>(candidates);
         }
 
         public void complete(final Completer completer, final String buffer, final int cursor) {

@@ -47,7 +47,7 @@ public class FileNameCompleter
         OS_IS_WINDOWS = os.contains("windows");
     }
 
-    public int complete(String buffer, final int cursor, final List<CharSequence> candidates) {
+    public int complete(String buffer, final int cursor, final List<String> candidates) {
         // buffer can be null
         checkNotNull(candidates);
 
@@ -102,7 +102,7 @@ public class FileNameCompleter
         return new File(System.getProperty("user.dir"));
     }
 
-    protected int matchFiles(final String buffer, final String translated, final File[] files, final List<CharSequence> candidates) {
+    protected int matchFiles(final String buffer, final String translated, final File[] files, final List<String> candidates) {
         if (files == null) {
             return -1;
         }

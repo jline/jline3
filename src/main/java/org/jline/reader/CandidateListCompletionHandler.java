@@ -11,7 +11,7 @@ package org.jline.reader;
 import java.io.IOException;
 import java.util.List;
 
-import org.jline.utils.Ansi;
+import org.jline.utils.AnsiHelper;
 
 /**
  * A {@link CompletionHandler} that deals with multiple distinct completions
@@ -47,14 +47,14 @@ public class CandidateListCompletionHandler
 
     // TODO: handle quotes and escaped quotes && enable automatic escaping of whitespace
 
-    public boolean complete(final ConsoleReaderImpl reader, final List<CharSequence> candidates, final int pos) throws
+    public boolean complete(final ConsoleReaderImpl reader, final List<String> candidates, final int pos) throws
         IOException
     {
         CursorBuffer buf = reader.getCursorBuffer();
 
         // if there is only one completion, then fill in the buffer
         if (candidates.size() == 1) {
-            String value = Ansi.stripAnsi(candidates.get(0).toString());
+            String value = AnsiHelper.strip(candidates.get(0));
 
             if (buf.cursor == buf.buffer.length()
                     && printSpaceAfterFullCompletion
@@ -102,22 +102,22 @@ public class CandidateListCompletionHandler
      * or null if there are no commonalities. For example, if the list contains
      * <i>foobar</i>, <i>foobaz</i>, <i>foobuz</i>, the method will return <i>foob</i>.
      */
-    private String getUnambiguousCompletions(final List<CharSequence> candidates) {
+    private String getUnambiguousCompletions(final List<String> candidates) {
         if (candidates == null || candidates.isEmpty()) {
             return null;
         }
 
         if (candidates.size() == 1) {
-            return candidates.get(0).toString();
+            return candidates.get(0);
         }
 
         // convert to an array for speed
         String first = null;
         String[] strings = new String[candidates.size() - 1];
         for (int i = 0; i < candidates.size(); i++) {
-            String str = candidates.get(i).toString();
+            String str = candidates.get(i);
             if (stripAnsi) {
-                str = Ansi.stripAnsi(str);
+                str = AnsiHelper.strip(str);
             }
             if (first == null) {
                 first = str;

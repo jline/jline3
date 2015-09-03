@@ -30,5 +30,5 @@ public interface Completer
      * @param candidates    The {@link List} of candidates to populate
      * @return              The index of the <i>buffer</i> for which the completion will be relative
      */
-    int complete(String buffer, int cursor, List<CharSequence> candidates);
+    int complete(String buffer, int cursor, List<String> candidates);
 }

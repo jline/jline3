@@ -23,21 +23,17 @@ import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.ResourceBundle;
-import java.util.Set;
 import java.util.Stack;
 
 import org.jline.Completer;
@@ -45,18 +41,19 @@ import org.jline.Console;
 import org.jline.Console.Signal;
 import org.jline.Console.SignalHandler;
 import org.jline.ConsoleReader;
+import org.jline.Highlighter;
 import org.jline.History;
 import org.jline.console.Attributes;
 import org.jline.console.Attributes.ControlChar;
 import org.jline.console.Size;
 import org.jline.reader.history.MemoryHistory;
-import org.jline.utils.Ansi;
+import org.jline.utils.AnsiHelper;
+import org.jline.utils.DiffHelper;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.Log;
 import org.jline.utils.NonBlockingReader;
 import org.jline.utils.Signals;
 import org.jline.utils.WCWidth;
-import org.jline.utils.DiffHelper;
 
 import static org.jline.reader.KeyMap.ESCAPE;
 import static org.jline.utils.NonBlockingReader.READ_EXPIRED;
@@ -185,9 +182,19 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     private Thread readLineThread;
 
+    private String originalPrompt;
+
     private String oldBuf;
-    private int oldCursor;
+    private int oldColumns;
     private String oldPrompt;
+    private String[] oldPost;
+
+    private String[] post;
+
+    private int cursorPos;
+    private int maxLines;
+
+    private Highlighter highlighter = new DefaultHighlighter();
 
     /**
      * Possible states in which the current readline operation may be in.
@@ -321,7 +328,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     private void setPrompt(final String prompt) {
         this.prompt = prompt != null ? prompt : "";
-        this.promptLen = wcwidth(Ansi.stripAnsi(lastLine(this.prompt)), 0);
+        this.promptLen = wcwidth(lastLine(AnsiHelper.strip(this.prompt)), 0);
     }
 
     /**
@@ -425,7 +432,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             return true;
         }
 
-        return moveCursor(position - buf.cursor) != 0;
+        return moveBufferCursor(position - buf.cursor) != 0;
     }
 
     /**
@@ -484,8 +491,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      */
     public void redrawLine() throws IOException {
         oldBuf = "";
-        oldCursor = 0;
         oldPrompt = "";
+        oldPost = null;
     }
 
     /**
@@ -679,8 +686,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
         String result = sb.toString();
         if (!str.equals(result)) {
-            print(result);
-            println();
+            println(result);
             flush();
         }
         return result;
@@ -702,10 +708,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         console.writer().flush();
     }
 
-    private int backspaceAll() throws IOException {
-        return backspace(Integer.MAX_VALUE);
-    }
-
     /**
      * Issue <em>num</em> backspaces.
      *
@@ -716,7 +718,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             return 0;
         }
 
-        int count = - moveCursor(-num);
+        int count = - moveBufferCursor(-num);
         buf.buffer.delete(buf.cursor, buf.cursor + count);
 
         return count;
@@ -735,7 +737,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         if (buf.cursor == buf.length()) {
             return true;
         }
-        return moveCursor(buf.length() - buf.cursor) > 0;
+        return moveBufferCursor(buf.length() - buf.cursor) > 0;
     }
 
     /**
@@ -835,7 +837,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                     ch = Character.toUpperCase(ch);
                 }
                 buf.buffer.setCharAt(buf.cursor, ch);
-                moveCursor(1);
+                moveBufferCursor(1);
             }
         }
         return ok;
@@ -860,7 +862,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             if (ok) {
                 buf.buffer.setCharAt(buf.cursor, (char) c);
                 if (i < (count-1)) {
-                    moveCursor(1);
+                    moveBufferCursor(1);
                 }
             }
         }
@@ -931,7 +933,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         // cursor can't be moved off the end of the line, but in "edit-mode" it
         // is ok, but I have no easy way of knowing which mode we are in.
         if (! isChange && startPos > 0 && startPos == buf.length()) {
-            moveCursor(-1);
+            moveBufferCursor(-1);
         }
         return true;
     }
@@ -981,12 +983,12 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             return true;
         }
         if (buf.cursor < buf.buffer.length ()) {
-            moveCursor(1);
+            moveBufferCursor(1);
         }
         for (int i = 0; i < count; i++) {
             putString(yankBuffer);
         }
-        moveCursor(-1);
+        moveBufferCursor(-1);
         return true;
     }
 
@@ -1062,7 +1064,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
             if (ok) {
                 if (stopBefore)
-                    moveCursor(-1);
+                    moveBufferCursor(-1);
 
                 /*
                  * When in yank-to, move-to, del-to state we actually want to
@@ -1071,7 +1073,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                  * operation
                  */
                 if (isInViMoveOperationState()) {
-                    moveCursor(1);
+                    moveBufferCursor(1);
                 }
             }
         }
@@ -1089,7 +1091,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             }
 
             if (ok && stopBefore)
-                moveCursor(1);
+                moveBufferCursor(1);
         }
 
         return ok;
@@ -1183,11 +1185,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     @SuppressWarnings("StatementWithEmptyBody")
     private boolean previousWord() throws IOException {
-        while (isDelimiter(buf.current()) && (moveCursor(-1) != 0)) {
+        while (isDelimiter(buf.current()) && (moveBufferCursor(-1) != 0)) {
             // nothing
         }
 
-        while (!isDelimiter(buf.current()) && (moveCursor(-1) != 0)) {
+        while (!isDelimiter(buf.current()) && (moveBufferCursor(-1) != 0)) {
             // nothing
         }
 
@@ -1196,11 +1198,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     @SuppressWarnings("StatementWithEmptyBody")
     private boolean nextWord() throws IOException {
-        while (isDelimiter(buf.nextChar()) && (moveCursor(1) != 0)) {
+        while (isDelimiter(buf.nextChar()) && (moveBufferCursor(1) != 0)) {
             // nothing
         }
 
-        while (!isDelimiter(buf.nextChar()) && (moveCursor(1) != 0)) {
+        while (!isDelimiter(buf.nextChar()) && (moveBufferCursor(1) != 0)) {
             // nothing
         }
 
@@ -1261,7 +1263,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         setCursorPosition(0);
         putString(comment);
         if (isViMode) {
-            consoleKeys.setKeyMap(KeyMap.VI_INSERT);
+            setKeyMap(KeyMap.VI_INSERT);
         }
         return accept();
     }
@@ -1442,7 +1444,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         int closePosition = buf.cursor;
 
-        moveCursor(-1);
+        moveBufferCursor(-1);
         viMatch();
 
         console.reader().peek(BLINK_MATCHING_PAREN_TIMEOUT);
@@ -1583,7 +1585,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             first = false;
             i++;
         }
-        moveCursor(i - 1);
+        moveBufferCursor(i - 1);
         return true;
     }
 
@@ -1594,7 +1596,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             buf.buffer.setCharAt(buf.cursor + i - 1, Character.toUpperCase(c));
             i++;
         }
-        moveCursor(i - 1);
+        moveBufferCursor(i - 1);
         return true;
     }
 
@@ -1605,7 +1607,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             buf.buffer.setCharAt(buf.cursor + i - 1, Character.toLowerCase(c));
             i++;
         }
-        moveCursor(i - 1);
+        moveBufferCursor(i - 1);
         return true;
     }
 
@@ -1661,6 +1663,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      */
     public String accept() throws IOException {
         moveToEnd();
+        post = null;
+        redisplay();
         println(); // output newline
         flush();
         return finishBuffer();
@@ -1679,7 +1683,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * @param num   If less than 0, move abs(<i>where</i>) to the left, otherwise move <i>where</i> to the right.
      * @return      The number of spaces we moved
      */
-    public int moveCursor(final int num) throws IOException {
+    public int moveBufferCursor(final int num) throws IOException {
         int where = num;
 
         if ((buf.cursor == 0) && (where <= 0)) {
@@ -1702,7 +1706,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return where;
     }
 
-    private int moveCursorFromTo(int i0, int i1) throws IOException {
+    private int moveVisualCursorTo(int i1) throws IOException {
+        int i0 = cursorPos;
         if (i0 == i1) return i1;
         int width = size.getColumns();
         int l0 = i0 / width;
@@ -1741,6 +1746,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 }
             }
         }
+        cursorPos = i1;
         return i1;
     }
 
@@ -1969,6 +1975,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         readLineThread = Thread.currentThread();
         SignalHandler previousIntrHandler = null;
+        SignalHandler previousWinchHandler = null;
         Attributes originalAttributes = null;
         try {
             previousIntrHandler = console.handle(Signal.INT, new SignalHandler() {
@@ -1976,6 +1983,17 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 public void handle(Signal signal) {
                     if (signal == Signal.INT) {
                         readLineThread.interrupt();
+                    }
+                }
+            });
+            previousWinchHandler = console.handle(Signal.WINCH, new SignalHandler() {
+                @Override
+                public void handle(Signal signal) {
+                    try {
+                        size = console.getSize();
+                        redisplay();
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
                 }
             });
@@ -1995,13 +2013,15 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             pushBackChar.clear();
 
             size = console.getSize();
+            cursorPos = 0;
+            maxLines = 0;
 
             setPrompt(prompt);
             buf.clear();
             if (buffer != null) {
                 buf.write(buffer);
             }
-            String originalPrompt = this.prompt;
+            originalPrompt = this.prompt;
 
             // Draw initial prompt
             redrawLine();
@@ -2137,7 +2157,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                     }
                     // otherwise, restore the line
                     else {
-                        restoreLine(originalPrompt, cursorDest);
+                        restoreLine(cursorDest);
                     }
                 }
                 if (state != State.SEARCH && state != State.FORWARD_SEARCH) {
@@ -2325,11 +2345,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                                 break;
 
                             case BACKWARD_CHAR:
-                                success = moveCursor(-(count)) != 0;
+                                success = moveBufferCursor(-(count)) != 0;
                                 break;
 
                             case FORWARD_CHAR:
-                                success = moveCursor(count) != 0;
+                                success = moveBufferCursor(count) != 0;
                                 break;
 
                             case UNIX_LINE_DISCARD:
@@ -2495,7 +2515,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                                  * mode.
                                  */
                                 if (state == State.NORMAL) {
-                                    moveCursor(-1);
+                                    moveBufferCursor(-1);
                                 }
                                 consoleKeys.setKeyMap(KeyMap.VI_MOVE);
                                 break;
@@ -2505,7 +2525,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                                 break;
 
                             case VI_APPEND_MODE:
-                                moveCursor(1);
+                                moveBufferCursor(1);
                                 consoleKeys.setKeyMap(KeyMap.VI_INSERT);
                                 break;
 
@@ -2773,104 +2793,31 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             if (previousIntrHandler != null) {
                 console.handle(Signal.INT, previousIntrHandler);
             }
-        }
-    }
-
-    static class CodePointIterator implements Iterator<Integer> {
-
-        final String str;
-        int cur = 0;
-
-        public CodePointIterator(String str) {
-            this.str = str;
-        }
-
-        @Override
-        public boolean hasNext() {
-            return cur < str.length();
-        }
-
-        @Override
-        public Integer next() {
-            final int length = str.length();
-            if (cur >= length) {
-                throw new NoSuchElementException();
+            if (previousWinchHandler != null) {
+                console.handle(Signal.WINCH, previousWinchHandler);
             }
-            char c1 = str.charAt(cur++);
-            if (Character.isHighSurrogate(c1) && cur < length) {
-                char c2 = str.charAt(cur);
-                if (Character.isLowSurrogate(c2)) {
-                    cur++;
-                    return Character.toCodePoint(c1, c2);
-                }
-            }
-            return (int) c1;
         }
     }
 
     private void redisplay() throws IOException {
-
-        if (!oldPrompt.equals(prompt)) {
-            console.puts(Capability.carriage_return);
-            console.puts(Capability.clr_eol);
-            rawPrint(prompt);
-            oldCursor = 0;
+        String buffer = buf.toString();
+        if (highlighter != null) {
+            buffer = highlighter.highlight(buffer);
         }
 
-        String newBuf = buf.buffer.toString();
-        int newCursor = buf.cursor;
-        List<String> oldLines = new ArrayList<>();
-        List<String> newLines = new ArrayList<>();
-        int oldCursorPos = promptLen;
-        int newCursorPos = promptLen;
-
-        //
-        // Split lines and compute old/new cursor position
-        //
-
-        // Old buffer
-        StringBuilder sb = new StringBuilder();
-        int curCol = promptLen;
-        int cursorIndex = 0;
-        for (CodePointIterator it = new CodePointIterator(oldBuf); it.hasNext();) {
-            int ucs = it.next();
-            int width = wcwidth(ucs, curCol);
-            if (curCol + width > size.getColumns()) {
-                oldLines.add(sb.toString());
-                sb.setLength(0);
-                curCol = 0;
-            }
-            curCol += width;
-            if (cursorIndex++ < oldCursor) {
-                oldCursorPos += width;
-            }
-            sb.appendCodePoint(ucs);
+        String oldPostStr = "";
+        String newPostStr = "";
+        if (oldPost != null) {
+            oldPostStr = "\n" + toColumns(oldPost, oldColumns);
         }
-        oldLines.add(sb.toString());
-
-        // New buffer
-        curCol = promptLen;
-        cursorIndex = 0;
-        sb.setLength(0);
-        for (CodePointIterator it = new CodePointIterator(newBuf); it.hasNext();) {
-            int ucs = it.next();
-            int width = wcwidth(ucs, curCol);
-            if (curCol + width > size.getColumns()) {
-                newLines.add(sb.toString());
-                sb.setLength(0);
-                curCol = 0;
-            }
-            curCol += width;
-            if (cursorIndex++ < newCursor) {
-                newCursorPos += width;
-            }
-            sb.appendCodePoint(ucs);
+        if (post != null) {
+            newPostStr = "\n" + toColumns(post, size.getColumns());
         }
-        newLines.add(sb.toString());
+        List<String> oldLines = AnsiHelper.splitLines(oldPrompt + oldBuf + oldPostStr, oldColumns, 8);
+        List<String> newLines = AnsiHelper.splitLines(prompt + buffer + newPostStr, size.getColumns(), 8);
 
-        int cursorPos = oldCursorPos;
         int lineIndex = 0;
-        int currentPos = promptLen;
+        int currentPos = 0;
         while (lineIndex < Math.min(oldLines.size(), newLines.size())) {
             String oldLine = oldLines.get(lineIndex);
             String newLine = newLines.get(lineIndex);
@@ -2879,15 +2826,15 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             LinkedList<DiffHelper.Diff> diffs = DiffHelper.diff(oldLine, newLine);
             boolean ident = true;
             boolean cleared = false;
-            curCol = currentPos;
+            int curCol = currentPos;
             for (int i = 0; i < diffs.size(); i++) {
                 DiffHelper.Diff diff = diffs.get(i);
-                int width = wcwidth(diff.text, currentPos);
+                int width = wcwidth(AnsiHelper.strip(diff.text), currentPos);
                 switch (diff.operation) {
                     case EQUAL:
                         if (!ident) {
-                            cursorPos = moveCursorFromTo(cursorPos, currentPos);
-                            print(diff.text, cursorPos);
+                            cursorPos = moveVisualCursorTo(currentPos);
+                            rawPrint(diff.text);
                             cursorPos += width;
                             currentPos = cursorPos;
                         } else {
@@ -2897,12 +2844,12 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                     case INSERT:
                         if (i <= diffs.size() - 2
                                 && diffs.get(i+1).operation == DiffHelper.Operation.EQUAL) {
-                            cursorPos = moveCursorFromTo(cursorPos, currentPos);
+                            cursorPos = moveVisualCursorTo(currentPos);
                             boolean hasIch = console.getStringCapability(Capability.parm_ich) != null;
                             boolean hasIch1 = console.getStringCapability(Capability.insert_character) != null;
                             if (hasIch) {
                                 console.puts(Capability.parm_ich, width);
-                                print(diff.text, cursorPos);
+                                rawPrint(diff.text);
                                 cursorPos += width;
                                 currentPos = cursorPos;
                                 break;
@@ -2910,14 +2857,14 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                                 for (int j = 0; j < width; j++) {
                                     console.puts(Capability.insert_character);
                                 }
-                                print(diff.text, cursorPos);
+                                rawPrint(diff.text);
                                 cursorPos += width;
                                 currentPos = cursorPos;
                                 break;
                             }
                         }
-                        cursorPos = moveCursorFromTo(cursorPos, currentPos);
-                        print(diff.text, cursorPos);
+                        moveVisualCursorTo(currentPos);
+                        rawPrint(diff.text);
                         cursorPos += width;
                         currentPos = cursorPos;
                         ident = false;
@@ -2932,7 +2879,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                         if (i <= diffs.size() - 2
                                 && diffs.get(i+1).operation == DiffHelper.Operation.EQUAL) {
                             if (currentPos + wcwidth(diffs.get(i+1).text, cursorPos) < size.getColumns()) {
-                                cursorPos = moveCursorFromTo(cursorPos, currentPos);
+                                moveVisualCursorTo(currentPos);
                                 boolean hasDch = console.getStringCapability(Capability.parm_dch) != null;
                                 boolean hasDch1 = console.getStringCapability(Capability.delete_character) != null;
                                 if (hasDch) {
@@ -2949,8 +2896,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                         int oldLen = wcwidth(oldLine, 0);
                         int newLen = wcwidth(newLine, 0);
                         int nb = Math.max(oldLen, newLen) - currentPos;
-                        moveCursorFromTo(cursorPos, currentPos);
-                        cursorPos = currentPos;
+                        moveVisualCursorTo(currentPos);
                         if (!console.puts(Capability.clr_eol)) {
                             rawPrint(' ', nb);
                             cursorPos += nb;
@@ -2966,10 +2912,10 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 rawPrint(' '); // move cursor to next line by printing dummy space
                 console.puts(Capability.carriage_return); // CR / not newline.
             }
+            currentPos = curCol + size.getColumns();
         }
-        boolean isOnNextLine = (currentPos % size.getColumns() == 0);
         while (lineIndex < Math.max(oldLines.size(), newLines.size())) {
-            cursorPos = moveCursorFromTo(cursorPos, currentPos - currentPos % size.getColumns() + (isOnNextLine ? 0 : size.getColumns()));
+            moveVisualCursorTo(currentPos);
             if (lineIndex < oldLines.size()) {
                 if (console.getStringCapability(Capability.clr_eol) != null) {
                     console.puts(Capability.clr_eol);
@@ -2979,17 +2925,20 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                     cursorPos += nb;
                 }
             } else {
-                print(newLines.get(lineIndex));
+                rawPrint(newLines.get(lineIndex));
                 cursorPos += wcwidth(newLines.get(lineIndex), cursorPos);
             }
             lineIndex++;
-            isOnNextLine = false;
-            currentPos = cursorPos;
+            currentPos = currentPos + size.getColumns();
         }
-        moveCursorFromTo(cursorPos, newCursorPos);
-        oldBuf = newBuf;
-        oldCursor = newCursor;
+        int promptLines = AnsiHelper.splitLines(prompt, size.getColumns(), 8).size();
+        moveVisualCursorTo((promptLines - 1) * size.getColumns()
+                + promptLen + wcwidth(buf.buffer, 0, buf.cursor, promptLen));
+        oldBuf = buffer;
         oldPrompt = prompt;
+        oldPost = post;
+        oldColumns = size.getColumns();
+        maxLines = Math.max(maxLines, newLines.size());
     }
 
     //
@@ -3048,7 +2997,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             return false;
         }
 
-        List<CharSequence> candidates = new LinkedList<>();
+        List<String> candidates = new LinkedList<>();
         String bufstr = buf.buffer.toString();
         int cursor = buf.cursor;
 
@@ -3069,7 +3018,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             return;
         }
 
-        List<CharSequence> candidates = new LinkedList<>();
+        List<String> candidates = new LinkedList<>();
         String bufstr = buf.buffer.toString();
         int cursor = buf.cursor;
 
@@ -3093,6 +3042,19 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     public History getHistory() {
         return history;
     }
+
+    //
+    // Highlighter
+    //
+
+    public void setHighlighter(Highlighter highlighter) {
+        this.highlighter = highlighter;
+    }
+
+    public Highlighter getHighlighter() {
+        return highlighter;
+    }
+
 
     /**
      * Used in "vi" mode for argumented history move, to move a specific
@@ -3195,7 +3157,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     final void rawPrint(final String str) throws IOException {
-        console.writer().write(str);
+        for (int i = 0; i < str.length(); i++) {
+            rawPrint(str.charAt(i));
+        }
     }
 
     private void rawPrint(final char c, final int num) throws IOException {
@@ -3430,15 +3394,15 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      *
      * @param candidates the list of candidates to print
      */
-    public void printCandidates(Collection<CharSequence> candidates) throws
+    public void printCandidates(Collection<String> candidates) throws
             IOException
     {
-        Set<CharSequence> distinct = new HashSet<>(candidates);
+        candidates = new LinkedHashSet<>(candidates);
 
         int max = getInt(COMPLETION_QUERY_ITEMS, 100);
-        if (max > 0 && distinct.size() >= max) {
+        if (max > 0 && candidates.size() >= max) {
             println();
-            print(Messages.DISPLAY_CANDIDATES.format(candidates.size()));
+            rawPrint(Messages.DISPLAY_CANDIDATES.format(candidates.size()));
             flush();
 
             int c;
@@ -3461,23 +3425,43 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                     beep();
                 }
             }
+            printColumns(candidates);
+            println();
         }
+        else {
+            post = candidates.toArray(new String[candidates.size()]);
+        }
+    }
 
-        // copy the values and make them distinct, without otherwise affecting the ordering. Only do it if the sizes differ.
-        if (distinct.size() != candidates.size()) {
-            Collection<CharSequence> copy = new ArrayList<CharSequence>();
+    private String toColumns(String[] items, int width) throws IOException {
+        if (items == null || items.length == 0) {
+            return "";
+        }
+        int maxWidth = 0;
+        for (String item : items) {
+            // we use 0 here, as we don't really support tabulations inside candidates
+            int len = wcwidth(AnsiHelper.strip(item), 0);
+            maxWidth = Math.max(maxWidth, len);
+        }
+        maxWidth = maxWidth + 3;
 
-            for (CharSequence next : candidates) {
-                if (!copy.contains(next)) {
-                    copy.add(next);
-                }
+        StringBuilder buff = new StringBuilder();
+        int realLength = 0;
+        for (String item : items) {
+            if ((realLength + maxWidth) > width) {
+                buff.append('\n');
+                realLength = 0;
             }
 
-            candidates = copy;
+            buff.append(item);
+            int strippedItemLength = wcwidth(AnsiHelper.strip(item), 0);
+            for (int i = 0; i < (maxWidth - strippedItemLength); i++) {
+                buff.append(' ');
+            }
+            realLength += maxWidth;
         }
-
-        println();
-        printColumns(candidates);
+        buff.append('\n');
+        return buff.toString();
     }
 
     /**
@@ -3494,7 +3478,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         int maxWidth = 0;
         for (CharSequence item : items) {
             // we use 0 here, as we don't really support tabulations inside candidates
-            int len = wcwidth(Ansi.stripAnsi(item.toString()), 0);
+            int len = wcwidth(AnsiHelper.strip(item.toString()), 0);
             maxWidth = Math.max(maxWidth, len);
         }
         maxWidth = maxWidth + 3;
@@ -3541,7 +3525,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
             // NOTE: toString() is important here due to AnsiString being retarded
             buff.append(item.toString());
-            int strippedItemLength = wcwidth(Ansi.stripAnsi(item.toString()), 0);
+            int strippedItemLength = wcwidth(AnsiHelper.strip(item.toString()), 0);
             for (int i = 0; i < (maxWidth - strippedItemLength); i++) {
                 buff.append(' ');
             }
@@ -3553,68 +3537,33 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
     }
 
-    /**
-     * Erases the current line with the existing prompt, then redraws the line
-     * with the provided prompt and buffer
-     * @param prompt
-     *            the new prompt
-     * @param buffer
-     *            the buffer to be drawn
-     * @param cursorDest
-     *            where you want the cursor set when the line has been drawn.
-     *            -1 for end of line.
-     * */
-    public void resetPromptLine(String prompt, String buffer, int cursorDest) throws IOException {
-        moveToEnd();
-
-        // backspace all text, including prompt
-        buf.buffer.append(this.prompt);
-        int promptLength = 0;
-        if (this.prompt != null) {
-            promptLength = this.prompt.length();
-        }
-
-        buf.cursor += promptLength;
-        setPrompt("");
-        backspaceAll();
-
-        setPrompt(prompt);
-        setBuffer(buffer);
-
-        // move cursor to destination (-1 will move to end of line)
-        if (cursorDest < 0) cursorDest = buffer.length();
-        setCursorPosition(cursorDest);
-
-        flush();
-    }
-
     public void printSearchStatus(String searchTerm, String match) throws IOException {
-        printSearchStatus(searchTerm, match, "(reverse-i-search)`");
+        printSearchStatus(searchTerm, match, "bck-i-search");
     }
 
     public void printForwardSearchStatus(String searchTerm, String match) throws IOException {
-        printSearchStatus(searchTerm, match, "(i-search)`");
+        printSearchStatus(searchTerm, match, "i-search");
     }
 
     private void printSearchStatus(String searchTerm, String match, String searchLabel) throws IOException {
-        int cursorDest = match.indexOf(searchTerm);
+//        int cursorDest = match.indexOf(searchTerm);
 
-        setPrompt(searchLabel + searchTerm + "': ");
+        // Grab the prompt lines but the last one
+        post = new String[] { searchLabel + ": " + searchTerm + "_" };
+//        List<String> promptLines = AnsiHelper.splitLines(originalPrompt, Integer.MAX_VALUE, 8);
+//        promptLines.remove(promptLines.size() - 1);
+//        StringBuilder promptTop = new StringBuilder();
+//        for (String line : promptLines) {
+//            promptTop.append(line).append('\n');
+//        }
+//        setPrompt(promptTop.toString() + searchLabel + searchTerm + "': ");
         setBuffer(match);
-        redrawLine();
+        buf.cursor = match.indexOf(searchTerm);
     }
 
-    public void restoreLine(String originalPrompt, int cursorDest) throws IOException {
+    public void restoreLine(int cursorDest) throws IOException {
         // TODO move cursor to matched string
         setPrompt(originalPrompt);
-        oldPrompt = prompt;
-        oldBuf = "";
-        oldCursor = 0;
-
-        console.puts(Capability.carriage_return);
-        console.puts(Capability.clr_eol);
-        rawPrint(lastLine(originalPrompt));
-        redisplay();
     }
 
     //
