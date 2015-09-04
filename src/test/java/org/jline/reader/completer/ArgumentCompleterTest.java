@@ -23,16 +23,16 @@ public class ArgumentCompleterTest
     public void test1() throws Exception {
         reader.addCompleter(new ArgumentCompleter(new StringsCompleter("foo", "bar", "baz")));
 
-        assertBuffer("foo foo ", new Buffer("foo f").tab());
-        assertBuffer("foo ba", new Buffer("foo b").tab());
-        assertBuffer("foo ba", new Buffer("foo ba").tab());
-        assertBuffer("foo baz ", new Buffer("foo baz").tab());
+        assertBuffer("foo foo ", new TestBuffer("foo f").tab());
+        assertBuffer("foo ba", new TestBuffer("foo b").tab());
+        assertBuffer("foo ba", new TestBuffer("foo ba").tab());
+        assertBuffer("foo baz ", new TestBuffer("foo baz").tab());
 
         // test completion in the mid range
-        assertBuffer("foo baz", new Buffer("f baz").left().left().left().left().tab());
-        assertBuffer("ba foo", new Buffer("b foo").left().left().left().left().tab());
-        assertBuffer("foo ba baz", new Buffer("foo b baz").left().left().left().left().tab());
-        assertBuffer("foo foo baz", new Buffer("foo f baz").left().left().left().left().tab());
+        assertBuffer("foo baz", new TestBuffer("f baz").left().left().left().left().tab());
+        assertBuffer("ba foo", new TestBuffer("b foo").left().left().left().left().tab());
+        assertBuffer("foo ba baz", new TestBuffer("foo b baz").left().left().left().left().tab());
+        assertBuffer("foo foo baz", new TestBuffer("foo f baz").left().left().left().left().tab());
     }
 
     @Test
@@ -43,15 +43,15 @@ public class ArgumentCompleterTest
                 new StringsCompleter("ree"));
         reader.addCompleter(argCompleter);
 
-        assertBuffer("bar foo ", new Buffer("bar f").tab());
-        assertBuffer("baz foo ", new Buffer("baz f").tab());
+        assertBuffer("bar foo ", new TestBuffer("bar f").tab());
+        assertBuffer("baz foo ", new TestBuffer("baz f").tab());
         // co completion of 2nd arg in strict mode when 1st argument is not matched exactly
-        assertBuffer("ba f", new Buffer("ba f").tab());
-        assertBuffer("bar fo r", new Buffer("bar fo r").tab());
+        assertBuffer("ba f", new TestBuffer("ba f").tab());
+        assertBuffer("bar fo r", new TestBuffer("bar fo r").tab());
 
         argCompleter.setStrict(false);
-        assertBuffer("ba foo ", new Buffer("ba f").tab());
-        assertBuffer("ba fo ree ", new Buffer("ba fo r").tab());
+        assertBuffer("ba foo ", new TestBuffer("ba f").tab());
+        assertBuffer("ba fo ree ", new TestBuffer("ba fo r").tab());
     }
 
     @Test
@@ -61,6 +61,6 @@ public class ArgumentCompleterTest
                         new StringsCompleter("some", "any"),
                         new StringsCompleter("foo", "bar", "baz")));
 
-        assertBuffer("some foo ", new Buffer("some fo").tab());
+        assertBuffer("some foo ", new TestBuffer("some fo").tab());
     }
 }

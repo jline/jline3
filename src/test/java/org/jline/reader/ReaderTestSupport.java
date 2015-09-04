@@ -55,11 +55,11 @@ public abstract class ReaderTestSupport
         assertConsoleOutputContains(sw.toString());
     }
 
-    protected void assertBuffer(final String expected, final Buffer buffer) throws IOException {
+    protected void assertBuffer(final String expected, final TestBuffer buffer) throws IOException {
         assertBuffer(expected, buffer, true);
     }
 
-    protected void assertBuffer(final String expected, final Buffer buffer, final boolean clear) throws IOException {
+    protected void assertBuffer(final String expected, final TestBuffer buffer, final boolean clear) throws IOException {
         // clear current buffer, if any
         if (clear) {
             reader.finishBuffer();
@@ -79,7 +79,7 @@ public abstract class ReaderTestSupport
         assertEquals(expected, reader.getCursorBuffer().toString());
     }
 
-    protected void assertPosition(int pos, final Buffer buffer, final boolean clear) throws IOException {
+    protected void assertPosition(int pos, final TestBuffer buffer, final boolean clear) throws IOException {
         // clear current buffer, if any
         if (clear) {
             reader.finishBuffer();
@@ -108,7 +108,7 @@ public abstract class ReaderTestSupport
      * @param clear If true, the current buffer of the reader
      *    is cleared.
      */
-    protected void assertLine(final String expected, final Buffer buffer,
+    protected void assertLine(final String expected, final TestBuffer buffer,
             final boolean clear) throws IOException {
         // clear current buffer, if any
         if (clear) {
@@ -150,15 +150,15 @@ public abstract class ReaderTestSupport
         }
     }
 
-    protected class Buffer
+    protected class TestBuffer
     {
         private final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-        public Buffer() {
+        public TestBuffer() {
             // nothing
         }
 
-        public Buffer(final String str) {
+        public TestBuffer(final String str) {
             append(str);
         }
 
@@ -166,15 +166,15 @@ public abstract class ReaderTestSupport
             return out.toByteArray();
         }
 
-        public Buffer op(final Operation op) {
+        public TestBuffer op(final Operation op) {
             return append(getKeyForAction(op));
         }
 
-        public Buffer ctrlA() {
+        public TestBuffer ctrlA() {
             return append("\001");
         }
 
-        public Buffer ctrlD() {
+        public TestBuffer ctrlD() {
             return append("\004");
         }
 
@@ -185,7 +185,7 @@ public abstract class ReaderTestSupport
          *   'A' through 'Z'.
          * @return The modified buffer.
          */
-        public Buffer ctrl(char let) {
+        public TestBuffer ctrl(char let) {
 
             if (let < 'A' || let > 'Z')
                 throw new RuntimeException("Cannot generate CTRL code for "
@@ -196,72 +196,72 @@ public abstract class ReaderTestSupport
             return append((char)ch);
         }
 
-        public Buffer enter() {
+        public TestBuffer enter() {
             return ctrl('J');
         }
 
-        public Buffer CR() {
+        public TestBuffer CR() {
         	return ctrl('M');
         }
 
-        public Buffer ctrlU() {
+        public TestBuffer ctrlU() {
             return append("\025");
         }
 
-        public Buffer tab() {
+        public TestBuffer tab() {
             return op(Operation.COMPLETE);
         }
 
-        public Buffer escape() {
+        public TestBuffer escape() {
             return append("\033");
         }
 
-        public Buffer back() {
+        public TestBuffer back() {
             return op(Operation.BACKWARD_DELETE_CHAR);
         }
 
-        public Buffer back(int n) {
+        public TestBuffer back(int n) {
             for (int i = 0; i < n; i++)
                 op(Operation.BACKWARD_DELETE_CHAR);
             return this;
         }
 
-        public Buffer left() {
+        public TestBuffer left() {
             return append("\033[D");
         }
 
-        public Buffer left(int n) {
+        public TestBuffer left(int n) {
             for (int i = 0; i < n; i++)
                 append("\033[D");
             return this;
         }
 
-        public Buffer right() {
+        public TestBuffer right() {
             return append("\033[C");
         }
 
-        public Buffer right(int n) {
+        public TestBuffer right(int n) {
             for (int i = 0; i < n; i++)
                 append("\033[C");
             return this;
         }
 
-        public Buffer up() {
+        public TestBuffer up() {
             return append(getKeyForAction(Operation.PREVIOUS_HISTORY));
         }
 
-        public Buffer down() {
+        public TestBuffer down() {
             return append("\033[B");
         }
 
-        public Buffer append(final String str) {
+        public TestBuffer append(final String str) {
             for (byte b : str.getBytes()) {
                 append(b);
             }
             return this;
         }
 
-        public Buffer append(final int i) {
+        public TestBuffer append(final int i) {
             out.write((byte) i);
             return this;
         }

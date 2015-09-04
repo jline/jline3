@@ -48,13 +48,13 @@ public class CandidateListCompletionHandler
 
     public boolean complete(final ConsoleReaderImpl reader, final List<String> candidates, final int pos)
     {
-        CursorBuffer buf = reader.getCursorBuffer();
+        Buffer buf = reader.getCursorBuffer();
 
         // if there is only one completion, then fill in the buffer
         if (candidates.size() == 1) {
             String value = AnsiHelper.strip(candidates.get(0));
 
-            if (buf.cursor == buf.buffer.length()
+            if (buf.cursor() == buf.length()
                     && printSpaceAfterFullCompletion
                     && !value.endsWith(" ")) {
                 value += " ";
@@ -71,7 +71,7 @@ public class CandidateListCompletionHandler
         }
         else if (candidates.size() > 1) {
             String value = getUnambiguousCompletions(candidates);
-            if (!buf.buffer.substring(pos, buf.cursor).equals(value)) {
+            if (!buf.substring(pos, buf.cursor()).equals(value)) {
                 setBuffer(reader, value, pos);
             } else {
                 reader.printCandidates(candidates);
@@ -86,12 +86,10 @@ public class CandidateListCompletionHandler
     @SuppressWarnings("StatementWithEmptyBody")
     public static void setBuffer(final ConsoleReaderImpl reader, final CharSequence value, final int offset)
     {
-        while ((reader.getCursorBuffer().cursor > offset) && reader.backspace()) {
+        while ((reader.getCursorBuffer().cursor() > offset) && reader.getCursorBuffer().backspace()) {
             // empty
         }
-
-        reader.putString(value);
-        reader.setCursorPosition(offset + value.length());
+        reader.getCursorBuffer().write(value);
     }
 
     /**

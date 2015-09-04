@@ -23,8 +23,8 @@ public class NullCompleterTest
     public void test1() throws Exception {
         reader.addCompleter(NullCompleter.INSTANCE);
 
-        assertBuffer("f", new Buffer("f").tab());
-        assertBuffer("ba", new Buffer("ba").tab());
-        assertBuffer("baz", new Buffer("baz").tab());
+        assertBuffer("f", new TestBuffer("f").tab());
+        assertBuffer("ba", new TestBuffer("ba").tab());
+        assertBuffer("baz", new TestBuffer("baz").tab());
     }
 }

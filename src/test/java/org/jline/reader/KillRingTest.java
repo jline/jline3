@@ -132,21 +132,21 @@ public class KillRingTest extends ReaderTestSupport {
 
     @Test
     public void testBufferEmptyRing() throws Exception {
-        Buffer b = new Buffer("This is a test");
+        TestBuffer b = new TestBuffer("This is a test");
         assertBuffer("This is a test", b = b.op(BACKWARD_WORD));
         assertBuffer("This is a test", b = b.op(YANK));
     }
 
     @Test
     public void testBufferWordRuboutOnce() throws Exception {
-        Buffer b = new Buffer("This is a test");
+        TestBuffer b = new TestBuffer("This is a test");
         assertBuffer("This is a ", b = b.op(UNIX_WORD_RUBOUT));
         assertBuffer("This is a test", b = b.op(YANK));
     }
 
     @Test
     public void testBufferWordRuboutTwice() throws Exception {
-        Buffer b = new Buffer("This is a test");
+        TestBuffer b = new TestBuffer("This is a test");
         assertBuffer("This is a ", b = b.op(UNIX_WORD_RUBOUT));
         assertBuffer("This is ", b = b.op(UNIX_WORD_RUBOUT));
         assertBuffer("This is a test", b = b.op(YANK));
@@ -154,7 +154,7 @@ public class KillRingTest extends ReaderTestSupport {
 
     @Test
     public void testBufferYankPop() throws Exception {
-        Buffer b = new Buffer("This is a test");
+        TestBuffer b = new TestBuffer("This is a test");
         b = b.op(BACKWARD_WORD);
         b = b.op(BACKWARD_WORD);
         assertBuffer("This a test", b = b.op(UNIX_WORD_RUBOUT));
@@ -166,7 +166,7 @@ public class KillRingTest extends ReaderTestSupport {
 
     @Test
     public void testBufferMixedKillsAndYank() throws Exception {
-        Buffer b = new Buffer("This is a test");
+        TestBuffer b = new TestBuffer("This is a test");
         b = b.op(BACKWARD_WORD);
         b = b.op(BACKWARD_WORD);
         assertBuffer("This is  test", b = b.op(KILL_WORD));

@@ -23,10 +23,10 @@ public class StringsCompleterTest
     public void test1() throws Exception {
         reader.addCompleter(new StringsCompleter("foo", "bar", "baz"));
 
-        assertBuffer("foo ", new Buffer("f").tab());
+        assertBuffer("foo ", new TestBuffer("f").tab());
         // single tab completes to unambiguous "ba"
-        assertBuffer("ba", new Buffer("b").tab());
-        assertBuffer("ba", new Buffer("ba").tab());
-        assertBuffer("baz ", new Buffer("baz").tab());
+        assertBuffer("ba", new TestBuffer("b").tab());
+        assertBuffer("ba", new TestBuffer("ba").tab());
+        assertBuffer("baz ", new TestBuffer("baz").tab());
     }
 }

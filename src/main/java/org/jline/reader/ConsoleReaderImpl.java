@@ -166,7 +166,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     // State variables
     //
 
-    protected final CursorBuffer buf = new CursorBuffer();
+    protected final Buffer buf = new Buffer();
 
     protected Size size;
 
@@ -175,7 +175,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected Character mask;
 
-    protected CursorBuffer originalBuffer = null;
+    protected Buffer originalBuffer = null;
 
     protected StringBuffer searchTerm = null;
 
@@ -214,8 +214,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      */
     protected State   state = State.NORMAL;
     protected State previousState;
-
-    protected Thread readLineThread;
 
     protected String originalPrompt;
 
@@ -329,7 +327,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return consoleKeys.getKeys();
     }
 
-    public CursorBuffer getCursorBuffer() {
+    public Buffer getCursorBuffer() {
         return buf;
     }
 
@@ -533,9 +531,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                     switch ( ((Operation) o )) {
                         case ABORT:
                             state = State.NORMAL;
-                            buf.clear();
-                            buf.write(originalBuffer.buffer);
-                            buf.cursor = originalBuffer.cursor;
+                            buf.setBuffer(originalBuffer);
                             break;
 
                         case REVERSE_SEARCH_HISTORY:
@@ -638,7 +634,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                          * These are used by vi *-to operation (e.g. delete-to)
                          * so we know where we came from.
                          */
-                        int     cursorStart = buf.cursor;
+                        int     cursorStart = buf.cursor();
                         previousState   = state;
 
                         /*
@@ -666,7 +662,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                             case EOF:
                                 throw new EndOfFileException();
                             case INTERRUPT:
-                                throw new UserInterruptException(buf.buffer.toString());
+                                throw new UserInterruptException(buf.toString());
                         }
 
                         /*
@@ -675,14 +671,14 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                          */
                         if (previousState != State.NORMAL) {
                             if (previousState == State.VI_DELETE_TO) {
-                                viDeleteTo(cursorStart, buf.cursor, false);
+                                viDeleteTo(cursorStart, buf.cursor(), false);
                             }
                             else if (previousState == State.VI_CHANGE_TO) {
-                                viDeleteTo(cursorStart, buf.cursor, true);
+                                viDeleteTo(cursorStart, buf.cursor(), true);
                                 consoleKeys.setKeyMap(KeyMap.VI_INSERT);
                             }
                             else if (previousState == State.VI_YANK_TO) {
-                                viYankTo(cursorStart, buf.cursor);
+                                viYankTo(cursorStart, buf.cursor());
                             }
                             state = State.NORMAL;
                         }
@@ -714,7 +710,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             }
         } catch (IOError e) {
             if (e.getCause() instanceof InterruptedIOException) {
-                throw new UserInterruptException(buf.buffer.toString());
+                throw new UserInterruptException(buf.toString());
             } else {
                 throw e;
             }
@@ -744,21 +740,19 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     /**
      * Erase the current line.
-     *
-     * @return false if we failed (e.g., the buffer was empty)
      */
     protected void resetLine() {
-        if (buf.cursor == 0) {
+        if (buf.cursor() == 0) {
             beep();
         } else {
             StringBuilder killed = new StringBuilder();
-            while (buf.cursor > 0) {
-                char c = buf.current();
+            while (buf.cursor() > 0) {
+                char c = buf.prevChar();
                 if (c == 0) {
                     break;
                 }
                 killed.append(c);
-                backspace();
+                buf.backspace();
             }
             String copy = killed.reverse().toString();
             killRing.addBackwards(copy);
@@ -810,7 +804,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     int getCursorPosition() {
-        return promptLen + wcwidth(buf.buffer, 0, buf.cursor, promptLen);
+        return promptLen + wcwidth(buf.upToCursor(), promptLen);
     }
 
     /**
@@ -830,19 +824,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return str;
     }
 
-    /**
-     * Move the cursor position to the specified absolute index.
-     */
-    public boolean setCursorPosition(final int position) {
-        if (position == buf.cursor) {
-            return true;
-        }
-        return moveBufferCursor(position - buf.cursor) != 0;
-    }
-
-    protected void setBuffer(CursorBuffer buffer) {
-        setBuffer(buffer.buffer.toString());
-        setCursorPosition(buffer.cursor);
+    protected void setBuffer(Buffer buffer) {
+        setBuffer(buffer.toString());
+        buf.cursor(buffer.cursor());
     }
 
     /**
@@ -853,16 +837,16 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      */
     protected void setBuffer(final String buffer) {
         // don't bother modifying it if it is unchanged
-        if (buffer.equals(buf.buffer.toString())) {
+        if (buffer.equals(buf.toString())) {
             return;
         }
 
         // obtain the difference between the current buffer and the new one
         int sameIndex = 0;
 
-        for (int i = 0, l1 = buffer.length(), l2 = buf.buffer.length(); (i < l1)
+        for (int i = 0, l1 = buffer.length(), l2 = buf.length(); (i < l1)
             && (i < l2); i++) {
-            if (buffer.charAt(i) == buf.buffer.charAt(i)) {
+            if (buffer.charAt(i) == buf.atChar(i)) {
                 sameIndex++;
             }
             else {
@@ -870,22 +854,21 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             }
         }
 
-        int diff = buf.cursor - sameIndex;
-        if (diff < 0) { // we can't backspace here so try from the end of the buffer
+        int diff = buf.cursor() - sameIndex;
+        if (diff < 0) { // we can't buf.backspace here so try from the end of the buffer
             endOfLine();
-            diff = buf.buffer.length() - sameIndex;
+            diff = buf.length() - sameIndex;
         }
 
-        backspace(diff); // go back for the differences
+        buf.backspace(diff); // go back for the differences
         killLine(); // clear to the end of the line
-        buf.buffer.setLength(sameIndex); // the new length
-        putString(buffer.substring(sameIndex)); // append the differences
+        buf.write(buffer.substring(sameIndex)); // append the differences
     }
 
     protected void setBufferKeepPos(final String buffer) {
-        int pos = buf.cursor;
+        int pos = buf.cursor();
         setBuffer(buffer);
-        setCursorPosition(pos);
+        buf.cursor(pos);
     }
 
     /**
@@ -903,7 +886,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * @return the former contents of the buffer.
      */
     final String finishBuffer() { // FIXME: Package protected because used by tests
-        String str = buf.buffer.toString();
+        String str = buf.toString();
         String historyLine = str;
 
         if (!getBoolean(DISABLE_EVENT_EXPANSION, false)) {
@@ -969,7 +952,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                                 if (history.size() == 0) {
                                     throw new IllegalArgumentException("!!: event not found");
                                 }
-                                rep = history.get(history.index() - 1).toString();
+                                rep = history.get(history.index() - 1);
                                 break;
                             case '#':
                                 sb.append(sb.toString());
@@ -985,14 +968,14 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                                 if (idx < 0) {
                                     throw new IllegalArgumentException("!?" + sc + ": event not found");
                                 } else {
-                                    rep = history.get(idx).toString();
+                                    rep = history.get(idx);
                                 }
                                 break;
                             case '$':
                                 if (history.size() == 0) {
                                     throw new IllegalArgumentException("!$: event not found");
                                 }
-                                String previous = history.get(history.index() - 1).toString().trim();
+                                String previous = history.get(history.index() - 1).trim();
                                 int lastSpace = previous.lastIndexOf(' ');
                                 if(lastSpace != -1) {
                                     rep = previous.substring(lastSpace+1);
@@ -1032,9 +1015,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                                     throw new IllegalArgumentException((neg ? "!-" : "!") + str.substring(i1, i) + ": event not found");
                                 }
                                 if (neg && idx > 0 && idx <= history.size()) {
-                                    rep = (history.get(history.index() - idx)).toString();
+                                    rep = history.get(history.index() - idx);
                                 } else if (!neg && idx > history.index() - history.size() && idx <= history.index()) {
-                                    rep = (history.get(idx - 1)).toString();
+                                    rep = history.get(idx - 1);
                                 } else {
                                     throw new IllegalArgumentException((neg ? "!-" : "!") + str.substring(i1, i) + ": event not found");
                                 }
@@ -1046,7 +1029,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                                 if (idx < 0) {
                                     throw new IllegalArgumentException("!" + ss + ": event not found");
                                 } else {
-                                    rep = history.get(idx).toString();
+                                    rep = history.get(idx);
                                 }
                                 break;
                         }
@@ -1067,7 +1050,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                         if (i1 > 0 && i2 > 0) {
                             String s1 = str.substring(i + 1, i1);
                             String s2 = str.substring(i1 + 1, i2);
-                            String s = history.get(history.index() - 1).toString().replace(s1, s2);
+                            String s = history.get(history.index() - 1).replace(s1, s2);
                             sb.append(s);
                             i = i2 + 1;
                             break;
@@ -1097,50 +1080,13 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     /**
-     * Flush the console output stream. This is important for printout out single characters (like a backspace or
+     * Flush the console output stream. This is important for printout out single characters (like a buf.backspace or
      * keyboard) that we want the console to handle immediately.
      */
     public void flush() {
         console.writer().flush();
     }
 
-    /**
-     * Issue <em>num</em> backspaces.
-     *
-     * @return the number of characters backed up
-     */
-    protected int backspace(final int num) {
-        if (buf.cursor == 0) {
-            return 0;
-        }
-
-        int count = - moveBufferCursor(-num);
-        buf.buffer.delete(buf.cursor, buf.cursor + count);
-
-        return count;
-    }
-
-    /**
-     * Issue a backspace.
-     *
-     * @return true if successful
-     */
-    public boolean backspace() {
-        return backspace(1) == 1;
-    }
-
-    /**
-     * Delete the character at the current position and redraw the remainder of the buffer.
-     */
-    protected boolean deleteCurrentCharacter() {
-        if (buf.length() == 0 || buf.cursor == buf.length()) {
-            return false;
-        }
-
-        buf.buffer.deleteCharAt(buf.cursor);
-        return true;
-    }
-    
     /**
      * This method is calling while doing a delete-to ("d"), change-to ("c"),
      * or yank-to ("y") and it filters out only those movement operations
@@ -1236,10 +1182,10 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         if (isForward) {
             while (count-- > 0) {
-                int pos = buf.cursor + 1;
-                while (pos < buf.buffer.length()) {
-                    if (buf.buffer.charAt(pos) == searchChar) {
-                        setCursorPosition(pos);
+                int pos = buf.cursor() + 1;
+                while (pos < buf.length()) {
+                    if (buf.atChar(pos) == searchChar) {
+                        buf.cursor(pos);
                         ok = true;
                         break;
                     }
@@ -1249,7 +1195,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
             if (ok) {
                 if (stopBefore)
-                    moveBufferCursor(-1);
+                    buf.move(-1);
 
                 /*
                  * When in yank-to, move-to, del-to state we actually want to
@@ -1258,16 +1204,16 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                  * operation
                  */
                 if (isInViMoveOperationState()) {
-                    moveBufferCursor(1);
+                    buf.move(1);
                 }
             }
         }
         else {
             while (count-- > 0) {
-                int pos = buf.cursor - 1;
+                int pos = buf.cursor() - 1;
                 while (pos >= 0) {
-                    if (buf.buffer.charAt(pos) == searchChar) {
-                        setCursorPosition(pos);
+                    if (buf.atChar(pos) == searchChar) {
+                        buf.cursor(pos);
                         ok = true;
                         break;
                     }
@@ -1276,7 +1222,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             }
 
             if (ok && stopBefore)
-                moveBufferCursor(1);
+                buf.move(1);
         }
 
         return ok;
@@ -1285,8 +1231,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     protected char switchCase(char ch) {
         if (Character.isUpperCase(ch)) {
             return Character.toLowerCase(ch);
+        } else if (Character.isLowerCase(ch)) {
+            return Character.toUpperCase(ch);
+        } else {
+            return ch;
         }
-        return Character.toUpperCase(ch);
     }
 
     /**
@@ -1314,8 +1263,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * @return true if the move was successful, false otherwise
      */
     protected boolean doViNextWord(int count) {
-        int pos = buf.cursor;
-        int end = buf.buffer.length();
+        int pos = buf.cursor();
+        int end = buf.length();
 
         if (pos == end) {
             return false;
@@ -1323,7 +1272,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         for (int i = 0; pos < end && i < count; i++) {
             // Skip over letter/digits
-            while (pos < end && !isDelimiter(buf.buffer.charAt(pos))) {
+            while (pos < end && !isDelimiter(buf.atChar(pos))) {
                 ++pos;
             }
 
@@ -1334,13 +1283,13 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
              * left in tact.
              */
             if (i < (count-1) || !(state == State.VI_CHANGE_TO)) {
-                while (pos < end && isDelimiter(buf.buffer.charAt(pos))) {
+                while (pos < end && isDelimiter(buf.atChar(pos))) {
                     ++pos;
                 }
             }
         }
 
-        setCursorPosition(pos);
+        buf.cursor(pos);
         return true;
     }
 
@@ -1352,39 +1301,39 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * of a word, takes you to the end of the current word.
      */
     protected void viEndWord() {
-        int pos = buf.cursor;
-        int end = buf.buffer.length();
+        int pos = buf.cursor();
+        int end = buf.length();
 
-        // TODO: refactor to use buf.current() / moveBufferCursor
+        // TODO: refactor to use buf.current() / buf.moveBufferCursor
         for (int i = 0; pos < end && i < count; i++) {
             if (pos < (end-1)
-                    && !isDelimiter(buf.buffer.charAt(pos))
-                    && isDelimiter(buf.buffer.charAt (pos+1))) {
+                    && !isDelimiter(buf.atChar(pos))
+                    && isDelimiter(buf.atChar(pos+1))) {
                 ++pos;
             }
 
             // If we are on white space, then move back.
-            while (pos < end && isDelimiter(buf.buffer.charAt(pos))) {
+            while (pos < end && isDelimiter(buf.atChar(pos))) {
                 ++pos;
             }
 
-            while (pos < (end-1) && !isDelimiter(buf.buffer.charAt(pos+1))) {
+            while (pos < (end-1) && !isDelimiter(buf.atChar(pos+1))) {
                 ++pos;
             }
         }
-        setCursorPosition(pos);
+        buf.cursor(pos);
     }
 
     @SuppressWarnings("StatementWithEmptyBody")
     protected void backwardWord() {
-        while (isDelimiter(buf.current()) && (moveBufferCursor(-1) != 0));
-        while (!isDelimiter(buf.current()) && (moveBufferCursor(-1) != 0));
+        while (isDelimiter(buf.prevChar()) && (buf.move(-1) != 0));
+        while (!isDelimiter(buf.prevChar()) && (buf.move(-1) != 0));
     }
 
     @SuppressWarnings("StatementWithEmptyBody")
     protected void forwardWord() {
-        while (isDelimiter(buf.nextChar()) && (moveBufferCursor(1) != 0));
-        while (!isDelimiter(buf.nextChar()) && (moveBufferCursor(1) != 0));
+        while (isDelimiter(buf.currChar()) && (buf.move(1) != 0));
+        while (!isDelimiter(buf.currChar()) && (buf.move(1) != 0));
     }
 
     /**
@@ -1397,29 +1346,29 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         StringBuilder killed = new StringBuilder();
 
         for (int count = this.count; count > 0; --count) {
-            if (buf.cursor == 0) {
+            if (buf.cursor() == 0) {
                 beep();
                 return;
             }
 
-            while (isWhitespace(buf.current())) {
-                char c = buf.current();
+            while (isWhitespace(buf.prevChar())) {
+                char c = buf.prevChar();
                 if (c == 0) {
                     break;
                 }
 
                 killed.append(c);
-                backspace();
+                buf.backspace();
             }
 
-            while (!isWhitespace(buf.current())) {
-                char c = buf.current();
+            while (!isWhitespace(buf.prevChar())) {
+                char c = buf.prevChar();
                 if (c == 0) {
                     break;
                 }
 
                 killed.append(c);
-                backspace();
+                buf.backspace();
             }
         }
 
@@ -1460,11 +1409,10 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
          * This is a little gross, I'm sure there is a more appropriate way
          * of saving and restoring state.
          */
-        CursorBuffer origBuffer = buf.copy();
+        Buffer origBuffer = buf.copy();
 
         // Clear the contents of the current line and
-        setCursorPosition (0);
-        killLine();
+        killWholeLine();
 
         // Our new "prompt" is the character that got us into search mode.
         putString(Character.toString(searchChar));
@@ -1487,13 +1435,13 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                      */
                     isAborted = true;
                     break;
-                case '\010':  // Backspace
+                case '\010':  // backspace
                 case '\177':  // Delete
-                    backspace();
+                    buf.backspace();
                     /*
                      * Backspacing through the "prompt" aborts the search.
                      */
-                    if (buf.cursor == 0) {
+                    if (buf.cursor() == 0) {
                         isAborted = true;
                     }
                     break;
@@ -1510,10 +1458,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         // If we aborted, then put ourself at the end of the original buffer.
         if (ch == -1 || isAborted) {
-            setCursorPosition(0);
-            killLine();
-            putString(origBuffer.buffer);
-            setCursorPosition(origBuffer.cursor);
+            killWholeLine();
+            setBuffer(origBuffer);
             return;
         }
 
@@ -1521,7 +1467,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
          * The first character of the buffer was the search character itself
          * so we discard it.
          */
-        String searchTerm = buf.buffer.substring(1);
+        String searchTerm = buf.substring(1);
         int idx = -1;
 
         /*
@@ -1535,7 +1481,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         if (isForward) {
             for (int i = start; i < end; i++) {
-                if (history.get(i).toString().contains(searchTerm)) {
+                if (history.get(i).contains(searchTerm)) {
                     idx = i;
                     break;
                 }
@@ -1543,7 +1489,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
         else {
             for (int i = end-1; i >= start; i--) {
-                if (history.get(i).toString().contains(searchTerm)) {
+                if (history.get(i).contains(searchTerm)) {
                     idx = i;
                     break;
                 }
@@ -1555,20 +1501,18 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
          * the cursor is at the beginning of the line.
          */
         if (idx == -1) {
-            setCursorPosition(0);
-            killLine();
-            putString(origBuffer.buffer);
-            setCursorPosition(0);
+            killWholeLine();
+            putString(origBuffer.toString());
+            beginningOfLine();
             return;
         }
 
         /*
          * Show the match.
          */
-        setCursorPosition(0);
-        killLine();
+        killWholeLine();
         putString(history.get(idx));
-        setCursorPosition(0);
+        beginningOfLine();
         flush();
 
         /*
@@ -1587,7 +1531,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                     boolean isMatch = false;
                     if (forward) {
                         for (int i = idx+1; !isMatch && i < end; i++) {
-                            if (history.get(i).toString().contains(searchTerm)) {
+                            if (history.get(i).contains(searchTerm)) {
                                 idx = i;
                                 isMatch = true;
                             }
@@ -1595,17 +1539,16 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                     }
                     else {
                         for (int i = idx - 1; !isMatch && i >= start; i--) {
-                            if (history.get(i).toString().contains(searchTerm)) {
+                            if (history.get(i).contains(searchTerm)) {
                                 idx = i;
                                 isMatch = true;
                             }
                         }
                     }
                     if (isMatch) {
-                        setCursorPosition(0);
-                        killLine();
+                        killWholeLine();
                         putString(history.get(idx));
-                        setCursorPosition(0);
+                        beginningOfLine();
                     }
                     break;
                 default:
@@ -1635,15 +1578,15 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     protected void insertClose(String s) {
         putString(s);
 
-        int closePosition = buf.cursor;
+        int closePosition = buf.cursor();
 
-        moveBufferCursor(-1);
+        buf.move(-1);
         doViMatch();
         flush();
 
         peekCharacter(BLINK_MATCHING_PAREN_TIMEOUT);
 
-        setCursorPosition(closePosition);
+        buf.cursor(closePosition);
     }
 
     protected void viMatch() {
@@ -1660,13 +1603,13 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      *   character or if there was no matching bracket.
      */
     protected boolean doViMatch() {
-        int pos        = buf.cursor;
+        int pos        = buf.cursor();
 
         if (pos == buf.length()) {
             return false;
         }
 
-        int type       = getBracketType(buf.buffer.charAt (pos));
+        int type       = getBracketType(buf.atChar(pos));
         int move       = (type < 0) ? -1 : 1;
         int count      = 1;
 
@@ -1677,11 +1620,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             pos += move;
 
             // Fell off the start or end.
-            if (pos < 0 || pos >= buf.buffer.length ()) {
+            if (pos < 0 || pos >= buf.length()) {
                 return false;
             }
 
-            int curType = getBracketType(buf.buffer.charAt (pos));
+            int curType = getBracketType(buf.atChar(pos));
             if (curType == type) {
                 ++count;
             }
@@ -1697,7 +1640,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         if (move > 0 && isInViMoveOperationState())
             ++pos;
 
-        setCursorPosition(pos);
+        buf.cursor(pos);
         return true;
     }
 
@@ -1725,22 +1668,22 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         StringBuilder killed = new StringBuilder();
         char c;
 
-        while (isDelimiter((c = buf.current()))) {
+        while (isDelimiter((c = buf.prevChar()))) {
             if (c == 0) {
                 break;
             }
 
             killed.append(c);
-            backspace();
+            buf.backspace();
         }
 
-        while (!isDelimiter((c = buf.current()))) {
+        while (!isDelimiter((c = buf.prevChar()))) {
             if (c == 0) {
                 break;
             }
 
             killed.append(c);
-            backspace();
+            buf.backspace();
         }
 
         String copy = killed.reverse().toString();
@@ -1751,7 +1694,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         StringBuilder killed = new StringBuilder();
         char c;
 
-        while (isDelimiter((c = buf.nextChar()))) {
+        while (isDelimiter((c = buf.currChar()))) {
             if (c == 0) {
                 break;
             }
@@ -1759,7 +1702,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             delete();
         }
 
-        while (!isDelimiter((c = buf.nextChar()))) {
+        while (!isDelimiter((c = buf.currChar()))) {
             if (c == 0) {
                 break;
             }
@@ -1773,34 +1716,32 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected void capitalizeWord() {
         boolean first = true;
-        int i = 1;
         char c;
-        while (buf.cursor + i  - 1< buf.length() && !isDelimiter((c = buf.buffer.charAt(buf.cursor + i - 1)))) {
-            buf.buffer.setCharAt(buf.cursor + i - 1, first ? Character.toUpperCase(c) : Character.toLowerCase(c));
+        // TODO: handle MBC
+        while (buf.cursor() < buf.length() && !isDelimiter(c = buf.currChar())) {
+            buf.currChar(first ? Character.toUpperCase(c) : Character.toLowerCase(c));
+            buf.move(1);
             first = false;
-            i++;
         }
-        moveBufferCursor(i - 1);
     }
 
     protected void upCaseWord() {
-        int i = 1;
         char c;
-        while (buf.cursor + i - 1 < buf.length() && !isDelimiter((c = buf.buffer.charAt(buf.cursor + i - 1)))) {
-            buf.buffer.setCharAt(buf.cursor + i - 1, Character.toUpperCase(c));
-            i++;
+        // TODO: handle MBC
+        while (buf.cursor() < buf.length() && !isDelimiter(c = buf.currChar())) {
+            buf.currChar(Character.toUpperCase(c));
+            buf.move(1);
         }
-        moveBufferCursor(i - 1);
     }
 
     protected void downCaseWord() {
-        int i = 1;
         char c;
-        while (buf.cursor + i - 1 < buf.length() && !isDelimiter((c = buf.buffer.charAt(buf.cursor + i - 1)))) {
-            buf.buffer.setCharAt(buf.cursor + i - 1, Character.toLowerCase(c));
-            i++;
+        // TODO: handle MBC
+        while (buf.cursor() < buf.length() && !isDelimiter(c = buf.currChar())) {
+            buf.currChar(Character.toLowerCase(c));
+            buf.move(1);
         }
-        moveBufferCursor(i - 1);
+        buf.toString().toLowerCase();
     }
 
     /**
@@ -1810,19 +1751,10 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      */
     protected void transposeChars() {
         for (int count = this.count; count > 0; --count) {
-            if (buf.cursor == 0 || buf.cursor == buf.buffer.length()) {
+            if (!buf.transpose()) {
                 beep();
                 break;
             }
-
-            int first  = buf.cursor-1;
-            int second = buf.cursor;
-
-            char tmp = buf.buffer.charAt (first);
-            buf.buffer.setCharAt(first, buf.buffer.charAt(second));
-            buf.buffer.setCharAt(second, tmp);
-
-            buf.cursor++;
         }
     }
 
@@ -1852,44 +1784,15 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected void backwardChar() {
-        if (moveBufferCursor(-count) == 0) {
+        if (buf.move(-count) == 0) {
             beep();
         }
     }
 
     protected void forwardChar() {
-        if (moveBufferCursor(count) == 0) {
+        if (buf.move(count) == 0) {
             beep();
         }
-    }
-
-    /**
-     * Move the cursor <i>where</i> characters.
-     *
-     * @param num   If less than 0, move abs(<i>where</i>) to the left, otherwise move <i>where</i> to the right.
-     * @return      The number of spaces we moved
-     */
-    public int moveBufferCursor(final int num) {
-        int where = num;
-
-        if ((buf.cursor == 0) && (where <= 0)) {
-            return 0;
-        }
-
-        if ((buf.cursor == buf.buffer.length()) && (where >= 0)) {
-            return 0;
-        }
-
-        if ((buf.cursor + where) < 0) {
-            where = -buf.cursor;
-        }
-        else if ((buf.cursor + where) > buf.buffer.length()) {
-            where = buf.buffer.length() - buf.cursor;
-        }
-
-        buf.cursor += where;
-
-        return where;
     }
 
     protected int moveVisualCursorTo(int i1) {
@@ -2159,7 +2062,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     protected void viYankTo() {
         // Similar to delete-to, a "yy" yanks the whole line.
         if (state == State.VI_YANK_TO) {
-            yankBuffer = buf.buffer.toString();
+            yankBuffer = buf.toString();
             state = previousState = State.NORMAL;
         } else {
             state = State.VI_YANK_TO;
@@ -2191,7 +2094,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
          * behavior. If the line is empty, then it is an EOF
          * otherwise it is as if the user hit enter.
          */
-        if (buf.buffer.length() == 0) {
+        if (buf.length() == 0) {
             state = State.EOF;
         } else {
             acceptLine();
@@ -2199,13 +2102,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected void forwardSearchHistory() {
-        originalBuffer = new CursorBuffer();
-        originalBuffer.write(buf.buffer);
-        originalBuffer.cursor = buf.cursor;
+        originalBuffer = buf.copy();
         if (searchTerm != null) {
             previousSearchTerm = searchTerm.toString();
         }
-        searchTerm = new StringBuffer(buf.buffer);
+        searchTerm = new StringBuffer(buf.toString());
         state = State.FORWARD_SEARCH;
         if (searchTerm.length() > 0) {
             searchIndex = searchForwards(searchTerm.toString());
@@ -2213,7 +2114,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 beep();
             }
             printForwardSearchStatus(searchTerm.toString(),
-                    searchIndex > -1 ? history.get(searchIndex).toString() : "");
+                    searchIndex > -1 ? history.get(searchIndex) : "");
         } else {
             searchIndex = -1;
             printForwardSearchStatus("", "");
@@ -2221,13 +2122,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected void reverseSearchHistory() {
-        originalBuffer = new CursorBuffer();
-        originalBuffer.write(buf.buffer);
-        originalBuffer.cursor = buf.cursor;
+        originalBuffer = buf.copy();
         if (searchTerm != null) {
             previousSearchTerm = searchTerm.toString();
         }
-        searchTerm = new StringBuffer(buf.buffer);
+        searchTerm = new StringBuffer(buf.toString());
         state = State.SEARCH;
         if (searchTerm.length() > 0) {
             searchIndex = searchBackwards(searchTerm.toString());
@@ -2235,7 +2134,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 beep();
             }
             printSearchStatus(searchTerm.toString(),
-                    searchIndex > -1 ? history.get(searchIndex).toString() : "");
+                    searchIndex > -1 ? history.get(searchIndex) : "");
         } else {
             searchIndex = -1;
             printSearchStatus("", "");
@@ -2285,7 +2184,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected void exitOrDeleteChar() {
-        if (buf.buffer.length() == 0) {
+        if (buf.length() == 0) {
             state = State.EOF;
         } else {
             deleteChar();
@@ -2317,7 +2216,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected void overwriteMode() {
-        buf.setOverTyping(!buf.isOverTyping());
+        buf.overTyping(!buf.overTyping());
     }
 
     protected void previousHistory() {
@@ -2383,7 +2282,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         // only move on an explicit entry to movement
         // mode.
         if (state == State.NORMAL) {
-            moveBufferCursor(-1);
+            buf.move(-1);
         }
         setKeyMap(KeyMap.VI_MOVE);
     }
@@ -2393,7 +2292,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected void viAppendMode() {
-        moveBufferCursor(1);
+        buf.move(1);
         setKeyMap(KeyMap.VI_INSERT);
     }
 
@@ -2407,12 +2306,12 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected void viChangeToEol() {
-        viDeleteTo(buf.cursor, buf.buffer.length(), true);
+        viDeleteTo(buf.cursor(), buf.length(), true);
         consoleKeys.setKeyMap(KeyMap.VI_INSERT);
     }
 
     protected void viDeleteToEol() {
-        viDeleteTo(buf.cursor, buf.buffer.length(), false);
+        viDeleteTo(buf.cursor(), buf.length(), false);
     }
 
     protected void quotedInsert() {
@@ -2443,7 +2342,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected void backwardDeleteChar() {
-        if (!backspace()) {
+        if (!buf.backspace()) {
             beep();
         }
     }
@@ -2484,15 +2383,15 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected void beginningOfLine() {
-        setCursorPosition(0);
+        buf.cursor(0);
     }
 
     protected void endOfLine() {
-        moveBufferCursor(buf.length() - buf.cursor);
+        buf.cursor(buf.length());
     }
 
     protected void deleteChar() {
-        if (!deleteCurrentCharacter()) {
+        if (!buf.delete()) {
             beep();
         }
     }
@@ -2502,7 +2401,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      */
     protected void viRubout() {
         for (int i = 0; i < count; i++) {
-            if (!backspace()) {
+            if (!buf.backspace()) {
                 beep();
                 break;
             }
@@ -2515,7 +2414,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      */
     protected void viDelete() {
         for (int i = 0; i < count; i++) {
-            if (!deleteCurrentCharacter()) {
+            if (!buf.delete()) {
                 beep();
                 break;
             }
@@ -2529,16 +2428,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      */
     protected void viChangeCase() {
         for (int i = 0; i < count; i++) {
-            if (buf.cursor < buf.buffer.length()) {
-                char ch = buf.buffer.charAt(buf.cursor);
-                if (Character.isUpperCase(ch)) {
-                    ch = Character.toLowerCase(ch);
-                }
-                else if (Character.isLowerCase(ch)) {
-                    ch = Character.toUpperCase(ch);
-                }
-                buf.buffer.setCharAt(buf.cursor, ch);
-                moveBufferCursor(1);
+            if (buf.cursor() < buf.length()) {
+                char ch = buf.atChar(buf.cursor());
+                ch = switchCase(ch);
+                buf.currChar(ch);
+                buf.move(1);
             } else {
                 beep();
                 break;
@@ -2558,10 +2452,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
 
         for (int i = 0; i < count; i++) {
-            if (buf.cursor < buf.buffer.length()) {
-                buf.buffer.setCharAt(buf.cursor, (char) c);
-                if (i < (count-1)) {
-                    moveBufferCursor(1);
+            if (buf.currChar((char) c)) {
+                if (i < count - 1) {
+                    buf.move(1);
                 }
             } else {
                 beep();
@@ -2577,19 +2470,19 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * digits or characters.  It should be revised at some point.
      */
     protected void viPreviousWord() {
-        if (buf.cursor == 0) {
+        if (buf.cursor() == 0) {
             beep();
             return;
         }
 
-        int pos = buf.cursor - 1;
+        int pos = buf.cursor() - 1;
         for (int i = 0; pos > 0 && i < count; i++) {
             // If we are on white space, then move back.
-            while (pos > 0 && isWhitespace(buf.buffer.charAt(pos))) {
+            while (pos > 0 && isWhitespace(buf.atChar(pos))) {
                 --pos;
             }
 
-            while (pos > 0 && !isDelimiter(buf.buffer.charAt(pos-1))) {
+            while (pos > 0 && !isDelimiter(buf.atChar(pos-1))) {
                 --pos;
             }
 
@@ -2597,7 +2490,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 --pos;
             }
         }
-        setCursorPosition(pos);
+        buf.cursor(pos);
     }
 
     /**
@@ -2621,9 +2514,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             startPos = tmp;
         }
 
-        setCursorPosition(startPos);
-        buf.cursor = startPos;
-        buf.buffer.delete(startPos, endPos);
+        buf.cursor(startPos);
+        buf.delete(endPos - startPos);
 
         // If we are doing a delete operation (e.g. "d$") then don't leave the
         // cursor dangling off the end. In reality the "isChange" flag is silly
@@ -2631,7 +2523,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         // cursor can't be moved off the end of the line, but in "edit-mode" it
         // is ok, but I have no easy way of knowing which mode we are in.
         if (! isChange && startPos > 0 && startPos == buf.length()) {
-            moveBufferCursor(-1);
+            buf.move(-1);
         }
         return true;
     }
@@ -2659,13 +2551,13 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             return true;
         }
 
-        yankBuffer = buf.buffer.substring(startPos, endPos);
+        yankBuffer = buf.substring(startPos, endPos);
 
         /*
          * It was a movement command that moved the cursor to find the
          * end position, so put the cursor back where it started.
          */
-        setCursorPosition(cursorPos);
+        buf.cursor(cursorPos);
         return true;
     }
 
@@ -2675,13 +2567,13 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      */
     protected void viPut() {
         if (yankBuffer.length () != 0) {
-            if (buf.cursor < buf.buffer.length()) {
-                moveBufferCursor(1);
+            if (buf.cursor() < buf.length()) {
+                buf.move(1);
             }
             for (int i = 0; i < count; i++) {
                 putString(yankBuffer);
             }
-            moveBufferCursor(-1);
+            buf.move(-1);
         }
     }
 
@@ -2916,7 +2808,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
         int promptLines = AnsiHelper.splitLines(prompt, size.getColumns(), TAB_WIDTH).size();
         moveVisualCursorTo((promptLines - 1) * size.getColumns()
-                + promptLen + wcwidth(buf.buffer, 0, buf.cursor, promptLen));
+                + promptLen + wcwidth(buf.upToCursor(), promptLen));
         oldBuf = buffer;
         oldPrompt = prompt;
         oldPost = post;
@@ -2964,8 +2856,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
 
         List<String> candidates = new LinkedList<>();
-        String bufstr = buf.buffer.toString();
-        int cursor = buf.cursor;
+        String bufstr = buf.toString();
+        int cursor = buf.cursor();
 
         int position = -1;
 
@@ -2985,8 +2877,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
 
         List<String> candidates = new LinkedList<>();
-        String bufstr = buf.buffer.toString();
-        int cursor = buf.cursor;
+        String bufstr = buf.toString();
+        int cursor = buf.cursor();
 
         for (Completer comp : completers) {
             if (comp.complete(bufstr, cursor, candidates) != -1) {
@@ -3033,19 +2925,12 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     //
 
     /**
-     * Output the specified characters to the output stream without manipulating the current buffer.
+     * Output the specified string to the output stream (but not the buffer).
      */
-    protected int print(final CharSequence buff, int cursorPos) {
-        return print(buff, 0, buff.length(), cursorPos);
-    }
-
-    protected int print(final CharSequence buff, int start, int end) {
-        return print(buff, start, end, getCursorPosition());
-    }
-
-    protected int print(final CharSequence buff, int start, int end, int cursorPos) {
+    public void print(String buff) {
         checkNotNull(buff);
-        for (int i = start; i < end; i++) {
+        int cursorPos = getCursorPosition();
+        for (int i = 0, end = buff.length(); i < end; i++) {
             char c = buff.charAt(i);
             if (c == '\t') {
                 int nb = nextTabStop(cursorPos);
@@ -3065,17 +2950,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 }
             }
         }
-        return cursorPos;
     }
 
-    /**
-     * Output the specified string to the output stream (but not the buffer).
-     */
-    public void print(final CharSequence s) {
-        print(s, getCursorPosition());
-    }
-
-    public void println(final CharSequence s) {
+    public void println(String s) {
         print(s);
         println();
     }
@@ -3085,30 +2962,28 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      */
     public void println() {
         console.puts(Capability.carriage_return);
-        rawPrint("\n");
+        rawPrint('\n');
         redrawLine();
     }
 
     /**
      * Raw output printing
      */
-    final void rawPrint(final int c) {
+    void rawPrint(int c) {
         console.writer().write(c);
     }
 
-    final void rawPrint(final String str) {
-        for (int i = 0; i < str.length(); i++) {
-            rawPrint(str.charAt(i));
-        }
+    void rawPrint(String str) {
+        console.writer().write(str);
     }
 
-    protected void rawPrint(final char c, final int num) {
+    void rawPrint(char c, int num) {
         for (int i = 0; i < num; i++) {
             rawPrint(c);
         }
     }
 
-    protected void rawPrintln(final String s) {
+    void rawPrintln(String s) {
         rawPrint(s);
         println();
     }
@@ -3124,13 +2999,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * @return true if successful
      */
     public boolean delete() {
-        if (buf.cursor == buf.buffer.length()) {
-          return false;
-        }
-
-        buf.buffer.delete(buf.cursor, buf.cursor + 1);
-
-        return true;
+        return buf.delete();
     }
 
     protected void killWholeLine() {
@@ -3144,18 +3013,12 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * @return true if successful
      */
     public boolean killLine() {
-        int cp = buf.cursor;
-        int len = buf.buffer.length();
-
+        int cp = buf.cursor();
+        int len = buf.length();
         int num = len - cp;
-
-        char[] killed = new char[num];
-        buf.buffer.getChars(cp, (cp + num), killed, 0);
-        buf.buffer.delete(cp, (cp + num));
-
-        String copy = new String(killed);
-        killRing.add(copy);
-
+        String killed = buf.substring(cp, cp + num);
+        buf.delete(num);
+        killRing.add(killed);
         return true;
     }
 
@@ -3179,7 +3042,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             beep();
             return;
         }
-        backspace(current.length());
+        buf.backspace(current.length());
         String yanked = killRing.yankPop();
         if (yanked == null) {
             // This shouldn't happen.
@@ -3489,7 +3352,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         // Grab the prompt lines but the last one
         post = new String[] { searchLabel + ": " + searchTerm + "_" };
         setBuffer(match);
-        buf.cursor = match.indexOf(searchTerm);
+        buf.move(match.indexOf(searchTerm) - buf.cursor());
     }
 
     public void restoreLine() {
@@ -3527,11 +3390,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         while (it.hasPrevious()) {
             History.Entry e = it.previous();
             if (startsWith) {
-                if (e.value().toString().startsWith(searchTerm)) {
+                if (e.value().startsWith(searchTerm)) {
                     return e.index();
                 }
             } else {
-                if (e.value().toString().contains(searchTerm)) {
+                if (e.value().contains(searchTerm)) {
                     return e.index();
                 }
             }

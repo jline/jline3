@@ -48,7 +48,7 @@ public class ViMoveModeTest
          * Move left
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("0123456789"))
+        TestBuffer b = (new TestBuffer("0123456789"))
             .escape()
             .append(left)
             .append(left)
@@ -61,7 +61,7 @@ public class ViMoveModeTest
          * Move left - use digit arguments.
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("0123456789"))
+        b = (new TestBuffer("0123456789"))
             .escape()
             .append('3')
             .append(left)
@@ -73,7 +73,7 @@ public class ViMoveModeTest
          * Move left - use multi-digit arguments.
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("0123456789ABCDEFHIJLMNOPQRSTUVWXYZ"))
+        b = (new TestBuffer("0123456789ABCDEFHIJLMNOPQRSTUVWXYZ"))
             .escape()
             .append("13")
             .append(left)
@@ -85,7 +85,7 @@ public class ViMoveModeTest
          * Delete move left.
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("0123456789ABCDEFHIJLMNOPQRSTUVWXYZ"))
+        b = (new TestBuffer("0123456789ABCDEFHIJLMNOPQRSTUVWXYZ"))
             .escape()
             .append("13d")
             .append(left)
@@ -93,7 +93,7 @@ public class ViMoveModeTest
         assertLine("0123456789ABCDEFHIJLZ", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("0123456789ABCDEFHIJLMNOPQRSTUVWXYZ"))
+        b = (new TestBuffer("0123456789ABCDEFHIJLMNOPQRSTUVWXYZ"))
             .escape()
             .append("d")
             .append(left)
@@ -106,7 +106,7 @@ public class ViMoveModeTest
          * Change move left
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("0123456789ABCDEFHIJLMNOPQRSTUVWXYZ"))
+        b = (new TestBuffer("0123456789ABCDEFHIJLMNOPQRSTUVWXYZ"))
             .escape()
             .append("13c")
             .append(left)
@@ -115,7 +115,7 @@ public class ViMoveModeTest
         assertLine("0123456789ABCDEFHIJL_HIZ", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("word"))
+        b = (new TestBuffer("word"))
             .escape()
             .append("c")
             .append(left)
@@ -127,7 +127,7 @@ public class ViMoveModeTest
          * Yank left
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("word"))
+        b = (new TestBuffer("word"))
             .escape()
             .append("3y")
             .append(left)
@@ -148,7 +148,7 @@ public class ViMoveModeTest
          * Move right
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("0123456789"))
+        TestBuffer b = (new TestBuffer("0123456789"))
             .escape()
             .append('0')   // beginning of line
             .append(right)
@@ -162,7 +162,7 @@ public class ViMoveModeTest
          * Move right use digit arguments.
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("0123456789ABCDEFHIJK"))
+        b = (new TestBuffer("0123456789ABCDEFHIJK"))
             .escape()
             .append("012")
             .append(right)
@@ -174,7 +174,7 @@ public class ViMoveModeTest
          * Delete move right
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("a bunch of words"))
+        b = (new TestBuffer("a bunch of words"))
             .escape()
             .append("05d")
             .append(right)
@@ -182,7 +182,7 @@ public class ViMoveModeTest
         assertLine("ch of words", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("a bunch of words"))
+        b = (new TestBuffer("a bunch of words"))
             .escape()
             .append("0d")
             .append(right)
@@ -195,7 +195,7 @@ public class ViMoveModeTest
          * Change move right
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("a bunch of words"))
+        b = (new TestBuffer("a bunch of words"))
             .escape()
             .append("010c")
             .append(right)
@@ -207,7 +207,7 @@ public class ViMoveModeTest
          * Yank move right
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("a bunch of words"))
+        b = (new TestBuffer("a bunch of words"))
             .escape()
             .append("010y")
             .append(right)
@@ -224,7 +224,7 @@ public class ViMoveModeTest
          * The escape() puts us in move mode.
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("abc")).escape().ctrlD();
+        TestBuffer b = (new TestBuffer("abc")).escape().ctrlD();
         assertLine("abc", b, true);
         
         /*
@@ -237,7 +237,7 @@ public class ViMoveModeTest
          * Next, the middle of the line.
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("abc")).left().left().escape().ctrlD();
+        b = (new TestBuffer("abc")).left().left().escape().ctrlD();
         assertLine("abc", b, true);
         assertTrue(reader.isKeyMap(KeyMap.VI_MOVE));
         
@@ -245,7 +245,7 @@ public class ViMoveModeTest
          * Beginning of the line.
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("abc")).left().left().left().escape().ctrlD();
+        b = (new TestBuffer("abc")).left().left().left().escape().ctrlD();
         assertLine("abc", b, true);
         assertTrue(reader.isKeyMap(KeyMap.VI_MOVE));
         
@@ -254,7 +254,7 @@ public class ViMoveModeTest
          * a null to be returned.  I'll try it in two different ways.
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("abc")).back().back().back().escape().ctrlD();
+        b = (new TestBuffer("abc")).back().back().back().escape().ctrlD();
         try {
             assertLine(null, b, true);
             fail("Expected EOFException");
@@ -264,7 +264,7 @@ public class ViMoveModeTest
         assertTrue(reader.isKeyMap(KeyMap.VI_MOVE));
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("")).escape().ctrlD();
+        b = (new TestBuffer("")).escape().ctrlD();
         try {
             assertLine(null, b, true);
             fail("Expected EOFException");
@@ -289,7 +289,7 @@ public class ViMoveModeTest
          * Ctrl-K should delete to end-of-line 
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("This is a test"))
+        TestBuffer b = (new TestBuffer("This is a test"))
             .escape()
             .left().left().left().left()
             .ctrl('K')
@@ -297,7 +297,7 @@ public class ViMoveModeTest
         
         assertLine("This is a", b, true);
         
-        b = (new Buffer("hello"))
+        b = (new TestBuffer("hello"))
             .escape()
             .ctrl('K')
             .enter();
@@ -321,7 +321,7 @@ public class ViMoveModeTest
          * road.
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("hello"))
+        TestBuffer b = (new TestBuffer("hello"))
             .escape()
             .ctrl ('L')
             // .ctrl ('K')
@@ -337,7 +337,7 @@ public class ViMoveModeTest
     @Test
     public void testCtrlP_CtrlN() throws Exception {
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("line1")).enter()
+        TestBuffer b = (new TestBuffer("line1")).enter()
             .append("line2").enter()
             .append("li")
             .escape()
@@ -348,7 +348,7 @@ public class ViMoveModeTest
         
         reader.getHistory ().clear ();
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("line1")).enter()
+        b = (new TestBuffer("line1")).enter()
             .append("line2").enter()
             .append("li")
             .escape()
@@ -364,7 +364,7 @@ public class ViMoveModeTest
          */
         reader.getHistory ().clear ();
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("aline")).enter()
+        b = (new TestBuffer("aline")).enter()
             .append("bline").enter()
             .append("cli")
             .escape()
@@ -382,7 +382,7 @@ public class ViMoveModeTest
          * Transpose every character exactly.
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("abcdef"))
+        TestBuffer b = (new TestBuffer("abcdef"))
             .escape()           // Move mode
             .append('0')        // Beginning of line
             .right()            // Right one
@@ -398,7 +398,7 @@ public class ViMoveModeTest
          * Cannot transpose the first character or the last character
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("abcdef"))
+        b = (new TestBuffer("abcdef"))
             .escape()           // Move mode
             .append('0')        // Beginning of line
             .ctrl('T')
@@ -417,7 +417,7 @@ public class ViMoveModeTest
          * current cursor position.
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("all work and no play"))
+        TestBuffer b = (new TestBuffer("all work and no play"))
             .escape()            // Move mode
             .left(3)             // Left to the "p" in play
             .ctrl('U')           // Line discard
@@ -428,7 +428,7 @@ public class ViMoveModeTest
          * Nothing happens at the beginning of the line
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("donkey punch"))
+        b = (new TestBuffer("donkey punch"))
             .escape()            // Move mode
             .append('0')         // Beginning of the line
             .ctrl('U')           // Line discard
@@ -439,7 +439,7 @@ public class ViMoveModeTest
          * End of the line leaves an empty buffer
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("rabid hamster"))
+        b = (new TestBuffer("rabid hamster"))
             .escape()            // Move mode
             .right()             // End of line
             .ctrl('U')           // Line discard
@@ -455,7 +455,7 @@ public class ViMoveModeTest
          * it deletes up to the beginning of the previous word.
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("oily rancid badgers"))
+        TestBuffer b = (new TestBuffer("oily rancid badgers"))
             .escape()
             .ctrl('W')
             .ctrl('W')
@@ -466,7 +466,7 @@ public class ViMoveModeTest
          * Test behavior with non-word characters. 
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("pasty bulimic rats !!!!!"))
+        b = (new TestBuffer("pasty bulimic rats !!!!!"))
             .escape()
             .ctrl('W')
             .ctrl('W')
@@ -474,7 +474,7 @@ public class ViMoveModeTest
         assertLine("pasty bulimic !", b, false);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("pasty bulimic rats !!!!!"))
+        b = (new TestBuffer("pasty bulimic rats !!!!!"))
             .escape()
             .append("2")
             .ctrl('W')
@@ -488,7 +488,7 @@ public class ViMoveModeTest
          * The # key causes a comment to get inserted.
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("putrified whales"))
+        TestBuffer b = (new TestBuffer("putrified whales"))
             .escape()
             .append ("#");
         assertLine("#putrified whales", b, false);
@@ -499,7 +499,7 @@ public class ViMoveModeTest
     public void testD() throws Exception {
         // D is a vim extension for delete-to-end-of-line
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("banana"))
+        TestBuffer b = (new TestBuffer("banana"))
             .escape()
             .left(2)
             .append("Dadaid")
@@ -512,7 +512,7 @@ public class ViMoveModeTest
     public void testC() throws Exception {
         // C is a vim extension for change-to-end-of-line
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("yogurt"))
+        TestBuffer b = (new TestBuffer("yogurt"))
             .escape()
             .left(3)
             .append("Cyo")
@@ -525,7 +525,7 @@ public class ViMoveModeTest
     public void testS() throws Exception {
         // S is a vim extension that is a synonum for 'cc' (clear whole line)
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("great lakes brewery"))
+        TestBuffer b = (new TestBuffer("great lakes brewery"))
             .escape()
             .left(3)
             .append("Sdogfishhead")
@@ -540,7 +540,7 @@ public class ViMoveModeTest
          * The $ key causes the cursor to move to the end of the line
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("chicken sushimi"))
+        TestBuffer b = (new TestBuffer("chicken sushimi"))
             .escape()
             .left(10)
             .append("$a is tasty!")
@@ -552,7 +552,7 @@ public class ViMoveModeTest
          * Delete to EOL
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("chicken sushimi"))
+        b = (new TestBuffer("chicken sushimi"))
             .escape()
             .append("0lld$")
             .enter();
@@ -562,7 +562,7 @@ public class ViMoveModeTest
          * Change to EOL
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("chicken sushimi"))
+        b = (new TestBuffer("chicken sushimi"))
             .escape()
             .append("0llc$opsticks")
             .enter();
@@ -572,7 +572,7 @@ public class ViMoveModeTest
          * Yank to EOL
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("chicken sushimi"))
+        b = (new TestBuffer("chicken sushimi"))
             .escape()
             .append("0lly$$p")
             .enter();
@@ -582,7 +582,7 @@ public class ViMoveModeTest
     @Test
     public void firstPrintable() throws Exception {
       reader.setKeyMap(KeyMap.VI_INSERT);
-      Buffer b = (new Buffer(" foo bar"))
+      TestBuffer b = (new TestBuffer(" foo bar"))
         .escape()
         .append("^dw")
         .enter();
@@ -596,7 +596,7 @@ public class ViMoveModeTest
          * First, test close paren w/nesting
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("ab((cdef[[))"))
+        TestBuffer b = (new TestBuffer("ab((cdef[[))"))
             .escape()       // Move us back one character (on last close)
             .append("%aX")  // Find match, add an X after it
             .enter();
@@ -606,7 +606,7 @@ public class ViMoveModeTest
          * Open paren, w/nesting
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("ab((cdef[[))"))
+        b = (new TestBuffer("ab((cdef[[))"))
             .escape()       // Move us back one character (on last close)
             .append('0')    // Beginning of line
             .right(2)       // Right to first open paren
@@ -618,14 +618,14 @@ public class ViMoveModeTest
          * No match leaves the cursor in place
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("abcd))"))
+        b = (new TestBuffer("abcd))"))
             .escape()
             .append("%aX")
             .enter();
         assertLine("abcd))X", b, false);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("(abcd(d"))
+        b = (new TestBuffer("(abcd(d"))
             .escape()
             .append("0%aX") // Beginning of line, match, append X
             .enter();
@@ -635,14 +635,14 @@ public class ViMoveModeTest
          * Delete match
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("ab(def)hij"))
+        b = (new TestBuffer("ab(def)hij"))
             .escape()
             .append("0lld%")
             .enter();
         assertLine("abhij", b, false);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("ab(def)"))
+        b = (new TestBuffer("ab(def)"))
             .escape()
             .append("0lld%")
             .enter();
@@ -652,7 +652,7 @@ public class ViMoveModeTest
          * Yank match
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("ab(def)hij"))
+        b = (new TestBuffer("ab(def)hij"))
             .escape()
             .append("0lly%$p")
             .enter();
@@ -662,7 +662,7 @@ public class ViMoveModeTest
          * Change match
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("ab(def)hij"))
+        b = (new TestBuffer("ab(def)hij"))
             .escape()
             .append("0llc%X")
             .enter();
@@ -686,7 +686,7 @@ public class ViMoveModeTest
          * test aborting by deleting back over the search expression.
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("I like frogs"))
+        TestBuffer b = (new TestBuffer("I like frogs"))
             .escape()
             .left(4)          // Cursor is on the "f"
             .append("/def")   // Start a search
@@ -700,7 +700,7 @@ public class ViMoveModeTest
          * behavior, but I added it because I find it useful.
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("I like frogs"))
+        b = (new TestBuffer("I like frogs"))
             .escape()
             .left(4)          // Cursor is on the "f"
             .append("/def")   // Start a search
@@ -714,7 +714,7 @@ public class ViMoveModeTest
          * should leave the cursor at the start of the line.
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("I like frogs"))
+        b = (new TestBuffer("I like frogs"))
             .escape()
             .left(4)          // Cursor is on the "f"
             .append("/III")   // Search (no match)
@@ -727,7 +727,7 @@ public class ViMoveModeTest
          * Test a valid search.
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("I like frogs"))
+        b = (new TestBuffer("I like frogs"))
             .escape()
             .left(4)          // Cursor is on the "f"
             .append("/def")   // Search (no match)
@@ -749,7 +749,7 @@ public class ViMoveModeTest
          * Search backwards
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("I like frogs"))
+        b = (new TestBuffer("I like frogs"))
             .escape()
             .left(4)          // Cursor is on the "f"
             .append("?def")   // Search (no match)
@@ -763,7 +763,7 @@ public class ViMoveModeTest
          * Test bug fix: use CR to terminate seach instead of newline
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("abc"))
+        b = (new TestBuffer("abc"))
             .enter()
             .append("def")
             .enter()
@@ -780,14 +780,14 @@ public class ViMoveModeTest
     @Test
     public void testWordRight() throws Exception {
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("buttery frog necks"))
+        TestBuffer b = (new TestBuffer("buttery frog necks"))
             .escape()
             .append("0ww")    // Beginning of line, nxt word, nxt word
             .ctrl('U')        // Kill to beginning of line
             .enter();         // Kick it off.
         assertLine("necks", b, false);
         
-        b = (new Buffer("buttery frog    foo"))
+        b = (new TestBuffer("buttery frog    foo"))
             .escape()
             .left(5)
             .append('w')
@@ -795,7 +795,7 @@ public class ViMoveModeTest
             .enter();         // Kick it off.
         assertLine("buttery frog    ", b, false);
         
-        b = (new Buffer("a big batch of buttery frog livers"))
+        b = (new TestBuffer("a big batch of buttery frog livers"))
             .escape()
             .append("05w")    // Beg of line, 5 words right
             .ctrl('U')        // Kill to beginning of line
@@ -805,13 +805,13 @@ public class ViMoveModeTest
         /*
          * Delete word right
          */
-        b = (new Buffer("a big batch of buttery frog livers"))
+        b = (new TestBuffer("a big batch of buttery frog livers"))
             .escape()
             .append("05dw")
             .enter();
         assertLine("frog livers", b, false);
         
-        b = (new Buffer("another big batch of buttery frog livers"))
+        b = (new TestBuffer("another big batch of buttery frog livers"))
             .escape()
             .append("0ldw")
             .enter();
@@ -820,7 +820,7 @@ public class ViMoveModeTest
         /*
          * Yank word right
          */
-        b = (new Buffer("big brown pickles"))
+        b = (new TestBuffer("big brown pickles"))
             .escape()
             .append("02yw$p")
             .enter();
@@ -829,13 +829,13 @@ public class ViMoveModeTest
         /*
          * Change word right
          */
-        b = (new Buffer("big brown pickles"))
+        b = (new TestBuffer("big brown pickles"))
             .escape()
             .append("0wcwgreen")
             .enter();
         assertLine("big green pickles", b, false);
         
-        b = (new Buffer("big brown pickles"))
+        b = (new TestBuffer("big brown pickles"))
             .escape()
             .append("02cwlittle bitty")
             .enter();
@@ -845,14 +845,14 @@ public class ViMoveModeTest
     @Test
     public void testWordLeft() throws Exception {
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("lucious lark liquid    "))
+        TestBuffer b = (new TestBuffer("lucious lark liquid    "))
             .escape()
             .append("bb")     // Beginning of line, prv word, prv word
             .ctrl('K')        // Kill to end of line
             .enter();         // Kick it off.
         assertLine("lucious ", b, false);
         
-        b = (new Buffer("lucious lark liquid"))
+        b = (new TestBuffer("lucious lark liquid"))
             .escape()
             .left(2)
             .append('b')
@@ -860,7 +860,7 @@ public class ViMoveModeTest
             .enter();
         assertLine("liquid", b, false);
         
-        b = (new Buffer("lively lolling lark liquid"))
+        b = (new TestBuffer("lively lolling lark liquid"))
             .escape()
             .append("3b")
             .ctrl('K')        // Kill to beginning of line
@@ -871,7 +871,7 @@ public class ViMoveModeTest
     @Test
     public void testEndWord() throws Exception {
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("putrid pidgen porridge"))
+        TestBuffer b = (new TestBuffer("putrid pidgen porridge"))
             .escape()
             .append("0e")
             .ctrl('K')        // Kill to end of line
@@ -879,7 +879,7 @@ public class ViMoveModeTest
         assertLine("putri", b, false);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("    putrid pidgen porridge"))
+        b = (new TestBuffer("    putrid pidgen porridge"))
             .escape()
             .append("0e")
             .ctrl('K')        // Kill to end of line
@@ -887,7 +887,7 @@ public class ViMoveModeTest
         assertLine("    putri", b, false);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("putrid pidgen porridge and mash"))
+        b = (new TestBuffer("putrid pidgen porridge and mash"))
             .escape()
             .append("05l") // Beg of line, 5 right
             .append("3e")  // 3 end-of-word
@@ -899,7 +899,7 @@ public class ViMoveModeTest
     @Test
     public void testInsertBeginningOfLine() throws Exception {
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("dessicated dog droppings"))
+        TestBuffer b = (new TestBuffer("dessicated dog droppings"))
             .escape()
             .append("Itasty ")
             .enter();
@@ -909,7 +909,7 @@ public class ViMoveModeTest
     @Test
     public void testRubout() throws Exception {
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("gross animal stuff"))
+        TestBuffer b = (new TestBuffer("gross animal stuff"))
             .escape()
             .left()
             .append("XXX")
@@ -917,7 +917,7 @@ public class ViMoveModeTest
         assertLine("gross animal ff", b, false);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("gross animal stuff"))
+        b = (new TestBuffer("gross animal stuff"))
             .escape()
             .left()
             .append("50X")
@@ -928,14 +928,14 @@ public class ViMoveModeTest
     @Test
     public void testDelete() throws Exception {
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("thing to delete"))
+        TestBuffer b = (new TestBuffer("thing to delete"))
             .escape()
             .append("bbxxx")
             .enter();
         assertLine("thing delete", b, false);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("thing to delete"))
+        b = (new TestBuffer("thing to delete"))
             .escape()
             .append("bb99x")
             .enter();
@@ -945,14 +945,14 @@ public class ViMoveModeTest
     @Test
     public void testChangeCase() throws Exception {
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("big.LITTLE"))
+        TestBuffer b = (new TestBuffer("big.LITTLE"))
             .escape()
             .append("0~~~~~~~~~~")
             .enter();
         assertLine("BIG.little", b, false);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("big.LITTLE"))
+        b = (new TestBuffer("big.LITTLE"))
             .escape()
             .append("020~")
             .enter();
@@ -962,21 +962,21 @@ public class ViMoveModeTest
     @Test
     public void testChangeChar() throws Exception {
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("abcdefhij"))
+        TestBuffer b = (new TestBuffer("abcdefhij"))
             .escape()
             .append("0rXiY")
             .enter();
         assertLine("YXbcdefhij", b, false);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("abcdefhij"))
+        b = (new TestBuffer("abcdefhij"))
             .escape()
             .append("04rXiY")
             .enter();
         assertLine("XXXYXefhij", b, false);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("abcdefhij"))
+        b = (new TestBuffer("abcdefhij"))
             .escape()
             .append("099rZ")
             .enter();
@@ -987,7 +987,7 @@ public class ViMoveModeTest
          * Aborted replace.
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("abcdefhij"))
+        b = (new TestBuffer("abcdefhij"))
             .escape()
             .append("0r")
             .escape()
@@ -1002,49 +1002,49 @@ public class ViMoveModeTest
          * f = search forward for character
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+        TestBuffer b = (new TestBuffer("aaaafaaaafaaaafaaaaf"))
             .escape()
             .append("03ffiX") // start, find the third f, insert X
             .enter();
         assertLine("aaaafaaaafaaaaXfaaaaf", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+        b = (new TestBuffer("aaaafaaaafaaaafaaaaf"))
             .escape()
             .append("0ffffffiX") // start, find the third f, insert X
             .enter();
         assertLine("aaaafaaaafaaaaXfaaaaf", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+        b = (new TestBuffer("aaaafaaaafaaaafaaaaf"))
             .escape()
             .append("0ff;;iX") // start, find f, repeat fwd, repeat fwd
             .enter();
         assertLine("aaaafaaaafaaaaXfaaaaf", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+        b = (new TestBuffer("aaaafaaaafaaaafaaaaf"))
             .escape()
             .append("0ff;,iX") // start, find f, repeat fwd, repeat back
             .enter();
         assertLine("aaaaXfaaaafaaaafaaaaf", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("aaaaXaaaaXaaaaXaaaaX"))
+        b = (new TestBuffer("aaaaXaaaaXaaaaXaaaaX"))
             .escape()
             .append("0fX3;iY") // start, find X, repeat fwd x 3, ins Y
             .enter();
         assertLine("aaaaXaaaaXaaaaXaaaaYX", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+        b = (new TestBuffer("aaaafaaaafaaaafaaaaf"))
             .escape()
             .append("03dff") // start, delete to third f
             .enter();
         assertLine("aaaaf", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("aaaaXaaaaXaaaaXaaaaX"))
+        b = (new TestBuffer("aaaaXaaaaXaaaaXaaaaX"))
             .escape()
             .append("0fX2d;") // start, find X, 2 x delete repeat last search
             .enter();
@@ -1057,49 +1057,49 @@ public class ViMoveModeTest
          * f = search forward for character
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+        TestBuffer b = (new TestBuffer("aaaafaaaafaaaafaaaaf"))
             .escape()
             .append("3FfiX") // go 3 f's back, insert X
             .enter();
         assertLine("aaaaXfaaaafaaaafaaaaf", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+        b = (new TestBuffer("aaaafaaaafaaaafaaaaf"))
             .escape()
             .append("FfFfFfiX") // start, find the third f back, insert X
             .enter();
         assertLine("aaaaXfaaaafaaaafaaaaf", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+        b = (new TestBuffer("aaaafaaaafaaaafaaaaf"))
             .escape()
             .append("Ff;iX") // start, find f, repeat fwd, repeat fwd
             .enter();
         assertLine("aaaafaaaaXfaaaafaaaaf", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+        b = (new TestBuffer("aaaafaaaafaaaafaaaaf"))
             .escape()
             .append("Ff;,iX") // start, rev find f, repeat, reverse
             .enter();
         assertLine("aaaafaaaafaaaaXfaaaaf", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("aaaaXaaaaXaaaaXaaaaX"))
+        b = (new TestBuffer("aaaaXaaaaXaaaaXaaaaX"))
             .escape()
             .append("FX2;iY") // start, rev find X, repeat x 2, ins Y
             .enter();
         assertLine("aaaaYXaaaaXaaaaXaaaaX", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+        b = (new TestBuffer("aaaafaaaafaaaafaaaaf"))
             .escape()
             .append("3dFf") // start, delete back to third f
             .enter();
         assertLine("aaaaf", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("aaaaXaaaaXaaaaXaaaaX"))
+        b = (new TestBuffer("aaaaXaaaaXaaaaXaaaaX"))
             .escape()
             .append("FX2d;") // start, find X, 2 x delete repeat last search
             .enter();
@@ -1112,49 +1112,49 @@ public class ViMoveModeTest
          * r = search forward for character, stopping before
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+        TestBuffer b = (new TestBuffer("aaaafaaaafaaaafaaaaf"))
             .escape()
             .append("03tfiX")
             .enter();
         assertLine("aaaafaaaafaaaXafaaaaf", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+        b = (new TestBuffer("aaaafaaaafaaaafaaaaf"))
             .escape()
             .append("0tftftfiX")
             .enter();
         assertLine("aaaXafaaaafaaaafaaaaf", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+        b = (new TestBuffer("aaaafaaaafaaaafaaaaf"))
             .escape()
             .append("0tf;;iX")
             .enter();
         assertLine("aaaXafaaaafaaaafaaaaf", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+        b = (new TestBuffer("aaaafaaaafaaaafaaaaf"))
             .escape()
             .append("02tf;,iX")
             .enter();
         assertLine("aaaafXaaaafaaaafaaaaf", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("aaaaXaaaaXaaaaXaaaaX"))
+        b = (new TestBuffer("aaaaXaaaaXaaaaXaaaaX"))
             .escape()
             .append("0tX3;iY")
             .enter();
         assertLine("aaaaXaaaaXaaaYaXaaaaX", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+        b = (new TestBuffer("aaaafaaaafaaaafaaaaf"))
             .escape()
             .append("03dtf")
             .enter();
         assertLine("faaaaf", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("aaaaXaaaaXaaaaXaaaaX"))
+        b = (new TestBuffer("aaaaXaaaaXaaaaXaaaaX"))
             .escape()
             .append("0tX2d;")
             .enter();
@@ -1167,49 +1167,49 @@ public class ViMoveModeTest
          * r = search backward for character, stopping after
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+        TestBuffer b = (new TestBuffer("aaaafaaaafaaaafaaaaf"))
             .escape()
             .append("3TfiX")
             .enter();
         assertLine("aaaafXaaaafaaaafaaaaf", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+        b = (new TestBuffer("aaaafaaaafaaaafaaaaf"))
             .escape()
             .append("TfTfTfiX")
             .enter();
         assertLine("aaaafaaaafaaaafXaaaaf", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+        b = (new TestBuffer("aaaafaaaafaaaafaaaaf"))
             .escape()
             .append("Tf;;iX")
             .enter();
         assertLine("aaaafaaaafaaaafXaaaaf", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+        b = (new TestBuffer("aaaafaaaafaaaafaaaaf"))
             .escape()
             .append("2Tf;,iX")
             .enter();
         assertLine("aaaafaaaafaaaXafaaaaf", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("aaaaXaaaaXaaaaXaaaaX"))
+        b = (new TestBuffer("aaaaXaaaaXaaaaXaaaaX"))
             .escape()
             .append("TX3;iY")
             .enter();
         assertLine("aaaaXYaaaaXaaaaXaaaaX", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("aaaafaaaafaaaafaaaaf"))
+        b = (new TestBuffer("aaaafaaaafaaaafaaaaf"))
             .escape()
             .append("3dTf")
             .enter();
         assertLine("aaaaff", b, true);
         
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("aaaaXaaaaXaaaaXaaaaX"))
+        b = (new TestBuffer("aaaaXaaaaXaaaaXaaaaX"))
             .escape()
             .append("TX2d;")
             .enter();
@@ -1223,7 +1223,7 @@ public class ViMoveModeTest
          * current line.
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("abcdef"))
+        TestBuffer b = (new TestBuffer("abcdef"))
             .escape()
             .append("dd")
             .enter();
@@ -1233,7 +1233,7 @@ public class ViMoveModeTest
          * I found a bug here dd didn't work at position 0. This tests the fix.
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("abcdef"))
+        b = (new TestBuffer("abcdef"))
             .escape()
             .append("0dd")
             .enter();
@@ -1246,7 +1246,7 @@ public class ViMoveModeTest
          * This tests "yy" or yank-to + yank-to, which should yank the whole line
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("abcdef"))
+        TestBuffer b = (new TestBuffer("abcdef"))
             .escape()
             .append("yyp")
             .enter();
@@ -1259,7 +1259,7 @@ public class ViMoveModeTest
          * This tests "cc" or change-to + change-to, which changes the whole line
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("abcdef"))
+        TestBuffer b = (new TestBuffer("abcdef"))
             .escape()
             .append("ccsuck")
             .enter();
@@ -1278,7 +1278,7 @@ public class ViMoveModeTest
          * when enter is hit.
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        Buffer b = (new Buffer("abc")).escape().ctrl(enterChar);
+        TestBuffer b = (new TestBuffer("abc")).escape().ctrl(enterChar);
         assertLine("abc", b, true);
         assertTrue(reader.isKeyMap(KeyMap.VI_INSERT));
         
@@ -1287,7 +1287,7 @@ public class ViMoveModeTest
          * characters after the first enter.
          */
         reader.setKeyMap(KeyMap.VI_INSERT);
-        b = (new Buffer("abc")).escape().ctrl(enterChar)
+        b = (new TestBuffer("abc")).escape().ctrl(enterChar)
             .append("def").enter();
         assertLine("def", b, true);
         assertTrue(reader.isKeyMap(KeyMap.VI_INSERT));

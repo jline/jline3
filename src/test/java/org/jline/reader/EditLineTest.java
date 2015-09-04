@@ -26,7 +26,7 @@ public class EditLineTest
 {
     @Test
     public void testDeletePreviousWord() throws Exception {
-        Buffer b = new Buffer("This is a test");
+        TestBuffer b = new TestBuffer("This is a test");
 
         assertBuffer("This is a ", b = b.op(UNIX_WORD_RUBOUT));
         assertBuffer("This is ", b = b.op(UNIX_WORD_RUBOUT));
@@ -38,7 +38,7 @@ public class EditLineTest
 
     @Test
     public void testDeleteNextWord() throws Exception {
-        Buffer b = new Buffer("This is a test").op(END_OF_LINE);
+        TestBuffer b = new TestBuffer("This is a test").op(END_OF_LINE);
 
         assertBuffer("This is a test", b = b.op(KILL_WORD));
         assertBuffer("This is a ", b = b.op(BACKWARD_WORD).op(KILL_WORD));
@@ -47,20 +47,20 @@ public class EditLineTest
     @Test
     public void testMoveToEnd() throws Exception {
         assertBuffer("This is a XtestX",
-            new Buffer("This is a test").op(BACKWARD_WORD)
+            new TestBuffer("This is a test").op(BACKWARD_WORD)
                 .append('X')
                 .op(END_OF_LINE)
                 .append('X'));
 
         assertBuffer("This is Xa testX",
-            new Buffer("This is a test").op(BACKWARD_WORD)
+            new TestBuffer("This is a test").op(BACKWARD_WORD)
                 .op(BACKWARD_WORD)
                 .append('X')
                 .op(END_OF_LINE)
                 .append('X'));
 
         assertBuffer("This Xis a testX",
-            new Buffer("This is a test").op(BACKWARD_WORD)
+            new TestBuffer("This is a test").op(BACKWARD_WORD)
                 .op(BACKWARD_WORD)
                 .op(BACKWARD_WORD)
                 .append('X')
@@ -71,32 +71,32 @@ public class EditLineTest
     @Test
     public void testPreviousWord() throws Exception {
         assertBuffer("This is a Xtest",
-            new Buffer("This is a test").op(BACKWARD_WORD)
+            new TestBuffer("This is a test").op(BACKWARD_WORD)
                 .append('X'));
         assertBuffer("This is Xa test",
-            new Buffer("This is a test").op(BACKWARD_WORD)
+            new TestBuffer("This is a test").op(BACKWARD_WORD)
                 .op(BACKWARD_WORD)
                 .append('X'));
         assertBuffer("This Xis a test",
-            new Buffer("This is a test").op(BACKWARD_WORD)
+            new TestBuffer("This is a test").op(BACKWARD_WORD)
                 .op(BACKWARD_WORD)
                 .op(BACKWARD_WORD)
                 .append('X'));
         assertBuffer("XThis is a test",
-            new Buffer("This is a test").op(BACKWARD_WORD)
-                .op(BACKWARD_WORD)
-                .op(BACKWARD_WORD)
-                .op(BACKWARD_WORD)
-                .append('X'));
-        assertBuffer("XThis is a test",
-            new Buffer("This is a test").op(BACKWARD_WORD)
-                .op(BACKWARD_WORD)
+            new TestBuffer("This is a test").op(BACKWARD_WORD)
                 .op(BACKWARD_WORD)
                 .op(BACKWARD_WORD)
                 .op(BACKWARD_WORD)
                 .append('X'));
         assertBuffer("XThis is a test",
-            new Buffer("This is a test").op(BACKWARD_WORD)
+            new TestBuffer("This is a test").op(BACKWARD_WORD)
+                .op(BACKWARD_WORD)
+                .op(BACKWARD_WORD)
+                .op(BACKWARD_WORD)
+                .op(BACKWARD_WORD)
+                .append('X'));
+        assertBuffer("XThis is a test",
+            new TestBuffer("This is a test").op(BACKWARD_WORD)
                 .op(BACKWARD_WORD)
                 .op(BACKWARD_WORD)
                 .op(BACKWARD_WORD)
@@ -108,21 +108,21 @@ public class EditLineTest
     @Test
     public void testLineStart() throws Exception {
         assertBuffer("XThis is a test",
-            new Buffer("This is a test").ctrlA().append('X'));
+            new TestBuffer("This is a test").ctrlA().append('X'));
         assertBuffer("TXhis is a test",
-            new Buffer("This is a test").ctrlA().right().append('X'));
+            new TestBuffer("This is a test").ctrlA().right().append('X'));
     }
 
     @Test
     public void testClearLine() throws Exception {
-        assertBuffer("", new Buffer("This is a test").ctrlU());
-        assertBuffer("t", new Buffer("This is a test").left().ctrlU());
-        assertBuffer("st", new Buffer("This is a test").left().left().ctrlU());
+        assertBuffer("", new TestBuffer("This is a test").ctrlU());
+        assertBuffer("t", new TestBuffer("This is a test").left().ctrlU());
+        assertBuffer("st", new TestBuffer("This is a test").left().left().ctrlU());
     }
 
     @Test
     public void testRight() throws Exception {
-        Buffer b = new Buffer("This is a test");
+        TestBuffer b = new TestBuffer("This is a test");
         b = b.left().right().back();
         assertBuffer("This is a tes", b);
         b = b.left().left().left().right().left().back();
@@ -133,7 +133,7 @@ public class EditLineTest
 
     @Test
     public void testLeft() throws Exception {
-        Buffer b = new Buffer("This is a test");
+        TestBuffer b = new TestBuffer("This is a test");
         b = b.left().left().left();
         assertBuffer("This is a est", b = b.back());
         assertBuffer("This is aest", b = b.back());
@@ -154,7 +154,7 @@ public class EditLineTest
 
     @Test
     public void testBackspace() throws Exception {
-        Buffer b = new Buffer("This is a test");
+        TestBuffer b = new TestBuffer("This is a test");
         assertBuffer("This is a tes", b = b.back());
         assertBuffer("This is a te", b = b.back());
         assertBuffer("This is a t", b = b.back());
@@ -177,20 +177,20 @@ public class EditLineTest
 
     @Test
     public void testBuffer() throws Exception {
-        assertBuffer("This is a test", new Buffer("This is a test"));
+        assertBuffer("This is a test", new TestBuffer("This is a test"));
     }
 
     @Test
     public void testAbortPartialBuffer() throws Exception {
         reader.setVariable(ConsoleReader.BELL_STYLE, "audible");
-        assertBuffer("", new Buffer("This is a test").ctrl('G'));
+        assertBuffer("", new TestBuffer("This is a test").ctrl('G'));
         assertConsoleOutputContains("\n");
         assertBeeped();
 
         out.reset();
 
         assertBuffer("",
-            new Buffer("This is a test").op(BACKWARD_WORD)
+            new TestBuffer("This is a test").op(BACKWARD_WORD)
                                         .op(BACKWARD_WORD)
                                         .ctrl('G'));
         assertConsoleOutputContains("\n");

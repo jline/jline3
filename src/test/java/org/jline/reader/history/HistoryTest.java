@@ -31,7 +31,7 @@ public class HistoryTest
 {
     @Test
     public void testSingleHistory() throws Exception {
-        Buffer b = new Buffer().
+        TestBuffer b = new TestBuffer().
             append("test line 1").op(ACCEPT_LINE).
             append("test line 2").op(ACCEPT_LINE).
             append("test line 3").op(ACCEPT_LINE).
@@ -91,7 +91,7 @@ public class HistoryTest
         map.bind("\033[0A", HISTORY_SEARCH_BACKWARD);
         map.bind("\033[0B", HISTORY_SEARCH_FORWARD);
 
-        Buffer b = new Buffer().
+        TestBuffer b = new TestBuffer().
             append("toes").op(ACCEPT_LINE).
             append("the quick brown").op(ACCEPT_LINE).
             append("fox jumps").op(ACCEPT_LINE).
