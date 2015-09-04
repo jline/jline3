@@ -8,6 +8,8 @@
  */
 package org.jline.reader;
 
+import java.util.Arrays;
+
 import static org.jline.utils.Preconditions.checkNotNull;
 
 /**
@@ -22,14 +24,12 @@ public class Buffer
     private boolean overTyping = false;
 
     private int cursor = 0;
-
-    private final StringBuilder buffer = new StringBuilder();
+    private int length = 0;
+    private int[] buffer = new int[64];
     
     public Buffer copy () {
         Buffer that = new Buffer();
-        that.overTyping = this.overTyping;
-        that.cursor = this.cursor;
-        that.buffer.append(this.buffer);
+        that.setBuffer(this);
         return that;
     }
 
@@ -46,47 +46,46 @@ public class Buffer
     }
 
     public int length() {
-        return buffer.length();
+        return length;
     }
 
-    public boolean currChar(char ch) {
-        if (cursor == buffer.length()) {
+    public boolean currChar(int ch) {
+        if (cursor == length) {
             return false;
         } else {
-            buffer.setCharAt(cursor, ch);
+            buffer[cursor] = ch;
             return true;
         }
     }
 
-    public char currChar() {
-        if (cursor == buffer.length()) {
+    public int currChar() {
+        if (cursor == length) {
             return 0;
         } else {
-            return buffer.charAt(cursor);
+            return buffer[cursor];
         }
     }
 
-    public char prevChar() {
+    public int prevChar() {
         if (cursor <= 0) {
             return 0;
         }
-
-        return buffer.charAt(cursor - 1);
+        return buffer[cursor - 1];
     }
 
-    public char nextChar() {
-        if (cursor >= length() - 1) {
+    public int nextChar() {
+        if (cursor >= length - 1) {
             return 0;
         }
 
-        return buffer.charAt(cursor + 1);
+        return buffer[cursor + 1];
     }
 
-    public char atChar(int i) {
-        if (i < 0 || i >= length()) {
+    public int atChar(int i) {
+        if (i < 0 || i >= length) {
             return 0;
         }
-        return buffer.charAt(i);
+        return buffer[i];
     }
 
     /**
@@ -96,11 +95,8 @@ public class Buffer
      *
      * @param c the character to insert
      */
-    public void write(final char c) {
-        buffer.insert(cursor++, c);
-        if (overTyping() && cursor < buffer.length()) {
-            buffer.deleteCharAt(cursor);
-        }
+    public void write(int c) {
+        write(new int[] { c });
     }
 
     /**
@@ -108,43 +104,64 @@ public class Buffer
      */
     public void write(final CharSequence str) {
         checkNotNull(str);
+        write(str.codePoints().toArray());
+    }
 
-        if (buffer.length() == 0) {
-            buffer.append(str);
-        }
-        else {
-            buffer.insert(cursor, str);
-        }
-
-        cursor += str.length();
-
-        if (overTyping() && cursor < buffer.length()) {
-            buffer.delete(cursor, (cursor + str.length()));
+    private void write(int[] ucps) {
+        if (overTyping) {
+            int len = cursor + ucps.length;
+            int sz = buffer.length;
+            if (sz < len) {
+                while (sz < len) {
+                    sz *= 2;
+                }
+                buffer = Arrays.copyOf(buffer, sz);
+            }
+            System.arraycopy(ucps, 0, buffer, cursor, ucps.length);
+            length = len;
+            cursor += ucps.length;
+        } else {
+            int len = length + ucps.length;
+            int sz = buffer.length;
+            if (sz < len) {
+                while (sz < len) {
+                    sz *= 2;
+                }
+                buffer = Arrays.copyOf(buffer, sz);
+            }
+            System.arraycopy(buffer, cursor, buffer, cursor + ucps.length, length - cursor);
+            System.arraycopy(ucps, 0, buffer, cursor, ucps.length);
+            cursor += ucps.length;
+            length += ucps.length;
         }
     }
 
     public boolean clear() {
-        if (buffer.length() == 0) {
+        if (length == 0) {
             return false;
         }
-        buffer.delete(0, buffer.length());
+        length = 0;
         cursor = 0;
         return true;
     }
 
     public String substring(int start) {
-        return substring(start, length());
+        return substring(start, length);
     }
 
     public String substring(int start, int end) {
-        if (start >= end || start < 0 || end > length()) {
+        if (start >= end || start < 0 || end > length) {
             return "";
         }
-        return buffer.substring(start, end);
+        StringBuilder sb = new StringBuilder();
+        for (int i = start; i < end; i++) {
+            sb.appendCodePoint(buffer[i]);
+        }
+        return sb.toString();
     }
 
     public String upToCursor() {
-        return buffer.substring(0, cursor);
+        return substring(0, cursor);
     }
 
     /**
@@ -164,22 +181,21 @@ public class Buffer
      * @return      The number of spaces we moved
      */
     public int move(final int num) {
-        // TODO: handle MBC
         int where = num;
 
         if ((cursor == 0) && (where <= 0)) {
             return 0;
         }
 
-        if ((cursor == length()) && (where >= 0)) {
+        if ((cursor == length) && (where >= 0)) {
             return 0;
         }
 
         if ((cursor + where) < 0) {
             where = -cursor;
         }
-        else if ((cursor + where) > length()) {
-            where = length() - cursor;
+        else if ((cursor + where) > length) {
+            where = length - cursor;
         }
 
         cursor += where;
@@ -193,9 +209,10 @@ public class Buffer
      * @return the number of characters backed up
      */
     public int backspace(final int num) {
-        int count = Math.min(cursor, num);
+        int count = Math.max(Math.min(cursor, num), 0);
         cursor -= count;
-        buffer.delete(cursor, cursor + count);
+        System.arraycopy(buffer, cursor + count, buffer, cursor, length - cursor - count);
+        length -= count;
         return count;
     }
 
@@ -209,8 +226,9 @@ public class Buffer
     }
 
     public int delete(int num) {
-        int count = Math.min(length() - cursor, num);
-        buffer.delete(cursor, cursor + count);
+        int count = Math.max(Math.min(length - cursor, num), 0);
+        System.arraycopy(buffer, cursor + count, buffer, cursor, length - cursor - count);
+        length -= count;
         return count;
     }
 
@@ -220,7 +238,7 @@ public class Buffer
 
     @Override
     public String toString() {
-        return buffer.toString();
+        return substring(0, length);
     }
 
     /**
@@ -229,19 +247,20 @@ public class Buffer
      * character unless you are already at the end of the line.
      */
     public boolean transpose() {
-        if (cursor == 0 || cursor == length()) {
+        if (cursor == 0 || cursor == length) {
             return false;
         }
-        char tmp = buffer.charAt(cursor);
-        buffer.setCharAt(cursor, buffer.charAt(cursor - 1));
-        buffer.setCharAt(cursor - 1, tmp);
+        int tmp = buffer[cursor];
+        buffer[cursor] = buffer[cursor - 1];
+        buffer[cursor - 1] = tmp;
         cursor++;
         return true;
     }
 
-    public void setBuffer(Buffer buffer) {
-        clear();
-        write(buffer.buffer);
-        cursor = buffer.cursor;
+    public void setBuffer(Buffer that) {
+        this.overTyping = that.overTyping;
+        this.length = that.length;
+        this.buffer = that.buffer.clone();
+        this.cursor = that.cursor;
     }
 }

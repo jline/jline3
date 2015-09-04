@@ -168,7 +168,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected final Buffer buf = new Buffer();
 
-    protected Size size;
+    protected Size size = new Size(); // not really needed but avoid possible NPE in tests
 
     protected String prompt;
     protected int    promptLen;
@@ -186,15 +186,15 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     // Reading buffers
     protected final StringBuilder opBuffer = new StringBuilder();
-    protected final Stack<Character> pushBackChar = new Stack<>();
+    protected final Stack<Integer> pushBackChar = new Stack<>();
 
 
     /**
      * Last character searched for with a vi character search
      */
-    protected char  charSearchChar = 0;           // Character to search for
-    protected char  charSearchLastInvokeChar = 0; // Most recent invocation key
-    protected char  charSearchFirstInvokeChar = 0;// First character that invoked
+    protected int  charSearchChar = 0;           // Character to search for
+    protected int  charSearchLastInvokeChar = 0; // Most recent invocation key
+    protected int  charSearchFirstInvokeChar = 0;// First character that invoked
 
     /**
      * The vi yank buffer
@@ -503,9 +503,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 // Handle macros
                 if (o instanceof String) {
                     String macro = (String) o;
-                    for (int i = 0; i < macro.length(); i++) {
-                        pushBackChar.push(macro.charAt(macro.length() - 1 - i));
-                    }
+                    new StringBuilder(macro).reverse().codePoints().forEachOrdered(pushBackChar::push);
                     opBuffer.setLength(0);
                     continue;
                 }
@@ -747,11 +745,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         } else {
             StringBuilder killed = new StringBuilder();
             while (buf.cursor() > 0) {
-                char c = buf.prevChar();
+                int c = buf.prevChar();
                 if (c == 0) {
                     break;
                 }
-                killed.append(c);
+                killed.appendCodePoint(c);
                 buf.backspace();
             }
             String copy = killed.reverse().toString();
@@ -878,6 +876,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         oldBuf = "";
         oldPrompt = "";
         oldPost = null;
+        oldColumns = size.getColumns();
     }
 
     /**
@@ -1132,7 +1131,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             return false;
         }
 
-        char    searchChar = (char)ch;
+        int     searchChar = ch;
         boolean isForward;
         boolean stopBefore;
 
@@ -1167,10 +1166,10 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
         else {
             charSearchChar            = searchChar;
-            charSearchFirstInvokeChar = (char) invokeChar;
+            charSearchFirstInvokeChar = invokeChar;
         }
 
-        charSearchLastInvokeChar = (char)invokeChar;
+        charSearchLastInvokeChar = invokeChar;
 
         isForward = Character.isLowerCase(charSearchFirstInvokeChar);
         stopBefore = (Character.toLowerCase(charSearchFirstInvokeChar) == 't');
@@ -1225,7 +1224,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return ok;
     }
 
-    protected char switchCase(char ch) {
+    protected int switchCase(int ch) {
         if (Character.isUpperCase(ch)) {
             return Character.toLowerCase(ch);
         } else if (Character.isLowerCase(ch)) {
@@ -1349,22 +1348,22 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             }
 
             while (isWhitespace(buf.prevChar())) {
-                char c = buf.prevChar();
+                int c = buf.prevChar();
                 if (c == 0) {
                     break;
                 }
 
-                killed.append(c);
+                killed.appendCodePoint(c);
                 buf.backspace();
             }
 
             while (!isWhitespace(buf.prevChar())) {
-                char c = buf.prevChar();
+                int c = buf.prevChar();
                 if (c == 0) {
                     break;
                 }
 
-                killed.append(c);
+                killed.appendCodePoint(c);
                 buf.backspace();
             }
         }
@@ -1399,7 +1398,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      */
     @SuppressWarnings("fallthrough")
     protected void viSearch() {
-        char searchChar = opBuffer.charAt(0);
+        int searchChar = opBuffer.codePointAt(0);
         boolean isForward = (searchChar == '/');
 
         /*
@@ -1412,7 +1411,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         killWholeLine();
 
         // Our new "prompt" is the character that got us into search mode.
-        putString(Character.toString(searchChar));
+        putString(new String(Character.toChars(searchChar)));
         flush();
 
         boolean isAborted = false;
@@ -1557,7 +1556,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         /*
          * Complete?
          */
-        pushBackChar.push((char) ch);
+        pushBackChar.push(ch);
     }
 
     protected void insertCloseCurly() {
@@ -1648,7 +1647,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * @return 1 is square, 2 curly, 3 parent, or zero for none.  The value
      *   will be negated if it is the closing form of the bracket.
      */
-    protected int getBracketType (char ch) {
+    protected int getBracketType (int ch) {
         switch (ch) {
             case '[': return  1;
             case ']': return -1;
@@ -1663,14 +1662,14 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected void deletePreviousWord() {
         StringBuilder killed = new StringBuilder();
-        char c;
+        int c;
 
         while (isDelimiter((c = buf.prevChar()))) {
             if (c == 0) {
                 break;
             }
 
-            killed.append(c);
+            killed.appendCodePoint(c);
             buf.backspace();
         }
 
@@ -1679,7 +1678,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 break;
             }
 
-            killed.append(c);
+            killed.appendCodePoint(c);
             buf.backspace();
         }
 
@@ -1689,13 +1688,13 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected void deleteNextWord() {
         StringBuilder killed = new StringBuilder();
-        char c;
+        int c;
 
         while (isDelimiter((c = buf.currChar()))) {
             if (c == 0) {
                 break;
             }
-            killed.append(c);
+            killed.appendCodePoint(c);
             delete();
         }
 
@@ -1703,7 +1702,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             if (c == 0) {
                 break;
             }
-            killed.append(c);
+            killed.appendCodePoint(c);
             delete();
         }
 
@@ -1713,8 +1712,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected void capitalizeWord() {
         boolean first = true;
-        char c;
-        // TODO: handle MBC
+        int c;
         while (buf.cursor() < buf.length() && !isDelimiter(c = buf.currChar())) {
             buf.currChar(first ? Character.toUpperCase(c) : Character.toLowerCase(c));
             buf.move(1);
@@ -1723,8 +1721,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected void upCaseWord() {
-        char c;
-        // TODO: handle MBC
+        int c;
         while (buf.cursor() < buf.length() && !isDelimiter(c = buf.currChar())) {
             buf.currChar(Character.toUpperCase(c));
             buf.move(1);
@@ -1732,13 +1729,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected void downCaseWord() {
-        char c;
-        // TODO: handle MBC
+        int c;
         while (buf.cursor() < buf.length() && !isDelimiter(c = buf.currChar())) {
             buf.currChar(Character.toLowerCase(c));
             buf.move(1);
         }
-        buf.toString().toLowerCase();
     }
 
     /**
@@ -1842,12 +1837,18 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * @return the character, or -1 if an EOF is received.
      */
     public int readCharacter() {
+        // TODO: should return a code point
         try {
             int c = NonBlockingReader.READ_EXPIRED;
+            int s = 0;
             while (c == NonBlockingReader.READ_EXPIRED) {
                 c = console.reader().read(100l);
+                if (c >= 0 && Character.isHighSurrogate((char) c)) {
+                    s = c;
+                    c = NonBlockingReader.READ_EXPIRED;
+                }
             }
-            return c;
+            return s != 0 ? Character.toCodePoint((char) s, (char) c) : c;
         } catch (IOException e) {
             throw new IOError(e);
         }
@@ -1861,14 +1862,14 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
     }
 
-    public int readCharacter(final char... allowed) {
+    public int readCharacter(final int... allowed) {
         // if we restrict to a limited set and the current character is not in the set, then try again.
-        char c;
+        int c;
 
         Arrays.sort(allowed); // always need to sort before binarySearch
 
         //noinspection StatementWithEmptyBody
-        while (Arrays.binarySearch(allowed, c = (char) readCharacter()) < 0) {
+        while (Arrays.binarySearch(allowed, c = readCharacter()) < 0) {
             // nothing
         }
 
@@ -1924,8 +1925,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             }
 
             if (o == Operation.DO_LOWERCASE_VERSION) {
-                opBuffer.setLength(opBuffer.length() - 1);
-                opBuffer.append(Character.toLowerCase((char) c));
+                int old = opBuffer.codePointBefore(opBuffer.length());
+                opBuffer.setLength(opBuffer.length() - Character.charCount(old));
+                opBuffer.appendCodePoint(Character.toLowerCase(c));
                 o = keys.getBound(opBuffer);
             }
 
@@ -1985,13 +1987,13 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
              * input.
              */
             while (o == null && opBuffer.length() > 0) {
-                c = opBuffer.charAt(opBuffer.length() - 1);
-                opBuffer.setLength(opBuffer.length() - 1);
+                c = opBuffer.codePointBefore(opBuffer.length());
+                opBuffer.setLength(opBuffer.length() - Character.charCount(c));
                 Object o2 = keys.getBound(opBuffer);
                 if (o2 instanceof KeyMap) {
                     o = ((KeyMap) o2).getAnotherKey();
                     if (o != null) {
-                        pushBackChar.push((char) c);
+                        pushBackChar.push(c);
                     }
                 }
             }
@@ -2316,7 +2318,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected void viCharSearch() {
-        int c = opBuffer.charAt(0);
+        int c = opBuffer.codePointAt(0);
         int searchChar = (c != ';' && c != ',')
                 ? (pushBackChar.isEmpty()
                 ? readCharacter()
@@ -2349,9 +2351,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected void callLastKbdMacro() {
-        for (int i = 0; i < macro.length(); i++) {
-            pushBackChar.push(macro.charAt(macro.length() - 1 - i));
-        }
+        new StringBuilder(macro).reverse().codePoints().forEachOrdered(pushBackChar::push);
         opBuffer.setLength(0);
     }
 
@@ -2426,7 +2426,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     protected void viChangeCase() {
         for (int i = 0; i < count; i++) {
             if (buf.cursor() < buf.length()) {
-                char ch = buf.atChar(buf.cursor());
+                int ch = buf.atChar(buf.cursor());
                 ch = switchCase(ch);
                 buf.currChar(ch);
                 buf.move(1);
@@ -2792,13 +2792,13 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 if (console.getStringCapability(Capability.clr_eol) != null) {
                     console.puts(Capability.clr_eol);
                 } else {
-                    int nb = wcwidth(newLines.get(lineIndex), cursorPos);
+                    int nb = wcwidth(AnsiHelper.strip(newLines.get(lineIndex)), cursorPos);
                     rawPrint(' ', nb);
                     cursorPos += nb;
                 }
             } else {
                 rawPrint(newLines.get(lineIndex));
-                cursorPos += wcwidth(newLines.get(lineIndex), cursorPos);
+                cursorPos += wcwidth(AnsiHelper.strip(newLines.get(lineIndex)), cursorPos);
             }
             lineIndex++;
             currentPos = currentPos + size.getColumns();
@@ -3209,7 +3209,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
             String noOpt = Messages.DISPLAY_CANDIDATES_NO.format();
             String yesOpt = Messages.DISPLAY_CANDIDATES_YES.format();
-            char[] allowed = {yesOpt.charAt(0), noOpt.charAt(0)};
+            int[] allowed = {yesOpt.charAt(0), noOpt.charAt(0)};
 
             while ((c = readCharacter(allowed)) != -1) {
                 String tmp = new String(new char[]{(char) c});
@@ -3456,7 +3456,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * @param c     The character to test
      * @return      True if it is a delimiter
      */
-    protected boolean isDelimiter(final char c) {
+    protected boolean isDelimiter(int c) {
         return !Character.isLetterOrDigit(c);
     }
 
@@ -3469,7 +3469,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * @param c The character to check
      * @return true if the character is a whitespace
      */
-    protected boolean isWhitespace(final char c) {
+    protected boolean isWhitespace(int c) {
         return Character.isWhitespace(c);
     }
 

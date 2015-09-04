@@ -109,7 +109,7 @@ public abstract class ReaderTestSupport
      *    is cleared.
      */
     protected void assertLine(final String expected, final TestBuffer buffer,
-            final boolean clear) throws IOException {
+            final boolean clear) {
         // clear current buffer, if any
         if (clear) {
             reader.finishBuffer();
