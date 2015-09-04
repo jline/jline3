@@ -18,6 +18,7 @@ import org.jline.Console;
 import org.jline.JLine;
 import org.jline.JLine.ConsoleBuilder;
 import org.jline.reader.CandidateListCompletionHandler;
+import org.jline.reader.EndOfFileException;
 import org.jline.reader.UserInterruptException;
 import org.jline.reader.completer.AnsiStringsCompleter;
 import org.jline.reader.completer.ArgumentCompleter;
@@ -139,7 +140,7 @@ public class Example
                     line = console.readLine(prompt);
                 } catch (UserInterruptException e) {
                     // Ignore
-                } catch (EOFException e) {
+                } catch (EndOfFileException e) {
                     return;
                 }
                 if (line == null) {

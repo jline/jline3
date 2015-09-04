@@ -8,9 +8,9 @@
  */
 package org.jline;
 
-import java.io.EOFException;
 import java.io.InputStream;
 
+import org.jline.reader.EndOfFileException;
 import org.jline.reader.UserInterruptException;
 
 public interface ConsoleReader {
@@ -54,7 +54,7 @@ public interface ConsoleReader {
      *
      * Equivalent to <code>readLine(null, null, null)</code>
      */
-    String readLine() throws UserInterruptException, EOFException;
+    String readLine() throws UserInterruptException, EndOfFileException;
 
     /**
      * Read the next line with the specified character mask. If null, then
@@ -62,7 +62,7 @@ public interface ConsoleReader {
      *
      * Equivalent to <code>readLine(null, mask, null)</code>
      */
-    String readLine(Character mask) throws UserInterruptException, EOFException;
+    String readLine(Character mask) throws UserInterruptException, EndOfFileException;
 
     /**
      * Read the next line with the specified prompt.
@@ -70,7 +70,7 @@ public interface ConsoleReader {
      *
      * Equivalent to <code>readLine(prompt, null, null)</code>
      */
-    String readLine(String prompt) throws UserInterruptException, EOFException;
+    String readLine(String prompt) throws UserInterruptException, EndOfFileException;
 
     /**
      * Read a line from the <i>in</i> {@link InputStream}, and return the line
@@ -78,7 +78,7 @@ public interface ConsoleReader {
      *
      * Equivalent to <code>readLine(prompt, mask, null)</code>
      */
-    String readLine(String prompt, Character mask) throws UserInterruptException, EOFException;
+    String readLine(String prompt, Character mask) throws UserInterruptException, EndOfFileException;
 
     /**
      * Read a line from the <i>in</i> {@link InputStream}, and return the line
@@ -90,8 +90,8 @@ public interface ConsoleReader {
      * @return          A line that is read from the console, can never be null.
      *
      * @throws UserInterruptException if readLine was interrupted (using Ctrl-C for example)
-     * @throws EOFException if an EOF has been found (using Ctrl-D for example)
+     * @throws EndOfFileException if an EOF has been found (using Ctrl-D for example)
      * @throws java.io.IOError in case of other i/o errors
      */
-    String readLine(String prompt, Character mask, String buffer) throws UserInterruptException, EOFException;
+    String readLine(String prompt, Character mask, String buffer) throws UserInterruptException, EndOfFileException;
 }

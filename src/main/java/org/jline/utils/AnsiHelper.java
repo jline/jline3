@@ -18,6 +18,7 @@
  */
 package org.jline.utils;
 
+import java.io.IOError;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringWriter;
@@ -33,38 +34,50 @@ public class AnsiHelper {
             aw.close();
             return sw.toString();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new IOError(e);
         }
     }
 
-    public static List<String> splitLines(String text, int maxLength, int tabs) throws IOException {
-        AnsiSplitterWriter splitter = new AnsiSplitterWriter(maxLength);
-        splitter.setTabs(tabs);
-        splitter.write(text);
-        splitter.close();
-        return splitter.getLines();
+    public static List<String> splitLines(String text, int maxLength, int tabs) {
+        try {
+            AnsiSplitterWriter splitter = new AnsiSplitterWriter(maxLength);
+            splitter.setTabs(tabs);
+            splitter.write(text);
+            splitter.close();
+            return splitter.getLines();
+        } catch (IOException e) {
+            throw new IOError(e);
+        }
     }
 
-    public static String substring(String text, int begin, int end, int tabs) throws IOException {
-        AnsiSplitterWriter splitter = new AnsiSplitterWriter(begin, end, Integer.MAX_VALUE);
-        splitter.setTabs(tabs);
-        splitter.write(text);
-        splitter.close();
-        return splitter.getLines().get(0);
+    public static String substring(String text, int begin, int end, int tabs) {
+        try {
+            AnsiSplitterWriter splitter = new AnsiSplitterWriter(begin, end, Integer.MAX_VALUE);
+            splitter.setTabs(tabs);
+            splitter.write(text);
+            splitter.close();
+            return splitter.getLines().get(0);
+        } catch (IOException e) {
+            throw new IOError(e);
+        }
     }
 
-    public static int length(String curLine, int tabs) throws IOException {
-        AnsiSplitterWriter splitter = new AnsiSplitterWriter(0, Integer.MAX_VALUE, Integer.MAX_VALUE);
-        splitter.setTabs(tabs);
-        splitter.write(curLine);
-        return splitter.getRealLength();
+    public static int length(String curLine, int tabs) {
+        try {
+            AnsiSplitterWriter splitter = new AnsiSplitterWriter(0, Integer.MAX_VALUE, Integer.MAX_VALUE);
+            splitter.setTabs(tabs);
+            splitter.write(curLine);
+            return splitter.getRealLength();
+        } catch (IOException e) {
+            throw new IOError(e);
+        }
     }
 
-    public static String cut(String text, int maxLength, int tabs)  throws IOException {
+    public static String cut(String text, int maxLength, int tabs) {
         return splitLines(text, maxLength, tabs).get(0);
     }
 
-    public static AnsiBufferedReader window(Reader is, int begin, int end, int tabs) throws IOException {
+    public static AnsiBufferedReader window(Reader is, int begin, int end, int tabs) {
         AnsiBufferedReader reader = new AnsiBufferedReader(is, begin, end, Integer.MAX_VALUE);
         reader.setTabs(tabs);
         return reader;

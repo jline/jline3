@@ -9,7 +9,6 @@
 package org.jline;
 
 import java.io.Closeable;
-import java.io.EOFException;
 import java.io.Flushable;
 import java.io.InputStream;
 import java.io.PrintWriter;
@@ -18,6 +17,7 @@ import org.jline.JLine.ConsoleReaderBuilder;
 import org.jline.console.Attributes;
 import org.jline.console.NativeSignalHandler;
 import org.jline.console.Size;
+import org.jline.reader.EndOfFileException;
 import org.jline.reader.UserInterruptException;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.NonBlockingReader;
@@ -66,7 +66,7 @@ public interface Console extends Closeable, Flushable {
      *
      * Equivalent to <code>readLine(null, null, null)</code>
      */
-    String readLine() throws UserInterruptException, EOFException;
+    String readLine() throws UserInterruptException, EndOfFileException;
 
     /**
      * Read the next line with the specified character mask. If null, then
@@ -74,7 +74,7 @@ public interface Console extends Closeable, Flushable {
      *
      * Equivalent to <code>readLine(null, mask, null)</code>
      */
-    String readLine(Character mask) throws UserInterruptException, EOFException;
+    String readLine(Character mask) throws UserInterruptException, EndOfFileException;
 
     /**
      * Read the next line with the specified prompt.
@@ -82,7 +82,7 @@ public interface Console extends Closeable, Flushable {
      *
      * Equivalent to <code>readLine(prompt, null, null)</code>
      */
-    String readLine(String prompt) throws UserInterruptException, EOFException;
+    String readLine(String prompt) throws UserInterruptException, EndOfFileException;
 
     /**
      * Read a line from the <i>in</i> {@link InputStream}, and return the line
@@ -90,7 +90,7 @@ public interface Console extends Closeable, Flushable {
      *
      * Equivalent to <code>readLine(prompt, mask, null)</code>
      */
-    String readLine(String prompt, Character mask) throws UserInterruptException, EOFException;
+    String readLine(String prompt, Character mask) throws UserInterruptException, EndOfFileException;
 
     /**
      * Read a line from the <i>in</i> {@link InputStream}, and return the line
@@ -102,10 +102,10 @@ public interface Console extends Closeable, Flushable {
      * @return          A line that is read from the console, can never be null.
      *
      * @throws UserInterruptException if readLine was interrupted (using Ctrl-C for example)
-     * @throws EOFException if an EOF has been found (using Ctrl-D for example)
+     * @throws EndOfFileException if an EOF has been found (using Ctrl-D for example)
      * @throws java.io.IOError in case of other i/o errors
      */
-    String readLine(String prompt, Character mask, String buffer) throws UserInterruptException, EOFException;
+    String readLine(String prompt, Character mask, String buffer) throws UserInterruptException, EndOfFileException;
 
     //
     // Pty settings

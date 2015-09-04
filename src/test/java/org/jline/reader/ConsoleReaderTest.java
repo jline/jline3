@@ -8,8 +8,6 @@
  */
 package org.jline.reader;
 
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -625,11 +623,7 @@ public class ConsoleReaderTest
     @Test
     public void testCallbacks() throws Exception {
         final ConsoleReaderImpl consoleReader = createConsole("sample stringx\r\n");
-        consoleReader.addTriggeredAction('x', new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                consoleReader.getCursorBuffer().clear();
-            }
-        });
+        consoleReader.addTriggeredAction('x', r -> r.getCursorBuffer().clear());
         String line = consoleReader.readLine();
         // The line would have "sample stringx" in it, if a callback to clear it weren't mapped to the 'x' key:
         assertEquals("", line);

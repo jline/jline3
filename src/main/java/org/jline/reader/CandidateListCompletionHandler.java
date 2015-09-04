@@ -8,7 +8,6 @@
  */
 package org.jline.reader;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.jline.utils.AnsiHelper;
@@ -47,8 +46,7 @@ public class CandidateListCompletionHandler
 
     // TODO: handle quotes and escaped quotes && enable automatic escaping of whitespace
 
-    public boolean complete(final ConsoleReaderImpl reader, final List<String> candidates, final int pos) throws
-        IOException
+    public boolean complete(final ConsoleReaderImpl reader, final List<String> candidates, final int pos)
     {
         CursorBuffer buf = reader.getCursorBuffer();
 
@@ -86,8 +84,7 @@ public class CandidateListCompletionHandler
     }
 
     @SuppressWarnings("StatementWithEmptyBody")
-    public static void setBuffer(final ConsoleReaderImpl reader, final CharSequence value, final int offset) throws
-        IOException
+    public static void setBuffer(final ConsoleReaderImpl reader, final CharSequence value, final int offset)
     {
         while ((reader.getCursorBuffer().cursor > offset) && reader.backspace()) {
             // empty

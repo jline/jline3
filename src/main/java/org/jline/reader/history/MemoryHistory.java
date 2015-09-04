@@ -30,7 +30,7 @@ public class MemoryHistory
 {
     public static final int DEFAULT_MAX_SIZE = 500;
 
-    private final LinkedList<CharSequence> items = new LinkedList<CharSequence>();
+    private final LinkedList<String> items = new LinkedList<>();
 
     private int maxSize = DEFAULT_MAX_SIZE;
 
@@ -98,15 +98,15 @@ public class MemoryHistory
     public void flush() throws IOException {
     }
 
-    public CharSequence get(final int index) {
+    public String get(final int index) {
         return items.get(index - offset);
     }
 
-    public void set(int index, CharSequence item) {
+    public void set(int index, String item) {
         items.set(index - offset, item);
     }
 
-    public void add(CharSequence item) {
+    public void add(String item) {
         checkNotNull(item);
 
         if (isAutoTrim()) {
@@ -122,25 +122,25 @@ public class MemoryHistory
         internalAdd(item);
     }
 
-    public CharSequence remove(int i) {
+    public String remove(int i) {
         return items.remove(i);
     }
 
-    public CharSequence removeFirst() {
+    public String removeFirst() {
         return items.removeFirst();
     }
 
-    public CharSequence removeLast() {
+    public String removeLast() {
         return items.removeLast();
     }
 
-    protected void internalAdd(CharSequence item) {
+    protected void internalAdd(String item) {
         items.add(item);
 
         maybeResize();
     }
 
-    public void replace(final CharSequence item) {
+    public void replace(final String item) {
         items.removeLast();
         add(item);
     }
@@ -171,9 +171,9 @@ public class MemoryHistory
     {
         private final int index;
 
-        private final CharSequence value;
+        private final String value;
 
-        public EntryImpl(int index, CharSequence value) {
+        public EntryImpl(int index, String value) {
             this.index = index;
             this.value = value;
         }
@@ -182,7 +182,7 @@ public class MemoryHistory
             return index;
         }
 
-        public CharSequence value() {
+        public String value() {
             return value;
         }
 
@@ -195,7 +195,7 @@ public class MemoryHistory
     private class EntriesIterator
         implements ListIterator<Entry>
     {
-        private final ListIterator<CharSequence> source;
+        private final ListIterator<String> source;
 
         private EntriesIterator(final int index) {
             source = items.listIterator(index);
@@ -303,7 +303,7 @@ public class MemoryHistory
     /**
      * Return the content of the current buffer.
      */
-    public CharSequence current() {
+    public String current() {
         if (index >= size()) {
             return "";
         }

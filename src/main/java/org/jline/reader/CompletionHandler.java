@@ -8,7 +8,6 @@
  */
 package org.jline.reader;
 
-import java.io.IOException;
 import java.util.List;
 
 /**
@@ -20,5 +19,5 @@ import java.util.List;
  */
 public interface CompletionHandler
 {
-    boolean complete(ConsoleReaderImpl reader, List<String> candidates, int position) throws IOException;
+    boolean complete(ConsoleReaderImpl reader, List<String> candidates, int position);
 }

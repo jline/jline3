@@ -33,9 +33,9 @@ public interface History
      */
     void clear();
 
-    CharSequence get(int index);
+    String get(int index);
 
-    void add(CharSequence line);
+    void add(String line);
 
     /**
      * Set the history item at the given index to the given CharSequence.
@@ -44,7 +44,7 @@ public interface History
      * @param item the new item
      * @since 2.7
      */
-    void set(int index, CharSequence item);
+    void set(int index, String item);
 
     /**
      * Remove the history element at the given index.
@@ -53,7 +53,7 @@ public interface History
      * @return the removed element
      * @since 2.7
      */
-    CharSequence remove(int i);
+    String remove(int i);
 
     /**
      * Remove the first element from history.
@@ -61,7 +61,7 @@ public interface History
      * @return the removed element
      * @since 2.7
      */
-    CharSequence removeFirst();
+    String removeFirst();
 
     /**
      * Remove the last element from history
@@ -69,9 +69,9 @@ public interface History
      * @return the removed element
      * @since 2.7
      */
-    CharSequence removeLast();
+    String removeLast();
 
-    void replace(CharSequence item);
+    void replace(String item);
 
     //
     // Entries
@@ -81,7 +81,7 @@ public interface History
     {
         int index();
 
-        CharSequence value();
+        String value();
     }
 
     ListIterator<Entry> entries(int index);
@@ -94,7 +94,7 @@ public interface History
     // Navigation
     //
 
-    CharSequence current();
+    String current();
 
     boolean previous();
 

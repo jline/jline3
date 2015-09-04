@@ -8,7 +8,6 @@
  */
 package org.jline.console;
 
-import java.io.EOFException;
 import java.io.IOError;
 import java.io.IOException;
 import java.util.EnumSet;
@@ -23,6 +22,7 @@ import org.jline.JLine.ConsoleReaderBuilder;
 import org.jline.console.Attributes.ControlChar;
 import org.jline.console.Attributes.InputFlag;
 import org.jline.console.Attributes.LocalFlag;
+import org.jline.reader.EndOfFileException;
 import org.jline.reader.UserInterruptException;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp;
@@ -171,27 +171,27 @@ public abstract class AbstractConsole implements Console {
     }
 
     @Override
-    public String readLine() throws UserInterruptException, EOFException {
+    public String readLine() throws UserInterruptException, EndOfFileException {
         return newConsoleReader().readLine();
     }
 
     @Override
-    public String readLine(Character mask) throws UserInterruptException, EOFException {
+    public String readLine(Character mask) throws UserInterruptException, EndOfFileException {
         return newConsoleReader().readLine(mask);
     }
 
     @Override
-    public String readLine(String prompt) throws UserInterruptException, EOFException {
+    public String readLine(String prompt) throws UserInterruptException, EndOfFileException {
         return newConsoleReader().readLine(prompt);
     }
 
     @Override
-    public String readLine(String prompt, Character mask) throws UserInterruptException, EOFException {
+    public String readLine(String prompt, Character mask) throws UserInterruptException, EndOfFileException {
         return newConsoleReader().readLine(prompt, mask);
     }
 
     @Override
-    public String readLine(String prompt, Character mask, String buffer) throws UserInterruptException, EOFException {
+    public String readLine(String prompt, Character mask, String buffer) throws UserInterruptException, EndOfFileException {
         return newConsoleReader().readLine(prompt, mask, buffer);
     }
 }

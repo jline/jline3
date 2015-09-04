@@ -12,9 +12,7 @@ import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
-import java.awt.event.ActionListener;
 import java.io.BufferedReader;
-import java.io.EOFException;
 import java.io.File;
 import java.io.Flushable;
 import java.io.IOError;
@@ -76,130 +74,10 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     public static final long COPY_PASTE_DETECTION_TIMEOUT = 50l;
     public static final long BLINK_MATCHING_PAREN_TIMEOUT = 500l;
 
-    private enum Messages
-    {
-        DISPLAY_CANDIDATES,
-        DISPLAY_CANDIDATES_YES,
-        DISPLAY_CANDIDATES_NO,
-        DISPLAY_MORE;
-
-        private static final
-        ResourceBundle
-                bundle =
-                ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName(), Locale.getDefault());
-
-        public String format(final Object... args) {
-            if (bundle == null)
-                return "";
-            else
-                return String.format(bundle.getString(name()), args);
-        }
-    }
-
-    private static final int NO_BELL = 0;
-    private static final int AUDIBLE_BELL = 1;
-    private static final int VISIBLE_BELL = 2;
-
-
-    //
-    // Constructor variables
-    //
-
-    /** The console to use */
-    private final Console console;
-    /** The inputrc url */
-    private final URL inputrc;
-    /** The application name, used when parsing the inputrc */
-    private final String appName;
-    /** The console keys mapping */
-    private final ConsoleKeys consoleKeys;
-
-
-
-    //
-    // Configuration
-    //
-    private final Map<String, String> variables = new HashMap<>();
-
-    //
-    // State variables
-    //
-
-    private final CursorBuffer buf = new CursorBuffer();
-
-    private Size size;
-
-    private String prompt;
-    private int    promptLen;
-
-    private Character mask;
-
-    private CursorBuffer originalBuffer = null;
-
-    private StringBuffer searchTerm = null;
-
-    private String previousSearchTerm = "";
-
-    private int searchIndex = -1;
-
-
-    // Reading buffers
-    private final StringBuilder opBuffer = new StringBuilder();
-    private final Stack<Character> pushBackChar = new Stack<Character>();
-
-
-    /**
-     * Last character searched for with a vi character search
-     */
-    private char  charSearchChar = 0;           // Character to search for
-    private char  charSearchLastInvokeChar = 0; // Most recent invocation key
-    private char  charSearchFirstInvokeChar = 0;// First character that invoked
-
-    /**
-     * The vi yank buffer
-     */
-    private String yankBuffer = "";
-
-    private KillRing killRing = new KillRing();
-
-    private boolean quotedInsert;
-
-    private boolean recording;
-
-    private String macro = "";
-
-    /*
-     * Current internal state of the line reader
-     */
-    private State   state = State.NORMAL;
-
-
-    private History history = new MemoryHistory();
-
-    private final List<Completer> completers = new LinkedList<Completer>();
-
-    private CompletionHandler completionHandler = new CandidateListCompletionHandler();
-
-    private Thread readLineThread;
-
-    private String originalPrompt;
-
-    private String oldBuf;
-    private int oldColumns;
-    private String oldPrompt;
-    private String[] oldPost;
-
-    private String[] post;
-
-    private int cursorPos;
-    private int maxLines;
-
-    private Highlighter highlighter = new DefaultHighlighter();
-
     /**
      * Possible states in which the current readline operation may be in.
      */
-    private enum State {
+    protected enum State {
         /**
          * The user is just typing away
          */
@@ -220,8 +98,142 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         /**
          * VI "change-to" operation ("c" during move mode)
          */
-        VI_CHANGE_TO
+        VI_CHANGE_TO,
+        /**
+         * readLine should exit and return the buffer content
+         */
+        DONE,
+        /**
+         * readLine should exit and throw an EOFException
+         */
+        EOF,
+        /**
+         * readLine should exit and throw an UserInterruptException
+         */
+        INTERRUPT
     }
+
+    protected enum Messages
+    {
+        DISPLAY_CANDIDATES,
+        DISPLAY_CANDIDATES_YES,
+        DISPLAY_CANDIDATES_NO,
+        DISPLAY_MORE;
+
+        protected static final
+        ResourceBundle
+                bundle =
+                ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName(), Locale.getDefault());
+
+        public String format(final Object... args) {
+            if (bundle == null)
+                return "";
+            else
+                return String.format(bundle.getString(name()), args);
+        }
+    }
+
+    protected static final int NO_BELL = 0;
+    protected static final int AUDIBLE_BELL = 1;
+    protected static final int VISIBLE_BELL = 2;
+
+
+    //
+    // Constructor variables
+    //
+
+    /** The console to use */
+    protected final Console console;
+    /** The inputrc url */
+    protected final URL inputrc;
+    /** The application name, used when parsing the inputrc */
+    protected final String appName;
+    /** The console keys mapping */
+    protected final ConsoleKeys consoleKeys;
+
+
+
+    //
+    // Configuration
+    //
+    protected final Map<String, String> variables = new HashMap<>();
+    protected History history = new MemoryHistory();
+    protected final List<Completer> completers = new LinkedList<>();
+    protected CompletionHandler completionHandler = new CandidateListCompletionHandler();
+    protected Highlighter highlighter = new DefaultHighlighter();
+
+    //
+    // State variables
+    //
+
+    protected final CursorBuffer buf = new CursorBuffer();
+
+    protected Size size;
+
+    protected String prompt;
+    protected int    promptLen;
+
+    protected Character mask;
+
+    protected CursorBuffer originalBuffer = null;
+
+    protected StringBuffer searchTerm = null;
+
+    protected String previousSearchTerm = "";
+
+    protected int searchIndex = -1;
+
+
+    // Reading buffers
+    protected final StringBuilder opBuffer = new StringBuilder();
+    protected final Stack<Character> pushBackChar = new Stack<>();
+
+
+    /**
+     * Last character searched for with a vi character search
+     */
+    protected char  charSearchChar = 0;           // Character to search for
+    protected char  charSearchLastInvokeChar = 0; // Most recent invocation key
+    protected char  charSearchFirstInvokeChar = 0;// First character that invoked
+
+    /**
+     * The vi yank buffer
+     */
+    protected String yankBuffer = "";
+
+    protected KillRing killRing = new KillRing();
+
+    protected boolean quotedInsert;
+
+    protected boolean recording;
+
+    protected String macro = "";
+
+    /*
+     * Current internal state of the line reader
+     */
+    protected State   state = State.NORMAL;
+    protected State previousState;
+
+    protected Thread readLineThread;
+
+    protected String originalPrompt;
+
+    protected String oldBuf;
+    protected int oldColumns;
+    protected String oldPrompt;
+    protected String[] oldPost;
+
+    protected String[] post;
+
+    protected int cursorPos;
+
+
+    protected Map<Operation, Widget> dispatcher;
+
+    protected int count;
+    protected int repeatCount;
+    protected boolean isArgDigit;
 
     public ConsoleReaderImpl(Console console) throws IOException {
         this(console, null, null);
@@ -260,13 +272,14 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             bindConsoleChars(consoleKeys.getKeyMaps().get(KeyMap.EMACS), attr);
             bindConsoleChars(consoleKeys.getKeyMaps().get(KeyMap.VI_INSERT), attr);
         }
+        dispatcher = createDispatcher();
     }
 
     /**
      * Bind special chars defined by the console instead of
      * the default bindings
      */
-    private static void bindConsoleChars(KeyMap keyMap, Attributes attr) {
+    protected static void bindConsoleChars(KeyMap keyMap, Attributes attr) {
         if (attr != null) {
             rebind(keyMap, Operation.BACKWARD_DELETE_CHAR,
                            /* C-? */ (char) 127, (char) attr.getControlChar(ControlChar.VERASE));
@@ -279,7 +292,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
     }
 
-    private static void rebind(KeyMap keyMap, Operation operation, char prevBinding, char newBinding) {
+    protected static void rebind(KeyMap keyMap, Operation operation, char prevBinding, char newBinding) {
         if (prevBinding > 0 && prevBinding < 255) {
             if (keyMap.getBound("" + prevBinding) == operation) {
                 keyMap.bind("" + prevBinding, Operation.SELF_INSERT);
@@ -290,19 +303,13 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
     }
 
-    private void setupSigCont() {
-        Signals.register("CONT", new Runnable() {
-            public void run() {
+    protected void setupSigCont() {
+        Signals.register("CONT", () -> {
 //                console.init();
-                // TODO: enter raw mode
-                try {
-                    redrawLine();
-                    redisplay();
-                    flush();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+            // TODO: enter raw mode
+            redrawLine();
+            redisplay();
+            flush();
         });
     }
 
@@ -326,7 +333,411 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return buf;
     }
 
-    private void setPrompt(final String prompt) {
+    /**
+     * Add the specified {@link Completer} to the list of handlers for tab-completion.
+     *
+     * @param completer the {@link Completer} to add
+     * @return true if it was successfully added
+     */
+    public boolean addCompleter(final Completer completer) {
+        return completers.add(completer);
+    }
+
+    /**
+     * Remove the specified {@link Completer} from the list of handlers for tab-completion.
+     *
+     * @param completer     The {@link Completer} to remove
+     * @return              True if it was successfully removed
+     */
+    public boolean removeCompleter(final Completer completer) {
+        return completers.remove(completer);
+    }
+
+    public void setCompleters(Collection<Completer> completers) {
+        checkNotNull(completers);
+        this.completers.clear();
+        this.completers.addAll(completers);
+    }
+
+    /**
+     * Returns an unmodifiable list of all the completers.
+     */
+    public Collection<Completer> getCompleters() {
+        return Collections.unmodifiableList(completers);
+    }
+
+    public void setCompletionHandler(final CompletionHandler handler) {
+        this.completionHandler = checkNotNull(handler);
+    }
+
+    public CompletionHandler getCompletionHandler() {
+        return this.completionHandler;
+    }
+
+    //
+    // History
+    //
+
+    public void setHistory(final History history) {
+        checkNotNull(history);
+        this.history = history;
+    }
+
+    public History getHistory() {
+        return history;
+    }
+
+    //
+    // Highlighter
+    //
+
+    public void setHighlighter(Highlighter highlighter) {
+        this.highlighter = highlighter;
+    }
+
+    public Highlighter getHighlighter() {
+        return highlighter;
+    }
+
+
+    //
+    // Line Reading
+    //
+
+    /**
+     * Read the next line and return the contents of the buffer.
+     */
+    public String readLine() throws UserInterruptException, EndOfFileException {
+        return readLine(null, null, null);
+    }
+
+    /**
+     * Read the next line with the specified character mask. If null, then
+     * characters will be echoed. If 0, then no characters will be echoed.
+     */
+    public String readLine(Character mask) throws UserInterruptException, EndOfFileException {
+        return readLine(null, mask, null);
+    }
+
+    public String readLine(String prompt) throws UserInterruptException, EndOfFileException {
+        return readLine(prompt, null, null);
+    }
+
+    /**
+     * Read a line from the <i>in</i> {@link InputStream}, and return the line
+     * (without any trailing newlines).
+     *
+     * @param prompt    The prompt to issue to the console, may be null.
+     * @return          A line that is read from the console, or null if there was null input (e.g., <i>CTRL-D</i>
+     *                  was pressed).
+     */
+    public String readLine(String prompt, Character mask) throws UserInterruptException, EndOfFileException {
+        return readLine(prompt, mask, null);
+    }
+
+    /**
+     * Read a line from the <i>in</i> {@link InputStream}, and return the line
+     * (without any trailing newlines).
+     *
+     * @param prompt    The prompt to issue to the console, may be null.
+     * @return          A line that is read from the console, or null if there was null input (e.g., <i>CTRL-D</i>
+     *                  was pressed).
+     */
+    public String readLine(String prompt, Character mask, String buffer) throws UserInterruptException, EndOfFileException {
+        // prompt may be null
+        // mask may be null
+        // buffer may be null
+
+        Thread readLineThread = Thread.currentThread();
+        SignalHandler previousIntrHandler = null;
+        SignalHandler previousWinchHandler = null;
+        Attributes originalAttributes = null;
+        try {
+            previousIntrHandler = console.handle(Signal.INT, signal -> readLineThread.interrupt());
+            previousWinchHandler = console.handle(Signal.WINCH, signal -> {
+                // TODO: fix possible threading issue
+                size = console.getSize();
+                redisplay();
+            });
+            originalAttributes = console.enterRawMode();
+
+            this.mask = mask;
+
+            /*
+             * This is the accumulator for VI-mode repeat count. That is, while in
+             * move mode, if you type 30x it will delete 30 characters. This is
+             * where the "30" is accumulated until the command is struck.
+             */
+            repeatCount = 0;
+
+            state = State.NORMAL;
+
+            pushBackChar.clear();
+
+            size = console.getSize();
+            cursorPos = 0;
+
+            setPrompt(prompt);
+            buf.clear();
+            if (buffer != null) {
+                buf.write(buffer);
+            }
+            originalPrompt = this.prompt;
+
+            // Draw initial prompt
+            redrawLine();
+            redisplay();
+            flush();
+
+            while (true) {
+
+                Object o = readBinding(getKeys());
+                if (o == null) {
+                    return null;
+                }
+                int c = 0;
+                if (opBuffer.length() > 0) {
+                    c = opBuffer.codePointBefore(opBuffer.length());
+                }
+                Log.trace("Binding: ", o);
+
+
+                // Handle macros
+                if (o instanceof String) {
+                    String macro = (String) o;
+                    for (int i = 0; i < macro.length(); i++) {
+                        pushBackChar.push(macro.charAt(macro.length() - 1 - i));
+                    }
+                    opBuffer.setLength(0);
+                    continue;
+                }
+
+                // Handle custom callbacks
+                // TODO: merge that with the usual dispatch
+                if (o instanceof Widget) {
+                    ((Widget) o).apply(this);
+                    opBuffer.setLength(0);
+                    continue;
+                }
+
+                // Cache console size for the duration of the binding processing
+                this.size = console.getSize();
+
+                // Search mode.
+                //
+                // Note that we have to do this first, because if there is a command
+                // not linked to a search command, we leave the search mode and fall
+                // through to the normal state.
+                if (state == State.SEARCH || state == State.FORWARD_SEARCH) {
+                    // TODO: check the isearch-terminators variable terminating the search
+                    switch ( ((Operation) o )) {
+                        case ABORT:
+                            state = State.NORMAL;
+                            buf.clear();
+                            buf.write(originalBuffer.buffer);
+                            buf.cursor = originalBuffer.cursor;
+                            break;
+
+                        case REVERSE_SEARCH_HISTORY:
+                            state = State.SEARCH;
+                            if (searchTerm.length() == 0) {
+                                searchTerm.append(previousSearchTerm);
+                            }
+
+                            if (searchIndex > 0) {
+                                searchIndex = searchBackwards(searchTerm.toString(), searchIndex);
+                            }
+                            break;
+
+                        case FORWARD_SEARCH_HISTORY:
+                            state = State.FORWARD_SEARCH;
+                            if (searchTerm.length() == 0) {
+                                searchTerm.append(previousSearchTerm);
+                            }
+
+                            if (searchIndex > -1 && searchIndex < history.size() - 1) {
+                                searchIndex = searchForwards(searchTerm.toString(), searchIndex);
+                            }
+                            break;
+
+                        case BACKWARD_DELETE_CHAR:
+                            if (searchTerm.length() > 0) {
+                                searchTerm.deleteCharAt(searchTerm.length() - 1);
+                                if (state == State.SEARCH) {
+                                    searchIndex = searchBackwards(searchTerm.toString());
+                                } else {
+                                    searchIndex = searchForwards(searchTerm.toString());
+                                }
+                            }
+                            break;
+
+                        case SELF_INSERT:
+                            searchTerm.appendCodePoint(c);
+                            if (state == State.SEARCH) {
+                                searchIndex = searchBackwards(searchTerm.toString());
+                            } else {
+                                searchIndex = searchForwards(searchTerm.toString());
+                            }
+                            break;
+
+                        default:
+                            // Set buffer and cursor position to the found string.
+                            if (searchIndex != -1) {
+                                history.moveTo(searchIndex);
+                            }
+                            if (o != Operation.ACCEPT_LINE) {
+                                o = null;
+                            }
+                            state = State.NORMAL;
+                            break;
+                    }
+
+                    // if we're still in search mode, print the search status
+                    if (state == State.SEARCH || state == State.FORWARD_SEARCH) {
+                        if (searchTerm.length() == 0) {
+                            if (state == State.SEARCH) {
+                                printSearchStatus("", "");
+                            } else {
+                                printForwardSearchStatus("", "");
+                            }
+                            searchIndex = -1;
+                        } else {
+                            if (searchIndex == -1) {
+                                beep();
+                                printSearchStatus(searchTerm.toString(), "");
+                            } else if (state == State.SEARCH) {
+                                printSearchStatus(searchTerm.toString(), history.get(searchIndex));
+                            } else {
+                                printForwardSearchStatus(searchTerm.toString(), history.get(searchIndex));
+                            }
+                        }
+                    }
+                    // otherwise, restore the line
+                    else {
+                        restoreLine();
+                    }
+                }
+                if (state != State.SEARCH && state != State.FORWARD_SEARCH) {
+                    /*
+                     * If this is still false at the end of the switch, then
+                     * we reset our repeatCount to 0.
+                     */
+                    isArgDigit = false;
+
+                    /*
+                     * Every command that can be repeated a specified number
+                     * of times, needs to know how many times to repeat, so
+                     * we figure that out here.
+                     */
+                    count = (repeatCount == 0) ? 1 : repeatCount;
+
+                    if (o instanceof Operation) {
+                        Operation op = (Operation) o;
+                        /*
+                         * Current location of the cursor (prior to the operation).
+                         * These are used by vi *-to operation (e.g. delete-to)
+                         * so we know where we came from.
+                         */
+                        int     cursorStart = buf.cursor;
+                        previousState   = state;
+
+                        /*
+                         * If we are on a "vi" movement based operation, then we
+                         * need to restrict the sets of inputs pretty heavily.
+                         */
+                        if (state == State.VI_CHANGE_TO
+                                || state == State.VI_YANK_TO
+                                || state == State.VI_DELETE_TO) {
+
+                            op = viDeleteChangeYankToRemap(op);
+                        }
+
+                        Widget widget = dispatcher.get(op);
+                        if (widget != null) {
+                            widget.apply(this);
+                        } else {
+                            // TODO: what should we do there ?
+                            beep();
+                        }
+
+                        switch (state) {
+                            case DONE:
+                                return finishBuffer();
+                            case EOF:
+                                throw new EndOfFileException();
+                            case INTERRUPT:
+                                throw new UserInterruptException(buf.buffer.toString());
+                        }
+
+                        /*
+                         * If we were in a yank-to, delete-to, move-to
+                         * when this operation started, then fall back to
+                         */
+                        if (previousState != State.NORMAL) {
+                            if (previousState == State.VI_DELETE_TO) {
+                                viDeleteTo(cursorStart, buf.cursor, false);
+                            }
+                            else if (previousState == State.VI_CHANGE_TO) {
+                                viDeleteTo(cursorStart, buf.cursor, true);
+                                consoleKeys.setKeyMap(KeyMap.VI_INSERT);
+                            }
+                            else if (previousState == State.VI_YANK_TO) {
+                                viYankTo(cursorStart, buf.cursor);
+                            }
+                            state = State.NORMAL;
+                        }
+
+                        /*
+                         * Another subtly. The check for the NORMAL state is
+                         * to ensure that we do not clear out the repeat
+                         * count when in delete-to, yank-to, or move-to modes.
+                         */
+                        if (state == State.NORMAL && !isArgDigit) {
+                            /*
+                             * If the operation performed wasn't a vi argument
+                             * digit, then clear out the current repeatCount;
+                             */
+                            repeatCount = 0;
+                        }
+
+                        if (state != State.SEARCH && state != State.FORWARD_SEARCH) {
+                            originalBuffer = null;
+                            previousSearchTerm = "";
+                            searchTerm = null;
+                            searchIndex = -1;
+                        }
+                    }
+                }
+                redisplay();
+                flush();
+                opBuffer.setLength(0);
+            }
+        } catch (IOError e) {
+            if (e.getCause() instanceof InterruptedIOException) {
+                throw new UserInterruptException(buf.buffer.toString());
+            } else {
+                throw e;
+            }
+        }
+        finally {
+            cleanup();
+            if (originalAttributes != null) {
+                console.setAttributes(originalAttributes);
+            }
+            if (previousIntrHandler != null) {
+                console.handle(Signal.INT, previousIntrHandler);
+            }
+            if (previousWinchHandler != null) {
+                console.handle(Signal.WINCH, previousWinchHandler);
+            }
+        }
+    }
+
+    //
+    // Helper methods
+    //
+
+    protected void setPrompt(final String prompt) {
         this.prompt = prompt != null ? prompt : "";
         this.promptLen = wcwidth(lastLine(AnsiHelper.strip(this.prompt)), 0);
     }
@@ -336,27 +747,22 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      *
      * @return false if we failed (e.g., the buffer was empty)
      */
-    protected final boolean resetLine() throws IOException {
+    protected void resetLine() {
         if (buf.cursor == 0) {
-            return false;
-        }
-
-        StringBuilder killed = new StringBuilder();
-
-        while (buf.cursor > 0) {
-            char c = buf.current();
-            if (c == 0) {
-                break;
+            beep();
+        } else {
+            StringBuilder killed = new StringBuilder();
+            while (buf.cursor > 0) {
+                char c = buf.current();
+                if (c == 0) {
+                    break;
+                }
+                killed.append(c);
+                backspace();
             }
-
-            killed.append(c);
-            backspace();
+            String copy = killed.reverse().toString();
+            killRing.addBackwards(copy);
         }
-
-        String copy = killed.reverse().toString();
-        killRing.addBackwards(copy);
-
-        return true;
     }
 
     int wcwidth(CharSequence str, int pos) {
@@ -412,7 +818,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * prompt is returned if no '\n' characters are present.
      * null is returned if prompt is null.
      */
-    private String lastLine(String str) {
+    protected String lastLine(String str) {
         // TODO: use ansi splitter to support ansi sequences propagation across lines
         if (str == null) return "";
         int last = str.lastIndexOf("\n");
@@ -427,12 +833,16 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     /**
      * Move the cursor position to the specified absolute index.
      */
-    public boolean setCursorPosition(final int position) throws IOException {
+    public boolean setCursorPosition(final int position) {
         if (position == buf.cursor) {
             return true;
         }
-
         return moveBufferCursor(position - buf.cursor) != 0;
+    }
+
+    protected void setBuffer(CursorBuffer buffer) {
+        setBuffer(buffer.buffer.toString());
+        setCursorPosition(buffer.cursor);
     }
 
     /**
@@ -441,7 +851,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      *
      * @param buffer the new contents of the buffer.
      */
-    private void setBuffer(final String buffer) throws IOException {
+    protected void setBuffer(final String buffer) {
         // don't bother modifying it if it is unchanged
         if (buffer.equals(buf.buffer.toString())) {
             return;
@@ -462,7 +872,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         int diff = buf.cursor - sameIndex;
         if (diff < 0) { // we can't backspace here so try from the end of the buffer
-            moveToEnd();
+            endOfLine();
             diff = buf.buffer.length() - sameIndex;
         }
 
@@ -472,24 +882,16 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         putString(buffer.substring(sameIndex)); // append the differences
     }
 
-    private void setBuffer(final CharSequence buffer) throws IOException {
-        setBuffer(String.valueOf(buffer));
-    }
-
-    private void setBufferKeepPos(final String buffer) throws IOException {
+    protected void setBufferKeepPos(final String buffer) {
         int pos = buf.cursor;
         setBuffer(buffer);
         setCursorPosition(pos);
     }
 
-    private void setBufferKeepPos(final CharSequence buffer) throws IOException {
-        setBufferKeepPos(String.valueOf(buffer));
-    }
-
     /**
      * Clear the line and redraw it.
      */
-    public void redrawLine() throws IOException {
+    public void redrawLine() {
         oldBuf = "";
         oldPrompt = "";
         oldPost = null;
@@ -500,7 +902,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      *
      * @return the former contents of the buffer.
      */
-    final String finishBuffer() throws IOException { // FIXME: Package protected because used by tests
+    final String finishBuffer() { // FIXME: Package protected because used by tests
         String str = buf.buffer.toString();
         String historyLine = str;
 
@@ -530,12 +932,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 mask = null;
             }
         }
-
-        history.moveToEnd();
-
-        buf.buffer.setLength(0);
-        buf.cursor = 0;
-
         return str;
     }
 
@@ -544,7 +940,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * See http://www.gnu.org/software/bash/manual/html_node/Event-Designators.html
      */
     @SuppressWarnings("fallthrough")
-    protected String expandEvents(String str) throws IOException {
+    protected String expandEvents(String str) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < str.length(); i++) {
             char c = str.charAt(i);
@@ -696,7 +1092,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     /**
      * Write out the specified string to the buffer and the output stream.
      */
-    public void putString(final CharSequence str) throws IOException {
+    public void putString(final CharSequence str) {
         buf.write(str);
     }
 
@@ -704,7 +1100,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * Flush the console output stream. This is important for printout out single characters (like a backspace or
      * keyboard) that we want the console to handle immediately.
      */
-    public void flush() throws IOException {
+    public void flush() {
         console.writer().flush();
     }
 
@@ -713,7 +1109,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      *
      * @return the number of characters backed up
      */
-    private int backspace(final int num) throws IOException {
+    protected int backspace(final int num) {
         if (buf.cursor == 0) {
             return 0;
         }
@@ -729,21 +1125,14 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      *
      * @return true if successful
      */
-    public boolean backspace() throws IOException {
+    public boolean backspace() {
         return backspace(1) == 1;
-    }
-
-    protected boolean moveToEnd() throws IOException {
-        if (buf.cursor == buf.length()) {
-            return true;
-        }
-        return moveBufferCursor(buf.length() - buf.cursor) > 0;
     }
 
     /**
      * Delete the character at the current position and redraw the remainder of the buffer.
      */
-    private boolean deleteCurrentCharacter() throws IOException {
+    protected boolean deleteCurrentCharacter() {
         if (buf.length() == 0 || buf.cursor == buf.length()) {
             return false;
         }
@@ -751,7 +1140,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         buf.buffer.deleteCharAt(buf.cursor);
         return true;
     }
-
+    
     /**
      * This method is calling while doing a delete-to ("d"), change-to ("c"),
      * or yank-to ("y") and it filters out only those movement operations
@@ -761,7 +1150,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * @param op The incoming operation to remap
      * @return The remaped operation
      */
-    private Operation viDeleteChangeYankToRemap (Operation op) {
+    protected Operation viDeleteChangeYankToRemap (Operation op) {
         switch (op) {
             case VI_EOF_MAYBE:
             case ABORT:
@@ -789,217 +1178,13 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     /**
-     * Deletes the previous character from the cursor position
-     * @param count number of times to do it.
-     * @return true if it was done.
-     */
-    private boolean viRubout(int count) throws IOException {
-        boolean ok = true;
-        for (int i = 0; ok && i < count; i++) {
-            ok = backspace();
-        }
-        return ok;
-    }
-
-    /**
-     * Deletes the character you are sitting on and sucks the rest of
-     * the line in from the right.
-     * @param count Number of times to perform the operation.
-     * @return true if its works, false if it didn't
-     */
-    private boolean viDelete(int count) throws IOException {
-        boolean ok = true;
-        for (int i = 0; ok && i < count; i++) {
-            ok = deleteCurrentCharacter();
-        }
-        return ok;
-    }
-
-    /**
-     * Switches the case of the current character from upper to lower
-     * or lower to upper as necessary and advances the cursor one
-     * position to the right.
-     * @param count The number of times to repeat
-     * @return true if it completed successfully, false if not all
-     *   case changes could be completed.
-     */
-    private boolean viChangeCase(int count) throws IOException {
-        boolean ok = true;
-        for (int i = 0; ok && i < count; i++) {
-
-            ok = buf.cursor < buf.buffer.length ();
-            if (ok) {
-                char ch = buf.buffer.charAt(buf.cursor);
-                if (Character.isUpperCase(ch)) {
-                    ch = Character.toLowerCase(ch);
-                }
-                else if (Character.isLowerCase(ch)) {
-                    ch = Character.toUpperCase(ch);
-                }
-                buf.buffer.setCharAt(buf.cursor, ch);
-                moveBufferCursor(1);
-            }
-        }
-        return ok;
-    }
-
-    /**
-     * Implements the vi change character command (in move-mode "r"
-     * followed by the character to change to).
-     * @param count Number of times to perform the action
-     * @param c The character to change to
-     * @return Whether or not there were problems encountered
-     */
-    private boolean viChangeChar(int count, int c) throws IOException {
-        // EOF, ESC, or CTRL-C aborts.
-        if (c < 0 || c == '\033' || c == '\003') {
-            return true;
-        }
-
-        boolean ok = true;
-        for (int i = 0; ok && i < count; i++) {
-            ok = buf.cursor < buf.buffer.length ();
-            if (ok) {
-                buf.buffer.setCharAt(buf.cursor, (char) c);
-                if (i < (count-1)) {
-                    moveBufferCursor(1);
-                }
-            }
-        }
-        return ok;
-    }
-
-    /**
-     * This is a close facsimile of the actual vi previous word logic. In
-     * actual vi words are determined by boundaries of identity characterse.
-     * This logic is a bit more simple and simply looks at white space or
-     * digits or characters.  It should be revised at some point.
-     *
-     * @param count number of iterations
-     * @return true if the move was successful, false otherwise
-     */
-    private boolean viPreviousWord(int count) throws IOException {
-        if (buf.cursor == 0) {
-            return false;
-        }
-
-        int pos = buf.cursor - 1;
-        for (int i = 0; pos > 0 && i < count; i++) {
-            // If we are on white space, then move back.
-            while (pos > 0 && isWhitespace(buf.buffer.charAt(pos))) {
-                --pos;
-            }
-
-            while (pos > 0 && !isDelimiter(buf.buffer.charAt(pos-1))) {
-                --pos;
-            }
-
-            if (pos > 0 && i < (count-1)) {
-                --pos;
-            }
-        }
-        setCursorPosition(pos);
-        return true;
-    }
-
-    /**
-     * Performs the vi "delete-to" action, deleting characters between a given
-     * span of the input line.
-     * @param startPos The start position
-     * @param endPos The end position.
-     * @param isChange If true, then the delete is part of a change operationg
-     *    (e.g. "c$" is change-to-end-of line, so we first must delete to end
-     *    of line to start the change
-     * @return true if it succeeded, false otherwise
-     */
-    private boolean viDeleteTo(int startPos, int endPos, boolean isChange) throws IOException {
-        if (startPos == endPos) {
-            return true;
-        }
-
-        if (endPos < startPos) {
-            int tmp = endPos;
-            endPos = startPos;
-            startPos = tmp;
-        }
-
-        setCursorPosition(startPos);
-        buf.cursor = startPos;
-        buf.buffer.delete(startPos, endPos);
-
-        // If we are doing a delete operation (e.g. "d$") then don't leave the
-        // cursor dangling off the end. In reality the "isChange" flag is silly
-        // what is really happening is that if we are in "move-mode" then the
-        // cursor can't be moved off the end of the line, but in "edit-mode" it
-        // is ok, but I have no easy way of knowing which mode we are in.
-        if (! isChange && startPos > 0 && startPos == buf.length()) {
-            moveBufferCursor(-1);
-        }
-        return true;
-    }
-
-    /**
-     * Implement the "vi" yank-to operation.  This operation allows you
-     * to yank the contents of the current line based upon a move operation,
-     * for exaple "yw" yanks the current word, "3yw" yanks 3 words, etc.
-     *
-     * @param startPos The starting position from which to yank
-     * @param endPos The ending position to which to yank
-     * @return true if the yank succeeded
-     */
-    private boolean viYankTo(int startPos, int endPos) throws IOException {
-        int cursorPos = startPos;
-
-        if (endPos < startPos) {
-            int tmp = endPos;
-            endPos = startPos;
-            startPos = tmp;
-        }
-
-        if (startPos == endPos) {
-            yankBuffer = "";
-            return true;
-        }
-
-        yankBuffer = buf.buffer.substring(startPos, endPos);
-
-        /*
-         * It was a movement command that moved the cursor to find the
-         * end position, so put the cursor back where it started.
-         */
-        setCursorPosition(cursorPos);
-        return true;
-    }
-
-    /**
-     * Pasts the yank buffer to the right of the current cursor position
-     * and moves the cursor to the end of the pasted region.
-     *
-     * @param count Number of times to perform the operation.
-     * @return true if it worked, false otherwise
-     */
-    private boolean viPut(int count) throws IOException {
-        if (yankBuffer.length () == 0) {
-            return true;
-        }
-        if (buf.cursor < buf.buffer.length ()) {
-            moveBufferCursor(1);
-        }
-        for (int i = 0; i < count; i++) {
-            putString(yankBuffer);
-        }
-        moveBufferCursor(-1);
-        return true;
-    }
-
-    /**
      * Searches forward of the current position for a character and moves
      * the cursor onto it.
      * @param count Number of times to repeat the process.
      * @param ch The character to search for
      * @return true if the char was found, false otherwise
      */
-    private boolean viCharSearch(int count, int invokeChar, int ch) throws IOException {
+    protected boolean doViCharSearch(int count, int invokeChar, int ch) {
         if (ch < 0 || invokeChar < 0) {
             return false;
         }
@@ -1097,7 +1282,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return ok;
     }
 
-    private char switchCase(char ch) {
+    protected char switchCase(char ch) {
         if (Character.isUpperCase(ch)) {
             return Character.toLowerCase(ch);
         }
@@ -1108,10 +1293,16 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * @return true if line reader is in the middle of doing a change-to
      *   delete-to or yank-to.
      */
-    private boolean isInViMoveOperationState() {
+    protected boolean isInViMoveOperationState() {
         return state == State.VI_CHANGE_TO
             || state == State.VI_DELETE_TO
             || state == State.VI_YANK_TO;
+    }
+
+    protected void viNextWord() {
+        if (!doViNextWord(count)) {
+            beep();
+        }
     }
 
     /**
@@ -1122,9 +1313,13 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * @param count number of iterations
      * @return true if the move was successful, false otherwise
      */
-    private boolean viNextWord(int count) throws IOException {
+    protected boolean doViNextWord(int count) {
         int pos = buf.cursor;
         int end = buf.buffer.length();
+
+        if (pos == end) {
+            return false;
+        }
 
         for (int i = 0; pos < end && i < count; i++) {
             // Skip over letter/digits
@@ -1155,14 +1350,12 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * of the next word.  If it is on the last character of a word
      * it takes you to the next of the next word.  Any other character
      * of a word, takes you to the end of the current word.
-     *
-     * @param count Number of times to repeat the action
-     * @return true if it worked.
      */
-    private boolean viEndWord(int count) throws IOException {
+    protected void viEndWord() {
         int pos = buf.cursor;
         int end = buf.buffer.length();
 
+        // TODO: refactor to use buf.current() / moveBufferCursor
         for (int i = 0; pos < end && i < count; i++) {
             if (pos < (end-1)
                     && !isDelimiter(buf.buffer.charAt(pos))
@@ -1180,33 +1373,18 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             }
         }
         setCursorPosition(pos);
-        return true;
     }
 
     @SuppressWarnings("StatementWithEmptyBody")
-    private boolean previousWord() throws IOException {
-        while (isDelimiter(buf.current()) && (moveBufferCursor(-1) != 0)) {
-            // nothing
-        }
-
-        while (!isDelimiter(buf.current()) && (moveBufferCursor(-1) != 0)) {
-            // nothing
-        }
-
-        return true;
+    protected void backwardWord() {
+        while (isDelimiter(buf.current()) && (moveBufferCursor(-1) != 0));
+        while (!isDelimiter(buf.current()) && (moveBufferCursor(-1) != 0));
     }
 
     @SuppressWarnings("StatementWithEmptyBody")
-    private boolean nextWord() throws IOException {
-        while (isDelimiter(buf.nextChar()) && (moveBufferCursor(1) != 0)) {
-            // nothing
-        }
-
-        while (!isDelimiter(buf.nextChar()) && (moveBufferCursor(1) != 0)) {
-            // nothing
-        }
-
-        return true;
+    protected void forwardWord() {
+        while (isDelimiter(buf.nextChar()) && (moveBufferCursor(1) != 0));
+        while (!isDelimiter(buf.nextChar()) && (moveBufferCursor(1) != 0));
     }
 
     /**
@@ -1214,18 +1392,14 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * If the cursor is on white-space, it deletes that and to the beginning
      * of the word before it.  If the user is not on a word or whitespace
      * it deletes up to the end of the previous word.
-     *
-     * @param count Number of times to perform the operation
-     * @return true if it worked, false if you tried to delete too many words
      */
-    private boolean unixWordRubout(int count) throws IOException {
-        boolean success = true;
+    protected void unixWordRubout() {
         StringBuilder killed = new StringBuilder();
 
-        for (; count > 0; --count) {
+        for (int count = this.count; count > 0; --count) {
             if (buf.cursor == 0) {
-                success = false;
-                break;
+                beep();
+                return;
             }
 
             while (isWhitespace(buf.current())) {
@@ -1251,28 +1425,35 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         String copy = killed.reverse().toString();
         killRing.addBackwards(copy);
-
-        return success;
     }
 
-    private String insertComment(boolean isViMode) throws IOException {
+    protected void insertComment() {
+        doInsertComment(false);
+    }
+
+    protected void viInsertComment() {
+        doInsertComment(true);
+    }
+
+    protected void doInsertComment(boolean isViMode) {
         String comment = getVariable(COMMENT_BEGIN);
         if (comment == null) {
             comment = "#";
         }
-        setCursorPosition(0);
+        beginningOfLine();
         putString(comment);
         if (isViMode) {
             setKeyMap(KeyMap.VI_INSERT);
         }
-        return accept();
+        acceptLine();
     }
 
     /**
      * Implements vi search ("/" or "?").
      */
     @SuppressWarnings("fallthrough")
-    private int viSearch(char searchChar) throws IOException {
+    protected void viSearch() {
+        char searchChar = opBuffer.charAt(0);
         boolean isForward = (searchChar == '/');
 
         /*
@@ -1333,7 +1514,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             killLine();
             putString(origBuffer.buffer);
             setCursorPosition(origBuffer.cursor);
-            return -1;
+            return;
         }
 
         /*
@@ -1378,7 +1559,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             killLine();
             putString(origBuffer.buffer);
             setCursorPosition(0);
-            return -1;
+            return;
         }
 
         /*
@@ -1436,23 +1617,41 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         /*
          * Complete?
          */
-        return ch;
+        pushBackChar.push((char) ch);
     }
 
-    private void insertClose(String s) throws IOException {
+    protected void insertCloseCurly() {
+        insertClose("}");
+    }
+
+    protected void insertCloseParen() {
+        insertClose(")");
+    }
+
+    protected void insertCloseSquare() {
+        insertClose("]");
+    }
+
+    protected void insertClose(String s) {
         putString(s);
 
         int closePosition = buf.cursor;
 
         moveBufferCursor(-1);
-        viMatch();
+        doViMatch();
+        flush();
 
-        console.reader().peek(BLINK_MATCHING_PAREN_TIMEOUT);
+        peekCharacter(BLINK_MATCHING_PAREN_TIMEOUT);
 
         setCursorPosition(closePosition);
-        flush();
     }
 
+    protected void viMatch() {
+        if (!doViMatch()) {
+            beep();
+        }
+    }
+    
     /**
      * Implements vi style bracket matching ("%" command). The matching
      * bracket for the current bracket type that you are sitting on is matched.
@@ -1460,7 +1659,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * @return true if it worked, false if the cursor was not on a bracket
      *   character or if there was no matching bracket.
      */
-    private boolean viMatch() throws IOException {
+    protected boolean doViMatch() {
         int pos        = buf.cursor;
 
         if (pos == buf.length()) {
@@ -1499,7 +1698,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             ++pos;
 
         setCursorPosition(pos);
-        flush();
         return true;
     }
 
@@ -1510,7 +1708,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * @return 1 is square, 2 curly, 3 parent, or zero for none.  The value
      *   will be negated if it is the closing form of the bracket.
      */
-    private int getBracketType (char ch) {
+    protected int getBracketType (char ch) {
         switch (ch) {
             case '[': return  1;
             case ']': return -1;
@@ -1523,7 +1721,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
     }
 
-    private boolean deletePreviousWord() throws IOException {
+    protected void deletePreviousWord() {
         StringBuilder killed = new StringBuilder();
         char c;
 
@@ -1547,10 +1745,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         String copy = killed.reverse().toString();
         killRing.addBackwards(copy);
-        return true;
     }
 
-    private boolean deleteNextWord() throws IOException {
+    protected void deleteNextWord() {
         StringBuilder killed = new StringBuilder();
         char c;
 
@@ -1572,11 +1769,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         String copy = killed.toString();
         killRing.add(copy);
-
-        return true;
     }
 
-    private boolean capitalizeWord() throws IOException {
+    protected void capitalizeWord() {
         boolean first = true;
         int i = 1;
         char c;
@@ -1586,10 +1781,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             i++;
         }
         moveBufferCursor(i - 1);
-        return true;
     }
 
-    private boolean upCaseWord() throws IOException {
+    protected void upCaseWord() {
         int i = 1;
         char c;
         while (buf.cursor + i - 1 < buf.length() && !isDelimiter((c = buf.buffer.charAt(buf.cursor + i - 1)))) {
@@ -1597,10 +1791,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             i++;
         }
         moveBufferCursor(i - 1);
-        return true;
     }
 
-    private boolean downCaseWord() throws IOException {
+    protected void downCaseWord() {
         int i = 1;
         char c;
         while (buf.cursor + i - 1 < buf.length() && !isDelimiter((c = buf.buffer.charAt(buf.cursor + i - 1)))) {
@@ -1608,22 +1801,18 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             i++;
         }
         moveBufferCursor(i - 1);
-        return true;
     }
 
     /**
      * Performs character transpose. The character prior to the cursor and the
      * character under the cursor are swapped and the cursor is advanced one
      * character unless you are already at the end of the line.
-     *
-     * @param count The number of times to perform the transpose
-     * @return true if the operation succeeded, false otherwise (e.g. transpose
-     *   cannot happen at the beginning of the line).
      */
-    private boolean transposeChars(int count) throws IOException {
-        for (; count > 0; --count) {
+    protected void transposeChars() {
+        for (int count = this.count; count > 0; --count) {
             if (buf.cursor == 0 || buf.cursor == buf.buffer.length()) {
-                return false;
+                beep();
+                break;
             }
 
             int first  = buf.cursor-1;
@@ -1635,8 +1824,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
             buf.cursor++;
         }
-
-        return true;
     }
 
     public boolean isKeyMap(String name) {
@@ -1655,26 +1842,25 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
 
-    /**
-     * The equivalent of hitting &lt;RET&gt;.  The line is considered
-     * complete and is returned.
-     *
-     * @return The completed line of text.
-     */
-    public String accept() throws IOException {
-        moveToEnd();
-        post = null;
-        redisplay();
-        println(); // output newline
-        flush();
-        return finishBuffer();
+    protected void abort() {
+        if (searchTerm == null) {
+            beep();
+            buf.clear();
+            println();
+            redrawLine();
+        }
     }
 
-    private void abort() throws IOException {
-        beep();
-        buf.clear();
-        println();
-        redrawLine();
+    protected void backwardChar() {
+        if (moveBufferCursor(-count) == 0) {
+            beep();
+        }
+    }
+
+    protected void forwardChar() {
+        if (moveBufferCursor(count) == 0) {
+            beep();
+        }
     }
 
     /**
@@ -1683,7 +1869,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * @param num   If less than 0, move abs(<i>where</i>) to the left, otherwise move <i>where</i> to the right.
      * @return      The number of spaces we moved
      */
-    public int moveBufferCursor(final int num) throws IOException {
+    public int moveBufferCursor(final int num) {
         int where = num;
 
         if ((buf.cursor == 0) && (where <= 0)) {
@@ -1706,7 +1892,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return where;
     }
 
-    private int moveVisualCursorTo(int i1) throws IOException {
+    protected int moveVisualCursorTo(int i1) {
         int i0 = cursorPos;
         if (i0 == i1) return i1;
         int width = size.getColumns();
@@ -1755,15 +1941,27 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      *
      * @return the character, or -1 if an EOF is received.
      */
-    public int readCharacter() throws IOException {
-        int c = NonBlockingReader.READ_EXPIRED;
-        while (c == NonBlockingReader.READ_EXPIRED) {
-            c = console.reader().read(100);
+    public int readCharacter() {
+        try {
+            int c = NonBlockingReader.READ_EXPIRED;
+            while (c == NonBlockingReader.READ_EXPIRED) {
+                c = console.reader().read(100l);
+            }
+            return c;
+        } catch (IOException e) {
+            throw new IOError(e);
         }
-        return c;
+    }
+    
+    public int peekCharacter(long timeout) {
+        try {
+            return console.reader().peek(timeout);
+        } catch (IOException e) {
+            throw new IOError(e);
+        }
     }
 
-    public int readCharacter(final char... allowed) throws IOException {
+    public int readCharacter(final char... allowed) {
         // if we restrict to a limited set and the current character is not in the set, then try again.
         char c;
 
@@ -1788,7 +1986,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * @return the decoded binding or <code>null</code> if the end of
      *         stream has been reached
      */
-    public Object readBinding(KeyMap keys) throws IOException {
+    public Object readBinding(KeyMap keys) {
         Object o;
         opBuffer.setLength(0);
         do {
@@ -1845,9 +2043,16 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
              * 150ms. If nothing else is coming, then assume it is
              * not a console control sequence, but a raw escape.
              */
-            if (o instanceof KeyMap && opBuffer.length() == 1 && c == ESCAPE && pushBackChar.isEmpty()) {
-                long t = getLong(ESCAPE_TIMEOUT, 0l);
-                if (t > 0 && console.reader().peek(t) == READ_EXPIRED) {
+            if ((keys.getName().equals(KeyMap.VI_INSERT)
+                        && opBuffer.length() == 1
+                        && c == ESCAPE)
+                    || ((state == State.SEARCH || state == State.FORWARD_SEARCH)
+                        && opBuffer.length() == 1
+                        && getString("search-terminators", "\033\012").indexOf(c) >= 0)
+                    && o instanceof KeyMap
+                    && pushBackChar.isEmpty()) {
+                long t = getLong(ESCAPE_TIMEOUT, 500l);
+                if (t > 0 && peekCharacter(t) == READ_EXPIRED) {
                     Object otherKey = ((KeyMap) o).getAnotherKey();
                     if (otherKey == null) {
                         // The next line is in case a binding was set up inside this secondary
@@ -1925,883 +2130,661 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return consoleKeys.getKeys().getName();
     }
 
-    //
-    // Line Reading
-    //
-
-    /**
-     * Read the next line and return the contents of the buffer.
-     */
-    public String readLine() throws UserInterruptException, EOFException {
-        return readLine(null, null, null);
+    protected void viBeginningOfLineOrArgDigit() {
+        if (repeatCount > 0) {
+            viArgDigit();
+        } else {
+            beginningOfLine();
+        }
     }
 
-    /**
-     * Read the next line with the specified character mask. If null, then
-     * characters will be echoed. If 0, then no characters will be echoed.
-     */
-    public String readLine(Character mask) throws UserInterruptException, EOFException {
-        return readLine(null, mask, null);
+    protected void viArgDigit() {
+        repeatCount = (repeatCount * 10) + opBuffer.charAt(0) - '0';
+        isArgDigit = true;
     }
 
-    public String readLine(String prompt) throws UserInterruptException, EOFException {
-        return readLine(prompt, null, null);
+    protected void viDeleteTo() {
+        // This is a weird special case. In vi
+        // "dd" deletes the current line. So if we
+        // get a delete-to, followed by a delete-to,
+        // we delete the line.
+        if (state == State.VI_DELETE_TO) {
+            killWholeLine();
+            state = previousState = State.NORMAL;
+        } else {
+            state = State.VI_DELETE_TO;
+        }
     }
 
-    /**
-     * Read a line from the <i>in</i> {@link InputStream}, and return the line
-     * (without any trailing newlines).
-     *
-     * @param prompt    The prompt to issue to the console, may be null.
-     * @return          A line that is read from the console, or null if there was null input (e.g., <i>CTRL-D</i>
-     *                  was pressed).
-     */
-    public String readLine(String prompt, Character mask) throws UserInterruptException, EOFException {
-        return readLine(prompt, mask, null);
+    protected void viYankTo() {
+        // Similar to delete-to, a "yy" yanks the whole line.
+        if (state == State.VI_YANK_TO) {
+            yankBuffer = buf.buffer.toString();
+            state = previousState = State.NORMAL;
+        } else {
+            state = State.VI_YANK_TO;
+        }
     }
 
-    /**
-     * Read a line from the <i>in</i> {@link InputStream}, and return the line
-     * (without any trailing newlines).
-     *
-     * @param prompt    The prompt to issue to the console, may be null.
-     * @return          A line that is read from the console, or null if there was null input (e.g., <i>CTRL-D</i>
-     *                  was pressed).
-     */
-    public String readLine(String prompt, Character mask, String buffer) throws UserInterruptException, EOFException {
-        // prompt may be null
-        // mask may be null
-        // buffer may be null
+    protected void viChangeTo() {
+        if (state == State.VI_CHANGE_TO) {
+            killWholeLine();
+            state = previousState = State.NORMAL;
+            setKeyMap(KeyMap.VI_INSERT);
+        } else {
+            state = State.VI_CHANGE_TO;
+        }
+    }
 
-        readLineThread = Thread.currentThread();
-        SignalHandler previousIntrHandler = null;
-        SignalHandler previousWinchHandler = null;
-        Attributes originalAttributes = null;
-        try {
-            previousIntrHandler = console.handle(Signal.INT, new SignalHandler() {
-                @Override
-                public void handle(Signal signal) {
-                    if (signal == Signal.INT) {
-                        readLineThread.interrupt();
-                    }
-                }
-            });
-            previousWinchHandler = console.handle(Signal.WINCH, new SignalHandler() {
-                @Override
-                public void handle(Signal signal) {
-                    try {
-                        size = console.getSize();
-                        redisplay();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            });
-            originalAttributes = console.enterRawMode();
+    protected void cleanup() {
+        endOfLine();
+        post = null;
+        redisplay();
+        println();
+        flush();
+        history.moveToEnd();
+    }
 
-            this.mask = mask;
+    protected void viEofMaybe() {
+        /*
+         * Handler for CTRL-D. Attempts to follow readline
+         * behavior. If the line is empty, then it is an EOF
+         * otherwise it is as if the user hit enter.
+         */
+        if (buf.buffer.length() == 0) {
+            state = State.EOF;
+        } else {
+            acceptLine();
+        }
+    }
 
-            /*
-             * This is the accumulator for VI-mode repeat count. That is, while in
-             * move mode, if you type 30x it will delete 30 characters. This is
-             * where the "30" is accumulated until the command is struck.
-             */
-            int repeatCount = 0;
-
-            state = State.NORMAL;
-
-            pushBackChar.clear();
-
-            size = console.getSize();
-            cursorPos = 0;
-            maxLines = 0;
-
-            setPrompt(prompt);
-            buf.clear();
-            if (buffer != null) {
-                buf.write(buffer);
+    protected void forwardSearchHistory() {
+        originalBuffer = new CursorBuffer();
+        originalBuffer.write(buf.buffer);
+        originalBuffer.cursor = buf.cursor;
+        if (searchTerm != null) {
+            previousSearchTerm = searchTerm.toString();
+        }
+        searchTerm = new StringBuffer(buf.buffer);
+        state = State.FORWARD_SEARCH;
+        if (searchTerm.length() > 0) {
+            searchIndex = searchForwards(searchTerm.toString());
+            if (searchIndex == -1) {
+                beep();
             }
-            originalPrompt = this.prompt;
-
-            // Draw initial prompt
-            redrawLine();
-            redisplay();
-            flush();
-
-            while (true) {
-
-                Object o = readBinding(getKeys());
-                if (o == null) {
-                    return null;
-                }
-                int c = 0;
-                if (opBuffer.length() > 0) {
-                    c = opBuffer.codePointBefore(opBuffer.length());
-                }
-                Log.trace("Binding: ", o);
-
-
-                // Handle macros
-                if (o instanceof String) {
-                    String macro = (String) o;
-                    for (int i = 0; i < macro.length(); i++) {
-                        pushBackChar.push(macro.charAt(macro.length() - 1 - i));
-                    }
-                    opBuffer.setLength(0);
-                    continue;
-                }
-
-                // Handle custom callbacks
-                if (o instanceof ActionListener) {
-                    ((ActionListener) o).actionPerformed(null);
-                    opBuffer.setLength(0);
-                    continue;
-                }
-
-                boolean success = true;
-
-                // Cache console size for the duration of the binding processing
-                this.size = console.getSize();
-
-                // Search mode.
-                //
-                // Note that we have to do this first, because if there is a command
-                // not linked to a search command, we leave the search mode and fall
-                // through to the normal state.
-                if (state == State.SEARCH || state == State.FORWARD_SEARCH) {
-                    int cursorDest = -1;
-                    // TODO: check the isearch-terminators variable terminating the search
-                    switch ( ((Operation) o )) {
-                        case ABORT:
-                            state = State.NORMAL;
-                            buf.clear();
-                            buf.write(originalBuffer.buffer);
-                            buf.cursor = originalBuffer.cursor;
-                            break;
-
-                        case REVERSE_SEARCH_HISTORY:
-                            state = State.SEARCH;
-                            if (searchTerm.length() == 0) {
-                                searchTerm.append(previousSearchTerm);
-                            }
-
-                            if (searchIndex > 0) {
-                                searchIndex = searchBackwards(searchTerm.toString(), searchIndex);
-                            }
-                            break;
-
-                        case FORWARD_SEARCH_HISTORY:
-                            state = State.FORWARD_SEARCH;
-                            if (searchTerm.length() == 0) {
-                                searchTerm.append(previousSearchTerm);
-                            }
-
-                            if (searchIndex > -1 && searchIndex < history.size() - 1) {
-                                searchIndex = searchForwards(searchTerm.toString(), searchIndex);
-                            }
-                            break;
-
-                        case BACKWARD_DELETE_CHAR:
-                            if (searchTerm.length() > 0) {
-                                searchTerm.deleteCharAt(searchTerm.length() - 1);
-                                if (state == State.SEARCH) {
-                                    searchIndex = searchBackwards(searchTerm.toString());
-                                } else {
-                                    searchIndex = searchForwards(searchTerm.toString());
-                                }
-                            }
-                            break;
-
-                        case SELF_INSERT:
-                            searchTerm.appendCodePoint(c);
-                            if (state == State.SEARCH) {
-                                searchIndex = searchBackwards(searchTerm.toString());
-                            } else {
-                                searchIndex = searchForwards(searchTerm.toString());
-                            }
-                            break;
-
-                        default:
-                            // Set buffer and cursor position to the found string.
-                            if (searchIndex != -1) {
-                                history.moveTo(searchIndex);
-                                // set cursor position to the found string
-                                cursorDest = history.current().toString().indexOf(searchTerm.toString());
-                            }
-                            if (o != Operation.ACCEPT_LINE) {
-                                o = null;
-                            }
-                            state = State.NORMAL;
-                            break;
-                    }
-
-                    // if we're still in search mode, print the search status
-                    if (state == State.SEARCH || state == State.FORWARD_SEARCH) {
-                        if (searchTerm.length() == 0) {
-                            if (state == State.SEARCH) {
-                                printSearchStatus("", "");
-                            } else {
-                                printForwardSearchStatus("", "");
-                            }
-                            searchIndex = -1;
-                        } else {
-                            if (searchIndex == -1) {
-                                beep();
-                                printSearchStatus(searchTerm.toString(), "");
-                            } else if (state == State.SEARCH) {
-                                printSearchStatus(searchTerm.toString(), history.get(searchIndex).toString());
-                            } else {
-                                printForwardSearchStatus(searchTerm.toString(), history.get(searchIndex).toString());
-                            }
-                        }
-                    }
-                    // otherwise, restore the line
-                    else {
-                        restoreLine(cursorDest);
-                    }
-                }
-                if (state != State.SEARCH && state != State.FORWARD_SEARCH) {
-                    /*
-                     * If this is still false at the end of the switch, then
-                     * we reset our repeatCount to 0.
-                     */
-                    boolean isArgDigit = false;
-
-                    /*
-                     * Every command that can be repeated a specified number
-                     * of times, needs to know how many times to repeat, so
-                     * we figure that out here.
-                     */
-                    int count = (repeatCount == 0) ? 1 : repeatCount;
-
-                    /*
-                     * Default success to true. You only need to explicitly
-                     * set it if something goes wrong.
-                     */
-                    success = true;
-
-                    if (o instanceof Operation) {
-                        Operation op = (Operation)o;
-                        /*
-                         * Current location of the cursor (prior to the operation).
-                         * These are used by vi *-to operation (e.g. delete-to)
-                         * so we know where we came from.
-                         */
-                        int     cursorStart = buf.cursor;
-                        State   origState   = state;
-
-                        /*
-                         * If we are on a "vi" movement based operation, then we
-                         * need to restrict the sets of inputs pretty heavily.
-                         */
-                        if (state == State.VI_CHANGE_TO
-                            || state == State.VI_YANK_TO
-                            || state == State.VI_DELETE_TO) {
-
-                            op = viDeleteChangeYankToRemap(op);
-                        }
-
-                        switch ( op ) {
-                            case COMPLETE: // tab
-                                // There is an annoyance with tab completion in that
-                                // sometimes the user is actually pasting input in that
-                                // has physical tabs in it.  This attempts to look at how
-                                // quickly a character follows the tab, if the character
-                                // follows *immediately*, we assume it is a tab literal.
-                                boolean isTabLiteral = false;
-                                if (getBoolean(COPY_PASTE_DETECTION, false)
-                                    && c == '\t'
-                                    && (!pushBackChar.isEmpty()
-                                        || console.reader().peek(COPY_PASTE_DETECTION_TIMEOUT) != READ_EXPIRED)) {
-                                    isTabLiteral = true;
-                                } else if (getBoolean(DISABLE_COMPLETION, false)) {
-                                    isTabLiteral = true;
-                                }
-
-                                if (! isTabLiteral) {
-                                    success = complete();
-                                }
-                                else {
-                                    putString(opBuffer);
-                                }
-                                break;
-
-                            case POSSIBLE_COMPLETIONS:
-                                printCompletionCandidates();
-                                break;
-
-                            case BEGINNING_OF_LINE:
-                                success = setCursorPosition(0);
-                                break;
-
-                            case YANK:
-                                success = yank();
-                                break;
-
-                            case YANK_POP:
-                                success = yankPop();
-                                break;
-
-                            case KILL_LINE: // CTRL-K
-                                success = killLine();
-                                break;
-
-                            case KILL_WHOLE_LINE:
-                                success = setCursorPosition(0) && killLine();
-                                break;
-
-                            case CLEAR_SCREEN: // CTRL-L
-                                success = clearScreen();
-                                break;
-
-                            case OVERWRITE_MODE:
-                                buf.setOverTyping(!buf.isOverTyping());
-                                break;
-
-                            case SELF_INSERT:
-                                putString(opBuffer);
-                                break;
-
-                            case ACCEPT_LINE:
-                                return accept();
-
-                            case ABORT:
-                                if (searchTerm == null) {
-                                    abort();
-                                }
-                                break;
-
-                            case INTERRUPT:
-                                println();
-                                flush();
-                                String partialLine = buf.buffer.toString();
-                                buf.clear();
-                                history.moveToEnd();
-                                throw new UserInterruptException(partialLine);
-
-                            /*
-                             * VI_MOVE_ACCEPT_LINE is the result of an ENTER
-                             * while in move mode. This is the same as a normal
-                             * ACCEPT_LINE, except that we need to enter
-                             * insert mode as well.
-                             */
-                            case VI_MOVE_ACCEPT_LINE:
-                                consoleKeys.setKeyMap(KeyMap.VI_INSERT);
-                                return accept();
-
-                            case BACKWARD_WORD:
-                                success = previousWord();
-                                break;
-
-                            case FORWARD_WORD:
-                                success = nextWord();
-                                break;
-
-                            case PREVIOUS_HISTORY:
-                                success = moveHistory(false);
-                                break;
-
-                            /*
-                             * According to bash/readline move through history
-                             * in "vi" mode will move the cursor to the
-                             * start of the line. If there is no previous
-                             * history, then the cursor doesn't move.
-                             */
-                            case VI_PREVIOUS_HISTORY:
-                                success = moveHistory(false, count)
-                                    && setCursorPosition(0);
-                                break;
-
-                            case NEXT_HISTORY:
-                                success = moveHistory(true);
-                                break;
-
-                            /*
-                             * According to bash/readline move through history
-                             * in "vi" mode will move the cursor to the
-                             * start of the line. If there is no next history,
-                             * then the cursor doesn't move.
-                             */
-                            case VI_NEXT_HISTORY:
-                                success = moveHistory(true, count)
-                                    && setCursorPosition(0);
-                                break;
-
-                            case BACKWARD_DELETE_CHAR: // backspace
-                                success = backspace();
-                                break;
-
-                            case EXIT_OR_DELETE_CHAR:
-                                if (buf.buffer.length() == 0) {
-                                    println();
-                                    flush();
-                                    throw new EOFException();
-                                }
-                                success = deleteCurrentCharacter();
-                                break;
-
-                            case DELETE_CHAR: // delete
-                                success = deleteCurrentCharacter();
-                                break;
-
-                            case BACKWARD_CHAR:
-                                success = moveBufferCursor(-(count)) != 0;
-                                break;
-
-                            case FORWARD_CHAR:
-                                success = moveBufferCursor(count) != 0;
-                                break;
-
-                            case UNIX_LINE_DISCARD:
-                                success = resetLine();
-                                break;
-
-                            case UNIX_WORD_RUBOUT:
-                                success = unixWordRubout(count);
-                                break;
-
-                            case BACKWARD_KILL_WORD:
-                                success = deletePreviousWord();
-                                break;
-
-                            case KILL_WORD:
-                                success = deleteNextWord();
-                                break;
-
-                            case BEGINNING_OF_HISTORY:
-                                success = history.moveToFirst();
-                                if (success) {
-                                    setBuffer(history.current());
-                                }
-                                break;
-
-                            case END_OF_HISTORY:
-                                success = history.moveToLast();
-                                if (success) {
-                                    setBuffer(history.current());
-                                }
-                                break;
-
-                            case HISTORY_SEARCH_BACKWARD:
-                                searchTerm = new StringBuffer(buf.upToCursor());
-                                searchIndex = searchBackwards(searchTerm.toString(), history.index(), true);
-
-                                if (searchIndex == -1) {
-                                    beep();
-                                } else {
-                                    // Maintain cursor position while searching.
-                                    success = history.moveTo(searchIndex);
-                                    if (success) {
-                                        setBufferKeepPos(history.current());
-                                    }
-                                }
-                                break;
-
-                            case HISTORY_SEARCH_FORWARD:
-                                searchTerm = new StringBuffer(buf.upToCursor());
-                                int index = history.index() + 1;
-
-                                if (index == history.size()) {
-                                    history.moveToEnd();
-                                    setBufferKeepPos(searchTerm.toString());
-                                } else if (index < history.size()) {
-                                    searchIndex = searchForwards(searchTerm.toString(), index, true);
-                                    if (searchIndex == -1) {
-                                        beep();
-                                    } else {
-                                        // Maintain cursor position while searching.
-                                        success = history.moveTo(searchIndex);
-                                        if (success) {
-                                            setBufferKeepPos(history.current());
-                                        }
-                                    }
-                                }
-                                break;
-
-                            case REVERSE_SEARCH_HISTORY:
-                                originalBuffer = new CursorBuffer();
-                                originalBuffer.write(buf.buffer);
-                                originalBuffer.cursor = buf.cursor;
-                                if (searchTerm != null) {
-                                    previousSearchTerm = searchTerm.toString();
-                                }
-                                searchTerm = new StringBuffer(buf.buffer);
-                                state = State.SEARCH;
-                                if (searchTerm.length() > 0) {
-                                    searchIndex = searchBackwards(searchTerm.toString());
-                                    if (searchIndex == -1) {
-                                        beep();
-                                    }
-                                    printSearchStatus(searchTerm.toString(),
-                                            searchIndex > -1 ? history.get(searchIndex).toString() : "");
-                                } else {
-                                    searchIndex = -1;
-                                    printSearchStatus("", "");
-                                }
-                                break;
-
-                            case FORWARD_SEARCH_HISTORY:
-                                originalBuffer = new CursorBuffer();
-                                originalBuffer.write(buf.buffer);
-                                originalBuffer.cursor = buf.cursor;
-                                if (searchTerm != null) {
-                                    previousSearchTerm = searchTerm.toString();
-                                }
-                                searchTerm = new StringBuffer(buf.buffer);
-                                state = State.FORWARD_SEARCH;
-                                if (searchTerm.length() > 0) {
-                                    searchIndex = searchForwards(searchTerm.toString());
-                                    if (searchIndex == -1) {
-                                        beep();
-                                    }
-                                    printForwardSearchStatus(searchTerm.toString(),
-                                            searchIndex > -1 ? history.get(searchIndex).toString() : "");
-                                } else {
-                                    searchIndex = -1;
-                                    printForwardSearchStatus("", "");
-                                }
-                                break;
-
-                            case CAPITALIZE_WORD:
-                                success = capitalizeWord();
-                                break;
-
-                            case UPCASE_WORD:
-                                success = upCaseWord();
-                                break;
-
-                            case DOWNCASE_WORD:
-                                success = downCaseWord();
-                                break;
-
-                            case END_OF_LINE:
-                                success = moveToEnd();
-                                break;
-
-                            case TAB_INSERT:
-                                putString( "\t" );
-                                break;
-
-                            case RE_READ_INIT_FILE:
-                                consoleKeys.loadKeys(appName, inputrc);
-                                break;
-
-                            case START_KBD_MACRO:
-                                recording = true;
-                                break;
-
-                            case END_KBD_MACRO:
-                                recording = false;
-                                macro = macro.substring(0, macro.length() - opBuffer.length());
-                                break;
-
-                            case CALL_LAST_KBD_MACRO:
-                                for (int i = 0; i < macro.length(); i++) {
-                                    pushBackChar.push(macro.charAt(macro.length() - 1 - i));
-                                }
-                                opBuffer.setLength(0);
-                                break;
-
-                            case VI_EDITING_MODE:
-                                consoleKeys.setKeyMap(KeyMap.VI_INSERT);
-                                break;
-
-                            case VI_MOVEMENT_MODE:
-                                /*
-                                 * If we are re-entering move mode from an
-                                 * aborted yank-to, delete-to, change-to then
-                                 * don't move the cursor back. The cursor is
-                                 * only move on an expclit entry to movement
-                                 * mode.
-                                 */
-                                if (state == State.NORMAL) {
-                                    moveBufferCursor(-1);
-                                }
-                                consoleKeys.setKeyMap(KeyMap.VI_MOVE);
-                                break;
-
-                            case VI_INSERTION_MODE:
-                                consoleKeys.setKeyMap(KeyMap.VI_INSERT);
-                                break;
-
-                            case VI_APPEND_MODE:
-                                moveBufferCursor(1);
-                                consoleKeys.setKeyMap(KeyMap.VI_INSERT);
-                                break;
-
-                            case VI_APPEND_EOL:
-                                success = moveToEnd();
-                                consoleKeys.setKeyMap(KeyMap.VI_INSERT);
-                                break;
-
-                            /*
-                             * Handler for CTRL-D. Attempts to follow readline
-                             * behavior. If the line is empty, then it is an EOF
-                             * otherwise it is as if the user hit enter.
-                             */
-                            case VI_EOF_MAYBE:
-                                if (buf.buffer.length() == 0) {
-                                    println();
-                                    flush();
-                                    throw new EOFException();
-                                }
-                                return accept();
-
-                            case TRANSPOSE_CHARS:
-                                success = transposeChars(count);
-                                break;
-
-                            case INSERT_COMMENT:
-                                return insertComment (false);
-
-                            case INSERT_CLOSE_CURLY:
-                                insertClose("}");
-                                break;
-
-                            case INSERT_CLOSE_PAREN:
-                                insertClose(")");
-                                break;
-
-                            case INSERT_CLOSE_SQUARE:
-                                insertClose("]");
-                                break;
-
-                            case VI_INSERT_COMMENT:
-                                return insertComment (true);
-
-                            case VI_MATCH:
-                                success = viMatch ();
-                                break;
-
-                            case VI_SEARCH:
-                                int lastChar = viSearch(opBuffer.charAt(0));
-                                if (lastChar != -1) {
-                                    pushBackChar.push((char)lastChar);
-                                }
-                                break;
-
-                            case VI_ARG_DIGIT:
-                                repeatCount = (repeatCount * 10) + opBuffer.charAt(0) - '0';
-                                isArgDigit = true;
-                                break;
-
-                            case VI_BEGINNING_OF_LINE_OR_ARG_DIGIT:
-                                if (repeatCount > 0) {
-                                    repeatCount = (repeatCount * 10) + opBuffer.charAt(0) - '0';
-                                    isArgDigit = true;
-                                }
-                                else {
-                                    success = setCursorPosition(0);
-                                }
-                                break;
-
-                            case VI_FIRST_PRINT:
-                                success = setCursorPosition(0) && viNextWord(1);
-                                break;
-
-                            case VI_PREV_WORD:
-                                success = viPreviousWord(count);
-                                break;
-
-                            case VI_NEXT_WORD:
-                                success = viNextWord(count);
-                                break;
-
-                            case VI_END_WORD:
-                                success = viEndWord(count);
-                                break;
-
-                            case VI_INSERT_BEG:
-                                success = setCursorPosition(0);
-                                consoleKeys.setKeyMap(KeyMap.VI_INSERT);
-                                break;
-
-                            case VI_RUBOUT:
-                                success = viRubout(count);
-                                break;
-
-                            case VI_DELETE:
-                                success = viDelete(count);
-                                break;
-
-                            case VI_DELETE_TO:
-                                /*
-                                 * This is a weird special case. In vi
-                                 * "dd" deletes the current line. So if we
-                                 * get a delete-to, followed by a delete-to,
-                                 * we delete the line.
-                                 */
-                                if (state == State.VI_DELETE_TO) {
-                                    success = setCursorPosition(0) && killLine();
-                                    state = origState = State.NORMAL;
-                                }
-                                else {
-                                    state = State.VI_DELETE_TO;
-                                }
-                                break;
-
-                            case VI_YANK_TO:
-                                // Similar to delete-to, a "yy" yanks the whole line.
-                                if (state == State.VI_YANK_TO) {
-                                    yankBuffer = buf.buffer.toString();
-                                    state = origState = State.NORMAL;
-                                }
-                                else {
-                                    state = State.VI_YANK_TO;
-                                }
-                                break;
-
-                            case VI_CHANGE_TO:
-                                if (state == State.VI_CHANGE_TO) {
-                                    success = setCursorPosition(0) && killLine();
-                                    state = origState = State.NORMAL;
-                                    consoleKeys.setKeyMap(KeyMap.VI_INSERT);
-                                }
-                                else {
-                                    state = State.VI_CHANGE_TO;
-                                }
-                                break;
-
-                            case VI_KILL_WHOLE_LINE:
-                                success = setCursorPosition(0) && killLine();
-                                consoleKeys.setKeyMap(KeyMap.VI_INSERT);
-                                break;
-
-                            case VI_PUT:
-                                success = viPut(count);
-                                break;
-
-                            case VI_CHAR_SEARCH: {
-                                 // ';' and ',' don't need another character. They indicate repeat next or repeat prev.
-                                int searchChar = (c != ';' && c != ',')
-                                    ? (pushBackChar.isEmpty()
-                                        ? readCharacter()
-                                        : pushBackChar.pop ())
-                                    : 0;
-
-                                    success = viCharSearch(count, c, searchChar);
-                                }
-                                break;
-
-                            case VI_CHANGE_CASE:
-                                success = viChangeCase(count);
-                                break;
-
-                            case VI_CHANGE_CHAR:
-                                success = viChangeChar(count,
-                                    pushBackChar.isEmpty()
-                                        ? readCharacter()
-                                        : pushBackChar.pop());
-                                break;
-
-                            case VI_DELETE_TO_EOL:
-                                success = viDeleteTo(buf.cursor, buf.buffer.length(), false);
-                                break;
-
-                            case VI_CHANGE_TO_EOL:
-                                success = viDeleteTo(buf.cursor, buf.buffer.length(), true);
-                                consoleKeys.setKeyMap(KeyMap.VI_INSERT);
-                                break;
-
-                            case EMACS_EDITING_MODE:
-                                consoleKeys.setKeyMap(KeyMap.EMACS);
-                                break;
-
-                            case QUIT:
-                                getCursorBuffer().clear();
-                                return accept();
-
-                            case QUOTED_INSERT:
-                                quotedInsert = true;
-                                break;
-
-                            case PASTE_FROM_CLIPBOARD:
-                                paste();
-                                break;
-
-                            default:
-                                break;
-                        }
-
-                        /*
-                         * If we were in a yank-to, delete-to, move-to
-                         * when this operation started, then fall back to
-                         */
-                        if (origState != State.NORMAL) {
-                            if (origState == State.VI_DELETE_TO) {
-                                success = viDeleteTo(cursorStart, buf.cursor, false);
-                            }
-                            else if (origState == State.VI_CHANGE_TO) {
-                                success = viDeleteTo(cursorStart, buf.cursor, true);
-                                consoleKeys.setKeyMap(KeyMap.VI_INSERT);
-                            }
-                            else if (origState == State.VI_YANK_TO) {
-                                success = viYankTo(cursorStart, buf.cursor);
-                            }
-                            state = State.NORMAL;
-                        }
-
-                        /*
-                         * Another subtly. The check for the NORMAL state is
-                         * to ensure that we do not clear out the repeat
-                         * count when in delete-to, yank-to, or move-to modes.
-                         */
-                        if (state == State.NORMAL && !isArgDigit) {
-                            /*
-                             * If the operation performed wasn't a vi argument
-                             * digit, then clear out the current repeatCount;
-                             */
-                            repeatCount = 0;
-                        }
-
-                        if (state != State.SEARCH && state != State.FORWARD_SEARCH) {
-                            originalBuffer = null;
-                            previousSearchTerm = "";
-                            searchTerm = null;
-                            searchIndex = -1;
-                        }
-                    }
-                }
-                redisplay();
-                if (!success) {
+            printForwardSearchStatus(searchTerm.toString(),
+                    searchIndex > -1 ? history.get(searchIndex).toString() : "");
+        } else {
+            searchIndex = -1;
+            printForwardSearchStatus("", "");
+        }
+    }
+
+    protected void reverseSearchHistory() {
+        originalBuffer = new CursorBuffer();
+        originalBuffer.write(buf.buffer);
+        originalBuffer.cursor = buf.cursor;
+        if (searchTerm != null) {
+            previousSearchTerm = searchTerm.toString();
+        }
+        searchTerm = new StringBuffer(buf.buffer);
+        state = State.SEARCH;
+        if (searchTerm.length() > 0) {
+            searchIndex = searchBackwards(searchTerm.toString());
+            if (searchIndex == -1) {
+                beep();
+            }
+            printSearchStatus(searchTerm.toString(),
+                    searchIndex > -1 ? history.get(searchIndex).toString() : "");
+        } else {
+            searchIndex = -1;
+            printSearchStatus("", "");
+        }
+    }
+
+    protected void historySearchForward() {
+        searchTerm = new StringBuffer(buf.upToCursor());
+        int index = history.index() + 1;
+
+        if (index == history.size()) {
+            history.moveToEnd();
+            setBufferKeepPos(searchTerm.toString());
+        } else if (index < history.size()) {
+            searchIndex = searchForwards(searchTerm.toString(), index, true);
+            if (searchIndex == -1) {
+                beep();
+            } else {
+                // Maintain cursor position while searching.
+                if (history.moveTo(searchIndex)) {
+                    setBufferKeepPos(history.current());
+                } else {
                     beep();
                 }
-                opBuffer.setLength(0);
-
-                flush();
-            }
-        } catch (InterruptedIOException e) {
-            try {
-                println();
-                flush();
-            } catch (Exception e2) {
-                // Ignore
-            }
-            String partialLine = buf.buffer.toString();
-            buf.clear();
-            history.moveToEnd();
-            throw new UserInterruptException(partialLine);
-        } catch (UserInterruptException | EOFException e) {
-            throw e;
-        } catch (IOException e) {
-            throw new IOError(e);
-        }
-        finally {
-            if (originalAttributes != null) {
-                console.setAttributes(originalAttributes);
-            }
-            if (previousIntrHandler != null) {
-                console.handle(Signal.INT, previousIntrHandler);
-            }
-            if (previousWinchHandler != null) {
-                console.handle(Signal.WINCH, previousWinchHandler);
             }
         }
     }
 
-    private void redisplay() throws IOException {
+    protected void historySearchBackward() {
+        searchTerm = new StringBuffer(buf.upToCursor());
+        searchIndex = searchBackwards(searchTerm.toString(), history.index(), true);
+
+        if (searchIndex == -1) {
+            beep();
+        } else {
+            // Maintain cursor position while searching.
+            if (history.moveTo(searchIndex)) {
+                setBufferKeepPos(history.current());
+            } else {
+                beep();
+            }
+        }
+    }
+
+    protected void interrupt() {
+        state = State.INTERRUPT;
+    }
+
+    protected void exitOrDeleteChar() {
+        if (buf.buffer.length() == 0) {
+            state = State.EOF;
+        } else {
+            deleteChar();
+        }
+    }
+
+    protected void quit() {
+        getCursorBuffer().clear();
+        acceptLine();
+    }
+
+    protected void viMoveAcceptLine() {
+        /*
+         * VI_MOVE_ACCEPT_LINE is the result of an ENTER
+         * while in move mode. This is the same as a normal
+         * ACCEPT_LINE, except that we need to enter
+         * insert mode as well.
+         */
+        setKeyMap(KeyMap.VI_INSERT);
+        acceptLine();
+    }
+
+    protected void acceptLine() {
+        state = State.DONE;
+    }
+
+    protected void selfInsert() {
+        putString(opBuffer);
+    }
+
+    protected void overwriteMode() {
+        buf.setOverTyping(!buf.isOverTyping());
+    }
+
+    protected void previousHistory() {
+        if (!moveHistory(false)) {
+            beep();
+        }
+    }
+
+    protected void viPreviousHistory() {
+        /*
+         * According to bash/readline move through history
+         * in "vi" mode will move the cursor to the
+         * start of the line. If there is no previous
+         * history, then the cursor doesn't move.
+         */
+        if (moveHistory(false, count)) {
+            beginningOfLine();
+        } else {
+            beep();
+        }
+    }
+
+    protected void nextHistory() {
+        if (!moveHistory(true)) {
+            beep();
+        }
+    }
+
+    protected void viNextHistory() {
+        /*
+         * According to bash/readline move through history
+         * in "vi" mode will move the cursor to the
+         * start of the line. If there is no next history,
+         * then the cursor doesn't move.
+         */
+        if (moveHistory(true, count)) {
+            beginningOfLine();
+        } else {
+            beep();
+        }
+    }
+
+    protected void beginningOfHistory() {
+        if (history.moveToFirst()) {
+            setBuffer(history.current());
+        } else {
+            beep();
+        }
+    }
+
+    protected void endOfHistory() {
+        if (history.moveToLast()) {
+            setBuffer(history.current());
+        } else {
+            beep();
+        }
+    }
+
+    protected void viMovementMode() {
+        // If we are re-entering move mode from an
+        // aborted yank-to, delete-to, change-to then
+        // don't move the cursor back. The cursor is
+        // only move on an explicit entry to movement
+        // mode.
+        if (state == State.NORMAL) {
+            moveBufferCursor(-1);
+        }
+        setKeyMap(KeyMap.VI_MOVE);
+    }
+
+    protected void viInsertionMode() {
+        setKeyMap(KeyMap.VI_INSERT);
+    }
+
+    protected void viAppendMode() {
+        moveBufferCursor(1);
+        setKeyMap(KeyMap.VI_INSERT);
+    }
+
+    protected void viAppendEol() {
+        endOfLine();
+        setKeyMap(KeyMap.VI_INSERT);
+    }
+
+    protected void emacsEditingMode() {
+        setKeyMap(KeyMap.EMACS);
+    }
+
+    protected void viChangeToEol() {
+        viDeleteTo(buf.cursor, buf.buffer.length(), true);
+        consoleKeys.setKeyMap(KeyMap.VI_INSERT);
+    }
+
+    protected void viDeleteToEol() {
+        viDeleteTo(buf.cursor, buf.buffer.length(), false);
+    }
+
+    protected void quotedInsert() {
+        quotedInsert = true;
+    }
+
+    protected void viCharSearch() {
+        int c = opBuffer.charAt(0);
+        int searchChar = (c != ';' && c != ',')
+                ? (pushBackChar.isEmpty()
+                ? readCharacter()
+                : pushBackChar.pop())
+                : 0;
+
+        if (!doViCharSearch(count, c, searchChar)) {
+            beep();
+        }
+    }
+
+    protected void viKillWholeLine() {
+        killWholeLine();
+        setKeyMap(KeyMap.VI_INSERT);
+    }
+
+    protected void viInsertBeg() {
+        beginningOfLine();
+        setKeyMap(KeyMap.VI_INSERT);
+    }
+
+    protected void backwardDeleteChar() {
+        if (!backspace()) {
+            beep();
+        }
+    }
+
+    protected void viEditingMode() {
+        setKeyMap(KeyMap.VI_INSERT);
+    }
+
+    protected void callLastKbdMacro() {
+        for (int i = 0; i < macro.length(); i++) {
+            pushBackChar.push(macro.charAt(macro.length() - 1 - i));
+        }
+        opBuffer.setLength(0);
+    }
+
+    protected void endKbdMacro() {
+        recording = false;
+        macro = macro.substring(0, macro.length() - opBuffer.length());
+    }
+
+    protected void startKbdMacro() {
+        recording = true;
+    }
+
+    protected void reReadInitFile() {
+        consoleKeys.loadKeys(appName, inputrc);
+    }
+
+    protected void tabInsert() {
+        putString("\t");
+    }
+
+    protected void viFirstPrint() {
+        beginningOfLine();
+        if (!doViNextWord(1)) {
+            beep();
+        }
+    }
+
+    protected void beginningOfLine() {
+        setCursorPosition(0);
+    }
+
+    protected void endOfLine() {
+        moveBufferCursor(buf.length() - buf.cursor);
+    }
+
+    protected void deleteChar() {
+        if (!deleteCurrentCharacter()) {
+            beep();
+        }
+    }
+
+    /**
+     * Deletes the previous character from the cursor position
+     */
+    protected void viRubout() {
+        for (int i = 0; i < count; i++) {
+            if (!backspace()) {
+                beep();
+                break;
+            }
+        }
+    }
+
+    /**
+     * Deletes the character you are sitting on and sucks the rest of
+     * the line in from the right.
+     */
+    protected void viDelete() {
+        for (int i = 0; i < count; i++) {
+            if (!deleteCurrentCharacter()) {
+                beep();
+                break;
+            }
+        }
+    }
+
+    /**
+     * Switches the case of the current character from upper to lower
+     * or lower to upper as necessary and advances the cursor one
+     * position to the right.
+     */
+    protected void viChangeCase() {
+        for (int i = 0; i < count; i++) {
+            if (buf.cursor < buf.buffer.length()) {
+                char ch = buf.buffer.charAt(buf.cursor);
+                if (Character.isUpperCase(ch)) {
+                    ch = Character.toLowerCase(ch);
+                }
+                else if (Character.isLowerCase(ch)) {
+                    ch = Character.toUpperCase(ch);
+                }
+                buf.buffer.setCharAt(buf.cursor, ch);
+                moveBufferCursor(1);
+            } else {
+                beep();
+                break;
+            }
+        }
+    }
+
+    /**
+     * Implements the vi change character command (in move-mode "r"
+     * followed by the character to change to).
+     */
+    protected void viChangeChar() {
+        int c = pushBackChar.isEmpty() ? readCharacter() : pushBackChar.pop();
+        // EOF, ESC, or CTRL-C aborts.
+        if (c < 0 || c == '\033' || c == '\003') {
+            return;
+        }
+
+        for (int i = 0; i < count; i++) {
+            if (buf.cursor < buf.buffer.length()) {
+                buf.buffer.setCharAt(buf.cursor, (char) c);
+                if (i < (count-1)) {
+                    moveBufferCursor(1);
+                }
+            } else {
+                beep();
+                break;
+            }
+        }
+    }
+
+    /**
+     * This is a close facsimile of the actual vi previous word logic. In
+     * actual vi words are determined by boundaries of identity characterse.
+     * This logic is a bit more simple and simply looks at white space or
+     * digits or characters.  It should be revised at some point.
+     */
+    protected void viPreviousWord() {
+        if (buf.cursor == 0) {
+            beep();
+            return;
+        }
+
+        int pos = buf.cursor - 1;
+        for (int i = 0; pos > 0 && i < count; i++) {
+            // If we are on white space, then move back.
+            while (pos > 0 && isWhitespace(buf.buffer.charAt(pos))) {
+                --pos;
+            }
+
+            while (pos > 0 && !isDelimiter(buf.buffer.charAt(pos-1))) {
+                --pos;
+            }
+
+            if (pos > 0 && i < (count-1)) {
+                --pos;
+            }
+        }
+        setCursorPosition(pos);
+    }
+
+    /**
+     * Performs the vi "delete-to" action, deleting characters between a given
+     * span of the input line.
+     * @param startPos The start position
+     * @param endPos The end position.
+     * @param isChange If true, then the delete is part of a change operationg
+     *    (e.g. "c$" is change-to-end-of line, so we first must delete to end
+     *    of line to start the change
+     * @return true if it succeeded, false otherwise
+     */
+    protected boolean viDeleteTo(int startPos, int endPos, boolean isChange) {
+        if (startPos == endPos) {
+            return true;
+        }
+
+        if (endPos < startPos) {
+            int tmp = endPos;
+            endPos = startPos;
+            startPos = tmp;
+        }
+
+        setCursorPosition(startPos);
+        buf.cursor = startPos;
+        buf.buffer.delete(startPos, endPos);
+
+        // If we are doing a delete operation (e.g. "d$") then don't leave the
+        // cursor dangling off the end. In reality the "isChange" flag is silly
+        // what is really happening is that if we are in "move-mode" then the
+        // cursor can't be moved off the end of the line, but in "edit-mode" it
+        // is ok, but I have no easy way of knowing which mode we are in.
+        if (! isChange && startPos > 0 && startPos == buf.length()) {
+            moveBufferCursor(-1);
+        }
+        return true;
+    }
+
+    /**
+     * Implement the "vi" yank-to operation.  This operation allows you
+     * to yank the contents of the current line based upon a move operation,
+     * for exaple "yw" yanks the current word, "3yw" yanks 3 words, etc.
+     *
+     * @param startPos The starting position from which to yank
+     * @param endPos The ending position to which to yank
+     * @return true if the yank succeeded
+     */
+    protected boolean viYankTo(int startPos, int endPos) {
+        int cursorPos = startPos;
+
+        if (endPos < startPos) {
+            int tmp = endPos;
+            endPos = startPos;
+            startPos = tmp;
+        }
+
+        if (startPos == endPos) {
+            yankBuffer = "";
+            return true;
+        }
+
+        yankBuffer = buf.buffer.substring(startPos, endPos);
+
+        /*
+         * It was a movement command that moved the cursor to find the
+         * end position, so put the cursor back where it started.
+         */
+        setCursorPosition(cursorPos);
+        return true;
+    }
+
+    /**
+     * Pasts the yank buffer to the right of the current cursor position
+     * and moves the cursor to the end of the pasted region.
+     */
+    protected void viPut() {
+        if (yankBuffer.length () != 0) {
+            if (buf.cursor < buf.buffer.length()) {
+                moveBufferCursor(1);
+            }
+            for (int i = 0; i < count; i++) {
+                putString(yankBuffer);
+            }
+            moveBufferCursor(-1);
+        }
+    }
+
+    protected Map<Operation, Widget> createDispatcher() {
+        Map<Operation, Widget> dispatcher = new HashMap<>();
+        dispatcher.put(Operation.PASTE_FROM_CLIPBOARD, ConsoleReaderImpl::paste);
+        dispatcher.put(Operation.BACKWARD_KILL_WORD, ConsoleReaderImpl::deletePreviousWord);
+        dispatcher.put(Operation.KILL_WORD, ConsoleReaderImpl::deleteNextWord);
+        dispatcher.put(Operation.TRANSPOSE_CHARS, ConsoleReaderImpl::transposeChars);
+        dispatcher.put(Operation.INSERT_CLOSE_CURLY, ConsoleReaderImpl::insertCloseCurly);
+        dispatcher.put(Operation.INSERT_CLOSE_PAREN, ConsoleReaderImpl::insertCloseParen);
+        dispatcher.put(Operation.INSERT_CLOSE_SQUARE, ConsoleReaderImpl::insertCloseSquare);
+        dispatcher.put(Operation.CLEAR_SCREEN, ConsoleReaderImpl::clearScreen);
+        dispatcher.put(Operation.VI_MATCH, ConsoleReaderImpl::viMatch);
+        dispatcher.put(Operation.VI_FIRST_PRINT, ConsoleReaderImpl::viFirstPrint);
+        dispatcher.put(Operation.VI_PREV_WORD, ConsoleReaderImpl::viPreviousWord);
+        dispatcher.put(Operation.VI_NEXT_WORD, ConsoleReaderImpl::viNextWord);
+        dispatcher.put(Operation.VI_END_WORD, ConsoleReaderImpl::viEndWord);
+        dispatcher.put(Operation.VI_RUBOUT, ConsoleReaderImpl::viRubout);
+        dispatcher.put(Operation.VI_DELETE, ConsoleReaderImpl::viDelete);
+        dispatcher.put(Operation.VI_PUT, ConsoleReaderImpl::viPut);
+        dispatcher.put(Operation.VI_CHANGE_CASE, ConsoleReaderImpl::viChangeCase);
+        dispatcher.put(Operation.PASTE_FROM_CLIPBOARD, ConsoleReaderImpl::paste);
+        dispatcher.put(Operation.CAPITALIZE_WORD, ConsoleReaderImpl::capitalizeWord);
+        dispatcher.put(Operation.UPCASE_WORD, ConsoleReaderImpl::upCaseWord);
+        dispatcher.put(Operation.DOWNCASE_WORD, ConsoleReaderImpl::downCaseWord);
+        dispatcher.put(Operation.END_OF_LINE, ConsoleReaderImpl::endOfLine);
+        dispatcher.put(Operation.DELETE_CHAR, ConsoleReaderImpl::deleteChar);
+        dispatcher.put(Operation.BACKWARD_CHAR, ConsoleReaderImpl::backwardChar);
+        dispatcher.put(Operation.FORWARD_CHAR, ConsoleReaderImpl::forwardChar);
+        dispatcher.put(Operation.UNIX_LINE_DISCARD, ConsoleReaderImpl::resetLine);
+        dispatcher.put(Operation.UNIX_WORD_RUBOUT, ConsoleReaderImpl::unixWordRubout);
+        dispatcher.put(Operation.POSSIBLE_COMPLETIONS, ConsoleReaderImpl::printCompletionCandidates);
+        dispatcher.put(Operation.BEGINNING_OF_LINE, ConsoleReaderImpl::beginningOfLine);
+        dispatcher.put(Operation.YANK, ConsoleReaderImpl::yank);
+        dispatcher.put(Operation.YANK_POP, ConsoleReaderImpl::yankPop);
+        dispatcher.put(Operation.KILL_LINE, ConsoleReaderImpl::killLine);
+        dispatcher.put(Operation.KILL_WHOLE_LINE, ConsoleReaderImpl::killWholeLine);
+        dispatcher.put(Operation.BACKWARD_WORD, ConsoleReaderImpl::backwardWord);
+        dispatcher.put(Operation.FORWARD_WORD, ConsoleReaderImpl::forwardWord);
+        dispatcher.put(Operation.COMPLETE, ConsoleReaderImpl::complete);
+        dispatcher.put(Operation.PREVIOUS_HISTORY, ConsoleReaderImpl::previousHistory);
+        dispatcher.put(Operation.VI_PREVIOUS_HISTORY, ConsoleReaderImpl::viPreviousHistory);
+        dispatcher.put(Operation.NEXT_HISTORY, ConsoleReaderImpl::nextHistory);
+        dispatcher.put(Operation.VI_NEXT_HISTORY, ConsoleReaderImpl::viNextHistory);
+        dispatcher.put(Operation.BACKWARD_DELETE_CHAR, ConsoleReaderImpl::backwardDeleteChar);
+        dispatcher.put(Operation.BEGINNING_OF_HISTORY, ConsoleReaderImpl::beginningOfHistory);
+        dispatcher.put(Operation.END_OF_HISTORY, ConsoleReaderImpl::endOfHistory);
+        dispatcher.put(Operation.OVERWRITE_MODE, ConsoleReaderImpl::overwriteMode);
+        dispatcher.put(Operation.SELF_INSERT, ConsoleReaderImpl::selfInsert);
+        dispatcher.put(Operation.TAB_INSERT, ConsoleReaderImpl::tabInsert);
+        dispatcher.put(Operation.RE_READ_INIT_FILE, ConsoleReaderImpl::reReadInitFile);
+        dispatcher.put(Operation.START_KBD_MACRO, ConsoleReaderImpl::startKbdMacro);
+        dispatcher.put(Operation.END_KBD_MACRO, ConsoleReaderImpl::endKbdMacro);
+        dispatcher.put(Operation.CALL_LAST_KBD_MACRO, ConsoleReaderImpl::callLastKbdMacro);
+        dispatcher.put(Operation.VI_EDITING_MODE, ConsoleReaderImpl::viEditingMode);
+        dispatcher.put(Operation.VI_MOVEMENT_MODE, ConsoleReaderImpl::viMovementMode);
+        dispatcher.put(Operation.VI_INSERTION_MODE, ConsoleReaderImpl::viInsertionMode);
+        dispatcher.put(Operation.VI_APPEND_MODE, ConsoleReaderImpl::viAppendMode);
+        dispatcher.put(Operation.VI_APPEND_EOL, ConsoleReaderImpl::viAppendEol);
+        dispatcher.put(Operation.VI_SEARCH, ConsoleReaderImpl::viSearch);
+        dispatcher.put(Operation.VI_INSERT_BEG, ConsoleReaderImpl::viInsertBeg);
+        dispatcher.put(Operation.VI_KILL_WHOLE_LINE, ConsoleReaderImpl::viKillWholeLine);
+        dispatcher.put(Operation.VI_CHAR_SEARCH, ConsoleReaderImpl::viCharSearch);
+        dispatcher.put(Operation.VI_CHANGE_CHAR, ConsoleReaderImpl::viChangeChar);
+        dispatcher.put(Operation.QUOTED_INSERT, ConsoleReaderImpl::quotedInsert);
+        dispatcher.put(Operation.VI_DELETE_TO_EOL, ConsoleReaderImpl::viDeleteToEol);
+        dispatcher.put(Operation.VI_CHANGE_TO_EOL, ConsoleReaderImpl::viChangeToEol);
+        dispatcher.put(Operation.EMACS_EDITING_MODE, ConsoleReaderImpl::emacsEditingMode);
+        dispatcher.put(Operation.ACCEPT_LINE, ConsoleReaderImpl::acceptLine);
+        dispatcher.put(Operation.INSERT_COMMENT, ConsoleReaderImpl::insertComment);
+        dispatcher.put(Operation.VI_INSERT_COMMENT, ConsoleReaderImpl::viInsertComment);
+        dispatcher.put(Operation.VI_MOVE_ACCEPT_LINE, ConsoleReaderImpl::viMoveAcceptLine);
+        dispatcher.put(Operation.QUIT, ConsoleReaderImpl::quit);
+        dispatcher.put(Operation.ABORT, ConsoleReaderImpl::abort);
+        dispatcher.put(Operation.INTERRUPT, ConsoleReaderImpl::interrupt);
+        dispatcher.put(Operation.EXIT_OR_DELETE_CHAR, ConsoleReaderImpl::exitOrDeleteChar);
+        dispatcher.put(Operation.HISTORY_SEARCH_BACKWARD, ConsoleReaderImpl::historySearchBackward);
+        dispatcher.put(Operation.HISTORY_SEARCH_FORWARD, ConsoleReaderImpl::historySearchForward);
+        dispatcher.put(Operation.REVERSE_SEARCH_HISTORY, ConsoleReaderImpl::reverseSearchHistory);
+        dispatcher.put(Operation.FORWARD_SEARCH_HISTORY, ConsoleReaderImpl::forwardSearchHistory);
+        dispatcher.put(Operation.VI_EOF_MAYBE, ConsoleReaderImpl::viEofMaybe);
+        dispatcher.put(Operation.VI_DELETE_TO, ConsoleReaderImpl::viDeleteTo);
+        dispatcher.put(Operation.VI_YANK_TO, ConsoleReaderImpl::viYankTo);
+        dispatcher.put(Operation.VI_CHANGE_TO, ConsoleReaderImpl::viChangeTo);
+        dispatcher.put(Operation.VI_ARG_DIGIT, ConsoleReaderImpl::viArgDigit);
+        dispatcher.put(Operation.VI_BEGINNING_OF_LINE_OR_ARG_DIGIT, ConsoleReaderImpl::viBeginningOfLineOrArgDigit);
+        return dispatcher;
+    }
+
+    protected void redisplay() {
         String buffer = buf.toString();
-        if (highlighter != null) {
+        if (mask != null) {
+            if (mask == NULL_MASK) {
+                buffer = "";
+            } else {
+                StringBuilder sb = new StringBuilder();
+                for (int i = buffer.length(); i-- > 0;) {
+                    sb.append((char) mask);
+                }
+                buffer = sb.toString();
+            }
+        } else if (highlighter != null) {
             buffer = highlighter.highlight(buffer);
         }
 
@@ -2813,8 +2796,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         if (post != null) {
             newPostStr = "\n" + toColumns(post, size.getColumns());
         }
-        List<String> oldLines = AnsiHelper.splitLines(oldPrompt + oldBuf + oldPostStr, oldColumns, 8);
-        List<String> newLines = AnsiHelper.splitLines(prompt + buffer + newPostStr, size.getColumns(), 8);
+        List<String> oldLines = AnsiHelper.splitLines(oldPrompt + oldBuf + oldPostStr, oldColumns, TAB_WIDTH);
+        List<String> newLines = AnsiHelper.splitLines(prompt + buffer + newPostStr, size.getColumns(), TAB_WIDTH);
 
         int lineIndex = 0;
         int currentPos = 0;
@@ -2931,59 +2914,42 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             lineIndex++;
             currentPos = currentPos + size.getColumns();
         }
-        int promptLines = AnsiHelper.splitLines(prompt, size.getColumns(), 8).size();
+        int promptLines = AnsiHelper.splitLines(prompt, size.getColumns(), TAB_WIDTH).size();
         moveVisualCursorTo((promptLines - 1) * size.getColumns()
                 + promptLen + wcwidth(buf.buffer, 0, buf.cursor, promptLen));
         oldBuf = buffer;
         oldPrompt = prompt;
         oldPost = post;
         oldColumns = size.getColumns();
-        maxLines = Math.max(maxLines, newLines.size());
     }
 
     //
     // Completion
     //
 
-    /**
-     * Add the specified {@link Completer} to the list of handlers for tab-completion.
-     *
-     * @param completer the {@link Completer} to add
-     * @return true if it was successfully added
-     */
-    public boolean addCompleter(final Completer completer) {
-        return completers.add(completer);
-    }
-
-    /**
-     * Remove the specified {@link Completer} from the list of handlers for tab-completion.
-     *
-     * @param completer     The {@link Completer} to remove
-     * @return              True if it was successfully removed
-     */
-    public boolean removeCompleter(final Completer completer) {
-        return completers.remove(completer);
-    }
-
-    public void setCompleters(Collection<Completer> completers) {
-        checkNotNull(completers);
-        this.completers.clear();
-        this.completers.addAll(completers);
-    }
-
-    /**
-     * Returns an unmodifiable list of all the completers.
-     */
-    public Collection<Completer> getCompleters() {
-        return Collections.unmodifiableList(completers);
-    }
-
-    public void setCompletionHandler(final CompletionHandler handler) {
-        this.completionHandler = checkNotNull(handler);
-    }
-
-    public CompletionHandler getCompletionHandler() {
-        return this.completionHandler;
+    protected void complete() {
+        // There is an annoyance with tab completion in that
+        // sometimes the user is actually pasting input in that
+        // has physical tabs in it.  This attempts to look at how
+        // quickly a character follows the tab, if the character
+        // follows *immediately*, we assume it is a tab literal.
+        boolean isTabLiteral = false;
+        if (getBoolean(COPY_PASTE_DETECTION, false)
+                && opBuffer.toString().equals("\t")
+                && (!pushBackChar.isEmpty()
+                || peekCharacter(COPY_PASTE_DETECTION_TIMEOUT) != READ_EXPIRED)) {
+            isTabLiteral = true;
+        } else if (getBoolean(DISABLE_COMPLETION, false)) {
+            isTabLiteral = true;
+        }
+        
+        if (!isTabLiteral) {
+            if (!doComplete()) {
+                beep();
+            }
+        } else {
+            selfInsert();
+        }
     }
 
     /**
@@ -2991,7 +2957,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      *
      * @return true if successful
      */
-    protected boolean complete() throws IOException {
+    protected boolean doComplete() {
         // debug ("tab for (" + buf + ")");
         if (completers.size() == 0) {
             return false;
@@ -3012,7 +2978,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return candidates.size() != 0 && getCompletionHandler().complete(this, candidates, position);
     }
 
-    protected void printCompletionCandidates() throws IOException {
+    protected void printCompletionCandidates() {
         // debug ("tab for (" + buf + ")");
         if (completers.size() == 0) {
             return;
@@ -3030,32 +2996,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         printCandidates(candidates);
     }
 
-    //
-    // History
-    //
-
-    public void setHistory(final History history) {
-        checkNotNull(history);
-        this.history = history;
-    }
-
-    public History getHistory() {
-        return history;
-    }
-
-    //
-    // Highlighter
-    //
-
-    public void setHighlighter(Highlighter highlighter) {
-        this.highlighter = highlighter;
-    }
-
-    public Highlighter getHighlighter() {
-        return highlighter;
-    }
-
-
     /**
      * Used in "vi" mode for argumented history move, to move a specific
      * number of history entries forward or back.
@@ -3064,7 +3004,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * @param count The number of entries to move
      * @return true if the move was successful
      */
-    private boolean moveHistory(final boolean next, int count) throws IOException {
+    protected boolean moveHistory(final boolean next, int count) {
         boolean ok = true;
         for (int i = 0; i < count && (ok = moveHistory(next)); i++) {
             /* empty */
@@ -3075,7 +3015,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     /**
      * Move up or down the history tree.
      */
-    private boolean moveHistory(final boolean next) throws IOException {
+    protected boolean moveHistory(final boolean next) {
         if (next && !history.next()) {
             return false;
         }
@@ -3095,15 +3035,15 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     /**
      * Output the specified characters to the output stream without manipulating the current buffer.
      */
-    private int print(final CharSequence buff, int cursorPos) throws IOException {
+    protected int print(final CharSequence buff, int cursorPos) {
         return print(buff, 0, buff.length(), cursorPos);
     }
 
-    private int print(final CharSequence buff, int start, int end) throws IOException {
+    protected int print(final CharSequence buff, int start, int end) {
         return print(buff, start, end, getCursorPosition());
     }
 
-    private int print(final CharSequence buff, int start, int end, int cursorPos) throws IOException {
+    protected int print(final CharSequence buff, int start, int end, int cursorPos) {
         checkNotNull(buff);
         for (int i = start; i < end; i++) {
             char c = buff.charAt(i);
@@ -3131,11 +3071,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     /**
      * Output the specified string to the output stream (but not the buffer).
      */
-    public void print(final CharSequence s) throws IOException {
+    public void print(final CharSequence s) {
         print(s, getCursorPosition());
     }
 
-    public void println(final CharSequence s) throws IOException {
+    public void println(final CharSequence s) {
         print(s);
         println();
     }
@@ -3143,32 +3083,32 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     /**
      * Output a platform-dependant newline.
      */
-    public void println() throws IOException {
+    public void println() {
         console.puts(Capability.carriage_return);
-        rawPrint('\n');
+        rawPrint("\n");
         redrawLine();
     }
 
     /**
      * Raw output printing
      */
-    final void rawPrint(final int c) throws IOException {
+    final void rawPrint(final int c) {
         console.writer().write(c);
     }
 
-    final void rawPrint(final String str) throws IOException {
+    final void rawPrint(final String str) {
         for (int i = 0; i < str.length(); i++) {
             rawPrint(str.charAt(i));
         }
     }
 
-    private void rawPrint(final char c, final int num) throws IOException {
+    protected void rawPrint(final char c, final int num) {
         for (int i = 0; i < num; i++) {
             rawPrint(c);
         }
     }
 
-    private void rawPrintln(final String s) throws IOException {
+    protected void rawPrintln(final String s) {
         rawPrint(s);
         println();
     }
@@ -3183,7 +3123,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      *
      * @return true if successful
      */
-    public boolean delete() throws IOException {
+    public boolean delete() {
         if (buf.cursor == buf.buffer.length()) {
           return false;
         }
@@ -3193,18 +3133,19 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return true;
     }
 
+    protected void killWholeLine() {
+        beginningOfLine();
+        killLine();
+    }
+
     /**
      * Kill the buffer ahead of the current cursor position.
      *
      * @return true if successful
      */
-    public boolean killLine() throws IOException {
+    public boolean killLine() {
         int cp = buf.cursor;
         int len = buf.buffer.length();
-
-        if (cp >= len) {
-            return false;
-        }
 
         int num = len - cp;
 
@@ -3218,52 +3159,52 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return true;
     }
 
-    public boolean yank() throws IOException {
+    public void yank() {
         String yanked = killRing.yank();
-
         if (yanked == null) {
-            return false;
+            beep();
+        } else {
+            putString(yanked);
         }
-        putString(yanked);
-        return true;
     }
 
-    public boolean yankPop() throws IOException {
+    public void yankPop() {
         if (!killRing.lastYank()) {
-            return false;
+            beep();
+            return;
         }
         String current = killRing.yank();
         if (current == null) {
             // This shouldn't happen.
-            return false;
+            beep();
+            return;
         }
         backspace(current.length());
         String yanked = killRing.yankPop();
         if (yanked == null) {
             // This shouldn't happen.
-            return false;
+            beep();
+            return;
         }
 
         putString(yanked);
-        return true;
     }
 
     /**
      * Clear the screen by issuing the ANSI "clear screen" code.
      */
-    public boolean clearScreen() throws IOException {
+    public void clearScreen() {
         if (console.puts(Capability.clear_screen)) {
             redrawLine();
         } else {
             println();
         }
-        return true;
     }
 
     /**
      * Issue an audible keyboard bell.
      */
-    public void beep() throws IOException {
+    public void beep() {
         int bell_preference = AUDIBLE_BELL;
         String bellStyle = getVariable(BELL_STYLE);
         if ("none".equals(bellStyle) || "off".equals(bellStyle)) {
@@ -3297,7 +3238,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      *
      * @return true if clipboard contents pasted
      */
-    public boolean paste() throws IOException {
+    public boolean paste() {
         Clipboard clipboard;
         try { // May throw ugly exception on system without X
             clipboard = java.awt.Toolkit.getDefaultToolkit().getSystemClipboard();
@@ -3367,7 +3308,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
             return true;
         }
-        catch (UnsupportedFlavorException e) {
+        catch (UnsupportedFlavorException | IOException e) {
             Log.error("Paste failed: ", e);
 
             return false;
@@ -3380,8 +3321,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * Say you want to close the application if the user enter q.
      * addTriggerAction('q', new ActionListener(){ System.exit(0); }); would do the trick.
      */
-    public void addTriggeredAction(final char c, final ActionListener listener) {
-        getKeys().bind(Character.toString(c), listener);
+    public void addTriggeredAction(final char c, final Widget widget) {
+        getKeys().bind(Character.toString(c), widget);
     }
 
     //
@@ -3394,8 +3335,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      *
      * @param candidates the list of candidates to print
      */
-    public void printCandidates(Collection<String> candidates) throws
-            IOException
+    public void printCandidates(Collection<String> candidates) 
     {
         candidates = new LinkedHashSet<>(candidates);
 
@@ -3433,7 +3373,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
     }
 
-    private String toColumns(String[] items, int width) throws IOException {
+    protected String toColumns(String[] items, int width) {
         if (items == null || items.length == 0) {
             return "";
         }
@@ -3467,7 +3407,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     /**
      * Output the specified {@link Collection} in proper columns.
      */
-    public void printColumns(final Collection<? extends CharSequence> items) throws IOException {
+    public void printColumns(final Collection<? extends CharSequence> items) {
         if (items == null || items.isEmpty()) {
             return;
         }
@@ -3537,33 +3477,24 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
     }
 
-    public void printSearchStatus(String searchTerm, String match) throws IOException {
+    public void printSearchStatus(String searchTerm, String match) {
         printSearchStatus(searchTerm, match, "bck-i-search");
     }
 
-    public void printForwardSearchStatus(String searchTerm, String match) throws IOException {
+    public void printForwardSearchStatus(String searchTerm, String match) {
         printSearchStatus(searchTerm, match, "i-search");
     }
 
-    private void printSearchStatus(String searchTerm, String match, String searchLabel) throws IOException {
-//        int cursorDest = match.indexOf(searchTerm);
-
+    protected void printSearchStatus(String searchTerm, String match, String searchLabel) {
         // Grab the prompt lines but the last one
         post = new String[] { searchLabel + ": " + searchTerm + "_" };
-//        List<String> promptLines = AnsiHelper.splitLines(originalPrompt, Integer.MAX_VALUE, 8);
-//        promptLines.remove(promptLines.size() - 1);
-//        StringBuilder promptTop = new StringBuilder();
-//        for (String line : promptLines) {
-//            promptTop.append(line).append('\n');
-//        }
-//        setPrompt(promptTop.toString() + searchLabel + searchTerm + "': ");
         setBuffer(match);
         buf.cursor = match.indexOf(searchTerm);
     }
 
-    public void restoreLine(int cursorDest) throws IOException {
-        // TODO move cursor to matched string
+    public void restoreLine() {
         setPrompt(originalPrompt);
+        this.post = null;
     }
 
     //
@@ -3665,7 +3596,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * @param c     The character to test
      * @return      True if it is a delimiter
      */
-    private boolean isDelimiter(final char c) {
+    protected boolean isDelimiter(final char c) {
         return !Character.isLetterOrDigit(c);
     }
 
@@ -3678,7 +3609,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * @param c The character to check
      * @return true if the character is a whitespace
      */
-    private boolean isWhitespace(final char c) {
+    protected boolean isWhitespace(final char c) {
         return Character.isWhitespace(c);
     }
 
@@ -3722,6 +3653,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             }
         }
         return nb;
+    }
+
+    String getString(String name, String def) {
+        String v = getVariable(name);
+        return (v != null) ? v : def;
     }
 
 }
