@@ -257,8 +257,8 @@ public class ViMoveModeTest
         b = (new TestBuffer("abc")).back().back().back().escape().ctrlD();
         try {
             assertLine(null, b, true);
-            fail("Expected EOFException");
-        } catch (EOFException e) {
+            fail("Expected EndOfFileException");
+        } catch (EndOfFileException e) {
             // ignore
         }
         assertTrue(reader.isKeyMap(KeyMap.VI_MOVE));
@@ -267,8 +267,8 @@ public class ViMoveModeTest
         b = (new TestBuffer("")).escape().ctrlD();
         try {
             assertLine(null, b, true);
-            fail("Expected EOFException");
-        } catch (EOFException e) {
+            fail("Expected EndOfFileException");
+        } catch (EndOfFileException e) {
             // ignore
         }
         assertTrue(reader.isKeyMap(KeyMap.VI_MOVE));
