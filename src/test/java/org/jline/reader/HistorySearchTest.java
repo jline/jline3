@@ -6,6 +6,7 @@ import org.jline.reader.history.MemoryHistory;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class HistorySearchTest extends ReaderTestSupport {
@@ -107,7 +108,8 @@ public class HistorySearchTest extends ReaderTestSupport {
         }));
         readLineResult = reader.readLine();
         assertEquals(null, readLineResult);
-        assertTrue(out.toString().contains("(reverse-i-search)`ff':"));
+        assertTrue(out.toString().contains("bck-i-search: f_"));
+        assertFalse(out.toString().contains("bck-i-search: ff_"));
         assertEquals("f", reader.getCursorBuffer().toString());
         assertEquals(3, history.size());
     }
