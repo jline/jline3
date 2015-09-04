@@ -911,9 +911,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             if (mask == null && !getBoolean(DISABLE_HISTORY, false)) {
                 history.add(historyLine);
             }
-            else {
-                mask = null;
-            }
         }
         return str;
     }
