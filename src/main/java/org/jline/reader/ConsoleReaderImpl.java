@@ -172,6 +172,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected String prompt;
     protected int    promptLen;
+    protected String rightPrompt;
 
     protected Character mask;
 
@@ -406,7 +407,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * Read the next line and return the contents of the buffer.
      */
     public String readLine() throws UserInterruptException, EndOfFileException {
-        return readLine(null, null, null);
+        return readLine(null, null, null, null);
     }
 
     /**
@@ -414,11 +415,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * characters will be echoed. If 0, then no characters will be echoed.
      */
     public String readLine(Character mask) throws UserInterruptException, EndOfFileException {
-        return readLine(null, mask, null);
+        return readLine(null, null, mask, null);
     }
 
     public String readLine(String prompt) throws UserInterruptException, EndOfFileException {
-        return readLine(prompt, null, null);
+        return readLine(prompt, null, null, null);
     }
 
     /**
@@ -430,7 +431,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      *                  was pressed).
      */
     public String readLine(String prompt, Character mask) throws UserInterruptException, EndOfFileException {
-        return readLine(prompt, mask, null);
+        return readLine(prompt, null, mask, null);
     }
 
     /**
@@ -442,6 +443,18 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      *                  was pressed).
      */
     public String readLine(String prompt, Character mask, String buffer) throws UserInterruptException, EndOfFileException {
+        return readLine(prompt, null, mask, null);
+    }
+
+    /**
+     * Read a line from the <i>in</i> {@link InputStream}, and return the line
+     * (without any trailing newlines).
+     *
+     * @param prompt    The prompt to issue to the console, may be null.
+     * @return          A line that is read from the console, or null if there was null input (e.g., <i>CTRL-D</i>
+     *                  was pressed).
+     */
+    public String readLine(String prompt, String rightPrompt, Character mask, String buffer) throws UserInterruptException, EndOfFileException {
         // prompt may be null
         // mask may be null
         // buffer may be null
@@ -476,6 +489,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             cursorPos = 0;
 
             setPrompt(prompt);
+            setRightPrompt(rightPrompt);
             buf.clear();
             if (buffer != null) {
                 buf.write(buffer);
@@ -734,6 +748,10 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     protected void setPrompt(final String prompt) {
         this.prompt = prompt != null ? prompt : "";
         this.promptLen = wcwidth(lastLine(AnsiHelper.strip(this.prompt)), 0);
+    }
+
+    protected void setRightPrompt(final String rightPrompt) {
+        this.rightPrompt = rightPrompt != null ? rightPrompt : "";
     }
 
     /**
@@ -2687,6 +2705,19 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
         List<String> oldLines = AnsiHelper.splitLines(oldPrompt + oldBuf + oldPostStr, oldColumns, TAB_WIDTH);
         List<String> newLines = AnsiHelper.splitLines(prompt + buffer + newPostStr, size.getColumns(), TAB_WIDTH);
+        List<String> rightPromptLines = AnsiHelper.splitLines(rightPrompt, size.getColumns(), TAB_WIDTH);
+
+        while (oldLines.size() < rightPromptLines.size()) {
+            oldLines.add("");
+        }
+        while (newLines.size() < rightPromptLines.size()) {
+            newLines.add("");
+        }
+        for (int i = 0; i < rightPromptLines.size(); i++) {
+            String line = rightPromptLines.get(i);
+            oldLines.set(i, addRightPrompt(line, oldLines.get(i)));
+            newLines.set(i, addRightPrompt(line, newLines.get(i)));
+        }
 
         int lineIndex = 0;
         int currentPos = 0;
@@ -2810,6 +2841,21 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         oldPrompt = prompt;
         oldPost = post;
         oldColumns = size.getColumns();
+    }
+
+    private String addRightPrompt(String prompt, String line) {
+        int width = wcwidth(AnsiHelper.strip(prompt), 0);
+        int nb = size.getColumns() - width - wcwidth(AnsiHelper.strip(line), 0) - 3;
+        if (nb >= 0) {
+            StringBuilder sb = new StringBuilder(size.getColumns());
+            sb.append(line);
+            for (int j = 0; j < nb + 2; j++) {
+                sb.append(' ');
+            }
+            sb.append(prompt);
+            line = sb.toString();
+        }
+        return line;
     }
 
     //

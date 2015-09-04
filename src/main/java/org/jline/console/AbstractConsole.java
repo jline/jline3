@@ -194,4 +194,9 @@ public abstract class AbstractConsole implements Console {
     public String readLine(String prompt, Character mask, String buffer) throws UserInterruptException, EndOfFileException {
         return newConsoleReader().readLine(prompt, mask, buffer);
     }
+
+    @Override
+    public String readLine(String prompt, String rightPrompt, Character mask, String buffer) throws UserInterruptException, EndOfFileException {
+        return newConsoleReader().readLine(prompt, rightPrompt, mask, buffer);
+    }
 }

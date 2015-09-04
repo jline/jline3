@@ -8,8 +8,11 @@
  */
 package org.jline.example;
 
-import java.io.EOFException;
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -24,7 +27,12 @@ import org.jline.reader.completer.AnsiStringsCompleter;
 import org.jline.reader.completer.ArgumentCompleter;
 import org.jline.reader.completer.FileNameCompleter;
 import org.jline.reader.completer.StringsCompleter;
+import org.jline.utils.Ansi;
+import org.jline.utils.Ansi.Color;
 import org.jline.utils.InfoCmp.Capability;
+
+import static java.time.temporal.ChronoField.HOUR_OF_DAY;
+import static java.time.temporal.ChronoField.MINUTE_OF_HOUR;
 
 
 public class Example
@@ -53,6 +61,7 @@ public class Example
     public static void main(String[] args) throws IOException {
         try {
             String prompt = "prompt> ";
+            String rightPrompt = null;
             Character mask = null;
             String trigger = null;
             boolean color = false;
@@ -111,7 +120,23 @@ public class Example
                 }
                 else if (args[index].equals("color")) {
                     color = true;
-                    prompt = "\u001B[42mfoo\u001B[0m@bar\u001B[32m\nbaz\u001B[0m> ";
+                    prompt = Ansi.ansi().bg(Color.GREEN).a("foo").reset()
+                            .a("@bar")
+                            .fg(Color.GREEN)
+                            .a("\nbaz")
+                            .reset()
+                            .a("> ").toString();
+                    rightPrompt = Ansi.ansi().fg(Color.RED)
+                            .a(LocalDate.now().format(DateTimeFormatter.ISO_DATE))
+                            .a("\n")
+                            .fgBright(Color.RED)
+                            .a(LocalTime.now().format(new DateTimeFormatterBuilder()
+                                    .appendValue(HOUR_OF_DAY, 2)
+                                    .appendLiteral(':')
+                                    .appendValue(MINUTE_OF_HOUR, 2)
+                                    .toFormatter()))
+                            .reset()
+                            .toString();
                     completers.add(new AnsiStringsCompleter("\u001B[1mfoo\u001B[0m", "bar", "\u001B[32mbaz\u001B[0m"));
                     CandidateListCompletionHandler handler = new CandidateListCompletionHandler();
                     handler.setStripAnsi(true);
@@ -137,7 +162,7 @@ public class Example
             while (true) {
                 String line = null;
                 try {
-                    line = console.readLine(prompt);
+                    line = console.readLine(prompt, rightPrompt, null, null);
                 } catch (UserInterruptException e) {
                     // Ignore
                 } catch (EndOfFileException e) {
