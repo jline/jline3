@@ -64,11 +64,22 @@ public class DiffHelper {
          * @return text version.
          */
         public String toString() {
-            String prettyText = this.text.replace('\n', '\u00b6');
-            return "Diff(" + this.operation + ",\"" + prettyText + "\")";
+            return "Diff(" + this.operation + ",\"" + this.text + "\")";
         }
     }
 
+    /**
+     * Compute a list of difference between two lines.
+     * The result will contain at most 4 Diff objects, as the method
+     * aims to return the common prefix, inserted text, deleted text and
+     * common suffix.
+     * The computation is done on characters and their attributes expressed
+     * as ansi sequences.
+     *
+     * @param text1 the first line
+     * @param text2 the second line
+     * @return a list of Diff
+     */
     public static List<Diff> diff(String text1, String text2) {
         List<TerminalChar> tc1 = getChars(text1);
         List<TerminalChar> tc2 = getChars(text2);

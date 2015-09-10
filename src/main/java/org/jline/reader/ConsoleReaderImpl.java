@@ -119,9 +119,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         DISPLAY_CANDIDATES_NO,
         DISPLAY_MORE;
 
-        protected static final
-        ResourceBundle
-                bundle =
+        protected static final ResourceBundle bundle =
                 ResourceBundle.getBundle(ConsoleReaderImpl.class.getName(), Locale.getDefault());
 
         public String format(final Object... args) {
@@ -300,7 +298,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             // TODO: enter raw mode
             redrawLine();
             redisplay();
-            flush();
         });
     }
 
@@ -453,7 +450,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 // TODO: fix possible threading issue
                 size.copy(console.getSize());
                 redisplay();
-                flush();
             });
             originalAttributes = console.enterRawMode();
 
@@ -483,7 +479,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             // Draw initial prompt
             redrawLine();
             redisplay();
-            flush();
 
             while (true) {
 
@@ -543,7 +538,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 }
 
                 redisplay();
-                flush();
             }
         } catch (IOError e) {
             if (e.getCause() instanceof InterruptedIOException) {
@@ -572,7 +566,16 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected void setPrompt(final String prompt) {
         this.prompt = prompt != null ? prompt : "";
-        this.promptLen = wcwidth(lastLine(AnsiHelper.strip(this.prompt)), 0);
+        this.promptLen = getLastLineWidth(this.prompt);
+    }
+
+    private int getLastLineWidth(String str) {
+        str = AnsiHelper.strip(str);
+        int last = str.lastIndexOf("\n");
+        if (last >= 0) {
+            str = str.substring(last + 1, str.length());
+        }
+        return wcwidth(str, 0);
     }
 
     protected void setRightPrompt(final String rightPrompt) {
@@ -649,23 +652,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return promptLen + wcwidth(buf.upToCursor(), promptLen);
     }
 
-    /**
-     * Returns the text after the last '\n'.
-     * prompt is returned if no '\n' characters are present.
-     * null is returned if prompt is null.
-     */
-    protected String lastLine(String str) {
-        // TODO: use ansi splitter to support ansi sequences propagation across lines
-        if (str == null) return "";
-        int last = str.lastIndexOf("\n");
-
-        if (last >= 0) {
-            return str.substring(last + 1, str.length());
-        }
-
-        return str;
-    }
-
     protected void setBuffer(Buffer buffer) {
         setBuffer(buffer.toString());
         buf.cursor(buffer.cursor());
@@ -729,7 +715,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      *
      * @return the former contents of the buffer.
      */
-    final String finishBuffer() { // FIXME: Package protected because used by tests
+    protected String finishBuffer() {
         String str = buf.toString();
         String historyLine = str;
 
@@ -1684,7 +1670,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * @return the character, or -1 if an EOF is received.
      */
     public int readCharacter() {
-        // TODO: should return a code point
         try {
             int c = NonBlockingReader.READ_EXPIRED;
             int s = 0;
@@ -1914,7 +1899,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     protected void cleanup() {
         endOfLine();
         post = null;
-        redisplay();
+        redisplay(false);
         println();
         flush();
         history.moveToEnd();
@@ -1961,7 +1946,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
 
         redisplay();
-        flush();
 
         KeyMap terminators = new KeyMap("terminators");
         getString("search-terminators", "\033\012")
@@ -2042,7 +2026,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                     }
                 }
                 redisplay();
-                flush();
             }
         } finally {
             searchTerm = null;
@@ -2690,6 +2673,10 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected void redisplay() {
+        redisplay(true);
+    }
+
+    protected void redisplay(boolean flush) {
         String buffer = buf.toString();
         if (mask != null) {
             if (mask == NULL_MASK) {
@@ -2860,6 +2847,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         int promptLines = AnsiHelper.splitLines(prompt, size.getColumns(), TAB_WIDTH).size();
         moveVisualCursorTo((promptLines - 1) * size.getColumns()
                 + promptLen + wcwidth(buf.upToCursor(), promptLen));
+        if (flush) {
+            flush();
+        }
         oldBuf = buffer;
         oldPrompt = prompt;
         oldPost = post;
@@ -3077,7 +3067,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         if (doMenu) {
             redisplay();
-            flush();
 
             KeyMap keyMap = new KeyMap("menuselect");
             keyMap.bind("\t", "complete");
@@ -3097,7 +3086,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                     return true;
                 }
                 redisplay();
-                flush();
             }
         }
 
