@@ -75,7 +75,6 @@ public abstract class ReaderTestSupport
     protected void assertBuffer(final String expected, final TestBuffer buffer, final boolean clear) throws IOException {
         // clear current buffer, if any
         if (clear) {
-            reader.finishBuffer();
             reader.getHistory().clear();
         }
 
@@ -95,7 +94,6 @@ public abstract class ReaderTestSupport
     protected void assertPosition(int pos, final TestBuffer buffer, final boolean clear) throws IOException {
         // clear current buffer, if any
         if (clear) {
-            reader.finishBuffer();
             reader.getHistory().clear();
         }
 
@@ -129,7 +127,6 @@ public abstract class ReaderTestSupport
             final boolean clear) {
         // clear current buffer, if any
         if (clear) {
-            reader.finishBuffer();
             reader.getHistory().clear();
         }
 
