@@ -10,6 +10,8 @@ package org.jline;
 
 import java.util.List;
 
+import org.jline.reader.ParsedLine;
+
 /**
  * A completer is the mechanism by which tab-completion candidates will be resolved.
  *
@@ -30,5 +32,5 @@ public interface Completer
      * @param candidates    The {@link List} of candidates to populate
      * @return              The index of the <i>buffer</i> for which the completion will be relative
      */
-    int complete(String buffer, int cursor, List<String> candidates);
+    int complete(ParsedLine line, List<Candidate> candidates);
 }

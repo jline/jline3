@@ -21,19 +21,26 @@ import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.ResourceBundle;
+import java.util.Set;
 import java.util.Stack;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
+import org.jline.Candidate;
 import org.jline.Completer;
 import org.jline.Console;
 import org.jline.Console.Signal;
@@ -45,16 +52,18 @@ import org.jline.console.Attributes;
 import org.jline.console.Attributes.ControlChar;
 import org.jline.console.Size;
 import org.jline.reader.history.MemoryHistory;
+import org.jline.utils.Ansi;
+import org.jline.utils.Ansi.Attribute;
+import org.jline.utils.Ansi.Color;
 import org.jline.utils.AnsiHelper;
 import org.jline.utils.DiffHelper;
 import org.jline.utils.InfoCmp.Capability;
+import org.jline.utils.Levenshtein;
 import org.jline.utils.Log;
 import org.jline.utils.NonBlockingReader;
 import org.jline.utils.Signals;
 import org.jline.utils.WCWidth;
 
-import static org.jline.reader.KeyMap.ESCAPE;
-import static org.jline.utils.NonBlockingReader.READ_EXPIRED;
 import static org.jline.utils.Preconditions.checkNotNull;
 
 /**
@@ -83,23 +92,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
          */
         NORMAL,
         /**
-         * In the middle of a emacs seach
-         */
-        SEARCH,
-        FORWARD_SEARCH,
-        /**
-         * VI "yank-to" operation ("y" during move mode)
-         */
-        VI_YANK_TO,
-        /**
-         * VI "delete-to" operation ("d" during move mode)
-         */
-        VI_DELETE_TO,
-        /**
-         * VI "change-to" operation ("c" during move mode)
-         */
-        VI_CHANGE_TO,
-        /**
          * readLine should exit and return the buffer content
          */
         DONE,
@@ -113,6 +105,13 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         INTERRUPT
     }
 
+    protected enum ViMoveMode {
+        NORMAL,
+        YANK_TO,
+        DELETE_TO,
+        CHANGE_TO
+    }
+
     protected enum Messages
     {
         DISPLAY_CANDIDATES,
@@ -123,7 +122,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         protected static final
         ResourceBundle
                 bundle =
-                ResourceBundle.getBundle(CandidateListCompletionHandler.class.getName(), Locale.getDefault());
+                ResourceBundle.getBundle(ConsoleReaderImpl.class.getName(), Locale.getDefault());
 
         public String format(final Object... args) {
             if (bundle == null)
@@ -159,8 +158,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     protected final Map<String, String> variables = new HashMap<>();
     protected History history = new MemoryHistory();
     protected final List<Completer> completers = new LinkedList<>();
-    protected CompletionHandler completionHandler = new CandidateListCompletionHandler();
     protected Highlighter highlighter = new DefaultHighlighter();
+    protected Parser parser = new DefaultParser();
 
     //
     // State variables
@@ -168,7 +167,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected final Buffer buf = new Buffer();
 
-    protected Size size = new Size(); // not really needed but avoid possible NPE in tests
+    protected final Size size = new Size();
 
     protected String prompt;
     protected int    promptLen;
@@ -176,12 +175,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected Character mask;
 
-    protected Buffer originalBuffer = null;
-
     protected StringBuffer searchTerm = null;
-
-    protected String previousSearchTerm = "";
-
     protected int searchIndex = -1;
 
 
@@ -202,9 +196,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      */
     protected String yankBuffer = "";
 
-    protected KillRing killRing = new KillRing();
+    protected ViMoveMode viMoveMode = ViMoveMode.NORMAL;
 
-    protected boolean quotedInsert;
+    protected KillRing killRing = new KillRing();
 
     protected boolean recording;
 
@@ -214,16 +208,14 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * Current internal state of the line reader
      */
     protected State   state = State.NORMAL;
-    protected State previousState;
-
-    protected String originalPrompt;
 
     protected String oldBuf;
     protected int oldColumns;
     protected String oldPrompt;
-    protected String[] oldPost;
+    protected String[][] oldPost;
+    protected String oldRightPrompt;
 
-    protected String[] post;
+    protected String[][] post;
 
     protected int cursorPos;
 
@@ -365,14 +357,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return Collections.unmodifiableList(completers);
     }
 
-    public void setCompletionHandler(final CompletionHandler handler) {
-        this.completionHandler = checkNotNull(handler);
-    }
-
-    public CompletionHandler getCompletionHandler() {
-        return this.completionHandler;
-    }
-
     //
     // History
     //
@@ -443,7 +427,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      *                  was pressed).
      */
     public String readLine(String prompt, Character mask, String buffer) throws UserInterruptException, EndOfFileException {
-        return readLine(prompt, null, mask, null);
+        return readLine(prompt, null, mask, buffer);
     }
 
     /**
@@ -467,8 +451,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             previousIntrHandler = console.handle(Signal.INT, signal -> readLineThread.interrupt());
             previousWinchHandler = console.handle(Signal.WINCH, signal -> {
                 // TODO: fix possible threading issue
-                size = console.getSize();
+                size.copy(console.getSize());
                 redisplay();
+                flush();
             });
             originalAttributes = console.enterRawMode();
 
@@ -485,7 +470,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
             pushBackChar.clear();
 
-            size = console.getSize();
+            size.copy(console.getSize());
             cursorPos = 0;
 
             setPrompt(prompt);
@@ -494,7 +479,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             if (buffer != null) {
                 buf.write(buffer);
             }
-            originalPrompt = this.prompt;
 
             // Draw initial prompt
             redrawLine();
@@ -507,218 +491,59 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 if (o == null) {
                     return null;
                 }
-                int c = 0;
-                if (opBuffer.length() > 0) {
-                    c = opBuffer.codePointBefore(opBuffer.length());
-                }
                 Log.trace("Binding: ", o);
 
-
                 // Handle macros
-                if (o instanceof String) {
-                    String macro = (String) o;
+                if (o instanceof Macro) {
+                    String macro = ((Macro) o).getSequence();
                     new StringBuilder(macro).reverse().codePoints().forEachOrdered(pushBackChar::push);
-                    opBuffer.setLength(0);
                     continue;
+                }
+
+                // Cache console size for the duration of the binding processing
+                size.copy(console.getSize());
+                // If this is still false after handling the binding, then
+                // we reset our repeatCount to 0.
+                isArgDigit = false;
+                // Every command that can be repeated a specified number
+                // of times, needs to know how many times to repeat, so
+                // we figure that out here.
+                count = (repeatCount == 0) ? 1 : repeatCount;
+
+                if (o instanceof Operation) {
+                    o = dispatcher.get(o);
                 }
 
                 // Handle custom callbacks
                 // TODO: merge that with the usual dispatch
                 if (o instanceof Widget) {
-                    ((Widget) o).apply(this);
-                    opBuffer.setLength(0);
-                    continue;
+                    if (!((Widget) o).apply(this)) {
+                        beep();
+                    }
+                } else {
+                    // TODO: what should we do there ?
+                    beep();
                 }
 
-                // Cache console size for the duration of the binding processing
-                this.size = console.getSize();
-
-                // Search mode.
-                //
-                // Note that we have to do this first, because if there is a command
-                // not linked to a search command, we leave the search mode and fall
-                // through to the normal state.
-                if (state == State.SEARCH || state == State.FORWARD_SEARCH) {
-                    // TODO: check the isearch-terminators variable terminating the search
-                    switch ( ((Operation) o )) {
-                        case ABORT:
-                            state = State.NORMAL;
-                            buf.setBuffer(originalBuffer);
-                            break;
-
-                        case REVERSE_SEARCH_HISTORY:
-                            state = State.SEARCH;
-                            if (searchTerm.length() == 0) {
-                                searchTerm.append(previousSearchTerm);
-                            }
-
-                            if (searchIndex > 0) {
-                                searchIndex = searchBackwards(searchTerm.toString(), searchIndex);
-                            }
-                            break;
-
-                        case FORWARD_SEARCH_HISTORY:
-                            state = State.FORWARD_SEARCH;
-                            if (searchTerm.length() == 0) {
-                                searchTerm.append(previousSearchTerm);
-                            }
-
-                            if (searchIndex > -1 && searchIndex < history.size() - 1) {
-                                searchIndex = searchForwards(searchTerm.toString(), searchIndex);
-                            }
-                            break;
-
-                        case BACKWARD_DELETE_CHAR:
-                            if (searchTerm.length() > 0) {
-                                searchTerm.deleteCharAt(searchTerm.length() - 1);
-                                if (state == State.SEARCH) {
-                                    searchIndex = searchBackwards(searchTerm.toString());
-                                } else {
-                                    searchIndex = searchForwards(searchTerm.toString());
-                                }
-                            }
-                            break;
-
-                        case SELF_INSERT:
-                            searchTerm.appendCodePoint(c);
-                            if (state == State.SEARCH) {
-                                searchIndex = searchBackwards(searchTerm.toString());
-                            } else {
-                                searchIndex = searchForwards(searchTerm.toString());
-                            }
-                            break;
-
-                        default:
-                            // Set buffer and cursor position to the found string.
-                            if (searchIndex != -1) {
-                                history.moveTo(searchIndex);
-                            }
-                            if (o != Operation.ACCEPT_LINE) {
-                                o = null;
-                            }
-                            state = State.NORMAL;
-                            break;
-                    }
-
-                    // if we're still in search mode, print the search status
-                    if (state == State.SEARCH || state == State.FORWARD_SEARCH) {
-                        if (searchTerm.length() == 0) {
-                            if (state == State.SEARCH) {
-                                printSearchStatus("", "");
-                            } else {
-                                printForwardSearchStatus("", "");
-                            }
-                            searchIndex = -1;
-                        } else {
-                            if (searchIndex == -1) {
-                                beep();
-                                printSearchStatus(searchTerm.toString(), "");
-                            } else if (state == State.SEARCH) {
-                                printSearchStatus(searchTerm.toString(), history.get(searchIndex));
-                            } else {
-                                printForwardSearchStatus(searchTerm.toString(), history.get(searchIndex));
-                            }
-                        }
-                    }
-                    // otherwise, restore the line
-                    else {
-                        restoreLine();
-                    }
+                switch (state) {
+                    case DONE:
+                        return finishBuffer();
+                    case EOF:
+                        throw new EndOfFileException();
+                    case INTERRUPT:
+                        throw new UserInterruptException(buf.toString());
                 }
-                if (state != State.SEARCH && state != State.FORWARD_SEARCH) {
+
+                if (!isArgDigit) {
                     /*
-                     * If this is still false at the end of the switch, then
-                     * we reset our repeatCount to 0.
+                     * If the operation performed wasn't a vi argument
+                     * digit, then clear out the current repeatCount;
                      */
-                    isArgDigit = false;
-
-                    /*
-                     * Every command that can be repeated a specified number
-                     * of times, needs to know how many times to repeat, so
-                     * we figure that out here.
-                     */
-                    count = (repeatCount == 0) ? 1 : repeatCount;
-
-                    if (o instanceof Operation) {
-                        Operation op = (Operation) o;
-                        /*
-                         * Current location of the cursor (prior to the operation).
-                         * These are used by vi *-to operation (e.g. delete-to)
-                         * so we know where we came from.
-                         */
-                        int     cursorStart = buf.cursor();
-                        previousState   = state;
-
-                        /*
-                         * If we are on a "vi" movement based operation, then we
-                         * need to restrict the sets of inputs pretty heavily.
-                         */
-                        if (state == State.VI_CHANGE_TO
-                                || state == State.VI_YANK_TO
-                                || state == State.VI_DELETE_TO) {
-
-                            op = viDeleteChangeYankToRemap(op);
-                        }
-
-                        Widget widget = dispatcher.get(op);
-                        if (widget != null) {
-                            widget.apply(this);
-                        } else {
-                            // TODO: what should we do there ?
-                            beep();
-                        }
-
-                        switch (state) {
-                            case DONE:
-                                return finishBuffer();
-                            case EOF:
-                                throw new EndOfFileException();
-                            case INTERRUPT:
-                                throw new UserInterruptException(buf.toString());
-                        }
-
-                        /*
-                         * If we were in a yank-to, delete-to, move-to
-                         * when this operation started, then fall back to
-                         */
-                        if (previousState != State.NORMAL) {
-                            if (previousState == State.VI_DELETE_TO) {
-                                viDeleteTo(cursorStart, buf.cursor(), false);
-                            }
-                            else if (previousState == State.VI_CHANGE_TO) {
-                                viDeleteTo(cursorStart, buf.cursor(), true);
-                                consoleKeys.setKeyMap(KeyMap.VI_INSERT);
-                            }
-                            else if (previousState == State.VI_YANK_TO) {
-                                viYankTo(cursorStart, buf.cursor());
-                            }
-                            state = State.NORMAL;
-                        }
-
-                        /*
-                         * Another subtly. The check for the NORMAL state is
-                         * to ensure that we do not clear out the repeat
-                         * count when in delete-to, yank-to, or move-to modes.
-                         */
-                        if (state == State.NORMAL && !isArgDigit) {
-                            /*
-                             * If the operation performed wasn't a vi argument
-                             * digit, then clear out the current repeatCount;
-                             */
-                            repeatCount = 0;
-                        }
-
-                        if (state != State.SEARCH && state != State.FORWARD_SEARCH) {
-                            originalBuffer = null;
-                            previousSearchTerm = "";
-                            searchTerm = null;
-                            searchIndex = -1;
-                        }
-                    }
+                    repeatCount = 0;
                 }
+
                 redisplay();
                 flush();
-                opBuffer.setLength(0);
             }
         } catch (IOError e) {
             if (e.getCause() instanceof InterruptedIOException) {
@@ -757,9 +582,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     /**
      * Erase the current line.
      */
-    protected void resetLine() {
+    protected boolean unixLineDiscard() {
         if (buf.cursor() == 0) {
-            beep();
+            return false;
         } else {
             StringBuilder killed = new StringBuilder();
             while (buf.cursor() > 0) {
@@ -772,6 +597,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             }
             String copy = killed.reverse().toString();
             killRing.addBackwards(copy);
+            return true;
         }
     }
 
@@ -895,6 +721,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         oldPrompt = "";
         oldPost = null;
         oldColumns = size.getColumns();
+        oldRightPrompt = "";
     }
 
     /**
@@ -1257,15 +1084,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      *   delete-to or yank-to.
      */
     protected boolean isInViMoveOperationState() {
-        return state == State.VI_CHANGE_TO
-            || state == State.VI_DELETE_TO
-            || state == State.VI_YANK_TO;
+        return viMoveMode != ViMoveMode.NORMAL;
     }
 
-    protected void viNextWord() {
-        if (!doViNextWord(count)) {
-            beep();
-        }
+    protected boolean viNextWord() {
+        return doViNextWord(count);
     }
 
     /**
@@ -1296,7 +1119,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
              * change-to, the trailing spaces behind the last word are
              * left in tact.
              */
-            if (i < (count-1) || !(state == State.VI_CHANGE_TO)) {
+            if (i < (count-1) || !(viMoveMode == ViMoveMode.CHANGE_TO)) {
                 while (pos < end && isDelimiter(buf.atChar(pos))) {
                     ++pos;
                 }
@@ -1314,7 +1137,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * it takes you to the next of the next word.  Any other character
      * of a word, takes you to the end of the current word.
      */
-    protected void viEndWord() {
+    protected boolean viEndWord() {
         int pos = buf.cursor();
         int end = buf.length();
 
@@ -1336,18 +1159,21 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             }
         }
         buf.cursor(pos);
+        return true;
     }
 
     @SuppressWarnings("StatementWithEmptyBody")
-    protected void backwardWord() {
+    protected boolean backwardWord() {
         while (isDelimiter(buf.prevChar()) && (buf.move(-1) != 0));
         while (!isDelimiter(buf.prevChar()) && (buf.move(-1) != 0));
+        return true;
     }
 
     @SuppressWarnings("StatementWithEmptyBody")
-    protected void forwardWord() {
+    protected boolean forwardWord() {
         while (isDelimiter(buf.currChar()) && (buf.move(1) != 0));
         while (!isDelimiter(buf.currChar()) && (buf.move(1) != 0));
+        return true;
     }
 
     /**
@@ -1356,13 +1182,12 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * of the word before it.  If the user is not on a word or whitespace
      * it deletes up to the end of the previous word.
      */
-    protected void unixWordRubout() {
+    protected boolean unixWordRubout() {
         StringBuilder killed = new StringBuilder();
 
         for (int count = this.count; count > 0; --count) {
             if (buf.cursor() == 0) {
-                beep();
-                return;
+                return false;
             }
 
             while (isWhitespace(buf.prevChar())) {
@@ -1388,17 +1213,18 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         String copy = killed.reverse().toString();
         killRing.addBackwards(copy);
+        return true;
     }
 
-    protected void insertComment() {
-        doInsertComment(false);
+    protected boolean insertComment() {
+        return doInsertComment(false);
     }
 
-    protected void viInsertComment() {
-        doInsertComment(true);
+    protected boolean viInsertComment() {
+        return doInsertComment(true);
     }
 
-    protected void doInsertComment(boolean isViMode) {
+    protected boolean doInsertComment(boolean isViMode) {
         String comment = getVariable(COMMENT_BEGIN);
         if (comment == null) {
             comment = "#";
@@ -1408,14 +1234,14 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         if (isViMode) {
             setKeyMap(KeyMap.VI_INSERT);
         }
-        acceptLine();
+        return acceptLine();
     }
 
     /**
      * Implements vi search ("/" or "?").
      */
     @SuppressWarnings("fallthrough")
-    protected void viSearch() {
+    protected boolean viSearch() {
         int searchChar = opBuffer.codePointAt(0);
         boolean isForward = (searchChar == '/');
 
@@ -1474,7 +1300,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         if (ch == -1 || isAborted) {
             killWholeLine();
             setBuffer(origBuffer);
-            return;
+            return true;
         }
 
         /*
@@ -1518,7 +1344,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             killWholeLine();
             putString(origBuffer.toString());
             beginningOfLine();
-            return;
+            return true;
         }
 
         /*
@@ -1575,21 +1401,23 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
          * Complete?
          */
         pushBackChar.push(ch);
+
+        return true;
     }
 
-    protected void insertCloseCurly() {
-        insertClose("}");
+    protected boolean insertCloseCurly() {
+        return insertClose("}");
     }
 
-    protected void insertCloseParen() {
-        insertClose(")");
+    protected boolean insertCloseParen() {
+        return insertClose(")");
     }
 
-    protected void insertCloseSquare() {
-        insertClose("]");
+    protected boolean insertCloseSquare() {
+        return insertClose("]");
     }
 
-    protected void insertClose(String s) {
+    protected boolean insertClose(String s) {
         putString(s);
 
         int closePosition = buf.cursor();
@@ -1601,12 +1429,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         peekCharacter(BLINK_MATCHING_PAREN_TIMEOUT);
 
         buf.cursor(closePosition);
+        return true;
     }
 
-    protected void viMatch() {
-        if (!doViMatch()) {
-            beep();
-        }
+    protected boolean viMatch() {
+        return doViMatch();
     }
     
     /**
@@ -1678,7 +1505,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
     }
 
-    protected void deletePreviousWord() {
+    protected boolean backwardKillWord() {
         StringBuilder killed = new StringBuilder();
         int c;
 
@@ -1702,9 +1529,10 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         String copy = killed.reverse().toString();
         killRing.addBackwards(copy);
+        return true;
     }
 
-    protected void deleteNextWord() {
+    protected boolean killWord() {
         StringBuilder killed = new StringBuilder();
         int c;
 
@@ -1726,9 +1554,10 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         String copy = killed.toString();
         killRing.add(copy);
+        return true;
     }
 
-    protected void capitalizeWord() {
+    protected boolean capitalizeWord() {
         boolean first = true;
         int c;
         while (buf.cursor() < buf.length() && !isDelimiter(c = buf.currChar())) {
@@ -1736,22 +1565,25 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             buf.move(1);
             first = false;
         }
+        return true;
     }
 
-    protected void upCaseWord() {
+    protected boolean upCaseWord() {
         int c;
         while (buf.cursor() < buf.length() && !isDelimiter(c = buf.currChar())) {
             buf.currChar(Character.toUpperCase(c));
             buf.move(1);
         }
+        return true;
     }
 
-    protected void downCaseWord() {
+    protected boolean downCaseWord() {
         int c;
         while (buf.cursor() < buf.length() && !isDelimiter(c = buf.currChar())) {
             buf.currChar(Character.toLowerCase(c));
             buf.move(1);
         }
+        return true;
     }
 
     /**
@@ -1759,13 +1591,13 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * character under the cursor are swapped and the cursor is advanced one
      * character unless you are already at the end of the line.
      */
-    protected void transposeChars() {
+    protected boolean transposeChars() {
         for (int count = this.count; count > 0; --count) {
             if (!buf.transpose()) {
-                beep();
-                break;
+                return false;
             }
         }
+        return true;
     }
 
     public boolean isKeyMap(String name) {
@@ -1784,25 +1616,22 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
 
-    protected void abort() {
+    protected boolean abort() {
         if (searchTerm == null) {
-            beep();
             buf.clear();
             println();
             redrawLine();
+            return false;
         }
+        return true;
     }
 
-    protected void backwardChar() {
-        if (buf.move(-count) == 0) {
-            beep();
-        }
+    protected boolean backwardChar() {
+        return buf.move(-count) != 0;
     }
 
-    protected void forwardChar() {
-        if (buf.move(count) == 0) {
-            beep();
-        }
+    protected boolean forwardChar() {
+        return buf.move(count) != 0;
     }
 
     protected int moveVisualCursorTo(int i1) {
@@ -1906,7 +1735,12 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      *         stream has been reached
      */
     public Object readBinding(KeyMap keys) {
-        Object o;
+        return readBinding(keys, null);
+    }
+
+    public Object readBinding(KeyMap keys, KeyMap local) {
+        Object o = null;
+        int[] remaining = new int[1];
         opBuffer.setLength(0);
         do {
             int c = pushBackChar.isEmpty() ? readCharacter() : pushBackChar.pop();
@@ -1919,11 +1753,23 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 macro += new String(Character.toChars(c));
             }
 
-            if (quotedInsert) {
-                o = Operation.SELF_INSERT;
-                quotedInsert = false;
-            } else {
-                o = keys.getBound(opBuffer);
+            if (local != null) {
+                o = local.getBound(opBuffer, remaining);
+            }
+            if (o == null && (local == null || remaining[0] >= 0)) {
+                o = keys.getBound(opBuffer, remaining);
+            }
+            if (remaining[0] > 0) {
+                int[] cps = opBuffer.codePoints().toArray();
+                if (o != null) {
+                    opBuffer.setLength(0);
+                    opBuffer.append(new String(cps, 0, cps.length - remaining[0]));
+                    for (int i = cps.length - 1; i >= cps.length - remaining[0]; i--) {
+                        pushBackChar.push(cps[i]);
+                    }
+                } else {
+                    opBuffer.setLength(0);
+                }
             }
 
             /*
@@ -1931,7 +1777,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
              * previous command was a yank or a kill. We reset
              * that state here if needed.
              */
-            if (!recording && !(o instanceof KeyMap)) {
+            if (!recording && o != null) {
                 if (o != Operation.YANK_POP && o != Operation.YANK) {
                     killRing.resetLastYank();
                 }
@@ -1942,81 +1788,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 }
             }
 
-            if (o == Operation.DO_LOWERCASE_VERSION) {
-                int old = opBuffer.codePointBefore(opBuffer.length());
-                opBuffer.setLength(opBuffer.length() - Character.charCount(old));
-                opBuffer.appendCodePoint(Character.toLowerCase(c));
-                o = keys.getBound(opBuffer);
-            }
-
-            /*
-             * The ESC key (#27) is special in that it is ambiguous until
-             * you know what is coming next.  The ESC could be a literal
-             * escape, like the user entering vi-move mode, or it could
-             * be part of a console control sequence.  The following
-             * logic attempts to disambiguate things in the same
-             * fashion as regular vi or readline.
-             *
-             * When ESC is encountered and there is no other pending
-             * character in the pushback queue, then attempt to peek
-             * into the input stream (if the feature is enabled) for
-             * 150ms. If nothing else is coming, then assume it is
-             * not a console control sequence, but a raw escape.
-             */
-            if ((keys.getName().equals(KeyMap.VI_INSERT)
-                        && opBuffer.length() == 1
-                        && c == ESCAPE)
-                    || ((state == State.SEARCH || state == State.FORWARD_SEARCH)
-                        && opBuffer.length() == 1
-                        && getString("search-terminators", "\033\012").indexOf(c) >= 0)
-                    && o instanceof KeyMap
-                    && pushBackChar.isEmpty()) {
-                long t = getLong(ESCAPE_TIMEOUT, 500l);
-                if (t > 0 && peekCharacter(t) == READ_EXPIRED) {
-                    Object otherKey = ((KeyMap) o).getAnotherKey();
-                    if (otherKey == null) {
-                        // The next line is in case a binding was set up inside this secondary
-                        // KeyMap (like EMACS_META).  For example, a binding could be put
-                        // there for an ActionListener for the ESC key.  This way, the var 'o' won't
-                        // be null and the code can proceed to let the ActionListener be
-                        // handled, below.
-                        otherKey = ((KeyMap) o).getBound(Character.toString((char) c));
-                    }
-                    if (otherKey != null && !(otherKey instanceof KeyMap)) {
-                        return otherKey;
-                    }
-                }
-            }
-
-            /*
-             * If we didn't find a binding for the key and there is
-             * more than one character accumulated then start checking
-             * the largest span of characters from the beginning to
-             * see if there is a binding for them.
-             *
-             * For example if our buffer has ESC,CTRL-M,C the getBound()
-             * called previously indicated that there is no binding for
-             * this sequence, so this then checks ESC,CTRL-M, and failing
-             * that, just ESC. Each keystroke that is pealed off the end
-             * during these tests is stuffed onto the pushback buffer so
-             * they won't be lost.
-             *
-             * If there is no binding found, then we go back to waiting for
-             * input.
-             */
-            while (o == null && opBuffer.length() > 0) {
-                c = opBuffer.codePointBefore(opBuffer.length());
-                opBuffer.setLength(opBuffer.length() - Character.charCount(c));
-                Object o2 = keys.getBound(opBuffer);
-                if (o2 instanceof KeyMap) {
-                    o = ((KeyMap) o2).getAnotherKey();
-                    if (o != null) {
-                        pushBackChar.push(c);
-                    }
-                }
-            }
-
-        } while (o == null || o instanceof KeyMap);
+        } while (o == null);
 
         return o;
     }
@@ -2050,49 +1822,92 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return consoleKeys.getKeys().getName();
     }
 
-    protected void viBeginningOfLineOrArgDigit() {
+    protected boolean viBeginningOfLineOrArgDigit() {
         if (repeatCount > 0) {
-            viArgDigit();
+            return viArgDigit();
         } else {
-            beginningOfLine();
+            return beginningOfLine();
         }
     }
 
-    protected void viArgDigit() {
+    protected boolean viArgDigit() {
         repeatCount = (repeatCount * 10) + opBuffer.charAt(0) - '0';
         isArgDigit = true;
+        return true;
     }
 
-    protected void viDeleteTo() {
-        // This is a weird special case. In vi
-        // "dd" deletes the current line. So if we
-        // get a delete-to, followed by a delete-to,
-        // we delete the line.
-        if (state == State.VI_DELETE_TO) {
-            killWholeLine();
-            state = previousState = State.NORMAL;
+    protected boolean viDeleteTo() {
+        int cursorStart = buf.cursor();
+        Object o = readBinding(getKeys());
+        if (o instanceof Operation) {
+            Operation op = viDeleteChangeYankToRemap((Operation) o);
+            // This is a weird special case. In vi
+            // "dd" deletes the current line. So if we
+            // get a delete-to, followed by a delete-to,
+            // we delete the line.
+            if (op == Operation.VI_DELETE_TO) {
+                killWholeLine();
+            } else {
+                viMoveMode = ViMoveMode.DELETE_TO;
+                Widget widget = dispatcher.get(op);
+                if (widget != null && !widget.apply(this)) {
+                    return false;
+                }
+                viMoveMode = ViMoveMode.NORMAL;
+            }
+            return viDeleteTo(cursorStart, buf.cursor());
         } else {
-            state = State.VI_DELETE_TO;
+            opBuffer.reverse().codePoints().forEachOrdered(pushBackChar::push);
+            return false;
         }
     }
 
-    protected void viYankTo() {
-        // Similar to delete-to, a "yy" yanks the whole line.
-        if (state == State.VI_YANK_TO) {
-            yankBuffer = buf.toString();
-            state = previousState = State.NORMAL;
+    protected boolean viYankTo() {
+        int cursorStart = buf.cursor();
+        Object o = readBinding(getKeys());
+        if (o instanceof Operation) {
+            Operation op = viDeleteChangeYankToRemap((Operation) o);
+            // Similar to delete-to, a "yy" yanks the whole line.
+            if (op == Operation.VI_YANK_TO) {
+                yankBuffer = buf.toString();
+                return true;
+            } else {
+                viMoveMode = ViMoveMode.YANK_TO;
+                Widget widget = dispatcher.get(op);
+                if (widget != null && !widget.apply(this)) {
+                    return false;
+                }
+                viMoveMode = ViMoveMode.NORMAL;
+            }
+            return viYankTo(cursorStart, buf.cursor());
         } else {
-            state = State.VI_YANK_TO;
+            opBuffer.reverse().codePoints().forEachOrdered(pushBackChar::push);
+            return false;
         }
     }
 
-    protected void viChangeTo() {
-        if (state == State.VI_CHANGE_TO) {
-            killWholeLine();
-            state = previousState = State.NORMAL;
-            setKeyMap(KeyMap.VI_INSERT);
+    protected boolean viChangeTo() {
+        int cursorStart = buf.cursor();
+        Object o = readBinding(getKeys());
+        if (o instanceof Operation) {
+            Operation op = viDeleteChangeYankToRemap((Operation) o);
+            // change whole line
+            if (op == Operation.VI_CHANGE_TO) {
+                killWholeLine();
+            } else {
+                viMoveMode = ViMoveMode.CHANGE_TO;
+                Widget widget = dispatcher.get(op);
+                if (widget != null && !widget.apply(this)) {
+                    return false;
+                }
+                viMoveMode = ViMoveMode.NORMAL;
+            }
+            boolean res = viChangeTo(cursorStart, buf.cursor());
+            consoleKeys.setKeyMap(KeyMap.VI_INSERT);
+            return res;
         } else {
-            state = State.VI_CHANGE_TO;
+            opBuffer.reverse().codePoints().forEachOrdered(pushBackChar::push);
+            return false;
         }
     }
 
@@ -2105,7 +1920,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         history.moveToEnd();
     }
 
-    protected void viEofMaybe() {
+    protected boolean viEofMaybe() {
         /*
          * Handler for CTRL-D. Attempts to follow readline
          * behavior. If the line is empty, then it is an EOF
@@ -2113,107 +1928,291 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
          */
         if (buf.length() == 0) {
             state = State.EOF;
+            return true;
         } else {
-            acceptLine();
+            return acceptLine();
         }
     }
 
-    protected void forwardSearchHistory() {
-        originalBuffer = buf.copy();
-        if (searchTerm != null) {
-            previousSearchTerm = searchTerm.toString();
-        }
-        searchTerm = new StringBuffer(buf.toString());
-        state = State.FORWARD_SEARCH;
-        if (searchTerm.length() > 0) {
-            searchIndex = searchForwards(searchTerm.toString());
-            if (searchIndex == -1) {
-                beep();
-            }
-            printForwardSearchStatus(searchTerm.toString(),
-                    searchIndex > -1 ? history.get(searchIndex) : "");
-        } else {
-            searchIndex = -1;
-            printForwardSearchStatus("", "");
-        }
+    protected boolean forwardSearchHistory() {
+        return doSearchHistory(false);
     }
 
-    protected void reverseSearchHistory() {
-        originalBuffer = buf.copy();
-        if (searchTerm != null) {
-            previousSearchTerm = searchTerm.toString();
-        }
+    protected boolean reverseSearchHistory() {
+        return doSearchHistory(true);
+    }
+
+    protected boolean doSearchHistory(boolean backward) {
+        Buffer originalBuffer = buf.copy();
+        String previousSearchTerm = (searchTerm != null) ? searchTerm.toString() : "";
         searchTerm = new StringBuffer(buf.toString());
-        state = State.SEARCH;
         if (searchTerm.length() > 0) {
-            searchIndex = searchBackwards(searchTerm.toString());
+            searchIndex = backward
+                    ? searchBackwards(searchTerm.toString(), history.index(), false)
+                    : searchForwards(searchTerm.toString(), history.index(), false);
             if (searchIndex == -1) {
                 beep();
             }
             printSearchStatus(searchTerm.toString(),
-                    searchIndex > -1 ? history.get(searchIndex) : "");
+                    searchIndex > -1 ? history.get(searchIndex) : "", backward);
         } else {
             searchIndex = -1;
-            printSearchStatus("", "");
+            printSearchStatus("", "", backward);
+        }
+
+        redisplay();
+        flush();
+
+        KeyMap terminators = new KeyMap("terminators");
+        getString("search-terminators", "\033\012")
+                .codePoints().forEach(c -> terminators.bind(new String(Character.toChars(c)), Operation.ACCEPT_LINE));
+
+        try {
+            while (true) {
+                Object o = readBinding(getKeys(), terminators);
+                if (o instanceof Operation) {
+                    switch (((Operation) o)) {
+                        case ABORT:
+                            buf.setBuffer(originalBuffer);
+                            return true;
+
+                        case REVERSE_SEARCH_HISTORY:
+                            backward = true;
+                            if (searchTerm.length() == 0) {
+                                searchTerm.append(previousSearchTerm);
+                            }
+                            if (searchIndex > 0) {
+                                searchIndex = searchBackwards(searchTerm.toString(), searchIndex, false);
+                            }
+                            break;
+
+                        case FORWARD_SEARCH_HISTORY:
+                            backward = false;
+                            if (searchTerm.length() == 0) {
+                                searchTerm.append(previousSearchTerm);
+                            }
+                            if (searchIndex > -1 && searchIndex < history.size() - 1) {
+                                searchIndex = searchForwards(searchTerm.toString(), searchIndex, false);
+                            }
+                            break;
+
+                        case BACKWARD_DELETE_CHAR:
+                            if (searchTerm.length() > 0) {
+                                searchTerm.deleteCharAt(searchTerm.length() - 1);
+                                if (backward) {
+                                    searchIndex = searchBackwards(searchTerm.toString(), history.index(), false);
+                                } else {
+                                    searchIndex = searchForwards(searchTerm.toString(), history.index(), false);
+                                }
+                            }
+                            break;
+
+                        case SELF_INSERT:
+                            searchTerm.append(opBuffer);
+                            if (backward) {
+                                searchIndex = searchBackwards(searchTerm.toString(), history.index(), false);
+                            } else {
+                                searchIndex = searchForwards(searchTerm.toString(), history.index(), false);
+                            }
+                            break;
+
+                        default:
+                            // Set buffer and cursor position to the found string.
+                            if (searchIndex != -1) {
+                                history.moveTo(searchIndex);
+                            }
+                            opBuffer.reverse().codePoints().forEachOrdered(pushBackChar::push);
+                            return true;
+                    }
+                } else {
+                    opBuffer.reverse().codePoints().forEachOrdered(pushBackChar::push);
+                    return true;
+                }
+
+                // print the search status
+                if (searchTerm.length() == 0) {
+                    printSearchStatus("", "", backward);
+                    searchIndex = -1;
+                } else {
+                    if (searchIndex == -1) {
+                        beep();
+                        printSearchStatus(searchTerm.toString(), "", backward);
+                    } else {
+                        printSearchStatus(searchTerm.toString(), history.get(searchIndex), backward);
+                    }
+                }
+                redisplay();
+                flush();
+            }
+        } finally {
+            searchTerm = null;
+            searchIndex = -1;
+            post = null;
         }
     }
 
-    protected void historySearchForward() {
-        searchTerm = new StringBuffer(buf.upToCursor());
-        int index = history.index() + 1;
+    protected boolean historySearchForward() {
+        try {
+            searchTerm = new StringBuffer(buf.upToCursor());
+            int index = history.index() + 1;
 
-        if (index == history.size()) {
-            history.moveToEnd();
-            setBufferKeepPos(searchTerm.toString());
-        } else if (index < history.size()) {
-            searchIndex = searchForwards(searchTerm.toString(), index, true);
+            if (index == history.size()) {
+                history.moveToEnd();
+                setBufferKeepPos(searchTerm.toString());
+            } else if (index < history.size()) {
+                searchIndex = searchForwards(searchTerm.toString(), index, true);
+                if (searchIndex == -1) {
+                    return false;
+                } else {
+                    // Maintain cursor position while searching.
+                    if (history.moveTo(searchIndex)) {
+                        setBufferKeepPos(history.current());
+                    } else {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        } finally {
+            searchIndex = -1;
+            searchTerm = null;
+        }
+    }
+
+    protected boolean historySearchBackward() {
+        try {
+            searchTerm = new StringBuffer(buf.upToCursor());
+            searchIndex = searchBackwards(searchTerm.toString(), history.index(), true);
+
             if (searchIndex == -1) {
-                beep();
+                return false;
             } else {
                 // Maintain cursor position while searching.
                 if (history.moveTo(searchIndex)) {
                     setBufferKeepPos(history.current());
                 } else {
-                    beep();
+                    return false;
+                }
+            }
+            return true;
+        } finally {
+            searchIndex = -1;
+            searchTerm = null;
+        }
+    }
+
+    //
+    // History search
+    //
+    /**
+     * Search backward in history from a given position.
+     *
+     * @param searchTerm substring to search for.
+     * @param startIndex the index from which on to search
+     * @return index where this substring has been found, or -1 else.
+     */
+    public int searchBackwards(String searchTerm, int startIndex) {
+        return searchBackwards(searchTerm, startIndex, false);
+    }
+
+    /**
+     * Search backwards in history from the current position.
+     *
+     * @param searchTerm substring to search for.
+     * @return index where the substring has been found, or -1 else.
+     */
+    public int searchBackwards(String searchTerm) {
+        return searchBackwards(searchTerm, history.index(), false);
+    }
+
+
+    public int searchBackwards(String searchTerm, int startIndex, boolean startsWith) {
+        ListIterator<History.Entry> it = history.entries(startIndex);
+        while (it.hasPrevious()) {
+            History.Entry e = it.previous();
+            if (startsWith) {
+                if (e.value().startsWith(searchTerm)) {
+                    return e.index();
+                }
+            } else {
+                if (e.value().contains(searchTerm)) {
+                    return e.index();
                 }
             }
         }
+        return -1;
     }
 
-    protected void historySearchBackward() {
-        searchTerm = new StringBuffer(buf.upToCursor());
-        searchIndex = searchBackwards(searchTerm.toString(), history.index(), true);
-
-        if (searchIndex == -1) {
-            beep();
-        } else {
-            // Maintain cursor position while searching.
-            if (history.moveTo(searchIndex)) {
-                setBufferKeepPos(history.current());
+    public int searchForwards(String searchTerm, int startIndex, boolean startsWith) {
+        if (startIndex >= history.size()) {
+            startIndex = history.size() - 1;
+        }
+        ListIterator<History.Entry> it = history.entries(startIndex);
+        if (searchIndex != -1 && it.hasNext()) {
+            it.next();
+        }
+        while (it.hasNext()) {
+            History.Entry e = it.next();
+            if (startsWith) {
+                if (e.value().startsWith(searchTerm)) {
+                    return e.index();
+                }
             } else {
-                beep();
+                if (e.value().contains(searchTerm)) {
+                    return e.index();
+                }
             }
         }
+        return -1;
     }
 
-    protected void interrupt() {
+    /**
+     * Search forward in history from a given position.
+     *
+     * @param searchTerm substring to search for.
+     * @param startIndex the index from which on to search
+     * @return index where this substring has been found, or -1 else.
+     */
+    public int searchForwards(String searchTerm, int startIndex) {
+        return searchForwards(searchTerm, startIndex, false);
+    }
+    /**
+     * Search forwards in history from the current position.
+     *
+     * @param searchTerm substring to search for.
+     * @return index where the substring has been found, or -1 else.
+     */
+    public int searchForwards(String searchTerm) {
+        return searchForwards(searchTerm, history.index());
+    }
+
+    public void printSearchStatus(String searchTerm, String match, boolean backward) {
+        String searchLabel = backward ? "bck-i-search" : "i-search";
+        post = new String[][] { new String[] { searchLabel + ": " + searchTerm + "_" } };
+        setBuffer(match);
+        buf.move(match.indexOf(searchTerm) - buf.cursor());
+    }
+
+    protected boolean interrupt() {
         state = State.INTERRUPT;
+        return true;
     }
 
-    protected void exitOrDeleteChar() {
+    protected boolean exitOrDeleteChar() {
         if (buf.length() == 0) {
             state = State.EOF;
+            return true;
         } else {
-            deleteChar();
+            return deleteChar();
         }
     }
 
-    protected void quit() {
+    protected boolean quit() {
         getCursorBuffer().clear();
-        acceptLine();
+        return acceptLine();
     }
 
-    protected void viMoveAcceptLine() {
+    protected boolean viMoveAcceptLine() {
         /*
          * VI_MOVE_ACCEPT_LINE is the result of an ENTER
          * while in move mode. This is the same as a normal
@@ -2221,78 +2220,72 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
          * insert mode as well.
          */
         setKeyMap(KeyMap.VI_INSERT);
-        acceptLine();
+        return acceptLine();
     }
 
-    protected void acceptLine() {
+    protected boolean acceptLine() {
         state = State.DONE;
+        return true;
     }
 
-    protected void selfInsert() {
+    protected boolean selfInsert() {
         putString(opBuffer);
+        return true;
     }
 
-    protected void overwriteMode() {
+    protected boolean overwriteMode() {
         buf.overTyping(!buf.overTyping());
+        return true;
     }
 
-    protected void previousHistory() {
-        if (!moveHistory(false)) {
-            beep();
-        }
+    protected boolean previousHistory() {
+        return moveHistory(false);
     }
 
-    protected void viPreviousHistory() {
+    protected boolean viPreviousHistory() {
         /*
          * According to bash/readline move through history
          * in "vi" mode will move the cursor to the
          * start of the line. If there is no previous
          * history, then the cursor doesn't move.
          */
-        if (moveHistory(false, count)) {
-            beginningOfLine();
-        } else {
-            beep();
-        }
+        return moveHistory(false, count) && beginningOfLine();
     }
 
-    protected void nextHistory() {
-        if (!moveHistory(true)) {
-            beep();
-        }
+    protected boolean nextHistory() {
+        return moveHistory(true);
+
     }
 
-    protected void viNextHistory() {
+    protected boolean viNextHistory() {
         /*
          * According to bash/readline move through history
          * in "vi" mode will move the cursor to the
          * start of the line. If there is no next history,
          * then the cursor doesn't move.
          */
-        if (moveHistory(true, count)) {
-            beginningOfLine();
-        } else {
-            beep();
-        }
+        return moveHistory(true, count) && beginningOfLine();
     }
 
-    protected void beginningOfHistory() {
+    protected boolean beginningOfHistory() {
         if (history.moveToFirst()) {
             setBuffer(history.current());
+            return true;
         } else {
-            beep();
+            return false;
         }
     }
 
-    protected void endOfHistory() {
+    protected boolean endOfHistory() {
         if (history.moveToLast()) {
             setBuffer(history.current());
+            return true;
         } else {
-            beep();
+            return false;
         }
     }
 
-    protected void viMovementMode() {
+    protected boolean viMovementMode() {
         // If we are re-entering move mode from an
         // aborted yank-to, delete-to, change-to then
         // don't move the cursor back. The cursor is
@@ -2301,41 +2294,42 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         if (state == State.NORMAL) {
             buf.move(-1);
         }
-        setKeyMap(KeyMap.VI_MOVE);
+        return setKeyMap(KeyMap.VI_MOVE);
     }
 
-    protected void viInsertionMode() {
-        setKeyMap(KeyMap.VI_INSERT);
+    protected boolean viInsertionMode() {
+        return setKeyMap(KeyMap.VI_INSERT);
     }
 
-    protected void viAppendMode() {
+    protected boolean  viAppendMode() {
         buf.move(1);
-        setKeyMap(KeyMap.VI_INSERT);
+        return setKeyMap(KeyMap.VI_INSERT);
     }
 
-    protected void viAppendEol() {
-        endOfLine();
-        setKeyMap(KeyMap.VI_INSERT);
+    protected boolean viAppendEol() {
+        return endOfLine() && setKeyMap(KeyMap.VI_INSERT);
     }
 
-    protected void emacsEditingMode() {
-        setKeyMap(KeyMap.EMACS);
+    protected boolean emacsEditingMode() {
+        return setKeyMap(KeyMap.EMACS);
     }
 
-    protected void viChangeToEol() {
-        viDeleteTo(buf.cursor(), buf.length(), true);
-        consoleKeys.setKeyMap(KeyMap.VI_INSERT);
+    protected boolean viChangeToEol() {
+        return viChangeTo(buf.cursor(), buf.length())
+                && setKeyMap(KeyMap.VI_INSERT);
     }
 
-    protected void viDeleteToEol() {
-        viDeleteTo(buf.cursor(), buf.length(), false);
+    protected boolean viDeleteToEol() {
+        return viDeleteTo(buf.cursor(), buf.length());
     }
 
-    protected void quotedInsert() {
-        quotedInsert = true;
+    protected boolean quotedInsert() {
+        int c = readCharacter();
+        putString(new String(Character.toChars(c)));
+        return true;
     }
 
-    protected void viCharSearch() {
+    protected boolean viCharSearch() {
         int c = opBuffer.codePointAt(0);
         int searchChar = (c != ';' && c != ',')
                 ? (pushBackChar.isEmpty()
@@ -2343,97 +2337,93 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 : pushBackChar.pop())
                 : 0;
 
-        if (!doViCharSearch(count, c, searchChar)) {
-            beep();
-        }
+        return doViCharSearch(count, c, searchChar);
     }
 
-    protected void viKillWholeLine() {
-        killWholeLine();
-        setKeyMap(KeyMap.VI_INSERT);
+    protected boolean viKillWholeLine() {
+        return killWholeLine() && setKeyMap(KeyMap.VI_INSERT);
     }
 
-    protected void viInsertBeg() {
-        beginningOfLine();
-        setKeyMap(KeyMap.VI_INSERT);
+    protected boolean viInsertBeg() {
+        return beginningOfLine() && setKeyMap(KeyMap.VI_INSERT);
     }
 
-    protected void backwardDeleteChar() {
-        if (!buf.backspace()) {
-            beep();
-        }
+    protected boolean backwardDeleteChar() {
+        return buf.backspace();
     }
 
-    protected void viEditingMode() {
-        setKeyMap(KeyMap.VI_INSERT);
+    protected boolean viEditingMode() {
+        return setKeyMap(KeyMap.VI_INSERT);
     }
 
-    protected void callLastKbdMacro() {
+    protected boolean callLastKbdMacro() {
         new StringBuilder(macro).reverse().codePoints().forEachOrdered(pushBackChar::push);
-        opBuffer.setLength(0);
+        return true;
     }
 
-    protected void endKbdMacro() {
+    protected boolean endKbdMacro() {
         recording = false;
         macro = macro.substring(0, macro.length() - opBuffer.length());
+        return true;
     }
 
-    protected void startKbdMacro() {
+    protected boolean startKbdMacro() {
         recording = true;
+        return true;
     }
 
-    protected void reReadInitFile() {
+    protected boolean reReadInitFile() {
         consoleKeys.loadKeys(appName, inputrc);
+        return true;
     }
 
-    protected void tabInsert() {
+    protected boolean tabInsert() {
         putString("\t");
+        return true;
     }
 
-    protected void viFirstPrint() {
+    protected boolean viFirstPrint() {
         beginningOfLine();
-        if (!doViNextWord(1)) {
-            beep();
-        }
+        return doViNextWord(1);
     }
 
-    protected void beginningOfLine() {
+    protected boolean beginningOfLine() {
         buf.cursor(0);
+        return true;
     }
 
-    protected void endOfLine() {
+    protected boolean endOfLine() {
         buf.cursor(buf.length());
+        return true;
     }
 
-    protected void deleteChar() {
-        if (!buf.delete()) {
-            beep();
-        }
+    protected boolean deleteChar() {
+        return buf.delete();
     }
 
     /**
      * Deletes the previous character from the cursor position
      */
-    protected void viRubout() {
+    protected boolean viRubout() {
         for (int i = 0; i < count; i++) {
             if (!buf.backspace()) {
-                beep();
-                break;
+                return false;
             }
         }
+        return true;
     }
 
     /**
      * Deletes the character you are sitting on and sucks the rest of
      * the line in from the right.
      */
-    protected void viDelete() {
+    protected boolean viDelete() {
         for (int i = 0; i < count; i++) {
             if (!buf.delete()) {
-                beep();
-                break;
+                return false;
             }
         }
+        return true;
     }
 
     /**
@@ -2441,7 +2431,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * or lower to upper as necessary and advances the cursor one
      * position to the right.
      */
-    protected void viChangeCase() {
+    protected boolean viChangeCase() {
         for (int i = 0; i < count; i++) {
             if (buf.cursor() < buf.length()) {
                 int ch = buf.atChar(buf.cursor());
@@ -2449,21 +2439,21 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 buf.currChar(ch);
                 buf.move(1);
             } else {
-                beep();
-                break;
+                return false;
             }
         }
+        return true;
     }
 
     /**
      * Implements the vi change character command (in move-mode "r"
      * followed by the character to change to).
      */
-    protected void viChangeChar() {
+    protected boolean viChangeChar() {
         int c = pushBackChar.isEmpty() ? readCharacter() : pushBackChar.pop();
         // EOF, ESC, or CTRL-C aborts.
         if (c < 0 || c == '\033' || c == '\003') {
-            return;
+            return true;
         }
 
         for (int i = 0; i < count; i++) {
@@ -2472,10 +2462,10 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                     buf.move(1);
                 }
             } else {
-                beep();
-                break;
+                return false;
             }
         }
+        return true;
     }
 
     /**
@@ -2484,10 +2474,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * This logic is a bit more simple and simply looks at white space or
      * digits or characters.  It should be revised at some point.
      */
-    protected void viPreviousWord() {
+    protected boolean viPreviousWord() {
         if (buf.cursor() == 0) {
-            beep();
-            return;
+            return false;
         }
 
         int pos = buf.cursor() - 1;
@@ -2506,6 +2495,15 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             }
         }
         buf.cursor(pos);
+        return true;
+    }
+
+    protected boolean viChangeTo(int startPos, int endPos) {
+        return doViDeleteOrChange(startPos, endPos, true);
+    }
+
+    protected boolean viDeleteTo(int startPos, int endPos) {
+        return doViDeleteOrChange(startPos, endPos, false);
     }
 
     /**
@@ -2518,7 +2516,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      *    of line to start the change
      * @return true if it succeeded, false otherwise
      */
-    protected boolean viDeleteTo(int startPos, int endPos, boolean isChange) {
+    protected boolean doViDeleteOrChange(int startPos, int endPos, boolean isChange) {
         if (startPos == endPos) {
             return true;
         }
@@ -2546,7 +2544,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     /**
      * Implement the "vi" yank-to operation.  This operation allows you
      * to yank the contents of the current line based upon a move operation,
-     * for exaple "yw" yanks the current word, "3yw" yanks 3 words, etc.
+     * for example "yw" yanks the current word, "3yw" yanks 3 words, etc.
      *
      * @param startPos The starting position from which to yank
      * @param endPos The ending position to which to yank
@@ -2580,7 +2578,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * Pasts the yank buffer to the right of the current cursor position
      * and moves the cursor to the end of the pasted region.
      */
-    protected void viPut() {
+    protected boolean viPut() {
         if (yankBuffer.length () != 0) {
             if (buf.cursor() < buf.length()) {
                 buf.move(1);
@@ -2590,13 +2588,25 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             }
             buf.move(-1);
         }
+        return true;
+    }
+
+    protected boolean doLowercaseVersion() {
+        int old = opBuffer.codePointBefore(opBuffer.length());
+        opBuffer.setLength(opBuffer.length() - Character.charCount(old));
+        opBuffer.appendCodePoint(Character.toLowerCase(old));
+        int[] codepoints = opBuffer.toString().codePoints().toArray();
+        for (int i = codepoints.length - 1; i >= 0; i--) {
+            pushBackChar.add(codepoints[i]);
+        }
+        return true;
     }
 
     protected Map<Operation, Widget> createDispatcher() {
         Map<Operation, Widget> dispatcher = new HashMap<>();
-        dispatcher.put(Operation.PASTE_FROM_CLIPBOARD, ConsoleReaderImpl::paste);
-        dispatcher.put(Operation.BACKWARD_KILL_WORD, ConsoleReaderImpl::deletePreviousWord);
-        dispatcher.put(Operation.KILL_WORD, ConsoleReaderImpl::deleteNextWord);
+        dispatcher.put(Operation.PASTE_FROM_CLIPBOARD, ConsoleReaderImpl::pasteFromClipboard);
+        dispatcher.put(Operation.BACKWARD_KILL_WORD, ConsoleReaderImpl::backwardKillWord);
+        dispatcher.put(Operation.KILL_WORD, ConsoleReaderImpl::killWord);
         dispatcher.put(Operation.TRANSPOSE_CHARS, ConsoleReaderImpl::transposeChars);
         dispatcher.put(Operation.INSERT_CLOSE_CURLY, ConsoleReaderImpl::insertCloseCurly);
         dispatcher.put(Operation.INSERT_CLOSE_PAREN, ConsoleReaderImpl::insertCloseParen);
@@ -2611,7 +2621,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         dispatcher.put(Operation.VI_DELETE, ConsoleReaderImpl::viDelete);
         dispatcher.put(Operation.VI_PUT, ConsoleReaderImpl::viPut);
         dispatcher.put(Operation.VI_CHANGE_CASE, ConsoleReaderImpl::viChangeCase);
-        dispatcher.put(Operation.PASTE_FROM_CLIPBOARD, ConsoleReaderImpl::paste);
         dispatcher.put(Operation.CAPITALIZE_WORD, ConsoleReaderImpl::capitalizeWord);
         dispatcher.put(Operation.UPCASE_WORD, ConsoleReaderImpl::upCaseWord);
         dispatcher.put(Operation.DOWNCASE_WORD, ConsoleReaderImpl::downCaseWord);
@@ -2619,9 +2628,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         dispatcher.put(Operation.DELETE_CHAR, ConsoleReaderImpl::deleteChar);
         dispatcher.put(Operation.BACKWARD_CHAR, ConsoleReaderImpl::backwardChar);
         dispatcher.put(Operation.FORWARD_CHAR, ConsoleReaderImpl::forwardChar);
-        dispatcher.put(Operation.UNIX_LINE_DISCARD, ConsoleReaderImpl::resetLine);
+        dispatcher.put(Operation.UNIX_LINE_DISCARD, ConsoleReaderImpl::unixLineDiscard);
         dispatcher.put(Operation.UNIX_WORD_RUBOUT, ConsoleReaderImpl::unixWordRubout);
-        dispatcher.put(Operation.POSSIBLE_COMPLETIONS, ConsoleReaderImpl::printCompletionCandidates);
         dispatcher.put(Operation.BEGINNING_OF_LINE, ConsoleReaderImpl::beginningOfLine);
         dispatcher.put(Operation.YANK, ConsoleReaderImpl::yank);
         dispatcher.put(Operation.YANK_POP, ConsoleReaderImpl::yankPop);
@@ -2629,7 +2637,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         dispatcher.put(Operation.KILL_WHOLE_LINE, ConsoleReaderImpl::killWholeLine);
         dispatcher.put(Operation.BACKWARD_WORD, ConsoleReaderImpl::backwardWord);
         dispatcher.put(Operation.FORWARD_WORD, ConsoleReaderImpl::forwardWord);
-        dispatcher.put(Operation.COMPLETE, ConsoleReaderImpl::complete);
         dispatcher.put(Operation.PREVIOUS_HISTORY, ConsoleReaderImpl::previousHistory);
         dispatcher.put(Operation.VI_PREVIOUS_HISTORY, ConsoleReaderImpl::viPreviousHistory);
         dispatcher.put(Operation.NEXT_HISTORY, ConsoleReaderImpl::nextHistory);
@@ -2676,6 +2683,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         dispatcher.put(Operation.VI_CHANGE_TO, ConsoleReaderImpl::viChangeTo);
         dispatcher.put(Operation.VI_ARG_DIGIT, ConsoleReaderImpl::viArgDigit);
         dispatcher.put(Operation.VI_BEGINNING_OF_LINE_OR_ARG_DIGIT, ConsoleReaderImpl::viBeginningOfLineOrArgDigit);
+        dispatcher.put(Operation.COMPLETE_WORD, ConsoleReaderImpl::completeWord);
+        dispatcher.put(Operation.POSSIBLE_COMPLETIONS, ConsoleReaderImpl::listChoices);
+        dispatcher.put(Operation.DO_LOWERCASE_VERSION, ConsoleReaderImpl::doLowercaseVersion);
         return dispatcher;
     }
 
@@ -2692,7 +2702,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 buffer = sb.toString();
             }
         } else if (highlighter != null) {
-            buffer = highlighter.highlight(buffer);
+            buffer = highlighter.highlight(this, buffer);
         }
 
         String oldPostStr = "";
@@ -2705,6 +2715,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
         List<String> oldLines = AnsiHelper.splitLines(oldPrompt + oldBuf + oldPostStr, oldColumns, TAB_WIDTH);
         List<String> newLines = AnsiHelper.splitLines(prompt + buffer + newPostStr, size.getColumns(), TAB_WIDTH);
+        List<String> oldRightPromptLines = AnsiHelper.splitLines(oldRightPrompt, oldColumns, TAB_WIDTH);
         List<String> rightPromptLines = AnsiHelper.splitLines(rightPrompt, size.getColumns(), TAB_WIDTH);
 
         while (oldLines.size() < rightPromptLines.size()) {
@@ -2713,9 +2724,12 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         while (newLines.size() < rightPromptLines.size()) {
             newLines.add("");
         }
+        for (int i = 0; i < oldRightPromptLines.size(); i++) {
+            String line = oldRightPromptLines.get(i);
+            oldLines.set(i, addRightPrompt(line, oldLines.get(i)));
+        }
         for (int i = 0; i < rightPromptLines.size(); i++) {
             String line = rightPromptLines.get(i);
-            oldLines.set(i, addRightPrompt(line, oldLines.get(i)));
             newLines.set(i, addRightPrompt(line, newLines.get(i)));
         }
 
@@ -2726,7 +2740,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             String newLine = newLines.get(lineIndex);
             lineIndex++;
 
-            LinkedList<DiffHelper.Diff> diffs = DiffHelper.diff(oldLine, newLine);
+            List<DiffHelper.Diff> diffs = DiffHelper.diff(oldLine, newLine);
             boolean ident = true;
             boolean cleared = false;
             int curCol = currentPos;
@@ -2765,6 +2779,15 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                                 currentPos = cursorPos;
                                 break;
                             }
+                        } else if (i <= diffs.size() - 2
+                                && diffs.get(i+1).operation == DiffHelper.Operation.DELETE
+                                && width == wcwidth(AnsiHelper.strip(diffs.get(i + 1).text), currentPos)) {
+                            moveVisualCursorTo(currentPos);
+                            rawPrint(diff.text);
+                            cursorPos += width;
+                            currentPos = cursorPos;
+                            i++; // skip delete
+                            break;
                         }
                         moveVisualCursorTo(currentPos);
                         rawPrint(diff.text);
@@ -2841,6 +2864,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         oldPrompt = prompt;
         oldPost = post;
         oldColumns = size.getColumns();
+        oldRightPrompt = rightPrompt;
     }
 
     private String addRightPrompt(String prompt, String line) {
@@ -2862,73 +2886,316 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     // Completion
     //
 
-    protected void complete() {
-        // There is an annoyance with tab completion in that
-        // sometimes the user is actually pasting input in that
-        // has physical tabs in it.  This attempts to look at how
-        // quickly a character follows the tab, if the character
-        // follows *immediately*, we assume it is a tab literal.
-        boolean isTabLiteral = false;
-        if (getBoolean(COPY_PASTE_DETECTION, false)
-                && opBuffer.toString().equals("\t")
-                && (!pushBackChar.isEmpty()
-                || peekCharacter(COPY_PASTE_DETECTION_TIMEOUT) != READ_EXPIRED)) {
-            isTabLiteral = true;
-        } else if (getBoolean(DISABLE_COMPLETION, false)) {
-            isTabLiteral = true;
-        }
-        
-        if (!isTabLiteral) {
-            if (!doComplete()) {
-                beep();
-            }
-        } else {
-            selfInsert();
-        }
-    }
-
-    /**
-     * Use the completers to modify the buffer with the appropriate completions.
-     *
-     * @return true if successful
-     */
-    protected boolean doComplete() {
-        // debug ("tab for (" + buf + ")");
-        if (completers.size() == 0) {
+    protected boolean useTab() {
+        if (!buf.toString().matches("[\r\n\t ]*")) {
             return false;
         }
-
-        List<String> candidates = new LinkedList<>();
-        String bufstr = buf.toString();
-        int cursor = buf.cursor();
-
-        int position = -1;
-
-        for (Completer comp : completers) {
-            if ((position = comp.complete(bufstr, cursor, candidates)) != -1) {
-                break;
-            }
-        }
-
-        return candidates.size() != 0 && getCompletionHandler().complete(this, candidates, position);
+        return true;
     }
 
-    protected void printCompletionCandidates() {
-        // debug ("tab for (" + buf + ")");
-        if (completers.size() == 0) {
-            return;
+    protected boolean doExpandHist() {
+        String str = buf.toString();
+        String exp = expandEvents(str);
+        if (!exp.equals(str)) {
+            buf.clear();
+            buf.write(exp);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    enum CompletionType {
+        Complete,
+        List,
+    }
+
+    private int menucmp;
+    private int lastambig;
+    private int zmult;
+    private boolean bashListFirst;
+    private int useMenu;
+    private boolean useGlob;
+
+    protected boolean completeWord() {
+        useMenu = getBoolean("menucomplete", false) ? 1 : 0;
+        useGlob = getBoolean("globcomplete", false);
+        if (opBuffer.toString().equals("\t") && useTab()) {
+            return selfInsert();
+        } else {
+            boolean ret;
+            if (lastambig == 1 && getBoolean("bashautolist", false) && useMenu != 0 && menucmp == 0) {
+                bashListFirst = true;
+                ret = doComplete(CompletionType.List);
+                bashListFirst = false;
+                lastambig = 2;
+            } else {
+                ret = doComplete(CompletionType.Complete);
+            }
+            return ret;
+        }
+    }
+
+    protected boolean menuComplete() {
+        useMenu = 1;
+        useGlob = getBoolean("globcomplete", false);
+        if (opBuffer.toString().equals("\t") && useTab()) {
+            return selfInsert();
+        } else {
+            return doComplete(CompletionType.Complete);
+        }
+    }
+
+    protected boolean listChoices() {
+        useMenu = getBoolean("menucomplete", false) ? 1 : 0;
+        useGlob = getBoolean("globcomplete", false);
+        return doComplete(CompletionType.List);
+    }
+
+    protected boolean deleteCharOrList() {
+        useMenu = getBoolean("menucomplete", false) ? 1 : 0;
+        useGlob = getBoolean("globcomplete", false);
+        if (buf.cursor() != buf.length()) {
+            return deleteChar();
+        } else {
+            return doComplete(CompletionType.List);
+        }
+    }
+
+    protected boolean reverseMenuComplete() {
+        zmult = -zmult;
+        return menuComplete();
+    }
+
+    protected boolean acceptMenuComplete() {
+        if (menucmp == 0) {
+            return false;
+        } else {
+            // TODO: doCompletionAccept();
+            return menuComplete();
+        }
+    }
+
+    protected boolean doComplete(CompletionType lst) {
+        if (doExpandHist()) {
+            return true;
         }
 
-        List<String> candidates = new LinkedList<>();
-        String bufstr = buf.toString();
-        int cursor = buf.cursor();
+        List<Candidate> candidates = new ArrayList<>();
+        ParsedLine line = parser.parse(buf.toString(), buf.cursor());
+        for (Completer completer : completers) {
+            completer.complete(line, candidates);
+        }
 
-        for (Completer comp : completers) {
-            if (comp.complete(bufstr, cursor, candidates) != -1) {
-                break;
+        boolean caseInsensitive = isSet("case-insensitive");
+        int errors = getInt("errors", 2);
+
+        NavigableMap<String, List<Candidate>> sortedCandidates =
+                new TreeMap<>(caseInsensitive ? String.CASE_INSENSITIVE_ORDER : null);
+        for (Candidate cand : candidates) {
+            sortedCandidates
+                    .computeIfAbsent(AnsiHelper.strip(cand.value()), s -> new ArrayList<>())
+                    .add(cand);
+        }
+
+        String word = line.word();
+        String w = line.word().substring(0, line.wordCursor());
+
+
+        boolean doList;
+        boolean doMenu = false;
+        int selection = 0;
+
+        List<Candidate> possible;
+        if (lst == CompletionType.List) {
+            doList = true;
+            possible = sortedCandidates.entrySet().stream()
+                    .filter(e -> e.getKey().startsWith(w))
+                    .flatMap(e -> e.getValue().stream())
+                    .collect(Collectors.toList());
+        } else {
+            boolean exact = false;
+            String completion = null;
+            // Found an exact match of the whole word
+            if (sortedCandidates.containsKey(word)
+                    && (sortedCandidates.subMap(word, getHigherBound(word)).size() == 1
+                        || isSet("recognize-exact"))) {
+                exact = true;
+                completion = line.word();
+                possible = Collections.emptyList();
+                doList = false;
+            } else {
+                Map<String, List<Candidate>> matching = sortedCandidates.subMap(w, getHigherBound(w));
+                for (String key : matching.keySet()) {
+                    completion = completion == null ? key : getCommonStart(completion, key, caseInsensitive);
+                }
+                possible = matching.entrySet().stream()
+                        .flatMap(e -> e.getValue().stream())
+                        .collect(Collectors.toList());
+                // No match
+                if (completion == null) {
+                    // Add any fixable typos
+                    possible = sortedCandidates.entrySet().stream()
+                            .filter(e -> !e.getKey().startsWith(w) && Levenshtein.distance(w, e.getKey().substring(0, w.length())) < errors)
+                            .flatMap(e -> e.getValue().stream())
+                            .collect(Collectors.toList());
+                    if (!possible.isEmpty()) {
+                        possible.add(new Candidate(w, "original", null));
+                        doList = isSet("auto-list");
+                    } else {
+                        doList = false;
+                    }
+                }
+                else {
+                    if (completion.length() == w.length()) {
+                        completion = null;
+                    }
+                    doList = !possible.isEmpty() && isSet("auto-list");
+                }
+
+                if (doList && isSet("auto-menu") && useMenu != 0) {
+                    doMenu = true;
+                    if (completion == null) {
+                        completion = AnsiHelper.strip(possible.get(0).value());
+                    }
+                }
+            }
+
+            if (completion != null) {
+                buf.move(word.length() - w.length());
+                buf.backspace(word.length());
+                buf.write(completion);
+                if (exact) {
+                    buf.write(" ");
+                }
             }
         }
-        printCandidates(candidates);
+
+        if (doList) {
+            computePost(possible, possible.get(selection));
+        }
+
+        if (doMenu) {
+            redisplay();
+            flush();
+
+            KeyMap keyMap = new KeyMap("menuselect");
+            keyMap.bind("\t", "complete");
+            keyMap.bind("\r", "accept");
+            keyMap.bind("\n", "accept");
+            keyMap.bind(console.getStringCapability(Capability.cursor_up), "up");
+            keyMap.bind(console.getStringCapability(Capability.cursor_down), "down");
+            keyMap.bind(console.getStringCapability(Capability.cursor_left), "left");
+            keyMap.bind(console.getStringCapability(Capability.cursor_right), "right");
+
+            Object operation;
+            while ((operation = readBinding(getKeys(), keyMap)) != null) {
+                if ("complete".equals(operation)) {
+                    selection = (selection + 1) % possible.size();
+                    computePost(possible, possible.get(selection));
+                } else if ("accept".equals(operation)) {
+                    return true;
+                }
+                redisplay();
+                flush();
+            }
+        }
+
+        return !candidates.isEmpty();
+    }
+
+    private void computePost(List<Candidate> possible, Candidate selection) {
+        boolean displayDesc = false;
+        boolean groupName = isSet("group");
+        if (groupName) {
+            LinkedHashMap<String, TreeMap<String, Candidate>> sorted = new LinkedHashMap<>();
+            for (Candidate cand : possible) {
+                String group = cand.group();
+                sorted.computeIfAbsent(group != null ? group : "", s -> new TreeMap<>())
+                        .put(cand.value(), cand);
+            }
+            List<String[]> strings = new ArrayList<>();
+            for (Map.Entry<String, TreeMap<String, Candidate>> entry : sorted.entrySet()) {
+                String group = entry.getKey();
+                if (group.isEmpty() && sorted.size() > 1) {
+                    group = "others";
+                }
+                if (!group.isEmpty()) {
+                    strings.add(new String[] { Ansi.ansi().fg(Color.CYAN).a(group).reset().toString() });
+                }
+                if (displayDesc) {
+                    for (Candidate cand : entry.getValue().values()) {
+                        strings.add(new String[] {
+                           cand.value(), cand.descr()
+                        });
+                    }
+                } else {
+                    List<String> strs = new ArrayList<>();
+                    for (Candidate cand : entry.getValue().values()) {
+                        if (cand == selection) {
+                            strs.add(Ansi.ansi().a(Attribute.NEGATIVE_ON).a(cand.value()).a(Attribute.NEGATIVE_OFF).toString());
+                        } else {
+                            strs.add(cand.value());
+                        }
+                    }
+                    strings.add(strs.toArray(new String[strs.size()]));
+                }
+            }
+            post = strings.toArray(new String[strings.size()][]);
+        } else {
+            Set<String> groups = new LinkedHashSet<>();
+            TreeMap<String, Candidate> sorted = new TreeMap<>();
+            for (Candidate cand : possible) {
+                String group = cand.group();
+                if (group != null) {
+                    groups.add(group);
+                }
+                sorted.put(AnsiHelper.strip(cand.value()), cand);
+            }
+            List<String[]> strings = new ArrayList<>();
+            for (String group : groups) {
+                strings.add(new String[] { Ansi.ansi().fg(Color.CYAN).a(group).reset().toString() });
+            }
+            List<String> strs = new ArrayList<>();
+            for (Candidate cand : sorted.values()) {
+                if (cand == selection) {
+                    strs.add(Ansi.ansi().a(Attribute.NEGATIVE_ON).a(cand.value()).a(Attribute.NEGATIVE_OFF).toString());
+                } else {
+                    strs.add(cand.value());
+                }
+            }
+            strings.add(strs.toArray(new String[strs.size()]));
+            post = strings.toArray(new String[strings.size()][]);
+        }
+    }
+
+    private String getHigherBound(String str) {
+        int[] s = str.codePoints().toArray();
+        s[s.length - 1]++;
+        return new String(s, 0, s.length);
+    }
+
+    private String getCommonStart(String str1, String str2, boolean caseInsensitive) {
+        int[] s1 = str1.codePoints().toArray();
+        int[] s2 = str2.codePoints().toArray();
+        int len = 0;
+        while (len < Math.min(s1.length, s2.length)) {
+            int ch1 = s1[len];
+            int ch2 = s2[len];
+            if (ch1 != ch2 && caseInsensitive) {
+                ch1 = Character.toUpperCase(ch1);
+                ch2 = Character.toUpperCase(ch2);
+                if (ch1 != ch2) {
+                    ch1 = Character.toLowerCase(ch1);
+                    ch2 = Character.toLowerCase(ch2);
+                }
+            }
+            if (ch1 != ch2) {
+                break;
+            }
+            len++;
+        }
+        return new String(s1, 0, len);
     }
 
     /**
@@ -3045,9 +3312,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return buf.delete();
     }
 
-    protected void killWholeLine() {
-        beginningOfLine();
-        killLine();
+    protected boolean killWholeLine() {
+        return beginningOfLine() && killLine();
     }
 
     /**
@@ -3065,46 +3331,46 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return true;
     }
 
-    public void yank() {
+    public boolean yank() {
         String yanked = killRing.yank();
         if (yanked == null) {
-            beep();
+            return false;
         } else {
             putString(yanked);
+            return true;
         }
     }
 
-    public void yankPop() {
+    public boolean yankPop() {
         if (!killRing.lastYank()) {
-            beep();
-            return;
+            return false;
         }
         String current = killRing.yank();
         if (current == null) {
             // This shouldn't happen.
-            beep();
-            return;
+            return false;
         }
         buf.backspace(current.length());
         String yanked = killRing.yankPop();
         if (yanked == null) {
             // This shouldn't happen.
-            beep();
-            return;
+            return false;
         }
 
         putString(yanked);
+        return true;
     }
 
     /**
      * Clear the screen by issuing the ANSI "clear screen" code.
      */
-    public void clearScreen() {
+    public boolean clearScreen() {
         if (console.puts(Capability.clear_screen)) {
             redrawLine();
         } else {
             println();
         }
+        return true;
     }
 
     /**
@@ -3144,7 +3410,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      *
      * @return true if clipboard contents pasted
      */
-    public boolean paste() {
+    public boolean pasteFromClipboard() {
         Clipboard clipboard;
         try { // May throw ugly exception on system without X
             clipboard = java.awt.Toolkit.getDefaultToolkit().getSystemClipboard();
@@ -3226,6 +3492,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * <p/>
      * Say you want to close the application if the user enter q.
      * addTriggerAction('q', new ActionListener(){ System.exit(0); }); would do the trick.
+     *
+     * TODO: deprecate
      */
     public void addTriggeredAction(final char c, final Widget widget) {
         getKeys().bind(Character.toString(c), widget);
@@ -3241,8 +3509,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      *
      * @param candidates the list of candidates to print
      */
-    public void printCandidates(Collection<String> candidates) 
+    public void printCandidates(Collection<Candidate> candidates)
     {
+        /*
         candidates = new LinkedHashSet<>(candidates);
 
         int max = getInt(COMPLETION_QUERY_ITEMS, 100);
@@ -3275,13 +3544,22 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             println();
         }
         else {
-            post = candidates.toArray(new String[candidates.size()]);
+            post = candidates.toArray(new Candidate[candidates.size()]);
         }
+        */
     }
 
-    protected String toColumns(String[] items, int width) {
+    protected String toColumns(String[][] items, int width) {
+        StringBuilder buff = new StringBuilder();
+        for (String[] part : items) {
+            toColumns(part, width, buff);
+        }
+        return buff.toString();
+    }
+
+    protected void toColumns(String[] items, int width, StringBuilder buff) {
         if (items == null || items.length == 0) {
-            return "";
+            return;
         }
         int maxWidth = 0;
         for (String item : items) {
@@ -3291,7 +3569,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
         maxWidth = maxWidth + 3;
 
-        StringBuilder buff = new StringBuilder();
         int realLength = 0;
         for (String item : items) {
             if ((realLength + maxWidth) > width) {
@@ -3307,7 +3584,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             realLength += maxWidth;
         }
         buff.append('\n');
-        return buff.toString();
     }
 
     /**
@@ -3383,115 +3659,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
     }
 
-    public void printSearchStatus(String searchTerm, String match) {
-        printSearchStatus(searchTerm, match, "bck-i-search");
-    }
-
-    public void printForwardSearchStatus(String searchTerm, String match) {
-        printSearchStatus(searchTerm, match, "i-search");
-    }
-
-    protected void printSearchStatus(String searchTerm, String match, String searchLabel) {
-        // Grab the prompt lines but the last one
-        post = new String[] { searchLabel + ": " + searchTerm + "_" };
-        setBuffer(match);
-        buf.move(match.indexOf(searchTerm) - buf.cursor());
-    }
-
-    public void restoreLine() {
-        setPrompt(originalPrompt);
-        this.post = null;
-    }
-
-    //
-    // History search
-    //
-    /**
-     * Search backward in history from a given position.
-     *
-     * @param searchTerm substring to search for.
-     * @param startIndex the index from which on to search
-     * @return index where this substring has been found, or -1 else.
-     */
-    public int searchBackwards(String searchTerm, int startIndex) {
-        return searchBackwards(searchTerm, startIndex, false);
-    }
-
-    /**
-     * Search backwards in history from the current position.
-     *
-     * @param searchTerm substring to search for.
-     * @return index where the substring has been found, or -1 else.
-     */
-    public int searchBackwards(String searchTerm) {
-        return searchBackwards(searchTerm, history.index());
-    }
-
-
-    public int searchBackwards(String searchTerm, int startIndex, boolean startsWith) {
-        ListIterator<History.Entry> it = history.entries(startIndex);
-        while (it.hasPrevious()) {
-            History.Entry e = it.previous();
-            if (startsWith) {
-                if (e.value().startsWith(searchTerm)) {
-                    return e.index();
-                }
-            } else {
-                if (e.value().contains(searchTerm)) {
-                    return e.index();
-                }
-            }
-        }
-        return -1;
-    }
-
-    /**
-     * Search forward in history from a given position.
-     *
-     * @param searchTerm substring to search for.
-     * @param startIndex the index from which on to search
-     * @return index where this substring has been found, or -1 else.
-     */
-    public int searchForwards(String searchTerm, int startIndex) {
-        return searchForwards(searchTerm, startIndex, false);
-    }
-    /**
-     * Search forwards in history from the current position.
-     *
-     * @param searchTerm substring to search for.
-     * @return index where the substring has been found, or -1 else.
-     */
-    public int searchForwards(String searchTerm) {
-        return searchForwards(searchTerm, history.index());
-    }
-
-    public int searchForwards(String searchTerm, int startIndex, boolean startsWith) {
-        if (startIndex >= history.size()) {
-            startIndex = history.size() - 1;
-        }
-
-        ListIterator<History.Entry> it = history.entries(startIndex);
-
-        if (searchIndex != -1 && it.hasNext()) {
-            it.next();
-        }
-
-        while (it.hasNext()) {
-            History.Entry e = it.next();
-            if (startsWith) {
-                if (e.value().toString().startsWith(searchTerm)) {
-                    return e.index();
-                }
-            } else {
-                if (e.value().toString().contains(searchTerm)) {
-                    return e.index();
-                }
-            }
-        }
-        return -1;
-    }
-
-    //
+      //
     // Helpers
     //
 
@@ -3526,6 +3694,10 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     public void setVariable(String name, String value) {
         variables.put(name, value);
+    }
+
+    private boolean isSet(String name) {
+        return getBoolean(name, false);
     }
 
     boolean getBoolean(String name, boolean def) {

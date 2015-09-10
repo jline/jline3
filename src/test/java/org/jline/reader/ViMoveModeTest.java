@@ -8,8 +8,6 @@
  */
 package org.jline.reader;
 
-import java.io.EOFException;
-
 import org.jline.History;
 import org.junit.Before;
 import org.junit.Test;

@@ -15,7 +15,9 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.jline.Candidate;
 import org.jline.Completer;
+import org.jline.reader.ParsedLine;
 import org.jline.utils.AnsiHelper;
 
 import static org.jline.utils.Preconditions.checkNotNull;
@@ -50,24 +52,19 @@ public class AnsiStringsCompleter
         return strings.values();
     }
 
-    public int complete(String buffer, final int cursor, final List<String> candidates) {
-        // buffer could be null
+    public int complete(ParsedLine line, final List<Candidate> candidates) {
+        checkNotNull(line);
         checkNotNull(candidates);
 
-        if (buffer == null) {
-            candidates.addAll(strings.values());
-        }
-        else {
-            buffer = AnsiHelper.strip(buffer);
-            for (Map.Entry<String, String> match : strings.tailMap(buffer).entrySet()) {
-                if (!match.getKey().startsWith(buffer)) {
-                    break;
-                }
-
-                candidates.add(match.getValue());
+        String buffer = line.word().substring(0, line.wordCursor());
+        buffer = AnsiHelper.strip(buffer);
+        for (Map.Entry<String, String> match : strings.tailMap(buffer).entrySet()) {
+            if (!match.getKey().startsWith(buffer)) {
+                break;
             }
+            candidates.add(new Candidate(match.getValue()));
         }
 
-        return candidates.isEmpty() ? -1 : 0;
+        return candidates.isEmpty() ? -1 : line.bufferCursor() - line.wordCursor();
     }
 }

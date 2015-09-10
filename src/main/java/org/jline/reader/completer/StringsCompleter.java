@@ -14,7 +14,9 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.jline.Candidate;
 import org.jline.Completer;
+import org.jline.reader.ParsedLine;
 
 import static org.jline.utils.Preconditions.checkNotNull;
 
@@ -46,23 +48,10 @@ public class StringsCompleter
         return strings;
     }
 
-    public int complete(final String buffer, final int cursor, final List<String> candidates) {
-        // buffer could be null
+    public int complete(final ParsedLine line, final List<Candidate> candidates) {
+        checkNotNull(line);
         checkNotNull(candidates);
-
-        if (buffer == null) {
-            candidates.addAll(strings);
-        }
-        else {
-            for (String match : strings.tailSet(buffer)) {
-                if (!match.startsWith(buffer)) {
-                    break;
-                }
-
-                candidates.add(match);
-            }
-        }
-
-        return candidates.isEmpty() ? -1 : 0;
+        strings.forEach(s -> candidates.add(new Candidate(s)));
+        return 0;
     }
 }

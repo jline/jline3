@@ -29,7 +29,7 @@ public class ConsoleKeys {
     private KeyMap keys;
 
     private Map<String, KeyMap> keyMaps;
-    private Map<String, String> variables = new HashMap<String,String>();
+    private Map<String, String> variables = new HashMap<>();
 
     public ConsoleKeys(String appName, URL inputrcUrl) {
         keyMaps = KeyMap.keyMaps();
@@ -92,7 +92,7 @@ public class ConsoleKeys {
         BufferedReader reader = new BufferedReader( new java.io.InputStreamReader( input ) );
         String line;
         boolean parsing = true;
-        List<Boolean> ifsStack = new ArrayList<Boolean>();
+        List<Boolean> ifsStack = new ArrayList<>();
         while ( (line = reader.readLine()) != null ) {
             try {
                 line = line.trim();
@@ -155,7 +155,7 @@ public class ConsoleKeys {
                     continue;
                 }
                 boolean equivalency;
-                String keySeq = "";
+                String keySeq;
                 if (line.charAt(i++) == '"') {
                     boolean esc = false;
                     for (;; i++) {
@@ -230,13 +230,13 @@ public class ConsoleKeys {
                         keySeq += key;
                     }
                     if (val.length() > 0 && (val.charAt(0) == '\'' || val.charAt(0) == '\"')) {
-                        keys.bind( keySeq, translateQuoted(val) );
+                        keys.bind(keySeq, new Macro(translateQuoted(val)));
                     } else {
                         String operationName = val.replace('-', '_').toUpperCase();
                         try {
-                          keys.bind(keySeq, Operation.valueOf(operationName));
+                            keys.bind(keySeq, Operation.valueOf(operationName));
                         } catch(IllegalArgumentException e) {
-                          Log.info("Unable to bind key for unsupported operation: ", val);
+                            Log.info("Unable to bind key for unsupported operation: ", val);
                         }
                     }
                 }
@@ -332,21 +332,28 @@ public class ConsoleKeys {
         return keySeq;
     }
 
-    private char getKeyFromName(String name) {
-        if ("DEL".equalsIgnoreCase(name) || "Rubout".equalsIgnoreCase(name)) {
-            return 0x7f;
-        } else if ("ESC".equalsIgnoreCase(name) || "Escape".equalsIgnoreCase(name)) {
-            return '\033';
-        } else if ("LFD".equalsIgnoreCase(name) || "NewLine".equalsIgnoreCase(name)) {
-            return '\n';
-        } else if ("RET".equalsIgnoreCase(name) || "Return".equalsIgnoreCase(name)) {
-            return '\r';
-        } else if ("SPC".equalsIgnoreCase(name) || "Space".equalsIgnoreCase(name)) {
-            return ' ';
-        } else if ("Tab".equalsIgnoreCase(name)) {
-            return '\t';
-        } else {
-            return name.charAt(0);
+    private char getKeyFromName(String org) {
+        String name = org.toLowerCase();
+        switch (name) {
+            case "del":
+            case "rubout":
+                return 0x7f;
+            case "esc":
+            case "escape":
+                return '\033';
+            case "lfd":
+            case "newline":
+                return '\n';
+            case "ret":
+            case "return":
+                return '\r';
+            case "spc":
+            case "space":
+                return ' ';
+            case "tab":
+                return '\t';
+            default:
+                return org.charAt(0);
         }
     }
 

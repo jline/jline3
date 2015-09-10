@@ -11,7 +11,9 @@ package org.jline.reader.completer;
 import java.io.File;
 import java.util.List;
 
+import org.jline.Candidate;
 import org.jline.Completer;
+import org.jline.reader.ParsedLine;
 
 import static org.jline.utils.Preconditions.checkNotNull;
 
@@ -47,10 +49,11 @@ public class FileNameCompleter
         OS_IS_WINDOWS = os.contains("windows");
     }
 
-    public int complete(String buffer, final int cursor, final List<String> candidates) {
-        // buffer can be null
+    public int complete(ParsedLine line, final List<Candidate> candidates) {
+        checkNotNull(line);
         checkNotNull(candidates);
 
+        String buffer = line.word();
         if (buffer == null) {
             buffer = "";
         }
@@ -102,7 +105,7 @@ public class FileNameCompleter
         return new File(System.getProperty("user.dir"));
     }
 
-    protected int matchFiles(final String buffer, final String translated, final File[] files, final List<String> candidates) {
+    protected int matchFiles(final String buffer, final String translated, final File[] files, final List<Candidate> candidates) {
         if (files == null) {
             return -1;
         }
@@ -118,7 +121,7 @@ public class FileNameCompleter
         for (File file : files) {
             if (file.getAbsolutePath().startsWith(translated)) {
                 CharSequence name = file.getName() + (matches == 1 && file.isDirectory() ? separator() : " ");
-                candidates.add(render(file, name).toString());
+                candidates.add(new Candidate(render(file, name).toString()));
             }
         }
 

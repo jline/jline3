@@ -15,15 +15,15 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.jline.Completer;
 import org.jline.Console;
 import org.jline.JLine;
 import org.jline.JLine.ConsoleBuilder;
-import org.jline.reader.CandidateListCompletionHandler;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.UserInterruptException;
-import org.jline.reader.completer.AnsiStringsCompleter;
 import org.jline.reader.completer.ArgumentCompleter;
 import org.jline.reader.completer.FileNameCompleter;
 import org.jline.reader.completer.StringsCompleter;
@@ -137,10 +137,7 @@ public class Example
                                     .toFormatter()))
                             .reset()
                             .toString();
-                    completers.add(new AnsiStringsCompleter("\u001B[1mfoo\u001B[0m", "bar", "\u001B[32mbaz\u001B[0m"));
-                    CandidateListCompletionHandler handler = new CandidateListCompletionHandler();
-                    handler.setStripAnsi(true);
-                    builder.completionHandler(handler);
+                    completers.add(new StringsCompleter("\u001B[1mfoo\u001B[0m", "bar", "\u001B[32mbaz\u001B[0m", "foobar"));
                     break;
                 }
                 else {
@@ -172,6 +169,7 @@ public class Example
                     continue;
                 }
 
+                line = line.trim();
                 if (color){
                     console.writer().println("\u001B[33m======>\u001B[0m\"" + line + "\"");
 
@@ -187,6 +185,22 @@ public class Example
                 }
                 if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) {
                     break;
+                }
+                Matcher matcher = Pattern.compile("set\\s+(\\S+)\\s+(\\S+)").matcher(line);
+                if (matcher.matches()) {
+                    String opt = matcher.group(1);
+                    String val = matcher.group(2);
+                    builder.variable(opt, val);
+                }
+                matcher = Pattern.compile("tput\\s+(\\S+)").matcher(line);
+                if (matcher.matches()) {
+                    String val = matcher.group(1);
+                    Capability vcap = Capability.byName(val);
+                    if (vcap != null) {
+                        console.puts(vcap);
+                    } else {
+                        console.writer().println("Unknown capability");
+                    }
                 }
                 if (line.equalsIgnoreCase("cls")) {
                     console.puts(Capability.clear_screen);

@@ -14,6 +14,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.net.URL;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.jline.Console;
 import org.jline.JLine.ConsoleReaderBuilder;
@@ -33,14 +37,23 @@ public abstract class ReaderTestSupport
     protected ConsoleReaderImpl reader;
     protected EofPipedInputStream in;
     protected ByteArrayOutputStream out;
+    protected Character mask;
 
     @Before
     public void setUp() throws Exception {
+        Handler ch = new ConsoleHandler();
+        ch.setLevel(Level.FINEST);
+        Logger logger = Logger.getLogger("org.jline");
+        logger.addHandler(ch);
+        // Set the handler log level
+        logger.setLevel(Level.INFO);
+
         in = new EofPipedInputStream();
         out = new ByteArrayOutputStream();
         console = new DumbConsole(new ConsoleReaderBuilder().inputrc(new URL("file:/do/not/exists")), in, out);
         reader = (ConsoleReaderImpl) console.newConsoleReader();
         reader.setKeyMap(KeyMap.EMACS);
+        mask = null;
     }
 
     protected void assertConsoleOutputContains(String s) {
@@ -72,7 +85,7 @@ public abstract class ReaderTestSupport
         //String line;
         //while ((line = reader.readLine((String) null)) != null) {
             //System.err.println("Read line: " + line);
-        while ((reader.readLine((String) null)) != null) {
+        while ((reader.readLine(null, null, mask, null)) != null) {
             // noop
         }
 
@@ -92,11 +105,15 @@ public abstract class ReaderTestSupport
         //String line;
         //while ((line = reader.readLine((String) null)) != null) {
             //System.err.println("Read line: " + line);
-        while ((reader.readLine((String) null)) != null) {
+        while ((reader.readLine(null, null, mask, null)) != null) {
             // noop
         }
 
         assertEquals(pos, reader.getCursorPosition());
+    }
+
+    protected void assertLine(final String expected, final TestBuffer buffer) {
+        assertLine(expected, buffer, true);
     }
 
     /**
@@ -120,7 +137,7 @@ public abstract class ReaderTestSupport
 
         String line;
         String prevLine = null;
-        while ((line = reader.readLine((String) null)) != null) {
+        while ((line = reader.readLine(null, null, mask, null)) != null) {
 
             prevLine = line;
         }
@@ -139,7 +156,7 @@ public abstract class ReaderTestSupport
             case PREVIOUS_HISTORY:     return "\033[A";
             case NEXT_HISTORY:         return "\033[B";
             case BACKWARD_CHAR:        return "\u0002";
-            case COMPLETE:             return "\011";
+            case COMPLETE_WORD:             return "\011";
             case BACKWARD_DELETE_CHAR: return "\010";
             case VI_EOF_MAYBE:         return "\004";
             case BACKWARD_KILL_WORD:   return new String(new char[]{27, 127});
@@ -150,6 +167,13 @@ public abstract class ReaderTestSupport
         }
     }
 
+    protected static char ctrl(char let) {
+        if (let < 'A' || let > 'Z')
+            throw new RuntimeException("Cannot generate CTRL code for "
+                    + "char '" + let + "' (" + ((int)let) + ")");
+        return (char)(let - 'A' + 1);
+    }
+
     protected class TestBuffer
     {
         private final ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -158,8 +182,17 @@ public abstract class ReaderTestSupport
             // nothing
         }
 
-        public TestBuffer(final String str) {
+        public TestBuffer(String str) {
             append(str);
+        }
+
+        public TestBuffer(char[] chars) {
+            append(new String(chars));
+        }
+
+        @Override
+        public String toString() {
+            return out.toString();
         }
 
         public byte[] getBytes() {
@@ -171,11 +204,11 @@ public abstract class ReaderTestSupport
         }
 
         public TestBuffer ctrlA() {
-            return append("\001");
+            return ctrl('A');
         }
 
         public TestBuffer ctrlD() {
-            return append("\004");
+            return ctrl('D');
         }
 
         /**
@@ -186,14 +219,7 @@ public abstract class ReaderTestSupport
          * @return The modified buffer.
          */
         public TestBuffer ctrl(char let) {
-
-            if (let < 'A' || let > 'Z')
-                throw new RuntimeException("Cannot generate CTRL code for "
-                    + "char '" + let + "' (" + ((int)let) + ")");
-
-            int ch = (((int)let) - 'A') + 1;
-
-            return append((char)ch);
+            return append(ReaderTestSupport.ctrl(let));
         }
 
         public TestBuffer enter() {
@@ -205,11 +231,11 @@ public abstract class ReaderTestSupport
         }
 
         public TestBuffer ctrlU() {
-            return append("\025");
+            return ctrl('U');
         }
 
         public TestBuffer tab() {
-            return op(Operation.COMPLETE);
+            return op(Operation.COMPLETE_WORD);
         }
 
         public TestBuffer escape() {
@@ -232,7 +258,7 @@ public abstract class ReaderTestSupport
 
         public TestBuffer left(int n) {
             for (int i = 0; i < n; i++)
-                append("\033[D");
+                left();
             return this;
         }
 
@@ -242,7 +268,7 @@ public abstract class ReaderTestSupport
 
         public TestBuffer right(int n) {
             for (int i = 0; i < n; i++)
-                append("\033[C");
+                right();
             return this;
         }
 

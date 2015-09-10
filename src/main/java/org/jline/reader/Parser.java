@@ -6,9 +6,10 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline;
+package org.jline.reader;
 
-public interface Highlighter {
+public interface Parser {
 
-    String highlight(ConsoleReader reader, String buffer);
+    ParsedLine parse(String line, int cursor);
+
 }

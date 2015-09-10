@@ -10,7 +10,9 @@ package org.jline.reader.completer;
 
 import java.util.List;
 
+import org.jline.Candidate;
 import org.jline.Completer;
+import org.jline.reader.ParsedLine;
 
 /**
  * Null completer.
@@ -24,7 +26,7 @@ public final class NullCompleter
 {
     public static final NullCompleter INSTANCE = new NullCompleter();
 
-    public int complete(final String buffer, final int cursor, final List<String> candidates) {
+    public int complete(final ParsedLine line, final List<Candidate> candidates) {
         return -1;
     }
 }

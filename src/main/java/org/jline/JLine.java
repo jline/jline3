@@ -24,7 +24,6 @@ import org.jline.console.PosixPtyConsole;
 import org.jline.console.PosixSysConsole;
 import org.jline.console.Pty;
 import org.jline.console.WinSysConsole;
-import org.jline.reader.CompletionHandler;
 import org.jline.reader.ConsoleReaderImpl;
 import org.jline.reader.history.MemoryHistory;
 
@@ -111,11 +110,6 @@ public final class JLine {
             return this;
         }
 
-        public ConsoleBuilder completionHandler(CompletionHandler completionHandler) {
-            consoleReaderBuilder.completionHandler(completionHandler);
-            return this;
-        }
-
         public ConsoleBuilder highlighter(Highlighter highlighter) {
             consoleReaderBuilder.highlighter(highlighter);
             return this;
@@ -164,7 +158,6 @@ public final class JLine {
         Map<String, String> variables = new HashMap<>();
         History history;
         List<Completer> completers;
-        CompletionHandler completionHandler;
         History memoryHistory;
         Highlighter highlighter;
 
@@ -201,11 +194,6 @@ public final class JLine {
             return this;
         }
 
-        public ConsoleReaderBuilder completionHandler(CompletionHandler completionHandler) {
-            this.completionHandler = completionHandler;
-            return this;
-        }
-
         public ConsoleReaderBuilder highlighter(Highlighter highlighter) {
             this.highlighter = highlighter;
             return this;
@@ -223,9 +211,6 @@ public final class JLine {
             }
             if (completers != null) {
                 reader.setCompleters(completers);
-            }
-            if (completionHandler != null) {
-                reader.setCompletionHandler(completionHandler);
             }
             if (highlighter != null) {
                 reader.setHighlighter(highlighter);

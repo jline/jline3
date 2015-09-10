@@ -56,6 +56,52 @@ public class KeyMap {
         this.anotherKey = other.anotherKey;
     }
 
+    public boolean isPrefix(CharSequence keySeq) {
+        if (keySeq != null && keySeq.length() > 0) {
+            KeyMap map = this;
+            for (int i = 0; i < keySeq.length(); i++) {
+                char c = keySeq.charAt(i);
+                if (c > 255) {
+                    return false;
+                }
+                if (map.mapping[c] instanceof KeyMap) {
+                    if (i == keySeq.length() - 1) {
+                        return map.mapping[c] != null;
+                    } else {
+                        map = (KeyMap) map.mapping[c];
+                    }
+                } else {
+                    return map.mapping[c] != null;
+                }
+            }
+        }
+        return false;
+    }
+
+    public Object getBound(CharSequence keySeq, int[] remaining) {
+        remaining[0] = -1;
+        if (keySeq != null && keySeq.length() > 0) {
+            char c = keySeq.charAt(0);
+            if (c > 255) {
+                remaining[0] = keySeq.length() - (Character.isHighSurrogate(c) ?  2 : 1);
+                return Operation.SELF_INSERT;
+            } else {
+                if (mapping[c] instanceof KeyMap) {
+                    CharSequence sub = keySeq.subSequence(1, keySeq.length());
+                    return ((KeyMap) mapping[c]).getBound(sub, remaining);
+                } else if (mapping[c] != null) {
+                    remaining[0] = keySeq.length() - 1;
+                    return mapping[c];
+                } else {
+                    remaining[0] = keySeq.length();
+                    return anotherKey;
+                }
+            }
+        } else {
+            return null;
+        }
+    }
+
     public Object getBound( CharSequence keySeq ) {
         if (keySeq != null && keySeq.length() > 0) {
             KeyMap map = this;
@@ -253,7 +299,7 @@ public class KeyMap {
                         Operation.FORWARD_CHAR,             /* Control-F */
                         Operation.ABORT,                    /* Control-G */
                         Operation.BACKWARD_DELETE_CHAR,     /* Control-H */
-                        Operation.COMPLETE,                 /* Control-I */
+                        Operation.COMPLETE_WORD,                 /* Control-I */
                         Operation.ACCEPT_LINE,              /* Control-J */
                         Operation.KILL_LINE,                /* Control-K */
                         Operation.CLEAR_SCREEN,             /* Control-L */
@@ -327,7 +373,7 @@ public class KeyMap {
         map[CTRL_M] = Operation.VI_EDITING_MODE;
         map[CTRL_R] = Operation.REVERT_LINE;
         map[CTRL_Y] = Operation.YANK_NTH_ARG;
-        map[CTRL_OB] = Operation.COMPLETE;
+        map[CTRL_OB] = Operation.COMPLETE_WORD;
         map[CTRL_CB] = Operation.CHARACTER_SEARCH_BACKWARD;
         map[' '] = Operation.SET_MARK;
         map['#'] = Operation.INSERT_COMMENT;
@@ -372,7 +418,7 @@ public class KeyMap {
                         Operation.SELF_INSERT,              /* Control-F */
                         Operation.SELF_INSERT,              /* Control-G */
                         Operation.BACKWARD_DELETE_CHAR,     /* Control-H */
-                        Operation.COMPLETE,                 /* Control-I */
+                        Operation.COMPLETE_WORD,                 /* Control-I */
                         Operation.ACCEPT_LINE,              /* Control-J */
                         Operation.SELF_INSERT,              /* Control-K */
                         Operation.SELF_INSERT,              /* Control-L */

@@ -14,7 +14,9 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.jline.Candidate;
 import org.jline.Completer;
+import org.jline.reader.ParsedLine;
 
 import static org.jline.utils.Preconditions.checkNotNull;
 
@@ -66,10 +68,10 @@ public class AggregateCompleter
     /**
      * Perform a completion operation across all aggregated completers.
      *
-     * @see Completer#complete(String, int, List)
+     * @see Completer#complete(ParsedLine, List)
      * @return the highest completion return value from all completers
      */
-    public int complete(final String buffer, final int cursor, final List<String> candidates) {
+    public int complete(final ParsedLine line, final List<Candidate> candidates) {
         // buffer could be null
         checkNotNull(candidates);
 
@@ -79,7 +81,7 @@ public class AggregateCompleter
         int max = -1;
         for (Completer completer : completers) {
             Completion completion = new Completion(candidates);
-            completion.complete(completer, buffer, cursor);
+            completion.complete(completer, line);
 
             // Compute the max cursor position
             max = Math.max(max, completion.cursor);
@@ -109,18 +111,18 @@ public class AggregateCompleter
 
     private class Completion
     {
-        public final List<String> candidates;
+        public final List<Candidate> candidates;
 
         public int cursor;
 
-        public Completion(final List<String> candidates) {
+        public Completion(final List<Candidate> candidates) {
             checkNotNull(candidates);
             this.candidates = new LinkedList<>(candidates);
         }
 
-        public void complete(final Completer completer, final String buffer, final int cursor) {
+        public void complete(final Completer completer, final ParsedLine line) {
             checkNotNull(completer);
-            this.cursor = completer.complete(buffer, cursor, candidates);
+            this.cursor = completer.complete(line, candidates);
         }
     }
 }

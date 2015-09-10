@@ -153,11 +153,7 @@ public class Buffer
         if (start >= end || start < 0 || end > length) {
             return "";
         }
-        StringBuilder sb = new StringBuilder();
-        for (int i = start; i < end; i++) {
-            sb.appendCodePoint(buffer[i]);
-        }
-        return sb.toString();
+        return new String(buffer, start, end - start);
     }
 
     public String upToCursor() {

@@ -21,16 +21,26 @@ public class KeyMapTest {
 
         KeyMap map = KeyMap.emacs();
 
-        assertEquals( Operation.COMPLETE, map.getBound("\u001B" + KeyMap.CTRL_OB) );
-        assertEquals( Operation.BACKWARD_WORD, map.getBound(KeyMap.ESCAPE + "b") );
+        assertEquals(Operation.COMPLETE_WORD, map.getBound("\u001B" + KeyMap.CTRL_OB));
+        assertEquals(Operation.BACKWARD_WORD, map.getBound(KeyMap.ESCAPE + "b"));
 
         map.bindIfNotBound("\033[0A", Operation.PREVIOUS_HISTORY);
-        assertEquals( Operation.PREVIOUS_HISTORY, map.getBound("\033[0A") );
+        assertEquals(Operation.PREVIOUS_HISTORY, map.getBound("\033[0A"));
 
 
-        map.bind( "\033[0AB", Operation.NEXT_HISTORY );
-        assertTrue( map.getBound("\033[0A") instanceof KeyMap );
-        assertEquals( Operation.NEXT_HISTORY , map.getBound("\033[0AB") );
+        map.bind("\033[0AB", Operation.NEXT_HISTORY);
+        assertTrue(map.getBound("\033[0A") instanceof KeyMap);
+        assertEquals(Operation.NEXT_HISTORY, map.getBound("\033[0AB"));
+
+        int[] remaining = new int[1];
+        assertEquals(Operation.COMPLETE_WORD, map.getBound("\u001B" + KeyMap.CTRL_OB + "a", remaining));
+        assertEquals(1, remaining[0]);
+
+        map.bind(KeyMap.CTRL_U + "c", "anotherkey");
+        assertEquals("anotherkey", map.getBound(KeyMap.CTRL_U + "c", remaining));
+        assertEquals(0, remaining[0]);
+        assertEquals(Operation.UNIX_LINE_DISCARD, map.getBound(KeyMap.CTRL_U + "a", remaining));
+        assertEquals(1, remaining[0]);
     }
 
 }

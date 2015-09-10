@@ -86,6 +86,10 @@ public class AnsiWriter extends FilterWriter {
         write(str, 0, str.length());
     }
 
+    protected void doWrite(int data) throws IOException {
+        out.write(data);
+    }
+
     public void write(int data) throws IOException {
         switch( state ) {
             case LOOKING_FOR_FIRST_ESC_CHAR:
@@ -93,7 +97,7 @@ public class AnsiWriter extends FilterWriter {
                     buffer[pos++] = (char) data;
                     state = LOOKING_FOR_SECOND_ESC_CHAR;
                 } else {
-                    out.write(data);
+                    doWrite(data);
                 }
                 break;
 
@@ -218,7 +222,9 @@ public class AnsiWriter extends FilterWriter {
      */
     private void reset(boolean skipBuffer) throws IOException {
         if( !skipBuffer ) {
-            out.write(buffer, 0, pos);
+            for (int i = 0; i < pos; i++) {
+                doWrite(buffer[i]);
+            }
         }
         pos=0;
         startOfValue=0;
@@ -400,7 +406,7 @@ public class AnsiWriter extends FilterWriter {
     protected static final int ATTRIBUTE_INTENSITY_NORMAL 	= 22; // 	Intensity; Normal 	not bold and not faint
     protected static final int ATTRIBUTE_UNDERLINE_OFF 		= 24; // 	Underline; None
     protected static final int ATTRIBUTE_BLINK_OFF 			= 25; // 	Blink; off
-    protected static final int ATTRIBUTE_NEGATIVE_Off 		= 27; // 	Image; Positive
+    protected static final int ATTRIBUTE_NEGATIVE_OFF       = 27; // 	Image; Positive
     protected static final int ATTRIBUTE_CONCEAL_OFF 		= 28; // 	Reveal 	conceal off
 
     protected void processSetAttribute(int attribute) throws IOException {
@@ -440,20 +446,12 @@ public class AnsiWriter extends FilterWriter {
     }
 
     protected void processCursorDownLine(int count) throws IOException {
-        // Poor mans impl..
-        for(int i=0; i < count; i++) {
-            out.write('\n');
-        }
     }
 
     protected void processCursorLeft(int count) throws IOException {
     }
 
     protected void processCursorRight(int count) throws IOException {
-        // Poor mans impl..
-        for(int i=0; i < count; i++) {
-            out.write(' ');
-        }
     }
 
     protected void processCursorDown(int count) throws IOException {

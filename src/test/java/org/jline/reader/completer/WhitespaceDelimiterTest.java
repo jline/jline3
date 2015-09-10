@@ -8,27 +8,26 @@
  */
 package org.jline.reader.completer;
 
+import org.jline.reader.DefaultParser;
 import org.jline.reader.ReaderTestSupport;
-import org.jline.reader.completer.ArgumentCompleter.ArgumentList;
-import org.jline.reader.completer.ArgumentCompleter.WhitespaceArgumentDelimiter;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertArrayEquals;
 
 /**
- * Tests for {@link WhitespaceArgumentDelimiter}.
+ * Tests for {@link DefaultParser.WhitespaceArgumentDelimiter}.
  * 
  * @author <a href="mailto:mdrob@apache.org">Mike Drob</a>
  */
 public class WhitespaceDelimiterTest extends ReaderTestSupport {
 
-  ArgumentList delimited;
-  WhitespaceArgumentDelimiter delimiter;
+  DefaultParser.ArgumentList delimited;
+  DefaultParser.WhitespaceArgumentDelimiter delimiter;
 
   @Before
   public void setUp() {
-    delimiter = new WhitespaceArgumentDelimiter();
+    delimiter = new DefaultParser.WhitespaceArgumentDelimiter();
   }
 
   @Test

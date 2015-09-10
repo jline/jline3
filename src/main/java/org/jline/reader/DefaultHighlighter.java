@@ -8,19 +8,35 @@
  */
 package org.jline.reader;
 
+import org.jline.ConsoleReader;
 import org.jline.Highlighter;
 import org.jline.utils.Ansi;
+import org.jline.utils.Ansi.Attribute;
 import org.jline.utils.Ansi.Color;
 import org.jline.utils.WCWidth;
 
 public class DefaultHighlighter implements Highlighter {
 
     @Override
-    public String highlight(String buffer) {
+    public String highlight(ConsoleReader reader, String buffer) {
+        int underlineStart = -1;
+        int underlineEnd = -1;
+        if (reader instanceof ConsoleReaderImpl) {
+            StringBuffer search = ((ConsoleReaderImpl) reader).searchTerm;
+            if (search != null && search.length() > 0) {
+                underlineStart = buffer.indexOf(search.toString());
+                if (underlineStart >= 0) {
+                    underlineEnd = underlineStart + search.length() - 1;
+                }
+            }
+        }
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < buffer.length(); i++) {
+            if (i == underlineStart) {
+                sb.append(Ansi.ansi().a(Attribute.UNDERLINE).toString());
+            }
             char c = buffer.charAt(i);
-            if (c < 32) {
+            if (c < 32 && c != '\t') {
                 String s = Ansi.ansi().bg(Color.BLACK).fg(Color.WHITE)
                         .a('^').a((char) (c + '@')).reset().toString();
                 sb.append(s);
@@ -29,6 +45,9 @@ public class DefaultHighlighter implements Highlighter {
                 if (w > 0) {
                     sb.append(c);
                 }
+            }
+            if (i == underlineEnd) {
+                sb.append(Ansi.ansi().a(Attribute.UNDERLINE_OFF).toString());
             }
         }
         return sb.toString();
