@@ -59,7 +59,7 @@ public class DefaultParser implements Parser {
 
             @Override
             public int bufferCursor() {
-                return 0;
+                return cursor;
             }
         };
     }

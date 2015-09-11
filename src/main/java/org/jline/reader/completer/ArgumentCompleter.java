@@ -48,7 +48,7 @@ public class ArgumentCompleter
      * @param completers    The embedded completers
      */
     public ArgumentCompleter(final ArgumentDelimiter delimiter, final Collection<Completer> completers) {
-        this.delimiter = checkNotNull(delimiter);
+        this.delimiter = delimiter;
         checkNotNull(completers);
         this.completers.addAll(completers);
     }
@@ -69,7 +69,7 @@ public class ArgumentCompleter
      * @param completers    The embedded completers
      */
     public ArgumentCompleter(final Completer... completers) {
-        this(new DefaultParser.WhitespaceArgumentDelimiter(), completers);
+        this(null, completers);
     }
 
     /**
@@ -78,7 +78,7 @@ public class ArgumentCompleter
      * @param completers    The embedded completers
      */
     public ArgumentCompleter(final List<Completer> completers) {
-        this(new DefaultParser.WhitespaceArgumentDelimiter(), completers);
+        this(null, completers);
     }
 
     /**

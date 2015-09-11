@@ -3051,16 +3051,16 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         } else {
             boolean exact = false;
             String completion = null;
+            Map<String, List<Candidate>> matching = sortedCandidates.subMap(w, getHigherBound(w));
             // Found an exact match of the whole word
             if (sortedCandidates.containsKey(word)
-                    && (sortedCandidates.subMap(word, getHigherBound(word)).size() == 1
+                    && (matching.size() == 1
                         || isSet("recognize-exact"))) {
                 exact = true;
                 completion = line.word();
                 possible = Collections.emptyList();
                 doList = false;
             } else {
-                Map<String, List<Candidate>> matching = sortedCandidates.subMap(w, getHigherBound(w));
                 for (String key : matching.keySet()) {
                     completion = completion == null ? key : getCommonStart(completion, key, caseInsensitive);
                 }
@@ -3081,7 +3081,10 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                         doList = false;
                     }
                 }
-                else {
+                else if (possible.size() == 1) {
+                    exact = true;
+                    doList = false;
+                } else {
                     if (completion.length() == w.length()) {
                         completion = null;
                     }
@@ -3097,11 +3100,19 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             }
 
             if (completion != null) {
-                buf.move(word.length() - w.length());
-                buf.backspace(word.length());
-                buf.write(completion);
-                if (exact) {
-                    buf.write(" ");
+                if (isSet("complete-overwrite-word")) {
+                    buf.move(word.length() - w.length());
+                    buf.backspace(word.length());
+                    buf.write(completion);
+                    if (exact && buf.currChar() != ' ') {
+                        buf.write(" ");
+                    }
+                } else {
+                    buf.backspace(w.length());
+                    buf.write(completion);
+                    if (exact && buf.currChar() == 0) {
+                        buf.write(" ");
+                    }
                 }
             }
         }
