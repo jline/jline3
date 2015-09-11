@@ -721,7 +721,12 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         if (!getBoolean(DISABLE_EVENT_EXPANSION, false)) {
             try {
-                str = expandEvents(str);
+                String exp = expandEvents(str);
+                if (!exp.equals(str)) {
+                    str = exp;
+                    println(str);
+                    flush();
+                }
                 // all post-expansion occurrences of '!' must have been escaped, so re-add escape to each
                 historyLine = str.replace("!", "\\!");
                 // only leading '^' results in expansion, so only re-add escape for that case
@@ -890,13 +895,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                     break;
             }
         }
-        String result = sb.toString();
-        if (!str.equals(result)) {
-            println(result);
-            flush();
-        }
-        return result;
-
+        return sb.toString();
     }
 
     /**
