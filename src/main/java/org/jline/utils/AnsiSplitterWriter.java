@@ -21,6 +21,7 @@ public class AnsiSplitterWriter extends AnsiStatefulWriter {
     private int escapeLength;
     private int windowState;
     private int tabs;
+    private boolean forced;
     private List<String> lines = new ArrayList<>();
 
 
@@ -79,7 +80,7 @@ public class AnsiSplitterWriter extends AnsiStatefulWriter {
                 reset();
             }
             if (baos.getBuffer().length() - escapeLength >= maxLength) {
-                flushLine(true);
+                flushLine(false);
             }
         }
     }
@@ -89,11 +90,12 @@ public class AnsiSplitterWriter extends AnsiStatefulWriter {
         if (windowState == 0) {
             beginAttributes();
         }
-        flushLine(lines.isEmpty());
+        flushLine(forced);
         super.close();
     }
 
     protected void flushLine(boolean force) throws IOException {
+        this.forced = force;
         StringWriter baos = (StringWriter) out;
         if (windowState == 0) {
             beginAttributes();

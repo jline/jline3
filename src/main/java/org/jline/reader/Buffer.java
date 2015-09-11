@@ -24,6 +24,7 @@ public class Buffer
     private boolean overTyping = false;
 
     private int cursor = 0;
+    private int cursorCol = -1;
     private int length = 0;
     private int[] buffer = new int[64];
     
@@ -134,6 +135,7 @@ public class Buffer
             cursor += ucps.length;
             length += ucps.length;
         }
+        cursorCol = -1;
     }
 
     public boolean clear() {
@@ -142,6 +144,7 @@ public class Buffer
         }
         length = 0;
         cursor = 0;
+        cursorCol = -1;
         return true;
     }
 
@@ -195,8 +198,55 @@ public class Buffer
         }
 
         cursor += where;
+        cursorCol = -1;
 
         return where;
+    }
+
+    public boolean up() {
+        int col = getCursorCol();
+        int pnl = cursor - 1;
+        while (pnl >= 0 && buffer[pnl] != '\n') {
+            pnl--;
+        }
+        if (pnl < 0) {
+            return false;
+        }
+        int ppnl = pnl - 1;
+        while (ppnl >= 0 && buffer[ppnl] != '\n') {
+            ppnl--;
+        }
+        cursor = Math.min(ppnl + col + 1, pnl);
+        return true;
+    }
+
+    public boolean down() {
+        int col = getCursorCol();
+        int nnl = cursor;
+        while (nnl < length && buffer[nnl] != '\n') {
+            nnl++;
+        }
+        if (nnl >= length) {
+            return false;
+        }
+        int nnnl = nnl + 1;
+        while (nnnl < length && buffer[nnnl] != '\n') {
+            nnnl++;
+        }
+        cursor = Math.min(nnl + col + 1, nnnl);
+        return true;
+    }
+
+    private int getCursorCol() {
+        if (cursorCol < 0) {
+            cursorCol = 0;
+            int pnl = cursor - 1;
+            while (pnl >= 0 && buffer[pnl] != '\n') {
+                pnl--;
+            }
+            cursorCol = cursor - pnl - 1;
+        }
+        return cursorCol;
     }
 
     /**
@@ -209,6 +259,7 @@ public class Buffer
         cursor -= count;
         System.arraycopy(buffer, cursor + count, buffer, cursor, length - cursor - count);
         length -= count;
+        cursorCol = -1;
         return count;
     }
 
@@ -225,6 +276,7 @@ public class Buffer
         int count = Math.max(Math.min(length - cursor, num), 0);
         System.arraycopy(buffer, cursor + count, buffer, cursor, length - cursor - count);
         length -= count;
+        cursorCol = -1;
         return count;
     }
 
@@ -250,6 +302,7 @@ public class Buffer
         buffer[cursor] = buffer[cursor - 1];
         buffer[cursor - 1] = tmp;
         cursor++;
+        cursorCol = -1;
         return true;
     }
 
@@ -258,5 +311,6 @@ public class Buffer
         this.length = that.length;
         this.buffer = that.buffer.clone();
         this.cursor = that.cursor;
+        this.cursorCol = that.cursorCol;
     }
 }

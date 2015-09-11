@@ -188,45 +188,45 @@ public class KeyMap {
     private static void bindArrowKeys(KeyMap map) {
         
         // MS-DOS
-        bind( map, "\033[0A", Operation.PREVIOUS_HISTORY );
+        bind( map, "\033[0A", Operation.UP_LINE_OR_HISTORY );
         bind( map, "\033[0B", Operation.BACKWARD_CHAR );
         bind( map, "\033[0C", Operation.FORWARD_CHAR );
-        bind( map, "\033[0D", Operation.NEXT_HISTORY );
+        bind( map, "\033[0D", Operation.DOWN_LINE_OR_HISTORY );
 
         // Windows
         bind( map, "\340\000", Operation.KILL_WHOLE_LINE );
         bind( map, "\340\107", Operation.BEGINNING_OF_LINE );
-        bind( map, "\340\110", Operation.PREVIOUS_HISTORY );
+        bind( map, "\340\110", Operation.UP_LINE_OR_HISTORY );
         bind( map, "\340\111", Operation.BEGINNING_OF_HISTORY );
         bind( map, "\340\113", Operation.BACKWARD_CHAR );
         bind( map, "\340\115", Operation.FORWARD_CHAR );
         bind( map, "\340\117", Operation.END_OF_LINE );
-        bind( map, "\340\120", Operation.NEXT_HISTORY );
+        bind( map, "\340\120", Operation.DOWN_LINE_OR_HISTORY );
         bind( map, "\340\121", Operation.END_OF_HISTORY );
         bind( map, "\340\122", Operation.OVERWRITE_MODE );
         bind( map, "\340\123", Operation.DELETE_CHAR );
 
         bind( map, "\000\107", Operation.BEGINNING_OF_LINE );
-        bind( map, "\000\110", Operation.PREVIOUS_HISTORY );
+        bind( map, "\000\110", Operation.UP_LINE_OR_HISTORY );
         bind( map, "\000\111", Operation.BEGINNING_OF_HISTORY );
-        bind( map, "\000\110", Operation.PREVIOUS_HISTORY );
+        bind( map, "\000\110", Operation.UP_LINE_OR_HISTORY );
         bind( map, "\000\113", Operation.BACKWARD_CHAR );
         bind( map, "\000\115", Operation.FORWARD_CHAR );
         bind( map, "\000\117", Operation.END_OF_LINE );
-        bind( map, "\000\120", Operation.NEXT_HISTORY );
+        bind( map, "\000\120", Operation.DOWN_LINE_OR_HISTORY );
         bind( map, "\000\121", Operation.END_OF_HISTORY );
         bind( map, "\000\122", Operation.OVERWRITE_MODE );
         bind( map, "\000\123", Operation.DELETE_CHAR );
 
-        bind( map, "\033[A", Operation.PREVIOUS_HISTORY );
-        bind( map, "\033[B", Operation.NEXT_HISTORY );
+        bind( map, "\033[A", Operation.UP_LINE_OR_HISTORY );
+        bind( map, "\033[B", Operation.DOWN_LINE_OR_HISTORY );
         bind( map, "\033[C", Operation.FORWARD_CHAR );
         bind( map, "\033[D", Operation.BACKWARD_CHAR );
         bind( map, "\033[H", Operation.BEGINNING_OF_LINE );
         bind( map, "\033[F", Operation.END_OF_LINE );
 
-        bind( map, "\033OA", Operation.PREVIOUS_HISTORY );
-        bind( map, "\033OB", Operation.NEXT_HISTORY );
+        bind( map, "\033OA", Operation.UP_LINE_OR_HISTORY );
+        bind( map, "\033OB", Operation.DOWN_LINE_OR_HISTORY );
         bind( map, "\033OC", Operation.FORWARD_CHAR );
         bind( map, "\033OD", Operation.BACKWARD_CHAR );
         bind( map, "\033OH", Operation.BEGINNING_OF_LINE );
@@ -237,8 +237,8 @@ public class KeyMap {
         bind( map, "\033[3~", Operation.DELETE_CHAR);
 
         // MINGW32
-        bind( map, "\0340H", Operation.PREVIOUS_HISTORY );
-        bind( map, "\0340P", Operation.NEXT_HISTORY );
+        bind( map, "\0340H", Operation.UP_LINE_OR_HISTORY );
+        bind( map, "\0340P", Operation.DOWN_LINE_OR_HISTORY );
         bind( map, "\0340M", Operation.FORWARD_CHAR );
         bind( map, "\0340K", Operation.BACKWARD_CHAR );
     }
@@ -370,7 +370,7 @@ public class KeyMap {
         map[CTRL_H] = Operation.BACKWARD_KILL_WORD;
         map[CTRL_I] = Operation.TAB_INSERT;
         map[CTRL_J] = Operation.VI_EDITING_MODE;
-        map[CTRL_M] = Operation.VI_EDITING_MODE;
+        map[CTRL_M] = Operation.SELF_INSERT_UNMETA;
         map[CTRL_R] = Operation.REVERT_LINE;
         map[CTRL_Y] = Operation.YANK_NTH_ARG;
         map[CTRL_OB] = Operation.COMPLETE_WORD;

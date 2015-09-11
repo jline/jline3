@@ -36,9 +36,11 @@ public class DefaultHighlighter implements Highlighter {
                 sb.append(Ansi.ansi().a(Attribute.UNDERLINE).toString());
             }
             char c = buffer.charAt(i);
-            if (c < 32 && c != '\t') {
-                String s = Ansi.ansi().bg(Color.BLACK).fg(Color.WHITE)
-                        .a('^').a((char) (c + '@')).reset().toString();
+            if (c == '\t' || c == '\n') {
+                sb.append(c);
+            } else if (c < 32) {
+                String s = Ansi.ansi().a(Attribute.NEGATIVE_ON)
+                        .a('^').a((char) (c + '@')).a(Attribute.NEGATIVE_OFF).toString();
                 sb.append(s);
             } else {
                 int w = WCWidth.wcwidth(c);

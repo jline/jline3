@@ -216,6 +216,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     protected String[][] post;
 
     protected int cursorPos;
+    protected boolean cursorOk;
 
 
     protected Map<Operation, Widget> dispatcher;
@@ -1660,6 +1661,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             }
         }
         cursorPos = i1;
+        cursorOk = true;
         return i1;
     }
 
@@ -2215,6 +2217,19 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return true;
     }
 
+    protected boolean selfInsertUnmeta() {
+        if (opBuffer.charAt(0) == KeyMap.ESCAPE) {
+            String s = opBuffer.substring(1);
+            if ("\r".equals(s)) {
+                s = "\n";
+            }
+            putString(s);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     protected boolean overwriteMode() {
         buf.overTyping(!buf.overTyping());
         return true;
@@ -2247,6 +2262,24 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
          * then the cursor doesn't move.
          */
         return moveHistory(true, count) && beginningOfLine();
+    }
+
+    protected boolean upLineOrHistory() {
+        String str = buf.toString();
+        if (str.contains("\n")) {
+            return buf.up();
+        } else {
+            return historySearchBackward();
+        }
+    }
+
+    protected boolean downLineOrHistory() {
+        String str = buf.toString();
+        if (str.contains("\n")) {
+            return buf.down();
+        } else {
+            return historySearchForward();
+        }
     }
 
     protected boolean beginningOfHistory() {
@@ -2628,6 +2661,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         dispatcher.put(Operation.END_OF_HISTORY, ConsoleReaderImpl::endOfHistory);
         dispatcher.put(Operation.OVERWRITE_MODE, ConsoleReaderImpl::overwriteMode);
         dispatcher.put(Operation.SELF_INSERT, ConsoleReaderImpl::selfInsert);
+        dispatcher.put(Operation.SELF_INSERT_UNMETA, ConsoleReaderImpl::selfInsertUnmeta);
         dispatcher.put(Operation.TAB_INSERT, ConsoleReaderImpl::tabInsert);
         dispatcher.put(Operation.RE_READ_INIT_FILE, ConsoleReaderImpl::reReadInitFile);
         dispatcher.put(Operation.START_KBD_MACRO, ConsoleReaderImpl::startKbdMacro);
@@ -2668,6 +2702,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         dispatcher.put(Operation.COMPLETE_WORD, ConsoleReaderImpl::completeWord);
         dispatcher.put(Operation.POSSIBLE_COMPLETIONS, ConsoleReaderImpl::listChoices);
         dispatcher.put(Operation.DO_LOWERCASE_VERSION, ConsoleReaderImpl::doLowercaseVersion);
+        dispatcher.put(Operation.UP_LINE_OR_HISTORY, ConsoleReaderImpl::upLineOrHistory);
+        dispatcher.put(Operation.DOWN_LINE_OR_HISTORY, ConsoleReaderImpl::downLineOrHistory);
         return dispatcher;
     }
 
@@ -2739,6 +2775,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                             cursorPos = moveVisualCursorTo(currentPos);
                             rawPrint(diff.text);
                             cursorPos += width;
+                            cursorOk = false;
                             currentPos = cursorPos;
                         } else {
                             currentPos += width;
@@ -2754,6 +2791,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                                 console.puts(Capability.parm_ich, width);
                                 rawPrint(diff.text);
                                 cursorPos += width;
+                                cursorOk = false;
                                 currentPos = cursorPos;
                                 break;
                             } else if (hasIch1) {
@@ -2762,6 +2800,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                                 }
                                 rawPrint(diff.text);
                                 cursorPos += width;
+                                cursorOk = false;
                                 currentPos = cursorPos;
                                 break;
                             }
@@ -2771,6 +2810,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                             moveVisualCursorTo(currentPos);
                             rawPrint(diff.text);
                             cursorPos += width;
+                            cursorOk = false;
                             currentPos = cursorPos;
                             i++; // skip delete
                             break;
@@ -2778,6 +2818,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                         moveVisualCursorTo(currentPos);
                         rawPrint(diff.text);
                         cursorPos += width;
+                        cursorOk = false;
                         currentPos = cursorPos;
                         ident = false;
                         break;
@@ -2812,14 +2853,17 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                         if (!console.puts(Capability.clr_eol)) {
                             rawPrint(' ', nb);
                             cursorPos += nb;
+                            cursorOk = false;
                         }
                         cleared = true;
                         ident = false;
                         break;
                 }
             }
-            if (console.getBooleanCapability(Capability.auto_right_margin)
+            if (!cursorOk
+                    && console.getBooleanCapability(Capability.auto_right_margin)
                     && console.getBooleanCapability(Capability.eat_newline_glitch)
+                    && lineIndex == Math.max(oldLines.size(), newLines.size()) - 1
                     && cursorPos > curCol && cursorPos % size.getColumns() == 0) {
                 rawPrint(' '); // move cursor to next line by printing dummy space
                 console.puts(Capability.carriage_return); // CR / not newline.
@@ -2843,9 +2887,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             lineIndex++;
             currentPos = currentPos + size.getColumns();
         }
-        int promptLines = AnsiHelper.splitLines(prompt, size.getColumns(), TAB_WIDTH).size();
-        moveVisualCursorTo((promptLines - 1) * size.getColumns()
-                + promptLen + wcwidth(buf.upToCursor(), promptLen));
+        List<String> promptLines = AnsiHelper.splitLines(prompt + buf.upToCursor(), size.getColumns(), TAB_WIDTH);
+        if (!promptLines.isEmpty()) {
+            moveVisualCursorTo((promptLines.size() - 1) * size.getColumns()
+                    + wcwidth(AnsiHelper.strip(promptLines.get(promptLines.size() - 1)), 0));
+        }
         if (flush) {
             flush();
         }
