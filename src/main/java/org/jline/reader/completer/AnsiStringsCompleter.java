@@ -65,6 +65,6 @@ public class AnsiStringsCompleter
             candidates.add(new Candidate(match.getValue()));
         }
 
-        return candidates.isEmpty() ? -1 : line.bufferCursor() - line.wordCursor();
+        return candidates.isEmpty() ? -1 : line.cursor() - line.wordCursor();
     }
 }

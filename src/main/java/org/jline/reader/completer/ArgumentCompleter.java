@@ -17,9 +17,6 @@ import java.util.List;
 
 import org.jline.Candidate;
 import org.jline.Completer;
-import org.jline.reader.DefaultParser;
-import org.jline.reader.DefaultParser.ArgumentDelimiter;
-import org.jline.reader.DefaultParser.WhitespaceArgumentDelimiter;
 import org.jline.reader.ParsedLine;
 
 import static org.jline.utils.Preconditions.checkNotNull;
@@ -35,50 +32,27 @@ import static org.jline.utils.Preconditions.checkNotNull;
 public class ArgumentCompleter
     implements Completer
 {
-    private final ArgumentDelimiter delimiter;
-
     private final List<Completer> completers = new ArrayList<>();
 
     private boolean strict = true;
 
     /**
-     * Create a new completer with the specified argument delimiter.
+     * Create a new completer.
      *
-     * @param delimiter     The delimiter for parsing arguments
      * @param completers    The embedded completers
      */
-    public ArgumentCompleter(final ArgumentDelimiter delimiter, final Collection<Completer> completers) {
-        this.delimiter = delimiter;
+    public ArgumentCompleter(final Collection<Completer> completers) {
         checkNotNull(completers);
         this.completers.addAll(completers);
     }
 
     /**
-     * Create a new completer with the specified argument delimiter.
-     *
-     * @param delimiter     The delimiter for parsing arguments
-     * @param completers    The embedded completers
-     */
-    public ArgumentCompleter(final ArgumentDelimiter delimiter, final Completer... completers) {
-        this(delimiter, Arrays.asList(completers));
-    }
-
-    /**
-     * Create a new completer with the default {@link WhitespaceArgumentDelimiter}.
+     * Create a new completer.
      *
      * @param completers    The embedded completers
      */
     public ArgumentCompleter(final Completer... completers) {
-        this(null, completers);
-    }
-
-    /**
-     * Create a new completer with the default {@link WhitespaceArgumentDelimiter}.
-     *
-     * @param completers    The embedded completers
-     */
-    public ArgumentCompleter(final List<Completer> completers) {
-        this(null, completers);
+        this(Arrays.asList(completers));
     }
 
     /**
@@ -103,13 +77,6 @@ public class ArgumentCompleter
     /**
      * @since 2.3
      */
-    public ArgumentDelimiter getDelimiter() {
-        return delimiter;
-    }
-
-    /**
-     * @since 2.3
-     */
     public List<Completer> getCompleters() {
         return completers;
     }
@@ -118,9 +85,6 @@ public class ArgumentCompleter
         checkNotNull(line);
         checkNotNull(candidates);
 
-        if (delimiter != null) {
-            line = new DefaultParser(delimiter).parse(line.buffer(), line.bufferCursor());
-        }
         if (line.wordIndex() < 0) {
             return -1;
         }
@@ -166,7 +130,7 @@ public class ArgumentCompleter
             return -1;
         }
 
-        int pos = ret + line.bufferCursor() - line.wordCursor();
+        int pos = ret + line.cursor() - line.wordCursor();
 
         // Special case: when completing in the middle of a line, and the area under the cursor is a delimiter,
         // then trim any delimiters from the candidates, since we do not need to have an extra delimiter.
@@ -222,13 +186,23 @@ public class ArgumentCompleter
         }
 
         @Override
-        public String buffer() {
+        public String line() {
             return word;
         }
 
         @Override
-        public int bufferCursor() {
+        public int cursor() {
             return cursor;
+        }
+
+        @Override
+        public boolean complete() {
+            return true;
+        }
+
+        @Override
+        public String missingPrompt() {
+            return null;
         }
     }
 }

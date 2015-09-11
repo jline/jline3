@@ -35,11 +35,15 @@ public interface ParsedLine {
     /**
      * The unparsed line
      */
-    String buffer();
+    String line();
 
     /**
      * The cursor position within the line
      */
-    int bufferCursor();
+    int cursor();
+
+    boolean complete();
+
+    String missingPrompt();
 
 }

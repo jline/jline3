@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -2208,7 +2209,12 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected boolean acceptLine() {
-        state = State.DONE;
+        ParsedLine line = parser.parse(buf.toString(), buf.cursor());
+        if (line.complete()) {
+            state = State.DONE;
+        } else {
+            buf.write("\n");
+        }
         return true;
     }
 
@@ -2735,8 +2741,12 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         if (post != null) {
             newPostStr = "\n" + toColumns(post, size.getColumns());
         }
-        List<String> oldLines = AnsiHelper.splitLines(oldPrompt + oldBuf + oldPostStr, oldColumns, TAB_WIDTH);
-        List<String> newLines = AnsiHelper.splitLines(prompt + buffer + newPostStr, size.getColumns(), TAB_WIDTH);
+        String tOldBuf = insertSecondaryPrompts(oldBuf, new ArrayList<>());
+        List<String> secondaryPrompts = new ArrayList<>();
+        String tNewBuf = insertSecondaryPrompts(buffer, secondaryPrompts);
+
+        List<String> oldLines = AnsiHelper.splitLines(oldPrompt + tOldBuf + oldPostStr, oldColumns, TAB_WIDTH);
+        List<String> newLines = AnsiHelper.splitLines(prompt + tNewBuf + newPostStr, size.getColumns(), TAB_WIDTH);
         List<String> oldRightPromptLines = AnsiHelper.splitLines(oldRightPrompt, oldColumns, TAB_WIDTH);
         List<String> rightPromptLines = AnsiHelper.splitLines(rightPrompt, size.getColumns(), TAB_WIDTH);
 
@@ -2887,7 +2897,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             lineIndex++;
             currentPos = currentPos + size.getColumns();
         }
-        List<String> promptLines = AnsiHelper.splitLines(prompt + buf.upToCursor(), size.getColumns(), TAB_WIDTH);
+        List<String> promptLines = AnsiHelper.splitLines(prompt + insertSecondaryPrompts(buf.upToCursor(), secondaryPrompts, false), size.getColumns(), TAB_WIDTH);
         if (!promptLines.isEmpty()) {
             moveVisualCursorTo((promptLines.size() - 1) * size.getColumns()
                     + wcwidth(AnsiHelper.strip(promptLines.get(promptLines.size() - 1)), 0));
@@ -2900,6 +2910,62 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         oldPost = post;
         oldColumns = size.getColumns();
         oldRightPrompt = rightPrompt;
+    }
+
+    private static String SECONDARY_PROMPT = "> ";
+
+    private String insertSecondaryPrompts(String str, List<String> prompts) {
+        return insertSecondaryPrompts(str, prompts, true);
+    }
+
+    private String insertSecondaryPrompts(String str, List<String> prompts, boolean computePrompts) {
+        checkNotNull(prompts);
+        StringBuilder sb = new StringBuilder();
+        int line = 0;
+        if (computePrompts || !isSet("pad-prompts") || prompts.size() < 2) {
+            for (int i = 0; i < str.length(); i++) {
+                char ch = str.charAt(i);
+                sb.append(ch);
+                if (ch == '\n') {
+                    String prompt;
+                    if (computePrompts) {
+                        ParsedLine pl = parser.parse(sb.toString(), 0);
+                        prompt = (pl.complete() ? "" : pl.missingPrompt()) + SECONDARY_PROMPT;
+                    } else {
+                        prompt = prompts.get(line++);
+                    }
+                    prompts.add(prompt);
+                    sb.append(prompt);
+                }
+            }
+        }
+        if (isSet("pad-prompts") && prompts.size() >= 2) {
+            if (computePrompts) {
+                int max = prompts.stream().map(String::length).max(Comparator.<Integer>naturalOrder()).get();
+                for (ListIterator<String> it = prompts.listIterator(); it.hasNext(); ) {
+                    String prompt = it.next();
+                    if (prompt.length() < max) {
+                        StringBuilder pb = new StringBuilder(max);
+                        pb.append(prompt, 0, prompt.length() - SECONDARY_PROMPT.length());
+                        while (pb.length() < max - SECONDARY_PROMPT.length()) {
+                            pb.append(' ');
+                        }
+                        pb.append(SECONDARY_PROMPT);
+                        it.set(pb.toString());
+                    }
+                }
+            }
+            sb.setLength(0);
+            line = 0;
+            for (int i = 0; i < str.length(); i++) {
+                char ch = str.charAt(i);
+                sb.append(ch);
+                if (ch == '\n') {
+                    sb.append(prompts.get(line++));
+                }
+            }
+        }
+        return sb.toString();
     }
 
     private String addRightPrompt(String prompt, String line) {
