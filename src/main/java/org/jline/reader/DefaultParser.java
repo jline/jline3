@@ -36,66 +36,65 @@ public class DefaultParser implements Parser {
         return this.escapeChars;
     }
 
-    public ParsedLine parse(final String buffer, final int cursor) {
-        List<String> args = new LinkedList<>();
-        StringBuilder arg = new StringBuilder();
-        int argpos = -1;
-        int bindex = -1;
+    public ParsedLine parse(final String line, final int cursor) {
+        List<String> words = new LinkedList<>();
+        StringBuilder current = new StringBuilder();
+        int wordCursor = -1;
+        int wordIndex = -1;
         int quoteStart = -1;
 
-        for (int i = 0; (buffer != null) && (i < buffer.length()); i++) {
+        for (int i = 0; (line != null) && (i < line.length()); i++) {
             // once we reach the cursor, set the
             // position of the selected index
             if (i == cursor) {
-                bindex = args.size();
+                wordIndex = words.size();
                 // the position in the current argument is just the
                 // length of the current argument
-                argpos = arg.length();
+                wordCursor = current.length();
             }
 
-            if (quoteStart < 0 && isQuoteChar(buffer, i)) {
+            if (quoteStart < 0 && isQuoteChar(line, i)) {
                 // Start a quote block
                 quoteStart = i;
             } else if (quoteStart >= 0) {
                 // In a quote block
-                if (buffer.charAt(quoteStart) == buffer.charAt(i) && !isEscaped(buffer, i)) {
+                if (line.charAt(quoteStart) == line.charAt(i) && !isEscaped(line, i)) {
                     // End the block; arg could be empty, but that's fine
-                    args.add(arg.toString());
-                    arg.setLength(0);
+                    words.add(current.toString());
+                    current.setLength(0);
                     quoteStart = -1;
-                } else if (!isEscapeChar(buffer, i)) {
+                } else if (!isEscapeChar(line, i)) {
                     // Take the next character
-                    arg.append(buffer.charAt(i));
+                    current.append(line.charAt(i));
                 }
             } else {
                 // Not in a quote block
-                if (isDelimiter(buffer, i)) {
-                    if (arg.length() > 0) {
-                        args.add(arg.toString());
-                        arg.setLength(0); // reset the arg
+                if (isDelimiter(line, i)) {
+                    if (current.length() > 0) {
+                        words.add(current.toString());
+                        current.setLength(0); // reset the arg
                     }
-                } else if (!isEscapeChar(buffer, i)) {
-                    arg.append(buffer.charAt(i));
+                } else if (!isEscapeChar(line, i)) {
+                    current.append(line.charAt(i));
                 }
             }
         }
 
-        if (cursor == buffer.length()) {
-            bindex = args.size();
-            // the position in the current argument is just the
-            // length of the current argument
-            argpos = arg.length();
+        if (current.length() > 0 || cursor == line.length()) {
+            words.add(current.toString());
         }
-        if (arg.length() > 0) {
-            args.add(arg.toString());
+
+        if (cursor == line.length()) {
+            wordIndex = words.size() - 1;
+            wordCursor = words.get(words.size() - 1).length();
         }
 
         return new ArgumentList(
-                buffer, args, bindex, argpos, cursor,
+                line, words, wordIndex, wordCursor, cursor,
                 quoteStart < 0,
                 quoteStart < 0
                         ? null
-                        : buffer.charAt(quoteStart) == '\''
+                        : line.charAt(quoteStart) == '\''
                                 ? "quote" : "dquote");
     }
 
@@ -183,57 +182,49 @@ public class DefaultParser implements Parser {
     {
         private final String line;
 
-        private final List<String> arguments;
+        private final List<String> words;
 
-        private final int cursorArgumentIndex;
+        private final int wordIndex;
 
-        private final int argumentPosition;
+        private final int wordCursor;
 
-        private final int bufferPosition;
+        private final int cursor;
 
         private final boolean complete;
 
         private final String missingPrompt;
 
-        /**
-         * @param arguments             The array of tokens
-         * @param cursorArgumentIndex   The token index of the cursor
-         * @param argumentPosition      The position of the cursor in the current token
-         * @param bufferPosition        The position of the cursor in the whole buffer
-         * @param complete
-         * @param missingPrompt
-         */
-        public ArgumentList(final String line, final List<String> arguments, final int cursorArgumentIndex, final int argumentPosition, final int bufferPosition, boolean complete, String missingPrompt) {
+        public ArgumentList(final String line, final List<String> words, final int wordIndex, final int wordCursor, final int cursor, boolean complete, String missingPrompt) {
             this.line = line;
-            this.arguments = Collections.unmodifiableList(checkNotNull(arguments));
-            this.cursorArgumentIndex = cursorArgumentIndex;
-            this.argumentPosition = argumentPosition;
-            this.bufferPosition = bufferPosition;
+            this.words = Collections.unmodifiableList(checkNotNull(words));
+            this.wordIndex = wordIndex;
+            this.wordCursor = wordCursor;
+            this.cursor = cursor;
             this.complete = complete;
             this.missingPrompt = missingPrompt;
         }
 
         public int wordIndex() {
-            return this.cursorArgumentIndex;
+            return this.wordIndex;
         }
 
         public String word() {
-            if ((cursorArgumentIndex < 0) || (cursorArgumentIndex >= arguments.size())) {
+            if ((wordIndex < 0) || (wordIndex >= words.size())) {
                 return null;
             }
-            return arguments.get(cursorArgumentIndex);
+            return words.get(wordIndex);
         }
 
         public int wordCursor() {
-            return this.argumentPosition;
+            return this.wordCursor;
         }
 
         public List<String> words() {
-            return this.arguments;
+            return this.words;
         }
 
         public int cursor() {
-            return this.bufferPosition;
+            return this.cursor;
         }
 
         public String line() {
