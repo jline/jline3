@@ -153,7 +153,7 @@ public abstract class ReaderTestSupport
             case PREVIOUS_HISTORY:     return "\033[A";
             case NEXT_HISTORY:         return "\033[B";
             case BACKWARD_CHAR:        return "\u0002";
-            case COMPLETE_WORD:             return "\011";
+            case COMPLETE_WORD:        return "\011";
             case BACKWARD_DELETE_CHAR: return "\010";
             case VI_EOF_MAYBE:         return "\004";
             case BACKWARD_KILL_WORD:   return new String(new char[]{27, 127});
