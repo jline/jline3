@@ -3138,7 +3138,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         } else {
             boolean exact = false;
             String completion = null;
-            Map<String, List<Candidate>> matching = sortedCandidates.subMap(w, getHigherBound(w));
+            Map<String, List<Candidate>> matching = w.length() > 0 ? sortedCandidates.subMap(w, getHigherBound(w)) : sortedCandidates;
             // Found an exact match of the whole word
             if (sortedCandidates.containsKey(word)
                     && (matching.size() == 1
