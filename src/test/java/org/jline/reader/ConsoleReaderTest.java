@@ -342,14 +342,14 @@ public class ConsoleReaderTest extends ReaderTestSupport
         assertLine("foo ! bar", new TestBuffer("foo ! bar\n"));
 
         history.previous();
-        assertEquals("foo \\! bar", history.current());
+        assertEquals("foo ! bar", history.current());
 
         history = new MemoryHistory();
         reader.setHistory(history);
-        assertLine("cd c:\\docs", new TestBuffer("cd c:\\docs\n"));
+        assertLine("cd c:\\docs", new TestBuffer("cd c:\\\\docs\n"));
 
         history.previous();
-        assertEquals("cd c:\\docs", history.current());
+        assertEquals("cd c:\\\\docs", history.current());
     }
 
     @Test
@@ -396,7 +396,7 @@ public class ConsoleReaderTest extends ReaderTestSupport
 
         // \G (backslash no expansion)
         assertLineAndHistory(
-                "echo abc\\Gdef",
+                "echo abcGdef",
                 "echo abc\\Gdef",
                 new TestBuffer("echo abc\\Gdef\n"), true, "cd");
 

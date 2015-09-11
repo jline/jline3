@@ -721,24 +721,21 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         String str = buf.toString();
         String historyLine = str;
 
-        if (!getBoolean(DISABLE_EVENT_EXPANSION, false)) {
-            try {
-                String exp = expandEvents(str);
-                if (!exp.equals(str)) {
-                    str = exp;
-                    println(str);
-                    flush();
+        if (!isSet(DISABLE_EVENT_EXPANSION)) {
+            StringBuilder sb = new StringBuilder();
+            boolean escaped = false;
+            for (int i = 0; i < str.length(); i++) {
+                char ch = str.charAt(i);
+                if (escaped) {
+                    escaped = false;
+                    sb.append(ch);
+                } else if (ch == '\\') {
+                    escaped = true;
+                } else {
+                    sb.append(ch);
                 }
-                // all post-expansion occurrences of '!' must have been escaped, so re-add escape to each
-                historyLine = str.replace("!", "\\!");
-                // only leading '^' results in expansion, so only re-add escape for that case
-                historyLine = historyLine.replaceAll("^\\^", "\\\\^");
-            } catch(IllegalArgumentException e) {
-                Log.error("Could not expand event", e);
-                beep();
-                buf.clear();
-                str = "";
             }
+            str = sb.toString();
         }
 
         // we only add it to the history if the buffer is not empty
@@ -759,20 +756,20 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     @SuppressWarnings("fallthrough")
     protected String expandEvents(String str) {
         StringBuilder sb = new StringBuilder();
+        boolean escaped = false;
         for (int i = 0; i < str.length(); i++) {
             char c = str.charAt(i);
+            if (escaped) {
+                escaped = false;
+                sb.append(c);
+                continue;
+            }
             switch (c) {
                 case '\\':
                     // any '\!' should be considered an expansion escape, so skip expansion and strip the escape character
                     // a leading '\^' should be considered an expansion escape, so skip expansion and strip the escape character
                     // otherwise, add the escape
-                    if (i + 1 < str.length()) {
-                        char nextChar = str.charAt(i+1);
-                        if (nextChar == '!' || (nextChar == '^' && i == 0)) {
-                            c = nextChar;
-                            i++;
-                        }
-                    }
+                    escaped = true;
                     sb.append(c);
                     break;
                 case '!':
@@ -2209,9 +2206,29 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected boolean acceptLine() {
-        ParsedLine line = parser.parse(buf.toString(), buf.cursor());
+        String str = buf.toString();
+        ParsedLine line = parser.parse(str, buf.cursor());
         if (line.complete()) {
             state = State.DONE;
+            if (!isSet(DISABLE_EVENT_EXPANSION)) {
+                try {
+                    String exp = expandEvents(str);
+                    if (!exp.equals(str)) {
+                        buf.clear();
+                        buf.write(exp);
+                        if (isSet("history-verify")) {
+                            state = State.NORMAL;
+                        }
+                    }
+                } catch (IllegalArgumentException e) {
+                    Log.error("Could not expand event", e);
+                    beep();
+                    buf.clear();
+                    println();
+                    rawPrintln(e.getMessage());
+                    flush();
+                }
+            }
         } else {
             buf.write("\n");
         }
@@ -3078,8 +3095,12 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected boolean doComplete(CompletionType lst) {
-        if (doExpandHist()) {
-            return true;
+        try {
+            if (doExpandHist()) {
+                return true;
+            }
+        } catch (IllegalArgumentException e) {
+            return false;
         }
 
         List<Candidate> candidates = new ArrayList<>();
