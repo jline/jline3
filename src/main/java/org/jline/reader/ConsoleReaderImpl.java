@@ -174,6 +174,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected Character mask;
 
+    protected Buffer historyBuffer = null;
+    protected String searchBuffer;
     protected StringBuffer searchTerm = null;
     protected int searchIndex = -1;
 
@@ -2034,53 +2036,62 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected boolean historySearchForward() {
-        try {
-            searchTerm = new StringBuffer(buf.upToCursor());
-            int index = history.index() + 1;
-
-            if (index == history.size()) {
-                history.moveToEnd();
-                setBufferKeepPos(searchTerm.toString());
-            } else if (index < history.size()) {
-                searchIndex = searchForwards(searchTerm.toString(), index, true);
-                if (searchIndex == -1) {
-                    return false;
-                } else {
-                    // Maintain cursor position while searching.
-                    if (history.moveTo(searchIndex)) {
-                        setBufferKeepPos(history.current());
-                    } else {
-                        return false;
-                    }
-                }
-            }
-            return true;
-        } finally {
-            searchIndex = -1;
-            searchTerm = null;
+        if (historyBuffer == null || !buf.toString().equals(history.current())) {
+            historyBuffer = buf.copy();
+            searchBuffer = parser.parse(buf.toString(), 0).word();
         }
-    }
+        int index = history.index() + 1;
 
-    protected boolean historySearchBackward() {
-        try {
-            searchTerm = new StringBuffer(buf.upToCursor());
-            searchIndex = searchBackwards(searchTerm.toString(), history.index(), true);
-
+        if (index < history.size()) {
+            int searchIndex = searchForwards(searchBuffer, index, true);
             if (searchIndex == -1) {
-                return false;
+                history.moveToEnd();
+                if (!buf.toString().equals(historyBuffer.toString())) {
+                    setBuffer(historyBuffer.toString());
+                    historyBuffer = null;
+                } else {
+                    return false;
+                }
             } else {
                 // Maintain cursor position while searching.
                 if (history.moveTo(searchIndex)) {
-                    setBufferKeepPos(history.current());
+                    setBuffer(history.current());
                 } else {
+                    history.moveToEnd();
+                    setBuffer(historyBuffer.toString());
                     return false;
                 }
             }
-            return true;
-        } finally {
-            searchIndex = -1;
-            searchTerm = null;
+        } else {
+            history.moveToEnd();
+            if (!buf.toString().equals(historyBuffer.toString())) {
+                setBuffer(historyBuffer.toString());
+                historyBuffer = null;
+            } else {
+                return false;
+            }
         }
+        return true;
+    }
+
+    protected boolean historySearchBackward() {
+        if (historyBuffer == null || !buf.toString().equals(history.current())) {
+            historyBuffer = buf.copy();
+            searchBuffer = parser.parse(buf.toString(), 0).word();
+        }
+        int searchIndex = searchBackwards(searchBuffer, history.index(), true);
+
+        if (searchIndex == -1) {
+            return false;
+        } else {
+            // Maintain cursor position while searching.
+            if (history.moveTo(searchIndex)) {
+                setBuffer(history.current());
+            } else {
+                return false;
+            }
+        }
+        return true;
     }
 
     //

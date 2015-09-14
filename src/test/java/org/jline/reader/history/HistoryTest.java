@@ -120,15 +120,15 @@ public class HistoryTest
 
         // Search forward on 'l'.
         b = b.append("l");
-        assertBuffer("lazy dog", b = b.append("\033[0B"));
+        assertBuffer("fox jumpsl", b = b.append("\033[0B"));
 
-        // Try moving forward again.  We should be at our original input line,
-        // which is just a plain 'l' at this point.
-        assertBuffer("l", b = b.append("\033[0B"));
+        // Try moving again.
+        assertBuffer("fox jumpsl", b.append("\033[0B"));
+        assertBuffer("fox jumps", b.append("\033[0A"));
 
         // Now we should have more context and history-search-backward should
         // take us to "the quick brown" line.
-        b = b.op(BACKWARD_DELETE_CHAR).append("t");
+        b = b.back(100).append("t");
         assertBuffer("the quick brown", b = b.append("\033[0A"));
 
         // Try moving backward again.
@@ -136,9 +136,10 @@ public class HistoryTest
 
         assertBuffer("the quick brown", b = b.append("\033[0B"));
 
-        b = b.op(BACKWARD_DELETE_CHAR);
+        b = b.back(100);
         assertBuffer("fox jumps", b = b.append("\033[0B"));
 
+        b = b.back(100);
         b = b.append("to");
         assertBuffer("toes", b = b.append("\033[0A"));
     }
