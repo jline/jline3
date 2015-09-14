@@ -5,7 +5,7 @@ import static org.jline.utils.Preconditions.checkNotNull;
 /**
  * Created by gnodet on 07/09/15.
  */
-public class Candidate {
+public class Candidate implements Comparable<Candidate> {
 
     private final String value;
     private final String group;
@@ -32,5 +32,10 @@ public class Candidate {
 
     public String descr() {
         return descr;
+    }
+
+    @Override
+    public int compareTo(Candidate o) {
+        return value.compareTo(o.value);
     }
 }

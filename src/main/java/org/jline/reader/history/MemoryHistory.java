@@ -89,6 +89,14 @@ public class MemoryHistory
         return offset + index;
     }
 
+    public int first() {
+        return offset;
+    }
+
+    public int last() {
+        return first() + size() - 1;
+    }
+
     public void clear() {
         items.clear();
         offset = 0;

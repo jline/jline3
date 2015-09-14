@@ -317,6 +317,10 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return inputrc;
     }
 
+    public ConsoleKeys getConsoleKeys() {
+        return consoleKeys;
+    }
+
     public KeyMap getKeys() {
         return consoleKeys.getKeys();
     }
@@ -381,6 +385,10 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     public Highlighter getHighlighter() {
         return highlighter;
+    }
+
+    public Parser getParser() {
+        return parser;
     }
 
 

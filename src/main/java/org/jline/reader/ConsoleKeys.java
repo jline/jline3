@@ -213,35 +213,39 @@ public class ConsoleKeys {
                     }
                     for (; i < line.length() && line.charAt(i) != ' ' && line.charAt(i) != '\t'; i++);
                     String val = line.substring(Math.min(start, line.length()), Math.min(i, line.length()));
-                    if (keySeq.charAt(0) == '"') {
-                        keySeq = translateQuoted(keySeq);
-                    } else {
-                        // Bind key name
-                        String keyName = keySeq.lastIndexOf('-') > 0 ? keySeq.substring( keySeq.lastIndexOf('-') + 1 ) : keySeq;
-                        char key = getKeyFromName(keyName);
-                        keyName = keySeq.toLowerCase();
-                        keySeq = "";
-                        if (keyName.contains("meta-") || keyName.contains("m-")) {
-                            keySeq += "\u001b";
-                        }
-                        if (keyName.contains("control-") || keyName.contains("c-") || keyName.contains("ctrl-")) {
-                            key = (char)(Character.toUpperCase( key ) & 0x1f);
-                        }
-                        keySeq += key;
-                    }
-                    if (val.length() > 0 && (val.charAt(0) == '\'' || val.charAt(0) == '\"')) {
-                        keys.bind(keySeq, new Macro(translateQuoted(val)));
-                    } else {
-                        String operationName = val.replace('-', '_').toUpperCase();
-                        try {
-                            keys.bind(keySeq, Operation.valueOf(operationName));
-                        } catch(IllegalArgumentException e) {
-                            Log.info("Unable to bind key for unsupported operation: ", val);
-                        }
-                    }
+                    bindKey(keys, keySeq, val);
                 }
             } catch (IllegalArgumentException e) {
               Log.warn("Unable to parse user configuration: ", e);
+            }
+        }
+    }
+
+    public void bindKey(KeyMap keys, String seq, String val) {
+        if (seq.charAt(0) == '"') {
+            seq = translateQuoted(seq);
+        } else {
+            // Bind key name
+            String keyName = seq.lastIndexOf('-') > 0 ? seq.substring( seq.lastIndexOf('-') + 1 ) : seq;
+            char key = getKeyFromName(keyName);
+            keyName = seq.toLowerCase();
+            seq = "";
+            if (keyName.contains("meta-") || keyName.contains("m-")) {
+                seq += "\u001b";
+            }
+            if (keyName.contains("control-") || keyName.contains("c-") || keyName.contains("ctrl-")) {
+                key = (char)(Character.toUpperCase( key ) & 0x1f);
+            }
+            seq += key;
+        }
+        if (val.length() > 0 && (val.charAt(0) == '\'' || val.charAt(0) == '\"')) {
+            keys.bind(seq, new Macro(translateQuoted(val)));
+        } else {
+            String operationName = val.replace('-', '_').toUpperCase();
+            try {
+                keys.bind(seq, Operation.valueOf(operationName));
+            } catch(IllegalArgumentException e) {
+                Log.info("Unable to bind key for unsupported operation: ", val);
             }
         }
     }

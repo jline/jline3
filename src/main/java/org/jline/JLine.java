@@ -53,7 +53,7 @@ public final class JLine {
         private Boolean system;
         private Boolean posix;
         private boolean nativeSignals = true;
-        private boolean nativePty = true;
+        private Boolean nativePty;
         private final ConsoleReaderBuilder consoleReaderBuilder = JLine.readerBuilder();
 
         public ConsoleBuilder() {
@@ -134,7 +134,19 @@ public final class JLine {
                     if (encoding == null) {
                         encoding = Charset.defaultCharset().name();
                     }
-                    Pty pty = nativePty ? NativePty.current() : ExecPty.current();
+                    Pty pty;
+                    if (nativePty == null) {
+                        try {
+                            pty = NativePty.current();
+                        } catch (NoClassDefFoundError e) {
+                            // TODO: log
+                            pty = ExecPty.current();
+                        }
+                    } else if (nativePty) {
+                        pty = NativePty.current();
+                    } else {
+                        pty = ExecPty.current();
+                    }
                     return new PosixSysConsole(type, consoleReaderBuilder, pty, encoding, nativeSignals);
                 }
             } else if ((system != null && !system) || (system == null && in != null && out != null)) {

@@ -1,13 +1,13 @@
 /**
- * Copyright (C) 2009, Progress Software Corporation and/or its 
+ * Copyright (C) 2009, Progress Software Corporation and/or its
  * subsidiaries or affiliates.  All rights reserved.
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -38,8 +38,8 @@ public class Ansi {
         BLUE(4, "BLUE"),
         MAGENTA(5, "MAGENTA"),
         CYAN(6, "CYAN"),
-        WHITE(7,"WHITE"),
-        DEFAULT(9,"DEFAULT");
+        WHITE(7, "WHITE"),
+        DEFAULT(9, "DEFAULT");
 
         private final int value;
         private final String name;
@@ -73,27 +73,29 @@ public class Ansi {
         public int bgBright() {
             return value + 100;
         }
-    };
+    }
+
+    ;
 
     public enum Attribute {
-        RESET						(  0, "RESET"),
-        INTENSITY_BOLD				(  1, "INTENSITY_BOLD"),
-        INTENSITY_FAINT				(  2, "INTENSITY_FAINT"),
-        ITALIC						(  3, "ITALIC_ON"),
-        UNDERLINE					(  4, "UNDERLINE_ON"),
-        BLINK_SLOW					(  5, "BLINK_SLOW"),
-        BLINK_FAST					(  6, "BLINK_FAST"),
-        NEGATIVE_ON					(  7, "NEGATIVE_ON"),
-        CONCEAL_ON					(  8, "CONCEAL_ON"),
-        STRIKETHROUGH_ON			(  9, "STRIKETHROUGH_ON"),
-        UNDERLINE_DOUBLE			( 21, "UNDERLINE_DOUBLE"),
-        INTENSITY_BOLD_OFF			( 22, "INTENSITY_BOLD_OFF"),
-        ITALIC_OFF					( 23, "ITALIC_OFF"),
-        UNDERLINE_OFF				( 24, "UNDERLINE_OFF"),
-        BLINK_OFF					( 25, "BLINK_OFF"),
-        NEGATIVE_OFF				( 27, "NEGATIVE_OFF"),
-        CONCEAL_OFF					( 28, "CONCEAL_OFF"),
-        STRIKETHROUGH_OFF			( 29, "STRIKETHROUGH_OFF");
+        RESET(0, "RESET"),
+        INTENSITY_BOLD(1, "INTENSITY_BOLD"),
+        INTENSITY_FAINT(2, "INTENSITY_FAINT"),
+        ITALIC(3, "ITALIC_ON"),
+        UNDERLINE(4, "UNDERLINE_ON"),
+        BLINK_SLOW(5, "BLINK_SLOW"),
+        BLINK_FAST(6, "BLINK_FAST"),
+        NEGATIVE_ON(7, "NEGATIVE_ON"),
+        CONCEAL_ON(8, "CONCEAL_ON"),
+        STRIKETHROUGH_ON(9, "STRIKETHROUGH_ON"),
+        UNDERLINE_DOUBLE(21, "UNDERLINE_DOUBLE"),
+        INTENSITY_BOLD_OFF(22, "INTENSITY_BOLD_OFF"),
+        ITALIC_OFF(23, "ITALIC_OFF"),
+        UNDERLINE_OFF(24, "UNDERLINE_OFF"),
+        BLINK_OFF(25, "BLINK_OFF"),
+        NEGATIVE_OFF(27, "NEGATIVE_OFF"),
+        CONCEAL_OFF(28, "CONCEAL_OFF"),
+        STRIKETHROUGH_OFF(29, "STRIKETHROUGH_OFF");
 
         private final int value;
         private final String name;
@@ -112,7 +114,9 @@ public class Ansi {
             return value;
         }
 
-    };
+    }
+
+    ;
 
     public enum Erase {
         FORWARD(0, "FORWARD"),
@@ -135,7 +139,9 @@ public class Ansi {
         public int value() {
             return value;
         }
-    };
+    }
+
+    ;
 
     public static final String DISABLE = Ansi.class.getName() + ".disable";
 
@@ -153,14 +159,12 @@ public class Ansi {
     public static boolean isDetected() {
         try {
             return detector.call();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             return true;
         }
     }
 
-    private static final InheritableThreadLocal<Boolean> holder = new InheritableThreadLocal<Boolean>()
-    {
+    private static final InheritableThreadLocal<Boolean> holder = new InheritableThreadLocal<Boolean>() {
         @Override
         protected Boolean initialValue() {
             return isDetected();
@@ -178,15 +182,13 @@ public class Ansi {
     public static Ansi ansi() {
         if (isEnabled()) {
             return new Ansi();
-        }
-        else {
+        } else {
             return new NoAnsi();
         }
     }
 
     private static class NoAnsi
-            extends Ansi
-    {
+            extends Ansi {
         @Override
         public Ansi fg(Color color) {
             return this;
@@ -337,6 +339,7 @@ public class Ansi {
     public static Ansi ansi(StringBuilder builder) {
         return new Ansi(builder);
     }
+
     public static Ansi ansi(int size) {
         return new Ansi(size);
     }
@@ -407,7 +410,7 @@ public class Ansi {
     }
 
     public Ansi eraseScreen() {
-        return appendEscapeSequence('J',Erase.ALL.value());
+        return appendEscapeSequence('J', Erase.ALL.value());
     }
 
     public Ansi eraseScreen(final Erase kind) {
@@ -453,6 +456,13 @@ public class Ansi {
 
     public Ansi boldOff() {
         return a(Attribute.INTENSITY_BOLD_OFF);
+    }
+
+    public Ansi bold(String str) {
+        bold();
+        a(str);
+        boldOff();
+        return this;
     }
 
     public Ansi a(String value) {
@@ -578,7 +588,7 @@ public class Ansi {
     }
 
     private void flushAttributes() {
-        if( attributeOptions.isEmpty() )
+        if (attributeOptions.isEmpty())
             return;
         if (attributeOptions.size() == 1 && attributeOptions.get(0) == 0) {
             builder.append(FIRST_ESC_CHAR);

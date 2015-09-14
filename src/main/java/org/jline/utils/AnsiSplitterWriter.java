@@ -90,7 +90,7 @@ public class AnsiSplitterWriter extends AnsiStatefulWriter {
         if (windowState == 0) {
             beginAttributes();
         }
-        flushLine(forced);
+        flushLine(forced || lines.isEmpty());
         super.close();
     }
 

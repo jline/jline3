@@ -139,6 +139,14 @@ public interface Console extends Closeable, Flushable {
 
     void setSize(Size size);
 
+    default int getWidth() {
+        return getSize().getColumns();
+    }
+
+    default int getHeight() {
+        return getSize().getRows();
+    }
+
     //
     // Infocmp capabilities
     //

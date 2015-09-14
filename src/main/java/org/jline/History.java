@@ -28,6 +28,10 @@ public interface History
 
     int index();
 
+    int first();
+
+    int last();
+
     /**
      * Purge storage
      */
