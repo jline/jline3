@@ -29,22 +29,7 @@ import static org.jline.utils.Preconditions.checkNotNull;
 public class AggregateCompleter
     implements Completer
 {
-    private final List<Completer> completers = new ArrayList<Completer>();
-
-    public AggregateCompleter() {
-        // empty
-    }
-
-    /**
-     * Construct an AggregateCompleter with the given collection of completers.
-     * The completers will be used in the iteration order of the collection.
-     *
-     * @param completers the collection of completers
-     */
-    public AggregateCompleter(final Collection<Completer> completers) {
-        checkNotNull(completers);
-        this.completers.addAll(completers);
-    }
+    private final Collection<Completer> completers;
 
     /**
      * Construct an AggregateCompleter with the given completers.
@@ -54,6 +39,17 @@ public class AggregateCompleter
      */
     public AggregateCompleter(final Completer... completers) {
         this(Arrays.asList(completers));
+    }
+
+    /**
+     * Construct an AggregateCompleter with the given completers.
+     * The completers will be used in the order given.
+     *
+     * @param completers the completers
+     */
+    public AggregateCompleter(Collection<Completer> completers) {
+        assert completers != null;
+        this.completers = completers;
     }
 
     /**
@@ -69,34 +65,14 @@ public class AggregateCompleter
      * Perform a completion operation across all aggregated completers.
      *
      * @see Completer#complete(ParsedLine, List)
-     * @return the highest completion return value from all completers
      */
-    public int complete(final ParsedLine line, final List<Candidate> candidates) {
-        // buffer could be null
+    public void complete(final ParsedLine line, final List<Candidate> candidates) {
+        checkNotNull(line);
         checkNotNull(candidates);
 
-        List<Completion> completions = new ArrayList<Completion>(completers.size());
-
-        // Run each completer, saving its completion results
-        int max = -1;
         for (Completer completer : completers) {
-            Completion completion = new Completion(candidates);
-            completion.complete(completer, line);
-
-            // Compute the max cursor position
-            max = Math.max(max, completion.cursor);
-
-            completions.add(completion);
+            completer.complete(line, candidates);
         }
-
-        // Append candidates from completions which have the same cursor position as max
-        for (Completion completion : completions) {
-            if (completion.cursor == max) {
-                candidates.addAll(completion.candidates);
-            }
-        }
-
-        return max;
     }
 
     /**
@@ -109,20 +85,4 @@ public class AggregateCompleter
             '}';
     }
 
-    private class Completion
-    {
-        public final List<Candidate> candidates;
-
-        public int cursor;
-
-        public Completion(final List<Candidate> candidates) {
-            checkNotNull(candidates);
-            this.candidates = new LinkedList<>(candidates);
-        }
-
-        public void complete(final Completer completer, final ParsedLine line) {
-            checkNotNull(completer);
-            this.cursor = completer.complete(line, candidates);
-        }
-    }
 }

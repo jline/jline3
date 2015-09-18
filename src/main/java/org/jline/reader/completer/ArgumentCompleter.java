@@ -29,8 +29,7 @@ import static org.jline.utils.Preconditions.checkNotNull;
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  * @since 2.3
  */
-public class ArgumentCompleter
-    implements Completer
+public class ArgumentCompleter implements Completer
 {
     private final List<Completer> completers = new ArrayList<>();
 
@@ -81,12 +80,12 @@ public class ArgumentCompleter
         return completers;
     }
 
-    public int complete(ParsedLine line, final List<Candidate> candidates) {
+    public void complete(ParsedLine line, final List<Candidate> candidates) {
         checkNotNull(line);
         checkNotNull(candidates);
 
         if (line.wordIndex() < 0) {
-            return -1;
+            return;
         }
 
         List<Completer> completers = getCompleters();
@@ -107,10 +106,7 @@ public class ArgumentCompleter
             String arg = (args == null || i >= args.size()) ? "" : args.get(i).toString();
 
             List<Candidate> subCandidates = new LinkedList<>();
-
-            if (sub.complete(new ArgumentLine(arg, arg.length()), subCandidates) == -1) {
-                return -1;
-            }
+            sub.complete(new ArgumentLine(arg, arg.length()), subCandidates);
 
             boolean found = false;
             for (Candidate cand : subCandidates) {
@@ -120,40 +116,11 @@ public class ArgumentCompleter
                 }
             }
             if (!found) {
-                return -1;
+                return;
             }
         }
 
-        int ret = completer.complete(line, candidates);
-
-        if (ret == -1) {
-            return -1;
-        }
-
-        int pos = ret + line.cursor() - line.wordCursor();
-
-        // Special case: when completing in the middle of a line, and the area under the cursor is a delimiter,
-        // then trim any delimiters from the candidates, since we do not need to have an extra delimiter.
-        //
-        // E.g., if we have a completion for "foo", and we enter "f bar" into the buffer, and move to after the "f"
-        // and hit TAB, we want "foo bar" instead of "foo  bar".
-
-//        if ((cursor != buffer.length()) && delim.isDelimiter(buffer, cursor)) {
-//            for (int i = 0; i < candidates.size(); i++) {
-//                Candidate cand = candidates.get(i);
-//                String val = cand.value();
-//
-//                while (val.length() > 0 && delim.isDelimiter(val, val.length() - 1)) {
-//                    val = val.substring(0, val.length() - 1);
-//                }
-//
-//                candidates.set(i, cand);
-//            }
-//        }
-//
-//        Log.trace("Completing ", buffer, " (pos=", cursor, ") with: ", candidates, ": offset=", pos);
-
-        return pos;
+        completer.complete(line, candidates);
     }
 
     public static class ArgumentLine implements ParsedLine {

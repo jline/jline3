@@ -29,7 +29,6 @@ public interface Completer
      *
      * @param line          The parsed command line
      * @param candidates    The {@link List} of candidates to populate
-     * @return              The index of the <i>buffer</i> for which the completion will be relative
      */
-    int complete(ParsedLine line, List<Candidate> candidates);
+    void complete(ParsedLine line, List<Candidate> candidates);
 }

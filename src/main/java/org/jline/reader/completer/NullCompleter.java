@@ -26,7 +26,6 @@ public final class NullCompleter
 {
     public static final NullCompleter INSTANCE = new NullCompleter();
 
-    public int complete(final ParsedLine line, final List<Candidate> candidates) {
-        return -1;
+    public void complete(final ParsedLine line, final List<Candidate> candidates) {
     }
 }

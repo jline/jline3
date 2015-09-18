@@ -9,13 +9,17 @@
 package org.jline.reader.completer;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 import org.jline.Candidate;
 import org.jline.Completer;
 import org.jline.reader.ParsedLine;
-
-import static org.jline.utils.Preconditions.checkNotNull;
+import org.jline.utils.Ansi;
+import org.jline.utils.Ansi.Color;
 
 /**
  * A file name completer takes the buffer and issues a list of
@@ -37,97 +41,61 @@ import static org.jline.utils.Preconditions.checkNotNull;
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  * @since 2.3
  */
-public class FileNameCompleter
-    implements Completer
+public class FileNameCompleter implements Completer
 {
-    // TODO: Handle files with spaces in them
+    public void complete(ParsedLine commandLine, final List<Candidate> candidates) {
+        assert commandLine != null;
+        assert candidates != null;
 
-    private static final boolean OS_IS_WINDOWS;
+        String buffer = commandLine.word().substring(0, commandLine.wordCursor());
 
-    static {
-        String os = System.getProperty("os.name");
-        OS_IS_WINDOWS = os.contains("windows");
-    }
-
-    public int complete(ParsedLine line, final List<Candidate> candidates) {
-        checkNotNull(line);
-        checkNotNull(candidates);
-
-        String buffer = line.word();
-
-        if (OS_IS_WINDOWS) {
-            buffer = buffer.replace('/', '\\');
-        }
-
-        String translated = buffer;
-
-        File homeDir = getUserHome();
-
-        // Special character: ~ maps to the user's home directory
-        if (translated.startsWith("~" + separator())) {
-            translated = homeDir.getPath() + translated.substring(1);
-        }
-        else if (translated.startsWith("~")) {
-            translated = homeDir.getParentFile().getAbsolutePath();
-        }
-        else if (!(new File(translated).isAbsolute())) {
-            String cwd = getUserDir().getAbsolutePath();
-            translated = cwd + separator() + translated;
-        }
-
-        File file = new File(translated);
-        final File dir;
-
-        if (translated.endsWith(separator())) {
-            dir = file;
-        }
-        else {
-            dir = file.getParentFile();
-        }
-
-        File[] entries = dir == null ? new File[0] : dir.listFiles();
-
-        return matchFiles(buffer, translated, entries, candidates);
-    }
-
-    protected String separator() {
-        return File.separator;
-    }
-
-    protected File getUserHome() {
-        return new File(System.getProperty("user.home"));
-    }
-
-    protected File getUserDir() {
-        return new File(System.getProperty("user.dir"));
-    }
-
-    protected int matchFiles(final String buffer, final String translated, final File[] files, final List<Candidate> candidates) {
-        if (files == null) {
-            return -1;
-        }
-
-        int matches = 0;
-
-        // first pass: just count the matches
-        for (File file : files) {
-            if (file.getAbsolutePath().startsWith(translated)) {
-                matches++;
+        Path current;
+        String curBuf;
+        int lastSep = buffer.lastIndexOf(File.separator);
+        if (lastSep >= 0) {
+            curBuf = buffer.substring(0, lastSep + 1);
+            if (curBuf.startsWith("~")) {
+                if (curBuf.startsWith("~/")) {
+                    current = getUserHome().resolve(curBuf.substring(2));
+                } else {
+                    current = getUserHome().getParent().resolve(curBuf.substring(1));
+                }
+            } else {
+                current = Paths.get(curBuf);
             }
+        } else {
+            curBuf = "";
+            current = getUserDir();
         }
-        for (File file : files) {
-            if (file.getAbsolutePath().startsWith(translated)) {
-                CharSequence name = file.getName() + (matches == 1 && file.isDirectory() ? separator() : " ");
-                candidates.add(new Candidate(render(file, name).toString()));
-            }
+        try {
+            Files.newDirectoryStream(current).forEach(p -> {
+                String value = curBuf + p.getFileName().toString();
+                if (Files.isDirectory(p)) {
+                    candidates.add(new Candidate(value + "/", getDisplay(p), null, null, false));
+                } else {
+                    candidates.add(new Candidate(value, getDisplay(p), null, null, true));
+                }
+            });
+        } catch (IOException e) {
+            // Ignore
         }
-
-        final int index = buffer.lastIndexOf(separator());
-
-        return index + separator().length();
     }
 
-    protected CharSequence render(final File file, final CharSequence name) {
+    protected Path getUserDir() {
+        return Paths.get(System.getProperty("user.dir"));
+    }
+
+    protected Path getUserHome() {
+        return Paths.get(System.getProperty("user.home"));
+    }
+
+    private String getDisplay(Path p) {
+        String name = p.getFileName().toString();
+        if (Files.isDirectory(p)) {
+            name = Ansi.ansi().fg(Color.RED).bold(name).fg(Color.DEFAULT).a("/").toString();
+        } else if (Files.isSymbolicLink(p)) {
+            name = Ansi.ansi().fg(Color.RED).bold(name).fg(Color.DEFAULT).a("@").toString();
+        }
         return name;
     }
 }

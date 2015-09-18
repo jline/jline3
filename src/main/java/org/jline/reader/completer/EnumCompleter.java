@@ -8,6 +8,8 @@
  */
 package org.jline.reader.completer;
 
+import org.jline.Candidate;
+
 import static org.jline.utils.Preconditions.checkNotNull;
 
 /**
@@ -16,14 +18,12 @@ import static org.jline.utils.Preconditions.checkNotNull;
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  * @since 2.3
  */
-public class EnumCompleter
-    extends StringsCompleter
+public class EnumCompleter extends StringsCompleter
 {
     public EnumCompleter(Class<? extends Enum<?>> source) {
         checkNotNull(source);
-
         for (Enum<?> n : source.getEnumConstants()) {
-            this.getStrings().add(n.name().toLowerCase());
+            candidates.add(new Candidate(n.name().toLowerCase()));
         }
     }
 }

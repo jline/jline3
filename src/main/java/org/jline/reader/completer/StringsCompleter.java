@@ -8,6 +8,7 @@
  */
 package org.jline.reader.completer;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -17,6 +18,7 @@ import java.util.TreeSet;
 import org.jline.Candidate;
 import org.jline.Completer;
 import org.jline.reader.ParsedLine;
+import org.jline.utils.AnsiHelper;
 
 import static org.jline.utils.Preconditions.checkNotNull;
 
@@ -28,29 +30,26 @@ import static org.jline.utils.Preconditions.checkNotNull;
  */
 public class StringsCompleter implements Completer
 {
-    private final SortedSet<String> strings = new TreeSet<String>();
+    protected final Collection<Candidate> candidates = new ArrayList<>();
 
     public StringsCompleter() {
-        // empty
     }
 
-    public StringsCompleter(final Collection<String> strings) {
-        checkNotNull(strings);
-        getStrings().addAll(strings);
-    }
-
-    public StringsCompleter(final String... strings) {
+    public StringsCompleter(String... strings) {
         this(Arrays.asList(strings));
     }
 
-    public Collection<String> getStrings() {
-        return strings;
+    public StringsCompleter(Iterable<String> strings) {
+        assert strings != null;
+        for (String string : strings) {
+            candidates.add(new Candidate(AnsiHelper.strip(string), string, null, null, true));
+        }
     }
 
-    public int complete(final ParsedLine line, final List<Candidate> candidates) {
-        checkNotNull(line);
-        checkNotNull(candidates);
-        strings.forEach(s -> candidates.add(new Candidate(s)));
-        return 0;
+    public void complete(final ParsedLine commandLine, final List<Candidate> candidates) {
+        assert commandLine != null;
+        assert candidates != null;
+        candidates.addAll(this.candidates);
     }
+
 }
