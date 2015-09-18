@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +26,7 @@ import org.jline.console.PosixSysConsole;
 import org.jline.console.Pty;
 import org.jline.console.WinSysConsole;
 import org.jline.reader.ConsoleReaderImpl;
+import org.jline.reader.Parser;
 import org.jline.reader.history.MemoryHistory;
 
 public final class JLine {
@@ -95,6 +97,11 @@ public final class JLine {
             return this;
         }
 
+        public ConsoleBuilder variables(Map<String, Object> variables) {
+            consoleReaderBuilder.variables(variables);
+            return this;
+        }
+
         public ConsoleBuilder variable(String name, String value) {
             consoleReaderBuilder.variable(name, value);
             return this;
@@ -105,13 +112,18 @@ public final class JLine {
             return this;
         }
 
-        public ConsoleBuilder completers(List<Completer> completers) {
-            consoleReaderBuilder.completers(completers);
+        public ConsoleBuilder completer(Completer completer) {
+            consoleReaderBuilder.completer(completer);
             return this;
         }
 
         public ConsoleBuilder highlighter(Highlighter highlighter) {
             consoleReaderBuilder.highlighter(highlighter);
+            return this;
+        }
+
+        public ConsoleBuilder parser(Parser parser) {
+            consoleReaderBuilder.parser(parser);
             return this;
         }
 
@@ -167,11 +179,12 @@ public final class JLine {
         Console console;
         String appName;
         URL inputrc;
-        Map<String, String> variables = new HashMap<>();
+        Map<String, Object> variables;
         History history;
-        List<Completer> completers;
+        Completer completer;
         History memoryHistory;
         Highlighter highlighter;
+        Parser parser;
 
         public ConsoleReaderBuilder() {
         }
@@ -191,7 +204,19 @@ public final class JLine {
             return this;
         }
 
-        public ConsoleReaderBuilder variable(String name, String value) {
+        public ConsoleReaderBuilder variables(Map<String, Object> variables) {
+            Map<String, Object> old = this.variables;
+            this.variables = variables;
+            if (old != null) {
+                this.variables.putAll(old);
+            }
+            return this;
+        }
+
+        public ConsoleReaderBuilder variable(String name, Object value) {
+            if (variables == null) {
+                variables = new HashMap<>();
+            }
             this.variables.put(name, value);
             return this;
         }
@@ -201,13 +226,18 @@ public final class JLine {
             return this;
         }
 
-        public ConsoleReaderBuilder completers(List<Completer> completers) {
-            this.completers = completers;
+        public ConsoleReaderBuilder completer(Completer completer) {
+            this.completer = completer;
             return this;
         }
 
         public ConsoleReaderBuilder highlighter(Highlighter highlighter) {
             this.highlighter = highlighter;
+            return this;
+        }
+
+        public ConsoleReaderBuilder parser(Parser parser) {
+            this.parser = parser;
             return this;
         }
 
@@ -221,11 +251,14 @@ public final class JLine {
                 }
                 reader.setHistory(memoryHistory);
             }
-            if (completers != null) {
-                reader.setCompleters(completers);
+            if (completer != null) {
+                reader.setCompleter(completer);
             }
             if (highlighter != null) {
                 reader.setHighlighter(highlighter);
+            }
+            if (parser != null) {
+                reader.setParser(parser);
             }
             return reader;
         }

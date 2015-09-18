@@ -30,7 +30,6 @@ public interface ConsoleReader {
     String EDITING_MODE = "editing-mode";
     String KEYMAP = "keymap";
     String BLINK_MATCHING_PAREN = "blink-matching-paren";
-    String DISABLE_EVENT_EXPANSION = "disable-event-expansion";
     /**
      * Set to true if the reader should attempt to detect copy-n-paste. The
      * effect of this that an attempt is made to detect if tab is quickly
@@ -48,6 +47,32 @@ public interface ConsoleReader {
      * will be sent after the timeout elapsed if there's no key pressed
      */
     String ESCAPE_TIMEOUT = "escape-timeout";
+
+    enum Option {
+        DISABLE_EVENT_EXPANSION,
+        HISTORY_VERIFY,
+        COMPLETE_OVERWRITE_WORD,
+        AUTO_MENU(true),
+        AUTO_LIST(true),
+        RECOGNIZE_EXACT,
+        PAD_PROMPTS,
+        GROUP,
+        CASE_INSENSITIVE;
+
+        private final boolean def;
+
+        Option() {
+            this(false);
+        }
+
+        Option(boolean def) {
+            this.def = def;
+        }
+
+        public boolean isDef() {
+            return def;
+        }
+    }
 
     /**
      * Read the next line and return the contents of the buffer.

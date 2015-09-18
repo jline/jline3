@@ -222,22 +222,7 @@ public class ConsoleKeys {
     }
 
     public void bindKey(KeyMap keys, String seq, String val) {
-        if (seq.charAt(0) == '"') {
-            seq = translateQuoted(seq);
-        } else {
-            // Bind key name
-            String keyName = seq.lastIndexOf('-') > 0 ? seq.substring( seq.lastIndexOf('-') + 1 ) : seq;
-            char key = getKeyFromName(keyName);
-            keyName = seq.toLowerCase();
-            seq = "";
-            if (keyName.contains("meta-") || keyName.contains("m-")) {
-                seq += "\u001b";
-            }
-            if (keyName.contains("control-") || keyName.contains("c-") || keyName.contains("ctrl-")) {
-                key = (char)(Character.toUpperCase( key ) & 0x1f);
-            }
-            seq += key;
-        }
+        seq = translate(seq);
         if (val.length() > 0 && (val.charAt(0) == '\'' || val.charAt(0) == '\"')) {
             keys.bind(seq, new Macro(translateQuoted(val)));
         } else {
@@ -250,7 +235,28 @@ public class ConsoleKeys {
         }
     }
 
-    private String translateQuoted(String keySeq) {
+    public static String translate(String seq) {
+        if (seq.charAt(0) == '"') {
+            seq = translateQuoted(seq);
+        } else {
+            // Bind key name
+            String keyName = seq.lastIndexOf('-') > 0 ? seq.substring( seq.lastIndexOf('-') + 1 ) : seq;
+            char key = getKeyFromName(keyName);
+            keyName = seq.toLowerCase();
+            seq = "";
+            if (keyName.contains("meta-") || keyName.contains("m-")) {
+                seq += "\u001b";
+            }
+            if (keyName.contains("control-") || keyName.contains("c-")
+                    || keyName.contains("ctrl-")) {
+                key = (char)(Character.toUpperCase( key ) & 0x1f);
+            }
+            seq += key;
+        }
+        return seq;
+    }
+
+    private static String translateQuoted(String keySeq) {
         int i;
         String str = keySeq.substring( 1, keySeq.length() - 1 );
         keySeq = "";
@@ -336,7 +342,7 @@ public class ConsoleKeys {
         return keySeq;
     }
 
-    private char getKeyFromName(String org) {
+    private static char getKeyFromName(String org) {
         String name = org.toLowerCase();
         switch (name) {
             case "del":

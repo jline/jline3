@@ -21,7 +21,7 @@ public class NullCompleterTest
 {
     @Test
     public void test1() throws Exception {
-        reader.addCompleter(NullCompleter.INSTANCE);
+        reader.setCompleter(NullCompleter.INSTANCE);
 
         assertBuffer("f", new TestBuffer("f").tab());
         assertBuffer("ba", new TestBuffer("ba").tab());

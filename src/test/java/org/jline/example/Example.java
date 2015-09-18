@@ -78,7 +78,7 @@ public class Example
                 return;
             }
 
-            List<Completer> completers = new LinkedList<>();
+            Completer completer = null;
 
             int index = 0;
             while (args.length > index) {
@@ -109,17 +109,17 @@ public class Example
                 else if (args[index].equals("none")) {
                     break;
                 } else if (args[index].equals("files")) {
-                    completers.add(new FileNameCompleter());
+                    completer = new FileNameCompleter();
                     break;
                 }
                 else if (args[index].equals("simple")) {
-                    completers.add(new StringsCompleter("foo", "bar", "baz"));
+                    completer = new StringsCompleter("foo", "bar", "baz");
                     break;
                 }
                 else if (args[index].equals("foo")) {
-                    completers.add(new ArgumentCompleter(
+                    completer = new ArgumentCompleter(
                             new StringsCompleter("foo11", "foo12", "foo13"),
-                            new StringsCompleter("foo21", "foo22", "foo23")));
+                            new StringsCompleter("foo21", "foo22", "foo23"));
                     break;
                 }
                 else if (args[index].equals("color")) {
@@ -141,7 +141,7 @@ public class Example
                                     .toFormatter()))
                             .reset()
                             .toString();
-                    completers.add(new StringsCompleter("\u001B[1mfoo\u001B[0m", "bar", "\u001B[32mbaz\u001B[0m", "foobar"));
+                    completer = new StringsCompleter("\u001B[1mfoo\u001B[0m", "bar", "\u001B[32mbaz\u001B[0m", "foobar");
                     break;
                 }
                 else {
@@ -156,7 +156,7 @@ public class Example
                 trigger = args[index];
             }
 
-            builder.completers(completers);
+            builder.completer(completer);
 
             Console console = builder.build();
             ConsoleReader reader = console.newConsoleReader();

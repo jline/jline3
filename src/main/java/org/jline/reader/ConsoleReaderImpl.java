@@ -154,15 +154,17 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     //
     // Configuration
     //
-    protected final Map<String, String> variables = new HashMap<>();
+    protected final Map<String, Object> variables;
     protected History history = new MemoryHistory();
-    protected final List<Completer> completers = new LinkedList<>();
+    protected Completer completer = null;
     protected Highlighter highlighter = new DefaultHighlighter();
     protected Parser parser = new DefaultParser();
 
     //
     // State variables
     //
+
+    protected final Map<Option, Boolean> options = new HashMap<>();
 
     protected final Buffer buf = new Buffer();
 
@@ -238,7 +240,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         this(console, appName, inputrc, null);
     }
 
-    public ConsoleReaderImpl(Console console, String appName, URL inputrc, Map<String, String> variables) {
+    public ConsoleReaderImpl(Console console, String appName, URL inputrc, Map<String, Object> variables) {
         checkNotNull(console);
         this.console = console;
         if (appName == null) {
@@ -258,7 +260,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         this.appName = appName;
         this.inputrc = inputrc;
         if (variables != null) {
-            this.variables.putAll(variables);
+            this.variables = variables;
+        } else {
+            this.variables = new HashMap<>();
         }
         this.consoleKeys = new ConsoleKeys(appName, inputrc);
 
@@ -332,36 +336,17 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     /**
-     * Add the specified {@link Completer} to the list of handlers for tab-completion.
-     *
-     * @param completer the {@link Completer} to add
-     * @return true if it was successfully added
+     * Set the completer.
      */
-    public boolean addCompleter(final Completer completer) {
-        return completers.add(completer);
+    public void setCompleter(Completer completer) {
+        this.completer = completer;
     }
 
     /**
-     * Remove the specified {@link Completer} from the list of handlers for tab-completion.
-     *
-     * @param completer     The {@link Completer} to remove
-     * @return              True if it was successfully removed
+     * Returns the completer.
      */
-    public boolean removeCompleter(final Completer completer) {
-        return completers.remove(completer);
-    }
-
-    public void setCompleters(Collection<Completer> completers) {
-        checkNotNull(completers);
-        this.completers.clear();
-        this.completers.addAll(completers);
-    }
-
-    /**
-     * Returns an unmodifiable list of all the completers.
-     */
-    public Collection<Completer> getCompleters() {
-        return Collections.unmodifiableList(completers);
+    public Completer getCompleter() {
+        return completer;
     }
 
     //
@@ -736,7 +721,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         String str = buf.toString();
         String historyLine = str;
 
-        if (!isSet(DISABLE_EVENT_EXPANSION)) {
+        if (!isSet(Option.DISABLE_EVENT_EXPANSION)) {
             StringBuilder sb = new StringBuilder();
             boolean escaped = false;
             for (int i = 0; i < str.length(); i++) {
@@ -1224,10 +1209,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected boolean doInsertComment(boolean isViMode) {
-        String comment = getVariable(COMMENT_BEGIN);
-        if (comment == null) {
-            comment = "#";
-        }
+        String comment = getString(COMMENT_BEGIN, "#");
         beginningOfLine();
         putString(comment);
         if (isViMode) {
@@ -2253,13 +2235,13 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             // TODO: what ?
         }
         state = State.DONE;
-        if (!isSet(DISABLE_EVENT_EXPANSION)) {
+        if (!isSet(Option.DISABLE_EVENT_EXPANSION)) {
             try {
                 String exp = expandEvents(str);
                 if (!exp.equals(str)) {
                     buf.clear();
                     buf.write(exp);
-                    if (isSet("history-verify")) {
+                    if (isSet(Option.HISTORY_VERIFY)) {
                         state = State.NORMAL;
                     }
                 }
@@ -2979,7 +2961,33 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         checkNotNull(prompts);
         StringBuilder sb = new StringBuilder();
         int line = 0;
-        if (computePrompts || !isSet("pad-prompts") || prompts.size() < 2) {
+        if (computePrompts || !isSet(Option.PAD_PROMPTS) || prompts.size() < 2) {
+            List<String> strippedLines = AnsiHelper.splitLines(AnsiHelper.strip(str), Integer.MAX_VALUE, TAB_WIDTH);
+            List<String> ansiLines = AnsiHelper.splitLines(str, Integer.MAX_VALUE, TAB_WIDTH);
+            StringBuilder buf = new StringBuilder();
+            while (line < strippedLines.size() - 1) {
+                sb.append(ansiLines.get(line)).append("\n");
+                buf.append(strippedLines.get(line)).append("\n");
+                String prompt;
+                if (computePrompts) {
+                    prompt = SECONDARY_PROMPT;
+                    try {
+                        parser.parse(buf.toString(), buf.length());
+                    } catch (EOFError e) {
+                        prompt = e.getMissing() + SECONDARY_PROMPT;
+                    } catch (SyntaxError e) {
+                        // Ignore
+                    }
+                } else {
+                    prompt = prompts.get(line);
+                }
+                prompts.add(prompt);
+                sb.append(prompt);
+                line++;
+            }
+            sb.append(ansiLines.get(line));
+            buf.append(strippedLines.get(line));
+            /*
             for (int i = 0; i < str.length(); i++) {
                 char ch = str.charAt(i);
                 sb.append(ch);
@@ -2988,7 +2996,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                     if (computePrompts) {
                         prompt = SECONDARY_PROMPT;
                         try {
-                            parser.parse(sb.toString(), sb.length());
+                            parser.parse(str.substring(0, i + 1), sb.length());
                         } catch (EOFError e) {
                             prompt = e.getMissing() + SECONDARY_PROMPT;
                         } catch (SyntaxError e) {
@@ -3001,8 +3009,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                     sb.append(prompt);
                 }
             }
+            */
         }
-        if (isSet("pad-prompts") && prompts.size() >= 2) {
+        if (isSet(Option.PAD_PROMPTS) && prompts.size() >= 2) {
             if (computePrompts) {
                 int max = prompts.stream().map(String::length).max(Comparator.<Integer>naturalOrder()).get();
                 for (ListIterator<String> it = prompts.listIterator(); it.hasNext(); ) {
@@ -3152,11 +3161,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         List<Candidate> candidates = new ArrayList<>();
         ParsedLine line = parser.parse(buf.toString(), buf.cursor());
         // TODO: handle exceptions
-        for (Completer completer : completers) {
+        if (completer != null) {
             completer.complete(line, candidates);
         }
 
-        boolean caseInsensitive = isSet("case-insensitive");
+        boolean caseInsensitive = isSet(Option.CASE_INSENSITIVE);
         int errors = getInt("errors", 2);
 
         NavigableMap<String, List<Candidate>> sortedCandidates =
@@ -3167,8 +3176,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                     .add(cand);
         }
 
-        String word = line.word().toString();
+        String word = line.word();
         String w = word.substring(0, line.wordCursor());
+        String leftOver = word.substring(line.wordCursor());
 
 
         boolean doList;
@@ -3187,11 +3197,17 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             String completion = null;
             Map<String, List<Candidate>> matching = w.length() > 0 ? sortedCandidates.subMap(w, getHigherBound(w)) : sortedCandidates;
             // Found an exact match of the whole word
-            if (sortedCandidates.containsKey(word)
+            boolean hasComplete = false;
+            if (sortedCandidates.containsKey(word)) {
+                for (Candidate c : sortedCandidates.get(word)) {
+                    hasComplete |= c.complete();
+                }
+            }
+            if (hasComplete
                     && (matching.size() == 1
-                        || isSet("recognize-exact"))) {
+                        || isSet(Option.RECOGNIZE_EXACT))) {
                 exact = true;
-                completion = line.word().toString();
+                completion = line.word();
                 possible = Collections.emptyList();
                 doList = false;
             } else {
@@ -3205,47 +3221,52 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 if (completion == null) {
                     // Add any fixable typos
                     possible = sortedCandidates.entrySet().stream()
-                            .filter(e -> !e.getKey().startsWith(w) && Levenshtein.distance(w, e.getKey().substring(0, w.length())) < errors)
+                            .filter(e -> !e.getKey().startsWith(w)
+                                    && Levenshtein.distance(w, e.getKey().substring(0, Math.min(e.getKey().length(), w.length()))) < errors)
                             .flatMap(e -> e.getValue().stream())
                             .collect(Collectors.toList());
                     if (!possible.isEmpty()) {
-                        possible.add(new Candidate(w, "original", null));
-                        doList = isSet("auto-list");
+                        possible.add(new Candidate(w, w, "original", null, false));
+                        doList = isSet(Option.AUTO_LIST);
                     } else {
                         doList = false;
                     }
                 }
                 else if (possible.size() == 1) {
-                    exact = true;
+                    exact = possible.get(0).complete();
                     doList = false;
                 } else {
                     if (completion.length() == w.length()) {
                         completion = null;
                     }
-                    doList = !possible.isEmpty() && isSet("auto-list");
+                    doList = !possible.isEmpty() && isSet(Option.AUTO_LIST);
                 }
 
-                if (doList && isSet("auto-menu") && useMenu != 0) {
+                if (doList && isSet(Option.AUTO_MENU) && useMenu != 0) {
                     doMenu = true;
                     if (completion == null) {
-                        completion = AnsiHelper.strip(possible.get(0).value());
+                        completion = possible.get(0).value();
                     }
                 }
             }
 
             if (completion != null) {
-                if (isSet("complete-overwrite-word")) {
-                    buf.move(word.length() - w.length());
+                if (isSet(Option.COMPLETE_OVERWRITE_WORD)) {
+                    buf.move(leftOver.length());
                     buf.backspace(word.length());
                     buf.write(completion);
+                    word = completion;
                     if (exact && buf.currChar() != ' ') {
                         buf.write(" ");
+                        word += " ";
                     }
                 } else {
                     buf.backspace(w.length());
                     buf.write(completion);
+                    word = completion + word.substring(w.length());
                     if (exact && buf.currChar() == 0) {
                         buf.write(" ");
+                        word += " ";
                     }
                 }
             }
@@ -3271,8 +3292,34 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             while ((operation = readBinding(getKeys(), keyMap)) != null) {
                 if ("complete".equals(operation)) {
                     selection = (selection + 1) % possible.size();
+                    Candidate completion = possible.get(selection);
                     computePost(possible, possible.get(selection));
+                    if (isSet(Option.COMPLETE_OVERWRITE_WORD)) {
+                        buf.move(word.length() - w.length());
+                        buf.backspace(word.length());
+                        buf.write(completion.value());
+                        word = completion.value();
+                    } else {
+                        buf.backspace(word.length());
+                        buf.write(completion.value());
+                        word = completion.value() + word.substring(w.length());
+                    }
                 } else if ("accept".equals(operation)) {
+                    Candidate completion = possible.get(selection);
+                    if (isSet(Option.COMPLETE_OVERWRITE_WORD)) {
+                        buf.move(word.length() - w.length());
+                        buf.backspace(word.length());
+                        buf.write(completion.value());
+                        if (completion.complete() && buf.currChar() != ' ') {
+                            buf.write(" ");
+                        }
+                    } else {
+                        buf.backspace(word.length());
+                        buf.write(completion.value());
+                        if (completion.complete() && buf.currChar() == 0) {
+                            buf.write(" ");
+                        }
+                    }
                     return true;
                 }
                 redisplay();
@@ -3284,7 +3331,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     private void computePost(List<Candidate> possible, Candidate selection) {
         boolean displayDesc = false;
-        boolean groupName = isSet("group");
+        boolean groupName = isSet(Option.GROUP);
         if (groupName) {
             LinkedHashMap<String, TreeMap<String, Candidate>> sorted = new LinkedHashMap<>();
             for (Candidate cand : possible) {
@@ -3311,9 +3358,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                     List<String> strs = new ArrayList<>();
                     for (Candidate cand : entry.getValue().values()) {
                         if (cand == selection) {
-                            strs.add(Ansi.ansi().a(Attribute.NEGATIVE_ON).a(cand.value()).a(Attribute.NEGATIVE_OFF).toString());
+                            strs.add(Ansi.ansi().a(Attribute.NEGATIVE_ON).a(AnsiHelper.strip(cand.displ())).a(Attribute.NEGATIVE_OFF).toString());
                         } else {
-                            strs.add(cand.value());
+                            strs.add(cand.displ());
                         }
                     }
                     strings.add(strs.toArray(new String[strs.size()]));
@@ -3328,7 +3375,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 if (group != null) {
                     groups.add(group);
                 }
-                sorted.put(AnsiHelper.strip(cand.value()), cand);
+                sorted.put(cand.value(), cand);
             }
             List<String[]> strings = new ArrayList<>();
             for (String group : groups) {
@@ -3337,9 +3384,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             List<String> strs = new ArrayList<>();
             for (Candidate cand : sorted.values()) {
                 if (cand == selection) {
-                    strs.add(Ansi.ansi().a(Attribute.NEGATIVE_ON).a(cand.value()).a(Attribute.NEGATIVE_OFF).toString());
+                    strs.add(Ansi.ansi().a(Attribute.NEGATIVE_ON).a(AnsiHelper.strip(cand.displ())).a(Attribute.NEGATIVE_OFF).toString());
                 } else {
-                    strs.add(cand.value());
+                    strs.add(cand.displ());
                 }
             }
             strings.add(strs.toArray(new String[strs.size()]));
@@ -3556,20 +3603,20 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      */
     public void beep() {
         int bell_preference = AUDIBLE_BELL;
-        String bellStyle = getVariable(BELL_STYLE);
-        if ("none".equals(bellStyle) || "off".equals(bellStyle)) {
-            bell_preference = NO_BELL;
-        } else if ("audible".equals(bellStyle)) {
-            bell_preference = AUDIBLE_BELL;
-        } else if ("visible".equals(bellStyle)) {
-            bell_preference = VISIBLE_BELL;
-        } else if ("on".equals(bellStyle)) {
-            String preferVisibleBellStr = getVariable(PREFER_VISIBLE_BELL);
-            if ("off".equals(preferVisibleBellStr)) {
+        switch (getString(BELL_STYLE, "")) {
+            case "none":
+            case "off":
+                bell_preference = NO_BELL;
+                break;
+            case "audible":
                 bell_preference = AUDIBLE_BELL;
-            } else {
+                break;
+            case "visible":
                 bell_preference = VISIBLE_BELL;
-            }
+                break;
+            case "on":
+                bell_preference = getBoolean(PREFER_VISIBLE_BELL, false) ? VISIBLE_BELL : AUDIBLE_BELL;
+                break;
         }
         if (bell_preference == VISIBLE_BELL) {
             if (console.puts(Capability.flash_screen)
@@ -3865,31 +3912,58 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return Character.isWhitespace(c);
     }
 
-    public String getVariable(String name) {
-        String v = variables.get(name);
+    public Map<String, Object> getVariables() {
+        return variables;
+    }
+
+    public Object getVariable(String name) {
+        Object v = variables.get(name);
         return v != null ? v : consoleKeys.getVariable(name);
     }
 
-    public void setVariable(String name, String value) {
+    public void setVariable(String name, Object value) {
         variables.put(name, value);
     }
 
-    private boolean isSet(String name) {
-        return getBoolean(name, false);
+    public boolean isSet(Option option) {
+        Boolean b = options.get(option);
+        return b != null ? b : option.isDef();
+    }
+
+    public void setOpt(Option option) {
+        options.put(option, Boolean.TRUE);
+    }
+
+    public void unsetOpt(Option option) {
+        options.put(option, Boolean.FALSE);
+    }
+
+    String getString(String name, String def) {
+        Object v = getVariable(name);
+        return v != null ? v.toString() : def;
     }
 
     boolean getBoolean(String name, boolean def) {
-        String v = getVariable(name);
-        return v != null ? v.isEmpty() || v.equalsIgnoreCase("on") || v.equalsIgnoreCase("1") : def;
+        Object v = getVariable(name);
+        if (v instanceof Boolean) {
+            return (Boolean) v;
+        } else if (v != null) {
+            String s = v.toString();
+            return s.isEmpty() || s.equalsIgnoreCase("on")
+                    || s.equalsIgnoreCase("1") || s.equalsIgnoreCase("true");
+        }
+        return def;
     }
 
     int getInt(String name, int def) {
         int nb = def;
-        String v = getVariable(name);
-        if (v != null) {
+        Object v = getVariable(name);
+        if (v instanceof Number) {
+            return ((Number) v).intValue();
+        } else if (v != null) {
             nb = 0;
             try {
-                nb = Integer.parseInt(v);
+                nb = Integer.parseInt(v.toString());
             } catch (NumberFormatException e) {
                 // Ignore
             }
@@ -3899,21 +3973,18 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     long getLong(String name, long def) {
         long nb = def;
-        String v = getVariable(name);
-        if (v != null) {
+        Object v = getVariable(name);
+        if (v instanceof Number) {
+            return ((Number) v).longValue();
+        } else if (v != null) {
             nb = 0;
             try {
-                nb = Long.parseLong(v);
+                nb = Long.parseLong(v.toString());
             } catch (NumberFormatException e) {
                 // Ignore
             }
         }
         return nb;
-    }
-
-    String getString(String name, String def) {
-        String v = getVariable(name);
-        return (v != null) ? v : def;
     }
 
 }

@@ -180,7 +180,7 @@ public class DefaultParser implements Parser {
     {
         private final String line;
 
-        private final List<CharSequence> words;
+        private final List<String> words;
 
         private final int wordIndex;
 
@@ -200,9 +200,10 @@ public class DefaultParser implements Parser {
             return this.wordIndex;
         }
 
-        public CharSequence word() {
+        public String word() {
+            // TODO: word() should always be contained in words()
             if ((wordIndex < 0) || (wordIndex >= words.size())) {
-                return null;
+                return "";
             }
             return words.get(wordIndex);
         }
@@ -211,7 +212,7 @@ public class DefaultParser implements Parser {
             return this.wordCursor;
         }
 
-        public List<CharSequence> words() {
+        public List<String> words() {
             return this.words;
         }
 

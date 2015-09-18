@@ -13,9 +13,12 @@ import java.util.List;
 public interface ParsedLine {
 
     /**
-     * The current word being completed
+     * The current word being completed.
+     * If the cursor is after the last word, an empty string is returned.
+     *
+     * @return the word being completed or an empty string
      */
-    CharSequence word();
+    String word();
 
     /**
      * The cursor position within the current word
@@ -30,12 +33,12 @@ public interface ParsedLine {
     /**
      * The list of words
      */
-    List<? extends CharSequence> words();
+    List<String> words();
 
     /**
      * The unparsed line
      */
-    CharSequence line();
+    String line();
 
     /**
      * The cursor position within the line

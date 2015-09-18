@@ -21,7 +21,7 @@ public class ArgumentCompleterTest
 {
     @Test
     public void test1() throws Exception {
-        reader.addCompleter(new ArgumentCompleter(new StringsCompleter("foo", "bar", "baz")));
+        reader.setCompleter(new ArgumentCompleter(new StringsCompleter("foo", "bar", "baz")));
 
         assertBuffer("foo foo ", new TestBuffer("foo f").tab());
         assertBuffer("foo ba", new TestBuffer("foo b").tab());
@@ -41,7 +41,7 @@ public class ArgumentCompleterTest
                 new StringsCompleter("bar", "baz"),
                 new StringsCompleter("foo"),
                 new StringsCompleter("ree"));
-        reader.addCompleter(argCompleter);
+        reader.setCompleter(argCompleter);
 
         assertBuffer("bar foo ", new TestBuffer("bar f").tab());
         assertBuffer("baz foo ", new TestBuffer("baz f").tab());
@@ -56,7 +56,7 @@ public class ArgumentCompleterTest
 
     @Test
     public void test2() throws Exception {
-        reader.addCompleter(
+        reader.setCompleter(
                 new ArgumentCompleter(
                         new StringsCompleter("some", "any"),
                         new StringsCompleter("foo", "bar", "baz")));

@@ -26,8 +26,7 @@ import static org.jline.utils.Preconditions.checkNotNull;
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  * @since 2.3
  */
-public class StringsCompleter
-    implements Completer
+public class StringsCompleter implements Completer
 {
     private final SortedSet<String> strings = new TreeSet<String>();
 

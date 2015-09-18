@@ -181,7 +181,7 @@ public class ArgumentCompleter
         }
 
         @Override
-        public List<CharSequence> words() {
+        public List<String> words() {
             return Collections.singletonList(word);
         }
 

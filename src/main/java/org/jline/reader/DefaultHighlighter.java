@@ -12,7 +12,6 @@ import org.jline.ConsoleReader;
 import org.jline.Highlighter;
 import org.jline.utils.Ansi;
 import org.jline.utils.Ansi.Attribute;
-import org.jline.utils.Ansi.Color;
 import org.jline.utils.WCWidth;
 
 public class DefaultHighlighter implements Highlighter {

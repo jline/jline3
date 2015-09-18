@@ -56,7 +56,7 @@ public class AnsiStringsCompleter
         checkNotNull(line);
         checkNotNull(candidates);
 
-        String buffer = line.word().toString().substring(0, line.wordCursor());
+        String buffer = line.word().substring(0, line.wordCursor());
         buffer = AnsiHelper.strip(buffer);
         for (Map.Entry<String, String> match : strings.tailMap(buffer).entrySet()) {
             if (!match.getKey().startsWith(buffer)) {

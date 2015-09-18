@@ -16,6 +16,7 @@ import java.util.Map;
 
 import org.jline.Completer;
 import org.jline.ConsoleReader;
+import org.jline.ConsoleReader.Option;
 import org.jline.History;
 import org.jline.reader.completer.AggregateCompleter;
 import org.jline.reader.completer.ArgumentCompleter;
@@ -471,7 +472,7 @@ public class ConsoleReaderTest extends ReaderTestSupport
         Completer aggregator = new AggregateCompleter(
                 new ArgumentCompleter(read, and, save, nil)
         );
-        reader.addCompleter(aggregator);
+        reader.setCompleter(aggregator);
 
         assertLine("read and ", new TestBuffer("read an\t\n"));
 
@@ -519,7 +520,11 @@ public class ConsoleReaderTest extends ReaderTestSupport
             }
         }
         reader.setHistory(history);
-        reader.setVariable(ConsoleReader.DISABLE_EVENT_EXPANSION, expandEvents ? "off" : "on");
+        if (expandEvents) {
+            reader.unsetOpt(Option.DISABLE_EVENT_EXPANSION);
+        } else {
+            reader.setOpt(Option.DISABLE_EVENT_EXPANSION);
+        }
         assertLine(expectedLine, input, false);
         history.previous();
         assertEquals(expectedHistory, history.current());

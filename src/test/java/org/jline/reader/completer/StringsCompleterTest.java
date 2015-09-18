@@ -21,7 +21,7 @@ public class StringsCompleterTest
 {
     @Test
     public void test1() throws Exception {
-        reader.addCompleter(new StringsCompleter("foo", "bar", "baz"));
+        reader.setCompleter(new StringsCompleter("foo", "bar", "baz"));
 
         assertBuffer("foo ", new TestBuffer("f").tab());
         // single tab completes to unambiguous "ba"
