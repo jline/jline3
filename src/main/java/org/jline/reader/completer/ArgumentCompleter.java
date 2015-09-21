@@ -17,6 +17,7 @@ import java.util.List;
 
 import org.jline.Candidate;
 import org.jline.Completer;
+import org.jline.ConsoleReader;
 import org.jline.reader.ParsedLine;
 
 import static org.jline.utils.Preconditions.checkNotNull;
@@ -80,7 +81,7 @@ public class ArgumentCompleter implements Completer
         return completers;
     }
 
-    public void complete(ParsedLine line, final List<Candidate> candidates) {
+    public void complete(ConsoleReader reader, ParsedLine line, final List<Candidate> candidates) {
         checkNotNull(line);
         checkNotNull(candidates);
 
@@ -106,7 +107,7 @@ public class ArgumentCompleter implements Completer
             String arg = (args == null || i >= args.size()) ? "" : args.get(i).toString();
 
             List<Candidate> subCandidates = new LinkedList<>();
-            sub.complete(new ArgumentLine(arg, arg.length()), subCandidates);
+            sub.complete(reader, new ArgumentLine(arg, arg.length()), subCandidates);
 
             boolean found = false;
             for (Candidate cand : subCandidates) {
@@ -120,7 +121,7 @@ public class ArgumentCompleter implements Completer
             }
         }
 
-        completer.complete(line, candidates);
+        completer.complete(reader, line, candidates);
     }
 
     public static class ArgumentLine implements ParsedLine {

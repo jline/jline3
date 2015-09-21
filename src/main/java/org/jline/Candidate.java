@@ -8,18 +8,20 @@ public class Candidate implements Comparable<Candidate> {
     private final String displ;
     private final String group;
     private final String descr;
+    private final String suffix;
     private final boolean complete;
 
     public Candidate(String value) {
-        this(value, value, null, null, true);
+        this(value, value, null, null, null, true);
     }
 
-    public Candidate(String value, String displ, String group, String descr, boolean complete) {
+    public Candidate(String value, String displ, String group, String descr, String suffix, boolean complete) {
         checkNotNull(value);
         this.value = value;
         this.displ = displ;
         this.group = group;
         this.descr = descr;
+        this.suffix = suffix;
         this.complete = complete;
     }
 
@@ -37,6 +39,10 @@ public class Candidate implements Comparable<Candidate> {
 
     public String descr() {
         return descr;
+    }
+
+    public String suffix() {
+        return suffix;
     }
 
     public boolean complete() {

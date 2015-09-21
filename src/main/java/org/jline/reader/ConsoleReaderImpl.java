@@ -10,9 +10,6 @@ package org.jline.reader;
 
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
-import java.awt.datatransfer.UnsupportedFlavorException;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.Flushable;
 import java.io.IOError;
@@ -29,16 +26,19 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeMap;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.jline.Candidate;
@@ -81,7 +81,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     public static final int TAB_WIDTH = 8;
 
-    public static final long COPY_PASTE_DETECTION_TIMEOUT = 50l;
     public static final long BLINK_MATCHING_PAREN_TIMEOUT = 500l;
 
     /**
@@ -231,6 +230,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     protected boolean isArgDigit;
 
     protected ParsedLine parsedLine;
+
+    protected boolean skipRedisplay;
 
     public ConsoleReaderImpl(Console console) throws IOException {
         this(console, null, null);
@@ -490,13 +491,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 }
                 Log.trace("Binding: ", o);
 
-                // Handle macros
-                if (o instanceof Macro) {
-                    String macro = ((Macro) o).getSequence();
-                    new StringBuilder(macro).reverse().codePoints().forEachOrdered(pushBackChar::push);
-                    continue;
-                }
-
                 // Cache console size for the duration of the binding processing
                 size.copy(console.getSize());
                 // If this is still false after handling the binding, then
@@ -507,18 +501,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 // we figure that out here.
                 count = (repeatCount == 0) ? 1 : repeatCount;
 
-                if (o instanceof Operation) {
-                    o = dispatcher.get(o);
-                }
-
-                // Handle custom callbacks
-                // TODO: merge that with the usual dispatch
-                if (o instanceof Widget) {
-                    if (!((Widget) o).apply(this)) {
-                        beep();
-                    }
-                } else {
-                    // TODO: what should we do there ?
+                // Get executable widget
+                Widget w = getWidget(o);
+                if (w == null || !w.apply(this)) {
                     beep();
                 }
 
@@ -560,6 +545,22 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 console.handle(Signal.WINCH, previousWinchHandler);
             }
         }
+    }
+
+    protected Widget getWidget(Object binding) {
+        Widget w = null;
+        if (binding instanceof Widget) {
+            w = (Widget) binding;
+        } else if (binding instanceof Macro) {
+            String macro = ((Macro) binding).getSequence();
+            w = r -> {
+                new StringBuilder(macro).reverse().codePoints().forEachOrdered(pushBackChar::push);
+                return true;
+            };
+        } else if (binding instanceof Operation) {
+            w = dispatcher.get(binding);
+        }
+        return w;
     }
 
     //
@@ -693,12 +694,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         buf.backspace(diff); // go back for the differences
         killLine(); // clear to the end of the line
         buf.write(buffer.substring(sameIndex)); // append the differences
-    }
-
-    protected void setBufferKeepPos(final String buffer) {
-        int pos = buf.cursor();
-        setBuffer(buffer);
-        buf.cursor(pos);
     }
 
     /**
@@ -1842,7 +1837,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             }
             return viDeleteTo(cursorStart, buf.cursor());
         } else {
-            opBuffer.reverse().codePoints().forEachOrdered(pushBackChar::push);
+            pushBackBinding();
             return false;
         }
     }
@@ -1866,7 +1861,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             }
             return viYankTo(cursorStart, buf.cursor());
         } else {
-            opBuffer.reverse().codePoints().forEachOrdered(pushBackChar::push);
+            pushBackBinding();
             return false;
         }
     }
@@ -1891,7 +1886,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             consoleKeys.setKeyMap(KeyMap.VI_INSERT);
             return res;
         } else {
-            opBuffer.reverse().codePoints().forEachOrdered(pushBackChar::push);
+            pushBackBinding();
             return false;
         }
     }
@@ -2005,11 +2000,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                             if (searchIndex != -1) {
                                 history.moveTo(searchIndex);
                             }
-                            opBuffer.reverse().codePoints().forEachOrdered(pushBackChar::push);
+                            pushBackBinding();
                             return true;
                     }
                 } else {
-                    opBuffer.reverse().codePoints().forEachOrdered(pushBackChar::push);
+                    pushBackBinding();
                     return true;
                 }
 
@@ -2032,6 +2027,15 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             searchIndex = -1;
             post = null;
         }
+    }
+
+    private void pushBackBinding() {
+        pushBackBinding(false);
+    }
+
+    private void pushBackBinding(boolean skip) {
+        opBuffer.reverse().codePoints().forEachOrdered(pushBackChar::push);
+        skipRedisplay = skip;
     }
 
     protected boolean historySearchForward() {
@@ -2232,7 +2236,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             buf.write("\n");
             return true;
         } catch (SyntaxError e) {
-            // TODO: what ?
+            // do nothing
         }
         state = State.DONE;
         if (!isSet(Option.DISABLE_EVENT_EXPANSION)) {
@@ -2664,91 +2668,94 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected Map<Operation, Widget> createDispatcher() {
         Map<Operation, Widget> dispatcher = new HashMap<>();
-        dispatcher.put(Operation.PASTE_FROM_CLIPBOARD, ConsoleReaderImpl::pasteFromClipboard);
+        dispatcher.put(Operation.ABORT, ConsoleReaderImpl::abort);
+        dispatcher.put(Operation.ACCEPT_LINE, ConsoleReaderImpl::acceptLine);
+        dispatcher.put(Operation.BACKWARD_CHAR, ConsoleReaderImpl::backwardChar);
+        dispatcher.put(Operation.BACKWARD_DELETE_CHAR, ConsoleReaderImpl::backwardDeleteChar);
         dispatcher.put(Operation.BACKWARD_KILL_WORD, ConsoleReaderImpl::backwardKillWord);
-        dispatcher.put(Operation.KILL_WORD, ConsoleReaderImpl::killWord);
-        dispatcher.put(Operation.TRANSPOSE_CHARS, ConsoleReaderImpl::transposeChars);
+        dispatcher.put(Operation.BACKWARD_WORD, ConsoleReaderImpl::backwardWord);
+        dispatcher.put(Operation.BEGINNING_OF_HISTORY, ConsoleReaderImpl::beginningOfHistory);
+        dispatcher.put(Operation.BEGINNING_OF_LINE, ConsoleReaderImpl::beginningOfLine);
+        dispatcher.put(Operation.CALL_LAST_KBD_MACRO, ConsoleReaderImpl::callLastKbdMacro);
+        dispatcher.put(Operation.CAPITALIZE_WORD, ConsoleReaderImpl::capitalizeWord);
+        dispatcher.put(Operation.CLEAR_SCREEN, ConsoleReaderImpl::clearScreen);
+        dispatcher.put(Operation.COMPLETE_PREFIX, ConsoleReaderImpl::completePrefix);
+        dispatcher.put(Operation.COMPLETE_WORD, ConsoleReaderImpl::completeWord);
+        dispatcher.put(Operation.DELETE_CHAR, ConsoleReaderImpl::deleteChar);
+        dispatcher.put(Operation.DELETE_CHAR_OR_LIST, ConsoleReaderImpl::deleteCharOrList);
+        dispatcher.put(Operation.DO_LOWERCASE_VERSION, ConsoleReaderImpl::doLowercaseVersion);
+        dispatcher.put(Operation.DOWN_LINE_OR_HISTORY, ConsoleReaderImpl::downLineOrHistory);
+        dispatcher.put(Operation.DOWNCASE_WORD, ConsoleReaderImpl::downCaseWord);
+        dispatcher.put(Operation.EMACS_EDITING_MODE, ConsoleReaderImpl::emacsEditingMode);
+        dispatcher.put(Operation.END_KBD_MACRO, ConsoleReaderImpl::endKbdMacro);
+        dispatcher.put(Operation.END_OF_HISTORY, ConsoleReaderImpl::endOfHistory);
+        dispatcher.put(Operation.END_OF_LINE, ConsoleReaderImpl::endOfLine);
+        dispatcher.put(Operation.EXIT_OR_DELETE_CHAR, ConsoleReaderImpl::exitOrDeleteChar);
+        dispatcher.put(Operation.FORWARD_CHAR, ConsoleReaderImpl::forwardChar);
+        dispatcher.put(Operation.FORWARD_SEARCH_HISTORY, ConsoleReaderImpl::forwardSearchHistory);
+        dispatcher.put(Operation.FORWARD_WORD, ConsoleReaderImpl::forwardWord);
+        dispatcher.put(Operation.HISTORY_SEARCH_BACKWARD, ConsoleReaderImpl::historySearchBackward);
+        dispatcher.put(Operation.HISTORY_SEARCH_FORWARD, ConsoleReaderImpl::historySearchForward);
         dispatcher.put(Operation.INSERT_CLOSE_CURLY, ConsoleReaderImpl::insertCloseCurly);
         dispatcher.put(Operation.INSERT_CLOSE_PAREN, ConsoleReaderImpl::insertCloseParen);
         dispatcher.put(Operation.INSERT_CLOSE_SQUARE, ConsoleReaderImpl::insertCloseSquare);
-        dispatcher.put(Operation.CLEAR_SCREEN, ConsoleReaderImpl::clearScreen);
-        dispatcher.put(Operation.VI_MATCH, ConsoleReaderImpl::viMatch);
-        dispatcher.put(Operation.VI_FIRST_PRINT, ConsoleReaderImpl::viFirstPrint);
-        dispatcher.put(Operation.VI_PREV_WORD, ConsoleReaderImpl::viPreviousWord);
-        dispatcher.put(Operation.VI_NEXT_WORD, ConsoleReaderImpl::viNextWord);
-        dispatcher.put(Operation.VI_END_WORD, ConsoleReaderImpl::viEndWord);
-        dispatcher.put(Operation.VI_RUBOUT, ConsoleReaderImpl::viRubout);
-        dispatcher.put(Operation.VI_DELETE, ConsoleReaderImpl::viDelete);
-        dispatcher.put(Operation.VI_PUT, ConsoleReaderImpl::viPut);
-        dispatcher.put(Operation.VI_CHANGE_CASE, ConsoleReaderImpl::viChangeCase);
-        dispatcher.put(Operation.CAPITALIZE_WORD, ConsoleReaderImpl::capitalizeWord);
-        dispatcher.put(Operation.UPCASE_WORD, ConsoleReaderImpl::upCaseWord);
-        dispatcher.put(Operation.DOWNCASE_WORD, ConsoleReaderImpl::downCaseWord);
-        dispatcher.put(Operation.END_OF_LINE, ConsoleReaderImpl::endOfLine);
-        dispatcher.put(Operation.DELETE_CHAR, ConsoleReaderImpl::deleteChar);
-        dispatcher.put(Operation.BACKWARD_CHAR, ConsoleReaderImpl::backwardChar);
-        dispatcher.put(Operation.FORWARD_CHAR, ConsoleReaderImpl::forwardChar);
-        dispatcher.put(Operation.UNIX_LINE_DISCARD, ConsoleReaderImpl::unixLineDiscard);
-        dispatcher.put(Operation.UNIX_WORD_RUBOUT, ConsoleReaderImpl::unixWordRubout);
-        dispatcher.put(Operation.BEGINNING_OF_LINE, ConsoleReaderImpl::beginningOfLine);
-        dispatcher.put(Operation.YANK, ConsoleReaderImpl::yank);
-        dispatcher.put(Operation.YANK_POP, ConsoleReaderImpl::yankPop);
+        dispatcher.put(Operation.INSERT_COMMENT, ConsoleReaderImpl::insertComment);
+        dispatcher.put(Operation.INTERRUPT, ConsoleReaderImpl::interrupt);
         dispatcher.put(Operation.KILL_LINE, ConsoleReaderImpl::killLine);
         dispatcher.put(Operation.KILL_WHOLE_LINE, ConsoleReaderImpl::killWholeLine);
-        dispatcher.put(Operation.BACKWARD_WORD, ConsoleReaderImpl::backwardWord);
-        dispatcher.put(Operation.FORWARD_WORD, ConsoleReaderImpl::forwardWord);
-        dispatcher.put(Operation.PREVIOUS_HISTORY, ConsoleReaderImpl::previousHistory);
-        dispatcher.put(Operation.VI_PREVIOUS_HISTORY, ConsoleReaderImpl::viPreviousHistory);
+        dispatcher.put(Operation.KILL_WORD, ConsoleReaderImpl::killWord);
+        dispatcher.put(Operation.MENU_COMPLETE, ConsoleReaderImpl::menuComplete);
         dispatcher.put(Operation.NEXT_HISTORY, ConsoleReaderImpl::nextHistory);
-        dispatcher.put(Operation.VI_NEXT_HISTORY, ConsoleReaderImpl::viNextHistory);
-        dispatcher.put(Operation.BACKWARD_DELETE_CHAR, ConsoleReaderImpl::backwardDeleteChar);
-        dispatcher.put(Operation.BEGINNING_OF_HISTORY, ConsoleReaderImpl::beginningOfHistory);
-        dispatcher.put(Operation.END_OF_HISTORY, ConsoleReaderImpl::endOfHistory);
         dispatcher.put(Operation.OVERWRITE_MODE, ConsoleReaderImpl::overwriteMode);
+        dispatcher.put(Operation.PASTE_FROM_CLIPBOARD, ConsoleReaderImpl::pasteFromClipboard);
+        dispatcher.put(Operation.POSSIBLE_COMPLETIONS, ConsoleReaderImpl::listChoices);
+        dispatcher.put(Operation.PREVIOUS_HISTORY, ConsoleReaderImpl::previousHistory);
+        dispatcher.put(Operation.QUIT, ConsoleReaderImpl::quit);
+        dispatcher.put(Operation.QUOTED_INSERT, ConsoleReaderImpl::quotedInsert);
+        dispatcher.put(Operation.RE_READ_INIT_FILE, ConsoleReaderImpl::reReadInitFile);
+        dispatcher.put(Operation.REVERSE_SEARCH_HISTORY, ConsoleReaderImpl::reverseSearchHistory);
         dispatcher.put(Operation.SELF_INSERT, ConsoleReaderImpl::selfInsert);
         dispatcher.put(Operation.SELF_INSERT_UNMETA, ConsoleReaderImpl::selfInsertUnmeta);
-        dispatcher.put(Operation.TAB_INSERT, ConsoleReaderImpl::tabInsert);
-        dispatcher.put(Operation.RE_READ_INIT_FILE, ConsoleReaderImpl::reReadInitFile);
         dispatcher.put(Operation.START_KBD_MACRO, ConsoleReaderImpl::startKbdMacro);
-        dispatcher.put(Operation.END_KBD_MACRO, ConsoleReaderImpl::endKbdMacro);
-        dispatcher.put(Operation.CALL_LAST_KBD_MACRO, ConsoleReaderImpl::callLastKbdMacro);
-        dispatcher.put(Operation.VI_EDITING_MODE, ConsoleReaderImpl::viEditingMode);
-        dispatcher.put(Operation.VI_MOVEMENT_MODE, ConsoleReaderImpl::viMovementMode);
-        dispatcher.put(Operation.VI_INSERTION_MODE, ConsoleReaderImpl::viInsertionMode);
-        dispatcher.put(Operation.VI_APPEND_MODE, ConsoleReaderImpl::viAppendMode);
-        dispatcher.put(Operation.VI_APPEND_EOL, ConsoleReaderImpl::viAppendEol);
-        dispatcher.put(Operation.VI_SEARCH, ConsoleReaderImpl::viSearch);
-        dispatcher.put(Operation.VI_INSERT_BEG, ConsoleReaderImpl::viInsertBeg);
-        dispatcher.put(Operation.VI_KILL_WHOLE_LINE, ConsoleReaderImpl::viKillWholeLine);
-        dispatcher.put(Operation.VI_CHAR_SEARCH, ConsoleReaderImpl::viCharSearch);
-        dispatcher.put(Operation.VI_CHANGE_CHAR, ConsoleReaderImpl::viChangeChar);
-        dispatcher.put(Operation.QUOTED_INSERT, ConsoleReaderImpl::quotedInsert);
-        dispatcher.put(Operation.VI_DELETE_TO_EOL, ConsoleReaderImpl::viDeleteToEol);
-        dispatcher.put(Operation.VI_CHANGE_TO_EOL, ConsoleReaderImpl::viChangeToEol);
-        dispatcher.put(Operation.EMACS_EDITING_MODE, ConsoleReaderImpl::emacsEditingMode);
-        dispatcher.put(Operation.ACCEPT_LINE, ConsoleReaderImpl::acceptLine);
-        dispatcher.put(Operation.INSERT_COMMENT, ConsoleReaderImpl::insertComment);
-        dispatcher.put(Operation.VI_INSERT_COMMENT, ConsoleReaderImpl::viInsertComment);
-        dispatcher.put(Operation.VI_MOVE_ACCEPT_LINE, ConsoleReaderImpl::viMoveAcceptLine);
-        dispatcher.put(Operation.QUIT, ConsoleReaderImpl::quit);
-        dispatcher.put(Operation.ABORT, ConsoleReaderImpl::abort);
-        dispatcher.put(Operation.INTERRUPT, ConsoleReaderImpl::interrupt);
-        dispatcher.put(Operation.EXIT_OR_DELETE_CHAR, ConsoleReaderImpl::exitOrDeleteChar);
-        dispatcher.put(Operation.HISTORY_SEARCH_BACKWARD, ConsoleReaderImpl::historySearchBackward);
-        dispatcher.put(Operation.HISTORY_SEARCH_FORWARD, ConsoleReaderImpl::historySearchForward);
-        dispatcher.put(Operation.REVERSE_SEARCH_HISTORY, ConsoleReaderImpl::reverseSearchHistory);
-        dispatcher.put(Operation.FORWARD_SEARCH_HISTORY, ConsoleReaderImpl::forwardSearchHistory);
-        dispatcher.put(Operation.VI_EOF_MAYBE, ConsoleReaderImpl::viEofMaybe);
-        dispatcher.put(Operation.VI_DELETE_TO, ConsoleReaderImpl::viDeleteTo);
-        dispatcher.put(Operation.VI_YANK_TO, ConsoleReaderImpl::viYankTo);
-        dispatcher.put(Operation.VI_CHANGE_TO, ConsoleReaderImpl::viChangeTo);
-        dispatcher.put(Operation.VI_ARG_DIGIT, ConsoleReaderImpl::viArgDigit);
-        dispatcher.put(Operation.VI_BEGINNING_OF_LINE_OR_ARG_DIGIT, ConsoleReaderImpl::viBeginningOfLineOrArgDigit);
-        dispatcher.put(Operation.COMPLETE_WORD, ConsoleReaderImpl::completeWord);
-        dispatcher.put(Operation.POSSIBLE_COMPLETIONS, ConsoleReaderImpl::listChoices);
-        dispatcher.put(Operation.DO_LOWERCASE_VERSION, ConsoleReaderImpl::doLowercaseVersion);
+        dispatcher.put(Operation.TAB_INSERT, ConsoleReaderImpl::tabInsert);
+        dispatcher.put(Operation.TRANSPOSE_CHARS, ConsoleReaderImpl::transposeChars);
+        dispatcher.put(Operation.UNIX_LINE_DISCARD, ConsoleReaderImpl::unixLineDiscard);
+        dispatcher.put(Operation.UNIX_WORD_RUBOUT, ConsoleReaderImpl::unixWordRubout);
+        dispatcher.put(Operation.UPCASE_WORD, ConsoleReaderImpl::upCaseWord);
         dispatcher.put(Operation.UP_LINE_OR_HISTORY, ConsoleReaderImpl::upLineOrHistory);
-        dispatcher.put(Operation.DOWN_LINE_OR_HISTORY, ConsoleReaderImpl::downLineOrHistory);
+        dispatcher.put(Operation.VI_ARG_DIGIT, ConsoleReaderImpl::viArgDigit);
+        dispatcher.put(Operation.VI_APPEND_EOL, ConsoleReaderImpl::viAppendEol);
+        dispatcher.put(Operation.VI_APPEND_MODE, ConsoleReaderImpl::viAppendMode);
+        dispatcher.put(Operation.VI_BEGINNING_OF_LINE_OR_ARG_DIGIT, ConsoleReaderImpl::viBeginningOfLineOrArgDigit);
+        dispatcher.put(Operation.VI_CHANGE_CASE, ConsoleReaderImpl::viChangeCase);
+        dispatcher.put(Operation.VI_CHANGE_CHAR, ConsoleReaderImpl::viChangeChar);
+        dispatcher.put(Operation.VI_CHANGE_TO, ConsoleReaderImpl::viChangeTo);
+        dispatcher.put(Operation.VI_CHANGE_TO_EOL, ConsoleReaderImpl::viChangeToEol);
+        dispatcher.put(Operation.VI_CHAR_SEARCH, ConsoleReaderImpl::viCharSearch);
+        dispatcher.put(Operation.VI_DELETE, ConsoleReaderImpl::viDelete);
+        dispatcher.put(Operation.VI_DELETE_TO, ConsoleReaderImpl::viDeleteTo);
+        dispatcher.put(Operation.VI_DELETE_TO_EOL, ConsoleReaderImpl::viDeleteToEol);
+        dispatcher.put(Operation.VI_EDITING_MODE, ConsoleReaderImpl::viEditingMode);
+        dispatcher.put(Operation.VI_END_WORD, ConsoleReaderImpl::viEndWord);
+        dispatcher.put(Operation.VI_EOF_MAYBE, ConsoleReaderImpl::viEofMaybe);
+        dispatcher.put(Operation.VI_FIRST_PRINT, ConsoleReaderImpl::viFirstPrint);
+        dispatcher.put(Operation.VI_INSERT_BEG, ConsoleReaderImpl::viInsertBeg);
+        dispatcher.put(Operation.VI_INSERT_COMMENT, ConsoleReaderImpl::viInsertComment);
+        dispatcher.put(Operation.VI_INSERTION_MODE, ConsoleReaderImpl::viInsertionMode);
+        dispatcher.put(Operation.VI_KILL_WHOLE_LINE, ConsoleReaderImpl::viKillWholeLine);
+        dispatcher.put(Operation.VI_MATCH, ConsoleReaderImpl::viMatch);
+        dispatcher.put(Operation.VI_MOVE_ACCEPT_LINE, ConsoleReaderImpl::viMoveAcceptLine);
+        dispatcher.put(Operation.VI_MOVEMENT_MODE, ConsoleReaderImpl::viMovementMode);
+        dispatcher.put(Operation.VI_NEXT_HISTORY, ConsoleReaderImpl::viNextHistory);
+        dispatcher.put(Operation.VI_NEXT_WORD, ConsoleReaderImpl::viNextWord);
+        dispatcher.put(Operation.VI_PREV_WORD, ConsoleReaderImpl::viPreviousWord);
+        dispatcher.put(Operation.VI_PREVIOUS_HISTORY, ConsoleReaderImpl::viPreviousHistory);
+        dispatcher.put(Operation.VI_PUT, ConsoleReaderImpl::viPut);
+        dispatcher.put(Operation.VI_RUBOUT, ConsoleReaderImpl::viRubout);
+        dispatcher.put(Operation.VI_SEARCH, ConsoleReaderImpl::viSearch);
+        dispatcher.put(Operation.VI_YANK_TO, ConsoleReaderImpl::viYankTo);
+        dispatcher.put(Operation.YANK, ConsoleReaderImpl::yank);
+        dispatcher.put(Operation.YANK_POP, ConsoleReaderImpl::yankPop);
         return dispatcher;
     }
 
@@ -2757,6 +2764,10 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected void redisplay(boolean flush) {
+        if (skipRedisplay) {
+            skipRedisplay = false;
+            return;
+        }
         String buffer = buf.toString();
         if (mask != null) {
             if (mask == NULL_MASK) {
@@ -2987,29 +2998,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             }
             sb.append(ansiLines.get(line));
             buf.append(strippedLines.get(line));
-            /*
-            for (int i = 0; i < str.length(); i++) {
-                char ch = str.charAt(i);
-                sb.append(ch);
-                if (ch == '\n') {
-                    String prompt;
-                    if (computePrompts) {
-                        prompt = SECONDARY_PROMPT;
-                        try {
-                            parser.parse(str.substring(0, i + 1), sb.length());
-                        } catch (EOFError e) {
-                            prompt = e.getMissing() + SECONDARY_PROMPT;
-                        } catch (SyntaxError e) {
-                            // Ignore
-                        }
-                    } else {
-                        prompt = prompts.get(line++);
-                    }
-                    prompts.add(prompt);
-                    sb.append(prompt);
-                }
-            }
-            */
         }
         if (isSet(Option.PAD_PROMPTS) && prompts.size() >= 2) {
             if (computePrompts) {
@@ -3059,11 +3047,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     // Completion
     //
 
-    protected boolean useTab() {
-        if (!buf.toString().matches("[\r\n\t ]*")) {
-            return false;
-        }
-        return true;
+    protected boolean insertTab() {
+        return opBuffer.toString().equals("\t") && buf.toString().matches("[\r\n\t ]*");
     }
 
     protected boolean doExpandHist() {
@@ -3083,73 +3068,45 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         List,
     }
 
-    private int menucmp;
-    private int lastambig;
-    private int zmult;
-    private boolean bashListFirst;
-    private int useMenu;
-    private boolean useGlob;
-
     protected boolean completeWord() {
-        useMenu = getBoolean("menucomplete", false) ? 1 : 0;
-        useGlob = getBoolean("globcomplete", false);
-        if (opBuffer.toString().equals("\t") && useTab()) {
+        if (insertTab()) {
             return selfInsert();
         } else {
-            boolean ret;
-            if (lastambig == 1 && getBoolean("bashautolist", false) && useMenu != 0 && menucmp == 0) {
-                bashListFirst = true;
-                ret = doComplete(CompletionType.List);
-                bashListFirst = false;
-                lastambig = 2;
-            } else {
-                ret = doComplete(CompletionType.Complete);
-            }
-            return ret;
+            return doComplete(CompletionType.Complete, isSet(Option.MENU_COMPLETE), false);
         }
     }
 
     protected boolean menuComplete() {
-        useMenu = 1;
-        useGlob = getBoolean("globcomplete", false);
-        if (opBuffer.toString().equals("\t") && useTab()) {
+        if (insertTab()) {
             return selfInsert();
         } else {
-            return doComplete(CompletionType.Complete);
+            return doComplete(CompletionType.Complete, true, false);
+        }
+    }
+
+    protected boolean completePrefix() {
+        if (insertTab()) {
+            return selfInsert();
+        } else {
+            return doComplete(CompletionType.Complete, isSet(Option.MENU_COMPLETE), true);
         }
     }
 
     protected boolean listChoices() {
-        useMenu = getBoolean("menucomplete", false) ? 1 : 0;
-        useGlob = getBoolean("globcomplete", false);
-        return doComplete(CompletionType.List);
+        return doComplete(CompletionType.List, isSet(Option.MENU_COMPLETE), false);
     }
 
     protected boolean deleteCharOrList() {
-        useMenu = getBoolean("menucomplete", false) ? 1 : 0;
-        useGlob = getBoolean("globcomplete", false);
-        if (buf.cursor() != buf.length()) {
-            return deleteChar();
+        if (buf.cursor() != buf.length() || buf.length() == 0) {
+            return exitOrDeleteChar();
         } else {
-            return doComplete(CompletionType.List);
+            return doComplete(CompletionType.List, isSet(Option.MENU_COMPLETE), false);
         }
     }
 
-    protected boolean reverseMenuComplete() {
-        zmult = -zmult;
-        return menuComplete();
-    }
-
-    protected boolean acceptMenuComplete() {
-        if (menucmp == 0) {
-            return false;
-        } else {
-            // TODO: doCompletionAccept();
-            return menuComplete();
-        }
-    }
-
-    protected boolean doComplete(CompletionType lst) {
+    protected boolean doComplete(CompletionType lst, boolean useMenu, boolean prefix) {
+        // Try to expand history first
+        // If there is actually an expansion, bail out now
         try {
             if (doExpandHist()) {
                 return true;
@@ -3158,16 +3115,22 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             return false;
         }
 
+        // Parse the command line and find completion candidates
         List<Candidate> candidates = new ArrayList<>();
-        ParsedLine line = parser.parse(buf.toString(), buf.cursor());
-        // TODO: handle exceptions
-        if (completer != null) {
-            completer.complete(line, candidates);
+        ParsedLine line;
+        try {
+            line = parser.parse(buf.toString(), buf.cursor());
+            if (completer != null) {
+                completer.complete(this, line, candidates);
+            }
+        } catch (Exception e) {
+            return false;
         }
 
         boolean caseInsensitive = isSet(Option.CASE_INSENSITIVE);
         int errors = getInt("errors", 2);
 
+        // Build a list of sorted candidates
         NavigableMap<String, List<Candidate>> sortedCandidates =
                 new TreeMap<>(caseInsensitive ? String.CASE_INSENSITIVE_ORDER : null);
         for (Candidate cand : candidates) {
@@ -3176,162 +3139,262 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                     .add(cand);
         }
 
-        String word = line.word();
-        String w = word.substring(0, line.wordCursor());
-        String leftOver = word.substring(line.wordCursor());
+        // Find matchers
+        // TODO: glob completion
+        List<Function<Map<String, List<Candidate>>,
+                      Map<String, List<Candidate>>>> matchers;
+        Predicate<String> exact;
+        if (prefix) {
+            String wp = line.word().substring(0, line.wordCursor());
+            matchers = Arrays.asList(
+                    simpleMatcher(s -> s.startsWith(wp)),
+                    simpleMatcher(s -> s.contains(wp)),
+                    typoMatcher(wp, errors)
+            );
+            exact = s -> s.equals(wp);
+        } else if (isSet(Option.COMPLETE_IN_WORD)) {
+            String wd = line.word();
+            String wp = wd.substring(0, line.wordCursor());
+            String ws = wd.substring(line.wordCursor());
+            Pattern p1 = Pattern.compile(Pattern.quote(wp) + ".*" + Pattern.quote(ws) + ".*");
+            Pattern p2 = Pattern.compile(".*" + Pattern.quote(wp) + ".*" + Pattern.quote(ws) + ".*");
+            matchers = Arrays.asList(
+                    simpleMatcher(s -> p1.matcher(s).matches()),
+                    simpleMatcher(s -> p2.matcher(s).matches()),
+                    typoMatcher(wd, errors)
+            );
+            exact = s -> s.equals(wd);
+        } else {
+            String wd = line.word();
+            matchers = Arrays.asList(
+                    simpleMatcher(s -> s.startsWith(wd)),
+                    simpleMatcher(s -> s.contains(wd)),
+                    typoMatcher(wd, errors)
+            );
+            exact = s -> s.equals(wd);
+        }
+        // Find matching candidates
+        Map<String, List<Candidate>> matching = Collections.emptyMap();
+        for (Function<Map<String, List<Candidate>>,
+                      Map<String, List<Candidate>>> matcher : matchers) {
+            matching = matcher.apply(sortedCandidates);
+            if (!matching.isEmpty()) {
+                break;
+            }
+        }
 
+        // If we have no matches, bail out
+        if (matching.isEmpty()) {
+            return false;
+        }
 
-        boolean doList;
-        boolean doMenu = false;
-        int selection = 0;
-
-        List<Candidate> possible;
+        // If we only need to display the list, do it now
         if (lst == CompletionType.List) {
-            doList = true;
-            possible = sortedCandidates.entrySet().stream()
-                    .filter(e -> e.getKey().startsWith(w))
+            List<Candidate> possible = matching.entrySet().stream()
                     .flatMap(e -> e.getValue().stream())
                     .collect(Collectors.toList());
-        } else {
-            boolean exact = false;
-            String completion = null;
-            Map<String, List<Candidate>> matching = w.length() > 0 ? sortedCandidates.subMap(w, getHigherBound(w)) : sortedCandidates;
-            // Found an exact match of the whole word
-            boolean hasComplete = false;
-            if (sortedCandidates.containsKey(word)) {
-                for (Candidate c : sortedCandidates.get(word)) {
-                    hasComplete |= c.complete();
-                }
-            }
-            if (hasComplete
-                    && (matching.size() == 1
-                        || isSet(Option.RECOGNIZE_EXACT))) {
-                exact = true;
-                completion = line.word();
-                possible = Collections.emptyList();
-                doList = false;
+            doList(possible);
+            return !possible.isEmpty();
+        }
+
+        // Check if there's a single possible match
+        Candidate completion = null;
+        // If there's a single possible completion
+        if (matching.size() == 1) {
+            completion = matching.values().stream().<Candidate>flatMap(Collection::stream)
+                    .findFirst().orElse(null);
+        }
+        // Or if RECOGNIZE_EXACT is set, try to find an exact match
+        else if (isSet(Option.RECOGNIZE_EXACT)) {
+            completion = matching.values().stream().<Candidate>flatMap(Collection::stream)
+                    .filter(Candidate::complete)
+                    .filter(c -> exact.test(c.value()))
+                    .findFirst().orElse(null);
+        }
+        // Complete and exit
+        if (completion != null) {
+            if (prefix) {
+                buf.backspace(line.wordCursor());
             } else {
-                for (String key : matching.keySet()) {
-                    completion = completion == null ? key : getCommonStart(completion, key, caseInsensitive);
-                }
-                possible = matching.entrySet().stream()
-                        .flatMap(e -> e.getValue().stream())
-                        .collect(Collectors.toList());
-                // No match
-                if (completion == null) {
-                    // Add any fixable typos
-                    possible = sortedCandidates.entrySet().stream()
-                            .filter(e -> !e.getKey().startsWith(w)
-                                    && Levenshtein.distance(w, e.getKey().substring(0, Math.min(e.getKey().length(), w.length()))) < errors)
-                            .flatMap(e -> e.getValue().stream())
-                            .collect(Collectors.toList());
-                    if (!possible.isEmpty()) {
-                        possible.add(new Candidate(w, w, "original", null, false));
-                        doList = isSet(Option.AUTO_LIST);
-                    } else {
-                        doList = false;
-                    }
-                }
-                else if (possible.size() == 1) {
-                    exact = possible.get(0).complete();
-                    doList = false;
-                } else {
-                    if (completion.length() == w.length()) {
-                        completion = null;
-                    }
-                    doList = !possible.isEmpty() && isSet(Option.AUTO_LIST);
-                }
-
-                if (doList && isSet(Option.AUTO_MENU) && useMenu != 0) {
-                    doMenu = true;
-                    if (completion == null) {
-                        completion = possible.get(0).value();
-                    }
-                }
+                buf.move(line.word().length() - line.wordCursor());
+                buf.backspace(line.word().length());
             }
-
-            if (completion != null) {
-                if (isSet(Option.COMPLETE_OVERWRITE_WORD)) {
-                    buf.move(leftOver.length());
-                    buf.backspace(word.length());
-                    buf.write(completion);
-                    word = completion;
-                    if (exact && buf.currChar() != ' ') {
-                        buf.write(" ");
-                        word += " ";
-                    }
-                } else {
-                    buf.backspace(w.length());
-                    buf.write(completion);
-                    word = completion + word.substring(w.length());
-                    if (exact && buf.currChar() == 0) {
-                        buf.write(" ");
-                        word += " ";
-                    }
-                }
+            buf.write(completion.value());
+            if (completion.complete() && buf.currChar() != ' ') {
+                buf.write(" ");
             }
-        }
-
-        if (doList) {
-            computePost(possible, possible.get(selection));
-        }
-
-        if (doMenu) {
-            redisplay();
-
-            KeyMap keyMap = new KeyMap("menuselect");
-            keyMap.bind("\t", "complete");
-            keyMap.bind("\r", "accept");
-            keyMap.bind("\n", "accept");
-            keyMap.bind(console.getStringCapability(Capability.cursor_up), "up");
-            keyMap.bind(console.getStringCapability(Capability.cursor_down), "down");
-            keyMap.bind(console.getStringCapability(Capability.cursor_left), "left");
-            keyMap.bind(console.getStringCapability(Capability.cursor_right), "right");
-
-            Object operation;
-            while ((operation = readBinding(getKeys(), keyMap)) != null) {
-                if ("complete".equals(operation)) {
-                    selection = (selection + 1) % possible.size();
-                    Candidate completion = possible.get(selection);
-                    computePost(possible, possible.get(selection));
-                    if (isSet(Option.COMPLETE_OVERWRITE_WORD)) {
-                        buf.move(word.length() - w.length());
-                        buf.backspace(word.length());
-                        buf.write(completion.value());
-                        word = completion.value();
-                    } else {
-                        buf.backspace(word.length());
-                        buf.write(completion.value());
-                        word = completion.value() + word.substring(w.length());
-                    }
-                } else if ("accept".equals(operation)) {
-                    Candidate completion = possible.get(selection);
-                    if (isSet(Option.COMPLETE_OVERWRITE_WORD)) {
-                        buf.move(word.length() - w.length());
-                        buf.backspace(word.length());
-                        buf.write(completion.value());
-                        if (completion.complete() && buf.currChar() != ' ') {
-                            buf.write(" ");
-                        }
-                    } else {
-                        buf.backspace(word.length());
-                        buf.write(completion.value());
-                        if (completion.complete() && buf.currChar() == 0) {
-                            buf.write(" ");
+            if (completion.suffix() != null) {
+                redisplay();
+                Object op = readBinding(getKeys());
+                if (op != null) {
+                    String chars = getString("REMOVE_SUFFIX_CHARS", " \t\n;&|");
+                    if (op == Operation.SELF_INSERT && chars.indexOf(opBuffer.charAt(0)) >= 0
+                            || op == Operation.ACCEPT_LINE) {
+                        buf.backspace(completion.suffix().length());
+                        if (opBuffer.charAt(0) != ' ') {
+                            buf.write(' ');
                         }
                     }
+                    pushBackBinding(true);
+                }
+            }
+            return true;
+        }
+
+        List<Candidate> possible = matching.entrySet().stream()
+                .flatMap(e -> e.getValue().stream())
+                .collect(Collectors.toList());
+
+        if (useMenu) {
+            buf.move(line.word().length() - line.wordCursor());
+            buf.backspace(line.word().length());
+            doMenu(possible);
+            return true;
+        }
+
+        // Find current word and move to end
+        String current;
+        if (prefix) {
+            current = line.word().substring(0, line.wordCursor());
+        } else {
+            current = line.word();
+            buf.move(current.length() - line.wordCursor());
+        }
+        // Now, we need to find the unambiguous completion
+        // TODO: need to find common suffix
+        String commonPrefix = null;
+        for (String key : matching.keySet()) {
+            commonPrefix = commonPrefix == null ? key : getCommonStart(commonPrefix, key, caseInsensitive);
+        }
+        boolean hasUnambiguous = commonPrefix.startsWith(current) && !commonPrefix.equals(current);
+
+        if (hasUnambiguous) {
+            buf.backspace(current.length());
+            buf.write(commonPrefix);
+            current = commonPrefix;
+            if ((!isSet(Option.AUTO_LIST) && isSet(Option.AUTO_MENU))
+                    || (isSet(Option.AUTO_LIST) && isSet(Option.LIST_AMBIGUOUS))) {
+                if (!nextBindingIsComplete()) {
                     return true;
                 }
-                redisplay();
             }
         }
-
-        return !candidates.isEmpty();
+        if (isSet(Option.AUTO_LIST)) {
+            doList(possible);
+            if (isSet(Option.AUTO_MENU)) {
+                if (!nextBindingIsComplete()) {
+                    return true;
+                }
+            }
+        }
+        if (isSet(Option.AUTO_MENU)) {
+            buf.backspace(current.length());
+            doMenu(possible);
+        }
+        return true;
     }
 
-    private void computePost(List<Candidate> possible, Candidate selection) {
+    private Function<Map<String, List<Candidate>>,
+                     Map<String, List<Candidate>>> simpleMatcher(Predicate<String> pred) {
+        return m -> m.entrySet().stream()
+                .filter(e -> pred.test(e.getKey()))
+                .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
+    }
+
+    private Function<Map<String, List<Candidate>>,
+                     Map<String, List<Candidate>>> typoMatcher(String word, int errors) {
+        return m -> {
+            Map<String, List<Candidate>> map = m.entrySet().stream()
+                    .filter(e -> Levenshtein.distance(
+                                    word, e.getKey().substring(0, Math.min(e.getKey().length(), word.length()))) < errors)
+                    .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
+            if (map.size() > 1) {
+                map.computeIfAbsent(word, w -> new ArrayList<>())
+                        .add(new Candidate(word, word, "original", null, null, false));
+            }
+            return map;
+        };
+    }
+
+
+    protected boolean nextBindingIsComplete() {
+        redisplay();
+        KeyMap keyMap = consoleKeys.getKeyMaps().get(KeyMap.MENU_SELECT);
+        Object operation = readBinding(getKeys(), keyMap);
+        if (operation == Operation.MENU_COMPLETE) {
+            return true;
+        } else {
+            pushBackBinding();
+            return false;
+        }
+    }
+
+    protected boolean doMenu(List<Candidate> possible) {
+        // TODO: handle big number of items
+        int selection = 0;
+        String word;
+        possible = computePost(possible, null);
+        computePost(possible, possible.get(0));
+        word = possible.get(0).value();
+        buf.write(word);
+        redisplay();
+
+        KeyMap keyMap = consoleKeys.getKeyMaps().get(KeyMap.MENU_SELECT);
+
+        // Reorder candidates according to display order
+        possible = computePost(possible, null);
+
+        Object operation;
+        while ((operation = readBinding(getKeys(), keyMap)) != null) {
+            if (operation == Operation.MENU_COMPLETE) {
+                selection = (selection + 1) % possible.size();
+                Candidate completion = possible.get(selection);
+                computePost(possible, possible.get(selection));
+                buf.backspace(word.length());
+                buf.write(completion.value());
+                word = completion.value();
+            } else if (operation == Operation.REVERSE_MENU_COMPLETE) {
+                selection = (selection + possible.size() - 1) % possible.size();
+                Candidate completion = possible.get(selection);
+                computePost(possible, possible.get(selection));
+                buf.backspace(word.length());
+                buf.write(completion.value());
+                word = completion.value();
+            } else {
+                Candidate completion = possible.get(selection);
+                if (completion.suffix() != null) {
+                    String chars = getString("REMOVE_SUFFIX_CHARS", " \t\n;&|");
+                    if (operation == Operation.SELF_INSERT && chars.indexOf(opBuffer.charAt(0)) >= 0
+                            || operation == Operation.ACCEPT_LINE
+                            || operation == Operation.BACKWARD_DELETE_CHAR) {
+                        buf.backspace(completion.suffix().length());
+                    }
+                }
+                if (completion.complete()
+                        && opBuffer.charAt(0) != ' '
+                        && (operation != Operation.SELF_INSERT || opBuffer.charAt(0) != ' ')) {
+                    buf.write(' ');
+                }
+                if (operation != Operation.ACCEPT_LINE && operation != Operation.BACKWARD_DELETE_CHAR) {
+                    pushBackBinding(true);
+                }
+                post = null;
+                return true;
+            }
+            redisplay();
+        }
+        return false;
+    }
+
+    protected void doList(List<Candidate> possible) {
+        // TODO: verify number of items
+        computePost(possible, null);
+    }
+
+    protected List<Candidate> computePost(List<Candidate> possible, Candidate selection) {
         boolean displayDesc = false;
         boolean groupName = isSet(Option.GROUP);
+        List<Candidate> ordered = new ArrayList<>();
         if (groupName) {
             LinkedHashMap<String, TreeMap<String, Candidate>> sorted = new LinkedHashMap<>();
             for (Candidate cand : possible) {
@@ -3353,6 +3416,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                         strings.add(new String[] {
                            cand.value(), cand.descr()
                         });
+                        ordered.add(cand);
                     }
                 } else {
                     List<String> strs = new ArrayList<>();
@@ -3362,6 +3426,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                         } else {
                             strs.add(cand.displ());
                         }
+                        ordered.add(cand);
                     }
                     strings.add(strs.toArray(new String[strs.size()]));
                 }
@@ -3388,16 +3453,12 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 } else {
                     strs.add(cand.displ());
                 }
+                ordered.add(cand);
             }
             strings.add(strs.toArray(new String[strs.size()]));
             post = strings.toArray(new String[strings.size()][]);
         }
-    }
-
-    private String getHigherBound(String str) {
-        int[] s = str.codePoints().toArray();
-        s[s.length - 1]++;
-        return new String(s, 0, s.length);
+        return ordered;
     }
 
     private String getCommonStart(String str1, String str2, boolean caseInsensitive) {
@@ -3636,80 +3697,18 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * @return true if clipboard contents pasted
      */
     public boolean pasteFromClipboard() {
-        Clipboard clipboard;
-        try { // May throw ugly exception on system without X
-            clipboard = java.awt.Toolkit.getDefaultToolkit().getSystemClipboard();
-        }
-        catch (Exception e) {
-            return false;
-        }
-
-        if (clipboard == null) {
-            return false;
-        }
-
-        Transferable transferable = clipboard.getContents(null);
-
-        if (transferable == null) {
-            return false;
-        }
-
         try {
-            @SuppressWarnings("deprecation")
-            Object content = transferable.getTransferData(DataFlavor.plainTextFlavor);
-
-            // This fix was suggested in bug #1060649 at
-            // http://sourceforge.net/tracker/index.php?func=detail&aid=1060649&group_id=64033&atid=506056
-            // to get around the deprecated DataFlavor.plainTextFlavor, but it
-            // raises a UnsupportedFlavorException on Mac OS X
-
-            if (content == null) {
-                try {
-                    content = new DataFlavor().getReaderForText(transferable);
-                }
-                catch (Exception e) {
-                    // ignore
-                }
-            }
-
-            if (content == null) {
-                return false;
-            }
-
-            String value;
-
-            if (content instanceof java.io.Reader) {
-                // TODO: we might want instead connect to the input stream
-                // so we can interpret individual lines
-                value = "";
-                String line;
-
-                BufferedReader read = new BufferedReader((java.io.Reader) content);
-                while ((line = read.readLine()) != null) {
-                    if (value.length() > 0) {
-                        value += "\n";
-                    }
-
-                    value += line;
-                }
-            }
-            else {
-                value = content.toString();
-            }
-
-            if (value == null) {
+            Clipboard clipboard = java.awt.Toolkit.getDefaultToolkit().getSystemClipboard();
+            String result = (String) clipboard.getData(DataFlavor.stringFlavor);
+            if (result != null) {
+                putString(result);
                 return true;
             }
-
-            putString(value);
-
-            return true;
         }
-        catch (UnsupportedFlavorException | IOException e) {
+        catch (Exception e) {
             Log.error("Paste failed: ", e);
-
-            return false;
         }
+        return false;
     }
 
     /**
@@ -3728,72 +3727,49 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     // Formatted Output
     //
 
-    /**
-     * Print out the candidates. If the size of the candidates is greater than the
-     * {@link ConsoleReader#COMPLETION_QUERY_ITEMS}, they prompt with a warning.
-     *
-     * @param candidates the list of candidates to print
-     */
-    public void printCandidates(Collection<Candidate> candidates)
-    {
-        /*
-        candidates = new LinkedHashSet<>(candidates);
-
-        int max = getInt(COMPLETION_QUERY_ITEMS, 100);
-        if (max > 0 && candidates.size() >= max) {
-            println();
-            rawPrint(Messages.DISPLAY_CANDIDATES.format(candidates.size()));
-            flush();
-
-            int c;
-
-            String noOpt = Messages.DISPLAY_CANDIDATES_NO.format();
-            String yesOpt = Messages.DISPLAY_CANDIDATES_YES.format();
-            int[] allowed = {yesOpt.charAt(0), noOpt.charAt(0)};
-
-            while ((c = readCharacter(allowed)) != -1) {
-                String tmp = new String(new char[]{(char) c});
-
-                if (noOpt.startsWith(tmp)) {
-                    println();
-                    return;
+    protected String toColumns(String[][] items, int width) {
+        // Compute column max width
+        if (isSet(Option.LIST_PACKED)) {
+            // Build columns
+            StringBuilder buff = new StringBuilder();
+            for (String[] list : items) {
+                int maxWidth = 0;
+                if (list != null && list.length > 1) {
+                    for (String item : list) {
+                        // we use 0 here, as we don't really support tabulations inside candidates
+                        int len = wcwidth(AnsiHelper.strip(item), 0);
+                        maxWidth = Math.max(maxWidth, len);
+                    }
                 }
-                else if (yesOpt.startsWith(tmp)) {
-                    break;
-                }
-                else {
-                    beep();
+                maxWidth = maxWidth + 3;
+                toColumns(list, width, maxWidth, buff);
+            }
+            return buff.toString();
+        } else {
+            int maxWidth = 0;
+            for (String[] list : items) {
+                if (list != null && list.length > 1) {
+                    for (String item : list) {
+                        // we use 0 here, as we don't really support tabulations inside candidates
+                        int len = wcwidth(AnsiHelper.strip(item), 0);
+                        maxWidth = Math.max(maxWidth, len);
+                    }
                 }
             }
-            printColumns(candidates);
-            println();
+            maxWidth = maxWidth + 3;
+            // Build columns
+            StringBuilder buff = new StringBuilder();
+            for (String[] list : items) {
+                toColumns(list, width, maxWidth, buff);
+            }
+            return buff.toString();
         }
-        else {
-            post = candidates.toArray(new Candidate[candidates.size()]);
-        }
-        */
     }
 
-    protected String toColumns(String[][] items, int width) {
-        StringBuilder buff = new StringBuilder();
-        for (String[] part : items) {
-            toColumns(part, width, buff);
-        }
-        return buff.toString();
-    }
-
-    protected void toColumns(String[] items, int width, StringBuilder buff) {
+    protected void toColumns(String[] items, int width, int maxWidth, StringBuilder buff) {
         if (items == null || items.length == 0) {
             return;
         }
-        int maxWidth = 0;
-        for (String item : items) {
-            // we use 0 here, as we don't really support tabulations inside candidates
-            int len = wcwidth(AnsiHelper.strip(item), 0);
-            maxWidth = Math.max(maxWidth, len);
-        }
-        maxWidth = maxWidth + 3;
-
         int realLength = 0;
         for (String item : items) {
             if ((realLength + maxWidth) > width) {
@@ -3811,80 +3787,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         buff.append('\n');
     }
 
-    /**
-     * Output the specified {@link Collection} in proper columns.
-     */
-    public void printColumns(final Collection<? extends CharSequence> items) {
-        if (items == null || items.isEmpty()) {
-            return;
-        }
-
-        int width = size.getColumns();
-        int height = size.getRows();
-
-        int maxWidth = 0;
-        for (CharSequence item : items) {
-            // we use 0 here, as we don't really support tabulations inside candidates
-            int len = wcwidth(AnsiHelper.strip(item.toString()), 0);
-            maxWidth = Math.max(maxWidth, len);
-        }
-        maxWidth = maxWidth + 3;
-        Log.debug("Max width: ", maxWidth);
-
-        int showLines;
-        if (getBoolean(PAGE_COMPLETIONS, true)) {
-            showLines = height - 1; // page limit
-        }
-        else {
-            showLines = Integer.MAX_VALUE;
-        }
-
-        StringBuilder buff = new StringBuilder();
-        int realLength = 0;
-        for (CharSequence item : items) {
-            if ((realLength + maxWidth) > width) {
-                rawPrintln(buff.toString());
-                buff.setLength(0);
-                realLength = 0;
-
-                if (--showLines == 0) {
-                    // Overflow
-                    String more = Messages.DISPLAY_MORE.format();
-                    print(more);
-                    flush();
-                    int c = readCharacter();
-                    if (c == '\r' || c == '\n') {
-                        // one step forward
-                        showLines = 1;
-                    }
-                    else if (c != 'q') {
-                        // page forward
-                        showLines = height - 1;
-                    }
-
-                    console.puts(Capability.carriage_return);
-                    if (c == 'q') {
-                        // cancel
-                        break;
-                    }
-                }
-            }
-
-            // NOTE: toString() is important here due to AnsiString being retarded
-            buff.append(item.toString());
-            int strippedItemLength = wcwidth(AnsiHelper.strip(item.toString()), 0);
-            for (int i = 0; i < (maxWidth - strippedItemLength); i++) {
-                buff.append(' ');
-            }
-            realLength += maxWidth;
-        }
-
-        if (buff.length() > 0) {
-            rawPrintln(buff.toString());
-        }
-    }
-
-      //
+    //
     // Helpers
     //
 

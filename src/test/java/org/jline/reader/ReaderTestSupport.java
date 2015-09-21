@@ -14,13 +14,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.net.URL;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.jline.Candidate;
 import org.jline.Console;
-import org.jline.JLine.ConsoleReaderBuilder;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp.Capability;
 import org.junit.Before;
@@ -34,7 +36,7 @@ import static org.junit.Assert.assertTrue;
 public abstract class ReaderTestSupport
 {
     protected Console console;
-    protected ConsoleReaderImpl reader;
+    protected TestConsoleReader reader;
     protected EofPipedInputStream in;
     protected ByteArrayOutputStream out;
     protected Character mask;
@@ -50,8 +52,8 @@ public abstract class ReaderTestSupport
 
         in = new EofPipedInputStream();
         out = new ByteArrayOutputStream();
-        console = new DumbConsole(new ConsoleReaderBuilder().inputrc(new URL("file:/do/not/exists")), in, out);
-        reader = (ConsoleReaderImpl) console.newConsoleReader();
+        console = new DumbConsole(null, in, out);
+        reader = new TestConsoleReader(console, "JLine", new URL("file:/do/not/exists"), null);
         reader.setKeyMap(KeyMap.EMACS);
         mask = null;
     }
@@ -77,6 +79,8 @@ public abstract class ReaderTestSupport
         if (clear) {
             reader.getHistory().clear();
         }
+        reader.list = false;
+        reader.menu = false;
 
         in.setIn(new ByteArrayInputStream(buffer.getBytes()));
 
@@ -310,6 +314,25 @@ public abstract class ReaderTestSupport
         @Override
         public int available() throws IOException {
             return in != null ? in.available() : 0;
+        }
+    }
+
+    public static class TestConsoleReader extends ConsoleReaderImpl {
+        boolean list = false;
+        boolean menu = false;
+        public TestConsoleReader(Console console, String appName, URL inputrc, Map<String, Object> variables) {
+            super(console, appName, inputrc, variables);
+        }
+
+        @Override
+        protected void doList(List<Candidate> possible) {
+            list = true;
+            super.doList(possible);
+        }
+        @Override
+        protected boolean doMenu(List<Candidate> possible) {
+            menu = true;
+            return super.doMenu(possible);
         }
     }
 

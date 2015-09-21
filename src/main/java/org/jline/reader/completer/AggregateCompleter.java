@@ -16,6 +16,7 @@ import java.util.List;
 
 import org.jline.Candidate;
 import org.jline.Completer;
+import org.jline.ConsoleReader;
 import org.jline.reader.ParsedLine;
 
 import static org.jline.utils.Preconditions.checkNotNull;
@@ -64,14 +65,14 @@ public class AggregateCompleter
     /**
      * Perform a completion operation across all aggregated completers.
      *
-     * @see Completer#complete(ParsedLine, List)
+     * @see Completer#complete(ConsoleReader, ParsedLine, List)
      */
-    public void complete(final ParsedLine line, final List<Candidate> candidates) {
+    public void complete(ConsoleReader reader, final ParsedLine line, final List<Candidate> candidates) {
         checkNotNull(line);
         checkNotNull(candidates);
 
         for (Completer completer : completers) {
-            completer.complete(line, candidates);
+            completer.complete(reader, line, candidates);
         }
     }
 

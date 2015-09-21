@@ -17,6 +17,7 @@ import java.util.TreeSet;
 
 import org.jline.Candidate;
 import org.jline.Completer;
+import org.jline.ConsoleReader;
 import org.jline.reader.ParsedLine;
 import org.jline.utils.AnsiHelper;
 
@@ -42,11 +43,11 @@ public class StringsCompleter implements Completer
     public StringsCompleter(Iterable<String> strings) {
         assert strings != null;
         for (String string : strings) {
-            candidates.add(new Candidate(AnsiHelper.strip(string), string, null, null, true));
+            candidates.add(new Candidate(AnsiHelper.strip(string), string, null, null, null, true));
         }
     }
 
-    public void complete(final ParsedLine commandLine, final List<Candidate> candidates) {
+    public void complete(ConsoleReader reader, final ParsedLine commandLine, final List<Candidate> candidates) {
         assert commandLine != null;
         assert candidates != null;
         candidates.addAll(this.candidates);

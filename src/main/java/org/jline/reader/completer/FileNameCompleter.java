@@ -17,6 +17,9 @@ import java.util.List;
 
 import org.jline.Candidate;
 import org.jline.Completer;
+import org.jline.ConsoleReader;
+import org.jline.ConsoleReader.Option;
+import org.jline.reader.ConsoleReaderImpl;
 import org.jline.reader.ParsedLine;
 import org.jline.utils.Ansi;
 import org.jline.utils.Ansi.Color;
@@ -43,7 +46,8 @@ import org.jline.utils.Ansi.Color;
  */
 public class FileNameCompleter implements Completer
 {
-    public void complete(ParsedLine commandLine, final List<Candidate> candidates) {
+
+    public void complete(ConsoleReader reader, ParsedLine commandLine, final List<Candidate> candidates) {
         assert commandLine != null;
         assert candidates != null;
 
@@ -61,24 +65,33 @@ public class FileNameCompleter implements Completer
                     current = getUserHome().getParent().resolve(curBuf.substring(1));
                 }
             } else {
-                current = Paths.get(curBuf);
+                current = getUserDir().resolve(curBuf);
             }
         } else {
             curBuf = "";
             current = getUserDir();
         }
         try {
-            Files.newDirectoryStream(current).forEach(p -> {
+            Files.newDirectoryStream(current, this::accept).forEach(p -> {
                 String value = curBuf + p.getFileName().toString();
                 if (Files.isDirectory(p)) {
-                    candidates.add(new Candidate(value + "/", getDisplay(p), null, null, false));
+                    candidates.add(new Candidate(
+                            value + (((ConsoleReaderImpl) reader).isSet(Option.AUTO_PARAM_SLASH) ? "/" : ""),
+                            getDisplay(p),
+                            null, null,
+                            ((ConsoleReaderImpl) reader).isSet(Option.AUTO_REMOVE_SLASH) ? "/" : null,
+                            false));
                 } else {
-                    candidates.add(new Candidate(value, getDisplay(p), null, null, true));
+                    candidates.add(new Candidate(value, getDisplay(p), null, null, null, true));
                 }
             });
         } catch (IOException e) {
             // Ignore
         }
+    }
+
+    protected boolean accept(Path path) {
+        return true;
     }
 
     protected Path getUserDir() {
@@ -90,6 +103,7 @@ public class FileNameCompleter implements Completer
     }
 
     private String getDisplay(Path p) {
+        // TODO: use $LS_COLORS for output
         String name = p.getFileName().toString();
         if (Files.isDirectory(p)) {
             name = Ansi.ansi().fg(Color.RED).bold(name).fg(Color.DEFAULT).a("/").toString();
@@ -98,4 +112,5 @@ public class FileNameCompleter implements Completer
         }
         return name;
     }
+
 }

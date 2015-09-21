@@ -464,22 +464,6 @@ public class ConsoleReaderTest extends ReaderTestSupport
     }
 
     @Test
-    public void testComplete() throws Exception {
-        Completer nil = new NullCompleter();
-        Completer read = new StringsCompleter("read");
-        Completer and = new StringsCompleter("and");
-        Completer save = new StringsCompleter("save");
-        Completer aggregator = new AggregateCompleter(
-                new ArgumentCompleter(read, and, save, nil)
-        );
-        reader.setCompleter(aggregator);
-
-        assertLine("read and ", new TestBuffer("read an\t\n"));
-
-        assertLine("read andnd", new TestBuffer("read and\033[D\033[D\t\n"));
-    }
-
-    @Test
     public void testDefaultBuffer() throws Exception {
         in.setIn(new ByteArrayInputStream(new TestBuffer().enter().getBytes()));
         String line = reader.readLine(null, null, "foo");

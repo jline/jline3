@@ -49,15 +49,21 @@ public interface ConsoleReader {
     String ESCAPE_TIMEOUT = "escape-timeout";
 
     enum Option {
+        COMPLETE_IN_WORD,
         DISABLE_EVENT_EXPANSION,
         HISTORY_VERIFY,
-        COMPLETE_OVERWRITE_WORD,
         AUTO_MENU(true),
         AUTO_LIST(true),
         RECOGNIZE_EXACT,
         PAD_PROMPTS,
         GROUP,
-        CASE_INSENSITIVE;
+        CASE_INSENSITIVE,
+        LIST_PACKED,
+        LIST_AMBIGUOUS,
+        GLOB_COMPLETE,
+        MENU_COMPLETE,
+        AUTO_PARAM_SLASH(true),
+        AUTO_REMOVE_SLASH(true);
 
         private final boolean def;
 

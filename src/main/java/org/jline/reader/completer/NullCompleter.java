@@ -12,6 +12,7 @@ import java.util.List;
 
 import org.jline.Candidate;
 import org.jline.Completer;
+import org.jline.ConsoleReader;
 import org.jline.reader.ParsedLine;
 
 /**
@@ -26,6 +27,6 @@ public final class NullCompleter
 {
     public static final NullCompleter INSTANCE = new NullCompleter();
 
-    public void complete(final ParsedLine line, final List<Candidate> candidates) {
+    public void complete(ConsoleReader reader, final ParsedLine line, final List<Candidate> candidates) {
     }
 }

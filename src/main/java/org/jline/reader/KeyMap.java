@@ -26,6 +26,7 @@ public class KeyMap {
     public static final String EMACS_STANDARD = "emacs-standard";
     public static final String EMACS_CTLX = "emacs-ctlx";
     public static final String EMACS_META = "emacs-meta";
+    public static final String MENU_SELECT = "menuselect";
 
     private static final int KEYMAP_LENGTH = 256;
 
@@ -306,6 +307,9 @@ public class KeyMap {
         bindArrowKeys(viIns);
         keyMaps.put(VI_INSERT, viIns);
 
+        KeyMap menuSelect = menuSelect();
+        keyMaps.put(MENU_SELECT, menuSelect);
+
         return keyMaps;
     }
 
@@ -317,12 +321,12 @@ public class KeyMap {
                 Operation.BEGINNING_OF_LINE,        /* Control-A */
                 Operation.BACKWARD_CHAR,            /* Control-B */
                 Operation.INTERRUPT,                /* Control-C */
-                Operation.EXIT_OR_DELETE_CHAR,      /* Control-D */
+                Operation.DELETE_CHAR_OR_LIST,      /* Control-D */
                 Operation.END_OF_LINE,              /* Control-E */
                 Operation.FORWARD_CHAR,             /* Control-F */
                 Operation.ABORT,                    /* Control-G */
                 Operation.BACKWARD_DELETE_CHAR,     /* Control-H */
-                Operation.COMPLETE_WORD,                 /* Control-I */
+                Operation.COMPLETE_WORD,            /* Control-I */
                 Operation.ACCEPT_LINE,              /* Control-J */
                 Operation.KILL_LINE,                /* Control-K */
                 Operation.CLEAR_SCREEN,             /* Control-L */
@@ -441,14 +445,14 @@ public class KeyMap {
                 Operation.SELF_INSERT,              /* Control-F */
                 Operation.SELF_INSERT,              /* Control-G */
                 Operation.BACKWARD_DELETE_CHAR,     /* Control-H */
-                Operation.COMPLETE_WORD,                 /* Control-I */
+                Operation.COMPLETE_WORD,            /* Control-I */
                 Operation.ACCEPT_LINE,              /* Control-J */
                 Operation.SELF_INSERT,              /* Control-K */
                 Operation.SELF_INSERT,              /* Control-L */
                 Operation.ACCEPT_LINE,              /* Control-M */
                 Operation.MENU_COMPLETE,            /* Control-N */
                 Operation.SELF_INSERT,              /* Control-O */
-                Operation.MENU_COMPLETE_BACKWARD,   /* Control-P */
+                Operation.REVERSE_MENU_COMPLETE,    /* Control-P */
                 Operation.SELF_INSERT,              /* Control-Q */
                 Operation.REVERSE_SEARCH_HISTORY,   /* Control-R */
                 Operation.FORWARD_SEARCH_HISTORY,   /* Control-S */
@@ -635,5 +639,15 @@ public class KeyMap {
             map[i] = null;
         }
         return new KeyMap(VI_MOVE, map);
+    }
+
+    public static KeyMap menuSelect() {
+        KeyMap keyMap = new KeyMap(MENU_SELECT);
+        keyMap.bind("\t", Operation.MENU_COMPLETE);
+        keyMap.bind("\033[Z", Operation.REVERSE_MENU_COMPLETE);
+        keyMap.bind("\r", Operation.ACCEPT_LINE);
+        keyMap.bind("\n", Operation.ACCEPT_LINE);
+        // TODO: handle cursor movement
+        return keyMap;
     }
 }
