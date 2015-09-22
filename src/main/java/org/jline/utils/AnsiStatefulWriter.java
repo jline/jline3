@@ -24,7 +24,9 @@ public class AnsiStatefulWriter extends AnsiWriter {
     protected Ansi.Attribute blink;
     protected Ansi.Attribute negative;
     protected Ansi.Color fg;
+    protected boolean fgBright;
     protected Ansi.Color bg;
+    protected boolean bgBright;
 
     public AnsiStatefulWriter(Writer writer) {
         super(writer);
@@ -37,7 +39,9 @@ public class AnsiStatefulWriter extends AnsiWriter {
         blink = Ansi.Attribute.BLINK_OFF;
         negative = Ansi.Attribute.NEGATIVE_OFF;
         fg = Ansi.Color.DEFAULT;
+        fgBright = false;
         bg = Ansi.Color.DEFAULT;
+        bgBright = false;
     }
 
     @Override
@@ -88,7 +92,7 @@ public class AnsiStatefulWriter extends AnsiWriter {
     }
 
     @Override
-    protected void processSetForegroundColor(int color) throws IOException {
+    protected void processSetForegroundColor(int color, boolean bright) throws IOException {
         Ansi.Color c;
         switch (color) {
             case 0:
@@ -121,14 +125,15 @@ public class AnsiStatefulWriter extends AnsiWriter {
             default:
                 return;
         }
-        if (this.fg != c) {
+        if (this.fg != c || this.fgBright != bright) {
             this.fg = c;
-            setAttributeFg(c);
+            this.fgBright = bright;
+            setAttributeFg(c, bright);
         }
     }
 
     @Override
-    protected void processSetBackgroundColor(int color) throws IOException {
+    protected void processSetBackgroundColor(int color, boolean bright) throws IOException {
         Ansi.Color c;
         switch (color) {
             case 0:
@@ -161,20 +166,21 @@ public class AnsiStatefulWriter extends AnsiWriter {
             default:
                 return;
         }
-        if (this.bg != c) {
+        if (this.bg != c || this.bgBright != bright) {
             this.bg = c;
-            setAttributeBg(c);
+            this.bgBright = bright;
+            setAttributeBg(c, bright);
         }
     }
 
     @Override
     protected void processDefaultTextColor() throws IOException {
-        processSetForegroundColor(9);
+        processSetForegroundColor(9, false);
     }
 
     @Override
     protected void processDefaultBackgroundColor() throws IOException {
-        processSetBackgroundColor(9);
+        processSetBackgroundColor(9, false);
     }
 
     protected void setIntensity(Ansi.Attribute intensity) throws IOException {
@@ -205,10 +211,10 @@ public class AnsiStatefulWriter extends AnsiWriter {
         }
     }
 
-    protected void setAttributeFg(Ansi.Color color) throws IOException {
+    protected void setAttributeFg(Ansi.Color color, boolean bright) throws IOException {
     }
 
-    protected void setAttributeBg(Ansi.Color color) throws IOException {
+    protected void setAttributeBg(Ansi.Color color, boolean bright) throws IOException {
     }
 
     protected void setAttribute(Ansi.Attribute attribute) throws IOException {

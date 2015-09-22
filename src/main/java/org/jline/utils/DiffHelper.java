@@ -129,16 +129,24 @@ public class DiffHelper {
     }
 
     private static String toString(List<TerminalChar> chars) {
-        TerminalChar last = new TerminalChar(0, Color.DEFAULT, Color.DEFAULT, Attribute.INTENSITY_BOLD_OFF, Attribute.UNDERLINE_OFF, Attribute.BLINK_OFF, Attribute.NEGATIVE_OFF);
+        TerminalChar last = new TerminalChar(0, Color.DEFAULT, false, Color.DEFAULT, false, Attribute.INTENSITY_BOLD_OFF, Attribute.UNDERLINE_OFF, Attribute.BLINK_OFF, Attribute.NEGATIVE_OFF);
         Ansi ansi = Ansi.ansi();
         boolean modified = false;
         for (TerminalChar tc : chars) {
-            if (last.fg != tc.fg) {
-                ansi.fg(tc.fg);
+            if (last.fg != tc.fg || last.fgBright != tc.fgBright) {
+                if (tc.fgBright) {
+                    ansi.fgBright(tc.fg);
+                } else {
+                    ansi.fg(tc.fg);
+                }
                 modified = true;
             }
-            if (last.bg != tc.bg) {
-                ansi.fg(tc.fg);
+            if (last.bg != tc.bg || last.bgBright != tc.bgBright) {
+                if (tc.bgBright) {
+                    ansi.bgBright(tc.bg);
+                } else {
+                    ansi.bg(tc.bg);
+                }
                 modified = true;
             }
             if (last.intensity != tc.intensity) {
@@ -170,16 +178,20 @@ public class DiffHelper {
     private static class TerminalChar {
         final int chr;
         final Ansi.Color fg;
+        final boolean fgBright;
         final Ansi.Color bg;
+        final boolean bgBright;
         final Ansi.Attribute intensity;
         final Ansi.Attribute underline;
         final Ansi.Attribute blink;
         final Ansi.Attribute negative;
 
-        public TerminalChar(int chr, Color fg, Color bg, Attribute intensity, Attribute underline, Attribute blink, Attribute negative) {
+        public TerminalChar(int chr, Color fg, boolean fgBright, Color bg, boolean bgBright, Attribute intensity, Attribute underline, Attribute blink, Attribute negative) {
             this.chr = chr;
             this.fg = fg;
+            this.fgBright = fgBright;
             this.bg = bg;
+            this.bgBright = bgBright;
             this.intensity = intensity;
             this.underline = underline;
             this.blink = blink;
@@ -195,7 +207,9 @@ public class DiffHelper {
 
             if (chr != that.chr) return false;
             if (fg != that.fg) return false;
+            if (fgBright != that.fgBright) return false;
             if (bg != that.bg) return false;
+            if (bgBright != that.bgBright) return false;
             if (intensity != that.intensity) return false;
             if (underline != that.underline) return false;
             if (blink != that.blink) return false;
@@ -207,7 +221,9 @@ public class DiffHelper {
         public int hashCode() {
             int result = chr;
             result = 31 * result + fg.hashCode();
+            result = 31 * result + Boolean.hashCode(fgBright);
             result = 31 * result + bg.hashCode();
+            result = 31 * result + Boolean.hashCode(bgBright);
             result = 31 * result + intensity.hashCode();
             result = 31 * result + underline.hashCode();
             result = 31 * result + blink.hashCode();
@@ -235,7 +251,7 @@ public class DiffHelper {
                 c = Character.toCodePoint((char) surrogate, (char) c);
                 surrogate = 0;
             }
-            TerminalChar tc = new TerminalChar(c, fg, bg, intensity, underline, blink, negative);
+            TerminalChar tc = new TerminalChar(c, fg, fgBright, bg, bgBright, intensity, underline, blink, negative);
             line.add(tc);
         }
 

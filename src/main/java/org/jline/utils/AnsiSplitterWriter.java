@@ -122,10 +122,10 @@ public class AnsiSplitterWriter extends AnsiStatefulWriter {
             setAttribute(Ansi.Attribute.NEGATIVE_OFF);
         }
         if (fg != Ansi.Color.DEFAULT) {
-            setAttributeFg(Ansi.Color.DEFAULT);
+            setAttributeFg(Ansi.Color.DEFAULT, false);
         }
         if (bg != Ansi.Color.DEFAULT) {
-            setAttributeBg(Ansi.Color.DEFAULT);
+            setAttributeBg(Ansi.Color.DEFAULT, false);
         }
     }
 
@@ -145,21 +145,25 @@ public class AnsiSplitterWriter extends AnsiStatefulWriter {
             setAttribute(negative);
         }
         if (fg != Ansi.Color.DEFAULT) {
-            setAttributeFg(fg);
+            setAttributeFg(fg, fgBright);
         }
         if (bg != Ansi.Color.DEFAULT) {
-            setAttributeBg(bg);
+            setAttributeBg(bg, bgBright);
         }
     }
 
-    protected void setAttributeFg(Ansi.Color color) throws IOException {
-        String sequence = Ansi.ansi().fg(color).toString();
+    protected void setAttributeFg(Ansi.Color color, boolean bright) throws IOException {
+        String sequence = bright
+                ? Ansi.ansi().fgBright(color).toString()
+                : Ansi.ansi().fg(color).toString();
         escapeLength += sequence.length();
         out.write(sequence);
     }
 
-    protected void setAttributeBg(Ansi.Color color) throws IOException {
-        String sequence = Ansi.ansi().bg(color).toString();
+    protected void setAttributeBg(Ansi.Color color, boolean bright) throws IOException {
+        String sequence = bright
+                ? Ansi.ansi().bgBright(color).toString()
+                : Ansi.ansi().bg(color).toString();
         escapeLength += sequence.length();
         out.write(sequence);
     }
