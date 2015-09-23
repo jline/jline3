@@ -95,25 +95,6 @@ public abstract class ReaderTestSupport
         assertEquals(expected, reader.getCursorBuffer().toString());
     }
 
-    protected void assertPosition(int pos, final TestBuffer buffer, final boolean clear) throws IOException {
-        // clear current buffer, if any
-        if (clear) {
-            reader.getHistory().clear();
-        }
-
-        in.setIn(new ByteArrayInputStream(buffer.getBytes()));
-
-        // run it through the reader
-        //String line;
-        //while ((line = reader.readLine((String) null)) != null) {
-            //System.err.println("Read line: " + line);
-        while ((reader.readLine(null, null, mask, null)) != null) {
-            // noop
-        }
-
-        assertEquals(pos, reader.getCursorPosition());
-    }
-
     protected void assertLine(final String expected, final TestBuffer buffer) {
         assertLine(expected, buffer, true);
     }
