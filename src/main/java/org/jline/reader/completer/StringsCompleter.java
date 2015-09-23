@@ -43,7 +43,7 @@ public class StringsCompleter implements Completer
     public StringsCompleter(Iterable<String> strings) {
         assert strings != null;
         for (String string : strings) {
-            candidates.add(new Candidate(AnsiHelper.strip(string), string, null, null, null, true));
+            candidates.add(new Candidate(AnsiHelper.strip(string), string, null, null, null, null, true));
         }
     }
 

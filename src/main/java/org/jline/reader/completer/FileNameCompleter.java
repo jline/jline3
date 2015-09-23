@@ -80,9 +80,10 @@ public class FileNameCompleter implements Completer
                             getDisplay(p),
                             null, null,
                             ((ConsoleReaderImpl) reader).isSet(Option.AUTO_REMOVE_SLASH) ? "/" : null,
+                            null,
                             false));
                 } else {
-                    candidates.add(new Candidate(value, getDisplay(p), null, null, null, true));
+                    candidates.add(new Candidate(value, getDisplay(p), null, null, null, null, true));
                 }
             });
         } catch (IOException e) {

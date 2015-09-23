@@ -3283,6 +3283,33 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return true;
     }
 
+    private void mergeCandidates(List<Candidate> possible) {
+        // Merge candidates if the have the same key
+        Map<String, List<Candidate>> keyedCandidates = new HashMap<>();
+        for (Candidate candidate : possible) {
+            if (candidate.key() != null) {
+                List<Candidate> cands = keyedCandidates.computeIfAbsent(candidate.key(), s -> new ArrayList<>());
+                cands.add(candidate);
+            }
+        }
+        if (!keyedCandidates.isEmpty()) {
+            for (List<Candidate> candidates : keyedCandidates.values()) {
+                if (candidates.size() >= 1) {
+                    possible.removeAll(candidates);
+                    // Candidates with the same key are supposed to have
+                    // the same description
+                    candidates.sort(Comparator.comparing(Candidate::value));
+                    Candidate first = candidates.get(0);
+                    String disp = candidates.stream()
+                            .map(Candidate::displ)
+                            .collect(Collectors.joining(" "));
+                    possible.add(new Candidate(first.value(), disp, first.group(),
+                            first.descr(), first.suffix(), null, first.complete()));
+                }
+            }
+        }
+    }
+
     private Function<Map<String, List<Candidate>>,
                      Map<String, List<Candidate>>> simpleMatcher(Predicate<String> pred) {
         return m -> m.entrySet().stream()
@@ -3299,7 +3326,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                     .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
             if (map.size() > 1) {
                 map.computeIfAbsent(word, w -> new ArrayList<>())
-                        .add(new Candidate(word, word, "original", null, null, false));
+                        .add(new Candidate(word, word, "original", null, null, null, false));
             }
             return map;
         };
@@ -3468,6 +3495,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     protected boolean doMenu(List<Candidate> original) {
         // Reorder candidates according to display order
         final List<Candidate> possible = new ArrayList<>();
+        mergeCandidates(original);
         computePost(original, null, possible);
 
         // Build menu support
@@ -3527,6 +3555,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         // number of items, we should ask the user
         // for confirmation, display the list
         // and redraw the line at the bottom
+        mergeCandidates(possible);
         String text = insertSecondaryPrompts(prompt + buf.toString(), new ArrayList<>());
         int promptLines = AnsiHelper.splitLines(text, size.getColumns(), TAB_WIDTH).size();
         PostResult postResult = computePost(possible, null, null);
