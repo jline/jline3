@@ -308,6 +308,7 @@ public class KeyMap {
         keyMaps.put(VI_INSERT, viIns);
 
         KeyMap menuSelect = menuSelect();
+        bindArrowKeys(menuSelect);
         keyMaps.put(MENU_SELECT, menuSelect);
 
         return keyMaps;
@@ -647,7 +648,6 @@ public class KeyMap {
         keyMap.bind("\033[Z", Operation.REVERSE_MENU_COMPLETE);
         keyMap.bind("\r", Operation.ACCEPT_LINE);
         keyMap.bind("\n", Operation.ACCEPT_LINE);
-        // TODO: handle cursor movement
         return keyMap;
     }
 }

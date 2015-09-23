@@ -23,8 +23,7 @@ public interface ConsoleReader {
     String COMMENT_BEGIN = "comment-begin";
     String BELL_STYLE = "bell-style";
     String PREFER_VISIBLE_BELL = "prefer-visible-bell";
-    String COMPLETION_QUERY_ITEMS = "completion-query-items";
-    String PAGE_COMPLETIONS = "page-completions";
+    String LIST_MAX = "list-max";
     String DISABLE_HISTORY = "disable-history";
     String DISABLE_COMPLETION = "disable-completion";
     String EDITING_MODE = "editing-mode";
@@ -58,8 +57,9 @@ public interface ConsoleReader {
         PAD_PROMPTS,
         GROUP,
         CASE_INSENSITIVE,
-        LIST_PACKED,
         LIST_AMBIGUOUS,
+        LIST_PACKED,
+        LIST_ROWS_FIRST,
         GLOB_COMPLETE,
         MENU_COMPLETE,
         AUTO_PARAM_SLASH(true),

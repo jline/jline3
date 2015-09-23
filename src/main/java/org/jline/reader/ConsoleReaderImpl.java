@@ -37,7 +37,9 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.TreeMap;
 import java.util.function.Function;
+import java.util.function.IntBinaryOperator;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -79,7 +81,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 {
     public static final char NULL_MASK = 0;
 
-    public static final int TAB_WIDTH = 8;
+    public static final int TAB_WIDTH = 4;
 
     public static final long BLINK_MATCHING_PAREN_TIMEOUT = 500l;
 
@@ -211,13 +213,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      */
     protected State   state = State.NORMAL;
 
-    protected String oldBuf;
-    protected int oldColumns;
-    protected String oldPrompt;
-    protected String[][] oldPost;
-    protected String oldRightPrompt;
+    protected List<String> oldLines = new ArrayList<>();
 
-    protected String[][] post;
+    protected Supplier<String> post;
 
     protected int cursorPos;
     protected boolean cursorOk;
@@ -449,11 +447,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         Attributes originalAttributes = null;
         try {
             previousIntrHandler = console.handle(Signal.INT, signal -> readLineThread.interrupt());
-            previousWinchHandler = console.handle(Signal.WINCH, signal -> {
-                // TODO: fix possible threading issue
-                size.copy(console.getSize());
-                redisplay();
-            });
+            previousWinchHandler = console.handle(Signal.WINCH, this::handleSignal);
             originalAttributes = console.enterRawMode();
 
             this.mask = mask;
@@ -469,8 +463,17 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
             pushBackChar.clear();
 
+            // Cache console size for the duration of the call to readLine()
+            // It will eventually be updated with WINCH signals
             size.copy(console.getSize());
             cursorPos = 0;
+
+            // Make sure we position the cursor on column 0
+            rawPrint(Ansi.ansi().bg(Color.DEFAULT).fgBright(Color.BLACK).a("~").fg(Color.DEFAULT).toString());
+            rawPrint(' ', size.getColumns() - 1);
+            console.puts(Capability.carriage_return);
+            rawPrint(' ');
+            console.puts(Capability.carriage_return);
 
             setPrompt(prompt);
             setRightPrompt(rightPrompt);
@@ -491,8 +494,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 }
                 Log.trace("Binding: ", o);
 
-                // Cache console size for the duration of the binding processing
-                size.copy(console.getSize());
                 // If this is still false after handling the binding, then
                 // we reset our repeatCount to 0.
                 isArgDigit = false;
@@ -544,6 +545,14 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             if (previousWinchHandler != null) {
                 console.handle(Signal.WINCH, previousWinchHandler);
             }
+        }
+    }
+
+    protected void handleSignal(Signal signal) {
+        if (signal == Signal.WINCH) {
+            size.copy(console.getSize());
+            oldLines = AnsiHelper.splitLines(String.join("\n", oldLines), size.getColumns(), TAB_WIDTH);
+            redisplay();
         }
     }
 
@@ -700,11 +709,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * Clear the line and redraw it.
      */
     public void redrawLine() {
-        oldBuf = "";
-        oldPrompt = "";
-        oldPost = null;
-        oldColumns = size.getColumns();
-        oldRightPrompt = "";
+        oldLines = new ArrayList<>();
     }
 
     /**
@@ -1411,7 +1416,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     protected boolean viMatch() {
         return doViMatch();
     }
-    
+
     /**
      * Implements vi style bracket matching ("%" command). The matching
      * bracket for the current bracket type that you are sitting on is matched.
@@ -1676,7 +1681,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             throw new IOError(e);
         }
     }
-    
+
     public int peekCharacter(long timeout) {
         try {
             return console.reader().peek(timeout);
@@ -2193,7 +2198,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     public void printSearchStatus(String searchTerm, String match, boolean backward) {
         String searchLabel = backward ? "bck-i-search" : "i-search";
-        post = new String[][] { new String[] { searchLabel + ": " + searchTerm + "_" } };
+        post = () -> searchLabel + ": " + searchTerm + "_";
         setBuffer(match);
         buf.move(match.indexOf(searchTerm) - buf.cursor());
     }
@@ -2768,6 +2773,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             skipRedisplay = false;
             return;
         }
+        // TODO: support TERM_SHORT, terminal lines < 3
         String buffer = buf.toString();
         if (mask != null) {
             if (mask == NULL_MASK) {
@@ -2783,37 +2789,22 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             buffer = highlighter.highlight(this, buffer);
         }
 
-        String oldPostStr = "";
-        String newPostStr = "";
-        if (oldPost != null) {
-            oldPostStr = "\n" + toColumns(oldPost, oldColumns);
-        }
-        if (post != null) {
-            newPostStr = "\n" + toColumns(post, size.getColumns());
-        }
-        String tOldBuf = insertSecondaryPrompts(oldBuf, new ArrayList<>());
         List<String> secondaryPrompts = new ArrayList<>();
         String tNewBuf = insertSecondaryPrompts(buffer, secondaryPrompts);
 
-        List<String> oldLines = AnsiHelper.splitLines(oldPrompt + tOldBuf + oldPostStr, oldColumns, TAB_WIDTH);
-        List<String> newLines = AnsiHelper.splitLines(prompt + tNewBuf + newPostStr, size.getColumns(), TAB_WIDTH);
-        List<String> oldRightPromptLines = AnsiHelper.splitLines(oldRightPrompt, oldColumns, TAB_WIDTH);
-        List<String> rightPromptLines = AnsiHelper.splitLines(rightPrompt, size.getColumns(), TAB_WIDTH);
+        List<String> newLines = AnsiHelper.splitLines(prompt + tNewBuf + (post != null ? "\n" + post.get() : ""), size.getColumns(), TAB_WIDTH);
+        List<String> rightPromptLines = rightPrompt.isEmpty() ? Collections.emptyList() : AnsiHelper.splitLines(rightPrompt, size.getColumns(), TAB_WIDTH);
 
-        while (oldLines.size() < rightPromptLines.size()) {
-            oldLines.add("");
-        }
         while (newLines.size() < rightPromptLines.size()) {
             newLines.add("");
-        }
-        for (int i = 0; i < oldRightPromptLines.size(); i++) {
-            String line = oldRightPromptLines.get(i);
-            oldLines.set(i, addRightPrompt(line, oldLines.get(i)));
         }
         for (int i = 0; i < rightPromptLines.size(); i++) {
             String line = rightPromptLines.get(i);
             newLines.set(i, addRightPrompt(line, newLines.get(i)));
         }
+
+        // TODO: when using rolling menu, we need to improve by using window scrolling
+        // TODO: if available
 
         int lineIndex = 0;
         int currentPos = 0;
@@ -2947,6 +2938,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             lineIndex++;
             currentPos = currentPos + size.getColumns();
         }
+        // TODO: buf.upToCursor() does not take into account the mask which could modify the display length
+        // TODO: in case of wide chars
         List<String> promptLines = AnsiHelper.splitLines(prompt + insertSecondaryPrompts(buf.upToCursor(), secondaryPrompts, false), size.getColumns(), TAB_WIDTH);
         if (!promptLines.isEmpty()) {
             moveVisualCursorTo((promptLines.size() - 1) * size.getColumns()
@@ -2955,11 +2948,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         if (flush) {
             flush();
         }
-        oldBuf = buffer;
-        oldPrompt = prompt;
-        oldPost = post;
-        oldColumns = size.getColumns();
-        oldRightPrompt = rightPrompt;
+        oldLines = newLines;
     }
 
     private static String SECONDARY_PROMPT = "> ";
@@ -3048,7 +3037,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     //
 
     protected boolean insertTab() {
-        return opBuffer.toString().equals("\t") && buf.toString().matches("[\r\n\t ]*");
+        return opBuffer.toString().equals("\t") && buf.toString().matches("(^|[\\s\\S]*\n)[\r\n\t ]*");
     }
 
     protected boolean doExpandHist() {
@@ -3329,39 +3318,184 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
     }
 
-    protected boolean doMenu(List<Candidate> possible) {
-        // TODO: handle big number of items
-        int selection = 0;
+    private class MenuSupport implements Supplier<String> {
+        final List<Candidate> possible;
+        int selection;
+        int topLine;
         String word;
-        possible = computePost(possible, null);
-        computePost(possible, possible.get(0));
-        word = possible.get(0).value();
-        buf.write(word);
+        String computed;
+        int lines;
+        int columns;
+
+        public MenuSupport(List<Candidate> original) {
+            this.possible = new ArrayList<>();
+            this.selection = -1;
+            this.topLine = 0;
+            this.word = "";
+            computePost(original, null, possible);
+            next();
+        }
+
+        public Candidate completion() {
+            return possible.get(selection);
+        }
+
+        public void next() {
+            selection = (selection + 1) % possible.size();
+            update();
+        }
+
+        public void previous() {
+            selection = (selection + possible.size() - 1) % possible.size();
+            update();
+        }
+
+        public void down() {
+            if (isSet(Option.LIST_ROWS_FIRST)) {
+                int r = selection / columns;
+                int c = selection % columns;
+                if ((r + 1) * columns + c < possible.size()) {
+                    r++;
+                } else if (c + 1 < columns) {
+                    c++;
+                    r = 0;
+                } else {
+                    r = 0;
+                    c = 0;
+                }
+                selection = r * columns + c;
+                update();
+            } else {
+                next();
+            }
+        }
+        public void left() {
+            if (isSet(Option.LIST_ROWS_FIRST)) {
+                previous();
+            } else {
+                int c = selection / lines;
+                int r = selection % lines;
+                if (c - 1 >= 0) {
+                    c--;
+                } else {
+                    c = columns - 1;
+                    r--;
+                }
+                selection = c * lines + r;
+                if (selection < 0) {
+                    selection = possible.size() - 1;
+                }
+                update();
+            }
+        }
+        public void right() {
+            if (isSet(Option.LIST_ROWS_FIRST)) {
+                next();
+            } else {
+                int c = selection / lines;
+                int r = selection % lines;
+                if (c + 1 < columns) {
+                    c++;
+                } else {
+                    c = 0;
+                    r++;
+                }
+                selection = c * lines + r;
+                if (selection >= possible.size()) {
+                    selection = 0;
+                }
+                update();
+            }
+        }
+        public void up() {
+            if (isSet(Option.LIST_ROWS_FIRST)) {
+                int r = selection / columns;
+                int c = selection % columns;
+                if (r > 0) {
+                    r--;
+                } else {
+                    c = (c + columns - 1) % columns;
+                    r = lines - 1;
+                    if (r * columns + c >= possible.size()) {
+                        r--;
+                    }
+                }
+                selection = r * columns + c;
+                update();
+            } else {
+                previous();
+            }
+        }
+
+        private void update() {
+            buf.backspace(word.length());
+            word = completion().value();
+            buf.write(word);
+
+            // Compute displayed prompt
+            PostResult pr = computePost(possible, completion(), null);
+            String text = insertSecondaryPrompts(prompt + buf.toString(), new ArrayList<>());
+            int promptLines = AnsiHelper.splitLines(text, size.getColumns(), TAB_WIDTH).size();
+            if (pr.lines >= size.getRows() - promptLines) {
+                int displayed = size.getRows() - promptLines - 1;
+                if (pr.selectedLine >= 0) {
+                    if (pr.selectedLine < topLine) {
+                        topLine = pr.selectedLine;
+                    } else if (pr.selectedLine >= topLine + displayed) {
+                        topLine = pr.selectedLine - displayed + 1;
+                    }
+                }
+                List<String> lines = AnsiHelper.splitLines(pr.post, size.getColumns(), TAB_WIDTH);
+                List<String> sub = new ArrayList<>(lines.subList(topLine, topLine + displayed));
+                sub.add(Ansi.ansi().fg(Color.CYAN).a("rows ")
+                        .a(topLine + 1).a(" to ").a(topLine + displayed)
+                        .a(" of ").a(lines.size()).fg(Color.DEFAULT).toString());
+                computed = String.join("\n", sub);
+            } else {
+                computed = pr.post;
+            }
+            lines = pr.lines;
+            columns = (possible.size() + lines - 1) / lines;
+        }
+
+        @Override
+        public String get() {
+            return computed;
+        }
+
+    }
+
+    protected boolean doMenu(List<Candidate> original) {
+        // Reorder candidates according to display order
+        final List<Candidate> possible = new ArrayList<>();
+        computePost(original, null, possible);
+
+        // Build menu support
+        MenuSupport menuSupport = new MenuSupport(original);
+        post = menuSupport;
         redisplay();
 
+        // Loop
+        console.puts(Capability.keypad_xmit);
         KeyMap keyMap = consoleKeys.getKeyMaps().get(KeyMap.MENU_SELECT);
-
-        // Reorder candidates according to display order
-        possible = computePost(possible, null);
-
         Object operation;
         while ((operation = readBinding(getKeys(), keyMap)) != null) {
             if (operation == Operation.MENU_COMPLETE) {
-                selection = (selection + 1) % possible.size();
-                Candidate completion = possible.get(selection);
-                computePost(possible, possible.get(selection));
-                buf.backspace(word.length());
-                buf.write(completion.value());
-                word = completion.value();
+                menuSupport.next();
             } else if (operation == Operation.REVERSE_MENU_COMPLETE) {
-                selection = (selection + possible.size() - 1) % possible.size();
-                Candidate completion = possible.get(selection);
-                computePost(possible, possible.get(selection));
-                buf.backspace(word.length());
-                buf.write(completion.value());
-                word = completion.value();
+                menuSupport.previous();
+            } else if (operation == Operation.UP_LINE_OR_HISTORY) {
+                menuSupport.up();
+            } else if (operation == Operation.DOWN_LINE_OR_HISTORY) {
+                menuSupport.down();
+            } else if (operation == Operation.FORWARD_CHAR) {
+                menuSupport.right();
+            } else if (operation == Operation.BACKWARD_CHAR) {
+                menuSupport.left();
+            } else if (operation == Operation.CLEAR_SCREEN) {
+                clearScreen();
             } else {
-                Candidate completion = possible.get(selection);
+                Candidate completion = menuSupport.completion();
                 if (completion.suffix() != null) {
                     String chars = getString("REMOVE_SUFFIX_CHARS", " \t\n;&|");
                     if (operation == Operation.SELF_INSERT && chars.indexOf(opBuffer.charAt(0)) >= 0
@@ -3379,22 +3513,88 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                     pushBackBinding(true);
                 }
                 post = null;
+                console.puts(Capability.keypad_local);
                 return true;
             }
             redisplay();
         }
+        console.puts(Capability.keypad_local);
         return false;
     }
 
     protected void doList(List<Candidate> possible) {
-        // TODO: verify number of items
-        computePost(possible, null);
+        // If we list only and if there's a big
+        // number of items, we should ask the user
+        // for confirmation, display the list
+        // and redraw the line at the bottom
+        String text = insertSecondaryPrompts(prompt + buf.toString(), new ArrayList<>());
+        int promptLines = AnsiHelper.splitLines(text, size.getColumns(), TAB_WIDTH).size();
+        PostResult postResult = computePost(possible, null, null);
+        int lines = postResult.lines;
+        int listMax = getInt("list-max", 100);
+        if (listMax > 0 && possible.size() >= listMax
+                || lines >= size.getRows() - promptLines) {
+            // prompt
+            post = null;
+            int oldCursor = buf.cursor();
+            buf.cursor(buf.length());
+            redisplay(true);
+            buf.cursor(oldCursor);
+            println();
+            rawPrint(getAppName() + ": do you wish to see to see all " + possible.size()
+                    + " possibilities (" + lines + " lines)?");
+            flush();
+            int c = readCharacter();
+            if (c != 'y' && c != 'Y' && c != '\t') {
+                return;
+            }
+        }
+        /*
+        if (lines >= size.getRows() - promptLines) {
+            post = null;
+            int oldCursor = buf.cursor();
+            buf.cursor(buf.length());
+            redisplay(false);
+            buf.cursor(oldCursor);
+            println();
+            rawPrintln(postResult.post);
+            redrawLine();
+        } else*/ {
+            post = () -> {
+                String t = insertSecondaryPrompts(prompt + buf.toString(), new ArrayList<>());
+                int pl = AnsiHelper.splitLines(t, size.getColumns(), TAB_WIDTH).size();
+                PostResult pr = computePost(possible, null, null);
+                if (pr.lines >= size.getRows() - pl) {
+                    post = null;
+                    int oldCursor = buf.cursor();
+                    buf.cursor(buf.length());
+                    redisplay(false);
+                    buf.cursor(oldCursor);
+                    println();
+                    rawPrintln(postResult.post);
+                    redrawLine();
+                    return "";
+                }
+                return pr.post;
+            };
+        }
     }
 
-    protected List<Candidate> computePost(List<Candidate> possible, Candidate selection) {
-        boolean displayDesc = false;
+    private static class PostResult {
+        final String post;
+        final int lines;
+        final int selectedLine;
+
+        public PostResult(String post, int lines, int selectedLine) {
+            this.post = post;
+            this.lines = lines;
+            this.selectedLine = selectedLine;
+        }
+    }
+
+    protected PostResult computePost(List<Candidate> possible, Candidate selection, List<Candidate> ordered) {
+        List<Object> strings = new ArrayList<>();
         boolean groupName = isSet(Option.GROUP);
-        List<Candidate> ordered = new ArrayList<>();
         if (groupName) {
             LinkedHashMap<String, TreeMap<String, Candidate>> sorted = new LinkedHashMap<>();
             for (Candidate cand : possible) {
@@ -3402,36 +3602,19 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 sorted.computeIfAbsent(group != null ? group : "", s -> new TreeMap<>())
                         .put(cand.value(), cand);
             }
-            List<String[]> strings = new ArrayList<>();
             for (Map.Entry<String, TreeMap<String, Candidate>> entry : sorted.entrySet()) {
                 String group = entry.getKey();
                 if (group.isEmpty() && sorted.size() > 1) {
                     group = "others";
                 }
                 if (!group.isEmpty()) {
-                    strings.add(new String[] { Ansi.ansi().fg(Color.CYAN).a(group).reset().toString() });
+                    strings.add(group);
                 }
-                if (displayDesc) {
-                    for (Candidate cand : entry.getValue().values()) {
-                        strings.add(new String[] {
-                           cand.value(), cand.descr()
-                        });
-                        ordered.add(cand);
-                    }
-                } else {
-                    List<String> strs = new ArrayList<>();
-                    for (Candidate cand : entry.getValue().values()) {
-                        if (cand == selection) {
-                            strs.add(Ansi.ansi().a(Attribute.NEGATIVE_ON).a(AnsiHelper.strip(cand.displ())).a(Attribute.NEGATIVE_OFF).toString());
-                        } else {
-                            strs.add(cand.displ());
-                        }
-                        ordered.add(cand);
-                    }
-                    strings.add(strs.toArray(new String[strs.size()]));
+                strings.add(new ArrayList<>(entry.getValue().values()));
+                if (ordered != null) {
+                    ordered.addAll(entry.getValue().values());
                 }
             }
-            post = strings.toArray(new String[strings.size()][]);
         } else {
             Set<String> groups = new LinkedHashSet<>();
             TreeMap<String, Candidate> sorted = new TreeMap<>();
@@ -3442,23 +3625,141 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 }
                 sorted.put(cand.value(), cand);
             }
-            List<String[]> strings = new ArrayList<>();
             for (String group : groups) {
-                strings.add(new String[] { Ansi.ansi().fg(Color.CYAN).a(group).reset().toString() });
+                strings.add(group);
             }
-            List<String> strs = new ArrayList<>();
-            for (Candidate cand : sorted.values()) {
-                if (cand == selection) {
-                    strs.add(Ansi.ansi().a(Attribute.NEGATIVE_ON).a(AnsiHelper.strip(cand.displ())).a(Attribute.NEGATIVE_OFF).toString());
-                } else {
-                    strs.add(cand.displ());
-                }
-                ordered.add(cand);
+            strings.add(new ArrayList<>(sorted.values()));
+            if (ordered != null) {
+                ordered.addAll(sorted.values());
             }
-            strings.add(strs.toArray(new String[strs.size()]));
-            post = strings.toArray(new String[strings.size()][]);
         }
-        return ordered;
+        return toColumns(strings, selection);
+    }
+
+    private static final String DESC_PREFIX = "(";
+    private static final String DESC_SUFFIX = ")";
+    private static final int MARGIN_BETWEEN_DISPLAY_AND_DESC = 1;
+    private static final int MARGIN_BETWEEN_COLUMNS = 3;
+
+    @SuppressWarnings("unchecked")
+    protected PostResult toColumns(List<Object> items, Candidate selection) {
+        int[] out = new int[2];
+        int width = size.getColumns();
+        // TODO: support Option.LIST_PACKED
+        // Compute column width
+        int maxWidth = 0;
+        for (Object item : items) {
+            if (item instanceof String) {
+                int len = wcwidth(AnsiHelper.strip((String) item), 0);
+                maxWidth = Math.max(maxWidth, len);
+            }
+            else if (item instanceof List) {
+                for (Candidate cand : (List<Candidate>) item) {
+                    int len = wcwidth(AnsiHelper.strip(cand.displ()), 0);
+                    if (cand.descr() != null) {
+                        len += MARGIN_BETWEEN_DISPLAY_AND_DESC;
+                        len += DESC_PREFIX.length();
+                        len += wcwidth(AnsiHelper.strip(cand.descr()), 0);
+                        len += DESC_SUFFIX.length();
+                    }
+                    maxWidth = Math.max(maxWidth, len);
+                }
+            }
+        }
+        // Build columns
+        Ansi ansi = Ansi.ansi();
+        for (Object list : items) {
+            toColumns(list, width, maxWidth, ansi, selection, out);
+        }
+        String str = ansi.toString();
+        if (str.endsWith("\n")) {
+            str = str.substring(0, str.length() - 1);
+        }
+        return new PostResult(str, out[0], out[1]);
+    }
+
+    @SuppressWarnings("unchecked")
+    protected void toColumns(Object items, int width, int maxWidth, Ansi ansi, Candidate selection, int[] out) {
+        // This is a group
+        if (items instanceof String) {
+            ansi.fg(Color.CYAN)
+                    .a((String) items)
+                    .fg(Color.DEFAULT)
+                    .a("\n");
+            out[0]++;
+        }
+        // This is a Candidate list
+        else if (items instanceof List) {
+            List<Candidate> candidates = (List<Candidate>) items;
+            maxWidth = Math.min(width, maxWidth);
+            int c = width / maxWidth;
+            while (c > 1 && c * maxWidth + (c - 1) * MARGIN_BETWEEN_COLUMNS >= width) {
+                c--;
+            }
+            int columns = c;
+            int lines = (candidates.size() + columns - 1) / columns;
+            IntBinaryOperator index;
+            if (isSet(Option.LIST_ROWS_FIRST)) {
+                index = (i, j) -> i * columns + j;
+            } else {
+                index = (i, j) -> j * lines + i;
+            }
+            for (int i = 0; i < lines; i++) {
+                for (int j = 0; j < columns; j++) {
+                    int idx = index.applyAsInt(i, j);
+                    if (idx < candidates.size()) {
+                        Candidate cand = candidates.get(idx);
+                        boolean hasRightItem = j < columns - 1 && index.applyAsInt(i, j + 1) < candidates.size();
+                        String left = cand.displ();
+                        String right = cand.descr();
+                        int lw = wcwidth(AnsiHelper.strip(left), 0);
+                        int rw = 0;
+                        if (right != null) {
+                            int rem = maxWidth - (lw + MARGIN_BETWEEN_DISPLAY_AND_DESC
+                                    + DESC_PREFIX.length() + DESC_SUFFIX.length());
+                            rw = wcwidth(AnsiHelper.strip(right), 0);
+                            if (rw > rem) {
+                                right = AnsiHelper.cut(right, rem - WCWidth.wcwidth('…'), 1) + "…";
+                                rw = wcwidth(AnsiHelper.strip(right), 0);
+                            }
+                            right = DESC_PREFIX + right + DESC_SUFFIX;
+                            rw += DESC_PREFIX.length() + DESC_SUFFIX.length();
+                        }
+                        if (cand == selection) {
+                            out[1] = i;
+                            ansi.a(Attribute.NEGATIVE_ON);
+                            ansi.a(AnsiHelper.strip(left));
+                            for (int k = 0; k < maxWidth - lw - rw; k++) {
+                                ansi.a(' ');
+                            }
+                            if (right != null) {
+                                ansi.a(AnsiHelper.strip(right));
+                            }
+                            ansi.a(Attribute.NEGATIVE_OFF);
+                        } else {
+                            ansi.a(left);
+                            if (right != null || hasRightItem) {
+                                for (int k = 0; k < maxWidth - lw - rw; k++) {
+                                    ansi.a(' ');
+                                }
+                            }
+                            if (right != null) {
+                                ansi.fgBright(Color.BLACK);
+                                ansi.a(right);
+                                ansi.fg(Color.DEFAULT);
+                            }
+                        }
+                        if (hasRightItem) {
+                            for (int k = 0; k < MARGIN_BETWEEN_COLUMNS; k++) {
+                                ansi.a(' ');
+                            }
+                        }
+                    }
+                }
+                ansi.a('\n');
+            }
+            out[0] += lines;
+        }
     }
 
     private String getCommonStart(String str1, String str2, boolean caseInsensitive) {
@@ -3721,70 +4022,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      */
     public void addTriggeredAction(final char c, final Widget widget) {
         getKeys().bind(Character.toString(c), widget);
-    }
-
-    //
-    // Formatted Output
-    //
-
-    protected String toColumns(String[][] items, int width) {
-        // Compute column max width
-        if (isSet(Option.LIST_PACKED)) {
-            // Build columns
-            StringBuilder buff = new StringBuilder();
-            for (String[] list : items) {
-                int maxWidth = 0;
-                if (list != null && list.length > 1) {
-                    for (String item : list) {
-                        // we use 0 here, as we don't really support tabulations inside candidates
-                        int len = wcwidth(AnsiHelper.strip(item), 0);
-                        maxWidth = Math.max(maxWidth, len);
-                    }
-                }
-                maxWidth = maxWidth + 3;
-                toColumns(list, width, maxWidth, buff);
-            }
-            return buff.toString();
-        } else {
-            int maxWidth = 0;
-            for (String[] list : items) {
-                if (list != null && list.length > 1) {
-                    for (String item : list) {
-                        // we use 0 here, as we don't really support tabulations inside candidates
-                        int len = wcwidth(AnsiHelper.strip(item), 0);
-                        maxWidth = Math.max(maxWidth, len);
-                    }
-                }
-            }
-            maxWidth = maxWidth + 3;
-            // Build columns
-            StringBuilder buff = new StringBuilder();
-            for (String[] list : items) {
-                toColumns(list, width, maxWidth, buff);
-            }
-            return buff.toString();
-        }
-    }
-
-    protected void toColumns(String[] items, int width, int maxWidth, StringBuilder buff) {
-        if (items == null || items.length == 0) {
-            return;
-        }
-        int realLength = 0;
-        for (String item : items) {
-            if ((realLength + maxWidth) > width) {
-                buff.append('\n');
-                realLength = 0;
-            }
-
-            buff.append(item);
-            int strippedItemLength = wcwidth(AnsiHelper.strip(item), 0);
-            for (int i = 0; i < (maxWidth - strippedItemLength); i++) {
-                buff.append(' ');
-            }
-            realLength += maxWidth;
-        }
-        buff.append('\n');
     }
 
     //

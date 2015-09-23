@@ -14,14 +14,9 @@ import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.jline.Completer;
 import org.jline.ConsoleReader;
 import org.jline.ConsoleReader.Option;
 import org.jline.History;
-import org.jline.reader.completer.AggregateCompleter;
-import org.jline.reader.completer.ArgumentCompleter;
-import org.jline.reader.completer.NullCompleter;
-import org.jline.reader.completer.StringsCompleter;
 import org.jline.reader.history.MemoryHistory;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp.Capability;
@@ -40,6 +35,7 @@ import static org.jline.reader.ConsoleReaderTest.WindowsKey.PAGE_UP_KEY;
 import static org.jline.reader.ConsoleReaderTest.WindowsKey.SPECIAL_KEY_INDICATOR;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -71,7 +67,7 @@ public class ConsoleReaderTest extends ReaderTestSupport
     public void testReadlineWithMask() throws Exception {
         mask = '*';
         assertLine("Sample String", new TestBuffer("Sample String\n"));
-        assertEquals("*************", out.toString().trim());
+        assertTrue(this.out.toString().contains("*************"));
     }
 
     @Test
