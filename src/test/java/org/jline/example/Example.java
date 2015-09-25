@@ -13,8 +13,6 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 
 import org.jline.Completer;
@@ -24,6 +22,7 @@ import org.jline.JLine;
 import org.jline.JLine.ConsoleBuilder;
 import org.jline.reader.ConsoleReaderImpl;
 import org.jline.reader.EndOfFileException;
+import org.jline.reader.KeyMap;
 import org.jline.reader.Macro;
 import org.jline.reader.Operation;
 import org.jline.reader.ParsedLine;
@@ -81,73 +80,70 @@ public class Example
             Completer completer = null;
 
             int index = 0;
+            label:
             while (args.length > index) {
-                if (args[index].equals("-posix")) {
-                    builder.posix(false);
-                    index++;
-                }
-                else if (args[index].equals("+posix")) {
-                    builder.posix(true);
-                    index++;
-                }
-                else if (args[index].equals("-system")) {
-                    builder.system(false);
-                    index++;
-                }
-                else if (args[index].equals("+system")) {
-                    builder.system(true);
-                    index++;
-                }
-                else if (args[index].equals("-native-pty")) {
-                    builder.nativePty(false);
-                    index++;
-                }
-                else if (args[index].equals("+native-pty")) {
-                    builder.nativePty(true);
-                    index++;
-                }
-                else if (args[index].equals("none")) {
-                    break;
-                } else if (args[index].equals("files")) {
-                    completer = new FileNameCompleter();
-                    break;
-                }
-                else if (args[index].equals("simple")) {
-                    completer = new StringsCompleter("foo", "bar", "baz");
-                    break;
-                }
-                else if (args[index].equals("foo")) {
-                    completer = new ArgumentCompleter(
-                            new StringsCompleter("foo11", "foo12", "foo13"),
-                            new StringsCompleter("foo21", "foo22", "foo23"));
-                    break;
-                }
-                else if (args[index].equals("color")) {
-                    color = true;
-                    prompt = Ansi.ansi().bg(Color.GREEN).a("foo").reset()
-                            .a("@bar")
-                            .fg(Color.GREEN)
-                            .a("\nbaz")
-                            .reset()
-                            .a("> ").toString();
-                    rightPrompt = Ansi.ansi().fg(Color.RED)
-                            .a(LocalDate.now().format(DateTimeFormatter.ISO_DATE))
-                            .a("\n")
-                            .fgBright(Color.RED)
-                            .a(LocalTime.now().format(new DateTimeFormatterBuilder()
-                                    .appendValue(HOUR_OF_DAY, 2)
-                                    .appendLiteral(':')
-                                    .appendValue(MINUTE_OF_HOUR, 2)
-                                    .toFormatter()))
-                            .reset()
-                            .toString();
-                    completer = new StringsCompleter("\u001B[1mfoo\u001B[0m", "bar", "\u001B[32mbaz\u001B[0m", "foobar");
-                    break;
-                }
-                else {
-                    usage();
-
-                    return;
+                switch (args[index]) {
+                    case "-posix":
+                        builder.posix(false);
+                        index++;
+                        break;
+                    case "+posix":
+                        builder.posix(true);
+                        index++;
+                        break;
+                    case "-system":
+                        builder.system(false);
+                        index++;
+                        break;
+                    case "+system":
+                        builder.system(true);
+                        index++;
+                        break;
+                    case "-native-pty":
+                        builder.nativePty(false);
+                        index++;
+                        break;
+                    case "+native-pty":
+                        builder.nativePty(true);
+                        index++;
+                        break;
+                    case "none":
+                        break label;
+                    case "files":
+                        completer = new FileNameCompleter();
+                        break label;
+                    case "simple":
+                        completer = new StringsCompleter("foo", "bar", "baz");
+                        break label;
+                    case "foo":
+                        completer = new ArgumentCompleter(
+                                new StringsCompleter("foo11", "foo12", "foo13"),
+                                new StringsCompleter("foo21", "foo22", "foo23"));
+                        break label;
+                    case "color":
+                        color = true;
+                        prompt = Ansi.ansi().bg(Color.GREEN).a("foo").reset()
+                                .a("@bar")
+                                .fg(Color.GREEN)
+                                .a("\nbaz")
+                                .reset()
+                                .a("> ").toString();
+                        rightPrompt = Ansi.ansi().fg(Color.RED)
+                                .a(LocalDate.now().format(DateTimeFormatter.ISO_DATE))
+                                .a("\n")
+                                .fgBright(Color.RED)
+                                .a(LocalTime.now().format(new DateTimeFormatterBuilder()
+                                        .appendValue(HOUR_OF_DAY, 2)
+                                        .appendLiteral(':')
+                                        .appendValue(MINUTE_OF_HOUR, 2)
+                                        .toFormatter()))
+                                .reset()
+                                .toString();
+                        completer = new StringsCompleter("\u001B[1mfoo\u001B[0m", "bar", "\u001B[32mbaz\u001B[0m", "foobar");
+                        break label;
+                    default:
+                        usage();
+                        return;
                 }
             }
 
@@ -194,12 +190,12 @@ public class Example
                 ParsedLine pl = ((ConsoleReaderImpl) reader).getParser().parse(line, 0);
                 if ("set".equals(pl.word())) {
                     if (pl.words().size() == 3) {
-                        builder.variable(pl.words().get(1).toString(), pl.words().get(2).toString());
+                        builder.variable(pl.words().get(1), pl.words().get(2));
                     }
                 }
                 else if ("tput".equals(pl.word())) {
                     if (pl.words().size() == 2) {
-                        Capability vcap = Capability.byName(pl.words().get(1).toString());
+                        Capability vcap = Capability.byName(pl.words().get(1));
                         if (vcap != null) {
                             console.puts(vcap);
                         } else {
@@ -245,10 +241,10 @@ public class Example
                         console.writer().print(sb.toString());
                         console.flush();
                     } else if (pl.words().size() == 3) {
-                        ((ConsoleReaderImpl) reader).getConsoleKeys().bindKey(
+                        KeyMap.bindKey(
                                 ((ConsoleReaderImpl) reader).getKeys(),
-                                pl.words().get(1).toString(),
-                                pl.words().get(2).toString()
+                                pl.words().get(1),
+                                pl.words().get(2)
                         );
                     }
                 }

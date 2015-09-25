@@ -53,7 +53,7 @@ public abstract class ReaderTestSupport
         in = new EofPipedInputStream();
         out = new ByteArrayOutputStream();
         console = new DumbConsole(null, in, out);
-        reader = new TestConsoleReader(console, "JLine", new URL("file:/do/not/exists"), null);
+        reader = new TestConsoleReader(console, "JLine", null);
         reader.setKeyMap(KeyMap.EMACS);
         mask = null;
     }
@@ -301,8 +301,8 @@ public abstract class ReaderTestSupport
     public static class TestConsoleReader extends ConsoleReaderImpl {
         boolean list = false;
         boolean menu = false;
-        public TestConsoleReader(Console console, String appName, URL inputrc, Map<String, Object> variables) {
-            super(console, appName, inputrc, variables);
+        public TestConsoleReader(Console console, String appName, Map<String, Object> variables) {
+            super(console, appName, variables);
         }
 
         @Override

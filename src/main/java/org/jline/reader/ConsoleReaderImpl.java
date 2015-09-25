@@ -10,14 +10,11 @@ package org.jline.reader;
 
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
-import java.io.File;
 import java.io.Flushable;
 import java.io.IOError;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -122,14 +119,10 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     /** The console to use */
     protected final Console console;
-    /** The inputrc url */
-    protected final URL inputrc;
-    /** The application name, used when parsing the inputrc */
+    /** The application name */
     protected final String appName;
     /** The console keys mapping */
-    protected final ConsoleKeys consoleKeys;
-
-
+    protected final Map<String, KeyMap> keyMaps;
 
     //
     // Configuration
@@ -204,44 +197,38 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     protected boolean skipRedisplay;
     protected Display display;
 
+    protected boolean overTyping = false;
+
+    protected KeyMap keys;
+
+
     public ConsoleReaderImpl(Console console) throws IOException {
         this(console, null, null);
     }
 
-    public ConsoleReaderImpl(Console console, String appName, URL inputrc) throws IOException {
-        this(console, appName, inputrc, null);
+    public ConsoleReaderImpl(Console console, String appName) throws IOException {
+        this(console, appName, null);
     }
 
-    public ConsoleReaderImpl(Console console, String appName, URL inputrc, Map<String, Object> variables) {
+    public ConsoleReaderImpl(Console console, String appName, Map<String, Object> variables) {
         checkNotNull(console);
         this.console = console;
         if (appName == null) {
             appName = "JLine";
         }
-        if (inputrc == null) {
-            File f = new File(System.getProperty("user.home"), ".inputrc");
-            if (!f.exists()) {
-                f = new File("/etc/inputrc");
-            }
-            try {
-                inputrc = f.toURI().toURL();
-            } catch (MalformedURLException e) {
-                throw new IllegalArgumentException();
-            }
-        }
         this.appName = appName;
-        this.inputrc = inputrc;
         if (variables != null) {
             this.variables = variables;
         } else {
             this.variables = new HashMap<>();
         }
-        this.consoleKeys = new ConsoleKeys(appName, inputrc);
+        this.keyMaps = KeyMap.keyMaps();
+        this.keys = keyMaps.get(KeyMap.EMACS);
 
         if (getBoolean(BIND_TTY_SPECIAL_CHARS, true)) {
             Attributes attr = console.getAttributes();
-            bindConsoleChars(consoleKeys.getKeyMaps().get(KeyMap.EMACS), attr);
-            bindConsoleChars(consoleKeys.getKeyMaps().get(KeyMap.VI_INSERT), attr);
+            bindConsoleChars(keyMaps.get(KeyMap.EMACS), attr);
+            bindConsoleChars(keyMaps.get(KeyMap.VI_INSERT), attr);
         }
         dispatcher = createDispatcher();
     }
@@ -291,16 +278,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return appName;
     }
 
-    public URL getInputrc() {
-        return inputrc;
-    }
-
-    public ConsoleKeys getConsoleKeys() {
-        return consoleKeys;
-    }
-
     public KeyMap getKeys() {
-        return consoleKeys.getKeys();
+        return keys;
     }
 
     public Buffer getCursorBuffer() {
@@ -620,7 +599,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         buf.backspace(diff); // go back for the differences
         killLine(); // clear to the end of the line
-        buf.write(buffer.substring(sameIndex)); // append the differences
+        buf.write(buffer.substring(sameIndex), overTyping); // append the differences
     }
 
     /**
@@ -819,7 +798,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * Write out the specified string to the buffer and the output stream.
      */
     public void putString(final CharSequence str) {
-        buf.write(str);
+        buf.write(str, overTyping);
     }
 
     /**
@@ -1501,8 +1480,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     public boolean isKeyMap(String name) {
         // Current keymap.
-        KeyMap map = consoleKeys.getKeys();
-        KeyMap mapByName = consoleKeys.getKeyMaps().get(name);
+        KeyMap map = keys;
+        KeyMap mapByName = keyMaps.get(name);
 
         if (mapByName == null)
             return false;
@@ -1599,6 +1578,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         do {
             int c = pushBackChar.isEmpty() ? readCharacter() : pushBackChar.pop();
             if (c == -1) {
+                // TODO: find another way
                 return null;
             }
             opBuffer.appendCodePoint(c);
@@ -1655,6 +1635,10 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return opBuffer.toString();
     }
 
+    public String getSearchTerm() {
+        return searchTerm != null ? searchTerm.toString() : null;
+    }
+
     //
     // Key Bindings
     //
@@ -1667,7 +1651,12 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      *    not recognized.
      */
     public boolean setKeyMap(String name) {
-        return consoleKeys.setKeyMap(name);
+        KeyMap map = keyMaps.get(name);
+        if (map == null) {
+            return false;
+        }
+        this.keys = map;
+        return true;
     }
 
     /**
@@ -1677,7 +1666,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      *   was used with {@link #setKeyMap(String)}.
      */
     public String getKeyMap() {
-        return consoleKeys.getKeys().getName();
+        return keys.getName();
     }
 
     protected boolean viBeginningOfLineOrArgDigit() {
@@ -1761,7 +1750,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 viMoveMode = ViMoveMode.NORMAL;
             }
             boolean res = viChangeTo(cursorStart, buf.cursor());
-            consoleKeys.setKeyMap(KeyMap.VI_INSERT);
+            setKeyMap(KeyMap.VI_INSERT);
             return res;
         } else {
             pushBackBinding();
@@ -2158,7 +2147,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected boolean overwriteMode() {
-        buf.overTyping(!buf.overTyping());
+        overTyping = !overTyping;
         return true;
     }
 
@@ -2311,11 +2300,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected boolean startKbdMacro() {
         recording = true;
-        return true;
-    }
-
-    protected boolean reReadInitFile() {
-        consoleKeys.loadKeys(appName, inputrc);
         return true;
     }
 
@@ -2590,7 +2574,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         dispatcher.put(Operation.PREVIOUS_HISTORY, ConsoleReaderImpl::previousHistory);
         dispatcher.put(Operation.QUIT, ConsoleReaderImpl::quit);
         dispatcher.put(Operation.QUOTED_INSERT, ConsoleReaderImpl::quotedInsert);
-        dispatcher.put(Operation.RE_READ_INIT_FILE, ConsoleReaderImpl::reReadInitFile);
         dispatcher.put(Operation.REVERSE_SEARCH_HISTORY, ConsoleReaderImpl::reverseSearchHistory);
         dispatcher.put(Operation.SELF_INSERT, ConsoleReaderImpl::selfInsert);
         dispatcher.put(Operation.SELF_INSERT_UNMETA, ConsoleReaderImpl::selfInsertUnmeta);
@@ -3076,7 +3059,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected boolean nextBindingIsComplete() {
         redisplay();
-        KeyMap keyMap = consoleKeys.getKeyMaps().get(KeyMap.MENU_SELECT);
+        KeyMap keyMap = keyMaps.get(KeyMap.MENU_SELECT);
         Object operation = readBinding(getKeys(), keyMap);
         if (operation == Operation.MENU_COMPLETE) {
             return true;
@@ -3246,7 +3229,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         // Loop
         console.puts(Capability.keypad_xmit);
-        KeyMap keyMap = consoleKeys.getKeyMaps().get(KeyMap.MENU_SELECT);
+        KeyMap keyMap = keyMaps.get(KeyMap.MENU_SELECT);
         Object operation;
         while ((operation = readBinding(getKeys(), keyMap)) != null) {
             if (operation == Operation.MENU_COMPLETE) {
@@ -3794,8 +3777,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     public Object getVariable(String name) {
-        Object v = variables.get(name);
-        return v != null ? v : consoleKeys.getVariable(name);
+        return variables.get(name);
     }
 
     public void setVariable(String name, Object value) {

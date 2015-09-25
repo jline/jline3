@@ -113,12 +113,12 @@ public class CompletionTest extends ReaderTestSupport {
         );
         reader.setCompleter(aggregator);
 
-        reader.getConsoleKeys().bindKey(reader.getKeys(), "\t", "complete-word");
+        KeyMap.bindKey(reader.getKeys(), "\t", "complete-word");
 
         assertLine("read and ", new TestBuffer("read an\t\n"));
         assertLine("read and ", new TestBuffer("read an\033[D\t\n"));
 
-        reader.getConsoleKeys().bindKey(reader.getKeys(), "\t", "complete-prefix");
+        KeyMap.bindKey(reader.getKeys(), "\t", "complete-prefix");
 
         assertLine("read and nd", new TestBuffer("read and\033[D\033[D\t\n"));
     }

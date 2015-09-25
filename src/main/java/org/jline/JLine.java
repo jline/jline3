@@ -11,11 +11,8 @@ package org.jline;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URL;
 import java.nio.charset.Charset;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.jline.console.EmulatedConsole;
@@ -89,11 +86,6 @@ public final class JLine {
 
         public ConsoleBuilder appName(String appName) {
             consoleReaderBuilder.appName(appName);
-            return this;
-        }
-
-        public ConsoleBuilder inputrc(URL inputrc) {
-            consoleReaderBuilder.inputrc(inputrc);
             return this;
         }
 
@@ -178,7 +170,6 @@ public final class JLine {
 
         Console console;
         String appName;
-        URL inputrc;
         Map<String, Object> variables;
         History history;
         Completer completer;
@@ -196,11 +187,6 @@ public final class JLine {
 
         public ConsoleReaderBuilder appName(String appName) {
             this.appName = appName;
-            return this;
-        }
-
-        public ConsoleReaderBuilder inputrc(URL inputrc) {
-            this.inputrc = inputrc;
             return this;
         }
 
@@ -242,7 +228,7 @@ public final class JLine {
         }
 
         public ConsoleReader build() {
-            ConsoleReaderImpl reader = new ConsoleReaderImpl(console, appName, inputrc, variables);
+            ConsoleReaderImpl reader = new ConsoleReaderImpl(console, appName, variables);
             if (history != null) {
                 reader.setHistory(history);
             } else {

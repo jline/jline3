@@ -12,6 +12,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.jline.utils.Log;
+
 /**
  * The KeyMap class contains all bindings from keys to operations.
  *
@@ -43,6 +45,152 @@ public class KeyMap {
     protected KeyMap(String name, Object[] mapping) {
         this.mapping = mapping;
         this.name = name;
+    }
+
+    public static void bindKey(KeyMap keys, String seq, String val) {
+        seq = translate(seq);
+        if (val.length() > 0 && (val.charAt(0) == '\'' || val.charAt(0) == '\"')) {
+            keys.bind(seq, new Macro(translateQuoted(val)));
+        } else {
+            String operationName = val.replace('-', '_').toUpperCase();
+            try {
+                keys.bind(seq, Operation.valueOf(operationName));
+            } catch(IllegalArgumentException e) {
+                Log.info("Unable to bind key for unsupported operation: ", val);
+            }
+        }
+    }
+
+    public static String translate(String seq) {
+        if (seq.charAt(0) == '"') {
+            seq = translateQuoted(seq);
+        } else {
+            // Bind key name
+            String keyName = seq.lastIndexOf('-') > 0 ? seq.substring( seq.lastIndexOf('-') + 1 ) : seq;
+            char key = getKeyFromName(keyName);
+            keyName = seq.toLowerCase();
+            seq = "";
+            if (keyName.contains("meta-") || keyName.contains("m-")) {
+                seq += "\u001b";
+            }
+            if (keyName.contains("control-") || keyName.contains("c-")
+                    || keyName.contains("ctrl-")) {
+                key = (char)(Character.toUpperCase( key ) & 0x1f);
+            }
+            seq += key;
+        }
+        return seq;
+    }
+
+    private static String translateQuoted(String keySeq) {
+        int i;
+        String str = keySeq.substring( 1, keySeq.length() - 1 );
+        keySeq = "";
+        for (i = 0; i < str.length(); i++) {
+            char c = str.charAt(i);
+            if (c == '\\') {
+                boolean ctrl = str.regionMatches(i, "\\C-", 0, 3)|| str.regionMatches(i, "\\M-\\C-", 0, 6);
+                boolean meta = str.regionMatches(i, "\\M-", 0, 3)|| str.regionMatches(i, "\\C-\\M-", 0, 6);
+                i += (meta ? 3 : 0) + (ctrl ? 3 : 0) + (!meta && !ctrl ? 1 : 0);
+                if (i >= str.length()) {
+                    break;
+                }
+                c = str.charAt(i);
+                if (meta) {
+                    keySeq += "\u001b";
+                }
+                if (ctrl) {
+                    c = c == '?' ? 0x7f : (char)(Character.toUpperCase( c ) & 0x1f);
+                }
+                if (!meta && !ctrl) {
+                    switch (c) {
+                        case 'a': c = 0x07; break;
+                        case 'b': c = '\b'; break;
+                        case 'd': c = 0x7f; break;
+                        case 'e': c = 0x1b; break;
+                        case 'f': c = '\f'; break;
+                        case 'n': c = '\n'; break;
+                        case 'r': c = '\r'; break;
+                        case 't': c = '\t'; break;
+                        case 'v': c = 0x0b; break;
+                        case '\\': c = '\\'; break;
+                        case '0': case '1': case '2': case '3':
+                        case '4': case '5': case '6': case '7':
+                            c = 0;
+                            for (int j = 0; j < 3; j++, i++) {
+                                if (i >= str.length()) {
+                                    break;
+                                }
+                                int k = Character.digit(str.charAt(i), 8);
+                                if (k < 0) {
+                                    break;
+                                }
+                                c = (char)(c * 8 + k);
+                            }
+                            c &= 0xFF;
+                            break;
+                        case 'x':
+                            i++;
+                            c = 0;
+                            for (int j = 0; j < 2; j++, i++) {
+                                if (i >= str.length()) {
+                                    break;
+                                }
+                                int k = Character.digit(str.charAt(i), 16);
+                                if (k < 0) {
+                                    break;
+                                }
+                                c = (char)(c * 16 + k);
+                            }
+                            c &= 0xFF;
+                            break;
+                        case 'u':
+                            i++;
+                            c = 0;
+                            for (int j = 0; j < 4; j++, i++) {
+                                if (i >= str.length()) {
+                                    break;
+                                }
+                                int k = Character.digit(str.charAt(i), 16);
+                                if (k < 0) {
+                                    break;
+                                }
+                                c = (char)(c * 16 + k);
+                            }
+                            break;
+                    }
+                }
+                keySeq += c;
+            } else {
+                keySeq += c;
+            }
+        }
+        return keySeq;
+    }
+
+    private static char getKeyFromName(String org) {
+        String name = org.toLowerCase();
+        switch (name) {
+            case "del":
+            case "rubout":
+                return 0x7f;
+            case "esc":
+            case "escape":
+                return '\033';
+            case "lfd":
+            case "newline":
+                return '\n';
+            case "ret":
+            case "return":
+                return '\r';
+            case "spc":
+            case "space":
+                return ' ';
+            case "tab":
+                return '\t';
+            default:
+                return org.charAt(0);
+        }
     }
 
     public String getName() {
@@ -379,7 +527,6 @@ public class KeyMap {
     public static KeyMap emacsCtrlX() {
         Object[] map = new Object[KEYMAP_LENGTH];
         map[CTRL_G] = Operation.ABORT;
-        map[CTRL_R] = Operation.RE_READ_INIT_FILE;
         map[CTRL_U] = Operation.UNDO;
         map[CTRL_X] = Operation.EXCHANGE_POINT_AND_MARK;
         map['('] = Operation.START_KBD_MACRO;

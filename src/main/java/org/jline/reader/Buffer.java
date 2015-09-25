@@ -21,9 +21,6 @@ import static org.jline.utils.Preconditions.checkNotNull;
  */
 public class Buffer
 {
-    // TODO: move overTyping outside the buffer
-    private boolean overTyping = false;
-
     private int cursor = 0;
     private int cursorCol = -1;
     private int length = 0;
@@ -33,14 +30,6 @@ public class Buffer
         Buffer that = new Buffer();
         that.setBuffer(this);
         return that;
-    }
-
-    public boolean overTyping() {
-        return overTyping;
-    }
-
-    public void overTyping(boolean b) {
-        overTyping = b;
     }
 
     public int cursor() {
@@ -92,24 +81,39 @@ public class Buffer
 
     /**
      * Write the specific character into the buffer, setting the cursor position
-     * ahead one. The text may overwrite or insert based on the current setting
-     * of {@link #overTyping}.
+     * ahead one.
      *
      * @param c the character to insert
      */
     public void write(int c) {
-        write(new int[] { c });
+        write(new int[] { c }, false);
+    }
+
+    /**
+     * Write the specific character into the buffer, setting the cursor position
+     * ahead one. The text may overwrite or insert based on the current setting
+     * of {@code overTyping}.
+     *
+     * @param c the character to insert
+     */
+    public void write(int c, boolean overTyping) {
+        write(new int[] { c }, overTyping);
     }
 
     /**
      * Insert the specified chars into the buffer, setting the cursor to the end of the insertion point.
      */
-    public void write(final CharSequence str) {
+    public void write(CharSequence str) {
         checkNotNull(str);
-        write(str.codePoints().toArray());
+        write(str.codePoints().toArray(), false);
     }
 
-    private void write(int[] ucps) {
+    public void write(CharSequence str, boolean overTyping) {
+        checkNotNull(str);
+        write(str.codePoints().toArray(), overTyping);
+    }
+
+    private void write(int[] ucps, boolean overTyping) {
         if (overTyping) {
             int len = cursor + ucps.length;
             int sz = buffer.length;
@@ -308,7 +312,6 @@ public class Buffer
     }
 
     public void setBuffer(Buffer that) {
-        this.overTyping = that.overTyping;
         this.length = that.length;
         this.buffer = that.buffer.clone();
         this.cursor = that.cursor;
