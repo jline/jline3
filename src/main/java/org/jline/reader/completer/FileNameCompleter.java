@@ -53,7 +53,7 @@ public class FileNameCompleter
         checkNotNull(line);
         checkNotNull(candidates);
 
-        String buffer = line.word();
+        String buffer = line.word().toString();
         if (buffer == null) {
             buffer = "";
         }

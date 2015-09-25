@@ -15,7 +15,7 @@ public interface ParsedLine {
     /**
      * The current word being completed
      */
-    String word();
+    CharSequence word();
 
     /**
      * The cursor position within the current word
@@ -30,20 +30,16 @@ public interface ParsedLine {
     /**
      * The list of words
      */
-    List<String> words();
+    List<? extends CharSequence> words();
 
     /**
      * The unparsed line
      */
-    String line();
+    CharSequence line();
 
     /**
      * The cursor position within the line
      */
     int cursor();
-
-    boolean complete();
-
-    String missingPrompt();
 
 }

@@ -89,13 +89,11 @@ public class DefaultParser implements Parser {
             wordCursor = words.get(words.size() - 1).length();
         }
 
-        return new ArgumentList(
-                line, words, wordIndex, wordCursor, cursor,
-                quoteStart < 0,
-                quoteStart < 0
-                        ? null
-                        : line.charAt(quoteStart) == '\''
-                                ? "quote" : "dquote");
+//        if (quoteStart >= 0) {
+//            throw new EOFError(-1, -1, "Missing closing quote", line.charAt(quoteStart) == '\''
+//                    ? "quote" : "dquote");
+//        }
+        return new ArgumentList(line, words, wordIndex, wordCursor, cursor);
     }
 
     /**
@@ -182,7 +180,7 @@ public class DefaultParser implements Parser {
     {
         private final String line;
 
-        private final List<String> words;
+        private final List<CharSequence> words;
 
         private final int wordIndex;
 
@@ -190,25 +188,19 @@ public class DefaultParser implements Parser {
 
         private final int cursor;
 
-        private final boolean complete;
-
-        private final String missingPrompt;
-
-        public ArgumentList(final String line, final List<String> words, final int wordIndex, final int wordCursor, final int cursor, boolean complete, String missingPrompt) {
+        public ArgumentList(final String line, final List<String> words, final int wordIndex, final int wordCursor, final int cursor) {
             this.line = line;
             this.words = Collections.unmodifiableList(checkNotNull(words));
             this.wordIndex = wordIndex;
             this.wordCursor = wordCursor;
             this.cursor = cursor;
-            this.complete = complete;
-            this.missingPrompt = missingPrompt;
         }
 
         public int wordIndex() {
             return this.wordIndex;
         }
 
-        public String word() {
+        public CharSequence word() {
             if ((wordIndex < 0) || (wordIndex >= words.size())) {
                 return null;
             }
@@ -219,7 +211,7 @@ public class DefaultParser implements Parser {
             return this.wordCursor;
         }
 
-        public List<String> words() {
+        public List<CharSequence> words() {
             return this.words;
         }
 
@@ -231,15 +223,6 @@ public class DefaultParser implements Parser {
             return line;
         }
 
-        @Override
-        public boolean complete() {
-            return complete;
-        }
-
-        @Override
-        public String missingPrompt() {
-            return missingPrompt;
-        }
     }
 
 }

@@ -21,6 +21,7 @@ import static org.jline.utils.Preconditions.checkNotNull;
  */
 public class Buffer
 {
+    // TODO: move overTyping outside the buffer
     private boolean overTyping = false;
 
     private int cursor = 0;

@@ -15,14 +15,18 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Map;
 
 import org.jline.Completer;
 import org.jline.Console;
+import org.jline.ConsoleReader;
 import org.jline.JLine;
 import org.jline.JLine.ConsoleBuilder;
+import org.jline.reader.ConsoleReaderImpl;
 import org.jline.reader.EndOfFileException;
+import org.jline.reader.Macro;
+import org.jline.reader.Operation;
+import org.jline.reader.ParsedLine;
 import org.jline.reader.UserInterruptException;
 import org.jline.reader.completer.ArgumentCompleter;
 import org.jline.reader.completer.FileNameCompleter;
@@ -155,11 +159,12 @@ public class Example
             builder.completers(completers);
 
             Console console = builder.build();
+            ConsoleReader reader = console.newConsoleReader();
 
             while (true) {
                 String line = null;
                 try {
-                    line = console.readLine(prompt, rightPrompt, null, null);
+                    line = reader.readLine(prompt, rightPrompt, null, null);
                 } catch (UserInterruptException e) {
                     // Ignore
                 } catch (EndOfFileException e) {
@@ -186,27 +191,72 @@ public class Example
                 if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) {
                     break;
                 }
-                Matcher matcher = Pattern.compile("set\\s+(\\S+)\\s+(\\S+)").matcher(line);
-                if (matcher.matches()) {
-                    String opt = matcher.group(1);
-                    String val = matcher.group(2);
-                    builder.variable(opt, val);
-                }
-                matcher = Pattern.compile("tput\\s+(\\S+)").matcher(line);
-                if (matcher.matches()) {
-                    String val = matcher.group(1);
-                    Capability vcap = Capability.byName(val);
-                    if (vcap != null) {
-                        console.puts(vcap);
-                    } else {
-                        console.writer().println("Unknown capability");
+                ParsedLine pl = ((ConsoleReaderImpl) reader).getParser().parse(line, 0);
+                if ("set".equals(pl.word())) {
+                    if (pl.words().size() == 3) {
+                        builder.variable(pl.words().get(1).toString(), pl.words().get(2).toString());
                     }
                 }
-                if (line.equalsIgnoreCase("cls")) {
+                else if ("tput".equals(pl.word())) {
+                    if (pl.words().size() == 2) {
+                        Capability vcap = Capability.byName(pl.words().get(1).toString());
+                        if (vcap != null) {
+                            console.puts(vcap);
+                        } else {
+                            console.writer().println("Unknown capability");
+                        }
+                    }
+                }
+                else if ("bindkey".equals(pl.word())) {
+                    if (pl.words().size() == 1) {
+                        StringBuilder sb = new StringBuilder();
+                        Map<String, Object> bound = ((ConsoleReaderImpl) reader).getKeys().getBoundKeys();
+                        for (Map.Entry<String, Object> entry : bound.entrySet()) {
+                            if (entry.getValue() != Operation.SELF_INSERT) {
+                                sb.append("\"");
+                                entry.getKey().chars().forEachOrdered(c -> {
+                                    if (c < 32) {
+                                        sb.append('^');
+                                        sb.append((char) (c + 'A' - 1));
+                                    } else {
+                                        sb.append((char) c);
+                                    }
+                                });
+                                sb.append("\" ");
+                                if (entry.getValue() instanceof Macro) {
+                                    sb.append("\"");
+                                    ((Macro) entry.getValue()).getSequence().chars().forEachOrdered(c -> {
+                                        if (c < 32) {
+                                            sb.append('^');
+                                            sb.append((char) (c + 'A' - 1));
+                                        } else {
+                                            sb.append((char) c);
+                                        }
+                                    });
+                                    sb.append("\"");
+                                } else if (entry.getValue() instanceof Operation) {
+                                    sb.append(((Operation) entry.getValue()).name().toLowerCase().replace('_', '-'));
+                                } else {
+                                    sb.append(entry.getValue().toString());
+                                }
+                                sb.append("\n");
+                            }
+                        }
+                        console.writer().print(sb.toString());
+                        console.flush();
+                    } else if (pl.words().size() == 3) {
+                        ((ConsoleReaderImpl) reader).getConsoleKeys().bindKey(
+                                ((ConsoleReaderImpl) reader).getKeys(),
+                                pl.words().get(1).toString(),
+                                pl.words().get(2).toString()
+                        );
+                    }
+                }
+                else if ("cls".equals(pl.word())) {
                     console.puts(Capability.clear_screen);
                     console.flush();
                 }
-                if (line.equalsIgnoreCase("sleep")) {
+                else if ("sleep".equals(pl.word())) {
                     Thread.sleep(3000);
                 }
             }

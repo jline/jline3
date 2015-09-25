@@ -103,8 +103,8 @@ public class ArgumentCompleter
         // ensure that all the previous completers are successful before allowing this completer to pass (only if strict).
         for (int i = 0; isStrict() && (i < line.wordIndex()); i++) {
             Completer sub = completers.get(i >= completers.size() ? (completers.size() - 1) : i);
-            List<String> args = line.words();
-            String arg = (args == null || i >= args.size()) ? "" : args.get(i);
+            List<? extends CharSequence> args = line.words();
+            String arg = (args == null || i >= args.size()) ? "" : args.get(i).toString();
 
             List<Candidate> subCandidates = new LinkedList<>();
 
@@ -181,7 +181,7 @@ public class ArgumentCompleter
         }
 
         @Override
-        public List<String> words() {
+        public List<CharSequence> words() {
             return Collections.singletonList(word);
         }
 
@@ -193,16 +193,6 @@ public class ArgumentCompleter
         @Override
         public int cursor() {
             return cursor;
-        }
-
-        @Override
-        public boolean complete() {
-            return true;
-        }
-
-        @Override
-        public String missingPrompt() {
-            return null;
         }
     }
 }

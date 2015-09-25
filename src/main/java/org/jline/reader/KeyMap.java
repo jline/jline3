@@ -207,7 +207,8 @@ public class KeyMap {
         }
     }
 
-    private static void bindArrowKeys(KeyMap map) {
+    // TODO: use terminal capabilities
+    public static void bindArrowKeys(KeyMap map) {
 
         // MS-DOS
         bind(map, "\033[0A", Operation.UP_LINE_OR_HISTORY);

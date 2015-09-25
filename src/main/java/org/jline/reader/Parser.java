@@ -10,6 +10,6 @@ package org.jline.reader;
 
 public interface Parser {
 
-    ParsedLine parse(String line, int cursor);
+    ParsedLine parse(String line, int cursor) throws SyntaxError;
 
 }

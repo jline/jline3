@@ -80,7 +80,9 @@ public final class Signals {
     public static void unregister(String name, Object previous) {
         try {
             // We should make sure the current signal is the one we registered
-            doRegister(name, previous);
+            if (previous != null) {
+                doRegister(name, previous);
+            }
         } catch (Exception e) {
             // Ignore
         }

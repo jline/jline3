@@ -175,7 +175,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     protected Character mask;
 
     protected Buffer historyBuffer = null;
-    protected String searchBuffer;
+    protected CharSequence searchBuffer;
     protected StringBuffer searchTerm = null;
     protected int searchIndex = -1;
 
@@ -227,6 +227,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     protected int count;
     protected int repeatCount;
     protected boolean isArgDigit;
+
+    protected ParsedLine parsedLine;
 
     public ConsoleReaderImpl(Console console) throws IOException {
         this(console, null, null);
@@ -391,6 +393,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return parser;
     }
 
+    public void setParser(Parser parser) {
+        this.parser = parser;
+    }
 
     //
     // Line Reading
@@ -1787,6 +1792,10 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return o;
     }
 
+    public ParsedLine getParsedLine() {
+        return parsedLine;
+    }
+
     public String getLastBinding() {
         return opBuffer.toString();
     }
@@ -2046,12 +2055,12 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     protected boolean historySearchForward() {
         if (historyBuffer == null || !buf.toString().equals(history.current())) {
             historyBuffer = buf.copy();
-            searchBuffer = parser.parse(buf.toString(), 0).word();
+            searchBuffer = getFirstWord();
         }
         int index = history.index() + 1;
 
         if (index < history.size()) {
-            int searchIndex = searchForwards(searchBuffer, index, true);
+            int searchIndex = searchForwards(searchBuffer.toString(), index, true);
             if (searchIndex == -1) {
                 history.moveToEnd();
                 if (!buf.toString().equals(historyBuffer.toString())) {
@@ -2082,12 +2091,21 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return true;
     }
 
+    private CharSequence getFirstWord() {
+        String s = buf.toString();
+        int i = 0;
+        while (i < s.length() && !Character.isWhitespace(s.charAt(i))) {
+            i++;
+        }
+        return s.substring(0, i);
+    }
+
     protected boolean historySearchBackward() {
         if (historyBuffer == null || !buf.toString().equals(history.current())) {
             historyBuffer = buf.copy();
-            searchBuffer = parser.parse(buf.toString(), 0).word();
+            searchBuffer = getFirstWord();
         }
-        int searchIndex = searchBackwards(searchBuffer, history.index(), true);
+        int searchIndex = searchBackwards(searchBuffer.toString(), history.index(), true);
 
         if (searchIndex == -1) {
             return false;
@@ -2226,30 +2244,33 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected boolean acceptLine() {
         String str = buf.toString();
-        ParsedLine line = parser.parse(str, buf.cursor());
-        if (line.complete()) {
-            state = State.DONE;
-            if (!isSet(DISABLE_EVENT_EXPANSION)) {
-                try {
-                    String exp = expandEvents(str);
-                    if (!exp.equals(str)) {
-                        buf.clear();
-                        buf.write(exp);
-                        if (isSet("history-verify")) {
-                            state = State.NORMAL;
-                        }
-                    }
-                } catch (IllegalArgumentException e) {
-                    Log.error("Could not expand event", e);
-                    beep();
-                    buf.clear();
-                    println();
-                    rawPrintln(e.getMessage());
-                    flush();
-                }
-            }
-        } else {
+        try {
+            parsedLine = parser.parse(str, buf.cursor());
+        } catch (EOFError e) {
             buf.write("\n");
+            return true;
+        } catch (SyntaxError e) {
+            // TODO: what ?
+        }
+        state = State.DONE;
+        if (!isSet(DISABLE_EVENT_EXPANSION)) {
+            try {
+                String exp = expandEvents(str);
+                if (!exp.equals(str)) {
+                    buf.clear();
+                    buf.write(exp);
+                    if (isSet("history-verify")) {
+                        state = State.NORMAL;
+                    }
+                }
+            } catch (IllegalArgumentException e) {
+                Log.error("Could not expand event", e);
+                beep();
+                buf.clear();
+                println();
+                rawPrintln(e.getMessage());
+                flush();
+            }
         }
         return true;
     }
@@ -2965,8 +2986,14 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 if (ch == '\n') {
                     String prompt;
                     if (computePrompts) {
-                        ParsedLine pl = parser.parse(sb.toString(), 0);
-                        prompt = (pl.complete() ? "" : pl.missingPrompt()) + SECONDARY_PROMPT;
+                        prompt = SECONDARY_PROMPT;
+                        try {
+                            parser.parse(sb.toString(), sb.length());
+                        } catch (EOFError e) {
+                            prompt = e.getMissing() + SECONDARY_PROMPT;
+                        } catch (SyntaxError e) {
+                            // Ignore
+                        }
                     } else {
                         prompt = prompts.get(line++);
                     }
@@ -3124,6 +3151,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         List<Candidate> candidates = new ArrayList<>();
         ParsedLine line = parser.parse(buf.toString(), buf.cursor());
+        // TODO: handle exceptions
         for (Completer completer : completers) {
             completer.complete(line, candidates);
         }
@@ -3139,8 +3167,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                     .add(cand);
         }
 
-        String word = line.word();
-        String w = line.word().substring(0, line.wordCursor());
+        String word = line.word().toString();
+        String w = word.substring(0, line.wordCursor());
 
 
         boolean doList;
@@ -3163,7 +3191,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                     && (matching.size() == 1
                         || isSet("recognize-exact"))) {
                 exact = true;
-                completion = line.word();
+                completion = line.word().toString();
                 possible = Collections.emptyList();
                 doList = false;
             } else {
