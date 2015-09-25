@@ -17,6 +17,7 @@
 package org.jline.utils;
 
 import java.util.ArrayList;
+import java.util.Formatter;
 import java.util.concurrent.Callable;
 
 /**
@@ -551,7 +552,7 @@ public class Ansi {
 
     public Ansi format(String pattern, Object... args) {
         flushAttributes();
-        builder.append(String.format(pattern, args));
+        new Formatter(builder).format(pattern, args);
         return this;
     }
 
