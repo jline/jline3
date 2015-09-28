@@ -77,12 +77,20 @@ public class AnsiWriter extends FilterWriter {
     }
 
     public void write(String str, int off, int len) throws IOException {
+        write((CharSequence) str, off, len);
+    }
+
+    public void write(CharSequence str, int off, int len) throws IOException {
         for (int i = 0; i < len; i++) {
             write(str.charAt(off + i));
         }
     }
 
     public void write(String str) throws IOException {
+        write((CharSequence) str, 0, str.length());
+    }
+
+    public void write(CharSequence str) throws IOException {
         write(str, 0, str.length());
     }
 

@@ -26,8 +26,17 @@ import java.util.List;
 
 public class AnsiHelper {
 
-    public static String strip(String text) {
+    public static String strip(CharSequence text) {
         try {
+            boolean hasEsc = false;
+            for (int i = 0; i < text.length(); i++) {
+                if ((hasEsc = text.charAt(i) == '\u001b')) {
+                    break;
+                }
+            }
+            if (!hasEsc) {
+                return text.toString();
+            }
             StringWriter sw = new StringWriter();
             AnsiWriter aw = new AnsiWriter(sw);
             aw.write(text);
