@@ -419,7 +419,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             // It will eventually be updated with WINCH signals
             size.copy(console.getSize());
 
-            display = new Display(console);
+            display = new Display(console, false);
             display.setColumns(size.getColumns());
             display.setTabWidth(TAB_WIDTH);
 

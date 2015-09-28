@@ -8,11 +8,14 @@
  */
 package org.jline.reader;
 
+import java.io.IOException;
+import java.io.StringWriter;
 import java.util.Collections;
 import java.util.List;
 
 import org.jline.Console;
 import org.jline.utils.AnsiHelper;
+import org.jline.utils.Curses;
 import org.jline.utils.DiffHelper;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.WCWidth;
@@ -25,14 +28,17 @@ import org.jline.utils.WCWidth;
 public class Display {
 
     protected final Console console;
+    protected final boolean fullScreen;
     protected List<String> oldLines = Collections.emptyList();
     protected int cursorPos;
     protected boolean cursorOk;
     protected int columns;
     protected int tabWidth = ConsoleReaderImpl.TAB_WIDTH;
+    protected boolean reset;
 
-    public Display(Console console) {
+    public Display(Console console, boolean fullscreen) {
         this.console = console;
+        this.fullScreen = fullscreen;
     }
 
     public void setColumns(int columns) {
@@ -49,11 +55,28 @@ public class Display {
     }
 
     /**
+     * Clears the whole screen.
+     * Use this method only when using full-screen / application mode.
+     */
+    public void clear() {
+        if (fullScreen) {
+            reset = true;
+        }
+    }
+
+    /**
      * Update the display according to the new lines
      *
      * TODO: use scrolling if appropriate
      */
     public void update(List<String> newLines, int targetCursorPos) {
+        if (reset) {
+            console.puts(Capability.clear_screen);
+            oldLines.clear();
+            cursorPos = 0;
+            cursorOk = true;
+            reset = false;
+        }
         int lineIndex = 0;
         int currentPos = 0;
         while (lineIndex < Math.min(oldLines.size(), newLines.size())) {
@@ -66,7 +89,7 @@ public class Display {
             int curCol = currentPos;
             for (int i = 0; i < diffs.size(); i++) {
                 DiffHelper.Diff diff = diffs.get(i);
-                int width = wcwidth(AnsiHelper.strip(diff.text), currentPos);
+                int width = wcwidth(diff.text, currentPos % columns);
                 switch (diff.operation) {
                     case EQUAL:
                         if (!ident) {
@@ -104,7 +127,7 @@ public class Display {
                             }
                         } else if (i <= diffs.size() - 2
                                 && diffs.get(i + 1).operation == DiffHelper.Operation.DELETE
-                                && width == wcwidth(AnsiHelper.strip(diffs.get(i + 1).text), currentPos)) {
+                                && width == wcwidth(diffs.get(i + 1).text, currentPos % columns)) {
                             moveVisualCursorTo(currentPos);
                             rawPrint(diff.text);
                             cursorPos += width;
@@ -129,7 +152,7 @@ public class Display {
                         }
                         if (i <= diffs.size() - 2
                                 && diffs.get(i + 1).operation == DiffHelper.Operation.EQUAL) {
-                            if (currentPos + wcwidth(diffs.get(i + 1).text, cursorPos) < columns) {
+                            if (currentPos + wcwidth(diffs.get(i + 1).text, currentPos % columns) < columns) {
                                 moveVisualCursorTo(currentPos);
                                 boolean hasDch = console.getStringCapability(Capability.parm_dch) != null;
                                 boolean hasDch1 = console.getStringCapability(Capability.delete_character) != null;
@@ -144,8 +167,8 @@ public class Display {
                                 }
                             }
                         }
-                        int oldLen = wcwidth(oldLine, 0);
-                        int newLen = wcwidth(newLine, 0);
+                        int oldLen = wcwidth(oldLine);
+                        int newLen = wcwidth(newLine);
                         int nb = Math.max(oldLen, newLen) - currentPos;
                         moveVisualCursorTo(currentPos);
                         if (!console.puts(Capability.clr_eol)) {
@@ -162,10 +185,10 @@ public class Display {
             if (!cursorOk
                     && console.getBooleanCapability(Capability.auto_right_margin)
                     && console.getBooleanCapability(Capability.eat_newline_glitch)
-                    && lineIndex == Math.max(oldLines.size(), newLines.size()) - 1
-                    && cursorPos > curCol && cursorPos % columns == 0) {
-                rawPrint(' '); // move cursor to next line by printing dummy space
+                    && cursorPos == curCol + columns) {
                 console.puts(Capability.carriage_return); // CR / not newline.
+                cursorPos = curCol;
+                cursorOk = true;
             }
             if (lineIndex < Math.max(oldLines.size(), newLines.size())) {
                 currentPos = curCol + columns;
@@ -179,13 +202,23 @@ public class Display {
                 if (console.getStringCapability(Capability.clr_eol) != null) {
                     console.puts(Capability.clr_eol);
                 } else {
-                    int nb = wcwidth(AnsiHelper.strip(newLines.get(lineIndex)), cursorPos);
+                    int nb = wcwidth(newLines.get(lineIndex));
                     rawPrint(' ', nb);
                     cursorPos += nb;
+                    cursorOk = false;
                 }
             } else {
                 rawPrint(newLines.get(lineIndex));
-                cursorPos += wcwidth(AnsiHelper.strip(newLines.get(lineIndex)), cursorPos);
+                cursorPos += wcwidth(newLines.get(lineIndex));
+                cursorOk = false;
+            }
+            if (!cursorOk
+                    && console.getBooleanCapability(Capability.auto_right_margin)
+                    && console.getBooleanCapability(Capability.eat_newline_glitch)
+                    && cursorPos == currentPos + columns) {
+                console.puts(Capability.carriage_return); // CR / not newline.
+                cursorPos = currentPos;
+                cursorOk = true;
             }
             lineIndex++;
             if (lineIndex < Math.max(oldLines.size(), newLines.size())) {
@@ -198,8 +231,17 @@ public class Display {
         oldLines = newLines;
     }
 
-    public int wcwidth(String str) {
-        return wcwidth(AnsiHelper.strip(str), 0);
+    private boolean cursorDownIsNewLine() {
+        try {
+            StringWriter sw = new StringWriter();
+            String d = console.getStringCapability(Capability.cursor_down);
+            if (d != null) {
+                Curses.tputs(sw, d);
+                return sw.toString().equals("\n");
+            }
+        } catch (IOException e) {
+        }
+        return false;
     }
 
     protected int moveVisualCursorTo(int i1) {
@@ -221,11 +263,23 @@ public class Display {
                 }
             }
         } else if (l0 < l1) {
-            console.puts(Capability.carriage_return);
-            rawPrint('\n', l1 - l0);
-            c0 = 0;
+            if (fullScreen) {
+                if (!console.puts(Capability.parm_down_cursor, l1 - l0)) {
+                    for (int i = l0; i < l1; i++) {
+                        console.puts(Capability.cursor_down);
+                    }
+                    if (cursorDownIsNewLine()) {
+                        c0 = 0;
+                    }
+                }
+            } else {
+                rawPrint('\n', l1 - l0);
+                c0 = 0;
+            }
         }
-        if (c0 == c1 - 1) {
+        if (c0 != 0 && c1 == 0) {
+            console.puts(Capability.carriage_return);
+        } else if (c0 == c1 - 1) {
             console.puts(Capability.cursor_right);
         } else if (c0 == c1 + 1) {
             console.puts(Capability.cursor_left);
@@ -261,8 +315,13 @@ public class Display {
         console.writer().write(str);
     }
 
+    public int wcwidth(String str) {
+        return wcwidth(str, 0);
+    }
+
     int wcwidth(CharSequence str, int pos) {
-        return wcwidth(str, 0, str.length(), pos);
+        String tr = AnsiHelper.strip(str);
+        return wcwidth(tr, 0, tr.length(), pos);
     }
 
     int wcwidth(CharSequence str, int start, int end, int pos) {
