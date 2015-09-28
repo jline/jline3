@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
-import java.util.Stack;
 import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.function.IntBinaryOperator;
@@ -57,7 +56,6 @@ import org.jline.utils.AnsiHelper;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.Levenshtein;
 import org.jline.utils.Log;
-import org.jline.utils.NonBlockingReader;
 import org.jline.utils.Signals;
 import org.jline.utils.WCWidth;
 
@@ -155,8 +153,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
 
     // Reading buffers
-    protected final StringBuilder opBuffer = new StringBuilder();
-    protected final Stack<Integer> pushBackChar = new Stack<>();
+    protected final BindingReader bindingReader;
 
 
     /**
@@ -174,8 +171,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     protected ViMoveMode viMoveMode = ViMoveMode.NORMAL;
 
     protected KillRing killRing = new KillRing();
-
-    protected boolean recording;
 
     protected String macro = "";
 
@@ -231,6 +226,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             bindConsoleChars(keyMaps.get(KeyMap.VI_INSERT), attr);
         }
         dispatcher = createDispatcher();
+        bindingReader = new BindingReader(console);
     }
 
     /**
@@ -413,8 +409,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
             state = State.NORMAL;
 
-            pushBackChar.clear();
-
             // Cache console size for the duration of the call to readLine()
             // It will eventually be updated with WINCH signals
             size.copy(console.getSize());
@@ -518,7 +512,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         } else if (binding instanceof Macro) {
             String macro = ((Macro) binding).getSequence();
             w = r -> {
-                new StringBuilder(macro).reverse().codePoints().forEachOrdered(pushBackChar::push);
+                bindingReader.runMacro(macro);
                 return true;
             };
         } else if (binding instanceof Operation) {
@@ -1120,7 +1114,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      */
     @SuppressWarnings("fallthrough")
     protected boolean viSearch() {
-        int searchChar = opBuffer.codePointAt(0);
+        int searchChar = getLastBinding().codePointAt(0);
         boolean isForward = (searchChar == '/');
 
         /*
@@ -1278,7 +1272,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         /*
          * Complete?
          */
-        pushBackChar.push(ch);
+        bindingReader.runMacro(new String(Character.toChars(ch)));
 
         return true;
     }
@@ -1518,42 +1512,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * @return the character, or -1 if an EOF is received.
      */
     public int readCharacter() {
-        try {
-            int c = NonBlockingReader.READ_EXPIRED;
-            int s = 0;
-            while (c == NonBlockingReader.READ_EXPIRED) {
-                c = console.reader().read(100l);
-                if (c >= 0 && Character.isHighSurrogate((char) c)) {
-                    s = c;
-                    c = NonBlockingReader.READ_EXPIRED;
-                }
-            }
-            return s != 0 ? Character.toCodePoint((char) s, (char) c) : c;
-        } catch (IOException e) {
-            throw new IOError(e);
-        }
+        return bindingReader.readCharacter();
     }
 
     public int peekCharacter(long timeout) {
-        try {
-            return console.reader().peek(timeout);
-        } catch (IOException e) {
-            throw new IOError(e);
-        }
-    }
-
-    public int readCharacter(final int... allowed) {
-        // if we restrict to a limited set and the current character is not in the set, then try again.
-        int c;
-
-        Arrays.sort(allowed); // always need to sort before binarySearch
-
-        //noinspection StatementWithEmptyBody
-        while (Arrays.binarySearch(allowed, c = readCharacter()) < 0) {
-            // nothing
-        }
-
-        return c;
+        return bindingReader.peekCharacter(timeout);
     }
 
     /**
@@ -1572,58 +1535,22 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     public Object readBinding(KeyMap keys, KeyMap local) {
-        Object o = null;
-        int[] remaining = new int[1];
-        opBuffer.setLength(0);
-        do {
-            int c = pushBackChar.isEmpty() ? readCharacter() : pushBackChar.pop();
-            if (c == -1) {
-                // TODO: find another way
-                return null;
+        Object o = bindingReader.readBinding(keys, local);
+        /*
+         * The kill ring keeps record of whether or not the
+         * previous command was a yank or a kill. We reset
+         * that state here if needed.
+         */
+        if (o != null) {
+            if (o != Operation.YANK_POP && o != Operation.YANK) {
+                killRing.resetLastYank();
             }
-            opBuffer.appendCodePoint(c);
-
-            if (recording) {
-                macro += new String(Character.toChars(c));
+            if (o != Operation.KILL_LINE && o != Operation.KILL_WHOLE_LINE
+                    && o != Operation.BACKWARD_KILL_WORD && o != Operation.KILL_WORD
+                    && o != Operation.UNIX_LINE_DISCARD && o != Operation.UNIX_WORD_RUBOUT) {
+                killRing.resetLastKill();
             }
-
-            if (local != null) {
-                o = local.getBound(opBuffer, remaining);
-            }
-            if (o == null && (local == null || remaining[0] >= 0)) {
-                o = keys.getBound(opBuffer, remaining);
-            }
-            if (remaining[0] > 0) {
-                int[] cps = opBuffer.codePoints().toArray();
-                if (o != null) {
-                    opBuffer.setLength(0);
-                    opBuffer.append(new String(cps, 0, cps.length - remaining[0]));
-                    for (int i = cps.length - 1; i >= cps.length - remaining[0]; i--) {
-                        pushBackChar.push(cps[i]);
-                    }
-                } else {
-                    opBuffer.setLength(0);
-                }
-            }
-
-            /*
-             * The kill ring keeps record of whether or not the
-             * previous command was a yank or a kill. We reset
-             * that state here if needed.
-             */
-            if (!recording && o != null) {
-                if (o != Operation.YANK_POP && o != Operation.YANK) {
-                    killRing.resetLastYank();
-                }
-                if (o != Operation.KILL_LINE && o != Operation.KILL_WHOLE_LINE
-                        && o != Operation.BACKWARD_KILL_WORD && o != Operation.KILL_WORD
-                        && o != Operation.UNIX_LINE_DISCARD && o != Operation.UNIX_WORD_RUBOUT) {
-                    killRing.resetLastKill();
-                }
-            }
-
-        } while (o == null);
-
+        }
         return o;
     }
 
@@ -1632,7 +1559,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     public String getLastBinding() {
-        return opBuffer.toString();
+        return bindingReader.getLastBinding();
     }
 
     public String getSearchTerm() {
@@ -1678,7 +1605,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected boolean viArgDigit() {
-        repeatCount = (repeatCount * 10) + opBuffer.charAt(0) - '0';
+        repeatCount = (repeatCount * 10) + getLastBinding().charAt(0) - '0';
         isArgDigit = true;
         return true;
     }
@@ -1854,7 +1781,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                             break;
 
                         case SELF_INSERT:
-                            searchTerm.append(opBuffer);
+                            searchTerm.append(getLastBinding());
                             if (backward) {
                                 searchIndex = searchBackwards(searchTerm.toString(), history.index(), false);
                             } else {
@@ -1901,8 +1828,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     private void pushBackBinding(boolean skip) {
-        opBuffer.reverse().codePoints().forEachOrdered(pushBackChar::push);
-        skipRedisplay = skip;
+        String s = getLastBinding();
+        if (s != null) {
+            bindingReader.runMacro(s);
+            skipRedisplay = skip;
+        }
     }
 
     protected boolean historySearchForward() {
@@ -2129,13 +2059,13 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected boolean selfInsert() {
-        putString(opBuffer);
+        putString(getLastBinding());
         return true;
     }
 
     protected boolean selfInsertUnmeta() {
-        if (opBuffer.charAt(0) == KeyMap.ESCAPE) {
-            String s = opBuffer.substring(1);
+        if (getLastBinding().charAt(0) == KeyMap.ESCAPE) {
+            String s = getLastBinding().substring(1);
             if ("\r".equals(s)) {
                 s = "\n";
             }
@@ -2261,11 +2191,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected boolean viCharSearch() {
-        int c = opBuffer.codePointAt(0);
+        int c = getLastBinding().codePointAt(0);
         int searchChar = (c != ';' && c != ',')
-                ? (pushBackChar.isEmpty()
                 ? readCharacter()
-                : pushBackChar.pop())
                 : 0;
 
         return doViCharSearch(count, c, searchChar);
@@ -2288,19 +2216,21 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected boolean callLastKbdMacro() {
-        new StringBuilder(macro).reverse().codePoints().forEachOrdered(pushBackChar::push);
+        bindingReader.runMacro(macro);
         return true;
     }
 
     protected boolean endKbdMacro() {
-        recording = false;
-        macro = macro.substring(0, macro.length() - opBuffer.length());
+        String s = bindingReader.stopRecording();
+        if (s == null) {
+            return false;
+        }
+        macro = s;
         return true;
     }
 
     protected boolean startKbdMacro() {
-        recording = true;
-        return true;
+        return bindingReader.startRecording();
     }
 
     protected boolean tabInsert() {
@@ -2314,12 +2244,12 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected boolean beginningOfLine() {
-        buf.cursor(0);
+        while (buf.prevChar() != '\n' && buf.move(-1) == -1);
         return true;
     }
 
     protected boolean endOfLine() {
-        buf.cursor(buf.length());
+        while (buf.currChar() != '\n' && buf.move(1) == 1);
         return true;
     }
 
@@ -2376,7 +2306,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * followed by the character to change to).
      */
     protected boolean viChangeChar() {
-        int c = pushBackChar.isEmpty() ? readCharacter() : pushBackChar.pop();
+        int c = readCharacter();
         // EOF, ESC, or CTRL-C aborts.
         if (c < 0 || c == '\033' || c == '\003') {
             return true;
@@ -2518,13 +2448,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected boolean doLowercaseVersion() {
-        int old = opBuffer.codePointBefore(opBuffer.length());
-        opBuffer.setLength(opBuffer.length() - Character.charCount(old));
-        opBuffer.appendCodePoint(Character.toLowerCase(old));
-        int[] codepoints = opBuffer.toString().codePoints().toArray();
-        for (int i = codepoints.length - 1; i >= 0; i--) {
-            pushBackChar.add(codepoints[i]);
-        }
+        bindingReader.runMacro(getLastBinding().toLowerCase());
         return true;
     }
 
@@ -2761,7 +2685,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     //
 
     protected boolean insertTab() {
-        return opBuffer.toString().equals("\t") && buf.toString().matches("(^|[\\s\\S]*\n)[\r\n\t ]*");
+        return getLastBinding().equals("\t") && buf.toString().matches("(^|[\\s\\S]*\n)[\r\n\t ]*");
     }
 
     protected boolean doExpandHist() {
@@ -2941,10 +2865,10 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 Object op = readBinding(getKeys());
                 if (op != null) {
                     String chars = getString("REMOVE_SUFFIX_CHARS", " \t\n;&|");
-                    if (op == Operation.SELF_INSERT && chars.indexOf(opBuffer.charAt(0)) >= 0
+                    if (op == Operation.SELF_INSERT && chars.indexOf(getLastBinding().charAt(0)) >= 0
                             || op == Operation.ACCEPT_LINE) {
                         buf.backspace(completion.suffix().length());
-                        if (opBuffer.charAt(0) != ' ') {
+                        if (getLastBinding().charAt(0) != ' ') {
                             buf.write(' ');
                         }
                     }
@@ -3250,15 +3174,15 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 Candidate completion = menuSupport.completion();
                 if (completion.suffix() != null) {
                     String chars = getString("REMOVE_SUFFIX_CHARS", " \t\n;&|");
-                    if (operation == Operation.SELF_INSERT && chars.indexOf(opBuffer.charAt(0)) >= 0
+                    if (operation == Operation.SELF_INSERT && chars.indexOf(getLastBinding().charAt(0)) >= 0
                             || operation == Operation.ACCEPT_LINE
                             || operation == Operation.BACKWARD_DELETE_CHAR) {
                         buf.backspace(completion.suffix().length());
                     }
                 }
                 if (completion.complete()
-                        && opBuffer.charAt(0) != ' '
-                        && (operation != Operation.SELF_INSERT || opBuffer.charAt(0) != ' ')) {
+                        && getLastBinding().charAt(0) != ' '
+                        && (operation != Operation.SELF_INSERT || getLastBinding().charAt(0) != ' ')) {
                     buf.write(' ');
                 }
                 if (operation != Operation.ACCEPT_LINE && operation != Operation.BACKWARD_DELETE_CHAR) {
