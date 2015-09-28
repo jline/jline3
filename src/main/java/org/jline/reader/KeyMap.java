@@ -37,13 +37,19 @@ public class KeyMap {
     private Object[] mapping = new Object[KEYMAP_LENGTH];
     private Object anotherKey = null;
     private String name;
+    private Object insert;
 
     public KeyMap(String name) {
-        this(name, new Object[KEYMAP_LENGTH]);
+        this(name, Operation.SELF_INSERT);
     }
 
-    protected KeyMap(String name, Object[] mapping) {
+    public KeyMap(String name, Object insert) {
+        this(name, insert, new Object[KEYMAP_LENGTH]);
+    }
+
+    protected KeyMap(String name, Object insert, Object[] mapping) {
         this.mapping = mapping;
+        this.insert = insert;
         this.name = name;
     }
 
@@ -80,6 +86,18 @@ public class KeyMap {
             seq += key;
         }
         return seq;
+    }
+
+    public static String del() {
+        return "\177";
+    }
+
+    public static String alt(char key) {
+        return "\033" + key;
+    }
+
+    public static String ctrl(char key) {
+        return "" + (char)(Character.toUpperCase( key ) & 0x1f);
     }
 
     private static String translateQuoted(String keySeq) {
@@ -255,7 +273,7 @@ public class KeyMap {
             char c = keySeq.charAt(0);
             if (c > 255) {
                 remaining[0] = keySeq.length() - (Character.isHighSurrogate(c) ? 2 : 1);
-                return Operation.SELF_INSERT;
+                return insert;
             } else {
                 if (mapping[c] instanceof KeyMap) {
                     CharSequence sub = keySeq.subSequence(1, keySeq.length());
@@ -279,7 +297,7 @@ public class KeyMap {
             for (int i = 0; i < keySeq.length(); i++) {
                 char c = keySeq.charAt(i);
                 if (c > 255) {
-                    return Operation.SELF_INSERT;
+                    return insert;
                 }
                 if (map.mapping[c] instanceof KeyMap) {
                     if (i == keySeq.length() - 1) {
@@ -321,7 +339,7 @@ public class KeyMap {
                 }
                 if (i < keySeq.length() - 1) {
                     if (!(map.mapping[c] instanceof KeyMap)) {
-                        KeyMap m = new KeyMap("anonymous");
+                        KeyMap m = new KeyMap("anonymous", map.insert);
                         if (map.mapping[c] != Operation.DO_LOWERCASE_VERSION) {
                             m.anotherKey = map.mapping[c];
                         }
@@ -442,8 +460,8 @@ public class KeyMap {
         bindArrowKeys(emacs);
         keyMaps.put(EMACS, emacs);
         keyMaps.put(EMACS_STANDARD, emacs);
-        keyMaps.put(EMACS_CTLX, (KeyMap) emacs.getBound("\u0018"));
-        keyMaps.put(EMACS_META, (KeyMap) emacs.getBound("\u001b"));
+        keyMaps.put(EMACS_CTLX, (KeyMap) emacs.getBound(ctrl('X')));
+        keyMaps.put(EMACS_META, (KeyMap) emacs.getBound("\033"));
 
         KeyMap viMov = viMovement();
         bindArrowKeys(viMov);
@@ -504,7 +522,7 @@ public class KeyMap {
             map[i] = Operation.SELF_INSERT;
         }
         map[DELETE] = Operation.BACKWARD_DELETE_CHAR;
-        return new KeyMap(EMACS, map);
+        return new KeyMap(EMACS, Operation.SELF_INSERT, map);
     }
 
     public static final char CTRL_D = (char) 4;
@@ -536,7 +554,7 @@ public class KeyMap {
         }
         map['e'] = Operation.CALL_LAST_KBD_MACRO;
         map[DELETE] = Operation.KILL_LINE;
-        return new KeyMap(EMACS_CTLX, map);
+        return new KeyMap(EMACS_CTLX, Operation.SELF_INSERT, map);
     }
 
     public static KeyMap emacsMeta() {
@@ -577,7 +595,7 @@ public class KeyMap {
         map['y'] = Operation.YANK_POP;
         map['~'] = Operation.TILDE_EXPAND;
         map[DELETE] = Operation.BACKWARD_KILL_WORD;
-        return new KeyMap(EMACS_META, map);
+        return new KeyMap(EMACS_META, Operation.SELF_INSERT, map);
     }
 
     public static KeyMap viInsertion() {
@@ -622,7 +640,7 @@ public class KeyMap {
             map[i] = Operation.SELF_INSERT;
         }
         map[DELETE] = Operation.BACKWARD_DELETE_CHAR;
-        return new KeyMap(VI_INSERT, map);
+        return new KeyMap(VI_INSERT, Operation.SELF_INSERT, map);
     }
 
     public static KeyMap viMovement() {
@@ -786,7 +804,7 @@ public class KeyMap {
         for (int i = 128; i < 256; i++) {
             map[i] = null;
         }
-        return new KeyMap(VI_MOVE, map);
+        return new KeyMap(VI_MOVE, Operation.SELF_INSERT, map);
     }
 
     public static KeyMap menuSelect() {
