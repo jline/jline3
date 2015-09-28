@@ -60,9 +60,10 @@ public class AnsiSplitterWriter extends AnsiStatefulWriter {
             flushLine(true);
         } else if (data == '\t') {
             StringWriter baos = (StringWriter) out;
-            do {
+            int l = tabs - 1 - (baos.getBuffer().length() - escapeLength) % tabs;
+            while (--l >= 0) {
                 write(' ');
-            } while ((baos.getBuffer().length() - escapeLength) % tabs > 0);
+            };
         } else {
             if (windowState != 2) {
                 super.write(data);
