@@ -1,0 +1,17 @@
+Write File Help Text
+
+ Type the name that you wish to save the current file as and press Enter to save the file.
+
+ If you have selected text with the mark, you will be prompted to save only the selected portion to a separate file.  To reduce the chance of overwriting the current file with just a portion of it, the current filename is not the default in this mode.
+
+ The following function keys are available in Write File mode:
+
+^G      (F1)            Display this help text
+^C                      Cancel the current function
+^T                      Go to file browser
+M-D                     Toggle the use of DOS format
+M-M                     Toggle the use of Mac format
+M-A                     Toggle appending
+M-P                     Toggle prepending
+M-B                     Toggle backing up of the original file
+

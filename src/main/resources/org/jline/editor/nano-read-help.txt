@@ -1,0 +1,11 @@
+Insert File Help Text
+
+ Type in the name of a file to be inserted into the current file buffer at the current cursor location.
+
+ The following function keys are available in Insert File mode:
+
+^G      (F1)            Display this help text
+^C                      Cancel the current function
+^T                      Go to file browser
+^X                      Execute external command
+M-F                     Toggle the use of a new buffer

@@ -1,0 +1,16 @@
+File Browser Help Text
+
+ The file browser is used to visually browse the directory structure to select a file for reading or writing.  You may use the arrow keys or Page Up/Down to browse through the files, and S or Enter to choose the selected file or enter the selected directory.  To move up one level, select the directory called ".." at the top of the file list.
+
+ The following function keys are available in the file browser:
+
+^G      (F1)            Display this help text
+^X      (F2)            Exit from the file browser
+^W                      Search for a string or a regular expression
+        (F16)   (M-W)   Repeat last search
+^Y      (F7)            Move to the previous screen
+^V      (F8)            Move to the next screen
+M-\             (M-|)   Go to the first file in the list
+M-/             (M-?)   Go to the last file in the list
+^_      (F13)   (M-G)   Go to directory
+
