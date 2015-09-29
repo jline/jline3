@@ -29,6 +29,8 @@ public interface ConsoleReader {
     String EDITING_MODE = "editing-mode";
     String KEYMAP = "keymap";
     String BLINK_MATCHING_PAREN = "blink-matching-paren";
+    String AMBIGUOUS_BINDING = "ambigous-binding";
+
     /**
      * Set to true if the reader should attempt to detect copy-n-paste. The
      * effect of this that an attempt is made to detect if tab is quickly

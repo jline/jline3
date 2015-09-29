@@ -287,7 +287,7 @@ public class KeyMap {
                 }
             }
         } else {
-            return null;
+            return anotherKey;
         }
     }
 
@@ -351,7 +351,7 @@ public class KeyMap {
                         function = NULL_FUNCTION;
                     }
                     if (map.mapping[c] instanceof KeyMap) {
-                        map.anotherKey = function;
+                        ((KeyMap) map.mapping[c]).anotherKey = function;
                     } else {
                         Object op = map.mapping[c];
                         if (!onlyIfNotBound

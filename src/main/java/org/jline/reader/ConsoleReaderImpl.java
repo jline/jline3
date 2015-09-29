@@ -77,6 +77,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     public static final long BLINK_MATCHING_PAREN_TIMEOUT = 500l;
 
+    public static final long AMBIGUOUS_BINDING_TIMEOUT = 1000l;
+
     /**
      * Possible states in which the current readline operation may be in.
      */
@@ -227,6 +229,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
         dispatcher = createDispatcher();
         bindingReader = new BindingReader(console);
+        bindingReader.ambiguousTimeout = getLong(AMBIGUOUS_BINDING, AMBIGUOUS_BINDING_TIMEOUT);
     }
 
     /**

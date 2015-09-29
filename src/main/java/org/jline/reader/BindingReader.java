@@ -21,6 +21,7 @@ public class BindingReader {
     protected final StringBuilder opBuffer = new StringBuilder();
     protected final Stack<Integer> pushBackChar = new Stack<>();
 
+    protected long ambiguousTimeout = 1000l;
     protected String lastBinding;
     protected boolean recording;
     protected StringBuilder macro = new StringBuilder();
@@ -79,6 +80,10 @@ public class BindingReader {
                     }
                 } else {
                     opBuffer.setLength(0);
+                }
+            } else if (remaining[0] < 0 && o != null) {
+                if (block && peekCharacter(ambiguousTimeout) != NonBlockingReader.READ_EXPIRED) {
+                    o = null;
                 }
             }
         } while (o == null && (block || peekCharacter(1l) != NonBlockingReader.READ_EXPIRED));
