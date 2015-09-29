@@ -83,6 +83,7 @@ public class Example
             label:
             while (args.length > index) {
                 switch (args[index]) {
+                    /* SANDBOX JANSI
                     case "-posix":
                         builder.posix(false);
                         index++;
@@ -91,20 +92,21 @@ public class Example
                         builder.posix(true);
                         index++;
                         break;
-                    case "-system":
-                        builder.system(false);
-                        index++;
-                        break;
-                    case "+system":
-                        builder.system(true);
-                        index++;
-                        break;
                     case "-native-pty":
                         builder.nativePty(false);
                         index++;
                         break;
                     case "+native-pty":
                         builder.nativePty(true);
+                        index++;
+                        break;
+                    */
+                    case "-system":
+                        builder.system(false);
+                        index++;
+                        break;
+                    case "+system":
+                        builder.system(true);
                         index++;
                         break;
                     case "none":

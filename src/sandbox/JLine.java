@@ -17,6 +17,8 @@ import java.util.Map;
 
 import org.jline.console.EmulatedConsole;
 import org.jline.console.ExecPty;
+import org.jline.console.NativePty;
+import org.jline.console.PosixPtyConsole;
 import org.jline.console.PosixSysConsole;
 import org.jline.console.Pty;
 import org.jline.console.WinSysConsole;
@@ -48,7 +50,9 @@ public final class JLine {
         private String type;
         private String encoding;
         private Boolean system;
+        private Boolean posix;
         private boolean nativeSignals = true;
+        private Boolean nativePty;
         private final ConsoleReaderBuilder consoleReaderBuilder = JLine.readerBuilder();
 
         public ConsoleBuilder() {
@@ -72,6 +76,11 @@ public final class JLine {
 
         public ConsoleBuilder encoding(String encoding) {
             this.encoding = encoding;
+            return this;
+        }
+
+        public ConsoleBuilder posix(boolean posix) {
+            this.posix = posix;
             return this;
         }
 
@@ -110,6 +119,11 @@ public final class JLine {
             return this;
         }
 
+        public ConsoleBuilder nativePty(boolean nativePty) {
+            this.nativePty = nativePty;
+            return this;
+        }
+
         public Console build() throws IOException {
             boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
             if ((system != null && system) || (system == null && in == null && out == null)) {
@@ -124,11 +138,28 @@ public final class JLine {
                     if (encoding == null) {
                         encoding = Charset.defaultCharset().name();
                     }
-                    Pty pty = ExecPty.current();
+                    Pty pty;
+                    if (nativePty == null) {
+                        try {
+                            pty = NativePty.current();
+                        } catch (NoClassDefFoundError e) {
+                            // TODO: log
+                            pty = ExecPty.current();
+                        }
+                    } else if (nativePty) {
+                        pty = NativePty.current();
+                    } else {
+                        pty = ExecPty.current();
+                    }
                     return new PosixSysConsole(type, consoleReaderBuilder, pty, encoding, nativeSignals);
                 }
             } else if ((system != null && !system) || (system == null && in != null && out != null)) {
-                return new EmulatedConsole(type, consoleReaderBuilder, in, out, encoding);
+                if (isWindows || posix == null || !posix) {
+                    return new EmulatedConsole(type, consoleReaderBuilder, in, out, encoding);
+                } else {
+                    Pty pty = NativePty.open(null, null); // TODO: non native pty are not supported
+                    return new PosixPtyConsole(type, consoleReaderBuilder, pty, in, out, encoding);
+                }
             } else {
                 throw new IllegalArgumentException();
             }

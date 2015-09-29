@@ -119,7 +119,7 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
-        <jansi.version>1.12-SNAPSHOT</jansi.version>
+        <jansi.version>1.11</jansi.version>
         <juniversalchardet.version>1.0.3</juniversalchardet.version>
     </properties>
 

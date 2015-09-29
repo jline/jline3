@@ -40,6 +40,7 @@ public class EmulatedConsoleTest {
         testConsole(outIn, out, console);
     }
 
+    /* SANDBOX JANSI
     @Test
     public void testPosix() throws IOException, InterruptedException {
         PipedInputStream in = new PipedInputStream();
@@ -50,6 +51,7 @@ public class EmulatedConsoleTest {
 
         testConsole(outIn, out, console);
     }
+    */
 
     private void testConsole(PipedOutputStream outIn, ByteArrayOutputStream out, Console console) throws IOException, InterruptedException {
         Attributes attributes = console.getAttributes();
