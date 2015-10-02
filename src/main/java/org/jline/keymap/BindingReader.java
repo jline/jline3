@@ -90,7 +90,7 @@ public class BindingReader {
                     int cp = opBuffer.codePointAt(0);
                     runMacro(opBuffer.substring(Character.charCount(cp)));
                     // Unicode character
-                    if (cp > 255 && unicode != null) {
+                    if (cp >= KeyMap.KEYMAP_LENGTH && unicode != null) {
                         opBuffer.setLength(Character.charCount(cp));
                         o = unicode;
                     } else {

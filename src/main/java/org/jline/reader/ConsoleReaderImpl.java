@@ -3916,7 +3916,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 Operation.UNDO,                     /* Control-_ */
         };
         System.arraycopy(ctrl, 0, map, 0, ctrl.length);
-        for (int i = 32; i < 256; i++) {
+        for (int i = 32; i < KeyMap.KEYMAP_LENGTH; i++) {
             map[i] = Operation.SELF_INSERT;
         }
         map[DELETE] = Operation.BACKWARD_DELETE_CHAR;
@@ -4034,7 +4034,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 Operation.UNDO,                     /* Control-_ */
         };
         System.arraycopy(ctrl, 0, map, 0, ctrl.length);
-        for (int i = 32; i < 256; i++) {
+        for (int i = 32; i < KeyMap.KEYMAP_LENGTH; i++) {
             map[i] = Operation.SELF_INSERT;
         }
         map[DELETE] = Operation.BACKWARD_DELETE_CHAR;
@@ -4042,8 +4042,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     public static KeyMap viMovement() {
-        Binding[] map = new Binding[KeyMap.KEYMAP_LENGTH];
-        Binding[] low = new Binding[]{
+        Binding[] map = new Binding[]{
                 // Control keys.
                 null,                               /* Control-@ */
                 null,                               /* Control-A */
@@ -4198,10 +4197,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 Operation.VI_CHANGE_CASE,           /* ~ */
                 Operation.VI_DELETE                 /* DEL */
         };
-        System.arraycopy(low, 0, map, 0, low.length);
-        for (int i = 128; i < 256; i++) {
-            map[i] = null;
-        }
         return new KeyMap(map);
     }
 

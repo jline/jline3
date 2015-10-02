@@ -29,7 +29,7 @@ import org.jline.utils.InfoCmp.Capability;
  */
 public class KeyMap implements Binding {
 
-    public static final int KEYMAP_LENGTH = 256;
+    public static final int KEYMAP_LENGTH = 128;
 
     private Binding[] mapping = new Binding[KEYMAP_LENGTH];
     private Binding anotherKey = null;
