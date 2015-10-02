@@ -9,6 +9,7 @@
 package org.jline.reader.history;
 
 import org.jline.keymap.KeyMap;
+import org.jline.keymap.Reference;
 import org.jline.reader.ReaderTestSupport;
 import org.junit.Test;
 
@@ -87,8 +88,8 @@ public class HistoryTest
         KeyMap map = reader.getKeys();
 
         // Map in HISTORY_SEARCH_BACKWARD.
-        map.bind(HISTORY_SEARCH_BACKWARD, "\033[0A");
-        map.bind(HISTORY_SEARCH_FORWARD, "\033[0B");
+        map.bind(new Reference(HISTORY_SEARCH_BACKWARD), "\033[0A");
+        map.bind(new Reference(HISTORY_SEARCH_FORWARD), "\033[0B");
 
         TestBuffer b = new TestBuffer().
             append("toes").op(ACCEPT_LINE).

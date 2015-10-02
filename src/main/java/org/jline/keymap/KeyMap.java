@@ -11,7 +11,6 @@ package org.jline.keymap;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
@@ -33,16 +32,6 @@ public class KeyMap implements Binding {
 
     private Binding[] mapping = new Binding[KEYMAP_LENGTH];
     private Binding anotherKey = null;
-
-    public KeyMap() {
-        this(null);
-    }
-
-    public KeyMap(Binding[] mapping) {
-        this.mapping = mapping != null
-                ? Arrays.copyOfRange(mapping, 0, KEYMAP_LENGTH)
-                : new Binding[KEYMAP_LENGTH];
-    }
 
     public static String display(String key) {
         StringBuilder sb = new StringBuilder();
@@ -231,6 +220,10 @@ public class KeyMap implements Binding {
     }
 
     public static String alt(char c) {
+        return "\033" + c;
+    }
+
+    public static String alt(String c) {
         return "\033" + c;
     }
 

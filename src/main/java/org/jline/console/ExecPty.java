@@ -25,7 +25,6 @@ import org.jline.console.Attributes.ControlFlag;
 import org.jline.console.Attributes.InputFlag;
 import org.jline.console.Attributes.LocalFlag;
 import org.jline.console.Attributes.OutputFlag;
-import org.jline.reader.ConsoleReaderImpl;
 import org.jline.utils.ExecHelper;
 import org.jline.utils.Log;
 import org.jline.utils.OSUtils;
@@ -208,7 +207,7 @@ public class ExecPty implements Pty {
         }
         // del
         if ("DEL".equalsIgnoreCase(str)) {
-            return ConsoleReaderImpl.DELETE;
+            return 127;
         }
         // octal
         if (str.charAt(0) == '0') {

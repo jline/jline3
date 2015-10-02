@@ -26,6 +26,21 @@ import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp.Capability;
 import org.junit.Before;
 
+import static org.jline.reader.Operation.ACCEPT_LINE;
+import static org.jline.reader.Operation.BACKWARD_CHAR;
+import static org.jline.reader.Operation.BACKWARD_DELETE_CHAR;
+import static org.jline.reader.Operation.BACKWARD_KILL_WORD;
+import static org.jline.reader.Operation.BACKWARD_WORD;
+import static org.jline.reader.Operation.BEGINNING_OF_LINE;
+import static org.jline.reader.Operation.COMPLETE_WORD;
+import static org.jline.reader.Operation.END_OF_LINE;
+import static org.jline.reader.Operation.KILL_WORD;
+import static org.jline.reader.Operation.NEXT_HISTORY;
+import static org.jline.reader.Operation.PREVIOUS_HISTORY;
+import static org.jline.reader.Operation.UNIX_WORD_RUBOUT;
+import static org.jline.reader.Operation.VI_EOF_MAYBE;
+import static org.jline.reader.Operation.YANK;
+import static org.jline.reader.Operation.YANK_POP;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -126,7 +141,7 @@ public abstract class ReaderTestSupport
         assertEquals(expected, prevLine);
     }
 
-    private String getKeyForAction(final Operation key) {
+    private String getKeyForAction(final String key) {
         switch (key) {
             case BACKWARD_WORD:        return "\u001Bb";
             case BEGINNING_OF_LINE:    return "\033[H";
@@ -180,7 +195,7 @@ public abstract class ReaderTestSupport
             return out.toByteArray();
         }
 
-        public TestBuffer op(final Operation op) {
+        public TestBuffer op(final String op) {
             return append(getKeyForAction(op));
         }
 
@@ -216,7 +231,7 @@ public abstract class ReaderTestSupport
         }
 
         public TestBuffer tab() {
-            return op(Operation.COMPLETE_WORD);
+            return op(COMPLETE_WORD);
         }
 
         public TestBuffer escape() {
@@ -224,12 +239,12 @@ public abstract class ReaderTestSupport
         }
 
         public TestBuffer back() {
-            return op(Operation.BACKWARD_DELETE_CHAR);
+            return op(BACKWARD_DELETE_CHAR);
         }
 
         public TestBuffer back(int n) {
             for (int i = 0; i < n; i++)
-                op(Operation.BACKWARD_DELETE_CHAR);
+                op(BACKWARD_DELETE_CHAR);
             return this;
         }
 
@@ -254,7 +269,7 @@ public abstract class ReaderTestSupport
         }
 
         public TestBuffer up() {
-            return append(getKeyForAction(Operation.PREVIOUS_HISTORY));
+            return append(getKeyForAction(PREVIOUS_HISTORY));
         }
 
         public TestBuffer down() {

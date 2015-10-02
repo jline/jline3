@@ -26,7 +26,6 @@ import org.jline.keymap.Macro;
 import org.jline.keymap.Reference;
 import org.jline.reader.ConsoleReaderImpl;
 import org.jline.reader.EndOfFileException;
-import org.jline.reader.Operation;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.UserInterruptException;
 import org.jline.reader.completer.ArgumentCompleter;
@@ -212,9 +211,19 @@ public class Example
                         StringBuilder sb = new StringBuilder();
                         Map<String, Binding> bound = ((ConsoleReaderImpl) reader).getKeys().getBoundKeys();
                         for (Map.Entry<String, Binding> entry : bound.entrySet()) {
-                            if (entry.getValue() != Operation.SELF_INSERT) {
+                            sb.append("\"");
+                            entry.getKey().chars().forEachOrdered(c -> {
+                                if (c < 32) {
+                                    sb.append('^');
+                                    sb.append((char) (c + 'A' - 1));
+                                } else {
+                                    sb.append((char) c);
+                                }
+                            });
+                            sb.append("\" ");
+                            if (entry.getValue() instanceof Macro) {
                                 sb.append("\"");
-                                entry.getKey().chars().forEachOrdered(c -> {
+                                ((Macro) entry.getValue()).getSequence().chars().forEachOrdered(c -> {
                                     if (c < 32) {
                                         sb.append('^');
                                         sb.append((char) (c + 'A' - 1));
@@ -222,25 +231,13 @@ public class Example
                                         sb.append((char) c);
                                     }
                                 });
-                                sb.append("\" ");
-                                if (entry.getValue() instanceof Macro) {
-                                    sb.append("\"");
-                                    ((Macro) entry.getValue()).getSequence().chars().forEachOrdered(c -> {
-                                        if (c < 32) {
-                                            sb.append('^');
-                                            sb.append((char) (c + 'A' - 1));
-                                        } else {
-                                            sb.append((char) c);
-                                        }
-                                    });
-                                    sb.append("\"");
-                                } else if (entry.getValue() instanceof Operation) {
-                                    sb.append(((Operation) entry.getValue()).name().toLowerCase().replace('_', '-'));
-                                } else {
-                                    sb.append(entry.getValue().toString());
-                                }
-                                sb.append("\n");
+                                sb.append("\"");
+                            } else if (entry.getValue() instanceof Reference) {
+                                sb.append(((Reference) entry.getValue()).name().toLowerCase().replace('_', '-'));
+                            } else {
+                                sb.append(entry.getValue().toString());
                             }
+                            sb.append("\n");
                         }
                         console.writer().print(sb.toString());
                         console.flush();

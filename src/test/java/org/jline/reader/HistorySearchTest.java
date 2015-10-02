@@ -5,9 +5,7 @@ import java.io.ByteArrayInputStream;
 import org.jline.reader.history.MemoryHistory;
 import org.junit.Test;
 
-import static org.jline.reader.ConsoleReaderImpl.CTRL_G;
-import static org.jline.reader.ConsoleReaderImpl.CTRL_R;
-import static org.jline.reader.ConsoleReaderImpl.CTRL_S;
+import static org.jline.keymap.KeyMap.translate;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -30,19 +28,17 @@ public class HistorySearchTest extends ReaderTestSupport {
 
         // TODO: use assertBuffer
         String readLineResult;
-        in.setIn(new ByteArrayInputStream(new byte[]{CTRL_R, 'f', '\n'}));
+        in.setIn(new ByteArrayInputStream(translate("^Rf\n").getBytes()));
         readLineResult = reader.readLine();
         assertEquals("faddle", readLineResult);
         assertEquals(3, history.size());
 
-        in.setIn(new ByteArrayInputStream(new byte[]{
-                CTRL_R, 'f', CTRL_R, CTRL_R, CTRL_R, CTRL_R, CTRL_R, '\n'
-        }));
+        in.setIn(new ByteArrayInputStream(translate("^Rf^R^R^R^R^R\n").getBytes()));
         readLineResult = reader.readLine();
         assertEquals("foo", readLineResult);
         assertEquals(4, history.size());
 
-        in.setIn(new ByteArrayInputStream(new byte[]{CTRL_R, 'f', CTRL_R, CTRL_R, '\n'}));
+        in.setIn(new ByteArrayInputStream(translate("^Rf^R^R\n").getBytes()));
         readLineResult = reader.readLine();
         assertEquals("fiddle", readLineResult);
         assertEquals(5, history.size());
@@ -53,23 +49,17 @@ public class HistorySearchTest extends ReaderTestSupport {
         MemoryHistory history = setupHistory();
 
         String readLineResult;
-        in.setIn(new ByteArrayInputStream(new byte[]{
-                CTRL_R, 'f', CTRL_R, CTRL_R, CTRL_S, '\n'
-        }));
+        in.setIn(new ByteArrayInputStream(translate("^Rf^R^R^S\n").getBytes()));
         readLineResult = reader.readLine();
         assertEquals("fiddle", readLineResult);
         assertEquals(4, history.size());
 
-        in.setIn(new ByteArrayInputStream(new byte[]{
-                CTRL_R, 'f', CTRL_R, CTRL_R, CTRL_R, CTRL_S, CTRL_S, '\n'
-        }));
+        in.setIn(new ByteArrayInputStream(translate("^Rf^R^R^R^S^S\n").getBytes()));
         readLineResult = reader.readLine();
         assertEquals("faddle", readLineResult);
         assertEquals(5, history.size());
 
-        in.setIn(new ByteArrayInputStream(new byte[]{
-                CTRL_R, 'f', CTRL_R, CTRL_R, CTRL_R, CTRL_R, CTRL_S, '\n'
-        }));
+        in.setIn(new ByteArrayInputStream(translate("^Rf^R^R^R^R^S\n").getBytes()));
         readLineResult = reader.readLine();
         assertEquals("fiddle", readLineResult);
         assertEquals(6, history.size());
@@ -80,9 +70,7 @@ public class HistorySearchTest extends ReaderTestSupport {
         MemoryHistory history = setupHistory();
 
         String readLineResult;
-        in.setIn(new ByteArrayInputStream(new byte[]{
-                CTRL_R, 'f', CTRL_R, CTRL_R, CTRL_R, CTRL_S, '\n'
-        }));
+        in.setIn(new ByteArrayInputStream(translate("^Rf^R^R^R^S\n").getBytes()));
         readLineResult = reader.readLine();
         assertEquals("fiddle", readLineResult);
         assertEquals(4, history.size());
@@ -93,9 +81,7 @@ public class HistorySearchTest extends ReaderTestSupport {
         MemoryHistory history = setupHistory();
 
         String readLineResult;
-        in.setIn(new ByteArrayInputStream(new byte[]{
-                'x', CTRL_S, CTRL_S, '\n'
-        }));
+        in.setIn(new ByteArrayInputStream(translate("x^S^S\n").getBytes()));
         readLineResult = reader.readLine();
         assertEquals("", readLineResult);
         assertEquals(3, history.size());
@@ -106,9 +92,7 @@ public class HistorySearchTest extends ReaderTestSupport {
         MemoryHistory history = setupHistory();
 
         String readLineResult;
-        in.setIn(new ByteArrayInputStream(new byte[]{
-                'f', CTRL_R, 'f', CTRL_G
-        }));
+        in.setIn(new ByteArrayInputStream(translate("f^Rf^G").getBytes()));
         readLineResult = reader.readLine();
         assertEquals(null, readLineResult);
         assertTrue(out.toString().contains("bck-i-search: f_"));
@@ -122,10 +106,7 @@ public class HistorySearchTest extends ReaderTestSupport {
         MemoryHistory history = setupHistory();
 
         String readLineResult;
-        in.setIn(new ByteArrayInputStream(new byte[]{
-                'f', CTRL_R, 'f', '\n',
-                'f', 'o', 'o', CTRL_G
-        }));
+        in.setIn(new ByteArrayInputStream(translate("f^Rf\nfoo^G").getBytes()));
         readLineResult = reader.readLine();
         assertEquals("", readLineResult);
 

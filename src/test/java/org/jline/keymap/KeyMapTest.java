@@ -8,51 +8,82 @@
  */
 package org.jline.keymap;
 
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
+import org.jline.Console;
 import org.jline.reader.ConsoleReaderImpl;
-import org.jline.reader.Operation;
+import org.jline.reader.DumbConsole;
+import org.jline.reader.ReaderTestSupport.EofPipedInputStream;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
+import static org.jline.keymap.KeyMap.alt;
 import static org.jline.keymap.KeyMap.display;
 import static org.jline.keymap.KeyMap.range;
 import static org.jline.keymap.KeyMap.translate;
-import static org.jline.reader.ConsoleReaderImpl.CTRL_OB;
-import static org.jline.reader.ConsoleReaderImpl.CTRL_U;
-import static org.jline.reader.ConsoleReaderImpl.ESCAPE;
+import static org.jline.reader.Operation.ABORT;
+import static org.jline.reader.Operation.ACCEPT_LINE;
+import static org.jline.reader.Operation.BACKWARD_WORD;
+import static org.jline.reader.Operation.COMPLETE_WORD;
+import static org.jline.reader.Operation.NEXT_HISTORY;
+import static org.jline.reader.Operation.PREVIOUS_HISTORY;
+import static org.jline.reader.Operation.UNIX_LINE_DISCARD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 
 public class KeyMapTest {
 
+    protected Console console;
+    protected EofPipedInputStream in;
+    protected ByteArrayOutputStream out;
+
+    @Before
+    public void setUp() throws Exception {
+        Handler ch = new ConsoleHandler();
+        ch.setLevel(Level.FINEST);
+        Logger logger = Logger.getLogger("org.jline");
+        logger.addHandler(ch);
+        // Set the handler log level
+        logger.setLevel(Level.INFO);
+
+        in = new EofPipedInputStream();
+        out = new ByteArrayOutputStream();
+        console = new DumbConsole(null, in, out);
+    }
+
     @Test
     public void testBound() throws Exception {
-        KeyMap map = ConsoleReaderImpl.emacs();
+        KeyMap map = new ConsoleReaderImpl(console).emacs();
 
-        Assert.assertEquals(Operation.COMPLETE_WORD, map.getBound("\u001B" + CTRL_OB));
-        assertEquals(Operation.BACKWARD_WORD, map.getBound(ESCAPE + "b"));
+        Assert.assertEquals(new Reference(COMPLETE_WORD), map.getBound("\u001B\u001B"));
+        assertEquals(new Reference(BACKWARD_WORD), map.getBound(alt("b")));
 
-        map.bindIfNotBound(Operation.PREVIOUS_HISTORY, "\033[0A");
-        assertEquals(Operation.PREVIOUS_HISTORY, map.getBound("\033[0A"));
+        map.bindIfNotBound(new Reference(PREVIOUS_HISTORY), "\033[0A");
+        assertEquals(new Reference(PREVIOUS_HISTORY), map.getBound("\033[0A"));
 
-        map.bind(Operation.NEXT_HISTORY, "\033[0AB");
-        assertEquals(Operation.PREVIOUS_HISTORY, map.getBound("\033[0A"));
-        assertEquals(Operation.NEXT_HISTORY, map.getBound("\033[0AB"));
+        map.bind(new Reference(NEXT_HISTORY), "\033[0AB");
+        assertEquals(new Reference(PREVIOUS_HISTORY), map.getBound("\033[0A"));
+        assertEquals(new Reference(NEXT_HISTORY), map.getBound("\033[0AB"));
 
         int[] remaining = new int[1];
-        assertEquals(Operation.COMPLETE_WORD, map.getBound("\u001B" + CTRL_OB + "a", remaining));
+        assertEquals(new Reference(COMPLETE_WORD), map.getBound("\u001B\u001Ba", remaining));
         assertEquals(1, remaining[0]);
 
-        map.bind(new Reference("anotherkey"), CTRL_U + "c");
-        assertEquals(new Reference("anotherkey"), map.getBound(CTRL_U + "c", remaining));
+        map.bind(new Reference("anotherkey"), translate("^Uc"));
+        assertEquals(new Reference("anotherkey"), map.getBound(translate("^Uc"), remaining));
         assertEquals(0, remaining[0]);
-        assertEquals(Operation.UNIX_LINE_DISCARD, map.getBound(CTRL_U + "a", remaining));
+        assertEquals(new Reference(UNIX_LINE_DISCARD), map.getBound(translate("^Ua"), remaining));
         assertEquals(1, remaining[0]);
     }
 
@@ -62,30 +93,30 @@ public class KeyMapTest {
 
         int[] remaining = new int[1];
         assertNull(map.getBound("ab", remaining));
-        map.bind(Operation.ABORT, "ab");
+        map.bind(new Reference(ABORT), "ab");
         assertNull(map.getBound("a", remaining));
         assertEquals(-1, remaining[0]);
-        assertEquals(Operation.ABORT, map.getBound("ab", remaining));
+        assertEquals(new Reference(ABORT), map.getBound("ab", remaining));
         assertEquals(0, remaining[0]);
-        assertEquals(Operation.ABORT, map.getBound("abc", remaining));
+        assertEquals(new Reference(ABORT), map.getBound("abc", remaining));
         assertEquals(1, remaining[0]);
 
-        map.bind(Operation.ACCEPT_LINE, "abc");
+        map.bind(new Reference(ACCEPT_LINE), "abc");
         assertNull(map.getBound("a", remaining));
         assertEquals(-1, remaining[0]);
-        assertEquals(Operation.ABORT, map.getBound("ab", remaining));
+        assertEquals(new Reference(ABORT), map.getBound("ab", remaining));
         assertEquals(-1, remaining[0]);
-        assertEquals(Operation.ABORT, map.getBound("abd", remaining));
+        assertEquals(new Reference(ABORT), map.getBound("abd", remaining));
         assertEquals(1, remaining[0]);
-        assertEquals(Operation.ACCEPT_LINE, map.getBound("abc", remaining));
+        assertEquals(new Reference(ACCEPT_LINE), map.getBound("abc", remaining));
         assertEquals(0, remaining[0]);
 
         map.unbind("abc");
         assertNull(map.getBound("a", remaining));
         assertEquals(-1, remaining[0]);
-        assertEquals(Operation.ABORT, map.getBound("ab", remaining));
+        assertEquals(new Reference(ABORT), map.getBound("ab", remaining));
         assertEquals(0, remaining[0]);
-        assertEquals(Operation.ABORT, map.getBound("abc", remaining));
+        assertEquals(new Reference(ABORT), map.getBound("abc", remaining));
         assertEquals(1, remaining[0]);
     }
 
