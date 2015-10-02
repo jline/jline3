@@ -404,6 +404,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             // Cache console size for the duration of the call to readLine()
             // It will eventually be updated with WINCH signals
             size.copy(console.getSize());
+            if (size.getColumns() == 0 || size.getRows() == 0) {
+                throw new IllegalStateException("Invalid terminal size: " + size);
+            }
 
             display = new Display(console, false);
             display.setColumns(size.getColumns());
@@ -423,6 +426,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 buf.write(buffer);
             }
             undo.clear();
+            parsedLine = null;
 
             // Draw initial prompt
             redrawLine();
@@ -1298,7 +1302,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         buf.move(-1);
         doViMatch();
-        flush();
+        redisplay();
 
         peekCharacter(BLINK_MATCHING_PAREN_TIMEOUT);
 
