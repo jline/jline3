@@ -16,15 +16,12 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.jline.Console;
-import org.jline.reader.ConsoleReaderImpl;
 import org.jline.reader.DumbConsole;
-import org.jline.reader.ReaderTestSupport;
 import org.jline.reader.ReaderTestSupport.EofPipedInputStream;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 public class BindingReaderTest {

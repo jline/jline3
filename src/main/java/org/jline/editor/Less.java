@@ -40,8 +40,8 @@ import org.jline.utils.Ansi.Attribute;
 import org.jline.utils.AnsiHelper;
 import org.jline.utils.InfoCmp.Capability;
 
-import static org.jline.keymap.KeyMap.ctrl;
 import static org.jline.keymap.KeyMap.alt;
+import static org.jline.keymap.KeyMap.ctrl;
 
 public class Less {
 

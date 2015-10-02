@@ -9,7 +9,6 @@
 package org.jline.reader;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.StringWriter;
 
 import org.jline.ConsoleReader;
@@ -33,8 +32,6 @@ import static org.junit.Assert.fail;
  */
 public class ConsoleReaderTest extends ReaderTestSupport
 {
-    
-    private ByteArrayOutputStream output;
 
     @Before
     public void setUp() throws Exception {

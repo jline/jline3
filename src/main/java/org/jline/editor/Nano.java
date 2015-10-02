@@ -18,7 +18,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -55,7 +54,6 @@ import org.jline.reader.Display;
 import org.jline.utils.Ansi;
 import org.jline.utils.Ansi.Attribute;
 import org.jline.utils.Ansi.Color;
-import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp.Capability;
 import org.mozilla.universalchardet.UniversalDetector;
 
