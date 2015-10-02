@@ -9,11 +9,7 @@
 package org.jline.utils;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.StringWriter;
 import java.io.Writer;
-import java.util.ArrayList;
-import java.util.List;
 
 public class AnsiStatefulWriter extends AnsiWriter {
 

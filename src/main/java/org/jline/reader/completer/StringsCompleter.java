@@ -12,16 +12,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.SortedSet;
-import java.util.TreeSet;
 
 import org.jline.Candidate;
 import org.jline.Completer;
 import org.jline.ConsoleReader;
 import org.jline.reader.ParsedLine;
 import org.jline.utils.AnsiHelper;
-
-import static org.jline.utils.Preconditions.checkNotNull;
 
 /**
  * Completer for a set of strings.

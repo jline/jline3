@@ -8,10 +8,8 @@
  */
 package org.jline.reader.completer;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.jline.Candidate;

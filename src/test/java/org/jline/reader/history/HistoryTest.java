@@ -14,7 +14,6 @@ import org.junit.Test;
 
 import static org.jline.reader.Operation.ACCEPT_LINE;
 import static org.jline.reader.Operation.BACKWARD_CHAR;
-import static org.jline.reader.Operation.BACKWARD_DELETE_CHAR;
 import static org.jline.reader.Operation.BEGINNING_OF_LINE;
 import static org.jline.reader.Operation.HISTORY_SEARCH_BACKWARD;
 import static org.jline.reader.Operation.HISTORY_SEARCH_FORWARD;
