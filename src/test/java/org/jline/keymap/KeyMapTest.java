@@ -44,8 +44,8 @@ public class KeyMapTest {
         assertEquals(Operation.COMPLETE_WORD, map.getBound("\u001B" + CTRL_OB + "a", remaining));
         assertEquals(1, remaining[0]);
 
-        map.bind(CTRL_U + "c", new WidgetRef("anotherkey"));
-        assertEquals(new WidgetRef("anotherkey"), map.getBound(CTRL_U + "c", remaining));
+        map.bind(CTRL_U + "c", new Reference("anotherkey"));
+        assertEquals(new Reference("anotherkey"), map.getBound(CTRL_U + "c", remaining));
         assertEquals(0, remaining[0]);
         assertEquals(Operation.UNIX_LINE_DISCARD, map.getBound(CTRL_U + "a", remaining));
         assertEquals(1, remaining[0]);

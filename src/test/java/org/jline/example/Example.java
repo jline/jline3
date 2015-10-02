@@ -23,7 +23,7 @@ import org.jline.JLine.ConsoleBuilder;
 import org.jline.keymap.Binding;
 import org.jline.keymap.KeyMap;
 import org.jline.keymap.Macro;
-import org.jline.keymap.WidgetRef;
+import org.jline.keymap.Reference;
 import org.jline.reader.ConsoleReaderImpl;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.Operation;
@@ -247,7 +247,7 @@ public class Example
                     } else if (pl.words().size() == 3) {
                         ((ConsoleReaderImpl) reader).getKeys().bind(
                                 KeyMap.translate(pl.words().get(1)),
-                                new WidgetRef(pl.words().get(2)));
+                                new Reference(pl.words().get(2)));
                     }
                 }
                 else if ("cls".equals(pl.word())) {

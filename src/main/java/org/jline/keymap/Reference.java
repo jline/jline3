@@ -11,11 +11,11 @@ package org.jline.keymap;
 /**
  * A reference to a {@link Widget}.
  */
-public class WidgetRef implements Binding {
+public class Reference implements Binding {
 
     private final String name;
 
-    public WidgetRef(String name) {
+    public Reference(String name) {
         this.name = name;
     }
 
@@ -27,7 +27,7 @@ public class WidgetRef implements Binding {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        WidgetRef func = (WidgetRef) o;
+        Reference func = (Reference) o;
         return name.equals(func.name);
     }
 
@@ -38,7 +38,7 @@ public class WidgetRef implements Binding {
 
     @Override
     public String toString() {
-        return "WidgetRef[" +
+        return "Reference[" +
                 name + ']';
     }
 }

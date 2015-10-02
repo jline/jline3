@@ -9,7 +9,7 @@
 package org.jline.reader;
 
 import org.jline.keymap.Binding;
-import org.jline.keymap.WidgetRef;
+import org.jline.keymap.Reference;
 
 /**
  * List of all operations.
@@ -169,7 +169,7 @@ public enum Operation implements Binding {
         return name().toLowerCase().replace('_', '-');
     }
 
-    public WidgetRef ref() {
-        return new WidgetRef(func());
+    public Reference ref() {
+        return new Reference(func());
     }
 }

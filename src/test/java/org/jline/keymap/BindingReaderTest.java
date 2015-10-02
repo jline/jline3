@@ -49,8 +49,8 @@ public class BindingReaderTest {
         in.setIn(new ByteArrayInputStream("\uD834\uDD21abc".getBytes()));
         BindingReader reader = new BindingReader(console, null);
         KeyMap keyMap = new KeyMap();
-        keyMap.bind("b", new WidgetRef("foo"));
-        assertEquals(new WidgetRef("foo"), reader.readBinding(keyMap));
+        keyMap.bind("b", new Reference("foo"));
+        assertEquals(new Reference("foo"), reader.readBinding(keyMap));
         assertEquals("b", reader.getLastBinding());
         assertNull(reader.readBinding(keyMap));
     }
@@ -58,12 +58,12 @@ public class BindingReaderTest {
     @Test
     public void testBindingReaderUnicode() {
         in.setIn(new ByteArrayInputStream("\uD834\uDD21abc".getBytes()));
-        BindingReader reader = new BindingReader(console, new WidgetRef("insert"));
+        BindingReader reader = new BindingReader(console, new Reference("insert"));
         KeyMap keyMap = new KeyMap();
-        keyMap.bind("b", new WidgetRef("foo"));
-        assertEquals(new WidgetRef("insert"), reader.readBinding(keyMap));
+        keyMap.bind("b", new Reference("foo"));
+        assertEquals(new Reference("insert"), reader.readBinding(keyMap));
         assertEquals("\uD834\uDD21", reader.getLastBinding());
-        assertEquals(new WidgetRef("foo"), reader.readBinding(keyMap));
+        assertEquals(new Reference("foo"), reader.readBinding(keyMap));
         assertEquals("b", reader.getLastBinding());
         assertNull(reader.readBinding(keyMap));
     }

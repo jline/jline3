@@ -56,7 +56,7 @@ import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
 import org.jline.keymap.Macro;
 import org.jline.keymap.Widget;
-import org.jline.keymap.WidgetRef;
+import org.jline.keymap.Reference;
 import org.jline.reader.history.MemoryHistory;
 import org.jline.utils.Ansi;
 import org.jline.utils.Ansi.Attribute;
@@ -523,8 +523,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             };
         } else if (binding instanceof Operation) {
             w = widgets.get(((Operation) binding).func());
-        } else if (binding instanceof WidgetRef) {
-            w = widgets.get(((WidgetRef) binding).name());
+        } else if (binding instanceof Reference) {
+            w = widgets.get(((Reference) binding).name());
         }
         return w;
     }
