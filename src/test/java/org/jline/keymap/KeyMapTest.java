@@ -9,6 +9,8 @@
 package org.jline.keymap;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -17,6 +19,9 @@ import org.jline.reader.Operation;
 import org.junit.Assert;
 import org.junit.Test;
 
+import static org.jline.keymap.KeyMap.display;
+import static org.jline.keymap.KeyMap.range;
+import static org.jline.keymap.KeyMap.translate;
 import static org.jline.reader.ConsoleReaderImpl.CTRL_OB;
 import static org.jline.reader.ConsoleReaderImpl.CTRL_U;
 import static org.jline.reader.ConsoleReaderImpl.ESCAPE;
@@ -94,6 +99,30 @@ public class KeyMapTest {
         assertEquals("ab", strings.get(0));
         assertEquals("ad", strings.get(1));
         assertEquals("abc", strings.get(2));
+    }
+
+    @Test
+    public void testTranslate() {
+        assertEquals("\\\u0007\b\u001b\u001b\f\n\r\t\u000b\u0053\u0045\u2345",
+                translate("\\\\\\a\\b\\e\\E\\f\\n\\r\\t\\v\\123\\x45\\u2345"));
+        assertEquals("\u0001\u0001\u0002\u0002\u0003\u0003\u007f^",
+                translate("\\Ca\\CA\\C-B\\C-b^c^C^?^^"));
+        assertEquals("\u001b3", translate("'\\e3'"));
+        assertEquals("\u001b3", translate("\"\\e3\""));
+    }
+
+    @Test
+    public void testDisplay() {
+        assertEquals("\"\\\\^G^H^[^L^J^M^I\\u0098\\u2345\"",
+                display("\\\u0007\b\u001b\f\n\r\t\u0098\u2345"));
+        assertEquals("\"^A^B^C^?\\^\\\\\"",
+                display("\u0001\u0002\u0003\u007f^\\"));
+    }
+    
+    @Test
+    public void testRange() {
+        Collection<String> range = range("a^A-a^D");
+        assertEquals(Arrays.asList(translate("a^A"), translate("a^B"), translate("a^C"), translate("a^D")), range);
     }
 
 }

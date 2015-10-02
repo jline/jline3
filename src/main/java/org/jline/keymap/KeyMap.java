@@ -11,6 +11,7 @@ package org.jline.keymap;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
@@ -30,8 +31,6 @@ public class KeyMap implements Binding {
 
     public static final int KEYMAP_LENGTH = 256;
 
-    public static final Binding NULL_FUNCTION = new Binding() { };
-
     private Binding[] mapping = new Binding[KEYMAP_LENGTH];
     private Binding anotherKey = null;
 
@@ -40,7 +39,9 @@ public class KeyMap implements Binding {
     }
 
     public KeyMap(Binding[] mapping) {
-        this.mapping = mapping != null ? mapping : new Binding[KEYMAP_LENGTH];
+        this.mapping = mapping != null
+                ? Arrays.copyOfRange(mapping, 0, KEYMAP_LENGTH)
+                : new Binding[KEYMAP_LENGTH];
     }
 
     public static String display(String key) {
@@ -53,8 +54,10 @@ public class KeyMap implements Binding {
                 sb.append((char) (c + 'A' - 1));
             } else if (c == 127) {
                 sb.append("^?");
+            } else if (c == '^' || c == '\\') {
+                sb.append('\\').append(c);
             } else if (c >= 128) {
-                sb.append("\\x").append(Integer.toHexString(c));
+                sb.append(String.format("\\u%04x", (int) c));
             } else {
                 sb.append(c);
             }
@@ -75,107 +78,118 @@ public class KeyMap implements Binding {
         for (i = 0; i < str.length(); i++) {
             char c = str.charAt(i);
             if (c == '\\') {
-                boolean ctrl = str.regionMatches(i, "\\C-", 0, 3) || str.regionMatches(i, "\\M-\\C-", 0, 6);
-                boolean meta = str.regionMatches(i, "\\M-", 0, 3) || str.regionMatches(i, "\\C-\\M-", 0, 6);
-                i += (meta ? 3 : 0) + (ctrl ? 3 : 0) + (!meta && !ctrl ? 1 : 0);
-                if (i >= str.length()) {
+                if (++i >= str.length()) {
                     break;
                 }
                 c = str.charAt(i);
-                if (meta) {
-                    keySeq.append('\u001b');
+                switch (c) {
+                    case 'a':
+                        c = 0x07;
+                        break;
+                    case 'b':
+                        c = '\b';
+                        break;
+                    case 'd':
+                        c = 0x7f;
+                        break;
+                    case 'e':
+                    case 'E':
+                        c = 0x1b;
+                        break;
+                    case 'f':
+                        c = '\f';
+                        break;
+                    case 'n':
+                        c = '\n';
+                        break;
+                    case 'r':
+                        c = '\r';
+                        break;
+                    case 't':
+                        c = '\t';
+                        break;
+                    case 'v':
+                        c = 0x0b;
+                        break;
+                    case '\\':
+                        c = '\\';
+                        break;
+                    case '0':
+                    case '1':
+                    case '2':
+                    case '3':
+                    case '4':
+                    case '5':
+                    case '6':
+                    case '7':
+                        c = 0;
+                        for (int j = 0; j < 3; j++, i++) {
+                            if (i >= str.length()) {
+                                break;
+                            }
+                            int k = Character.digit(str.charAt(i), 8);
+                            if (k < 0) {
+                                break;
+                            }
+                            c = (char) (c * 8 + k);
+                        }
+                        i--;
+                        c &= 0xFF;
+                        break;
+                    case 'x':
+                        i++;
+                        c = 0;
+                        for (int j = 0; j < 2; j++, i++) {
+                            if (i >= str.length()) {
+                                break;
+                            }
+                            int k = Character.digit(str.charAt(i), 16);
+                            if (k < 0) {
+                                break;
+                            }
+                            c = (char) (c * 16 + k);
+                        }
+                        i--;
+                        c &= 0xFF;
+                        break;
+                    case 'u':
+                        i++;
+                        c = 0;
+                        for (int j = 0; j < 4; j++, i++) {
+                            if (i >= str.length()) {
+                                break;
+                            }
+                            int k = Character.digit(str.charAt(i), 16);
+                            if (k < 0) {
+                                break;
+                            }
+                            c = (char) (c * 16 + k);
+                        }
+                        break;
+                    case 'C':
+                        if (++i >= str.length()) {
+                            break;
+                        }
+                        c = str.charAt(i);
+                        if (c == '-') {
+                            if (++i >= str.length()) {
+                                break;
+                            }
+                            c = str.charAt(i);
+                        }
+                        c = c == '?' ? 0x7f : (char) (Character.toUpperCase(c) & 0x1f);
+                        break;
                 }
-                if (ctrl) {
+            } else if (c == '^') {
+                if (++i >= str.length()) {
+                    break;
+                }
+                c = str.charAt(i);
+                if (c != '^') {
                     c = c == '?' ? 0x7f : (char) (Character.toUpperCase(c) & 0x1f);
                 }
-                if (!meta && !ctrl) {
-                    switch (c) {
-                        case 'a':
-                            c = 0x07;
-                            break;
-                        case 'b':
-                            c = '\b';
-                            break;
-                        case 'd':
-                            c = 0x7f;
-                            break;
-                        case 'e':
-                            c = 0x1b;
-                            break;
-                        case 'f':
-                            c = '\f';
-                            break;
-                        case 'n':
-                            c = '\n';
-                            break;
-                        case 'r':
-                            c = '\r';
-                            break;
-                        case 't':
-                            c = '\t';
-                            break;
-                        case 'v':
-                            c = 0x0b;
-                            break;
-                        case '\\':
-                            c = '\\';
-                            break;
-                        case '0':
-                        case '1':
-                        case '2':
-                        case '3':
-                        case '4':
-                        case '5':
-                        case '6':
-                        case '7':
-                            c = 0;
-                            for (int j = 0; j < 3; j++, i++) {
-                                if (i >= str.length()) {
-                                    break;
-                                }
-                                int k = Character.digit(str.charAt(i), 8);
-                                if (k < 0) {
-                                    break;
-                                }
-                                c = (char) (c * 8 + k);
-                            }
-                            c &= 0xFF;
-                            break;
-                        case 'x':
-                            i++;
-                            c = 0;
-                            for (int j = 0; j < 2; j++, i++) {
-                                if (i >= str.length()) {
-                                    break;
-                                }
-                                int k = Character.digit(str.charAt(i), 16);
-                                if (k < 0) {
-                                    break;
-                                }
-                                c = (char) (c * 16 + k);
-                            }
-                            c &= 0xFF;
-                            break;
-                        case 'u':
-                            i++;
-                            c = 0;
-                            for (int j = 0; j < 4; j++, i++) {
-                                if (i >= str.length()) {
-                                    break;
-                                }
-                                int k = Character.digit(str.charAt(i), 16);
-                                if (k < 0) {
-                                    break;
-                                }
-                                c = (char) (c * 16 + k);
-                            }
-                            break;
-                    }
-                }
-                keySeq.append(c);
-            } else {
-                keySeq.append(c);
             }
+            keySeq.append(c);
         }
         return keySeq.toString();
     }
@@ -190,12 +204,18 @@ public class KeyMap implements Binding {
         if (keys[0].length() != keys[1].length()) {
             return null;
         }
-        String pfx = keys[0].length() > 1
-                ? keys[0].substring(0, keys[0].length() - 2)
-                : "";
+        String pfx;
+        if (keys[0].length() > 1) {
+            pfx = keys[0].substring(0, keys[0].length() - 1);
+            if (!keys[1].startsWith(pfx)) {
+                return null;
+            }
+        } else {
+            pfx = "";
+        }
         char c0 = keys[0].charAt(keys[0].length() - 1);
         char c1 = keys[1].charAt(keys[1].length() - 1);
-        if (c0 < c1) {
+        if (c0 > c1) {
             return null;
         }
         Collection<String> seqs = new ArrayList<>();
@@ -219,16 +239,11 @@ public class KeyMap implements Binding {
     }
 
     public static String ctrl(char key) {
-        return Character.toString((char) (Character.toUpperCase(key) & 0x1f));
+        return key == '?' ? del() : Character.toString((char) (Character.toUpperCase(key) & 0x1f));
     }
 
     public Object getAnotherKey() {
         return anotherKey;
-    }
-
-    public void from(KeyMap other) {
-        this.mapping = other.mapping;
-        this.anotherKey = other.anotherKey;
     }
 
     public static final Comparator<String> KEYSEQ_COMPARATOR = (s1, s2) -> {
@@ -300,13 +315,17 @@ public class KeyMap implements Binding {
     }
 
     public void bindIfNotBound(CharSequence keySeq, Binding function) {
-
-        bind(this, keySeq, function, true);
+        if (function != null) {
+            bind(this, keySeq, function, true);
+        }
     }
 
     public void bind(CharSequence keySeq, Binding function) {
-
-        bind(this, keySeq, function, false);
+        if (function == null) {
+            unbind(keySeq);
+        } else {
+            bind(this, keySeq, function, false);
+        }
     }
 
     public boolean bind(Console console, Capability capability, Binding function) {
@@ -384,9 +403,6 @@ public class KeyMap implements Binding {
                     }
                     map = (KeyMap) map.mapping[c];
                 } else {
-                    if (function == null) {
-                        function = NULL_FUNCTION;
-                    }
                     if (map.mapping[c] instanceof KeyMap) {
                         ((KeyMap) map.mapping[c]).anotherKey = function;
                     } else {
