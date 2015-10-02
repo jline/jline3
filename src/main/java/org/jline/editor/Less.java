@@ -51,48 +51,49 @@ public class Less {
 
         InputStream read() throws IOException;
 
-        class PathSource implements Source {
-            final Path path;
-            final String name;
+    }
 
-            public PathSource(File file, String name) {
-                this.path = file.toPath();
-                this.name = name;
-            }
+    public static class PathSource implements Source {
+        final Path path;
+        final String name;
 
-            public PathSource(Path path, String name) {
-                this.path = path;
-                this.name = name;
-            }
-
-            @Override
-            public String getName() {
-                return name;
-            }
-
-            @Override
-            public InputStream read() throws IOException {
-                return Files.newInputStream(path);
-            }
-
+        public PathSource(File file, String name) {
+            this.path = file.toPath();
+            this.name = name;
         }
 
-        class StdInSource implements Source {
-            @Override
-            public String getName() {
-                return null;
-            }
-
-            @Override
-            public InputStream read() throws IOException {
-                return new FilterInputStream(System.in) {
-                    @Override
-                    public void close() throws IOException {
-                    }
-                };
-            }
-
+        public PathSource(Path path, String name) {
+            this.path = path;
+            this.name = name;
         }
+
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public InputStream read() throws IOException {
+            return Files.newInputStream(path);
+        }
+
+    }
+
+    public static class StdInSource implements Source {
+        @Override
+        public String getName() {
+            return null;
+        }
+
+        @Override
+        public InputStream read() throws IOException {
+            return new FilterInputStream(System.in) {
+                @Override
+                public void close() throws IOException {
+                }
+            };
+        }
+
     }
 
     private static final int ESCAPE = 27;
