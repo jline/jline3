@@ -38,10 +38,10 @@ public class KeyMapTest {
         Assert.assertEquals(Operation.COMPLETE_WORD, map.getBound("\u001B" + CTRL_OB));
         assertEquals(Operation.BACKWARD_WORD, map.getBound(ESCAPE + "b"));
 
-        map.bindIfNotBound("\033[0A", Operation.PREVIOUS_HISTORY);
+        map.bindIfNotBound(Operation.PREVIOUS_HISTORY, "\033[0A");
         assertEquals(Operation.PREVIOUS_HISTORY, map.getBound("\033[0A"));
 
-        map.bind("\033[0AB", Operation.NEXT_HISTORY);
+        map.bind(Operation.NEXT_HISTORY, "\033[0AB");
         assertEquals(Operation.PREVIOUS_HISTORY, map.getBound("\033[0A"));
         assertEquals(Operation.NEXT_HISTORY, map.getBound("\033[0AB"));
 
@@ -49,7 +49,7 @@ public class KeyMapTest {
         assertEquals(Operation.COMPLETE_WORD, map.getBound("\u001B" + CTRL_OB + "a", remaining));
         assertEquals(1, remaining[0]);
 
-        map.bind(CTRL_U + "c", new Reference("anotherkey"));
+        map.bind(new Reference("anotherkey"), CTRL_U + "c");
         assertEquals(new Reference("anotherkey"), map.getBound(CTRL_U + "c", remaining));
         assertEquals(0, remaining[0]);
         assertEquals(Operation.UNIX_LINE_DISCARD, map.getBound(CTRL_U + "a", remaining));
@@ -62,7 +62,7 @@ public class KeyMapTest {
 
         int[] remaining = new int[1];
         assertNull(map.getBound("ab", remaining));
-        map.bind("ab", Operation.ABORT);
+        map.bind(Operation.ABORT, "ab");
         assertNull(map.getBound("a", remaining));
         assertEquals(-1, remaining[0]);
         assertEquals(Operation.ABORT, map.getBound("ab", remaining));
@@ -70,7 +70,7 @@ public class KeyMapTest {
         assertEquals(Operation.ABORT, map.getBound("abc", remaining));
         assertEquals(1, remaining[0]);
 
-        map.bind("abc", Operation.ACCEPT_LINE);
+        map.bind(Operation.ACCEPT_LINE, "abc");
         assertNull(map.getBound("a", remaining));
         assertEquals(-1, remaining[0]);
         assertEquals(Operation.ABORT, map.getBound("ab", remaining));

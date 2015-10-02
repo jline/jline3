@@ -49,7 +49,7 @@ public class BindingReaderTest {
         in.setIn(new ByteArrayInputStream("\uD834\uDD21abc".getBytes()));
         BindingReader reader = new BindingReader(console, null);
         KeyMap keyMap = new KeyMap();
-        keyMap.bind("b", new Reference("foo"));
+        keyMap.bind(new Reference("foo"), "b");
         assertEquals(new Reference("foo"), reader.readBinding(keyMap));
         assertEquals("b", reader.getLastBinding());
         assertNull(reader.readBinding(keyMap));
@@ -60,7 +60,7 @@ public class BindingReaderTest {
         in.setIn(new ByteArrayInputStream("\uD834\uDD21abc".getBytes()));
         BindingReader reader = new BindingReader(console, new Reference("insert"));
         KeyMap keyMap = new KeyMap();
-        keyMap.bind("b", new Reference("foo"));
+        keyMap.bind(new Reference("foo"), "b");
         assertEquals(new Reference("insert"), reader.readBinding(keyMap));
         assertEquals("\uD834\uDD21", reader.getLastBinding());
         assertEquals(new Reference("foo"), reader.readBinding(keyMap));

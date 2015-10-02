@@ -42,6 +42,7 @@ import org.jline.utils.InfoCmp.Capability;
 
 import static org.jline.keymap.KeyMap.alt;
 import static org.jline.keymap.KeyMap.ctrl;
+import static org.jline.keymap.KeyMap.key;
 
 public class Less {
 
@@ -724,80 +725,28 @@ public class Less {
     }
 
     private void bindKeys(KeyMap map) {
-        // Arrow keys bindings
-        map.bind(console, Capability.key_up, Operation.BACKWARD_ONE_LINE);
-        map.bind(console, Capability.key_down, Operation.FORWARD_ONE_LINE);
-        map.bind(console, Capability.key_left, Operation.LEFT_ONE_HALF_SCREEN);
-        map.bind(console, Capability.key_right, Operation.RIGHT_ONE_HALF_SCREEN);
-
-        map.bind("h", Operation.HELP);
-        map.bind("H", Operation.HELP);
-
-        map.bind("q", Operation.EXIT);
-        map.bind(":q", Operation.EXIT);
-        map.bind("Q", Operation.EXIT);
-        map.bind(":Q", Operation.EXIT);
-        map.bind("ZZ", Operation.EXIT);
-
-        map.bind("e", Operation.FORWARD_ONE_LINE);
-        map.bind(ctrl('E'), Operation.FORWARD_ONE_LINE);
-        map.bind("j", Operation.FORWARD_ONE_LINE);
-        map.bind(ctrl('N'), Operation.FORWARD_ONE_LINE);
-        map.bind("\r", Operation.FORWARD_ONE_LINE);
-
-        map.bind("y", Operation.BACKWARD_ONE_LINE);
-        map.bind(ctrl('Y'), Operation.BACKWARD_ONE_LINE);
-        map.bind("k", Operation.BACKWARD_ONE_LINE);
-        map.bind(ctrl('K'), Operation.BACKWARD_ONE_LINE);
-        map.bind(ctrl('P'), Operation.BACKWARD_ONE_LINE);
-
-        map.bind("f", Operation.FORWARD_ONE_WINDOW_OR_LINES);
-        map.bind(ctrl('F'), Operation.FORWARD_ONE_WINDOW_OR_LINES);
-        map.bind(ctrl('V'), Operation.FORWARD_ONE_WINDOW_OR_LINES);
-        map.bind(" ", Operation.FORWARD_ONE_WINDOW_OR_LINES);
-
-        map.bind("b", Operation.BACKWARD_ONE_WINDOW_OR_LINES);
-        map.bind(ctrl('B'), Operation.BACKWARD_ONE_WINDOW_OR_LINES);
-        map.bind(alt('v'), Operation.BACKWARD_ONE_WINDOW_OR_LINES);
-
-        map.bind("z", Operation.FORWARD_ONE_WINDOW_AND_SET);
-
-        map.bind("w", Operation.BACKWARD_ONE_WINDOW_AND_SET);
-
-        map.bind(alt(' '), Operation.FORWARD_ONE_WINDOW_NO_STOP);
-
-        map.bind("d", Operation.FORWARD_HALF_WINDOW_AND_SET);
-        map.bind(ctrl('D'), Operation.FORWARD_HALF_WINDOW_AND_SET);
-
-        map.bind("u", Operation.BACKWARD_HALF_WINDOW_AND_SET);
-        map.bind(ctrl('U'), Operation.BACKWARD_HALF_WINDOW_AND_SET);
-
-        map.bind(alt(')'), Operation.RIGHT_ONE_HALF_SCREEN);
-
-        map.bind(alt('('), Operation.LEFT_ONE_HALF_SCREEN);
-
-        map.bind("F", Operation.FORWARD_FOREVER);
-
-        map.bind("n", Operation.REPEAT_SEARCH_FORWARD);
-        map.bind("N", Operation.REPEAT_SEARCH_BACKWARD);
-        map.bind(alt('n'), Operation.REPEAT_SEARCH_FORWARD_SPAN_FILES);
-        map.bind(alt('N'), Operation.REPEAT_SEARCH_BACKWARD_SPAN_FILES);
-        map.bind(alt('u'), Operation.UNDO_SEARCH);
-
-        map.bind("g", Operation.GO_TO_FIRST_LINE_OR_N);
-        map.bind("<", Operation.GO_TO_FIRST_LINE_OR_N);
-        map.bind(alt('<'), Operation.GO_TO_FIRST_LINE_OR_N);
-
-        map.bind("G", Operation.GO_TO_LAST_LINE_OR_N);
-        map.bind(">", Operation.GO_TO_LAST_LINE_OR_N);
-        map.bind(alt('>'), Operation.GO_TO_LAST_LINE_OR_N);
-
-        map.bind(":n", Operation.NEXT_FILE);
-        map.bind(":p", Operation.PREV_FILE);
-
-        for (char c : "-/0123456789?".toCharArray()) {
-            map.bind(Character.toString(c), Operation.CHAR);
-        }
+        map.bind(Operation.HELP, "h", "H");
+        map.bind(Operation.EXIT, "q", ":q", "Q", ":Q", "ZZ");
+        map.bind(Operation.FORWARD_ONE_LINE, "e", ctrl('E'), "j", ctrl('N'), "\r", key(console, Capability.key_down));
+        map.bind(Operation.BACKWARD_ONE_LINE, "y", ctrl('Y'), "k", ctrl('K'), ctrl('P'), key(console, Capability.key_up));
+        map.bind(Operation.FORWARD_ONE_WINDOW_OR_LINES, "f", ctrl('F'), ctrl('V'), " ");
+        map.bind(Operation.BACKWARD_ONE_WINDOW_OR_LINES, "b", ctrl('B'), alt('v'));
+        map.bind(Operation.FORWARD_ONE_WINDOW_AND_SET, "z");
+        map.bind(Operation.BACKWARD_ONE_WINDOW_AND_SET, "w");
+        map.bind(Operation.FORWARD_ONE_WINDOW_NO_STOP, alt(' '));
+        map.bind(Operation.FORWARD_HALF_WINDOW_AND_SET, "d", ctrl('D'));
+        map.bind(Operation.BACKWARD_HALF_WINDOW_AND_SET, "u", ctrl('U'));
+        map.bind(Operation.RIGHT_ONE_HALF_SCREEN, alt(')'), key(console, Capability.key_right));
+        map.bind(Operation.LEFT_ONE_HALF_SCREEN, alt('('), key(console, Capability.key_left));
+        map.bind(Operation.FORWARD_FOREVER, "F");
+        map.bind(Operation.REPEAT_SEARCH_FORWARD, "n", "N");
+        map.bind(Operation.REPEAT_SEARCH_FORWARD_SPAN_FILES, alt('n'), alt('N'));
+        map.bind(Operation.UNDO_SEARCH, alt('u'));
+        map.bind(Operation.GO_TO_FIRST_LINE_OR_N, "g", "<", alt('<'));
+        map.bind(Operation.GO_TO_LAST_LINE_OR_N, "G", ">", alt('>'));
+        map.bind(Operation.NEXT_FILE, ":n");
+        map.bind(Operation.PREV_FILE, ":p");
+        "-/0123456789?".chars().forEach(c -> map.bind(Operation.CHAR, Character.toString((char) c)));
     }
 
     enum Operation implements Binding {

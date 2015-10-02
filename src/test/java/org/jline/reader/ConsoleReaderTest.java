@@ -16,6 +16,7 @@ import org.jline.ConsoleReader.Option;
 import org.jline.History;
 import org.jline.keymap.KeyMap;
 import org.jline.keymap.Reference;
+import org.jline.keymap.Widget;
 import org.jline.reader.history.MemoryHistory;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp.Capability;
@@ -331,7 +332,7 @@ public class ConsoleReaderTest extends ReaderTestSupport
 
     @Test
     public void testCallbacks() throws Exception {
-        reader.addTriggeredAction('x', r -> r.getBuffer().clear());
+        reader.getKeys().bind((Widget<ConsoleReaderImpl>) r -> r.getBuffer().clear(), "x");
         assertLine("", new TestBuffer("sample stringx\n"));
     }
 
@@ -347,8 +348,8 @@ public class ConsoleReaderTest extends ReaderTestSupport
         in.setIn(new ByteArrayInputStream(new TestBuffer("abcde").getBytes()));
 
         KeyMap map = new KeyMap();
-        map.bind("bc", new Reference("foo"));
-        map.bind("e", new Reference("bar"));
+        map.bind(new Reference("foo"), "bc");
+        map.bind(new Reference("bar"), "e");
 
         Object b = reader.readBinding(map);
         assertEquals(new Reference("foo"), b);

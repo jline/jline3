@@ -15,7 +15,6 @@ import java.io.IOError;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
-import java.io.StringWriter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,13 +61,14 @@ import org.jline.utils.Ansi;
 import org.jline.utils.Ansi.Attribute;
 import org.jline.utils.Ansi.Color;
 import org.jline.utils.AnsiHelper;
-import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.Levenshtein;
 import org.jline.utils.Log;
 import org.jline.utils.Signals;
 import org.jline.utils.WCWidth;
 
+import static org.jline.keymap.KeyMap.KEYMAP_LENGTH;
+import static org.jline.keymap.KeyMap.key;
 import static org.jline.utils.Preconditions.checkNotNull;
 
 /**
@@ -1747,7 +1747,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         KeyMap terminators = new KeyMap();
         getString("search-terminators", "\033\012")
-                .codePoints().forEach(c -> terminators.bind(new String(Character.toChars(c)), Operation.ACCEPT_LINE));
+                .codePoints().forEach(c -> terminators.bind(Operation.ACCEPT_LINE, new String(Character.toChars(c))));
 
         try {
             while (true) {
@@ -3665,18 +3665,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return false;
     }
 
-    /**
-     * Adding a triggered Action allows to give another curse of action if a character passed the pre-processing.
-     * <p/>
-     * Say you want to close the application if the user enter q.
-     * addTriggerAction('q', new ActionListener(){ System.exit(0); }); would do the trick.
-     *
-     * TODO: deprecate
-     */
-    public void addTriggeredAction(final char c, final Widget<ConsoleReaderImpl> widget) {
-        getKeys().bind(Character.toString(c), widget);
-    }
-
     //
     // Helpers
     //
@@ -3803,48 +3791,27 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected static void rebind(KeyMap keyMap, Operation operation, char prevBinding, char newBinding) {
-        if (prevBinding > 0 && prevBinding < 255) {
+        if (prevBinding > 0 && prevBinding < KEYMAP_LENGTH) {
             if (keyMap.getBound("" + prevBinding) == operation) {
-                keyMap.bind("" + prevBinding, Operation.SELF_INSERT);
-                if (newBinding > 0 && newBinding < 255) {
-                    keyMap.bind("" + newBinding, operation);
+                keyMap.bind(Operation.SELF_INSERT, "" + prevBinding);
+                if (newBinding > 0 && newBinding < KEYMAP_LENGTH) {
+                    keyMap.bind(operation, "" + newBinding);
                 }
             }
         }
     }
 
-    protected void bindCapability(KeyMap keyMap, Capability cap, Operation operation) {
-        String seq = getSequence(cap);
-        if (seq != null) {
-            keyMap.bindIfNotBound(seq, operation);
-        }
-    }
-
-    private String getSequence(Capability cap) {
-        String str = console.getStringCapability(cap);
-        if (str != null) {
-            StringWriter sw = new StringWriter();
-            try {
-                Curses.tputs(sw, str);
-            } catch (IOException e) {
-                throw new IOError(e);
-            }
-            return sw.toString();
-        }
-        return null;
-    }
-
 
     public void bindArrowKeys(KeyMap map) {
-        bindCapability(map, Capability.key_up, Operation.UP_LINE_OR_HISTORY);
-        bindCapability(map, Capability.key_down, Operation.DOWN_LINE_OR_HISTORY);
-        bindCapability(map, Capability.key_left, Operation.BACKWARD_CHAR);
-        bindCapability(map, Capability.key_right, Operation.FORWARD_CHAR);
-        bindCapability(map, Capability.key_home, Operation.BEGINNING_OF_LINE);
-        bindCapability(map, Capability.key_end, Operation.END_OF_LINE);
-        bindCapability(map, Capability.key_dc, Operation.DELETE_CHAR);
-        bindCapability(map, Capability.key_dl, Operation.KILL_WHOLE_LINE);
-        bindCapability(map, Capability.key_ic, Operation.OVERWRITE_MODE);
+        map.bind(Operation.UP_LINE_OR_HISTORY, key(console, Capability.key_up));
+        map.bind(Operation.DOWN_LINE_OR_HISTORY, key(console, Capability.key_down));
+        map.bind(Operation.BACKWARD_CHAR, key(console, Capability.key_left));
+        map.bind(Operation.FORWARD_CHAR, key(console, Capability.key_right));
+        map.bind(Operation.BEGINNING_OF_LINE, key(console, Capability.key_home));
+        map.bind(Operation.END_OF_LINE, key(console, Capability.key_end));
+        map.bind(Operation.DELETE_CHAR, key(console, Capability.key_dc));
+        map.bind(Operation.KILL_WHOLE_LINE, key(console, Capability.key_dl));
+        map.bind(Operation.OVERWRITE_MODE, key(console, Capability.key_ic));
     }
 
     public Map<String, KeyMap> defaultKeyMaps() {
@@ -3852,8 +3819,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         KeyMap emacs = emacs();
         bindArrowKeys(emacs);
-        emacs.bind("\033\033[C", Operation.FORWARD_WORD);
-        emacs.bind("\033\033[D", Operation.BACKWARD_WORD);
+        emacs.bind(Operation.FORWARD_WORD, "\033\033[C");
+        emacs.bind(Operation.BACKWARD_WORD, "\033\033[D");
         keyMaps.put(EMACS, emacs);
 
         KeyMap viCmd = viMovement();
@@ -4202,10 +4169,10 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     public static KeyMap menuSelect() {
         KeyMap keyMap = new KeyMap();
-        keyMap.bind("\t", Operation.MENU_COMPLETE);
-        keyMap.bind("\033[Z", Operation.REVERSE_MENU_COMPLETE);
-        keyMap.bind("\r", Operation.ACCEPT_LINE);
-        keyMap.bind("\n", Operation.ACCEPT_LINE);
+        keyMap.bind(Operation.MENU_COMPLETE, "\t");
+        keyMap.bind(Operation.REVERSE_MENU_COMPLETE, "\033[Z");
+        keyMap.bind(Operation.ACCEPT_LINE, "\r");
+        keyMap.bind(Operation.ACCEPT_LINE, "\n");
         return keyMap;
     }
 }

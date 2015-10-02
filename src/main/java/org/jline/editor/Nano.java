@@ -57,9 +57,11 @@ import org.jline.utils.Ansi.Color;
 import org.jline.utils.InfoCmp.Capability;
 import org.mozilla.universalchardet.UniversalDetector;
 
+import static org.jline.keymap.KeyMap.KEYMAP_LENGTH;
 import static org.jline.keymap.KeyMap.alt;
 import static org.jline.keymap.KeyMap.ctrl;
 import static org.jline.keymap.KeyMap.del;
+import static org.jline.keymap.KeyMap.key;
 import static org.jline.utils.Ansi.ansi;
 import static org.jline.utils.AnsiHelper.length;
 import static org.jline.utils.AnsiHelper.substring;
@@ -1102,22 +1104,21 @@ public class Nano {
     boolean write() throws IOException {
         KeyMap writeKeyMap = new KeyMap();
         for (char i = 32; i < 256; i++) {
-            writeKeyMap.bind(Character.toString(i), Operation.INSERT);
+            writeKeyMap.bind(Operation.INSERT, Character.toString(i));
         }
         for (char i = 'A'; i <= 'Z'; i++) {
-            writeKeyMap.bind(alt(i), Operation.DO_LOWER_CASE);
+            writeKeyMap.bind(Operation.DO_LOWER_CASE, alt(i));
         }
-        writeKeyMap.bind(del(), Operation.BACKSPACE);
-        writeKeyMap.bind(alt('m'), Operation.MAC_FORMAT);
-        writeKeyMap.bind(alt('d'), Operation.DOS_FORMAT);
-        writeKeyMap.bind(alt('a'), Operation.APPEND_MODE);
-        writeKeyMap.bind(alt('p'), Operation.PREPEND_MODE);
-        writeKeyMap.bind(alt('b'), Operation.BACKUP);
-        writeKeyMap.bind(ctrl('T'), Operation.TO_FILES);
-        writeKeyMap.bind("\r", Operation.ACCEPT);
-        writeKeyMap.bind(ctrl('C'), Operation.CANCEL);
-        writeKeyMap.bind(ctrl('G'), Operation.HELP);
-        writeKeyMap.bind(console, Capability.key_f1, Operation.HELP);
+        writeKeyMap.bind(Operation.BACKSPACE, del());
+        writeKeyMap.bind(Operation.MAC_FORMAT, alt('m'));
+        writeKeyMap.bind(Operation.DOS_FORMAT, alt('d'));
+        writeKeyMap.bind(Operation.APPEND_MODE, alt('a'));
+        writeKeyMap.bind(Operation.PREPEND_MODE, alt('p'));
+        writeKeyMap.bind(Operation.BACKUP, alt('b'));
+        writeKeyMap.bind(Operation.TO_FILES, ctrl('T'));
+        writeKeyMap.bind(Operation.ACCEPT, "\r");
+        writeKeyMap.bind(Operation.CANCEL, ctrl('C'));
+        writeKeyMap.bind(Operation.HELP, ctrl('G'), key(console, Capability.key_f1));
 
         editMessage = getWriteMessage();
         editBuffer.setLength(0);
@@ -1246,11 +1247,9 @@ public class Nano {
             editMessage = message;
             editBuffer.setLength(0);
             KeyMap yncKeyMap = new KeyMap();
-            yncKeyMap.bind("y", Operation.YES);
-            yncKeyMap.bind("Y", Operation.YES);
-            yncKeyMap.bind("n", Operation.NO);
-            yncKeyMap.bind("N", Operation.NO);
-            yncKeyMap.bind(ctrl('C'), Operation.CANCEL);
+            yncKeyMap.bind(Operation.YES, "y", "Y");
+            yncKeyMap.bind(Operation.NO, "n", "N");
+            yncKeyMap.bind(Operation.CANCEL, ctrl('C'));
             shortcuts = new LinkedHashMap<>();
             shortcuts.put(" Y", "Yes");
             shortcuts.put(" N", "No");
@@ -1298,16 +1297,15 @@ public class Nano {
     void read() {
         KeyMap readKeyMap = new KeyMap();
         for (char i = 32; i < 256; i++) {
-            readKeyMap.bind(Character.toString(i), Operation.INSERT);
+            readKeyMap.bind(Operation.INSERT, Character.toString(i));
         }
-        readKeyMap.bind(del(), Operation.BACKSPACE);
-        readKeyMap.bind(alt('f'), Operation.NEW_BUFFER);
-        readKeyMap.bind(ctrl('T'), Operation.TO_FILES);
-        readKeyMap.bind(ctrl('X'), Operation.EXECUTE);
-        readKeyMap.bind("\r", Operation.ACCEPT);
-        readKeyMap.bind(ctrl('C'), Operation.CANCEL);
-        readKeyMap.bind(ctrl('G'), Operation.HELP);
-        readKeyMap.bind(console, Capability.key_f1, Operation.HELP);
+        readKeyMap.bind(Operation.BACKSPACE, del());
+        readKeyMap.bind(Operation.NEW_BUFFER, alt('f'));
+        readKeyMap.bind(Operation.TO_FILES, ctrl('T'));
+        readKeyMap.bind(Operation.EXECUTE, ctrl('X'));
+        readKeyMap.bind(Operation.ACCEPT, "\r");
+        readKeyMap.bind(Operation.CANCEL, ctrl('C'));
+        readKeyMap.bind(Operation.HELP, ctrl('G'), key(console, Capability.key_f1));
 
         editMessage = getReadMessage();
         editBuffer.setLength(0);
@@ -1510,13 +1508,13 @@ public class Nano {
 
     void search() throws IOException {
         KeyMap searchKeyMap = new KeyMap();
-        searchKeyMap.bind(alt('c'), Operation.CASE_SENSITIVE);
-        searchKeyMap.bind(alt('b'), Operation.BACKWARDS);
-        searchKeyMap.bind(alt('r'), Operation.REGEXP);
-        searchKeyMap.bind("\r", Operation.ACCEPT);
-        searchKeyMap.bind(ctrl('C'), Operation.CANCEL);
-        searchKeyMap.bind(ctrl('Y'), Operation.FIRST_LINE);
-        searchKeyMap.bind(ctrl('V'), Operation.LAST_LINE);
+        searchKeyMap.bind(Operation.CASE_SENSITIVE, alt('c'));
+        searchKeyMap.bind(Operation.BACKWARDS, alt('b'));
+        searchKeyMap.bind(Operation.REGEXP, alt('r'));
+        searchKeyMap.bind(Operation.ACCEPT, "\r");
+        searchKeyMap.bind(Operation.CANCEL, ctrl('C'));
+        searchKeyMap.bind(Operation.FIRST_LINE, ctrl('Y'));
+        searchKeyMap.bind(Operation.LAST_LINE, ctrl('V'));
 
         editMessage = getSearchMessage();
         editBuffer.setLength(0);
@@ -1854,119 +1852,93 @@ public class Nano {
     protected void bindKeys() {
         keys = new KeyMap();
 
-        for (char i = 32; i < 256; i++) {
-            keys.bind(Character.toString(i), Operation.INSERT);
+        for (char i = 32; i < KEYMAP_LENGTH; i++) {
+            keys.bind(Operation.INSERT, Character.toString(i));
         }
-        keys.bind(del(), Operation.BACKSPACE);
+        keys.bind(Operation.BACKSPACE, del());
         for (char i = 'A'; i <= 'Z'; i++) {
-            keys.bind(alt(i), Operation.DO_LOWER_CASE);
+            keys.bind(Operation.DO_LOWER_CASE, alt(i));
         }
 
-        keys.bind(ctrl('G'), Operation.HELP);
-        keys.bind(ctrl('X'), Operation.QUIT);
-        keys.bind(ctrl('O'), Operation.WRITE);
-        keys.bind(ctrl('J'), Operation.JUSTIFY_PARAGRAPH);
-        keys.bind(console, Capability.key_f1, Operation.HELP);
-        keys.bind(console, Capability.key_f2, Operation.QUIT);
-        keys.bind(console, Capability.key_f3, Operation.WRITE);
-        keys.bind(console, Capability.key_f4, Operation.JUSTIFY_PARAGRAPH);
+        keys.bind(Operation.HELP, ctrl('G'), key(console, Capability.key_f1));
+        keys.bind(Operation.QUIT, ctrl('X'), key(console, Capability.key_f2));
+        keys.bind(Operation.WRITE, ctrl('O'), key(console, Capability.key_f3));
+        keys.bind(Operation.JUSTIFY_PARAGRAPH, ctrl('J'), key(console, Capability.key_f4));
 
-        keys.bind(ctrl('R'), Operation.READ);
-        keys.bind(ctrl('W'), Operation.SEARCH);
-        keys.bind(ctrl('Y'), Operation.PREV_PAGE);
-        keys.bind(ctrl('V'), Operation.NEXT_PAGE);
-        keys.bind(console, Capability.key_f5, Operation.READ);
-        keys.bind(console, Capability.key_f6, Operation.SEARCH);
-        keys.bind(console, Capability.key_f7, Operation.PREV_PAGE);
-        keys.bind(console, Capability.key_f8, Operation.NEXT_PAGE);
+        keys.bind(Operation.READ, ctrl('R'), key(console, Capability.key_f5));
+        keys.bind(Operation.SEARCH, ctrl('W'), key(console, Capability.key_f6));
+        keys.bind(Operation.PREV_PAGE, ctrl('Y'), key(console, Capability.key_f7));
+        keys.bind(Operation.NEXT_PAGE, ctrl('V'), key(console, Capability.key_f8));
 
-        keys.bind(ctrl('K'), Operation.CUT);
-        keys.bind(ctrl('U'), Operation.UNCUT);
-        keys.bind(ctrl('C'), Operation.CUR_POS);
-        keys.bind(ctrl('T'), Operation.TO_SPELL);
-        keys.bind(console, Capability.key_f9, Operation.CUT);
-        keys.bind(console, Capability.key_f10, Operation.UNCUT);
-        keys.bind(console, Capability.key_f11, Operation.CUR_POS);
-        keys.bind(console, Capability.key_f12, Operation.TO_SPELL);
+        keys.bind(Operation.CUT, ctrl('K'), key(console, Capability.key_f9));
+        keys.bind(Operation.UNCUT, ctrl('U'), key(console, Capability.key_f10));
+        keys.bind(Operation.CUR_POS, ctrl('C'), key(console, Capability.key_f11));
+        keys.bind(Operation.TO_SPELL, ctrl('T'), key(console, Capability.key_f11));
 
-        keys.bind(ctrl('_'), Operation.GOTO);
-        keys.bind(ctrl('\\'), Operation.REPLACE);
-        keys.bind(ctrl('^'), Operation.MARK);
-        keys.bind(console, Capability.key_f13, Operation.GOTO);
-        keys.bind(console, Capability.key_f14, Operation.REPLACE);
-        keys.bind(console, Capability.key_f15, Operation.MARK);
-        keys.bind(console, Capability.key_f16, Operation.NEXT_SEARCH);
-        keys.bind(alt('g'), Operation.GOTO);
-        keys.bind(alt('r'), Operation.REPLACE);
-        keys.bind(alt('a'), Operation.MARK);
-        keys.bind(alt('w'), Operation.NEXT_SEARCH);
+        keys.bind(Operation.GOTO, ctrl('_'), key(console, Capability.key_f13), alt('g'));
+        keys.bind(Operation.REPLACE, ctrl('\\'), key(console, Capability.key_f14), alt('r'));
+        keys.bind(Operation.MARK, ctrl('^'), key(console, Capability.key_f15), alt('a'));
+        keys.bind(Operation.NEXT_SEARCH, key(console, Capability.key_f16), alt('w'));
 
-        keys.bind(alt('^'), Operation.COPY);
-        keys.bind(alt('}'), Operation.INDENT);
-        keys.bind(alt('{'), Operation.UNINDENT);
+        keys.bind(Operation.COPY, alt('^'));
+        keys.bind(Operation.INDENT, alt('}'));
+        keys.bind(Operation.UNINDENT, alt('{'));
 
-        keys.bind(ctrl('F'), Operation.RIGHT);
-        keys.bind(ctrl('B'), Operation.LEFT);
-        keys.bind(ctrl(' '), Operation.NEXT_WORD);
-        keys.bind(alt(' '), Operation.PREV_WORD);
-        keys.bind(ctrl('P'), Operation.UP);
-        keys.bind(ctrl('N'), Operation.DOWN);
+        keys.bind(Operation.RIGHT, ctrl('F'));
+        keys.bind(Operation.LEFT, ctrl('B'));
+        keys.bind(Operation.NEXT_WORD, ctrl(' '));
+        keys.bind(Operation.PREV_WORD, alt(' '));
+        keys.bind(Operation.UP, ctrl('P'));
+        keys.bind(Operation.DOWN, ctrl('N'));
 
-        keys.bind(ctrl('A'), Operation.BEGINNING_OF_LINE);
-        keys.bind(ctrl('E'), Operation.END_OF_LINE);
-        keys.bind(alt('('), Operation.BEGINNING_OF_PARAGRAPH);
-        keys.bind(alt(')'), Operation.END_OF_PARAGRAPH);
-        keys.bind(alt('\\'), Operation.FIRST_LINE);
-        keys.bind(alt('/'), Operation.LAST_LINE);
-        keys.bind(alt('9'), Operation.BEGINNING_OF_PARAGRAPH);
-        keys.bind(alt('0'), Operation.END_OF_PARAGRAPH);
-        keys.bind(alt('|'), Operation.FIRST_LINE);
-        keys.bind(alt('?'), Operation.LAST_LINE);
+        keys.bind(Operation.BEGINNING_OF_LINE, ctrl('A'));
+        keys.bind(Operation.END_OF_LINE, ctrl('E'));
+        keys.bind(Operation.BEGINNING_OF_PARAGRAPH, alt('('), alt('9'));
+        keys.bind(Operation.END_OF_PARAGRAPH, alt(')'), alt('0'));
+        keys.bind(Operation.FIRST_LINE, alt('\\'), alt('|'));
+        keys.bind(Operation.LAST_LINE, alt('/'), alt('?'));
 
-        keys.bind(alt(']'), Operation.MATCHING);
-        keys.bind(alt('-'), Operation.SCROLL_UP);
-        keys.bind(alt('+'), Operation.SCROLL_DOWN);
-        keys.bind(alt('_'), Operation.SCROLL_UP);
-        keys.bind(alt('='), Operation.SCROLL_DOWN);
+        keys.bind(Operation.MATCHING, alt(']'));
+        keys.bind(Operation.SCROLL_UP, alt('-'), alt('_'));
+        keys.bind(Operation.SCROLL_DOWN, alt('+'), alt('='));
 
-        keys.bind(alt('<'), Operation.PREV_BUFFER);
-        keys.bind(alt('>'), Operation.NEXT_BUFFER);
-        keys.bind(alt(','), Operation.PREV_BUFFER);
-        keys.bind(alt('.'), Operation.NEXT_BUFFER);
+        keys.bind(Operation.PREV_BUFFER, alt('<'));
+        keys.bind(Operation.NEXT_BUFFER, alt('>'));
+        keys.bind(Operation.PREV_BUFFER, alt(','));
+        keys.bind(Operation.NEXT_BUFFER, alt('.'));
 
-        keys.bind(alt('v'), Operation.VERBATIM);
-        keys.bind(ctrl('I'), Operation.INSERT);
-        keys.bind(ctrl('M'), Operation.INSERT);
-        keys.bind(ctrl('D'), Operation.DELETE);
-        keys.bind(ctrl('H'), Operation.BACKSPACE);
-        keys.bind(alt('t'), Operation.CUT_TO_END);
+        keys.bind(Operation.VERBATIM, alt('v'));
+        keys.bind(Operation.INSERT, ctrl('I'), ctrl('M'));
+        keys.bind(Operation.DELETE, ctrl('D'));
+        keys.bind(Operation.BACKSPACE, ctrl('H'));
+        keys.bind(Operation.CUT_TO_END, alt('t'));
 
-        keys.bind(alt('j'), Operation.JUSTIFY_FILE);
-        keys.bind(alt('d'), Operation.COUNT);
-        keys.bind(ctrl('L'), Operation.CLEAR_SCREEN);
+        keys.bind(Operation.JUSTIFY_FILE, alt('j'));
+        keys.bind(Operation.COUNT, alt('d'));
+        keys.bind(Operation.CLEAR_SCREEN, ctrl('L'));
 
-        keys.bind(alt('x'), Operation.HELP);
-        keys.bind(alt('c'), Operation.CONSTANT_CURSOR);
-        keys.bind(alt('o'), Operation.ONE_MORE_LINE);
-        keys.bind(alt('s'), Operation.SMOOTH_SCROLLING);
-        keys.bind(alt('p'), Operation.WHITESPACE);
-        keys.bind(alt('y'), Operation.HIGHLIGHT);
+        keys.bind(Operation.HELP, alt('x'));
+        keys.bind(Operation.CONSTANT_CURSOR, alt('c'));
+        keys.bind(Operation.ONE_MORE_LINE, alt('o'));
+        keys.bind(Operation.SMOOTH_SCROLLING, alt('s'));
+        keys.bind(Operation.WHITESPACE, alt('p'));
+        keys.bind(Operation.HIGHLIGHT, alt('y'));
 
-        keys.bind(alt('h'), Operation.SMART_HOME_KEY);
-        keys.bind(alt('i'), Operation.AUTO_INDENT);
-        keys.bind(alt('k'), Operation.CUT_TO_END_TOGGLE);
-        keys.bind(alt('l'), Operation.WRAP);
-        keys.bind(alt('q'), Operation.TABS_TO_SPACE);
+        keys.bind(Operation.SMART_HOME_KEY, alt('h'));
+        keys.bind(Operation.AUTO_INDENT, alt('i'));
+        keys.bind(Operation.CUT_TO_END_TOGGLE, alt('k'));
+        keys.bind(Operation.WRAP, alt('l'));
+        keys.bind(Operation.TABS_TO_SPACE, alt('q'));
 
-        keys.bind(alt('b'), Operation.BACKUP);
+        keys.bind(Operation.BACKUP, alt('b'));
 
-        keys.bind(alt('n'), Operation.NUMBERS);
+        keys.bind(Operation.NUMBERS, alt('n'));
 
         // TODO: map other keys
-        keys.bind(console, Capability.key_up, Operation.UP);
-        keys.bind(console, Capability.key_down, Operation.DOWN);
-        keys.bind(console, Capability.key_right, Operation.RIGHT);
-        keys.bind(console, Capability.key_left, Operation.LEFT);
+        keys.bind(Operation.UP, key(console, Capability.key_up));
+        keys.bind(Operation.DOWN, key(console, Capability.key_down));
+        keys.bind(Operation.RIGHT, key(console, Capability.key_right));
+        keys.bind(Operation.LEFT, key(console, Capability.key_left));
     }
 
     enum Operation implements Binding {

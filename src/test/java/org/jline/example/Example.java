@@ -246,8 +246,8 @@ public class Example
                         console.flush();
                     } else if (pl.words().size() == 3) {
                         ((ConsoleReaderImpl) reader).getKeys().bind(
-                                KeyMap.translate(pl.words().get(1)),
-                                new Reference(pl.words().get(2)));
+                                new Reference(pl.words().get(2)), KeyMap.translate(pl.words().get(1))
+                        );
                     }
                 }
                 else if ("cls".equals(pl.word())) {

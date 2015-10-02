@@ -242,6 +242,20 @@ public class KeyMap implements Binding {
         return key == '?' ? del() : Character.toString((char) (Character.toUpperCase(key) & 0x1f));
     }
 
+    public static String key(Console console, Capability capability) {
+        try {
+            String str = console.getStringCapability(capability);
+            if (str != null) {
+                StringWriter sw = new StringWriter();
+                Curses.tputs(sw, str);
+                return sw.toString();
+            }
+        } catch (IOException e) {
+            // Ignore
+        }
+        return null;
+    }
+
     public Object getAnotherKey() {
         return anotherKey;
     }
@@ -314,37 +328,44 @@ public class KeyMap implements Binding {
         return remaining[0] <= 0 ? res : null;
     }
 
-    public void bindIfNotBound(CharSequence keySeq, Binding function) {
-        if (function != null) {
+    public void bindIfNotBound(Binding function, CharSequence keySeq) {
+        if (function != null && keySeq != null) {
             bind(this, keySeq, function, true);
         }
     }
 
-    public void bind(CharSequence keySeq, Binding function) {
-        if (function == null) {
-            unbind(keySeq);
-        } else {
-            bind(this, keySeq, function, false);
+    public void bind(Binding function, CharSequence... keySeqs) {
+        for (CharSequence keySeq : keySeqs) {
+            bind(function, keySeq);
         }
     }
 
-    public boolean bind(Console console, Capability capability, Binding function) {
-        try {
-            String str = console.getStringCapability(capability);
-            if (str != null) {
-                StringWriter sw = new StringWriter();
-                Curses.tputs(sw, str);
-                bind(sw.toString(), function);
-                return true;
+    public void bind(Binding function, Iterable<? extends CharSequence> keySeqs) {
+        for (CharSequence keySeq : keySeqs) {
+            bind(function, keySeq);
+        }
+    }
+
+    public void bind(Binding function, CharSequence keySeq) {
+        if (keySeq != null) {
+            if (function == null) {
+                unbind(keySeq);
+            } else {
+                bind(this, keySeq, function, false);
             }
-        } catch (IOException e) {
-            // Ignore
         }
-        return false;
     }
 
-    public Binding unbind(CharSequence keySeq) {
-        return unbind(this, keySeq);
+    public void unbind(CharSequence... keySeqs) {
+        for (CharSequence keySeq : keySeqs) {
+            unbind(keySeq);
+        }
+    }
+
+    public void unbind(CharSequence keySeq) {
+        if (keySeq != null) {
+            unbind(this, keySeq);
+        }
     }
 
     private static Binding unbind(KeyMap map, CharSequence keySeq) {

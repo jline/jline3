@@ -87,8 +87,8 @@ public class HistoryTest
         KeyMap map = reader.getKeys();
 
         // Map in HISTORY_SEARCH_BACKWARD.
-        map.bind("\033[0A", HISTORY_SEARCH_BACKWARD);
-        map.bind("\033[0B", HISTORY_SEARCH_FORWARD);
+        map.bind(HISTORY_SEARCH_BACKWARD, "\033[0A");
+        map.bind(HISTORY_SEARCH_FORWARD, "\033[0B");
 
         TestBuffer b = new TestBuffer().
             append("toes").op(ACCEPT_LINE).
