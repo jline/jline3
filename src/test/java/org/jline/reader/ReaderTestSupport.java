@@ -91,7 +91,7 @@ public abstract class ReaderTestSupport
             // noop
         }
 
-        assertEquals(expected, reader.getCursorBuffer().toString());
+        assertEquals(expected, reader.getBuffer().toString());
     }
 
     protected void assertLine(final String expected, final TestBuffer buffer) {

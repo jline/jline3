@@ -457,7 +457,7 @@ public class ConsoleReaderTest extends ReaderTestSupport
 
     @Test
     public void testCallbacks() throws Exception {
-        reader.addTriggeredAction('x', r -> r.getCursorBuffer().clear());
+        reader.addTriggeredAction('x', r -> r.getBuffer().clear());
         assertLine("", new TestBuffer("sample stringx\n"));
     }
 

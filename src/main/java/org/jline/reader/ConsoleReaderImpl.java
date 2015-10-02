@@ -270,7 +270,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return widgets;
     }
 
-    public Buffer getCursorBuffer() {
+    public Buffer getBuffer() {
         return buf;
     }
 
@@ -2010,7 +2010,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected boolean quit() {
-        getCursorBuffer().clear();
+        getBuffer().clear();
         return acceptLine();
     }
 

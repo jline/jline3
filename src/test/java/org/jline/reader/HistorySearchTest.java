@@ -113,7 +113,7 @@ public class HistorySearchTest extends ReaderTestSupport {
         assertEquals(null, readLineResult);
         assertTrue(out.toString().contains("bck-i-search: f_"));
         assertFalse(out.toString().contains("bck-i-search: ff_"));
-        assertEquals("f", reader.getCursorBuffer().toString());
+        assertEquals("f", reader.getBuffer().toString());
         assertEquals(3, history.size());
     }
 
@@ -131,7 +131,7 @@ public class HistorySearchTest extends ReaderTestSupport {
 
         readLineResult = reader.readLine();
         assertEquals(null, readLineResult);
-        assertEquals("", reader.getCursorBuffer().toString());
+        assertEquals("", reader.getBuffer().toString());
         assertEquals(3, history.size());
     }
 }
