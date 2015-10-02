@@ -38,19 +38,10 @@ public class PosixSysConsole extends AbstractPosixConsole {
         parseInfoCmp();
         if (nativeSignals) {
             for (final Signal signal : Signal.values()) {
-                nativeHandlers.put(signal, Signals.register(signal.name(), new Runnable() {
-                    public void run() {
-                        raise(signal);
-                    }
-                }));
+                nativeHandlers.put(signal, Signals.register(signal.name(), () -> raise(signal)));
             }
         }
-        closer = new Task() {
-            @Override
-            public void run() throws Exception {
-                close();
-            }
-        };
+        closer = PosixSysConsole.this::close;
         ShutdownHooks.add(closer);
     }
 

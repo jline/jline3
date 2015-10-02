@@ -15,6 +15,7 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.jline.console.CygwinPty;
 import org.jline.console.EmulatedConsole;
 import org.jline.console.ExecPty;
 import org.jline.console.PosixSysConsole;
@@ -23,6 +24,7 @@ import org.jline.console.WinSysConsole;
 import org.jline.reader.ConsoleReaderImpl;
 import org.jline.reader.Parser;
 import org.jline.reader.history.MemoryHistory;
+import org.jline.utils.OSUtils;
 
 public final class JLine {
 
@@ -111,9 +113,23 @@ public final class JLine {
         }
 
         public Console build() throws IOException {
-            boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
             if ((system != null && system) || (system == null && in == null && out == null)) {
-                if (isWindows) {
+                //
+                // Cygwin support
+                //
+                if (OSUtils.IS_CYGWIN) {
+                    String type = this.type;
+                    if (type == null) {
+                        type = System.getenv("TERM");
+                    }
+                    String encoding = this.encoding;
+                    if (encoding == null) {
+                        encoding = Charset.defaultCharset().name();
+                    }
+                    Pty pty = CygwinPty.current();
+                    return new PosixSysConsole(type, consoleReaderBuilder, pty, encoding, nativeSignals);
+                }
+                else if (OSUtils.IS_WINDOWS) {
                     return new WinSysConsole(nativeSignals, consoleReaderBuilder);
                 } else {
                     String type = this.type;
@@ -127,10 +143,8 @@ public final class JLine {
                     Pty pty = ExecPty.current();
                     return new PosixSysConsole(type, consoleReaderBuilder, pty, encoding, nativeSignals);
                 }
-            } else if ((system != null && !system) || (system == null && in != null && out != null)) {
-                return new EmulatedConsole(type, consoleReaderBuilder, in, out, encoding);
             } else {
-                throw new IllegalArgumentException();
+                return new EmulatedConsole(type, consoleReaderBuilder, in, out, encoding);
             }
         }
     }

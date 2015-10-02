@@ -10,11 +10,13 @@ package org.jline.console;
 
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
+import java.io.IOError;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,6 +27,8 @@ import org.fusesource.jansi.internal.Kernel32.INPUT_RECORD;
 import org.fusesource.jansi.internal.Kernel32.KEY_EVENT_RECORD;
 import org.fusesource.jansi.internal.WindowsSupport;
 import org.jline.JLine.ConsoleReaderBuilder;
+import org.jline.console.Attributes.LocalFlag;
+import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.InputStreamReader;
 import org.jline.utils.Log;
@@ -40,8 +44,17 @@ public class WinSysConsole extends AbstractConsole {
     protected final Map<Signal, Object> nativeHandlers = new HashMap<Signal, Object>();
     protected final Task closer;
 
+    private static final int ENABLE_PROCESSED_INPUT = 0x0001;
+    private static final int ENABLE_LINE_INPUT      = 0x0002;
+    private static final int ENABLE_ECHO_INPUT      = 0x0004;
+    private static final int ENABLE_WINDOW_INPUT    = 0x0008;
+    private static final int ENABLE_MOUSE_INPUT     = 0x0010;
+    private static final int ENABLE_INSERT_MODE     = 0x0020;
+    private static final int ENABLE_QUICK_EDIT_MODE = 0x0040;
+
+
     public WinSysConsole(boolean nativeSignals, ConsoleReaderBuilder consoleReaderBuilder) throws IOException {
-        super("ansi", consoleReaderBuilder);
+        super("windows", consoleReaderBuilder);
         InputStream in = new DirectInputStream();
         OutputStream out = new WindowsAnsiOutputStream(new FileOutputStream(FileDescriptor.out));
         String encoding = getConsoleEncoding();
@@ -51,29 +64,17 @@ public class WinSysConsole extends AbstractConsole {
         this.reader = new NonBlockingReader(new InputStreamReader(in, encoding));
         this.writer = new PrintWriter(new OutputStreamWriter(out, encoding));
         parseInfoCmp();
-        // Scroll up/down are not supported on jansi < 1.12
-        // TODO: detect jansi version ?
-        strings.remove(Capability.parm_index);
-        strings.remove(Capability.parm_rindex);
         // Handle signals
         if (nativeSignals) {
             for (final Signal signal : Signal.values()) {
-                nativeHandlers.put(signal, Signals.register(signal.name(), new Runnable() {
-                    public void run() {
-                        raise(signal);
-                    }
-                }));
+                nativeHandlers.put(signal, Signals.register(signal.name(), () -> raise(signal)));
             }
         }
-        closer = new Task() {
-            @Override
-            public void run() throws Exception {
-                close();
-            }
-        };
+        closer = this::close;
         ShutdownHooks.add(closer);
     }
 
+    @SuppressWarnings("InjectedReferences")
     protected static String getConsoleEncoding() {
         int codepage = Kernel32.GetConsoleOutputCP();
         //http://docs.oracle.com/javase/6/docs/technotes/guides/intl/encoding.doc.html
@@ -97,15 +98,26 @@ public class WinSysConsole extends AbstractConsole {
     }
 
     public Attributes getAttributes() {
-        return null;
+        int mode = WindowsSupport.getConsoleMode();
+        Attributes attributes = new Attributes();
+        if ((mode & ENABLE_ECHO_INPUT) != 0) {
+            attributes.setLocalFlag(LocalFlag.ECHO, true);
+        }
+        if ((mode & ENABLE_LINE_INPUT) != 0) {
+            attributes.setLocalFlag(LocalFlag.ICANON, true);
+        }
+        return attributes;
     }
 
     public void setAttributes(Attributes attr) {
-
-    }
-
-    public void setAttributes(Attributes attr, int actions) {
-
+        int mode = 0;
+        if (attr.getLocalFlag(LocalFlag.ECHO)) {
+            mode |= ENABLE_ECHO_INPUT;
+        }
+        if (attr.getLocalFlag(LocalFlag.ICANON)) {
+            mode |= ENABLE_LINE_INPUT;
+        }
+        WindowsSupport.setConsoleMode(mode);
     }
 
     public Size getSize() {
@@ -142,63 +154,107 @@ public class WinSysConsole extends AbstractConsole {
         StringBuilder sb = new StringBuilder();
         for (INPUT_RECORD event : events) {
             KEY_EVENT_RECORD keyEvent = event.keyEvent;
+            // support some C1 control sequences: ALT + [@-_] (and [a-z]?) => ESC <ascii>
+            // http://en.wikipedia.org/wiki/C0_and_C1_control_codes#C1_set
+            final int altState = KEY_EVENT_RECORD.LEFT_ALT_PRESSED | KEY_EVENT_RECORD.RIGHT_ALT_PRESSED;
+            // Pressing "Alt Gr" is translated to Alt-Ctrl, hence it has to be checked that Ctrl is _not_ pressed,
+            // otherwise inserting of "Alt Gr" codes on non-US keyboards would yield errors
+            final int ctrlState = KEY_EVENT_RECORD.LEFT_CTRL_PRESSED | KEY_EVENT_RECORD.RIGHT_CTRL_PRESSED;
+            // Compute the overall alt state
+            boolean isAlt = ((keyEvent.controlKeyState & altState) != 0) && ((keyEvent.controlKeyState & ctrlState) == 0);
+
             //Log.trace(keyEvent.keyDown? "KEY_DOWN" : "KEY_UP", "key code:", keyEvent.keyCode, "char:", (long)keyEvent.uchar);
             if (keyEvent.keyDown) {
                 if (keyEvent.uchar > 0) {
-                    // support some C1 control sequences: ALT + [@-_] (and [a-z]?) => ESC <ascii>
-                    // http://en.wikipedia.org/wiki/C0_and_C1_control_codes#C1_set
-                    final int altState = KEY_EVENT_RECORD.LEFT_ALT_PRESSED | KEY_EVENT_RECORD.RIGHT_ALT_PRESSED;
-                    // Pressing "Alt Gr" is translated to Alt-Ctrl, hence it has to be checked that Ctrl is _not_ pressed,
-                    // otherwise inserting of "Alt Gr" codes on non-US keyboards would yield errors
-                    final int ctrlState = KEY_EVENT_RECORD.LEFT_CTRL_PRESSED | KEY_EVENT_RECORD.RIGHT_CTRL_PRESSED;
-                    if (((keyEvent.uchar >= '@' && keyEvent.uchar <= '_') || (keyEvent.uchar >= 'a' && keyEvent.uchar <= 'z'))
-                            && ((keyEvent.controlKeyState & altState) != 0) && ((keyEvent.controlKeyState & ctrlState) == 0)) {
-                        sb.append('\u001B'); // ESC
+                    if (isAlt) {
+                        sb.append('\033');
                     }
-
                     sb.append(keyEvent.uchar);
-                    continue;
                 }
-                // virtual keycodes: http://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
-                // just add support for basic editing keys (no control state, no numpad keys)
-                String escapeSequence = null;
-                switch (keyEvent.keyCode) {
-                    case 0x21: // VK_PRIOR PageUp
-                        escapeSequence = "\u001B[5~";
-                        break;
-                    case 0x22: // VK_NEXT PageDown
-                        escapeSequence = "\u001B[6~";
-                        break;
-                    case 0x23: // VK_END
-                        escapeSequence = "\u001B[4~";
-                        break;
-                    case 0x24: // VK_HOME
-                        escapeSequence = "\u001B[1~";
-                        break;
-                    case 0x25: // VK_LEFT
-                        escapeSequence = "\u001B[D";
-                        break;
-                    case 0x26: // VK_UP
-                        escapeSequence = "\u001B[A";
-                        break;
-                    case 0x27: // VK_RIGHT
-                        escapeSequence = "\u001B[C";
-                        break;
-                    case 0x28: // VK_DOWN
-                        escapeSequence = "\u001B[B";
-                        break;
-                    case 0x2D: // VK_INSERT
-                        escapeSequence = "\u001B[2~";
-                        break;
-                    case 0x2E: // VK_DELETE
-                        escapeSequence = "\u001B[3~";
-                        break;
-                    default:
-                        break;
-                }
-                if (escapeSequence != null) {
-                    for (int k = 0; k < keyEvent.repeatCount; k++) {
-                        sb.append(escapeSequence);
+                else {
+                    // virtual keycodes: http://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
+                    // TODO: numpad keys, modifiers
+                    String escapeSequence = null;
+                    switch (keyEvent.keyCode) {
+                        case 0x08: // VK_BACK BackSpace
+                            escapeSequence = getSequence(Capability.key_backspace);
+                            break;
+                        case 0x21: // VK_PRIOR PageUp
+                            escapeSequence = getSequence(Capability.key_ppage);
+                            break;
+                        case 0x22: // VK_NEXT PageDown
+                            escapeSequence = getSequence(Capability.key_npage);
+                            break;
+                        case 0x23: // VK_END
+                            escapeSequence = getSequence(Capability.key_end);
+                            break;
+                        case 0x24: // VK_HOME
+                            escapeSequence = getSequence(Capability.key_home);
+                            break;
+                        case 0x25: // VK_LEFT
+                            escapeSequence = getSequence(Capability.key_left);
+                            break;
+                        case 0x26: // VK_UP
+                            escapeSequence = getSequence(Capability.key_up);
+                            break;
+                        case 0x27: // VK_RIGHT
+                            escapeSequence = getSequence(Capability.key_right);
+                            break;
+                        case 0x28: // VK_DOWN
+                            escapeSequence = getSequence(Capability.key_down);
+                            break;
+                        case 0x2D: // VK_INSERT
+                            escapeSequence = getSequence(Capability.key_ic);
+                            break;
+                        case 0x2E: // VK_DELETE
+                            escapeSequence = getSequence(Capability.key_dc);
+                            break;
+                        case 0x70: // VK_F1
+                            escapeSequence = getSequence(Capability.key_f1);
+                            break;
+                        case 0x71: // VK_F2
+                            escapeSequence = getSequence(Capability.key_f2);
+                            break;
+                        case 0x72: // VK_F3
+                            escapeSequence = getSequence(Capability.key_f3);
+                            break;
+                        case 0x73: // VK_F4
+                            escapeSequence = getSequence(Capability.key_f4);
+                            break;
+                        case 0x74: // VK_F5
+                            escapeSequence = getSequence(Capability.key_f5);
+                            break;
+                        case 0x75: // VK_F6
+                            escapeSequence = getSequence(Capability.key_f6);
+                            break;
+                        case 0x76: // VK_F7
+                            escapeSequence = getSequence(Capability.key_f7);
+                            break;
+                        case 0x77: // VK_F8
+                            escapeSequence = getSequence(Capability.key_f8);
+                            break;
+                        case 0x78: // VK_F9
+                            escapeSequence = getSequence(Capability.key_f9);
+                            break;
+                        case 0x79: // VK_F10
+                            escapeSequence = getSequence(Capability.key_f10);
+                            break;
+                        case 0x7A: // VK_F11
+                            escapeSequence = getSequence(Capability.key_f11);
+                            break;
+                        case 0x7B: // VK_F12
+                            escapeSequence = getSequence(Capability.key_f12);
+                            break;
+                        default:
+                            break;
+                    }
+                    if (escapeSequence != null) {
+                        for (int k = 0; k < keyEvent.repeatCount; k++) {
+                            if (isAlt) {
+                                sb.append('\033');
+                            }
+                            sb.append(escapeSequence);
+                        }
                     }
                 }
             } else {
@@ -210,6 +266,20 @@ public class WinSysConsole extends AbstractConsole {
             }
         }
         return sb.toString().getBytes();
+    }
+
+    private String getSequence(Capability cap) {
+        String str = strings.get(cap);
+        if (str != null) {
+            StringWriter sw = new StringWriter();
+            try {
+                Curses.tputs(sw, str);
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+            return sw.toString();
+        }
+        return null;
     }
 
     private class DirectInputStream extends InputStream {
@@ -225,6 +295,23 @@ public class WinSysConsole extends AbstractConsole {
             int c = buf[bufIdx] & 0xFF;
             bufIdx++;
             return c;
+        }
+
+        public int read(byte b[], int off, int len) throws IOException {
+            if (b == null) {
+                throw new NullPointerException();
+            } else if (off < 0 || len < 0 || len > b.length - off) {
+                throw new IndexOutOfBoundsException();
+            } else if (len == 0) {
+                return 0;
+            }
+
+            int c = read();
+            if (c == -1) {
+                return -1;
+            }
+            b[off] = (byte)c;
+            return 1;
         }
     }
 }

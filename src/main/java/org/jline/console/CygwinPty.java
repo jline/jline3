@@ -8,6 +8,7 @@
  */
 package org.jline.console;
 
+import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -32,7 +33,7 @@ import org.jline.utils.OSUtils;
 
 import static org.jline.utils.Preconditions.checkNotNull;
 
-public class ExecPty implements Pty {
+public class CygwinPty implements Pty {
 
     private final String name;
 
@@ -45,13 +46,13 @@ public class ExecPty implements Pty {
             if (p.exitValue() != 0) {
                 throw new IOException("Not a tty");
             }
-            return new ExecPty(result);
+            return new CygwinPty(result);
         } catch (InterruptedException e) {
             throw (IOException) new InterruptedIOException("Command interrupted").initCause(e);
         }
     }
 
-    protected ExecPty(String name) {
+    protected CygwinPty(String name) {
         this.name = name;
     }
 
@@ -75,12 +76,12 @@ public class ExecPty implements Pty {
 
     @Override
     public InputStream getSlaveInput() throws IOException {
-        return new FileInputStream(getName());
+        return new FileInputStream(FileDescriptor.in);
     }
 
     @Override
     public OutputStream getSlaveOutput() throws IOException {
-        return new FileOutputStream(getName());
+        return new FileOutputStream(FileDescriptor.out);
     }
 
     @Override
@@ -141,8 +142,6 @@ public class ExecPty implements Pty {
         }
         if (!commands.isEmpty()) {
             commands.add(0, OSUtils.STTY_COMMAND);
-            commands.add(1, "-f");
-            commands.add(2, getName());
             exec(commands.toArray(new String[commands.size()]));
         }
     }
@@ -154,7 +153,7 @@ public class ExecPty implements Pty {
     }
 
     protected String doGetConfig() throws IOException {
-        return exec(OSUtils.STTY_COMMAND, "-f", getName(), "-a");
+        return exec(OSUtils.STTY_COMMAND, "-a");
     }
 
     static Attributes doGetAttr(String cfg) throws IOException {
@@ -262,7 +261,6 @@ public class ExecPty implements Pty {
     @Override
     public void setSize(Size size) throws IOException {
         exec(OSUtils.STTY_COMMAND,
-             "-f", getName(),
              "columns", Integer.toString(size.getColumns()),
              "rows", Integer.toString(size.getRows()));
     }
@@ -271,7 +269,7 @@ public class ExecPty implements Pty {
         checkNotNull(cmd);
         try {
             Log.trace("Running: ", cmd);
-            Process p = new ProcessBuilder(cmd).start();
+            Process p = new ProcessBuilder(cmd).redirectInput(Redirect.INHERIT).start();
             String result = ExecHelper.waitAndCapture(p);
             Log.trace("Result: ", result);
             if (p.exitValue() != 0) {
