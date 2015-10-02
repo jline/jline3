@@ -963,6 +963,7 @@ public class Nano {
         console.setAttributes(newAttr);
         SignalHandler prevHandler = console.handle(Signal.WINCH, this::handle);
         console.puts(Capability.enter_ca_mode);
+        console.puts(Capability.keypad_xmit);
         size.copy(console.getSize());
         display.clear();
         display.reset();
@@ -1093,6 +1094,7 @@ public class Nano {
             }
         } finally {
             console.puts(Capability.exit_ca_mode);
+            console.puts(Capability.keypad_local);
             console.flush();
             console.setAttributes(attributes);
             console.handle(Signal.WINCH, prevHandler);
@@ -1963,10 +1965,10 @@ public class Nano {
         keys.bind(alt('n'), Operation.NUMBERS);
 
         // TODO: map other keys
-        keys.bind("\033[A", Operation.UP);
-        keys.bind("\033[B", Operation.DOWN);
-        keys.bind("\033[C", Operation.RIGHT);
-        keys.bind("\033[D", Operation.LEFT);
+        keys.bind(console, Capability.key_up, Operation.UP);
+        keys.bind(console, Capability.key_down, Operation.DOWN);
+        keys.bind(console, Capability.key_right, Operation.RIGHT);
+        keys.bind(console, Capability.key_left, Operation.LEFT);
     }
 
     enum Operation implements Binding {

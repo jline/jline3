@@ -412,6 +412,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             display.setColumns(size.getColumns());
             display.setTabWidth(TAB_WIDTH);
 
+            // Move into application mode
+            console.puts(Capability.keypad_xmit);
             // Make sure we position the cursor on column 0
             rawPrint(Ansi.ansi().bg(Color.DEFAULT).fgBright(Color.BLACK).a("~").fg(Color.DEFAULT).toString());
             rawPrint(' ', size.getColumns() - 1);
@@ -1692,9 +1694,12 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     protected void cleanup() {
         endOfLine();
         post = null;
-        redisplay(false);
-        println();
-        flush();
+        if (size.getColumns() > 0 || size.getRows() > 0) {
+            redisplay(false);
+            println();
+            console.puts(Capability.keypad_local);
+            flush();
+        }
         history.moveToEnd();
     }
 
@@ -3831,61 +3836,15 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
 
     public void bindArrowKeys(KeyMap map) {
-
-        // MS-DOS
-        map.bind( "\033[0A", Operation.PREVIOUS_HISTORY );
-        map.bind( "\033[0B", Operation.BACKWARD_CHAR );
-        map.bind( "\033[0C", Operation.FORWARD_CHAR );
-        map.bind( "\033[0D", Operation.NEXT_HISTORY );
-
-        // Windows
-        map.bind( "\340\000", Operation.KILL_WHOLE_LINE );
-        map.bind( "\340\107", Operation.BEGINNING_OF_LINE );
-        map.bind( "\340\110", Operation.PREVIOUS_HISTORY );
-        map.bind( "\340\111", Operation.BEGINNING_OF_HISTORY );
-        map.bind( "\340\113", Operation.BACKWARD_CHAR );
-        map.bind( "\340\115", Operation.FORWARD_CHAR );
-        map.bind( "\340\117", Operation.END_OF_LINE );
-        map.bind( "\340\120", Operation.NEXT_HISTORY );
-        map.bind( "\340\121", Operation.END_OF_HISTORY );
-        map.bind( "\340\122", Operation.OVERWRITE_MODE );
-        map.bind( "\340\123", Operation.DELETE_CHAR );
-
-        map.bind( "\000\107", Operation.BEGINNING_OF_LINE );
-        map.bind( "\000\110", Operation.PREVIOUS_HISTORY );
-        map.bind( "\000\111", Operation.BEGINNING_OF_HISTORY );
-        map.bind( "\000\110", Operation.PREVIOUS_HISTORY );
-        map.bind( "\000\113", Operation.BACKWARD_CHAR );
-        map.bind( "\000\115", Operation.FORWARD_CHAR );
-        map.bind( "\000\117", Operation.END_OF_LINE );
-        map.bind( "\000\120", Operation.NEXT_HISTORY );
-        map.bind( "\000\121", Operation.END_OF_HISTORY );
-        map.bind( "\000\122", Operation.OVERWRITE_MODE );
-        map.bind( "\000\123", Operation.DELETE_CHAR );
-
-        map.bind( "\033[A", Operation.PREVIOUS_HISTORY );
-        map.bind( "\033[B", Operation.NEXT_HISTORY );
-        map.bind( "\033[C", Operation.FORWARD_CHAR );
-        map.bind( "\033[D", Operation.BACKWARD_CHAR );
-        map.bind( "\033[H", Operation.BEGINNING_OF_LINE );
-        map.bind( "\033[F", Operation.END_OF_LINE );
-
-        map.bind( "\033OA", Operation.PREVIOUS_HISTORY );
-        map.bind( "\033OB", Operation.NEXT_HISTORY );
-        map.bind( "\033OC", Operation.FORWARD_CHAR );
-        map.bind( "\033OD", Operation.BACKWARD_CHAR );
-        map.bind( "\033OH", Operation.BEGINNING_OF_LINE );
-        map.bind( "\033OF", Operation.END_OF_LINE );
-
-        map.bind( "\033[1~", Operation.BEGINNING_OF_LINE);
-        map.bind( "\033[4~", Operation.END_OF_LINE);
-        map.bind( "\033[3~", Operation.DELETE_CHAR);
-
-        // MINGW32
-        map.bind( "\0340H", Operation.PREVIOUS_HISTORY );
-        map.bind( "\0340P", Operation.NEXT_HISTORY );
-        map.bind( "\0340M", Operation.FORWARD_CHAR );
-        map.bind( "\0340K", Operation.BACKWARD_CHAR );
+        bindCapability(map, Capability.key_up, Operation.UP_LINE_OR_HISTORY);
+        bindCapability(map, Capability.key_down, Operation.DOWN_LINE_OR_HISTORY);
+        bindCapability(map, Capability.key_left, Operation.BACKWARD_CHAR);
+        bindCapability(map, Capability.key_right, Operation.FORWARD_CHAR);
+        bindCapability(map, Capability.key_home, Operation.BEGINNING_OF_LINE);
+        bindCapability(map, Capability.key_end, Operation.END_OF_LINE);
+        bindCapability(map, Capability.key_dc, Operation.DELETE_CHAR);
+        bindCapability(map, Capability.key_dl, Operation.KILL_WHOLE_LINE);
+        bindCapability(map, Capability.key_ic, Operation.OVERWRITE_MODE);
     }
 
     public Map<String, KeyMap> defaultKeyMaps() {
