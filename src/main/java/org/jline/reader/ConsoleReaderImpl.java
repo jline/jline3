@@ -16,11 +16,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.StringWriter;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -181,6 +183,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     protected ViMoveMode viMoveMode = ViMoveMode.NORMAL;
 
     protected KillRing killRing = new KillRing();
+
+    protected Deque<Buffer> undo = new ArrayDeque<>();
+    protected boolean isUndo;
 
     protected String macro = "";
 
@@ -417,6 +422,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             if (buffer != null) {
                 buf.write(buffer);
             }
+            undo.clear();
 
             // Draw initial prompt
             redrawLine();
@@ -437,12 +443,17 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 // of times, needs to know how many times to repeat, so
                 // we figure that out here.
                 count = (repeatCount == 0) ? 1 : repeatCount;
+                // Reset undo/redo flag
+                isUndo = false;
 
                 // Get executable widget
                 Buffer copy = buf.copy();
                 Widget<ConsoleReaderImpl> w = getWidget(o);
                 if (w == null || !w.apply(this)) {
                     beep();
+                }
+                if (!isUndo && !copy.toString().equals(buf.toString())) {
+                    undo.push(copy);
                 }
 
                 switch (state) {
@@ -1467,6 +1478,15 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return keyMap.equals(name);
     }
 
+    protected boolean undo() {
+        isUndo = true;
+        if (undo.size() > 0) {
+            Buffer b = undo.pop();
+            buf.setBuffer(b);
+            return true;
+        }
+        return false;
+    }
 
     protected boolean abort() {
         if (searchTerm == null) {
