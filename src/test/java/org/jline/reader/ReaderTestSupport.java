@@ -53,7 +53,7 @@ public abstract class ReaderTestSupport
         out = new ByteArrayOutputStream();
         console = new DumbConsole(null, in, out);
         reader = new TestConsoleReader(console, "JLine", null);
-        reader.setKeyMap(KeyMap.EMACS);
+        reader.setKeyMap(ConsoleReaderImpl.EMACS);
         mask = null;
     }
 

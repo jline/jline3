@@ -15,6 +15,7 @@ import java.io.IOError;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -48,11 +49,18 @@ import org.jline.History;
 import org.jline.console.Attributes;
 import org.jline.console.Attributes.ControlChar;
 import org.jline.console.Size;
+import org.jline.keymap.Binding;
+import org.jline.keymap.BindingReader;
+import org.jline.keymap.KeyMap;
+import org.jline.keymap.Macro;
+import org.jline.keymap.Widget;
+import org.jline.keymap.WidgetRef;
 import org.jline.reader.history.MemoryHistory;
 import org.jline.utils.Ansi;
 import org.jline.utils.Ansi.Attribute;
 import org.jline.utils.Ansi.Color;
 import org.jline.utils.AnsiHelper;
+import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.Levenshtein;
 import org.jline.utils.Log;
@@ -183,7 +191,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected Supplier<String> post;
 
-    protected Map<Operation, Widget> dispatcher;
+    protected Map<String, Widget<ConsoleReaderImpl>> widgets;
 
     protected int count;
     protected int repeatCount;
@@ -196,7 +204,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected boolean overTyping = false;
 
-    protected KeyMap keys;
+    protected String keyMap = MAIN;
 
 
     public ConsoleReaderImpl(Console console) throws IOException {
@@ -219,45 +227,13 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         } else {
             this.variables = new HashMap<>();
         }
-        this.keyMaps = KeyMap.keyMaps();
-        this.keys = keyMaps.get(KeyMap.EMACS);
+        this.keyMaps = defaultKeyMaps();
+        this.keyMap = EMACS;
 
-        if (getBoolean(BIND_TTY_SPECIAL_CHARS, true)) {
-            Attributes attr = console.getAttributes();
-            bindConsoleChars(keyMaps.get(KeyMap.EMACS), attr);
-            bindConsoleChars(keyMaps.get(KeyMap.VI_INSERT), attr);
-        }
-        dispatcher = createDispatcher();
-        bindingReader = new BindingReader(console);
-        bindingReader.ambiguousTimeout = getLong(AMBIGUOUS_BINDING, AMBIGUOUS_BINDING_TIMEOUT);
-    }
-
-    /**
-     * Bind special chars defined by the console instead of
-     * the default bindings
-     */
-    protected static void bindConsoleChars(KeyMap keyMap, Attributes attr) {
-        if (attr != null) {
-            rebind(keyMap, Operation.BACKWARD_DELETE_CHAR,
-                           /* C-? */ (char) 127, (char) attr.getControlChar(ControlChar.VERASE));
-            rebind(keyMap, Operation.UNIX_WORD_RUBOUT,
-                           /* C-W */ (char) 23,  (char) attr.getControlChar(ControlChar.VWERASE));
-            rebind(keyMap, Operation.UNIX_LINE_DISCARD,
-                           /* C-U */ (char) 21, (char) attr.getControlChar(ControlChar.VKILL));
-            rebind(keyMap, Operation.QUOTED_INSERT,
-                           /* C-V */ (char) 22, (char) attr.getControlChar(ControlChar.VLNEXT));
-        }
-    }
-
-    protected static void rebind(KeyMap keyMap, Operation operation, char prevBinding, char newBinding) {
-        if (prevBinding > 0 && prevBinding < 255) {
-            if (keyMap.getBound("" + prevBinding) == operation) {
-                keyMap.bind("" + prevBinding, Operation.SELF_INSERT);
-                if (newBinding > 0 && newBinding < 255) {
-                    keyMap.bind("" + newBinding, operation);
-                }
-            }
-        }
+        widgets = builtinWidgets();
+        bindingReader = new BindingReader(console,
+                Operation.SELF_INSERT,
+                getLong(AMBIGUOUS_BINDING, AMBIGUOUS_BINDING_TIMEOUT));
     }
 
     protected void setupSigCont() {
@@ -277,8 +253,16 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return appName;
     }
 
+    public Map<String, KeyMap> getKeyMaps() {
+        return keyMaps;
+    }
+
     public KeyMap getKeys() {
-        return keys;
+        return keyMaps.get(keyMap);
+    }
+
+    public Map<String, Widget<ConsoleReaderImpl>> getWidgets() {
+        return widgets;
     }
 
     public Buffer getCursorBuffer() {
@@ -455,7 +439,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 count = (repeatCount == 0) ? 1 : repeatCount;
 
                 // Get executable widget
-                Widget w = getWidget(o);
+                Buffer copy = buf.copy();
+                Widget<ConsoleReaderImpl> w = getWidget(o);
                 if (w == null || !w.apply(this)) {
                     beep();
                 }
@@ -508,10 +493,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
     }
 
-    protected Widget getWidget(Object binding) {
-        Widget w = null;
+    @SuppressWarnings("unchecked")
+    protected Widget<ConsoleReaderImpl> getWidget(Object binding) {
+        Widget<ConsoleReaderImpl> w = null;
         if (binding instanceof Widget) {
-            w = (Widget) binding;
+            w = (Widget<ConsoleReaderImpl>) binding;
         } else if (binding instanceof Macro) {
             String macro = ((Macro) binding).getSequence();
             w = r -> {
@@ -519,7 +505,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 return true;
             };
         } else if (binding instanceof Operation) {
-            w = dispatcher.get(binding);
+            w = widgets.get(((Operation) binding).func());
+        } else if (binding instanceof WidgetRef) {
+            w = widgets.get(((WidgetRef) binding).name());
         }
         return w;
     }
@@ -1107,7 +1095,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         beginningOfLine();
         putString(comment);
         if (isViMode) {
-            setKeyMap(KeyMap.VI_INSERT);
+            setKeyMap(VIINS);
         }
         return acceptLine();
     }
@@ -1476,18 +1464,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     public boolean isKeyMap(String name) {
-        // Current keymap.
-        KeyMap map = keys;
-        KeyMap mapByName = keyMaps.get(name);
-
-        if (mapByName == null)
-            return false;
-
-        /*
-         * This may not be safe to do, but there doesn't appear to be a
-         * clean way to find this information out.
-         */
-        return map == mapByName;
+        return keyMap.equals(name);
     }
 
 
@@ -1533,12 +1510,12 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * @return the decoded binding or <code>null</code> if the end of
      *         stream has been reached
      */
-    public Object readBinding(KeyMap keys) {
+    public Binding readBinding(KeyMap keys) {
         return readBinding(keys, null);
     }
 
-    public Object readBinding(KeyMap keys, KeyMap local) {
-        Object o = bindingReader.readBinding(keys, local);
+    public Binding readBinding(KeyMap keys, KeyMap local) {
+        Binding o = bindingReader.readBinding(keys, local);
         /*
          * The kill ring keeps record of whether or not the
          * previous command was a yank or a kill. We reset
@@ -1575,7 +1552,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     /**
      * Sets the current keymap by name. Supported keymaps are "emacs",
-     * "vi-insert", "vi-move".
+     * "viins", "vicmd".
      * @param name The name of the keymap to switch to
      * @return true if the keymap was set, or false if the keymap is
      *    not recognized.
@@ -1585,7 +1562,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         if (map == null) {
             return false;
         }
-        this.keys = map;
+        this.keyMap = name;
         return true;
     }
 
@@ -1596,7 +1573,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      *   was used with {@link #setKeyMap(String)}.
      */
     public String getKeyMap() {
-        return keys.getName();
+        return keyMap;
     }
 
     protected boolean viBeginningOfLineOrArgDigit() {
@@ -1626,7 +1603,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 killWholeLine();
             } else {
                 viMoveMode = ViMoveMode.DELETE_TO;
-                Widget widget = dispatcher.get(op);
+                Widget<ConsoleReaderImpl> widget = widgets.get(op.func());
                 if (widget != null && !widget.apply(this)) {
                     return false;
                 }
@@ -1650,7 +1627,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 return true;
             } else {
                 viMoveMode = ViMoveMode.YANK_TO;
-                Widget widget = dispatcher.get(op);
+                Widget<ConsoleReaderImpl> widget = widgets.get(op.func());
                 if (widget != null && !widget.apply(this)) {
                     return false;
                 }
@@ -1673,14 +1650,14 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 killWholeLine();
             } else {
                 viMoveMode = ViMoveMode.CHANGE_TO;
-                Widget widget = dispatcher.get(op);
+                Widget<ConsoleReaderImpl> widget = widgets.get(op.func());
                 if (widget != null && !widget.apply(this)) {
                     return false;
                 }
                 viMoveMode = ViMoveMode.NORMAL;
             }
             boolean res = viChangeTo(cursorStart, buf.cursor());
-            setKeyMap(KeyMap.VI_INSERT);
+            setKeyMap(VIINS);
             return res;
         } else {
             pushBackBinding();
@@ -1739,7 +1716,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         redisplay();
 
-        KeyMap terminators = new KeyMap("terminators");
+        KeyMap terminators = new KeyMap();
         getString("search-terminators", "\033\012")
                 .codePoints().forEach(c -> terminators.bind(new String(Character.toChars(c)), Operation.ACCEPT_LINE));
 
@@ -2024,7 +2001,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
          * ACCEPT_LINE, except that we need to enter
          * insert mode as well.
          */
-        setKeyMap(KeyMap.VI_INSERT);
+        setKeyMap(VIINS);
         return acceptLine();
     }
 
@@ -2067,7 +2044,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected boolean selfInsertUnmeta() {
-        if (getLastBinding().charAt(0) == KeyMap.ESCAPE) {
+        if (getLastBinding().charAt(0) == ESCAPE) {
             String s = getLastBinding().substring(1);
             if ("\r".equals(s)) {
                 s = "\n";
@@ -2158,29 +2135,29 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         if (state == State.NORMAL) {
             buf.move(-1);
         }
-        return setKeyMap(KeyMap.VI_MOVE);
+        return setKeyMap(VICMD);
     }
 
     protected boolean viInsertionMode() {
-        return setKeyMap(KeyMap.VI_INSERT);
+        return setKeyMap(VIINS);
     }
 
     protected boolean  viAppendMode() {
         buf.move(1);
-        return setKeyMap(KeyMap.VI_INSERT);
+        return setKeyMap(VIINS);
     }
 
     protected boolean viAppendEol() {
-        return endOfLine() && setKeyMap(KeyMap.VI_INSERT);
+        return endOfLine() && setKeyMap(VIINS);
     }
 
     protected boolean emacsEditingMode() {
-        return setKeyMap(KeyMap.EMACS);
+        return setKeyMap(EMACS);
     }
 
     protected boolean viChangeToEol() {
         return viChangeTo(buf.cursor(), buf.length())
-                && setKeyMap(KeyMap.VI_INSERT);
+                && setKeyMap(VIINS);
     }
 
     protected boolean viDeleteToEol() {
@@ -2203,11 +2180,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected boolean viKillWholeLine() {
-        return killWholeLine() && setKeyMap(KeyMap.VI_INSERT);
+        return killWholeLine() && setKeyMap(VIINS);
     }
 
     protected boolean viInsertBeg() {
-        return beginningOfLine() && setKeyMap(KeyMap.VI_INSERT);
+        return beginningOfLine() && setKeyMap(VIINS);
     }
 
     protected boolean backwardDeleteChar() {
@@ -2215,7 +2192,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected boolean viEditingMode() {
-        return setKeyMap(KeyMap.VI_INSERT);
+        return setKeyMap(VIINS);
     }
 
     protected boolean callLastKbdMacro() {
@@ -2455,96 +2432,96 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return true;
     }
 
-    protected Map<Operation, Widget> createDispatcher() {
-        Map<Operation, Widget> dispatcher = new HashMap<>();
-        dispatcher.put(Operation.ABORT, ConsoleReaderImpl::abort);
-        dispatcher.put(Operation.ACCEPT_LINE, ConsoleReaderImpl::acceptLine);
-        dispatcher.put(Operation.BACKWARD_CHAR, ConsoleReaderImpl::backwardChar);
-        dispatcher.put(Operation.BACKWARD_DELETE_CHAR, ConsoleReaderImpl::backwardDeleteChar);
-        dispatcher.put(Operation.BACKWARD_KILL_WORD, ConsoleReaderImpl::backwardKillWord);
-        dispatcher.put(Operation.BACKWARD_WORD, ConsoleReaderImpl::backwardWord);
-        dispatcher.put(Operation.BEGINNING_OF_HISTORY, ConsoleReaderImpl::beginningOfHistory);
-        dispatcher.put(Operation.BEGINNING_OF_LINE, ConsoleReaderImpl::beginningOfLine);
-        dispatcher.put(Operation.CALL_LAST_KBD_MACRO, ConsoleReaderImpl::callLastKbdMacro);
-        dispatcher.put(Operation.CAPITALIZE_WORD, ConsoleReaderImpl::capitalizeWord);
-        dispatcher.put(Operation.CLEAR_SCREEN, ConsoleReaderImpl::clearScreen);
-        dispatcher.put(Operation.COMPLETE_PREFIX, ConsoleReaderImpl::completePrefix);
-        dispatcher.put(Operation.COMPLETE_WORD, ConsoleReaderImpl::completeWord);
-        dispatcher.put(Operation.DELETE_CHAR, ConsoleReaderImpl::deleteChar);
-        dispatcher.put(Operation.DELETE_CHAR_OR_LIST, ConsoleReaderImpl::deleteCharOrList);
-        dispatcher.put(Operation.DO_LOWERCASE_VERSION, ConsoleReaderImpl::doLowercaseVersion);
-        dispatcher.put(Operation.DOWN_LINE_OR_HISTORY, ConsoleReaderImpl::downLineOrHistory);
-        dispatcher.put(Operation.DOWNCASE_WORD, ConsoleReaderImpl::downCaseWord);
-        dispatcher.put(Operation.EMACS_EDITING_MODE, ConsoleReaderImpl::emacsEditingMode);
-        dispatcher.put(Operation.END_KBD_MACRO, ConsoleReaderImpl::endKbdMacro);
-        dispatcher.put(Operation.END_OF_HISTORY, ConsoleReaderImpl::endOfHistory);
-        dispatcher.put(Operation.END_OF_LINE, ConsoleReaderImpl::endOfLine);
-        dispatcher.put(Operation.EXIT_OR_DELETE_CHAR, ConsoleReaderImpl::exitOrDeleteChar);
-        dispatcher.put(Operation.FORWARD_CHAR, ConsoleReaderImpl::forwardChar);
-        dispatcher.put(Operation.FORWARD_SEARCH_HISTORY, ConsoleReaderImpl::forwardSearchHistory);
-        dispatcher.put(Operation.FORWARD_WORD, ConsoleReaderImpl::forwardWord);
-        dispatcher.put(Operation.HISTORY_SEARCH_BACKWARD, ConsoleReaderImpl::historySearchBackward);
-        dispatcher.put(Operation.HISTORY_SEARCH_FORWARD, ConsoleReaderImpl::historySearchForward);
-        dispatcher.put(Operation.INSERT_CLOSE_CURLY, ConsoleReaderImpl::insertCloseCurly);
-        dispatcher.put(Operation.INSERT_CLOSE_PAREN, ConsoleReaderImpl::insertCloseParen);
-        dispatcher.put(Operation.INSERT_CLOSE_SQUARE, ConsoleReaderImpl::insertCloseSquare);
-        dispatcher.put(Operation.INSERT_COMMENT, ConsoleReaderImpl::insertComment);
-        dispatcher.put(Operation.INTERRUPT, ConsoleReaderImpl::interrupt);
-        dispatcher.put(Operation.KILL_LINE, ConsoleReaderImpl::killLine);
-        dispatcher.put(Operation.KILL_WHOLE_LINE, ConsoleReaderImpl::killWholeLine);
-        dispatcher.put(Operation.KILL_WORD, ConsoleReaderImpl::killWord);
-        dispatcher.put(Operation.MENU_COMPLETE, ConsoleReaderImpl::menuComplete);
-        dispatcher.put(Operation.NEXT_HISTORY, ConsoleReaderImpl::nextHistory);
-        dispatcher.put(Operation.OVERWRITE_MODE, ConsoleReaderImpl::overwriteMode);
-        dispatcher.put(Operation.PASTE_FROM_CLIPBOARD, ConsoleReaderImpl::pasteFromClipboard);
-        dispatcher.put(Operation.POSSIBLE_COMPLETIONS, ConsoleReaderImpl::listChoices);
-        dispatcher.put(Operation.PREVIOUS_HISTORY, ConsoleReaderImpl::previousHistory);
-        dispatcher.put(Operation.QUIT, ConsoleReaderImpl::quit);
-        dispatcher.put(Operation.QUOTED_INSERT, ConsoleReaderImpl::quotedInsert);
-        dispatcher.put(Operation.REVERSE_SEARCH_HISTORY, ConsoleReaderImpl::reverseSearchHistory);
-        dispatcher.put(Operation.SELF_INSERT, ConsoleReaderImpl::selfInsert);
-        dispatcher.put(Operation.SELF_INSERT_UNMETA, ConsoleReaderImpl::selfInsertUnmeta);
-        dispatcher.put(Operation.START_KBD_MACRO, ConsoleReaderImpl::startKbdMacro);
-        dispatcher.put(Operation.TAB_INSERT, ConsoleReaderImpl::tabInsert);
-        dispatcher.put(Operation.TRANSPOSE_CHARS, ConsoleReaderImpl::transposeChars);
-        dispatcher.put(Operation.UNIX_LINE_DISCARD, ConsoleReaderImpl::unixLineDiscard);
-        dispatcher.put(Operation.UNIX_WORD_RUBOUT, ConsoleReaderImpl::unixWordRubout);
-        dispatcher.put(Operation.UPCASE_WORD, ConsoleReaderImpl::upCaseWord);
-        dispatcher.put(Operation.UP_LINE_OR_HISTORY, ConsoleReaderImpl::upLineOrHistory);
-        dispatcher.put(Operation.VI_ARG_DIGIT, ConsoleReaderImpl::viArgDigit);
-        dispatcher.put(Operation.VI_APPEND_EOL, ConsoleReaderImpl::viAppendEol);
-        dispatcher.put(Operation.VI_APPEND_MODE, ConsoleReaderImpl::viAppendMode);
-        dispatcher.put(Operation.VI_BEGINNING_OF_LINE_OR_ARG_DIGIT, ConsoleReaderImpl::viBeginningOfLineOrArgDigit);
-        dispatcher.put(Operation.VI_CHANGE_CASE, ConsoleReaderImpl::viChangeCase);
-        dispatcher.put(Operation.VI_CHANGE_CHAR, ConsoleReaderImpl::viChangeChar);
-        dispatcher.put(Operation.VI_CHANGE_TO, ConsoleReaderImpl::viChangeTo);
-        dispatcher.put(Operation.VI_CHANGE_TO_EOL, ConsoleReaderImpl::viChangeToEol);
-        dispatcher.put(Operation.VI_CHAR_SEARCH, ConsoleReaderImpl::viCharSearch);
-        dispatcher.put(Operation.VI_DELETE, ConsoleReaderImpl::viDelete);
-        dispatcher.put(Operation.VI_DELETE_TO, ConsoleReaderImpl::viDeleteTo);
-        dispatcher.put(Operation.VI_DELETE_TO_EOL, ConsoleReaderImpl::viDeleteToEol);
-        dispatcher.put(Operation.VI_EDITING_MODE, ConsoleReaderImpl::viEditingMode);
-        dispatcher.put(Operation.VI_END_WORD, ConsoleReaderImpl::viEndWord);
-        dispatcher.put(Operation.VI_EOF_MAYBE, ConsoleReaderImpl::viEofMaybe);
-        dispatcher.put(Operation.VI_FIRST_PRINT, ConsoleReaderImpl::viFirstPrint);
-        dispatcher.put(Operation.VI_INSERT_BEG, ConsoleReaderImpl::viInsertBeg);
-        dispatcher.put(Operation.VI_INSERT_COMMENT, ConsoleReaderImpl::viInsertComment);
-        dispatcher.put(Operation.VI_INSERTION_MODE, ConsoleReaderImpl::viInsertionMode);
-        dispatcher.put(Operation.VI_KILL_WHOLE_LINE, ConsoleReaderImpl::viKillWholeLine);
-        dispatcher.put(Operation.VI_MATCH, ConsoleReaderImpl::viMatch);
-        dispatcher.put(Operation.VI_MOVE_ACCEPT_LINE, ConsoleReaderImpl::viMoveAcceptLine);
-        dispatcher.put(Operation.VI_MOVEMENT_MODE, ConsoleReaderImpl::viMovementMode);
-        dispatcher.put(Operation.VI_NEXT_HISTORY, ConsoleReaderImpl::viNextHistory);
-        dispatcher.put(Operation.VI_NEXT_WORD, ConsoleReaderImpl::viNextWord);
-        dispatcher.put(Operation.VI_PREV_WORD, ConsoleReaderImpl::viPreviousWord);
-        dispatcher.put(Operation.VI_PREVIOUS_HISTORY, ConsoleReaderImpl::viPreviousHistory);
-        dispatcher.put(Operation.VI_PUT, ConsoleReaderImpl::viPut);
-        dispatcher.put(Operation.VI_RUBOUT, ConsoleReaderImpl::viRubout);
-        dispatcher.put(Operation.VI_SEARCH, ConsoleReaderImpl::viSearch);
-        dispatcher.put(Operation.VI_YANK_TO, ConsoleReaderImpl::viYankTo);
-        dispatcher.put(Operation.YANK, ConsoleReaderImpl::yank);
-        dispatcher.put(Operation.YANK_POP, ConsoleReaderImpl::yankPop);
-        return dispatcher;
+    protected Map<String, Widget<ConsoleReaderImpl>> builtinWidgets() {
+        Map<String, Widget<ConsoleReaderImpl>> widgets = new HashMap<>();
+        widgets.put(Operation.ABORT.func(), ConsoleReaderImpl::abort);
+        widgets.put(Operation.ACCEPT_LINE.func(), ConsoleReaderImpl::acceptLine);
+        widgets.put(Operation.BACKWARD_CHAR.func(), ConsoleReaderImpl::backwardChar);
+        widgets.put(Operation.BACKWARD_DELETE_CHAR.func(), ConsoleReaderImpl::backwardDeleteChar);
+        widgets.put(Operation.BACKWARD_KILL_WORD.func(), ConsoleReaderImpl::backwardKillWord);
+        widgets.put(Operation.BACKWARD_WORD.func(), ConsoleReaderImpl::backwardWord);
+        widgets.put(Operation.BEGINNING_OF_HISTORY.func(), ConsoleReaderImpl::beginningOfHistory);
+        widgets.put(Operation.BEGINNING_OF_LINE.func(), ConsoleReaderImpl::beginningOfLine);
+        widgets.put(Operation.CALL_LAST_KBD_MACRO.func(), ConsoleReaderImpl::callLastKbdMacro);
+        widgets.put(Operation.CAPITALIZE_WORD.func(), ConsoleReaderImpl::capitalizeWord);
+        widgets.put(Operation.CLEAR_SCREEN.func(), ConsoleReaderImpl::clearScreen);
+        widgets.put(Operation.COMPLETE_PREFIX.func(), ConsoleReaderImpl::completePrefix);
+        widgets.put(Operation.COMPLETE_WORD.func(), ConsoleReaderImpl::completeWord);
+        widgets.put(Operation.DELETE_CHAR.func(), ConsoleReaderImpl::deleteChar);
+        widgets.put(Operation.DELETE_CHAR_OR_LIST.func(), ConsoleReaderImpl::deleteCharOrList);
+        widgets.put(Operation.DO_LOWERCASE_VERSION.func(), ConsoleReaderImpl::doLowercaseVersion);
+        widgets.put(Operation.DOWN_LINE_OR_HISTORY.func(), ConsoleReaderImpl::downLineOrHistory);
+        widgets.put(Operation.DOWNCASE_WORD.func(), ConsoleReaderImpl::downCaseWord);
+        widgets.put(Operation.EMACS_EDITING_MODE.func(), ConsoleReaderImpl::emacsEditingMode);
+        widgets.put(Operation.END_KBD_MACRO.func(), ConsoleReaderImpl::endKbdMacro);
+        widgets.put(Operation.END_OF_HISTORY.func(), ConsoleReaderImpl::endOfHistory);
+        widgets.put(Operation.END_OF_LINE.func(), ConsoleReaderImpl::endOfLine);
+        widgets.put(Operation.EXIT_OR_DELETE_CHAR.func(), ConsoleReaderImpl::exitOrDeleteChar);
+        widgets.put(Operation.FORWARD_CHAR.func(), ConsoleReaderImpl::forwardChar);
+        widgets.put(Operation.FORWARD_SEARCH_HISTORY.func(), ConsoleReaderImpl::forwardSearchHistory);
+        widgets.put(Operation.FORWARD_WORD.func(), ConsoleReaderImpl::forwardWord);
+        widgets.put(Operation.HISTORY_SEARCH_BACKWARD.func(), ConsoleReaderImpl::historySearchBackward);
+        widgets.put(Operation.HISTORY_SEARCH_FORWARD.func(), ConsoleReaderImpl::historySearchForward);
+        widgets.put(Operation.INSERT_CLOSE_CURLY.func(), ConsoleReaderImpl::insertCloseCurly);
+        widgets.put(Operation.INSERT_CLOSE_PAREN.func(), ConsoleReaderImpl::insertCloseParen);
+        widgets.put(Operation.INSERT_CLOSE_SQUARE.func(), ConsoleReaderImpl::insertCloseSquare);
+        widgets.put(Operation.INSERT_COMMENT.func(), ConsoleReaderImpl::insertComment);
+        widgets.put(Operation.INTERRUPT.func(), ConsoleReaderImpl::interrupt);
+        widgets.put(Operation.KILL_LINE.func(), ConsoleReaderImpl::killLine);
+        widgets.put(Operation.KILL_WHOLE_LINE.func(), ConsoleReaderImpl::killWholeLine);
+        widgets.put(Operation.KILL_WORD.func(), ConsoleReaderImpl::killWord);
+        widgets.put(Operation.MENU_COMPLETE.func(), ConsoleReaderImpl::menuComplete);
+        widgets.put(Operation.NEXT_HISTORY.func(), ConsoleReaderImpl::nextHistory);
+        widgets.put(Operation.OVERWRITE_MODE.func(), ConsoleReaderImpl::overwriteMode);
+        widgets.put(Operation.PASTE_FROM_CLIPBOARD.func(), ConsoleReaderImpl::pasteFromClipboard);
+        widgets.put(Operation.POSSIBLE_COMPLETIONS.func(), ConsoleReaderImpl::listChoices);
+        widgets.put(Operation.PREVIOUS_HISTORY.func(), ConsoleReaderImpl::previousHistory);
+        widgets.put(Operation.QUIT.func(), ConsoleReaderImpl::quit);
+        widgets.put(Operation.QUOTED_INSERT.func(), ConsoleReaderImpl::quotedInsert);
+        widgets.put(Operation.REVERSE_SEARCH_HISTORY.func(), ConsoleReaderImpl::reverseSearchHistory);
+        widgets.put(Operation.SELF_INSERT.func(), ConsoleReaderImpl::selfInsert);
+        widgets.put(Operation.SELF_INSERT_UNMETA.func(), ConsoleReaderImpl::selfInsertUnmeta);
+        widgets.put(Operation.START_KBD_MACRO.func(), ConsoleReaderImpl::startKbdMacro);
+        widgets.put(Operation.TAB_INSERT.func(), ConsoleReaderImpl::tabInsert);
+        widgets.put(Operation.TRANSPOSE_CHARS.func(), ConsoleReaderImpl::transposeChars);
+        widgets.put(Operation.UNIX_LINE_DISCARD.func(), ConsoleReaderImpl::unixLineDiscard);
+        widgets.put(Operation.UNIX_WORD_RUBOUT.func(), ConsoleReaderImpl::unixWordRubout);
+        widgets.put(Operation.UPCASE_WORD.func(), ConsoleReaderImpl::upCaseWord);
+        widgets.put(Operation.UP_LINE_OR_HISTORY.func(), ConsoleReaderImpl::upLineOrHistory);
+        widgets.put(Operation.VI_ARG_DIGIT.func(), ConsoleReaderImpl::viArgDigit);
+        widgets.put(Operation.VI_APPEND_EOL.func(), ConsoleReaderImpl::viAppendEol);
+        widgets.put(Operation.VI_APPEND_MODE.func(), ConsoleReaderImpl::viAppendMode);
+        widgets.put(Operation.VI_BEGINNING_OF_LINE_OR_ARG_DIGIT.func(), ConsoleReaderImpl::viBeginningOfLineOrArgDigit);
+        widgets.put(Operation.VI_CHANGE_CASE.func(), ConsoleReaderImpl::viChangeCase);
+        widgets.put(Operation.VI_CHANGE_CHAR.func(), ConsoleReaderImpl::viChangeChar);
+        widgets.put(Operation.VI_CHANGE_TO.func(), ConsoleReaderImpl::viChangeTo);
+        widgets.put(Operation.VI_CHANGE_TO_EOL.func(), ConsoleReaderImpl::viChangeToEol);
+        widgets.put(Operation.VI_CHAR_SEARCH.func(), ConsoleReaderImpl::viCharSearch);
+        widgets.put(Operation.VI_DELETE.func(), ConsoleReaderImpl::viDelete);
+        widgets.put(Operation.VI_DELETE_TO.func(), ConsoleReaderImpl::viDeleteTo);
+        widgets.put(Operation.VI_DELETE_TO_EOL.func(), ConsoleReaderImpl::viDeleteToEol);
+        widgets.put(Operation.VI_EDITING_MODE.func(), ConsoleReaderImpl::viEditingMode);
+        widgets.put(Operation.VI_END_WORD.func(), ConsoleReaderImpl::viEndWord);
+        widgets.put(Operation.VI_EOF_MAYBE.func(), ConsoleReaderImpl::viEofMaybe);
+        widgets.put(Operation.VI_FIRST_PRINT.func(), ConsoleReaderImpl::viFirstPrint);
+        widgets.put(Operation.VI_INSERT_BEG.func(), ConsoleReaderImpl::viInsertBeg);
+        widgets.put(Operation.VI_INSERT_COMMENT.func(), ConsoleReaderImpl::viInsertComment);
+        widgets.put(Operation.VI_INSERTION_MODE.func(), ConsoleReaderImpl::viInsertionMode);
+        widgets.put(Operation.VI_KILL_WHOLE_LINE.func(), ConsoleReaderImpl::viKillWholeLine);
+        widgets.put(Operation.VI_MATCH.func(), ConsoleReaderImpl::viMatch);
+        widgets.put(Operation.VI_MOVE_ACCEPT_LINE.func(), ConsoleReaderImpl::viMoveAcceptLine);
+        widgets.put(Operation.VI_MOVEMENT_MODE.func(), ConsoleReaderImpl::viMovementMode);
+        widgets.put(Operation.VI_NEXT_HISTORY.func(), ConsoleReaderImpl::viNextHistory);
+        widgets.put(Operation.VI_NEXT_WORD.func(), ConsoleReaderImpl::viNextWord);
+        widgets.put(Operation.VI_PREV_WORD.func(), ConsoleReaderImpl::viPreviousWord);
+        widgets.put(Operation.VI_PREVIOUS_HISTORY.func(), ConsoleReaderImpl::viPreviousHistory);
+        widgets.put(Operation.VI_PUT.func(), ConsoleReaderImpl::viPut);
+        widgets.put(Operation.VI_RUBOUT.func(), ConsoleReaderImpl::viRubout);
+        widgets.put(Operation.VI_SEARCH.func(), ConsoleReaderImpl::viSearch);
+        widgets.put(Operation.VI_YANK_TO.func(), ConsoleReaderImpl::viYankTo);
+        widgets.put(Operation.YANK.func(), ConsoleReaderImpl::yank);
+        widgets.put(Operation.YANK_POP.func(), ConsoleReaderImpl::yankPop);
+        return widgets;
     }
 
     protected void redisplay() {
@@ -2986,7 +2963,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected boolean nextBindingIsComplete() {
         redisplay();
-        KeyMap keyMap = keyMaps.get(KeyMap.MENU_SELECT);
+        KeyMap keyMap = keyMaps.get(MENU_SELECT);
         Object operation = readBinding(getKeys(), keyMap);
         if (operation == Operation.MENU_COMPLETE) {
             return true;
@@ -3156,7 +3133,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         // Loop
         console.puts(Capability.keypad_xmit);
-        KeyMap keyMap = keyMaps.get(KeyMap.MENU_SELECT);
+        KeyMap keyMap = keyMaps.get(MENU_SELECT);
         Object operation;
         while ((operation = readBinding(getKeys(), keyMap)) != null) {
             if (operation == Operation.MENU_COMPLETE) {
@@ -3667,7 +3644,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      *
      * TODO: deprecate
      */
-    public void addTriggeredAction(final char c, final Widget widget) {
+    public void addTriggeredAction(final char c, final Widget<ConsoleReaderImpl> widget) {
         getKeys().bind(Character.toString(c), widget);
     }
 
@@ -3773,4 +3750,484 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return nb;
     }
 
+    public static final String VICMD = "vicmd";
+    public static final String VIINS = "viins";
+    public static final String MAIN = "main";
+    public static final String EMACS = "emacs";
+    public static final String MENU_SELECT = "menuselect";
+
+    /**
+     * Bind special chars defined by the console instead of
+     * the default bindings
+     */
+    protected static void bindConsoleChars(KeyMap keyMap, Attributes attr) {
+        if (attr != null) {
+            rebind(keyMap, Operation.BACKWARD_DELETE_CHAR,
+                           /* C-? */ (char) 127, (char) attr.getControlChar(ControlChar.VERASE));
+            rebind(keyMap, Operation.BACKWARD_KILL_WORD,
+                           /* C-W */ (char) 23,  (char) attr.getControlChar(ControlChar.VWERASE));
+            rebind(keyMap, Operation.UNIX_LINE_DISCARD,
+                           /* C-U */ (char) 21, (char) attr.getControlChar(ControlChar.VKILL));
+            rebind(keyMap, Operation.QUOTED_INSERT,
+                           /* C-V */ (char) 22, (char) attr.getControlChar(ControlChar.VLNEXT));
+        }
+    }
+
+    protected static void rebind(KeyMap keyMap, Operation operation, char prevBinding, char newBinding) {
+        if (prevBinding > 0 && prevBinding < 255) {
+            if (keyMap.getBound("" + prevBinding) == operation) {
+                keyMap.bind("" + prevBinding, Operation.SELF_INSERT);
+                if (newBinding > 0 && newBinding < 255) {
+                    keyMap.bind("" + newBinding, operation);
+                }
+            }
+        }
+    }
+
+    protected void bindCapability(KeyMap keyMap, Capability cap, Operation operation) {
+        String seq = getSequence(cap);
+        if (seq != null) {
+            keyMap.bindIfNotBound(seq, operation);
+        }
+    }
+
+    private String getSequence(Capability cap) {
+        String str = console.getStringCapability(cap);
+        if (str != null) {
+            StringWriter sw = new StringWriter();
+            try {
+                Curses.tputs(sw, str);
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+            return sw.toString();
+        }
+        return null;
+    }
+
+
+    public void bindArrowKeys(KeyMap map) {
+
+        // MS-DOS
+        map.bind( "\033[0A", Operation.PREVIOUS_HISTORY );
+        map.bind( "\033[0B", Operation.BACKWARD_CHAR );
+        map.bind( "\033[0C", Operation.FORWARD_CHAR );
+        map.bind( "\033[0D", Operation.NEXT_HISTORY );
+
+        // Windows
+        map.bind( "\340\000", Operation.KILL_WHOLE_LINE );
+        map.bind( "\340\107", Operation.BEGINNING_OF_LINE );
+        map.bind( "\340\110", Operation.PREVIOUS_HISTORY );
+        map.bind( "\340\111", Operation.BEGINNING_OF_HISTORY );
+        map.bind( "\340\113", Operation.BACKWARD_CHAR );
+        map.bind( "\340\115", Operation.FORWARD_CHAR );
+        map.bind( "\340\117", Operation.END_OF_LINE );
+        map.bind( "\340\120", Operation.NEXT_HISTORY );
+        map.bind( "\340\121", Operation.END_OF_HISTORY );
+        map.bind( "\340\122", Operation.OVERWRITE_MODE );
+        map.bind( "\340\123", Operation.DELETE_CHAR );
+
+        map.bind( "\000\107", Operation.BEGINNING_OF_LINE );
+        map.bind( "\000\110", Operation.PREVIOUS_HISTORY );
+        map.bind( "\000\111", Operation.BEGINNING_OF_HISTORY );
+        map.bind( "\000\110", Operation.PREVIOUS_HISTORY );
+        map.bind( "\000\113", Operation.BACKWARD_CHAR );
+        map.bind( "\000\115", Operation.FORWARD_CHAR );
+        map.bind( "\000\117", Operation.END_OF_LINE );
+        map.bind( "\000\120", Operation.NEXT_HISTORY );
+        map.bind( "\000\121", Operation.END_OF_HISTORY );
+        map.bind( "\000\122", Operation.OVERWRITE_MODE );
+        map.bind( "\000\123", Operation.DELETE_CHAR );
+
+        map.bind( "\033[A", Operation.PREVIOUS_HISTORY );
+        map.bind( "\033[B", Operation.NEXT_HISTORY );
+        map.bind( "\033[C", Operation.FORWARD_CHAR );
+        map.bind( "\033[D", Operation.BACKWARD_CHAR );
+        map.bind( "\033[H", Operation.BEGINNING_OF_LINE );
+        map.bind( "\033[F", Operation.END_OF_LINE );
+
+        map.bind( "\033OA", Operation.PREVIOUS_HISTORY );
+        map.bind( "\033OB", Operation.NEXT_HISTORY );
+        map.bind( "\033OC", Operation.FORWARD_CHAR );
+        map.bind( "\033OD", Operation.BACKWARD_CHAR );
+        map.bind( "\033OH", Operation.BEGINNING_OF_LINE );
+        map.bind( "\033OF", Operation.END_OF_LINE );
+
+        map.bind( "\033[1~", Operation.BEGINNING_OF_LINE);
+        map.bind( "\033[4~", Operation.END_OF_LINE);
+        map.bind( "\033[3~", Operation.DELETE_CHAR);
+
+        // MINGW32
+        map.bind( "\0340H", Operation.PREVIOUS_HISTORY );
+        map.bind( "\0340P", Operation.NEXT_HISTORY );
+        map.bind( "\0340M", Operation.FORWARD_CHAR );
+        map.bind( "\0340K", Operation.BACKWARD_CHAR );
+    }
+
+    public Map<String, KeyMap> defaultKeyMaps() {
+        Map<String, KeyMap> keyMaps = new HashMap<>();
+
+        KeyMap emacs = emacs();
+        bindArrowKeys(emacs);
+        emacs.bind("\033\033[C", Operation.FORWARD_WORD);
+        emacs.bind("\033\033[D", Operation.BACKWARD_WORD);
+        keyMaps.put(EMACS, emacs);
+
+        KeyMap viCmd = viMovement();
+        bindArrowKeys(viCmd);
+        keyMaps.put(VICMD, viCmd);
+
+        KeyMap viIns = viInsertion();
+        bindArrowKeys(viIns);
+        keyMaps.put(VIINS, viIns);
+
+        KeyMap menuSelect = menuSelect();
+        bindArrowKeys(menuSelect);
+        keyMaps.put(MENU_SELECT, menuSelect);
+
+        keyMaps.put(MAIN, emacs);
+
+        if (getBoolean(BIND_TTY_SPECIAL_CHARS, true)) {
+            Attributes attr = console.getAttributes();
+            bindConsoleChars(emacs, attr);
+            bindConsoleChars(viIns, attr);
+        }
+        return keyMaps;
+    }
+
+    public static KeyMap emacs() {
+        Binding[] map = new Binding[KeyMap.KEYMAP_LENGTH];
+        Binding[] ctrl = new Binding[]{
+                // Control keys.
+                Operation.SET_MARK,                 /* Control-@ */
+                Operation.BEGINNING_OF_LINE,        /* Control-A */
+                Operation.BACKWARD_CHAR,            /* Control-B */
+                Operation.INTERRUPT,                /* Control-C */
+                Operation.DELETE_CHAR_OR_LIST,      /* Control-D */
+                Operation.END_OF_LINE,              /* Control-E */
+                Operation.FORWARD_CHAR,             /* Control-F */
+                Operation.ABORT,                    /* Control-G */
+                Operation.BACKWARD_DELETE_CHAR,     /* Control-H */
+                Operation.COMPLETE_WORD,            /* Control-I */
+                Operation.ACCEPT_LINE,              /* Control-J */
+                Operation.KILL_LINE,                /* Control-K */
+                Operation.CLEAR_SCREEN,             /* Control-L */
+                Operation.ACCEPT_LINE,              /* Control-M */
+                Operation.NEXT_HISTORY,             /* Control-N */
+                null,                               /* Control-O */
+                Operation.PREVIOUS_HISTORY,         /* Control-P */
+                Operation.QUOTED_INSERT,            /* Control-Q */
+                Operation.REVERSE_SEARCH_HISTORY,   /* Control-R */
+                Operation.FORWARD_SEARCH_HISTORY,   /* Control-S */
+                Operation.TRANSPOSE_CHARS,          /* Control-T */
+                Operation.UNIX_LINE_DISCARD,        /* Control-U */
+                Operation.QUOTED_INSERT,            /* Control-V */
+                Operation.UNIX_WORD_RUBOUT,         /* Control-W */
+                emacsCtrlX(),                       /* Control-X */
+                Operation.YANK,                     /* Control-Y */
+                null,                               /* Control-Z */
+                emacsMeta(),                        /* Control-[ */
+                null,                               /* Control-\ */
+                Operation.CHARACTER_SEARCH,         /* Control-] */
+                null,                               /* Control-^ */
+                Operation.UNDO,                     /* Control-_ */
+        };
+        System.arraycopy(ctrl, 0, map, 0, ctrl.length);
+        for (int i = 32; i < 256; i++) {
+            map[i] = Operation.SELF_INSERT;
+        }
+        map[DELETE] = Operation.BACKWARD_DELETE_CHAR;
+        return new KeyMap(map);
+    }
+
+    public static final char CTRL_D = (char) 4;
+    public static final char CTRL_G = (char) 7;
+    public static final char CTRL_H = (char) 8;
+    public static final char CTRL_I = (char) 9;
+    public static final char CTRL_J = (char) 10;
+    public static final char CTRL_M = (char) 13;
+    public static final char CTRL_R = (char) 18;
+    public static final char CTRL_S = (char) 19;
+    public static final char CTRL_U = (char) 21;
+    public static final char CTRL_X = (char) 24;
+    public static final char CTRL_Y = (char) 25;
+    public static final char ESCAPE = (char) 27; /* Ctrl-[ */
+    public static final char CTRL_OB = (char) 27; /* Ctrl-[ */
+    public static final char CTRL_CB = (char) 29; /* Ctrl-] */
+
+    public static final int DELETE = (char) 127;
+
+    public static KeyMap emacsCtrlX() {
+        Binding[] map = new Binding[KeyMap.KEYMAP_LENGTH];
+        map[CTRL_G] = Operation.ABORT;
+        map[CTRL_U] = Operation.UNDO;
+        map[CTRL_X] = Operation.EXCHANGE_POINT_AND_MARK;
+        map['('] = Operation.START_KBD_MACRO;
+        map[')'] = Operation.END_KBD_MACRO;
+        for (int i = 'A'; i <= 'Z'; i++) {
+            map[i] = Operation.DO_LOWERCASE_VERSION;
+        }
+        map['e'] = Operation.CALL_LAST_KBD_MACRO;
+        map[DELETE] = Operation.KILL_LINE;
+        return new KeyMap(map);
+    }
+
+    public static KeyMap emacsMeta() {
+        Binding[] map = new Binding[KeyMap.KEYMAP_LENGTH];
+        map[CTRL_G] = Operation.ABORT;
+        map[CTRL_H] = Operation.BACKWARD_KILL_WORD;
+        map[CTRL_I] = Operation.TAB_INSERT;
+        map[CTRL_J] = Operation.VI_EDITING_MODE;
+        map[CTRL_M] = Operation.SELF_INSERT_UNMETA;
+        map[CTRL_R] = Operation.REVERT_LINE;
+        map[CTRL_Y] = Operation.YANK_NTH_ARG;
+        map[CTRL_OB] = Operation.COMPLETE_WORD;
+        map[CTRL_CB] = Operation.CHARACTER_SEARCH_BACKWARD;
+        map[' '] = Operation.SET_MARK;
+        map['#'] = Operation.INSERT_COMMENT;
+        map['&'] = Operation.TILDE_EXPAND;
+        map['*'] = Operation.INSERT_COMPLETIONS;
+        map['-'] = Operation.DIGIT_ARGUMENT;
+        map['.'] = Operation.YANK_LAST_ARG;
+        map['<'] = Operation.BEGINNING_OF_HISTORY;
+        map['='] = Operation.POSSIBLE_COMPLETIONS;
+        map['>'] = Operation.END_OF_HISTORY;
+        map['?'] = Operation.POSSIBLE_COMPLETIONS;
+        for (int i = 'A'; i <= 'Z'; i++) {
+            map[i] = Operation.DO_LOWERCASE_VERSION;
+        }
+        map['\\'] = Operation.DELETE_HORIZONTAL_SPACE;
+        map['_'] = Operation.YANK_LAST_ARG;
+        map['b'] = Operation.BACKWARD_WORD;
+        map['c'] = Operation.CAPITALIZE_WORD;
+        map['d'] = Operation.KILL_WORD;
+        map['f'] = Operation.FORWARD_WORD;
+        map['l'] = Operation.DOWNCASE_WORD;
+        map['p'] = Operation.NON_INCREMENTAL_REVERSE_SEARCH_HISTORY;
+        map['r'] = Operation.REVERT_LINE;
+        map['t'] = Operation.TRANSPOSE_WORDS;
+        map['u'] = Operation.UPCASE_WORD;
+        map['y'] = Operation.YANK_POP;
+        map['~'] = Operation.TILDE_EXPAND;
+        map[DELETE] = Operation.BACKWARD_KILL_WORD;
+        return new KeyMap(map);
+    }
+
+    public static KeyMap viInsertion() {
+        Binding[] map = new Binding[KeyMap.KEYMAP_LENGTH];
+        Binding[] ctrl = new Binding[]{
+                // Control keys.
+                null,                               /* Control-@ */
+                Operation.SELF_INSERT,              /* Control-A */
+                Operation.SELF_INSERT,              /* Control-B */
+                Operation.SELF_INSERT,              /* Control-C */
+                Operation.VI_EOF_MAYBE,             /* Control-D */
+                Operation.SELF_INSERT,              /* Control-E */
+                Operation.SELF_INSERT,              /* Control-F */
+                Operation.SELF_INSERT,              /* Control-G */
+                Operation.BACKWARD_DELETE_CHAR,     /* Control-H */
+                Operation.COMPLETE_WORD,            /* Control-I */
+                Operation.ACCEPT_LINE,              /* Control-J */
+                Operation.SELF_INSERT,              /* Control-K */
+                Operation.SELF_INSERT,              /* Control-L */
+                Operation.ACCEPT_LINE,              /* Control-M */
+                Operation.MENU_COMPLETE,            /* Control-N */
+                Operation.SELF_INSERT,              /* Control-O */
+                Operation.REVERSE_MENU_COMPLETE,    /* Control-P */
+                Operation.SELF_INSERT,              /* Control-Q */
+                Operation.REVERSE_SEARCH_HISTORY,   /* Control-R */
+                Operation.FORWARD_SEARCH_HISTORY,   /* Control-S */
+                Operation.TRANSPOSE_CHARS,          /* Control-T */
+                Operation.UNIX_LINE_DISCARD,        /* Control-U */
+                Operation.QUOTED_INSERT,            /* Control-V */
+                Operation.UNIX_WORD_RUBOUT,         /* Control-W */
+                Operation.SELF_INSERT,              /* Control-X */
+                Operation.YANK,                     /* Control-Y */
+                Operation.SELF_INSERT,              /* Control-Z */
+                Operation.VI_MOVEMENT_MODE,         /* Control-[ */
+                Operation.SELF_INSERT,              /* Control-\ */
+                Operation.SELF_INSERT,              /* Control-] */
+                Operation.SELF_INSERT,              /* Control-^ */
+                Operation.UNDO,                     /* Control-_ */
+        };
+        System.arraycopy(ctrl, 0, map, 0, ctrl.length);
+        for (int i = 32; i < 256; i++) {
+            map[i] = Operation.SELF_INSERT;
+        }
+        map[DELETE] = Operation.BACKWARD_DELETE_CHAR;
+        return new KeyMap(map);
+    }
+
+    public static KeyMap viMovement() {
+        Binding[] map = new Binding[KeyMap.KEYMAP_LENGTH];
+        Binding[] low = new Binding[]{
+                // Control keys.
+                null,                               /* Control-@ */
+                null,                               /* Control-A */
+                null,                               /* Control-B */
+                Operation.INTERRUPT,                /* Control-C */
+                        /* 
+                         * ^D is supposed to move down half a screen. In bash
+                         * appears to be ignored.
+                         */
+                Operation.VI_EOF_MAYBE,             /* Control-D */
+                Operation.EMACS_EDITING_MODE,       /* Control-E */
+                null,                               /* Control-F */
+                Operation.ABORT,                    /* Control-G */
+                Operation.BACKWARD_CHAR,            /* Control-H */
+                null,                               /* Control-I */
+                Operation.VI_MOVE_ACCEPT_LINE,      /* Control-J */
+                Operation.KILL_LINE,                /* Control-K */
+                Operation.CLEAR_SCREEN,             /* Control-L */
+                Operation.VI_MOVE_ACCEPT_LINE,      /* Control-M */
+                Operation.VI_NEXT_HISTORY,          /* Control-N */
+                null,                               /* Control-O */
+                Operation.VI_PREVIOUS_HISTORY,      /* Control-P */
+                        /*
+                         * My testing with readline is the ^Q is ignored. 
+                         * Maybe this should be null?
+                         */
+                Operation.QUOTED_INSERT,            /* Control-Q */
+                        
+                        /*
+                         * TODO - Very broken.  While in forward/reverse
+                         * history search the VI keyset should go out the
+                         * window and we need to enter a very simple keymap.
+                         */
+                Operation.REVERSE_SEARCH_HISTORY,   /* Control-R */
+                        /* TODO */
+                Operation.FORWARD_SEARCH_HISTORY,   /* Control-S */
+                Operation.TRANSPOSE_CHARS,          /* Control-T */
+                Operation.UNIX_LINE_DISCARD,        /* Control-U */
+                        /* TODO */
+                Operation.QUOTED_INSERT,            /* Control-V */
+                Operation.UNIX_WORD_RUBOUT,         /* Control-W */
+                null,                               /* Control-X */
+                        /* TODO */
+                Operation.YANK,                     /* Control-Y */
+                null,                               /* Control-Z */
+                emacsMeta(),                        /* Control-[ */
+                null,                               /* Control-\ */
+                        /* TODO */
+                Operation.CHARACTER_SEARCH,         /* Control-] */
+                null,                               /* Control-^ */
+                        /* TODO */
+                Operation.UNDO,                     /* Control-_ */
+                Operation.FORWARD_CHAR,             /* SPACE */
+                null,                               /* ! */
+                null,                               /* " */
+                Operation.VI_INSERT_COMMENT,        /* # */
+                Operation.END_OF_LINE,              /* $ */
+                Operation.VI_MATCH,                 /* % */
+                Operation.VI_TILDE_EXPAND,          /* & */
+                null,                               /* ' */
+                null,                               /* ( */
+                null,                               /* ) */
+                        /* TODO */
+                Operation.VI_COMPLETE,              /* * */
+                Operation.VI_NEXT_HISTORY,          /* + */
+                Operation.VI_CHAR_SEARCH,           /* , */
+                Operation.VI_PREVIOUS_HISTORY,      /* - */
+                        /* TODO */
+                Operation.VI_REDO,                  /* . */
+                Operation.VI_SEARCH,                /* / */
+                Operation.VI_BEGINNING_OF_LINE_OR_ARG_DIGIT, /* 0 */
+                Operation.VI_ARG_DIGIT,             /* 1 */
+                Operation.VI_ARG_DIGIT,             /* 2 */
+                Operation.VI_ARG_DIGIT,             /* 3 */
+                Operation.VI_ARG_DIGIT,             /* 4 */
+                Operation.VI_ARG_DIGIT,             /* 5 */
+                Operation.VI_ARG_DIGIT,             /* 6 */
+                Operation.VI_ARG_DIGIT,             /* 7 */
+                Operation.VI_ARG_DIGIT,             /* 8 */
+                Operation.VI_ARG_DIGIT,             /* 9 */
+                null,                               /* : */
+                Operation.VI_CHAR_SEARCH,           /* ; */
+                null,                               /* < */
+                Operation.VI_COMPLETE,              /* = */
+                null,                               /* > */
+                Operation.VI_SEARCH,                /* ? */
+                null,                               /* @ */
+                Operation.VI_APPEND_EOL,            /* A */
+                Operation.VI_BACKWARD_WORD,         /* B */
+                Operation.VI_CHANGE_TO_EOL,         /* C */
+                Operation.VI_DELETE_TO_EOL,         /* D */
+                Operation.VI_END_WORD,              /* E */
+                Operation.VI_CHAR_SEARCH,           /* F */
+                        /* I need to read up on what this does */
+                Operation.VI_FETCH_HISTORY,         /* G */
+                null,                               /* H */
+                Operation.VI_INSERT_BEG,            /* I */
+                null,                               /* J */
+                null,                               /* K */
+                null,                               /* L */
+                null,                               /* M */
+                Operation.VI_SEARCH_AGAIN,          /* N */
+                null,                               /* O */
+                Operation.VI_PUT,                   /* P */
+                null,                               /* Q */
+                        /* TODO */
+                Operation.VI_REPLACE,               /* R */
+                Operation.VI_KILL_WHOLE_LINE,       /* S */
+                Operation.VI_CHAR_SEARCH,           /* T */
+                        /* TODO */
+                Operation.REVERT_LINE,              /* U */
+                null,                               /* V */
+                Operation.VI_NEXT_WORD,             /* W */
+                Operation.VI_RUBOUT,                /* X */
+                Operation.VI_YANK_TO,               /* Y */
+                null,                               /* Z */
+                null,                               /* [ */
+                Operation.VI_COMPLETE,              /* \ */
+                null,                               /* ] */
+                Operation.VI_FIRST_PRINT,           /* ^ */
+                Operation.VI_YANK_ARG,              /* _ */
+                Operation.VI_GOTO_MARK,             /* ` */
+                Operation.VI_APPEND_MODE,           /* a */
+                Operation.VI_PREV_WORD,             /* b */
+                Operation.VI_CHANGE_TO,             /* c */
+                Operation.VI_DELETE_TO,             /* d */
+                Operation.VI_END_WORD,              /* e */
+                Operation.VI_CHAR_SEARCH,           /* f */
+                null,                               /* g */
+                Operation.BACKWARD_CHAR,            /* h */
+                Operation.VI_INSERTION_MODE,        /* i */
+                Operation.NEXT_HISTORY,             /* j */
+                Operation.PREVIOUS_HISTORY,         /* k */
+                Operation.FORWARD_CHAR,             /* l */
+                Operation.VI_SET_MARK,              /* m */
+                Operation.VI_SEARCH_AGAIN,          /* n */
+                null,                               /* o */
+                Operation.VI_PUT,                   /* p */
+                null,                               /* q */
+                Operation.VI_CHANGE_CHAR,           /* r */
+                Operation.VI_SUBST,                 /* s */
+                Operation.VI_CHAR_SEARCH,           /* t */
+                Operation.UNDO,                     /* u */
+                null,                               /* v */
+                Operation.VI_NEXT_WORD,             /* w */
+                Operation.VI_DELETE,                /* x */
+                Operation.VI_YANK_TO,               /* y */
+                null,                               /* z */
+                null,                               /* { */
+                Operation.VI_COLUMN,                /* | */
+                null,                               /* } */
+                Operation.VI_CHANGE_CASE,           /* ~ */
+                Operation.VI_DELETE                 /* DEL */
+        };
+        System.arraycopy(low, 0, map, 0, low.length);
+        for (int i = 128; i < 256; i++) {
+            map[i] = null;
+        }
+        return new KeyMap(map);
+    }
+
+    public static KeyMap menuSelect() {
+        KeyMap keyMap = new KeyMap();
+        keyMap.bind("\t", Operation.MENU_COMPLETE);
+        keyMap.bind("\033[Z", Operation.REVERSE_MENU_COMPLETE);
+        keyMap.bind("\r", Operation.ACCEPT_LINE);
+        keyMap.bind("\n", Operation.ACCEPT_LINE);
+        return keyMap;
+    }
 }

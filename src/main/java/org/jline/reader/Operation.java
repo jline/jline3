@@ -8,13 +8,16 @@
  */
 package org.jline.reader;
 
+import org.jline.keymap.Binding;
+import org.jline.keymap.WidgetRef;
+
 /**
  * List of all operations.
  *
  * @author <a href="mailto:gnodet@gmail.com">Guillaume Nodet</a>
  * @since 2.6
  */
-public enum Operation {
+public enum Operation implements Binding {
 
     ABORT,
     ACCEPT_LINE,
@@ -160,5 +163,13 @@ public enum Operation {
     VI_NEXT_HISTORY,
     VI_PREVIOUS_HISTORY,
     VI_INSERT_COMMENT,
-    VI_BEGINNING_OF_LINE_OR_ARG_DIGIT,
+    VI_BEGINNING_OF_LINE_OR_ARG_DIGIT;
+
+    public String func() {
+        return name().toLowerCase().replace('_', '-');
+    }
+
+    public WidgetRef ref() {
+        return new WidgetRef(func());
+    }
 }

@@ -16,7 +16,7 @@ import org.jline.console.Attributes.ControlFlag;
 import org.jline.console.Attributes.InputFlag;
 import org.jline.console.Attributes.LocalFlag;
 import org.jline.console.Attributes.OutputFlag;
-import org.jline.reader.KeyMap;
+import org.jline.reader.ConsoleReaderImpl;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -195,7 +195,7 @@ public class ExecPtyTest {
         // isig icanon -iexten -xcase echo -echoe echok -echonl -noflsh -echoctl -echoprt -echoke -flusho -pendin
         assertEquals(EnumSet.of(LocalFlag.ISIG, LocalFlag.ICANON, LocalFlag.ECHO, LocalFlag.ECHOK), attributes.getLocalFlags());
         // min = 4; time = 0; intr = DEL; quit = ^\\; erase = #; kill = @; eof = ^D; eol = ^@; eol2 <undef>; swtch = ^@; stop = ^S; start = ^Q; susp <undef>; dsusp <undef>; werase <undef>; lnext <undef>;
-        assertEquals(KeyMap.DELETE, attributes.getControlChar(ControlChar.VINTR));
+        assertEquals(ConsoleReaderImpl.DELETE, attributes.getControlChar(ControlChar.VINTR));
         assertEquals(ExecPty.parseControlChar("^\\"), attributes.getControlChar(ControlChar.VQUIT));
         assertEquals('#', attributes.getControlChar(ControlChar.VERASE));
         assertEquals('@', attributes.getControlChar(ControlChar.VKILL));

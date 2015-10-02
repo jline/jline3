@@ -8,7 +8,7 @@
  */
 package org.jline.reader.history;
 
-import org.jline.reader.KeyMap;
+import org.jline.keymap.KeyMap;
 import org.jline.reader.ReaderTestSupport;
 import org.junit.Test;
 

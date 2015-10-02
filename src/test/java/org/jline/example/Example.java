@@ -20,10 +20,12 @@ import org.jline.Console;
 import org.jline.ConsoleReader;
 import org.jline.JLine;
 import org.jline.JLine.ConsoleBuilder;
+import org.jline.keymap.Binding;
+import org.jline.keymap.KeyMap;
+import org.jline.keymap.Macro;
+import org.jline.keymap.WidgetRef;
 import org.jline.reader.ConsoleReaderImpl;
 import org.jline.reader.EndOfFileException;
-import org.jline.reader.KeyMap;
-import org.jline.reader.Macro;
 import org.jline.reader.Operation;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.UserInterruptException;
@@ -208,8 +210,8 @@ public class Example
                 else if ("bindkey".equals(pl.word())) {
                     if (pl.words().size() == 1) {
                         StringBuilder sb = new StringBuilder();
-                        Map<String, Object> bound = ((ConsoleReaderImpl) reader).getKeys().getBoundKeys();
-                        for (Map.Entry<String, Object> entry : bound.entrySet()) {
+                        Map<String, Binding> bound = ((ConsoleReaderImpl) reader).getKeys().getBoundKeys();
+                        for (Map.Entry<String, Binding> entry : bound.entrySet()) {
                             if (entry.getValue() != Operation.SELF_INSERT) {
                                 sb.append("\"");
                                 entry.getKey().chars().forEachOrdered(c -> {
@@ -243,11 +245,9 @@ public class Example
                         console.writer().print(sb.toString());
                         console.flush();
                     } else if (pl.words().size() == 3) {
-                        KeyMap.bindKey(
-                                ((ConsoleReaderImpl) reader).getKeys(),
-                                pl.words().get(1),
-                                pl.words().get(2)
-                        );
+                        ((ConsoleReaderImpl) reader).getKeys().bind(
+                                KeyMap.translate(pl.words().get(1)),
+                                new WidgetRef(pl.words().get(2)));
                     }
                 }
                 else if ("cls".equals(pl.word())) {

@@ -12,6 +12,7 @@ import java.io.IOException;
 
 import org.jline.Completer;
 import org.jline.ConsoleReader.Option;
+import org.jline.keymap.WidgetRef;
 import org.jline.reader.completer.AggregateCompleter;
 import org.jline.reader.completer.ArgumentCompleter;
 import org.jline.reader.completer.NullCompleter;
@@ -113,12 +114,12 @@ public class CompletionTest extends ReaderTestSupport {
         );
         reader.setCompleter(aggregator);
 
-        KeyMap.bindKey(reader.getKeys(), "\t", "complete-word");
+        reader.getKeys().bind("\t", new WidgetRef("complete-word"));
 
         assertLine("read and ", new TestBuffer("read an\t\n"));
         assertLine("read and ", new TestBuffer("read an\033[D\t\n"));
 
-        KeyMap.bindKey(reader.getKeys(), "\t", "complete-prefix");
+        reader.getKeys().bind("\t", new WidgetRef("complete-prefix"));
 
         assertLine("read and nd", new TestBuffer("read and\033[D\033[D\t\n"));
     }

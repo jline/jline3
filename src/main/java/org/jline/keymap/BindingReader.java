@@ -6,7 +6,7 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.reader;
+package org.jline.keymap;
 
 import java.io.IOError;
 import java.io.IOException;
@@ -17,17 +17,26 @@ import org.jline.utils.NonBlockingReader;
 
 public class BindingReader {
 
+    public static final long DEFAULT_AMBIGUOUS_TIMEOUT = 1000l;
+
     protected final Console console;
     protected final StringBuilder opBuffer = new StringBuilder();
     protected final Stack<Integer> pushBackChar = new Stack<>();
 
-    protected long ambiguousTimeout = 1000l;
+    protected Binding unicode;
+    protected long ambiguousTimeout;
     protected String lastBinding;
     protected boolean recording;
     protected StringBuilder macro = new StringBuilder();
 
-    public BindingReader(Console console) {
+    public BindingReader(Console console, Binding unicode) {
+        this(console, unicode, DEFAULT_AMBIGUOUS_TIMEOUT);
+    }
+
+    public BindingReader(Console console, Binding unicode, long ambiguousTimeout) {
         this.console = console;
+        this.unicode = unicode;
+        this.ambiguousTimeout = ambiguousTimeout;
     }
 
     /**
@@ -41,17 +50,17 @@ public class BindingReader {
      * @return the decoded binding or <code>null</code> if the end of
      *         stream has been reached
      */
-    public Object readBinding(KeyMap keys) {
+    public Binding readBinding(KeyMap keys) {
         return readBinding(keys, null);
     }
 
-    public Object readBinding(KeyMap keys, KeyMap local) {
+    public Binding readBinding(KeyMap keys, KeyMap local) {
         return readBinding(keys, local, true);
     }
 
-    public Object readBinding(KeyMap keys, KeyMap local, boolean block) {
+    public Binding readBinding(KeyMap keys, KeyMap local, boolean block) {
         lastBinding = null;
-        Object o = null;
+        Binding o = null;
         int[] remaining = new int[1];
         do {
             int c = readCharacter();
@@ -71,15 +80,22 @@ public class BindingReader {
                 o = keys.getBound(opBuffer, remaining);
             }
             if (remaining[0] > 0) {
-                int[] cps = opBuffer.codePoints().toArray();
+                // We have a binding and additional chars
                 if (o != null) {
-                    opBuffer.setLength(0);
-                    opBuffer.append(new String(cps, 0, cps.length - remaining[0]));
-                    for (int i = cps.length - 1; i >= cps.length - remaining[0]; i--) {
-                        pushBackChar.push(cps[i]);
+                    runMacro(opBuffer.substring(opBuffer.length() - remaining[0]));
+                    opBuffer.setLength(opBuffer.length() - remaining[0]);
+                }
+                // We don't match anything
+                else {
+                    int cp = opBuffer.codePointAt(0);
+                    runMacro(opBuffer.substring(Character.charCount(cp)));
+                    // Unicode character
+                    if (cp > 255 && unicode != null) {
+                        opBuffer.setLength(Character.charCount(cp));
+                        o = unicode;
+                    } else {
+                        opBuffer.setLength(0);
                     }
-                } else {
-                    opBuffer.setLength(0);
                 }
             } else if (remaining[0] < 0 && o != null) {
                 if (block && peekCharacter(ambiguousTimeout) != NonBlockingReader.READ_EXPIRED) {
@@ -149,7 +165,10 @@ public class BindingReader {
     }
 
     public void runMacro(String macro) {
-        new StringBuilder(macro).reverse().codePoints().forEachOrdered(pushBackChar::push);
+        int[] cps = macro.codePoints().toArray();
+        for (int i = cps.length - 1; i >= 0; i--) {
+            pushBackChar.push(cps[i]);
+        }
     }
 
     public String getCurrentBuffer() {

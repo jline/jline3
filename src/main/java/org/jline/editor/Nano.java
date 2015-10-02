@@ -48,9 +48,10 @@ import org.jline.console.Attributes.ControlChar;
 import org.jline.console.Attributes.InputFlag;
 import org.jline.console.Attributes.LocalFlag;
 import org.jline.console.Size;
-import org.jline.reader.BindingReader;
+import org.jline.keymap.Binding;
+import org.jline.keymap.BindingReader;
+import org.jline.keymap.KeyMap;
 import org.jline.reader.Display;
-import org.jline.reader.KeyMap;
 import org.jline.utils.Ansi;
 import org.jline.utils.Ansi.Attribute;
 import org.jline.utils.Ansi.Color;
@@ -58,9 +59,9 @@ import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp.Capability;
 import org.mozilla.universalchardet.UniversalDetector;
 
-import static org.jline.reader.KeyMap.alt;
-import static org.jline.reader.KeyMap.ctrl;
-import static org.jline.reader.KeyMap.del;
+import static org.jline.keymap.KeyMap.alt;
+import static org.jline.keymap.KeyMap.ctrl;
+import static org.jline.keymap.KeyMap.del;
 import static org.jline.utils.Ansi.ansi;
 import static org.jline.utils.AnsiHelper.length;
 import static org.jline.utils.AnsiHelper.substring;
@@ -931,7 +932,7 @@ public class Nano {
         this.console = console;
         this.root = root;
         this.display = new Display(console, true);
-        this.bindingReader = new BindingReader(console);
+        this.bindingReader = new BindingReader(console, Operation.INSERT);
         this.size = new Size();
         bindKeys();
     }
@@ -1099,7 +1100,7 @@ public class Nano {
     }
 
     boolean write() throws IOException {
-        KeyMap writeKeyMap = new KeyMap("write", Operation.INSERT);
+        KeyMap writeKeyMap = new KeyMap();
         for (char i = 32; i < 256; i++) {
             writeKeyMap.bind(Character.toString(i), Operation.INSERT);
         }
@@ -1116,7 +1117,7 @@ public class Nano {
         writeKeyMap.bind("\r", Operation.ACCEPT);
         writeKeyMap.bind(ctrl('C'), Operation.CANCEL);
         writeKeyMap.bind(ctrl('G'), Operation.HELP);
-        bindCapability(writeKeyMap, Capability.key_f1, Operation.HELP);
+        writeKeyMap.bind(console, Capability.key_f1, Operation.HELP);
 
         editMessage = getWriteMessage();
         editBuffer.setLength(0);
@@ -1244,7 +1245,7 @@ public class Nano {
         try {
             editMessage = message;
             editBuffer.setLength(0);
-            KeyMap yncKeyMap = new KeyMap("ync");
+            KeyMap yncKeyMap = new KeyMap();
             yncKeyMap.bind("y", Operation.YES);
             yncKeyMap.bind("Y", Operation.YES);
             yncKeyMap.bind("n", Operation.NO);
@@ -1295,7 +1296,7 @@ public class Nano {
     }
 
     void read() {
-        KeyMap readKeyMap = new KeyMap("read", Operation.INSERT);
+        KeyMap readKeyMap = new KeyMap();
         for (char i = 32; i < 256; i++) {
             readKeyMap.bind(Character.toString(i), Operation.INSERT);
         }
@@ -1306,7 +1307,7 @@ public class Nano {
         readKeyMap.bind("\r", Operation.ACCEPT);
         readKeyMap.bind(ctrl('C'), Operation.CANCEL);
         readKeyMap.bind(ctrl('G'), Operation.HELP);
-        bindCapability(readKeyMap, Capability.key_f1, Operation.HELP);
+        readKeyMap.bind(console, Capability.key_f1, Operation.HELP);
 
         editMessage = getReadMessage();
         editBuffer.setLength(0);
@@ -1508,7 +1509,7 @@ public class Nano {
     }
 
     void search() throws IOException {
-        KeyMap searchKeyMap = new KeyMap("search", Operation.INSERT);
+        KeyMap searchKeyMap = new KeyMap();
         searchKeyMap.bind(alt('c'), Operation.CASE_SENSITIVE);
         searchKeyMap.bind(alt('b'), Operation.BACKWARDS);
         searchKeyMap.bind(alt('r'), Operation.REGEXP);
@@ -1851,7 +1852,7 @@ public class Nano {
     }
 
     protected void bindKeys() {
-        keys = new KeyMap("default", Operation.INSERT);
+        keys = new KeyMap();
 
         for (char i = 32; i < 256; i++) {
             keys.bind(Character.toString(i), Operation.INSERT);
@@ -1865,36 +1866,36 @@ public class Nano {
         keys.bind(ctrl('X'), Operation.QUIT);
         keys.bind(ctrl('O'), Operation.WRITE);
         keys.bind(ctrl('J'), Operation.JUSTIFY_PARAGRAPH);
-        bindCapability(keys, Capability.key_f1, Operation.HELP);
-        bindCapability(keys, Capability.key_f2, Operation.QUIT);
-        bindCapability(keys, Capability.key_f3, Operation.WRITE);
-        bindCapability(keys, Capability.key_f4, Operation.JUSTIFY_PARAGRAPH);
+        keys.bind(console, Capability.key_f1, Operation.HELP);
+        keys.bind(console, Capability.key_f2, Operation.QUIT);
+        keys.bind(console, Capability.key_f3, Operation.WRITE);
+        keys.bind(console, Capability.key_f4, Operation.JUSTIFY_PARAGRAPH);
 
         keys.bind(ctrl('R'), Operation.READ);
         keys.bind(ctrl('W'), Operation.SEARCH);
         keys.bind(ctrl('Y'), Operation.PREV_PAGE);
         keys.bind(ctrl('V'), Operation.NEXT_PAGE);
-        bindCapability(keys, Capability.key_f5, Operation.READ);
-        bindCapability(keys, Capability.key_f6, Operation.SEARCH);
-        bindCapability(keys, Capability.key_f7, Operation.PREV_PAGE);
-        bindCapability(keys, Capability.key_f8, Operation.NEXT_PAGE);
+        keys.bind(console, Capability.key_f5, Operation.READ);
+        keys.bind(console, Capability.key_f6, Operation.SEARCH);
+        keys.bind(console, Capability.key_f7, Operation.PREV_PAGE);
+        keys.bind(console, Capability.key_f8, Operation.NEXT_PAGE);
 
         keys.bind(ctrl('K'), Operation.CUT);
         keys.bind(ctrl('U'), Operation.UNCUT);
         keys.bind(ctrl('C'), Operation.CUR_POS);
         keys.bind(ctrl('T'), Operation.TO_SPELL);
-        bindCapability(keys, Capability.key_f9, Operation.CUT);
-        bindCapability(keys, Capability.key_f10, Operation.UNCUT);
-        bindCapability(keys, Capability.key_f11, Operation.CUR_POS);
-        bindCapability(keys, Capability.key_f12, Operation.TO_SPELL);
+        keys.bind(console, Capability.key_f9, Operation.CUT);
+        keys.bind(console, Capability.key_f10, Operation.UNCUT);
+        keys.bind(console, Capability.key_f11, Operation.CUR_POS);
+        keys.bind(console, Capability.key_f12, Operation.TO_SPELL);
 
         keys.bind(ctrl('_'), Operation.GOTO);
         keys.bind(ctrl('\\'), Operation.REPLACE);
         keys.bind(ctrl('^'), Operation.MARK);
-        bindCapability(keys, Capability.key_f13, Operation.GOTO);
-        bindCapability(keys, Capability.key_f14, Operation.REPLACE);
-        bindCapability(keys, Capability.key_f15, Operation.MARK);
-        bindCapability(keys, Capability.key_f16, Operation.NEXT_SEARCH);
+        keys.bind(console, Capability.key_f13, Operation.GOTO);
+        keys.bind(console, Capability.key_f14, Operation.REPLACE);
+        keys.bind(console, Capability.key_f15, Operation.MARK);
+        keys.bind(console, Capability.key_f16, Operation.NEXT_SEARCH);
         keys.bind(alt('g'), Operation.GOTO);
         keys.bind(alt('r'), Operation.REPLACE);
         keys.bind(alt('a'), Operation.MARK);
@@ -1968,20 +1969,7 @@ public class Nano {
         keys.bind("\033[D", Operation.LEFT);
     }
 
-    private void bindCapability(KeyMap keyMap, Capability capability, Operation operation) {
-        try {
-            String str = console.getStringCapability(capability);
-            if (str != null) {
-                StringWriter sw = new StringWriter();
-                Curses.tputs(sw, str);
-                keyMap.bind(sw.toString(), operation);
-            }
-        } catch (IOException e) {
-            // Ignore
-        }
-    }
-
-    enum Operation {
+    enum Operation implements Binding {
         DO_LOWER_CASE,
 
         QUIT,

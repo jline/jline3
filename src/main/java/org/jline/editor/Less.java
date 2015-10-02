@@ -31,13 +31,17 @@ import org.jline.Console.Signal;
 import org.jline.Console.SignalHandler;
 import org.jline.console.Attributes;
 import org.jline.console.Size;
-import org.jline.reader.BindingReader;
+import org.jline.keymap.Binding;
+import org.jline.keymap.BindingReader;
+import org.jline.keymap.KeyMap;
 import org.jline.reader.Display;
-import org.jline.reader.KeyMap;
 import org.jline.utils.Ansi;
 import org.jline.utils.Ansi.Attribute;
 import org.jline.utils.AnsiHelper;
 import org.jline.utils.InfoCmp.Capability;
+
+import static org.jline.keymap.KeyMap.ctrl;
+import static org.jline.keymap.KeyMap.alt;
 
 public class Less {
 
@@ -139,7 +143,7 @@ public class Less {
     public Less(Console console) {
         this.console = console;
         this.display = new Display(console, true);
-        this.bindingReader = new BindingReader(console);
+        this.bindingReader = new BindingReader(console, null);
     }
 
     public void handle(Signal signal) {
@@ -167,11 +171,12 @@ public class Less {
             try {
                 window = size.getRows() - 1;
                 halfWindow = window / 2;
-                keys = new KeyMap("less");
+                keys = new KeyMap();
                 bindKeys(keys);
 
                 // Use alternate buffer
                 console.puts(Capability.enter_ca_mode);
+                console.puts(Capability.keypad_xmit);
                 console.writer().flush();
 
                 displayThread = new Thread() {
@@ -275,14 +280,14 @@ public class Less {
                     //
                     else {
                         Object obj = bindingReader.readBinding(keys, null, false);
-                        if (obj instanceof Character) {
+                        if (obj == Operation.CHAR) {
                             synchronized (redraw) {
-                                char c = (Character) obj;
+                                char c = bindingReader.getLastBinding().charAt(0);
                                 // Enter option mode or pattern edit mode
                                 if (c == '-' || c == '/' || c == '?') {
                                     buffer.setLength(0);
                                 }
-                                buffer.append((char) (Character) obj);
+                                buffer.append(c);
                             }
                         } else if (obj instanceof Operation) {
                             op = (Operation) obj;
@@ -424,6 +429,7 @@ public class Less {
                 displayThread.join();
                 // Use main buffer
                 console.puts(Capability.exit_ca_mode);
+                console.puts(Capability.keypad_local);
                 console.writer().flush();
                 // Clear line
                 console.writer().println();
@@ -718,34 +724,10 @@ public class Less {
 
     private void bindKeys(KeyMap map) {
         // Arrow keys bindings
-        map.bind("\033[0A", Operation.BACKWARD_ONE_LINE);
-        map.bind("\033[0B", Operation.LEFT_ONE_HALF_SCREEN);
-        map.bind("\033[0C", Operation.RIGHT_ONE_HALF_SCREEN);
-        map.bind("\033[0D", Operation.FORWARD_ONE_LINE);
-
-        map.bind("\340\110", Operation.BACKWARD_ONE_LINE);
-        map.bind("\340\113", Operation.LEFT_ONE_HALF_SCREEN);
-        map.bind("\340\115", Operation.RIGHT_ONE_HALF_SCREEN);
-        map.bind("\340\120", Operation.FORWARD_ONE_LINE);
-        map.bind("\000\110", Operation.BACKWARD_ONE_LINE);
-        map.bind("\000\113", Operation.LEFT_ONE_HALF_SCREEN);
-        map.bind("\000\115", Operation.RIGHT_ONE_HALF_SCREEN);
-        map.bind("\000\120", Operation.FORWARD_ONE_LINE);
-
-        map.bind("\033[A", Operation.BACKWARD_ONE_LINE);
-        map.bind("\033[B", Operation.FORWARD_ONE_LINE);
-        map.bind("\033[C", Operation.RIGHT_ONE_HALF_SCREEN);
-        map.bind("\033[D", Operation.LEFT_ONE_HALF_SCREEN);
-
-        map.bind("\033[OA", Operation.BACKWARD_ONE_LINE);
-        map.bind("\033[OB", Operation.FORWARD_ONE_LINE);
-        map.bind("\033[OC", Operation.RIGHT_ONE_HALF_SCREEN);
-        map.bind("\033[OD", Operation.LEFT_ONE_HALF_SCREEN);
-
-        map.bind("\0340H", Operation.BACKWARD_ONE_LINE);
-        map.bind("\0340P", Operation.FORWARD_ONE_LINE);
-        map.bind("\0340M", Operation.RIGHT_ONE_HALF_SCREEN);
-        map.bind("\0340K", Operation.LEFT_ONE_HALF_SCREEN);
+        map.bind(console, Capability.key_up, Operation.BACKWARD_ONE_LINE);
+        map.bind(console, Capability.key_down, Operation.FORWARD_ONE_LINE);
+        map.bind(console, Capability.key_left, Operation.LEFT_ONE_HALF_SCREEN);
+        map.bind(console, Capability.key_right, Operation.RIGHT_ONE_HALF_SCREEN);
 
         map.bind("h", Operation.HELP);
         map.bind("H", Operation.HELP);
@@ -775,13 +757,13 @@ public class Less {
 
         map.bind("b", Operation.BACKWARD_ONE_WINDOW_OR_LINES);
         map.bind(ctrl('B'), Operation.BACKWARD_ONE_WINDOW_OR_LINES);
-        map.bind("\033v", Operation.BACKWARD_ONE_WINDOW_OR_LINES);
+        map.bind(alt('v'), Operation.BACKWARD_ONE_WINDOW_OR_LINES);
 
         map.bind("z", Operation.FORWARD_ONE_WINDOW_AND_SET);
 
         map.bind("w", Operation.BACKWARD_ONE_WINDOW_AND_SET);
 
-        map.bind("\033 ", Operation.FORWARD_ONE_WINDOW_NO_STOP);
+        map.bind(alt(' '), Operation.FORWARD_ONE_WINDOW_NO_STOP);
 
         map.bind("d", Operation.FORWARD_HALF_WINDOW_AND_SET);
         map.bind(ctrl('D'), Operation.FORWARD_HALF_WINDOW_AND_SET);
@@ -789,39 +771,35 @@ public class Less {
         map.bind("u", Operation.BACKWARD_HALF_WINDOW_AND_SET);
         map.bind(ctrl('U'), Operation.BACKWARD_HALF_WINDOW_AND_SET);
 
-        map.bind("\033)", Operation.RIGHT_ONE_HALF_SCREEN);
+        map.bind(alt(')'), Operation.RIGHT_ONE_HALF_SCREEN);
 
-        map.bind("\033(", Operation.LEFT_ONE_HALF_SCREEN);
+        map.bind(alt('('), Operation.LEFT_ONE_HALF_SCREEN);
 
         map.bind("F", Operation.FORWARD_FOREVER);
 
         map.bind("n", Operation.REPEAT_SEARCH_FORWARD);
         map.bind("N", Operation.REPEAT_SEARCH_BACKWARD);
-        map.bind("\033n", Operation.REPEAT_SEARCH_FORWARD_SPAN_FILES);
-        map.bind("\033N", Operation.REPEAT_SEARCH_BACKWARD_SPAN_FILES);
-        map.bind("\033u", Operation.UNDO_SEARCH);
+        map.bind(alt('n'), Operation.REPEAT_SEARCH_FORWARD_SPAN_FILES);
+        map.bind(alt('N'), Operation.REPEAT_SEARCH_BACKWARD_SPAN_FILES);
+        map.bind(alt('u'), Operation.UNDO_SEARCH);
 
         map.bind("g", Operation.GO_TO_FIRST_LINE_OR_N);
         map.bind("<", Operation.GO_TO_FIRST_LINE_OR_N);
-        map.bind("\033<", Operation.GO_TO_FIRST_LINE_OR_N);
+        map.bind(alt('<'), Operation.GO_TO_FIRST_LINE_OR_N);
 
         map.bind("G", Operation.GO_TO_LAST_LINE_OR_N);
         map.bind(">", Operation.GO_TO_LAST_LINE_OR_N);
-        map.bind("\033>", Operation.GO_TO_LAST_LINE_OR_N);
+        map.bind(alt('>'), Operation.GO_TO_LAST_LINE_OR_N);
 
         map.bind(":n", Operation.NEXT_FILE);
         map.bind(":p", Operation.PREV_FILE);
 
         for (char c : "-/0123456789?".toCharArray()) {
-            map.bind("" + c, c);
+            map.bind(Character.toString(c), Operation.CHAR);
         }
     }
 
-    String ctrl(char c) {
-        return "" + ((char) (c & 0x1f));
-    }
-
-    enum Operation {
+    enum Operation implements Binding {
 
         // General
         HELP,
@@ -871,7 +849,10 @@ public class Less {
 
         // Files
         NEXT_FILE,
-        PREV_FILE
+        PREV_FILE,
+        
+        // 
+        CHAR
 
     }
 

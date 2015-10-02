@@ -17,6 +17,8 @@ import java.util.Map;
 import org.jline.ConsoleReader;
 import org.jline.ConsoleReader.Option;
 import org.jline.History;
+import org.jline.keymap.KeyMap;
+import org.jline.keymap.WidgetRef;
 import org.jline.reader.history.MemoryHistory;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp.Capability;
@@ -470,15 +472,15 @@ public class ConsoleReaderTest extends ReaderTestSupport
     public void testReadBinding() throws Exception {
         in.setIn(new ByteArrayInputStream(new TestBuffer("abcde").getBytes()));
 
-        KeyMap map = new KeyMap("custom");
-        map.bind("bc", 1l);
-        map.bind("e", 2l);
+        KeyMap map = new KeyMap();
+        map.bind("bc", new WidgetRef("foo"));
+        map.bind("e", new WidgetRef("bar"));
 
         Object b = reader.readBinding(map);
-        assertEquals(1l, b);
+        assertEquals(new WidgetRef("foo"), b);
         assertEquals("bc", reader.getLastBinding());
         b = reader.readBinding(map);
-        assertEquals(2l, b);
+        assertEquals(new WidgetRef("bar"), b);
         assertEquals("e", reader.getLastBinding());
         b = reader.readBinding(map);
         assertNull(b);

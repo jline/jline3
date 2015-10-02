@@ -6,9 +6,9 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.reader;
+package org.jline.keymap;
 
-public class Macro {
+public class Macro implements Binding {
 
     private final String sequence;
 
