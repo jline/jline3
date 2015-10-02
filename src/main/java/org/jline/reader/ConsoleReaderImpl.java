@@ -118,9 +118,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         CHANGE_TO
     }
 
-    protected static final int NO_BELL = 0;
-    protected static final int AUDIBLE_BELL = 1;
-    protected static final int VISIBLE_BELL = 2;
+    protected enum BellType {
+        NONE,
+        AUDIBLE,
+        VISIBLE
+    }
 
 
     //
@@ -3617,28 +3619,29 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * Issue an audible keyboard bell.
      */
     public void beep() {
-        int bell_preference = AUDIBLE_BELL;
+        BellType bell_preference = BellType.AUDIBLE;
         switch (getString(BELL_STYLE, "")) {
             case "none":
             case "off":
-                bell_preference = NO_BELL;
+                bell_preference = BellType.NONE;
                 break;
             case "audible":
-                bell_preference = AUDIBLE_BELL;
+                bell_preference = BellType.AUDIBLE;
                 break;
             case "visible":
-                bell_preference = VISIBLE_BELL;
+                bell_preference = BellType.VISIBLE;
                 break;
             case "on":
-                bell_preference = getBoolean(PREFER_VISIBLE_BELL, false) ? VISIBLE_BELL : AUDIBLE_BELL;
+                bell_preference = getBoolean(PREFER_VISIBLE_BELL, false)
+                        ? BellType.VISIBLE : BellType.AUDIBLE;
                 break;
         }
-        if (bell_preference == VISIBLE_BELL) {
+        if (bell_preference == BellType.VISIBLE) {
             if (console.puts(Capability.flash_screen)
                     || console.puts(Capability.bell)) {
                 flush();
             }
-        } else if (bell_preference == AUDIBLE_BELL) {
+        } else if (bell_preference == BellType.AUDIBLE) {
             if (console.puts(Capability.bell)) {
                 flush();
             }
