@@ -16,6 +16,9 @@ package org.jline.reader;
  */
 public class Operation {
 
+    public static final String CALLBACK_INIT = "callback-init";
+    public static final String CALLBACK_FINISH = "callback-finish";
+
     public static final String ABORT = "abort";
     public static final String ACCEPT_LINE = "accept-line";
     public static final String BACKWARD_BYTE = "backward-byte";

@@ -81,6 +81,8 @@ import static org.jline.reader.Operation.BACKWARD_KILL_WORD;
 import static org.jline.reader.Operation.BACKWARD_WORD;
 import static org.jline.reader.Operation.BEGINNING_OF_HISTORY;
 import static org.jline.reader.Operation.BEGINNING_OF_LINE;
+import static org.jline.reader.Operation.CALLBACK_FINISH;
+import static org.jline.reader.Operation.CALLBACK_INIT;
 import static org.jline.reader.Operation.CALL_LAST_KBD_MACRO;
 import static org.jline.reader.Operation.CAPITALIZE_WORD;
 import static org.jline.reader.Operation.CHARACTER_SEARCH;
@@ -320,10 +322,12 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     /*
      * Current internal state of the line reader
      */
-    protected State   state = State.NORMAL;
+    protected State   state = State.DONE;
+    protected boolean reading;
 
     protected Supplier<String> post;
 
+    protected Map<String, Widget<ConsoleReaderImpl>> builtinWidgets;
     protected Map<String, Widget<ConsoleReaderImpl>> widgets;
 
     protected int count;
@@ -363,7 +367,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         this.keyMaps = defaultKeyMaps();
         this.keyMap = EMACS;
 
-        widgets = builtinWidgets();
+        builtinWidgets = builtinWidgets();
+        widgets = new HashMap<>(builtinWidgets);
         bindingReader = new BindingReader(console,
                 new Reference(SELF_INSERT),
                 getLong(AMBIGUOUS_BINDING, AMBIGUOUS_BINDING_TIMEOUT));
@@ -396,6 +401,10 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     public Map<String, Widget<ConsoleReaderImpl>> getWidgets() {
         return widgets;
+    }
+
+    public Map<String, Widget<ConsoleReaderImpl>> getBuiltinWidgets() {
+        return builtinWidgets;
     }
 
     public Buffer getBuffer() {
@@ -514,6 +523,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         SignalHandler previousWinchHandler = null;
         Attributes originalAttributes = null;
         try {
+            reading = true;
+
             previousIntrHandler = console.handle(Signal.INT, signal -> readLineThread.interrupt());
             previousWinchHandler = console.handle(Signal.WINCH, this::handleSignal);
             originalAttributes = console.enterRawMode();
@@ -557,6 +568,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             }
             undo.clear();
             parsedLine = null;
+
+            callWidget(CALLBACK_INIT);
 
             // Draw initial prompt
             redrawLine();
@@ -618,6 +631,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
         finally {
             cleanup();
+            reading = false;
             if (originalAttributes != null) {
                 console.setAttributes(originalAttributes);
             }
@@ -627,6 +641,25 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             if (previousWinchHandler != null) {
                 console.handle(Signal.WINCH, previousWinchHandler);
             }
+        }
+    }
+
+    public void callWidget(String name) {
+        if (!reading) {
+            throw new IllegalStateException();
+        }
+        try {
+            Widget<ConsoleReaderImpl> w;
+            if (name.startsWith(".")) {
+                w = builtinWidgets.get(name.substring(1));
+            } else {
+                w = widgets.get(name);
+            }
+            if (w != null) {
+                w.apply(this);
+            }
+        } catch (Throwable t) {
+            // TODO: log
         }
     }
 
@@ -2160,6 +2193,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         } catch (SyntaxError e) {
             // do nothing
         }
+        callWidget(CALLBACK_FINISH);
         state = State.DONE;
         if (!isSet(Option.DISABLE_EVENT_EXPANSION)) {
             try {
