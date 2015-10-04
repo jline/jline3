@@ -558,10 +558,12 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             // Move into application mode
             console.puts(Capability.keypad_xmit);
             // Make sure we position the cursor on column 0
-            rawPrint(Ansi.ansi().bg(Color.DEFAULT).fgBright(Color.BLACK).a("~").fg(Color.DEFAULT).toString());
-            rawPrint(' ', size.getColumns() - 1);
+            print(Ansi.ansi().bg(Color.DEFAULT).fgBright(Color.BLACK).a("~").fg(Color.DEFAULT).toString());
+            for (int i = 0; i < size.getColumns() - 1; i++) {
+                print(" ");
+            }
             console.puts(Capability.carriage_return);
-            rawPrint(' ');
+            print(" ");
             console.puts(Capability.carriage_return);
 
             setPrompt(prompt);
@@ -2214,7 +2216,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 beep();
                 buf.clear();
                 println();
-                rawPrintln(e.getMessage());
+                println(e.getMessage());
                 flush();
             }
         }
@@ -3388,7 +3390,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             redisplay(true);
             buf.cursor(oldCursor);
             println();
-            rawPrint(getAppName() + ": do you wish to see to see all " + possible.size()
+            print(getAppName() + ": do you wish to see to see all " + possible.size()
                     + " possibilities (" + lines + " lines)?");
             flush();
             int c = readCharacter();
@@ -3418,7 +3420,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                     redisplay(false);
                     buf.cursor(oldCursor);
                     println();
-                    rawPrintln(postResult.post);
+                    println(postResult.post);
                     redrawLine();
                     return "";
                 }
@@ -3669,34 +3671,24 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     //
 
     /**
+     * Raw output printing
+     */
+    void print(String str) {
+        console.writer().write(str);
+    }
+
+    void println(String s) {
+        print(s);
+        println();
+    }
+
+    /**
      * Output a platform-dependant newline.
      */
     void println() {
         console.puts(Capability.carriage_return);
-        rawPrint('\n');
+        print("\n");
         redrawLine();
-    }
-
-    /**
-     * Raw output printing
-     */
-    void rawPrint(int c) {
-        console.writer().write(c);
-    }
-
-    void rawPrint(String str) {
-        console.writer().write(str);
-    }
-
-    void rawPrint(char c, int num) {
-        for (int i = 0; i < num; i++) {
-            rawPrint(c);
-        }
-    }
-
-    void rawPrintln(String s) {
-        rawPrint(s);
-        println();
     }
 
 
