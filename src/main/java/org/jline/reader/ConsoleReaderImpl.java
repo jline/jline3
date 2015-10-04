@@ -411,6 +411,10 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return buf;
     }
 
+    public void runMacro(String macro) {
+        bindingReader.runMacro(macro);
+    }
+
     /**
      * Set the completer.
      */
