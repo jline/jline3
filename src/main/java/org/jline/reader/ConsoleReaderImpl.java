@@ -377,15 +377,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 getLong(AMBIGUOUS_BINDING, AMBIGUOUS_BINDING_TIMEOUT));
     }
 
-    protected void setupSigCont() {
-        Signals.register("CONT", () -> {
-//                console.init();
-            // TODO: enter raw mode
-            redrawLine();
-            redisplay();
-        });
-    }
-
     public Console getConsole() {
         return console;
     }
@@ -528,12 +519,17 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         Thread readLineThread = Thread.currentThread();
         SignalHandler previousIntrHandler = null;
         SignalHandler previousWinchHandler = null;
+        SignalHandler previousContHandler = null;
         Attributes originalAttributes = null;
         try {
+            if (reading) {
+                throw new IllegalStateException();
+            }
             reading = true;
 
             previousIntrHandler = console.handle(Signal.INT, signal -> readLineThread.interrupt());
             previousWinchHandler = console.handle(Signal.WINCH, this::handleSignal);
+            previousContHandler = console.handle(Signal.CONT, this::handleSignal);
             originalAttributes = console.enterRawMode();
 
             this.mask = mask;
@@ -652,6 +648,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             if (previousWinchHandler != null) {
                 console.handle(Signal.WINCH, previousWinchHandler);
             }
+            if (previousContHandler != null) {
+                console.handle(Signal.CONT, previousContHandler);
+            }
         }
     }
 
@@ -678,6 +677,14 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         if (signal == Signal.WINCH) {
             size.copy(console.getSize());
             display.setColumns(size.getColumns());
+            redisplay();
+        }
+        else if (signal == Signal.CONT) {
+            console.enterRawMode();
+            size.copy(console.getSize());
+            display.setColumns(size.getColumns());
+            console.puts(Capability.keypad_xmit);
+            redrawLine();
             redisplay();
         }
     }
