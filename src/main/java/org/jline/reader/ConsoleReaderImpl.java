@@ -1992,7 +1992,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected void cleanup() {
-        endOfLine();
+        buf.cursor(buf.length());
         post = null;
         if (size.getColumns() > 0 || size.getRows() > 0) {
             redisplay(false);
