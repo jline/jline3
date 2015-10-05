@@ -3502,7 +3502,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                     Candidate completion = menuSupport.completion();
                     if (completion.suffix() != null) {
                         String chars = getString("REMOVE_SUFFIX_CHARS", " \t\n;&|");
-                        if (SELF_INSERT.equals(ref) && chars.indexOf(getLastBinding().charAt(0)) >= 0
+                        if (SELF_INSERT.equals(ref)
+                                && chars.indexOf(getLastBinding().charAt(0)) >= 0
                                 || ACCEPT_LINE.equals(ref)
                                 || BACKWARD_DELETE_CHAR.equals(ref)) {
                             buf.backspace(completion.suffix().length());
@@ -3514,7 +3515,10 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                         buf.write(' ');
                     }
                     if (!ACCEPT_LINE.equals(ref)
-                            && !BACKWARD_DELETE_CHAR.equals(ref)) {
+                            && !BACKWARD_DELETE_CHAR.equals(ref)
+                            && !(SELF_INSERT.equals(ref)
+                                && completion.suffix() != null
+                                && completion.suffix().startsWith(getLastBinding()))) {
                         pushBackBinding(true);
                     }
                     post = null;
