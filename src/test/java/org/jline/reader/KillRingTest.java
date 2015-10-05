@@ -13,7 +13,6 @@ import org.junit.Test;
 import static org.jline.reader.Operation.BACKWARD_KILL_WORD;
 import static org.jline.reader.Operation.BACKWARD_WORD;
 import static org.jline.reader.Operation.KILL_WORD;
-import static org.jline.reader.Operation.UNIX_WORD_RUBOUT;
 import static org.jline.reader.Operation.YANK;
 import static org.jline.reader.Operation.YANK_POP;
 import static org.junit.Assert.assertEquals;
@@ -140,15 +139,15 @@ public class KillRingTest extends ReaderTestSupport {
     @Test
     public void testBufferWordRuboutOnce() throws Exception {
         TestBuffer b = new TestBuffer("This is a test");
-        assertBuffer("This is a ", b = b.op(UNIX_WORD_RUBOUT));
+        assertBuffer("This is a ", b = b.op(BACKWARD_KILL_WORD));
         assertBuffer("This is a test", b = b.op(YANK));
     }
 
     @Test
     public void testBufferWordRuboutTwice() throws Exception {
         TestBuffer b = new TestBuffer("This is a test");
-        assertBuffer("This is a ", b = b.op(UNIX_WORD_RUBOUT));
-        assertBuffer("This is ", b = b.op(UNIX_WORD_RUBOUT));
+        assertBuffer("This is a ", b = b.op(BACKWARD_KILL_WORD));
+        assertBuffer("This is ", b = b.op(BACKWARD_KILL_WORD));
         assertBuffer("This is a test", b = b.op(YANK));
     }
 
@@ -157,7 +156,7 @@ public class KillRingTest extends ReaderTestSupport {
         TestBuffer b = new TestBuffer("This is a test");
         b = b.op(BACKWARD_WORD);
         b = b.op(BACKWARD_WORD);
-        assertBuffer("This a test", b = b.op(UNIX_WORD_RUBOUT));
+        assertBuffer("This a test", b = b.op(BACKWARD_KILL_WORD));
         assertBuffer("This a test", b = b.op(BACKWARD_WORD));
         assertBuffer(" a test", b = b.op(KILL_WORD));
         assertBuffer("This a test", b = b.op(YANK));

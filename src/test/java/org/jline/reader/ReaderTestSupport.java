@@ -22,6 +22,7 @@ import java.util.logging.Logger;
 
 import org.jline.Candidate;
 import org.jline.Console;
+import org.jline.keymap.KeyMap;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp.Capability;
 import org.junit.Before;
@@ -35,9 +36,8 @@ import static org.jline.reader.Operation.BEGINNING_OF_LINE;
 import static org.jline.reader.Operation.COMPLETE_WORD;
 import static org.jline.reader.Operation.END_OF_LINE;
 import static org.jline.reader.Operation.KILL_WORD;
-import static org.jline.reader.Operation.NEXT_HISTORY;
-import static org.jline.reader.Operation.PREVIOUS_HISTORY;
-import static org.jline.reader.Operation.UNIX_WORD_RUBOUT;
+import static org.jline.reader.Operation.DOWN_HISTORY;
+import static org.jline.reader.Operation.UP_HISTORY;
 import static org.jline.reader.Operation.VI_EOF_MAYBE;
 import static org.jline.reader.Operation.YANK;
 import static org.jline.reader.Operation.YANK_POP;
@@ -147,27 +147,19 @@ public abstract class ReaderTestSupport
             case BEGINNING_OF_LINE:    return "\033[H";
             case END_OF_LINE:          return "\u0005";
             case KILL_WORD:            return "\u001Bd";
-            case UNIX_WORD_RUBOUT:     return "\u0017";
+            case BACKWARD_KILL_WORD:   return "\u0017";
             case ACCEPT_LINE:          return "\n";
-            case PREVIOUS_HISTORY:     return "\033[A";
-            case NEXT_HISTORY:         return "\033[B";
+            case UP_HISTORY:     return "\033[A";
+            case DOWN_HISTORY:         return "\033[B";
             case BACKWARD_CHAR:        return "\u0002";
             case COMPLETE_WORD:        return "\011";
             case BACKWARD_DELETE_CHAR: return "\010";
             case VI_EOF_MAYBE:         return "\004";
-            case BACKWARD_KILL_WORD:   return new String(new char[]{27, 127});
             case YANK:                 return "\u0019";
             case YANK_POP:             return new String(new char[]{27, 121});
             default:
-              throw new IllegalArgumentException(key.toString());
+              throw new IllegalArgumentException(key);
         }
-    }
-
-    protected static char ctrl(char let) {
-        if (let < 'A' || let > 'Z')
-            throw new RuntimeException("Cannot generate CTRL code for "
-                    + "char '" + let + "' (" + ((int)let) + ")");
-        return (char)(let - 'A' + 1);
     }
 
     protected class TestBuffer
@@ -215,7 +207,7 @@ public abstract class ReaderTestSupport
          * @return The modified buffer.
          */
         public TestBuffer ctrl(char let) {
-            return append(ReaderTestSupport.ctrl(let));
+            return append(KeyMap.ctrl(let));
         }
 
         public TestBuffer enter() {
@@ -269,7 +261,7 @@ public abstract class ReaderTestSupport
         }
 
         public TestBuffer up() {
-            return append(getKeyForAction(PREVIOUS_HISTORY));
+            return append(getKeyForAction(UP_HISTORY));
         }
 
         public TestBuffer down() {

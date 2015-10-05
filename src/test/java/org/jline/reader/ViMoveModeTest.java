@@ -9,11 +9,14 @@
 package org.jline.reader;
 
 import org.jline.History;
+import org.jline.keymap.Reference;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.jline.keymap.KeyMap.ctrl;
 import static org.jline.reader.ConsoleReaderImpl.VICMD;
 import static org.jline.reader.ConsoleReaderImpl.VIINS;
+import static org.jline.reader.Operation.BACKWARD_KILL_LINE;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -405,15 +408,15 @@ public class ViMoveModeTest
             .ctrl('T')
             .append('$')        // End of line
             .ctrl('T')
-            .ctrl('T')
             .enter();
-        assertLine("abcdef", b, false);
+        assertLine("bcadfe", b, false);
     }
     
     @Test
     public void testCtrlU() throws Exception {
+        reader.getKeyMaps().get(VICMD).bind(new Reference(BACKWARD_KILL_LINE), ctrl('U'));
         /*
-         * CTRL-U is "line discard", it deletes everything prior to the
+         * CTRL-U is "backward-kill-line", it deletes everything prior to the
          * current cursor position.
          */
         reader.setKeyMap(VIINS);
@@ -471,7 +474,7 @@ public class ViMoveModeTest
             .ctrl('W')
             .ctrl('W')
             .enter();
-        assertLine("pasty bulimic !", b, false);
+        assertLine("pasty !", b, false);
         
         reader.setKeyMap(VIINS);
         b = (new TestBuffer("pasty bulimic rats !!!!!"))
@@ -479,7 +482,7 @@ public class ViMoveModeTest
             .append("2")
             .ctrl('W')
             .enter();
-        assertLine("pasty bulimic !", b, false);
+        assertLine("pasty !", b, false);
     }
     
     @Test
@@ -779,6 +782,7 @@ public class ViMoveModeTest
     
     @Test
     public void testWordRight() throws Exception {
+        reader.getKeyMaps().get(VICMD).bind(new Reference(BACKWARD_KILL_LINE), ctrl('U'));
         reader.setKeyMap(VIINS);
         TestBuffer b = (new TestBuffer("buttery frog necks"))
             .escape()
@@ -844,6 +848,7 @@ public class ViMoveModeTest
     
     @Test
     public void testWordLeft() throws Exception {
+        reader.getKeyMaps().get(VICMD).bind(new Reference(BACKWARD_KILL_LINE), ctrl('U'));
         reader.setKeyMap(VIINS);
         TestBuffer b = (new TestBuffer("lucious lark liquid    "))
             .escape()
@@ -870,6 +875,8 @@ public class ViMoveModeTest
     
     @Test
     public void testEndWord() throws Exception {
+        reader.getKeyMaps().get(VICMD).bind(new Reference(BACKWARD_KILL_LINE), ctrl('U'));
+
         reader.setKeyMap(VIINS);
         TestBuffer b = (new TestBuffer("putrid pidgen porridge"))
             .escape()

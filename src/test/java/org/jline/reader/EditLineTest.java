@@ -9,12 +9,15 @@
 package org.jline.reader;
 
 import org.jline.ConsoleReader;
+import org.jline.keymap.Reference;
 import org.junit.Test;
 
+import static org.jline.keymap.KeyMap.ctrl;
+import static org.jline.reader.Operation.BACKWARD_KILL_LINE;
+import static org.jline.reader.Operation.BACKWARD_KILL_WORD;
 import static org.jline.reader.Operation.BACKWARD_WORD;
 import static org.jline.reader.Operation.END_OF_LINE;
 import static org.jline.reader.Operation.KILL_WORD;
-import static org.jline.reader.Operation.UNIX_WORD_RUBOUT;
 
 /**
  * Tests various features of editing lines.
@@ -28,12 +31,12 @@ public class EditLineTest
     public void testDeletePreviousWord() throws Exception {
         TestBuffer b = new TestBuffer("This is a test");
 
-        assertBuffer("This is a ", b = b.op(UNIX_WORD_RUBOUT));
-        assertBuffer("This is ", b = b.op(UNIX_WORD_RUBOUT));
-        assertBuffer("This ", b = b.op(UNIX_WORD_RUBOUT));
-        assertBuffer("", b = b.op(UNIX_WORD_RUBOUT));
-        assertBuffer("", b = b.op(UNIX_WORD_RUBOUT));
-        assertBuffer("", b = b.op(UNIX_WORD_RUBOUT));
+        assertBuffer("This is a ", b = b.op(BACKWARD_KILL_WORD));
+        assertBuffer("This is ", b = b.op(BACKWARD_KILL_WORD));
+        assertBuffer("This ", b = b.op(BACKWARD_KILL_WORD));
+        assertBuffer("", b = b.op(BACKWARD_KILL_WORD));
+        assertBuffer("", b = b.op(BACKWARD_KILL_WORD));
+        assertBuffer("", b = b.op(BACKWARD_KILL_WORD));
     }
 
     @Test
@@ -115,6 +118,7 @@ public class EditLineTest
 
     @Test
     public void testClearLine() throws Exception {
+        reader.getKeys().bind(new Reference(BACKWARD_KILL_LINE), ctrl('U'));
         assertBuffer("", new TestBuffer("This is a test").ctrlU());
         assertBuffer("t", new TestBuffer("This is a test").left().ctrlU());
         assertBuffer("st", new TestBuffer("This is a test").left().left().ctrlU());

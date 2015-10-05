@@ -31,13 +31,13 @@ import static org.jline.keymap.KeyMap.alt;
 import static org.jline.keymap.KeyMap.display;
 import static org.jline.keymap.KeyMap.range;
 import static org.jline.keymap.KeyMap.translate;
-import static org.jline.reader.Operation.ABORT;
 import static org.jline.reader.Operation.ACCEPT_LINE;
 import static org.jline.reader.Operation.BACKWARD_WORD;
 import static org.jline.reader.Operation.COMPLETE_WORD;
-import static org.jline.reader.Operation.NEXT_HISTORY;
-import static org.jline.reader.Operation.PREVIOUS_HISTORY;
-import static org.jline.reader.Operation.UNIX_LINE_DISCARD;
+import static org.jline.reader.Operation.KILL_WHOLE_LINE;
+import static org.jline.reader.Operation.DOWN_HISTORY;
+import static org.jline.reader.Operation.UP_HISTORY;
+import static org.jline.reader.Operation.SEND_BREAK;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
@@ -69,12 +69,12 @@ public class KeyMapTest {
         Assert.assertEquals(new Reference(COMPLETE_WORD), map.getBound("\u001B\u001B"));
         assertEquals(new Reference(BACKWARD_WORD), map.getBound(alt("b")));
 
-        map.bindIfNotBound(new Reference(PREVIOUS_HISTORY), "\033[0A");
-        assertEquals(new Reference(PREVIOUS_HISTORY), map.getBound("\033[0A"));
+        map.bindIfNotBound(new Reference(UP_HISTORY), "\033[0A");
+        assertEquals(new Reference(UP_HISTORY), map.getBound("\033[0A"));
 
-        map.bind(new Reference(NEXT_HISTORY), "\033[0AB");
-        assertEquals(new Reference(PREVIOUS_HISTORY), map.getBound("\033[0A"));
-        assertEquals(new Reference(NEXT_HISTORY), map.getBound("\033[0AB"));
+        map.bind(new Reference(DOWN_HISTORY), "\033[0AB");
+        assertEquals(new Reference(UP_HISTORY), map.getBound("\033[0A"));
+        assertEquals(new Reference(DOWN_HISTORY), map.getBound("\033[0AB"));
 
         int[] remaining = new int[1];
         assertEquals(new Reference(COMPLETE_WORD), map.getBound("\u001B\u001Ba", remaining));
@@ -83,7 +83,7 @@ public class KeyMapTest {
         map.bind(new Reference("anotherkey"), translate("^Uc"));
         assertEquals(new Reference("anotherkey"), map.getBound(translate("^Uc"), remaining));
         assertEquals(0, remaining[0]);
-        assertEquals(new Reference(UNIX_LINE_DISCARD), map.getBound(translate("^Ua"), remaining));
+        assertEquals(new Reference(KILL_WHOLE_LINE), map.getBound(translate("^Ua"), remaining));
         assertEquals(1, remaining[0]);
     }
 
@@ -93,20 +93,20 @@ public class KeyMapTest {
 
         int[] remaining = new int[1];
         assertNull(map.getBound("ab", remaining));
-        map.bind(new Reference(ABORT), "ab");
+        map.bind(new Reference(SEND_BREAK), "ab");
         assertNull(map.getBound("a", remaining));
         assertEquals(-1, remaining[0]);
-        assertEquals(new Reference(ABORT), map.getBound("ab", remaining));
+        assertEquals(new Reference(SEND_BREAK), map.getBound("ab", remaining));
         assertEquals(0, remaining[0]);
-        assertEquals(new Reference(ABORT), map.getBound("abc", remaining));
+        assertEquals(new Reference(SEND_BREAK), map.getBound("abc", remaining));
         assertEquals(1, remaining[0]);
 
         map.bind(new Reference(ACCEPT_LINE), "abc");
         assertNull(map.getBound("a", remaining));
         assertEquals(-1, remaining[0]);
-        assertEquals(new Reference(ABORT), map.getBound("ab", remaining));
+        assertEquals(new Reference(SEND_BREAK), map.getBound("ab", remaining));
         assertEquals(-1, remaining[0]);
-        assertEquals(new Reference(ABORT), map.getBound("abd", remaining));
+        assertEquals(new Reference(SEND_BREAK), map.getBound("abd", remaining));
         assertEquals(1, remaining[0]);
         assertEquals(new Reference(ACCEPT_LINE), map.getBound("abc", remaining));
         assertEquals(0, remaining[0]);
@@ -114,9 +114,9 @@ public class KeyMapTest {
         map.unbind("abc");
         assertNull(map.getBound("a", remaining));
         assertEquals(-1, remaining[0]);
-        assertEquals(new Reference(ABORT), map.getBound("ab", remaining));
+        assertEquals(new Reference(SEND_BREAK), map.getBound("ab", remaining));
         assertEquals(0, remaining[0]);
-        assertEquals(new Reference(ABORT), map.getBound("abc", remaining));
+        assertEquals(new Reference(SEND_BREAK), map.getBound("abc", remaining));
         assertEquals(1, remaining[0]);
     }
 

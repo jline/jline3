@@ -18,8 +18,8 @@ import static org.jline.reader.Operation.BACKWARD_CHAR;
 import static org.jline.reader.Operation.BEGINNING_OF_LINE;
 import static org.jline.reader.Operation.HISTORY_SEARCH_BACKWARD;
 import static org.jline.reader.Operation.HISTORY_SEARCH_FORWARD;
-import static org.jline.reader.Operation.NEXT_HISTORY;
-import static org.jline.reader.Operation.PREVIOUS_HISTORY;
+import static org.jline.reader.Operation.DOWN_HISTORY;
+import static org.jline.reader.Operation.UP_HISTORY;
 
 /**
  * Tests command history.
@@ -41,46 +41,46 @@ public class HistoryTest
 
         assertBuffer("", b);
 
-        assertBuffer("test line 5", b = b.op(PREVIOUS_HISTORY));
+        assertBuffer("test line 5", b = b.op(UP_HISTORY));
         assertBuffer("test line 5", b = b.op(BACKWARD_CHAR));
-        assertBuffer("test line 4", b = b.op(PREVIOUS_HISTORY));
-        assertBuffer("test line 5", b = b.op(NEXT_HISTORY));
-        assertBuffer("test line 4", b = b.op(PREVIOUS_HISTORY));
-        assertBuffer("test line 3", b = b.op(PREVIOUS_HISTORY));
-        assertBuffer("test line 2", b = b.op(PREVIOUS_HISTORY));
-        assertBuffer("test line 1", b = b.op(PREVIOUS_HISTORY));
+        assertBuffer("test line 4", b = b.op(UP_HISTORY));
+        assertBuffer("test line 5", b = b.op(DOWN_HISTORY));
+        assertBuffer("test line 4", b = b.op(UP_HISTORY));
+        assertBuffer("test line 3", b = b.op(UP_HISTORY));
+        assertBuffer("test line 2", b = b.op(UP_HISTORY));
+        assertBuffer("test line 1", b = b.op(UP_HISTORY));
 
         // beginning of history
-        assertBuffer("test line 1", b = b.op(PREVIOUS_HISTORY));
-        assertBuffer("test line 1", b = b.op(PREVIOUS_HISTORY));
-        assertBuffer("test line 1", b = b.op(PREVIOUS_HISTORY));
-        assertBuffer("test line 1", b = b.op(PREVIOUS_HISTORY));
+        assertBuffer("test line 1", b = b.op(UP_HISTORY));
+        assertBuffer("test line 1", b = b.op(UP_HISTORY));
+        assertBuffer("test line 1", b = b.op(UP_HISTORY));
+        assertBuffer("test line 1", b = b.op(UP_HISTORY));
 
-        assertBuffer("test line 2", b = b.op(NEXT_HISTORY));
-        assertBuffer("test line 3", b = b.op(NEXT_HISTORY));
-        assertBuffer("test line 4", b = b.op(NEXT_HISTORY));
-        assertBuffer("test line 5", b = b.op(NEXT_HISTORY));
+        assertBuffer("test line 2", b = b.op(DOWN_HISTORY));
+        assertBuffer("test line 3", b = b.op(DOWN_HISTORY));
+        assertBuffer("test line 4", b = b.op(DOWN_HISTORY));
+        assertBuffer("test line 5", b = b.op(DOWN_HISTORY));
 
         // end of history
-        assertBuffer("", b = b.op(NEXT_HISTORY));
-        assertBuffer("", b = b.op(NEXT_HISTORY));
-        assertBuffer("", b = b.op(NEXT_HISTORY));
+        assertBuffer("", b = b.op(DOWN_HISTORY));
+        assertBuffer("", b = b.op(DOWN_HISTORY));
+        assertBuffer("", b = b.op(DOWN_HISTORY));
 
-        assertBuffer("test line 5", b = b.op(PREVIOUS_HISTORY));
-        assertBuffer("test line 4", b = b.op(PREVIOUS_HISTORY));
+        assertBuffer("test line 5", b = b.op(UP_HISTORY));
+        assertBuffer("test line 4", b = b.op(UP_HISTORY));
         b = b.op(BEGINNING_OF_LINE).append("XXX").op(ACCEPT_LINE);
-        assertBuffer("XXXtest line 4", b = b.op(PREVIOUS_HISTORY));
-        assertBuffer("test line 5", b = b.op(PREVIOUS_HISTORY));
-        assertBuffer("test line 4", b = b.op(PREVIOUS_HISTORY));
-        assertBuffer("test line 5", b = b.op(NEXT_HISTORY));
-        assertBuffer("XXXtest line 4", b = b.op(NEXT_HISTORY));
-        assertBuffer("", b = b.op(NEXT_HISTORY));
+        assertBuffer("XXXtest line 4", b = b.op(UP_HISTORY));
+        assertBuffer("test line 5", b = b.op(UP_HISTORY));
+        assertBuffer("test line 4", b = b.op(UP_HISTORY));
+        assertBuffer("test line 5", b = b.op(DOWN_HISTORY));
+        assertBuffer("XXXtest line 4", b = b.op(DOWN_HISTORY));
+        assertBuffer("", b = b.op(DOWN_HISTORY));
 
-        assertBuffer("XXXtest line 4", b = b.op(PREVIOUS_HISTORY));
-        assertBuffer("XXXtest line 4", b = b.op(ACCEPT_LINE).op(PREVIOUS_HISTORY));
-        assertBuffer("XXXtest line 4", b = b.op(ACCEPT_LINE).op(PREVIOUS_HISTORY));
-        assertBuffer("XXXtest line 4", b = b.op(ACCEPT_LINE).op(PREVIOUS_HISTORY));
-        assertBuffer("XXXtest line 4", b = b.op(ACCEPT_LINE).op(PREVIOUS_HISTORY));
+        assertBuffer("XXXtest line 4", b = b.op(UP_HISTORY));
+        assertBuffer("XXXtest line 4", b = b.op(ACCEPT_LINE).op(UP_HISTORY));
+        assertBuffer("XXXtest line 4", b = b.op(ACCEPT_LINE).op(UP_HISTORY));
+        assertBuffer("XXXtest line 4", b = b.op(ACCEPT_LINE).op(UP_HISTORY));
+        assertBuffer("XXXtest line 4", b = b.op(ACCEPT_LINE).op(UP_HISTORY));
     }
 
     @Test
