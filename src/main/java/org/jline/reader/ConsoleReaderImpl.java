@@ -963,6 +963,100 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         console.writer().flush();
     }
 
+    public boolean isKeyMap(String name) {
+        return keyMap.equals(name);
+    }
+
+    /**
+     * Read a character from the console.
+     *
+     * @return the character, or -1 if an EOF is received.
+     */
+    public int readCharacter() {
+        return bindingReader.readCharacter();
+    }
+
+    public int peekCharacter(long timeout) {
+        return bindingReader.peekCharacter(timeout);
+    }
+
+    /**
+     * Read from the input stream and decode an operation from the key map.
+     *
+     * The input stream will be read character by character until a matching
+     * binding can be found.  Characters that can't possibly be matched to
+     * any binding will be discarded.
+     *
+     * @param keys the KeyMap to use for decoding the input stream
+     * @return the decoded binding or <code>null</code> if the end of
+     *         stream has been reached
+     */
+    public Binding readBinding(KeyMap keys) {
+        return readBinding(keys, null);
+    }
+
+    public Binding readBinding(KeyMap keys, KeyMap local) {
+        Binding o = bindingReader.readBinding(keys, local);
+        /*
+         * The kill ring keeps record of whether or not the
+         * previous command was a yank or a kill. We reset
+         * that state here if needed.
+         */
+        if (o instanceof Reference) {
+            String ref = ((Reference) o).name();
+            if (!YANK_POP.equals(ref) && !YANK.equals(ref)) {
+                killRing.resetLastYank();
+            }
+            if (!KILL_LINE.equals(ref) && !KILL_WHOLE_LINE.equals(ref)
+                    && !BACKWARD_KILL_WORD.equals(ref) && !KILL_WORD.equals(ref)) {
+                killRing.resetLastKill();
+            }
+        }
+        return o;
+    }
+
+    public ParsedLine getParsedLine() {
+        return parsedLine;
+    }
+
+    public String getLastBinding() {
+        return bindingReader.getLastBinding();
+    }
+
+    public String getSearchTerm() {
+        return searchTerm != null ? searchTerm.toString() : null;
+    }
+
+    //
+    // Key Bindings
+    //
+
+    /**
+     * Sets the current keymap by name. Supported keymaps are "emacs",
+     * "viins", "vicmd".
+     * @param name The name of the keymap to switch to
+     * @return true if the keymap was set, or false if the keymap is
+     *    not recognized.
+     */
+    public boolean setKeyMap(String name) {
+        KeyMap map = keyMaps.get(name);
+        if (map == null) {
+            return false;
+        }
+        this.keyMap = name;
+        return true;
+    }
+
+    /**
+     * Returns the name of the current key mapping.
+     * @return the name of the key mapping. This will be the canonical name
+     *   of the current mode of the key map and may not reflect the name that
+     *   was used with {@link #setKeyMap(String)}.
+     */
+    public String getKeyMap() {
+        return keyMap;
+    }
+
     /**
      * This method is calling while doing a delete-to ("d"), change-to ("c"),
      * or yank-to ("y") and it filters out only those movement operations
@@ -1752,10 +1846,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return true;
     }
 
-    public boolean isKeyMap(String name) {
-        return keyMap.equals(name);
-    }
-
     protected boolean undo() {
         isUndo = true;
         if (undo.size() > 0) {
@@ -1782,96 +1872,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected boolean forwardChar() {
         return buf.move(count) != 0;
-    }
-
-    /**
-     * Read a character from the console.
-     *
-     * @return the character, or -1 if an EOF is received.
-     */
-    public int readCharacter() {
-        return bindingReader.readCharacter();
-    }
-
-    public int peekCharacter(long timeout) {
-        return bindingReader.peekCharacter(timeout);
-    }
-
-    /**
-     * Read from the input stream and decode an operation from the key map.
-     *
-     * The input stream will be read character by character until a matching
-     * binding can be found.  Characters that can't possibly be matched to
-     * any binding will be discarded.
-     *
-     * @param keys the KeyMap to use for decoding the input stream
-     * @return the decoded binding or <code>null</code> if the end of
-     *         stream has been reached
-     */
-    public Binding readBinding(KeyMap keys) {
-        return readBinding(keys, null);
-    }
-
-    public Binding readBinding(KeyMap keys, KeyMap local) {
-        Binding o = bindingReader.readBinding(keys, local);
-        /*
-         * The kill ring keeps record of whether or not the
-         * previous command was a yank or a kill. We reset
-         * that state here if needed.
-         */
-        if (o instanceof Reference) {
-            String ref = ((Reference) o).name();
-            if (!YANK_POP.equals(ref) && !YANK.equals(ref)) {
-                killRing.resetLastYank();
-            }
-            if (!KILL_LINE.equals(ref) && !KILL_WHOLE_LINE.equals(ref)
-                    && !BACKWARD_KILL_WORD.equals(ref) && !KILL_WORD.equals(ref)) {
-                killRing.resetLastKill();
-            }
-        }
-        return o;
-    }
-
-    public ParsedLine getParsedLine() {
-        return parsedLine;
-    }
-
-    public String getLastBinding() {
-        return bindingReader.getLastBinding();
-    }
-
-    public String getSearchTerm() {
-        return searchTerm != null ? searchTerm.toString() : null;
-    }
-
-    //
-    // Key Bindings
-    //
-
-    /**
-     * Sets the current keymap by name. Supported keymaps are "emacs",
-     * "viins", "vicmd".
-     * @param name The name of the keymap to switch to
-     * @return true if the keymap was set, or false if the keymap is
-     *    not recognized.
-     */
-    public boolean setKeyMap(String name) {
-        KeyMap map = keyMaps.get(name);
-        if (map == null) {
-            return false;
-        }
-        this.keyMap = name;
-        return true;
-    }
-
-    /**
-     * Returns the name of the current key mapping.
-     * @return the name of the key mapping. This will be the canonical name
-     *   of the current mode of the key map and may not reflect the name that
-     *   was used with {@link #setKeyMap(String)}.
-     */
-    public String getKeyMap() {
-        return keyMap;
     }
 
     protected boolean viDigitOrBeginningOfLine() {
