@@ -328,8 +328,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected Supplier<String> post;
 
-    protected Map<String, Widget<ConsoleReaderImpl>> builtinWidgets;
-    protected Map<String, Widget<ConsoleReaderImpl>> widgets;
+    protected Map<String, Widget> builtinWidgets;
+    protected Map<String, Widget> widgets;
 
     protected int count;
     protected int mult;
@@ -402,11 +402,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return keyMaps.get(keyMap);
     }
 
-    public Map<String, Widget<ConsoleReaderImpl>> getWidgets() {
+    public Map<String, Widget> getWidgets() {
         return widgets;
     }
 
-    public Map<String, Widget<ConsoleReaderImpl>> getBuiltinWidgets() {
+    public Map<String, Widget> getBuiltinWidgets() {
         return builtinWidgets;
     }
 
@@ -605,8 +605,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
                 // Get executable widget
                 Buffer copy = buf.copy();
-                Widget<ConsoleReaderImpl> w = getWidget(o);
-                if (w == null || !w.apply(this)) {
+                Widget w = getWidget(o);
+                if (w == null || !w.apply()) {
                     beep();
                 }
                 if (!isUndo && !copy.toString().equals(buf.toString())) {
@@ -660,14 +660,14 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             throw new IllegalStateException();
         }
         try {
-            Widget<ConsoleReaderImpl> w;
+            Widget w;
             if (name.startsWith(".")) {
                 w = builtinWidgets.get(name.substring(1));
             } else {
                 w = widgets.get(name);
             }
             if (w != null) {
-                w.apply(this);
+                w.apply();
             }
         } catch (Throwable t) {
             // TODO: log
@@ -683,13 +683,13 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     @SuppressWarnings("unchecked")
-    protected Widget<ConsoleReaderImpl> getWidget(Binding binding) {
-        Widget<ConsoleReaderImpl> w = null;
+    protected Widget getWidget(Binding binding) {
+        Widget w = null;
         if (binding instanceof Widget) {
-            w = (Widget<ConsoleReaderImpl>) binding;
+            w = (Widget) binding;
         } else if (binding instanceof Macro) {
             String macro = ((Macro) binding).getSequence();
-            w = r -> {
+            w = () -> {
                 bindingReader.runMacro(macro);
                 return true;
             };
@@ -1922,8 +1922,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 killWholeLine();
             } else {
                 viMoveMode = ViMoveMode.DELETE_TO;
-                Widget<ConsoleReaderImpl> widget = widgets.get(op);
-                if (widget != null && !widget.apply(this)) {
+                Widget widget = widgets.get(op);
+                if (widget != null && !widget.apply()) {
                     return false;
                 }
                 viMoveMode = ViMoveMode.NORMAL;
@@ -1946,8 +1946,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 return true;
             } else {
                 viMoveMode = ViMoveMode.YANK_TO;
-                Widget<ConsoleReaderImpl> widget = widgets.get(op);
-                if (widget != null && !widget.apply(this)) {
+                Widget widget = widgets.get(op);
+                if (widget != null && !widget.apply()) {
                     return false;
                 }
                 viMoveMode = ViMoveMode.NORMAL;
@@ -1969,8 +1969,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 killWholeLine();
             } else {
                 viMoveMode = ViMoveMode.CHANGE_TO;
-                Widget<ConsoleReaderImpl> widget = widgets.get(op);
-                if (widget != null && !widget.apply(this)) {
+                Widget widget = widgets.get(op);
+                if (widget != null && !widget.apply()) {
                     return false;
                 }
                 viMoveMode = ViMoveMode.NORMAL;
@@ -2766,99 +2766,99 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return true;
     }
 
-    protected Map<String, Widget<ConsoleReaderImpl>> builtinWidgets() {
-        Map<String, Widget<ConsoleReaderImpl>> widgets = new HashMap<>();
-        widgets.put(ACCEPT_LINE, ConsoleReaderImpl::acceptLine);
-        widgets.put(ARGUMENT_BASE, ConsoleReaderImpl::argumentBase);
-        widgets.put(BACKWARD_CHAR, ConsoleReaderImpl::backwardChar);
-        widgets.put(BACKWARD_DELETE_CHAR, ConsoleReaderImpl::backwardDeleteChar);
-        widgets.put(BACKWARD_KILL_LINE, ConsoleReaderImpl::backwardKillLine);
-        widgets.put(BACKWARD_KILL_WORD, ConsoleReaderImpl::backwardKillWord);
-        widgets.put(BACKWARD_WORD, ConsoleReaderImpl::backwardWord);
-        widgets.put(BEGINNING_OF_HISTORY, ConsoleReaderImpl::beginningOfHistory);
-        widgets.put(BEGINNING_OF_LINE, ConsoleReaderImpl::beginningOfLine);
-        widgets.put(CALL_LAST_KBD_MACRO, ConsoleReaderImpl::callLastKbdMacro);
-        widgets.put(CAPITALIZE_WORD, ConsoleReaderImpl::capitalizeWord);
-        widgets.put(CLEAR_SCREEN, ConsoleReaderImpl::clearScreen);
-        widgets.put(COMPLETE_PREFIX, ConsoleReaderImpl::completePrefix);
-        widgets.put(COMPLETE_WORD, ConsoleReaderImpl::completeWord);
-        widgets.put(DELETE_CHAR, ConsoleReaderImpl::deleteChar);
-        widgets.put(DELETE_CHAR_OR_LIST, ConsoleReaderImpl::deleteCharOrList);
-        widgets.put(DIGIT_ARGUMENT, ConsoleReaderImpl::digitArgument);
-        widgets.put(DO_LOWERCASE_VERSION, ConsoleReaderImpl::doLowercaseVersion);
-        widgets.put(DOWN_CASE_WORD, ConsoleReaderImpl::downCaseWord);
-        widgets.put(DOWN_LINE_OR_HISTORY, ConsoleReaderImpl::downLineOrHistory);
-        widgets.put(EMACS_EDITING_MODE, ConsoleReaderImpl::emacsEditingMode);
-        widgets.put(END_KBD_MACRO, ConsoleReaderImpl::endKbdMacro);
-        widgets.put(END_OF_HISTORY, ConsoleReaderImpl::endOfHistory);
-        widgets.put(END_OF_LINE, ConsoleReaderImpl::endOfLine);
-        widgets.put(EXIT_OR_DELETE_CHAR, ConsoleReaderImpl::exitOrDeleteChar);
-        widgets.put(FORWARD_CHAR, ConsoleReaderImpl::forwardChar);
-        widgets.put(FORWARD_WORD, ConsoleReaderImpl::forwardWord);
-        widgets.put(HISTORY_INCREMENTAL_SEARCH_BACKWARD, ConsoleReaderImpl::historyIncrementalSearchBackward);
-        widgets.put(HISTORY_INCREMENTAL_SEARCH_FORWARD, ConsoleReaderImpl::historyIncrementalSearchForward);
-        widgets.put(HISTORY_SEARCH_BACKWARD, ConsoleReaderImpl::historySearchBackward);
-        widgets.put(HISTORY_SEARCH_FORWARD, ConsoleReaderImpl::historySearchForward);
-        widgets.put(INSERT_CLOSE_CURLY, ConsoleReaderImpl::insertCloseCurly);
-        widgets.put(INSERT_CLOSE_PAREN, ConsoleReaderImpl::insertCloseParen);
-        widgets.put(INSERT_CLOSE_SQUARE, ConsoleReaderImpl::insertCloseSquare);
-        widgets.put(INSERT_COMMENT, ConsoleReaderImpl::insertComment);
-        widgets.put(INTERRUPT, ConsoleReaderImpl::interrupt);
-        widgets.put(KILL_LINE, ConsoleReaderImpl::killLine);
-        widgets.put(KILL_WHOLE_LINE, ConsoleReaderImpl::killWholeLine);
-        widgets.put(KILL_WORD, ConsoleReaderImpl::killWord);
-        widgets.put(MENU_COMPLETE, ConsoleReaderImpl::menuComplete);
-        widgets.put(NEG_ARGUMENT, ConsoleReaderImpl::negArgument);
-        widgets.put(DOWN_HISTORY, ConsoleReaderImpl::nextHistory);
-        widgets.put(OVERWRITE_MODE, ConsoleReaderImpl::overwriteMode);
-        widgets.put(PASTE_FROM_CLIPBOARD, ConsoleReaderImpl::pasteFromClipboard);
-        widgets.put(POSSIBLE_COMPLETIONS, ConsoleReaderImpl::listChoices);
-        widgets.put(UP_HISTORY, ConsoleReaderImpl::previousHistory);
-        widgets.put(QUIT, ConsoleReaderImpl::quit);
-        widgets.put(QUOTED_INSERT, ConsoleReaderImpl::quotedInsert);
-        widgets.put(SELF_INSERT, ConsoleReaderImpl::selfInsert);
-        widgets.put(SELF_INSERT_UNMETA, ConsoleReaderImpl::selfInsertUnmeta);
-        widgets.put(SEND_BREAK, ConsoleReaderImpl::sendBreak);
-        widgets.put(START_KBD_MACRO, ConsoleReaderImpl::startKbdMacro);
-        widgets.put(TAB_INSERT, ConsoleReaderImpl::tabInsert);
-        widgets.put(TRANSPOSE_CHARS, ConsoleReaderImpl::transposeChars);
-        widgets.put(TRANSPOSE_WORDS, ConsoleReaderImpl::transposeWords);
-        widgets.put(UNDEFINED_KEY, ConsoleReaderImpl::undefinedKey);
-        widgets.put(UNIVERSAL_ARGUMENT, ConsoleReaderImpl::universalArgument);
-        widgets.put(UP_CASE_WORD, ConsoleReaderImpl::upCaseWord);
-        widgets.put(UNDO, ConsoleReaderImpl::undo);
-        widgets.put(UP_LINE_OR_HISTORY, ConsoleReaderImpl::upLineOrHistory);
-        widgets.put(VI_ADD_EOL, ConsoleReaderImpl::viAddEol);
-        widgets.put(VI_ADD_NEXT, ConsoleReaderImpl::viAddNext);
-        widgets.put(VI_DIGIT_OR_BEGINNING_OF_LINE, ConsoleReaderImpl::viDigitOrBeginningOfLine);
-        widgets.put(VI_CHANGE_CASE, ConsoleReaderImpl::viChangeCase);
-        widgets.put(VI_CHANGE_CHAR, ConsoleReaderImpl::viChangeChar);
-        widgets.put(VI_CHANGE_TO, ConsoleReaderImpl::viChangeTo);
-        widgets.put(VI_CHANGE_TO_EOL, ConsoleReaderImpl::viChangeToEol);
-        widgets.put(VI_CHAR_SEARCH, ConsoleReaderImpl::viCharSearch);
-        widgets.put(VI_DELETE, ConsoleReaderImpl::viDelete);
-        widgets.put(VI_DELETE_TO, ConsoleReaderImpl::viDeleteTo);
-        widgets.put(VI_DELETE_TO_EOL, ConsoleReaderImpl::viDeleteToEol);
-        widgets.put(VI_END_WORD, ConsoleReaderImpl::viEndWord);
-        widgets.put(VI_EOF_MAYBE, ConsoleReaderImpl::viEofMaybe);
-        widgets.put(VI_FIRST_PRINT, ConsoleReaderImpl::viFirstPrint);
-        widgets.put(VI_INSERT_BOL, ConsoleReaderImpl::viInsertBol);
-        widgets.put(VI_INSERT_COMMENT, ConsoleReaderImpl::viInsertComment);
-        widgets.put(VI_INSERT, ConsoleReaderImpl::viInsert);
-        widgets.put(VI_KILL_WHOLE_LINE, ConsoleReaderImpl::viKillWholeLine);
-        widgets.put(VI_MATCH_BRACKET, ConsoleReaderImpl::viMatchBracket);
-        widgets.put(VI_MOVE_ACCEPT_LINE, ConsoleReaderImpl::viMoveAcceptLine);
-        widgets.put(VI_CMD_MODE, ConsoleReaderImpl::viCmdMode);
-        widgets.put(VI_DOWN_LINE_OR_HISTORY, ConsoleReaderImpl::viDownLineOrHistory);
-        widgets.put(VI_NEXT_WORD, ConsoleReaderImpl::viNextWord);
-        widgets.put(VI_PREV_WORD, ConsoleReaderImpl::viPreviousWord);
-        widgets.put(VI_UP_LINE_OR_HISTORY, ConsoleReaderImpl::viUpLineOrHistory);
-        widgets.put(VI_PUT, ConsoleReaderImpl::viPut);
-        widgets.put(VI_RUBOUT, ConsoleReaderImpl::viRubout);
-        widgets.put(VI_SEARCH, ConsoleReaderImpl::viSearch);
-        widgets.put(VI_YANK_TO, ConsoleReaderImpl::viYankTo);
-        widgets.put(YANK, ConsoleReaderImpl::yank);
-        widgets.put(YANK_POP, ConsoleReaderImpl::yankPop);
+    protected Map<String, Widget> builtinWidgets() {
+        Map<String, Widget> widgets = new HashMap<>();
+        widgets.put(ACCEPT_LINE, this::acceptLine);
+        widgets.put(ARGUMENT_BASE, this::argumentBase);
+        widgets.put(BACKWARD_CHAR, this::backwardChar);
+        widgets.put(BACKWARD_DELETE_CHAR, this::backwardDeleteChar);
+        widgets.put(BACKWARD_KILL_LINE, this::backwardKillLine);
+        widgets.put(BACKWARD_KILL_WORD, this::backwardKillWord);
+        widgets.put(BACKWARD_WORD, this::backwardWord);
+        widgets.put(BEGINNING_OF_HISTORY, this::beginningOfHistory);
+        widgets.put(BEGINNING_OF_LINE, this::beginningOfLine);
+        widgets.put(CALL_LAST_KBD_MACRO, this::callLastKbdMacro);
+        widgets.put(CAPITALIZE_WORD, this::capitalizeWord);
+        widgets.put(CLEAR_SCREEN, this::clearScreen);
+        widgets.put(COMPLETE_PREFIX, this::completePrefix);
+        widgets.put(COMPLETE_WORD, this::completeWord);
+        widgets.put(DELETE_CHAR, this::deleteChar);
+        widgets.put(DELETE_CHAR_OR_LIST, this::deleteCharOrList);
+        widgets.put(DIGIT_ARGUMENT, this::digitArgument);
+        widgets.put(DO_LOWERCASE_VERSION, this::doLowercaseVersion);
+        widgets.put(DOWN_CASE_WORD, this::downCaseWord);
+        widgets.put(DOWN_LINE_OR_HISTORY, this::downLineOrHistory);
+        widgets.put(EMACS_EDITING_MODE, this::emacsEditingMode);
+        widgets.put(END_KBD_MACRO, this::endKbdMacro);
+        widgets.put(END_OF_HISTORY, this::endOfHistory);
+        widgets.put(END_OF_LINE, this::endOfLine);
+        widgets.put(EXIT_OR_DELETE_CHAR, this::exitOrDeleteChar);
+        widgets.put(FORWARD_CHAR, this::forwardChar);
+        widgets.put(FORWARD_WORD, this::forwardWord);
+        widgets.put(HISTORY_INCREMENTAL_SEARCH_BACKWARD, this::historyIncrementalSearchBackward);
+        widgets.put(HISTORY_INCREMENTAL_SEARCH_FORWARD, this::historyIncrementalSearchForward);
+        widgets.put(HISTORY_SEARCH_BACKWARD, this::historySearchBackward);
+        widgets.put(HISTORY_SEARCH_FORWARD, this::historySearchForward);
+        widgets.put(INSERT_CLOSE_CURLY, this::insertCloseCurly);
+        widgets.put(INSERT_CLOSE_PAREN, this::insertCloseParen);
+        widgets.put(INSERT_CLOSE_SQUARE, this::insertCloseSquare);
+        widgets.put(INSERT_COMMENT, this::insertComment);
+        widgets.put(INTERRUPT, this::interrupt);
+        widgets.put(KILL_LINE, this::killLine);
+        widgets.put(KILL_WHOLE_LINE, this::killWholeLine);
+        widgets.put(KILL_WORD, this::killWord);
+        widgets.put(MENU_COMPLETE, this::menuComplete);
+        widgets.put(NEG_ARGUMENT, this::negArgument);
+        widgets.put(DOWN_HISTORY, this::nextHistory);
+        widgets.put(OVERWRITE_MODE, this::overwriteMode);
+        widgets.put(PASTE_FROM_CLIPBOARD, this::pasteFromClipboard);
+        widgets.put(POSSIBLE_COMPLETIONS, this::listChoices);
+        widgets.put(UP_HISTORY, this::previousHistory);
+        widgets.put(QUIT, this::quit);
+        widgets.put(QUOTED_INSERT, this::quotedInsert);
+        widgets.put(SELF_INSERT, this::selfInsert);
+        widgets.put(SELF_INSERT_UNMETA, this::selfInsertUnmeta);
+        widgets.put(SEND_BREAK, this::sendBreak);
+        widgets.put(START_KBD_MACRO, this::startKbdMacro);
+        widgets.put(TAB_INSERT, this::tabInsert);
+        widgets.put(TRANSPOSE_CHARS, this::transposeChars);
+        widgets.put(TRANSPOSE_WORDS, this::transposeWords);
+        widgets.put(UNDEFINED_KEY, this::undefinedKey);
+        widgets.put(UNIVERSAL_ARGUMENT, this::universalArgument);
+        widgets.put(UP_CASE_WORD, this::upCaseWord);
+        widgets.put(UNDO, this::undo);
+        widgets.put(UP_LINE_OR_HISTORY, this::upLineOrHistory);
+        widgets.put(VI_ADD_EOL, this::viAddEol);
+        widgets.put(VI_ADD_NEXT, this::viAddNext);
+        widgets.put(VI_DIGIT_OR_BEGINNING_OF_LINE, this::viDigitOrBeginningOfLine);
+        widgets.put(VI_CHANGE_CASE, this::viChangeCase);
+        widgets.put(VI_CHANGE_CHAR, this::viChangeChar);
+        widgets.put(VI_CHANGE_TO, this::viChangeTo);
+        widgets.put(VI_CHANGE_TO_EOL, this::viChangeToEol);
+        widgets.put(VI_CHAR_SEARCH, this::viCharSearch);
+        widgets.put(VI_DELETE, this::viDelete);
+        widgets.put(VI_DELETE_TO, this::viDeleteTo);
+        widgets.put(VI_DELETE_TO_EOL, this::viDeleteToEol);
+        widgets.put(VI_END_WORD, this::viEndWord);
+        widgets.put(VI_EOF_MAYBE, this::viEofMaybe);
+        widgets.put(VI_FIRST_PRINT, this::viFirstPrint);
+        widgets.put(VI_INSERT_BOL, this::viInsertBol);
+        widgets.put(VI_INSERT_COMMENT, this::viInsertComment);
+        widgets.put(VI_INSERT, this::viInsert);
+        widgets.put(VI_KILL_WHOLE_LINE, this::viKillWholeLine);
+        widgets.put(VI_MATCH_BRACKET, this::viMatchBracket);
+        widgets.put(VI_MOVE_ACCEPT_LINE, this::viMoveAcceptLine);
+        widgets.put(VI_CMD_MODE, this::viCmdMode);
+        widgets.put(VI_DOWN_LINE_OR_HISTORY, this::viDownLineOrHistory);
+        widgets.put(VI_NEXT_WORD, this::viNextWord);
+        widgets.put(VI_PREV_WORD, this::viPreviousWord);
+        widgets.put(VI_UP_LINE_OR_HISTORY, this::viUpLineOrHistory);
+        widgets.put(VI_PUT, this::viPut);
+        widgets.put(VI_RUBOUT, this::viRubout);
+        widgets.put(VI_SEARCH, this::viSearch);
+        widgets.put(VI_YANK_TO, this::viYankTo);
+        widgets.put(YANK, this::yank);
+        widgets.put(YANK_POP, this::yankPop);
         return widgets;
     }
 

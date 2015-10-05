@@ -13,8 +13,8 @@ package org.jline.keymap;
  * @param <T>
  */
 @FunctionalInterface
-public interface Widget<T> extends Binding {
+public interface Widget extends Binding {
 
-    boolean apply(T reader);
+    boolean apply();
 
 }

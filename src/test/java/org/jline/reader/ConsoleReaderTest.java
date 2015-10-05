@@ -332,7 +332,7 @@ public class ConsoleReaderTest extends ReaderTestSupport
 
     @Test
     public void testCallbacks() throws Exception {
-        reader.getKeys().bind((Widget<ConsoleReaderImpl>) r -> r.getBuffer().clear(), "x");
+        reader.getKeys().bind((Widget) () -> reader.getBuffer().clear(), "x");
         assertLine("", new TestBuffer("sample stringx\n"));
     }
 
