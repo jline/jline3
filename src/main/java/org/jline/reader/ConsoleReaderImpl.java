@@ -2667,6 +2667,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         widgets.put(TRANSPOSE_CHARS, ConsoleReaderImpl::transposeChars);
         widgets.put(UNIX_LINE_DISCARD, ConsoleReaderImpl::unixLineDiscard);
         widgets.put(UNIX_WORD_RUBOUT, ConsoleReaderImpl::unixWordRubout);
+        widgets.put(UNDO, ConsoleReaderImpl::undo);
         widgets.put(UPCASE_WORD, ConsoleReaderImpl::upCaseWord);
         widgets.put(UP_LINE_OR_HISTORY, ConsoleReaderImpl::upLineOrHistory);
         widgets.put(VI_ARG_DIGIT, ConsoleReaderImpl::viArgDigit);
