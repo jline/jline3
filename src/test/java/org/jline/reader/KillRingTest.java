@@ -10,11 +10,11 @@ package org.jline.reader;
 
 import org.junit.Test;
 
-import static org.jline.reader.Operation.BACKWARD_KILL_WORD;
-import static org.jline.reader.Operation.BACKWARD_WORD;
-import static org.jline.reader.Operation.KILL_WORD;
-import static org.jline.reader.Operation.YANK;
-import static org.jline.reader.Operation.YANK_POP;
+import static org.jline.ConsoleReader.BACKWARD_KILL_WORD;
+import static org.jline.ConsoleReader.BACKWARD_WORD;
+import static org.jline.ConsoleReader.KILL_WORD;
+import static org.jline.ConsoleReader.YANK;
+import static org.jline.ConsoleReader.YANK_POP;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;

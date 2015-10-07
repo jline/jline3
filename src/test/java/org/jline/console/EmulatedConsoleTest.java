@@ -81,7 +81,7 @@ public class EmulatedConsoleTest {
         console.setAttributes(attributes);
         ConsoleReaderImpl consoleReader = (ConsoleReaderImpl) console.newConsoleReader();
         assertNotNull(consoleReader);
-        new Thread() {
+        Thread th = new Thread() {
             public void run() {
                 try {
                     outIn.write('a');
@@ -91,17 +91,20 @@ public class EmulatedConsoleTest {
                     outIn.write(3);
                     outIn.write('c');
                     outIn.flush();
+                    Thread.sleep(50);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
-        }.start();
+        };
+        th.start();
         try {
             consoleReader.readLine();
             fail("Expected UserInterruptException");
         } catch (UserInterruptException e) {
             assertEquals("ab", e.getPartialLine());
         }
+        th.join();
     }
 
 

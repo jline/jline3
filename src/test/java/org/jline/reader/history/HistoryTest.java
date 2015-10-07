@@ -13,13 +13,13 @@ import org.jline.keymap.Reference;
 import org.jline.reader.ReaderTestSupport;
 import org.junit.Test;
 
-import static org.jline.reader.Operation.ACCEPT_LINE;
-import static org.jline.reader.Operation.BACKWARD_CHAR;
-import static org.jline.reader.Operation.BEGINNING_OF_LINE;
-import static org.jline.reader.Operation.HISTORY_SEARCH_BACKWARD;
-import static org.jline.reader.Operation.HISTORY_SEARCH_FORWARD;
-import static org.jline.reader.Operation.DOWN_HISTORY;
-import static org.jline.reader.Operation.UP_HISTORY;
+import static org.jline.ConsoleReader.ACCEPT_LINE;
+import static org.jline.ConsoleReader.BACKWARD_CHAR;
+import static org.jline.ConsoleReader.BEGINNING_OF_LINE;
+import static org.jline.ConsoleReader.DOWN_HISTORY;
+import static org.jline.ConsoleReader.HISTORY_SEARCH_BACKWARD;
+import static org.jline.ConsoleReader.HISTORY_SEARCH_FORWARD;
+import static org.jline.ConsoleReader.UP_HISTORY;
 
 /**
  * Tests command history.

@@ -34,7 +34,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.function.IntBinaryOperator;
-import java.util.function.IntUnaryOperator;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
@@ -73,92 +72,6 @@ import static org.jline.keymap.KeyMap.del;
 import static org.jline.keymap.KeyMap.esc;
 import static org.jline.keymap.KeyMap.range;
 import static org.jline.keymap.KeyMap.translate;
-import static org.jline.reader.Operation.ACCEPT_LINE;
-import static org.jline.reader.Operation.ARGUMENT_BASE;
-import static org.jline.reader.Operation.BACKWARD_CHAR;
-import static org.jline.reader.Operation.BACKWARD_DELETE_CHAR;
-import static org.jline.reader.Operation.BACKWARD_KILL_LINE;
-import static org.jline.reader.Operation.BACKWARD_KILL_WORD;
-import static org.jline.reader.Operation.BACKWARD_WORD;
-import static org.jline.reader.Operation.BEGINNING_OF_HISTORY;
-import static org.jline.reader.Operation.BEGINNING_OF_LINE;
-import static org.jline.reader.Operation.CALLBACK_FINISH;
-import static org.jline.reader.Operation.CALLBACK_INIT;
-import static org.jline.reader.Operation.CAPITALIZE_WORD;
-import static org.jline.reader.Operation.CHARACTER_SEARCH;
-import static org.jline.reader.Operation.CHARACTER_SEARCH_BACKWARD;
-import static org.jline.reader.Operation.CLEAR_SCREEN;
-import static org.jline.reader.Operation.COMPLETE_PREFIX;
-import static org.jline.reader.Operation.COMPLETE_WORD;
-import static org.jline.reader.Operation.DELETE_CHAR;
-import static org.jline.reader.Operation.DELETE_CHAR_OR_LIST;
-import static org.jline.reader.Operation.DIGIT_ARGUMENT;
-import static org.jline.reader.Operation.DOWN_CASE_WORD;
-import static org.jline.reader.Operation.DOWN_HISTORY;
-import static org.jline.reader.Operation.DOWN_LINE_OR_HISTORY;
-import static org.jline.reader.Operation.DO_LOWERCASE_VERSION;
-import static org.jline.reader.Operation.EMACS_EDITING_MODE;
-import static org.jline.reader.Operation.END_OF_HISTORY;
-import static org.jline.reader.Operation.END_OF_LINE;
-import static org.jline.reader.Operation.EXCHANGE_POINT_AND_MARK;
-import static org.jline.reader.Operation.FORWARD_CHAR;
-import static org.jline.reader.Operation.FORWARD_WORD;
-import static org.jline.reader.Operation.HISTORY_INCREMENTAL_SEARCH_BACKWARD;
-import static org.jline.reader.Operation.HISTORY_INCREMENTAL_SEARCH_FORWARD;
-import static org.jline.reader.Operation.HISTORY_SEARCH_BACKWARD;
-import static org.jline.reader.Operation.HISTORY_SEARCH_FORWARD;
-import static org.jline.reader.Operation.INSERT_CLOSE_CURLY;
-import static org.jline.reader.Operation.INSERT_CLOSE_PAREN;
-import static org.jline.reader.Operation.INSERT_CLOSE_SQUARE;
-import static org.jline.reader.Operation.KILL_LINE;
-import static org.jline.reader.Operation.KILL_WHOLE_LINE;
-import static org.jline.reader.Operation.KILL_WORD;
-import static org.jline.reader.Operation.MENU_COMPLETE;
-import static org.jline.reader.Operation.NEG_ARGUMENT;
-import static org.jline.reader.Operation.OVERWRITE_MODE;
-import static org.jline.reader.Operation.QUOTED_INSERT;
-import static org.jline.reader.Operation.REVERSE_MENU_COMPLETE;
-import static org.jline.reader.Operation.SELF_INSERT;
-import static org.jline.reader.Operation.SELF_INSERT_UNMETA;
-import static org.jline.reader.Operation.SEND_BREAK;
-import static org.jline.reader.Operation.TRANSPOSE_CHARS;
-import static org.jline.reader.Operation.TRANSPOSE_WORDS;
-import static org.jline.reader.Operation.UNDEFINED_KEY;
-import static org.jline.reader.Operation.UNDO;
-import static org.jline.reader.Operation.UNIVERSAL_ARGUMENT;
-import static org.jline.reader.Operation.UP_CASE_WORD;
-import static org.jline.reader.Operation.UP_HISTORY;
-import static org.jline.reader.Operation.UP_LINE_OR_HISTORY;
-import static org.jline.reader.Operation.VI_ADD_EOL;
-import static org.jline.reader.Operation.VI_ADD_NEXT;
-import static org.jline.reader.Operation.VI_BACKWARD_CHAR;
-import static org.jline.reader.Operation.VI_BACKWARD_DELETE_CHAR;
-import static org.jline.reader.Operation.VI_BACKWARD_KILL_WORD;
-import static org.jline.reader.Operation.VI_BACKWARD_WORD;
-import static org.jline.reader.Operation.VI_SWAP_CASE;
-import static org.jline.reader.Operation.VI_REPLACE_CHARS;
-import static org.jline.reader.Operation.VI_CHANGE;
-import static org.jline.reader.Operation.VI_CHANGE_EOL;
-import static org.jline.reader.Operation.VI_CMD_MODE;
-import static org.jline.reader.Operation.VI_GOTO_COLUMN;
-import static org.jline.reader.Operation.VI_DELETE_CHAR;
-import static org.jline.reader.Operation.VI_DELETE;
-import static org.jline.reader.Operation.*;
-import static org.jline.reader.Operation.VI_DIGIT_OR_BEGINNING_OF_LINE;
-import static org.jline.reader.Operation.VI_DOWN_LINE_OR_HISTORY;
-import static org.jline.reader.Operation.VI_FETCH_HISTORY;
-import static org.jline.reader.Operation.VI_FIRST_NON_BLANK;
-import static org.jline.reader.Operation.VI_INSERT;
-import static org.jline.reader.Operation.VI_INSERT_BOL;
-import static org.jline.reader.Operation.VI_KILL_LINE;
-import static org.jline.reader.Operation.VI_MATCH_BRACKET;
-import static org.jline.reader.Operation.VI_PUT_AFTER;
-import static org.jline.reader.Operation.VI_REPLACE;
-import static org.jline.reader.Operation.VI_REPEAT_SEARCH;
-import static org.jline.reader.Operation.VI_SUBSTITUTE;
-import static org.jline.reader.Operation.VI_UP_LINE_OR_HISTORY;
-import static org.jline.reader.Operation.VI_YANK;
-import static org.jline.reader.Operation.YANK_POP;
 import static org.jline.utils.Preconditions.checkNotNull;
 
 /**
@@ -176,21 +89,16 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     public static final int TAB_WIDTH = 4;
 
-    public static final long BLINK_MATCHING_PAREN_TIMEOUT = 500l;
 
-    public static final long AMBIGUOUS_BINDING_TIMEOUT = 1000l;
-
-    /**
-     * KeyMap names
-     */
-    public static final String VICMD = "vicmd";
-    public static final String VIINS = "viins";
-    public static final String VIOPP = "viopp";
-    public static final String VISUAL = "visual";
-    public static final String MAIN = "main";
-    public static final String EMACS = "emacs";
-    public static final String SAFE = ".safe";
-    public static final String MENU_SELECT = "menuselect";
+    public static final String DEFAULT_WORDCHARS = "*?_-.[]~=/&;!#$%^(){}<>";
+    public static final String DEFAULT_REMOVE_SUFFIX_CHARS = " \t\n;&|";
+    public static final String DEFAULT_COMMENT_BEGIN = "#";
+    public static final String DEFAULT_SEARCH_TERMINATORS = "\033\012";
+    public static final String DEFAULT_BELL_STYLE = "";
+    public static final int    DEFAULT_LIST_MAX = 100;
+    public static final int    DEFAULT_ERRORS = 2;
+    public static final long   DEFAULT_BLINK_MATCHING_PAREN = 500l;
+    public static final long   DEFAULT_AMBIGUOUS_BINDING = 1000l;
 
     /**
      * Possible states in which the current readline operation may be in.
@@ -365,7 +273,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         widgets = new HashMap<>(builtinWidgets);
         bindingReader = new BindingReader(console,
                 new Reference(SELF_INSERT),
-                getLong(AMBIGUOUS_BINDING, AMBIGUOUS_BINDING_TIMEOUT));
+                getLong(AMBIGUOUS_BINDING, DEFAULT_AMBIGUOUS_BINDING));
     }
 
     public Console getConsole() {
@@ -384,18 +292,22 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return keyMaps.get(keyMap);
     }
 
+    @Override
     public Map<String, Widget> getWidgets() {
         return widgets;
     }
 
+    @Override
     public Map<String, Widget> getBuiltinWidgets() {
         return Collections.unmodifiableMap(builtinWidgets);
     }
 
+    @Override
     public Buffer getBuffer() {
         return buf;
     }
 
+    @Override
     public void runMacro(String macro) {
         bindingReader.runMacro(macro);
     }
@@ -657,6 +569,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
     }
 
+    @Override
     public void callWidget(String name) {
         if (!reading) {
             throw new IllegalStateException();
@@ -739,7 +652,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
          */
         if (o instanceof Reference) {
             String ref = ((Reference) o).name();
-            if (!YANK_POP.equals(ref) && !Operation.YANK.equals(ref)) {
+            if (!YANK_POP.equals(ref) && !YANK.equals(ref)) {
                 killRing.resetLastYank();
             }
             if (!KILL_LINE.equals(ref) && !KILL_WHOLE_LINE.equals(ref)
@@ -750,6 +663,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return o;
     }
 
+    @Override
     public ParsedLine getParsedLine() {
         return parsedLine;
     }
@@ -795,27 +709,33 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return keyMap;
     }
 
+    @Override
     public Map<String, Object> getVariables() {
         return variables;
     }
 
+    @Override
     public Object getVariable(String name) {
         return variables.get(name);
     }
 
+    @Override
     public void setVariable(String name, Object value) {
         variables.put(name, value);
     }
 
+    @Override
     public boolean isSet(Option option) {
         Boolean b = options.get(option);
         return b != null ? b : option.isDef();
     }
 
+    @Override
     public void setOpt(Option option) {
         options.put(option, Boolean.TRUE);
     }
 
+    @Override
     public void unsetOpt(Option option) {
         options.put(option, Boolean.FALSE);
     }
@@ -1773,7 +1693,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected boolean doInsertComment(boolean isViMode) {
-        String comment = getString(COMMENT_BEGIN, "#");
+        String comment = getString(COMMENT_BEGIN, DEFAULT_COMMENT_BEGIN);
         beginningOfLine();
         putString(comment);
         if (isViMode) {
@@ -2043,7 +1963,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         doViMatchBracket();
         redisplay();
 
-        peekCharacter(BLINK_MATCHING_PAREN_TIMEOUT);
+        peekCharacter(getLong(BLINK_MATCHING_PAREN, DEFAULT_BLINK_MATCHING_PAREN));
 
         buf.cursor(closePosition);
         return true;
@@ -2383,7 +2303,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         redisplay();
 
         KeyMap terminators = new KeyMap();
-        getString("search-terminators", "\033\012")
+        getString(SEARCH_TERMINATORS, DEFAULT_SEARCH_TERMINATORS)
                 .codePoints().forEach(c -> bind(terminators, ACCEPT_LINE, new String(Character.toChars(c))));
 
         try {
@@ -3566,7 +3486,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
 
         boolean caseInsensitive = isSet(Option.CASE_INSENSITIVE);
-        int errors = getInt("errors", 2);
+        int errors = getInt(ERRORS, DEFAULT_ERRORS);
 
         // Build a list of sorted candidates
         NavigableMap<String, List<Candidate>> sortedCandidates =
@@ -3665,7 +3585,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 redisplay();
                 Binding op = readBinding(getKeys());
                 if (op != null) {
-                    String chars = getString("REMOVE_SUFFIX_CHARS", " \t\n;&|");
+                    String chars = getString(REMOVE_SUFFIX_CHARS, DEFAULT_REMOVE_SUFFIX_CHARS);
                     String ref = op instanceof Reference ? ((Reference) op).name() : null;
                     if (SELF_INSERT.equals(ref) && chars.indexOf(getLastBinding().charAt(0)) >= 0
                             || ACCEPT_LINE.equals(ref)) {
@@ -3785,7 +3705,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected boolean nextBindingIsComplete() {
         redisplay();
-        KeyMap keyMap = keyMaps.get(MENU_SELECT);
+        KeyMap keyMap = keyMaps.get(MENU);
         Binding operation = readBinding(getKeys(), keyMap);
         if (operation instanceof Reference && MENU_COMPLETE.equals(((Reference) operation).name())) {
             return true;
@@ -3955,7 +3875,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         // Loop
         console.puts(Capability.keypad_xmit);
-        KeyMap keyMap = keyMaps.get(MENU_SELECT);
+        KeyMap keyMap = keyMaps.get(MENU);
         Binding operation;
         while ((operation = readBinding(getKeys(), keyMap)) != null) {
             String ref = (operation instanceof Reference) ? ((Reference) operation).name() : "";
@@ -3984,7 +3904,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 default: {
                     Candidate completion = menuSupport.completion();
                     if (completion.suffix() != null) {
-                        String chars = getString("REMOVE_SUFFIX_CHARS", " \t\n;&|");
+                        String chars = getString(REMOVE_SUFFIX_CHARS, DEFAULT_REMOVE_SUFFIX_CHARS);
                         if (SELF_INSERT.equals(ref)
                                 && chars.indexOf(getLastBinding().charAt(0)) >= 0
                                 || ACCEPT_LINE.equals(ref)
@@ -4025,7 +3945,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         int promptLines = AnsiHelper.splitLines(text, size.getColumns(), TAB_WIDTH).size();
         PostResult postResult = computePost(possible, null, null);
         int lines = postResult.lines;
-        int listMax = getInt("list-max", 100);
+        int listMax = getInt(LIST_MAX, DEFAULT_LIST_MAX);
         if (listMax > 0 && possible.size() >= listMax
                 || lines >= size.getRows() - promptLines) {
             // prompt
@@ -4552,7 +4472,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      */
     public boolean beep() {
         BellType bell_preference = BellType.AUDIBLE;
-        switch (getString(BELL_STYLE, "")) {
+        switch (getString(BELL_STYLE, DEFAULT_BELL_STYLE).toLowerCase()) {
             case "none":
             case "off":
                 bell_preference = BellType.NONE;
@@ -4638,7 +4558,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     protected boolean isWord(int c) {
-        String wordchars = getString("WORDCHARS", "*?_-.[]~=/&;!#$%^(){}<>");
+        String wordchars = getString(WORDCHARS, DEFAULT_WORDCHARS);
         return Character.isLetterOrDigit(c)
                 || (c < 128 && wordchars.indexOf((char) c) >= 0);
     }
@@ -4692,12 +4612,13 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return nb;
     }
 
+    @Override
     public Map<String, KeyMap> defaultKeyMaps() {
         Map<String, KeyMap> keyMaps = new HashMap<>();
         keyMaps.put(EMACS, emacs());
         keyMaps.put(VICMD, viCmd());
         keyMaps.put(VIINS, viInsertion());
-        keyMaps.put(MENU_SELECT, menuSelect());
+        keyMaps.put(MENU, menu());
         keyMaps.put(VIOPP, viOpp());
         keyMaps.put(VISUAL, visual());
         keyMaps.put(SAFE, safe());
@@ -4734,7 +4655,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         bind(emacs, KILL_WHOLE_LINE,                        ctrl('U'));
         bind(emacs, QUOTED_INSERT,                          ctrl('V'));
         bind(emacs, BACKWARD_KILL_WORD,                     ctrl('W'));
-        bind(emacs, Operation.YANK,                                   ctrl('Y'));
+        bind(emacs, YANK,                                   ctrl('Y'));
         bind(emacs, CHARACTER_SEARCH,                       ctrl(']'));
         bind(emacs, UNDO,                                   ctrl('_'));
         bind(emacs, SELF_INSERT,                            range(" -~"));
@@ -4800,7 +4721,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         bind(viins, KILL_WHOLE_LINE,                        ctrl('U'));
         bind(viins, QUOTED_INSERT,                          ctrl('V'));
         bind(viins, BACKWARD_KILL_WORD,                     ctrl('W'));
-        bind(viins, Operation.YANK,                         ctrl('Y'));
+        bind(viins, YANK,                                   ctrl('Y'));
         bind(viins, VI_CMD_MODE,                            ctrl('['));
         bind(viins, UNDO,                                   ctrl('_'));
         bind(viins, HISTORY_INCREMENTAL_SEARCH_BACKWARD,    ctrl('X') + "r");
@@ -4833,7 +4754,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         bind(vicmd, KILL_WHOLE_LINE,                        ctrl('U'));
         bind(vicmd, QUOTED_INSERT,                          ctrl('V'));
         bind(vicmd, BACKWARD_KILL_WORD,                     ctrl('W'));
-        bind(vicmd, Operation.YANK,                                   ctrl('Y'));
+        bind(vicmd, YANK,                                   ctrl('Y'));
         bind(vicmd, HISTORY_INCREMENTAL_SEARCH_BACKWARD,    ctrl('X') + "r");
         bind(vicmd, HISTORY_INCREMENTAL_SEARCH_FORWARD,     ctrl('X') + "s");
         bind(vicmd, SEND_BREAK,                             alt(ctrl('G')));
@@ -4926,13 +4847,13 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return vicmd;
     }
 
-    public KeyMap menuSelect() {
-        KeyMap menuselect = new KeyMap();
-        bind(menuselect, MENU_COMPLETE,                     "\t");
-        bind(menuselect, REVERSE_MENU_COMPLETE,             key(Capability.back_tab));
-        bind(menuselect, ACCEPT_LINE,                       "\r", "\n");
-        bindArrowKeys(menuselect);
-        return menuselect;
+    public KeyMap menu() {
+        KeyMap menu = new KeyMap();
+        bind(menu, MENU_COMPLETE,                     "\t");
+        bind(menu, REVERSE_MENU_COMPLETE,             key(Capability.back_tab));
+        bind(menu, ACCEPT_LINE,                       "\r", "\n");
+        bindArrowKeys(menu);
+        return menu;
     }
 
     public KeyMap safe() {

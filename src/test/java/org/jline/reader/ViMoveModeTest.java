@@ -13,15 +13,12 @@ import org.jline.keymap.Reference;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.jline.keymap.KeyMap.alt;
+import static org.jline.ConsoleReader.BACKWARD_KILL_LINE;
 import static org.jline.keymap.KeyMap.ctrl;
 import static org.jline.reader.ConsoleReaderImpl.MAIN;
 import static org.jline.reader.ConsoleReaderImpl.VICMD;
 import static org.jline.reader.ConsoleReaderImpl.VIINS;
 import static org.jline.reader.ConsoleReaderImpl.VISUAL;
-import static org.jline.reader.Operation.BACKWARD_KILL_LINE;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * Unit tests for the greatest keymap binding in the world! Vi!!!!

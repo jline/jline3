@@ -27,17 +27,17 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.jline.ConsoleReader.ACCEPT_LINE;
+import static org.jline.ConsoleReader.BACKWARD_WORD;
+import static org.jline.ConsoleReader.COMPLETE_WORD;
+import static org.jline.ConsoleReader.DOWN_HISTORY;
+import static org.jline.ConsoleReader.KILL_WHOLE_LINE;
+import static org.jline.ConsoleReader.SEND_BREAK;
+import static org.jline.ConsoleReader.UP_HISTORY;
 import static org.jline.keymap.KeyMap.alt;
 import static org.jline.keymap.KeyMap.display;
 import static org.jline.keymap.KeyMap.range;
 import static org.jline.keymap.KeyMap.translate;
-import static org.jline.reader.Operation.ACCEPT_LINE;
-import static org.jline.reader.Operation.BACKWARD_WORD;
-import static org.jline.reader.Operation.COMPLETE_WORD;
-import static org.jline.reader.Operation.KILL_WHOLE_LINE;
-import static org.jline.reader.Operation.DOWN_HISTORY;
-import static org.jline.reader.Operation.UP_HISTORY;
-import static org.jline.reader.Operation.SEND_BREAK;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 

@@ -12,12 +12,12 @@ import org.jline.ConsoleReader;
 import org.jline.keymap.Reference;
 import org.junit.Test;
 
+import static org.jline.ConsoleReader.BACKWARD_KILL_LINE;
+import static org.jline.ConsoleReader.BACKWARD_KILL_WORD;
+import static org.jline.ConsoleReader.BACKWARD_WORD;
+import static org.jline.ConsoleReader.END_OF_LINE;
+import static org.jline.ConsoleReader.KILL_WORD;
 import static org.jline.keymap.KeyMap.ctrl;
-import static org.jline.reader.Operation.BACKWARD_KILL_LINE;
-import static org.jline.reader.Operation.BACKWARD_KILL_WORD;
-import static org.jline.reader.Operation.BACKWARD_WORD;
-import static org.jline.reader.Operation.END_OF_LINE;
-import static org.jline.reader.Operation.KILL_WORD;
 
 /**
  * Tests various features of editing lines.
