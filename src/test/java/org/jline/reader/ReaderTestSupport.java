@@ -38,7 +38,6 @@ import static org.jline.reader.Operation.END_OF_LINE;
 import static org.jline.reader.Operation.KILL_WORD;
 import static org.jline.reader.Operation.DOWN_HISTORY;
 import static org.jline.reader.Operation.UP_HISTORY;
-import static org.jline.reader.Operation.VI_EOF_MAYBE;
 import static org.jline.reader.Operation.YANK;
 import static org.jline.reader.Operation.YANK_POP;
 import static org.junit.Assert.assertEquals;
@@ -154,7 +153,6 @@ public abstract class ReaderTestSupport
             case BACKWARD_CHAR:        return "\u0002";
             case COMPLETE_WORD:        return "\011";
             case BACKWARD_DELETE_CHAR: return "\010";
-            case VI_EOF_MAYBE:         return "\004";
             case YANK:                 return "\u0019";
             case YANK_POP:             return new String(new char[]{27, 121});
             default:

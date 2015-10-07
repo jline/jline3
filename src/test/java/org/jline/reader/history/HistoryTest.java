@@ -37,9 +37,9 @@ public class HistoryTest
             append("test line 3").op(ACCEPT_LINE).
             append("test line 4").op(ACCEPT_LINE).
             append("test line 5").op(ACCEPT_LINE).
-            append("");
+            append("ab");
 
-        assertBuffer("", b);
+        assertBuffer("ab", b);
 
         assertBuffer("test line 5", b = b.op(UP_HISTORY));
         assertBuffer("test line 5", b = b.op(BACKWARD_CHAR));
@@ -62,9 +62,9 @@ public class HistoryTest
         assertBuffer("test line 5", b = b.op(DOWN_HISTORY));
 
         // end of history
-        assertBuffer("", b = b.op(DOWN_HISTORY));
-        assertBuffer("", b = b.op(DOWN_HISTORY));
-        assertBuffer("", b = b.op(DOWN_HISTORY));
+        assertBuffer("ab", b = b.op(DOWN_HISTORY));
+        assertBuffer("ab", b = b.op(DOWN_HISTORY));
+        assertBuffer("ab", b = b.op(DOWN_HISTORY));
 
         assertBuffer("test line 5", b = b.op(UP_HISTORY));
         assertBuffer("test line 4", b = b.op(UP_HISTORY));

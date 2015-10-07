@@ -53,6 +53,7 @@ public interface ConsoleReader {
         COMPLETE_IN_WORD,
         DISABLE_EVENT_EXPANSION,
         HISTORY_VERIFY,
+        HISTORY_BEEP(true),
         AUTO_MENU(true),
         AUTO_LIST(true),
         RECOGNIZE_EXACT,

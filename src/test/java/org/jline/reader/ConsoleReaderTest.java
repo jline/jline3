@@ -312,11 +312,6 @@ public class ConsoleReaderTest extends ReaderTestSupport
     }
 
     @Test
-    public void testMacro() throws Exception {
-        assertLine("foofoo", new TestBuffer("\u0018(foo\u0018)\u0018e\n"));
-    }
-
-    @Test
     public void testBell() throws Exception {
         reader.setVariable(ConsoleReader.BELL_STYLE, "off");
         reader.beep();

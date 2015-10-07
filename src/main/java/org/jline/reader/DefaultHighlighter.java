@@ -10,6 +10,7 @@ package org.jline.reader;
 
 import org.jline.ConsoleReader;
 import org.jline.Highlighter;
+import org.jline.reader.ConsoleReaderImpl.RegionType;
 import org.jline.utils.Ansi;
 import org.jline.utils.Ansi.Attribute;
 import org.jline.utils.WCWidth;
@@ -20,38 +21,63 @@ public class DefaultHighlighter implements Highlighter {
     public String highlight(ConsoleReader reader, String buffer) {
         int underlineStart = -1;
         int underlineEnd = -1;
+        int negativeStart = -1;
+        int negativeEnd = -1;
         if (reader instanceof ConsoleReaderImpl) {
-            StringBuffer search = ((ConsoleReaderImpl) reader).searchTerm;
+            ConsoleReaderImpl r = (ConsoleReaderImpl) reader;
+            StringBuffer search = r.searchTerm;
             if (search != null && search.length() > 0) {
                 underlineStart = buffer.indexOf(search.toString());
                 if (underlineStart >= 0) {
                     underlineEnd = underlineStart + search.length() - 1;
                 }
             }
+            if (r.regionActive != RegionType.NONE) {
+                negativeStart = r.regionMark;
+                negativeEnd = r.buf.cursor();
+                if (negativeStart > negativeEnd) {
+                    int x = negativeEnd;
+                    negativeEnd = negativeStart;
+                    negativeStart = x;
+                }
+                if (r.regionActive == RegionType.LINE) {
+                    while (negativeStart > 0 && r.buf.atChar(negativeStart - 1) != '\n') {
+                        negativeStart--;
+                    }
+                    while (negativeEnd < r.buf.length() - 1 && r.buf.atChar(negativeEnd + 1) != '\n') {
+                        negativeEnd++;
+                    }
+                }
+            }
         }
-        StringBuilder sb = new StringBuilder();
+        Ansi ansi = new Ansi();
         for (int i = 0; i < buffer.length(); i++) {
             if (i == underlineStart) {
-                sb.append(Ansi.ansi().a(Attribute.UNDERLINE).toString());
+                ansi.a(Attribute.UNDERLINE);
+            }
+            if (i == negativeStart) {
+                ansi.a(Attribute.NEGATIVE_ON);
             }
             char c = buffer.charAt(i);
             if (c == '\t' || c == '\n') {
-                sb.append(c);
+                ansi.a(c);
             } else if (c < 32) {
-                String s = Ansi.ansi().a(Attribute.NEGATIVE_ON)
-                        .a('^').a((char) (c + '@')).a(Attribute.NEGATIVE_OFF).toString();
-                sb.append(s);
+                ansi.a(Attribute.NEGATIVE_ON)
+                        .a('^').a((char) (c + '@')).a(Attribute.NEGATIVE_OFF);
             } else {
                 int w = WCWidth.wcwidth(c);
                 if (w > 0) {
-                    sb.append(c);
+                    ansi.a(c);
                 }
             }
             if (i == underlineEnd) {
-                sb.append(Ansi.ansi().a(Attribute.UNDERLINE_OFF).toString());
+                ansi.a(Attribute.UNDERLINE_OFF);
+            }
+            if (i == negativeEnd) {
+                ansi.a(Attribute.NEGATIVE_OFF);
             }
         }
-        return sb.toString();
+        return ansi.toString();
     }
 
 }

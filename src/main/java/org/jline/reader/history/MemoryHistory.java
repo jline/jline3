@@ -131,7 +131,7 @@ public class MemoryHistory
     }
 
     public String remove(int i) {
-        return items.remove(i);
+        return items.remove(i - offset);
     }
 
     public String removeFirst() {

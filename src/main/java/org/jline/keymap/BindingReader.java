@@ -26,8 +26,6 @@ public class BindingReader {
     protected Binding unicode;
     protected long ambiguousTimeout;
     protected String lastBinding;
-    protected boolean recording;
-    protected StringBuilder macro = new StringBuilder();
 
     public BindingReader(Console console, Binding unicode) {
         this(console, unicode, DEFAULT_AMBIGUOUS_TIMEOUT);
@@ -68,10 +66,6 @@ public class BindingReader {
                 return null;
             }
             opBuffer.appendCodePoint(c);
-
-            if (recording) {
-                macro.appendCodePoint(c);
-            }
 
             if (local != null) {
                 o = local.getBound(opBuffer, remaining);
@@ -145,23 +139,6 @@ public class BindingReader {
         } catch (IOException e) {
             throw new IOError(e);
         }
-    }
-
-    public boolean startRecording() {
-        if (recording) {
-            return false;
-        }
-        recording = true;
-        return true;
-    }
-
-    public String stopRecording() {
-        if (!recording) {
-            return null;
-        }
-        recording = false;
-        macro.setLength(macro.length() - opBuffer.length());
-        return macro.toString();
     }
 
     public void runMacro(String macro) {
