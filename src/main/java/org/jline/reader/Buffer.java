@@ -8,8 +8,6 @@
  */
 package org.jline.reader;
 
-import java.util.Arrays;
-
 import static org.jline.utils.Preconditions.checkNotNull;
 
 /**
@@ -23,9 +21,20 @@ public class Buffer
 {
     private int cursor = 0;
     private int cursorCol = -1;
-    private int length = 0;
-    private int[] buffer = new int[64];
-    
+    private int[] buffer;
+    private int g0;
+    private int g1;
+
+    public Buffer() {
+        this(64);
+    }
+
+    public Buffer(int size) {
+        buffer = new int[size];
+        g0 = 0;
+        g1 = buffer.length;
+    }
+
     public Buffer copy () {
         Buffer that = new Buffer();
         that.setBuffer(this);
@@ -37,23 +46,23 @@ public class Buffer
     }
 
     public int length() {
-        return length;
+        return buffer.length - (g1 - g0);
     }
 
     public boolean currChar(int ch) {
-        if (cursor == length) {
+        if (cursor == length()) {
             return false;
         } else {
-            buffer[cursor] = ch;
+            buffer[adjust(cursor)] = ch;
             return true;
         }
     }
 
     public int currChar() {
-        if (cursor == length) {
+        if (cursor == length()) {
             return 0;
         } else {
-            return buffer[cursor];
+            return atChar(cursor);
         }
     }
 
@@ -61,22 +70,25 @@ public class Buffer
         if (cursor <= 0) {
             return 0;
         }
-        return buffer[cursor - 1];
+        return atChar(cursor - 1);
     }
 
     public int nextChar() {
-        if (cursor >= length - 1) {
+        if (cursor >= length() - 1) {
             return 0;
         }
-
-        return buffer[cursor + 1];
+        return atChar(cursor + 1);
     }
 
     public int atChar(int i) {
-        if (i < 0 || i >= length) {
+        if (i < 0 || i >= length()) {
             return 0;
         }
-        return buffer[i];
+        return buffer[adjust(i)];
+    }
+
+    private int adjust(int i) {
+        return (i >= g0) ? i + g1 - g0 : i;
     }
 
     /**
@@ -115,53 +127,57 @@ public class Buffer
 
     private void write(int[] ucps, boolean overTyping) {
         if (overTyping) {
-            int len = cursor + ucps.length;
-            int sz = buffer.length;
-            if (sz < len) {
-                while (sz < len) {
-                    sz *= 2;
-                }
-                buffer = Arrays.copyOf(buffer, sz);
-            }
-            System.arraycopy(ucps, 0, buffer, cursor, ucps.length);
-            length = len;
-            cursor += ucps.length;
+            delete(ucps.length);
+            write(ucps.length, false);
         } else {
-            int len = length + ucps.length;
+            moveGapToCursor();
+            int len = length() + ucps.length;
             int sz = buffer.length;
             if (sz < len) {
                 while (sz < len) {
                     sz *= 2;
                 }
-                buffer = Arrays.copyOf(buffer, sz);
+                int[] nb = new int[sz];
+                System.arraycopy(buffer, 0, nb, 0, g0);
+                System.arraycopy(buffer, g1, nb, g1 + sz - buffer.length, buffer.length - g1);
+                g1 += sz - buffer.length;
+                buffer = nb;
             }
-            System.arraycopy(buffer, cursor, buffer, cursor + ucps.length, length - cursor);
             System.arraycopy(ucps, 0, buffer, cursor, ucps.length);
+            g0 += ucps.length;
             cursor += ucps.length;
-            length += ucps.length;
         }
         cursorCol = -1;
     }
 
     public boolean clear() {
-        if (length == 0) {
+        if (length() == 0) {
             return false;
         }
-        length = 0;
+        g0 = 0;
+        g1 = buffer.length;
         cursor = 0;
         cursorCol = -1;
         return true;
     }
 
     public String substring(int start) {
-        return substring(start, length);
+        return substring(start, length());
     }
 
     public String substring(int start, int end) {
-        if (start >= end || start < 0 || end > length) {
+        if (start >= end || start < 0 || end > length()) {
             return "";
         }
-        return new String(buffer, start, end - start);
+        if (end <= g0) {
+            return new String(buffer, start, end - start);
+        } else if (start > g0) {
+            return new String(buffer, g1 - g0 + start, g1 - g0 + end - start);
+        } else {
+            int[] b = buffer.clone();
+            System.arraycopy(b, g1, b, g0, b.length - g1);
+            return new String(b, start, end - start);
+        }
     }
 
     public String upToCursor() {
@@ -191,15 +207,15 @@ public class Buffer
             return 0;
         }
 
-        if ((cursor == length) && (where >= 0)) {
+        if ((cursor == length()) && (where >= 0)) {
             return 0;
         }
 
         if ((cursor + where) < 0) {
             where = -cursor;
         }
-        else if ((cursor + where) > length) {
-            where = length - cursor;
+        else if ((cursor + where) > length()) {
+            where = length() - cursor;
         }
 
         cursor += where;
@@ -211,14 +227,14 @@ public class Buffer
     public boolean up() {
         int col = getCursorCol();
         int pnl = cursor - 1;
-        while (pnl >= 0 && buffer[pnl] != '\n') {
+        while (pnl >= 0 && atChar(pnl) != '\n') {
             pnl--;
         }
         if (pnl < 0) {
             return false;
         }
         int ppnl = pnl - 1;
-        while (ppnl >= 0 && buffer[ppnl] != '\n') {
+        while (ppnl >= 0 && atChar(ppnl) != '\n') {
             ppnl--;
         }
         cursor = Math.min(ppnl + col + 1, pnl);
@@ -228,14 +244,14 @@ public class Buffer
     public boolean down() {
         int col = getCursorCol();
         int nnl = cursor;
-        while (nnl < length && buffer[nnl] != '\n') {
+        while (nnl < length() && atChar(nnl) != '\n') {
             nnl++;
         }
-        if (nnl >= length) {
+        if (nnl >= length()) {
             return false;
         }
         int nnnl = nnl + 1;
-        while (nnnl < length && buffer[nnnl] != '\n') {
+        while (nnnl < length() && atChar(nnnl) != '\n') {
             nnnl++;
         }
         cursor = Math.min(nnl + col + 1, nnnl);
@@ -246,7 +262,7 @@ public class Buffer
         if (cursorCol < 0) {
             cursorCol = 0;
             int pnl = cursor - 1;
-            while (pnl >= 0 && buffer[pnl] != '\n') {
+            while (pnl >= 0 && atChar(pnl) != '\n') {
                 pnl--;
             }
             cursorCol = cursor - pnl - 1;
@@ -261,9 +277,9 @@ public class Buffer
      */
     public int backspace(final int num) {
         int count = Math.max(Math.min(cursor, num), 0);
+        moveGapToCursor();
         cursor -= count;
-        System.arraycopy(buffer, cursor + count, buffer, cursor, length - cursor - count);
-        length -= count;
+        g0 -= count;
         cursorCol = -1;
         return count;
     }
@@ -278,9 +294,9 @@ public class Buffer
     }
 
     public int delete(int num) {
-        int count = Math.max(Math.min(length - cursor, num), 0);
-        System.arraycopy(buffer, cursor + count, buffer, cursor, length - cursor - count);
-        length -= count;
+        int count = Math.max(Math.min(length() - cursor, num), 0);
+        moveGapToCursor();
+        g1 += count;
         cursorCol = -1;
         return count;
     }
@@ -291,30 +307,28 @@ public class Buffer
 
     @Override
     public String toString() {
-        return substring(0, length);
-    }
-
-    /**
-     * Performs character transpose. The character prior to the cursor and the
-     * character under the cursor are swapped and the cursor is advanced one
-     * character unless you are already at the end of the line.
-     */
-    public boolean transpose() {
-        if (cursor == 0 || cursor == length) {
-            return false;
-        }
-        int tmp = buffer[cursor];
-        buffer[cursor] = buffer[cursor - 1];
-        buffer[cursor - 1] = tmp;
-        cursor++;
-        cursorCol = -1;
-        return true;
+        return substring(0, length());
     }
 
     public void setBuffer(Buffer that) {
-        this.length = that.length;
+        this.g0 = that.g0;
+        this.g1 = that.g1;
         this.buffer = that.buffer.clone();
         this.cursor = that.cursor;
         this.cursorCol = that.cursorCol;
+    }
+
+    private void moveGapToCursor() {
+        if (cursor < g0) {
+            int l = g0 - cursor;
+            System.arraycopy(buffer, cursor, buffer, g1 - l, l);
+            g0 -= l;
+            g1 -= l;
+        } else if (cursor > g0) {
+            int l = cursor - g0;
+            System.arraycopy(buffer, g1, buffer, g0, l);
+            g0 += l;
+            g1 += l;
+        }
     }
 }
