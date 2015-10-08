@@ -15,13 +15,11 @@ import java.io.IOError;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -217,7 +215,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected KillRing killRing = new KillRing();
 
-    protected Deque<Buffer> undo = new ArrayDeque<>();
+    protected UndoTree<Buffer> undo = new UndoTree<>(this::setBuffer);
     protected boolean isUndo;
 
     /*
@@ -485,6 +483,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
             callWidget(CALLBACK_INIT);
 
+            undo.newState(buf.copy());
+
             // Draw initial prompt
             redrawLine();
             redisplay();
@@ -521,7 +521,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                     beep();
                 }
                 if (!isUndo && !copy.toString().equals(buf.toString())) {
-                    undo.push(copy);
+                    undo.newState(buf.copy());
                 }
 
                 switch (state) {
@@ -2083,9 +2083,17 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected boolean undo() {
         isUndo = true;
-        if (undo.size() > 0) {
-            Buffer b = undo.pop();
-            buf.setBuffer(b);
+        if (undo.canUndo()) {
+            undo.undo();
+            return true;
+        }
+        return false;
+    }
+
+    protected boolean redo() {
+        isUndo = true;
+        if (undo.canRedo()) {
+            undo.redo();
             return true;
         }
         return false;
@@ -3197,6 +3205,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 //        widgets.put(QUIT, this::quit);
         widgets.put(QUOTED_INSERT, this::quotedInsert);
         widgets.put(REDISPLAY, this::redisplay);
+        widgets.put(REDO, this::redo);
         widgets.put(SELF_INSERT, this::selfInsert);
         widgets.put(SELF_INSERT_UNMETA, this::selfInsertUnmeta);
         widgets.put(SEND_BREAK, this::sendBreak);
@@ -4666,6 +4675,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         bind(emacs, VI_MATCH_BRACKET,                       translate("^X^B"));
         bind(emacs, SEND_BREAK,                             translate("^X^G"));
         bind(emacs, OVERWRITE_MODE,                         translate("^X^O"));
+        bind(emacs, REDO,                                   translate("^X^R"));
         bind(emacs, UNDO,                                   translate("^X^U"));
         bind(emacs, VI_CMD_MODE,                            translate("^X^V"));
         bind(emacs, EXCHANGE_POINT_AND_MARK,                translate("^X^X"));
@@ -4765,12 +4775,12 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         bind(vicmd, SET_MARK_COMMAND,                       alt(' '));
 //        bind(vicmd, INSERT_COMMENT,                         alt('#'));
 //        bind(vicmd, INSERT_COMPLETIONS,                     alt('*'));
-        bind(vicmd, DIGIT_ARGUMENT, alt('-'));
-        bind(vicmd, BEGINNING_OF_HISTORY, alt('<'));
-        bind(vicmd, LIST_CHOICES, alt('='));
-        bind(vicmd, END_OF_HISTORY, alt('>'));
-        bind(vicmd, LIST_CHOICES, alt('?'));
-        bind(vicmd, DO_LOWERCASE_VERSION, range("^[A-^[Z"));
+        bind(vicmd, DIGIT_ARGUMENT,                         alt('-'));
+        bind(vicmd, BEGINNING_OF_HISTORY,                   alt('<'));
+        bind(vicmd, LIST_CHOICES,                           alt('='));
+        bind(vicmd, END_OF_HISTORY,                         alt('>'));
+        bind(vicmd, LIST_CHOICES,                           alt('?'));
+        bind(vicmd, DO_LOWERCASE_VERSION,                   range("^[A-^[Z"));
         bind(vicmd, BACKWARD_WORD,                          alt('b'));
         bind(vicmd, CAPITALIZE_WORD,                        alt('c'));
         bind(vicmd, KILL_WORD,                              alt('d'));
@@ -4810,6 +4820,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         bind(vicmd, VI_REPLACE,                             "R");
         bind(vicmd, VI_KILL_LINE,                           "S");
         bind(vicmd, VI_FIND_PREV_CHAR_SKIP,                 "T");
+        bind(vicmd, REDO,                                   "U");
         bind(vicmd, VISUAL_LINE_MODE,                       "V");
         bind(vicmd, VI_FORWARD_BLANK_WORD,                  "W");
         bind(vicmd, VI_BACKWARD_DELETE_CHAR,                "X");
