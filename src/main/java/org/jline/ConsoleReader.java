@@ -196,7 +196,7 @@ public interface ConsoleReader {
     String YANK_POP = "yank-pop";
 
     //
-    //KeyMap names
+    // KeyMap names
     //
 
     String VICMD = "vicmd";
