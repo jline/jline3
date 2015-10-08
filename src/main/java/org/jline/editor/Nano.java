@@ -1771,11 +1771,7 @@ public class Nano {
     }
 
     protected void flush() {
-        try {
-            console.flush();
-        } catch (IOException e) {
-            throw new IOError(e);
-        }
+        console.flush();
     }
 
     protected List<String> computeFooter() {

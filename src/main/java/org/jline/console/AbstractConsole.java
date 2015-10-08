@@ -126,7 +126,7 @@ public abstract class AbstractConsole implements Console {
         return type;
     }
 
-    public void flush() throws IOException {
+    public void flush() {
         writer().flush();
     }
 
