@@ -98,7 +98,7 @@ public class Buffer
      * @param c the character to insert
      */
     public void write(int c) {
-        write(new int[] { c }, false);
+        write(new int[] { c });
     }
 
     /**
@@ -109,7 +109,10 @@ public class Buffer
      * @param c the character to insert
      */
     public void write(int c, boolean overTyping) {
-        write(new int[] { c }, overTyping);
+        if (overTyping) {
+            delete(1);
+        }
+        write(new int[] { c });
     }
 
     /**
@@ -117,36 +120,35 @@ public class Buffer
      */
     public void write(CharSequence str) {
         checkNotNull(str);
-        write(str.codePoints().toArray(), false);
+        write(str.codePoints().toArray());
     }
 
     public void write(CharSequence str, boolean overTyping) {
         checkNotNull(str);
-        write(str.codePoints().toArray(), overTyping);
-    }
-
-    private void write(int[] ucps, boolean overTyping) {
+        int[] ucps = str.codePoints().toArray();
         if (overTyping) {
             delete(ucps.length);
-            write(ucps.length, false);
-        } else {
-            moveGapToCursor();
-            int len = length() + ucps.length;
-            int sz = buffer.length;
-            if (sz < len) {
-                while (sz < len) {
-                    sz *= 2;
-                }
-                int[] nb = new int[sz];
-                System.arraycopy(buffer, 0, nb, 0, g0);
-                System.arraycopy(buffer, g1, nb, g1 + sz - buffer.length, buffer.length - g1);
-                g1 += sz - buffer.length;
-                buffer = nb;
-            }
-            System.arraycopy(ucps, 0, buffer, cursor, ucps.length);
-            g0 += ucps.length;
-            cursor += ucps.length;
         }
+        write(ucps);
+    }
+
+    private void write(int[] ucps) {
+        moveGapToCursor();
+        int len = length() + ucps.length;
+        int sz = buffer.length;
+        if (sz < len) {
+            while (sz < len) {
+                sz *= 2;
+            }
+            int[] nb = new int[sz];
+            System.arraycopy(buffer, 0, nb, 0, g0);
+            System.arraycopy(buffer, g1, nb, g1 + sz - buffer.length, buffer.length - g1);
+            g1 += sz - buffer.length;
+            buffer = nb;
+        }
+        System.arraycopy(ucps, 0, buffer, cursor, ucps.length);
+        g0 += ucps.length;
+        cursor += ucps.length;
         cursorCol = -1;
     }
 
