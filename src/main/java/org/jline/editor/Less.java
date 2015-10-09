@@ -675,7 +675,7 @@ public class Less {
         }
         newLines.add(msg);
 
-        display.setColumns(size.getColumns());
+        display.resize(size.getRows(), size.getColumns());
         display.update(newLines, -1);
         console.flush();
     }

@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import org.jline.Console;
 import org.jline.utils.AnsiHelper;
@@ -33,6 +34,7 @@ public class Display {
     protected int cursorPos;
     protected boolean cursorOk;
     protected int columns;
+    protected int rows;
     protected int tabWidth = ConsoleReaderImpl.TAB_WIDTH;
     protected boolean reset;
 
@@ -41,7 +43,8 @@ public class Display {
         this.fullScreen = fullscreen;
     }
 
-    public void setColumns(int columns) {
+    public void resize(int rows, int columns) {
+        this.rows = rows;
         this.columns = columns;
         oldLines = AnsiHelper.splitLines(String.join("\n", oldLines), columns, tabWidth);
     }
@@ -77,6 +80,64 @@ public class Display {
             cursorOk = true;
             reset = false;
         }
+
+        // Detect scrolling
+        boolean hasInsert = console.getStringCapability(Capability.parm_insert_line) != null
+                         || console.getStringCapability(Capability.insert_line) != null;
+        boolean hasDelete = console.getStringCapability(Capability.parm_delete_line) != null
+                         || console.getStringCapability(Capability.delete_line) != null;
+        if (fullScreen && newLines.size() == oldLines.size() && hasInsert && hasDelete) {
+            int nbHeaders = 0;
+            int nbFooters = 0;
+            // Find common headers and footers
+            int l = newLines.size();
+            while (nbHeaders < l
+                    && Objects.equals(newLines.get(nbHeaders), oldLines.get(nbHeaders))) {
+                nbHeaders++;
+            }
+            while (nbFooters < l - nbHeaders - 1
+                    && Objects.equals(newLines.get(newLines.size() - nbFooters - 1), oldLines.get(oldLines.size() - nbFooters - 1))) {
+                nbFooters++;
+            }
+            List<String> o1 = newLines.subList(nbHeaders, newLines.size() - nbFooters);
+            List<String> o2 = oldLines.subList(nbHeaders, oldLines.size() - nbFooters);
+            int[] common = longestCommon(o1, o2);
+            if (common != null) {
+                int s1 = common[0];
+                int s2 = common[1];
+                int sl = common[2];
+                if (sl > 1 && s1 < s2) {
+                    moveVisualCursorTo((nbHeaders + s1) * columns);
+                    int nb = s2 - s1;
+                    deleteLines(nb);
+                    for (int i = 0; i < nb; i++) {
+                        oldLines.remove(nbHeaders + s1);
+                    }
+                    if (nbFooters > 0) {
+                        moveVisualCursorTo((nbHeaders + s1 + sl) * columns);
+                        insertLines(nb);
+                        for (int i = 0; i < nb; i++) {
+                            oldLines.add(nbHeaders + s1 + sl, "");
+                        }
+                    }
+                } else if (sl > 1 && s1 > s2) {
+                    int nb = s1 - s2;
+                    if (nbFooters > 0) {
+                        moveVisualCursorTo((nbHeaders + s2 + sl) * columns);
+                        deleteLines(nb);
+                        for (int i = 0; i < nb; i++) {
+                            oldLines.remove(nbHeaders + s2 + sl);
+                        }
+                    }
+                    moveVisualCursorTo((nbHeaders + s2) * columns);
+                    insertLines(nb);
+                    for (int i = 0; i < nb; i++) {
+                        oldLines.add(nbHeaders + s2, "");
+                    }
+                }
+            }
+        }
+
         int lineIndex = 0;
         int currentPos = 0;
         while (lineIndex < Math.min(oldLines.size(), newLines.size())) {
@@ -229,6 +290,49 @@ public class Display {
         }
         moveVisualCursorTo(targetCursorPos < 0 ? currentPos : targetCursorPos);
         oldLines = newLines;
+    }
+
+    protected void deleteLines(int nb) {
+        if (console.getStringCapability(Capability.parm_delete_line) != null
+                && (nb > 1 || console.getStringCapability(Capability.delete_line) == null)) {
+            console.puts(Capability.parm_delete_line, nb);
+        } else {
+            for (int i = 0; i < nb; i++) {
+                console.puts(Capability.delete_line);
+            }
+        }
+    }
+
+    protected void insertLines(int nb) {
+        if (console.getStringCapability(Capability.parm_insert_line) != null
+                && (nb > 1 || console.getStringCapability(Capability.insert_line) == null)) {
+            console.puts(Capability.parm_insert_line, nb);
+        } else {
+            for (int i = 0; i < nb; i++) {
+                console.puts(Capability.insert_line);
+            }
+        }
+    }
+
+    private static int[] longestCommon(List<String> l1, List<String> l2) {
+        int start1 = 0;
+        int start2 = 0;
+        int max = 0;
+        for (int i = 0; i < l1.size(); i++) {
+            for (int j = 0; j < l2.size(); j++) {
+                int x = 0;
+                while (Objects.equals(l1.get(i + x), l2.get(j + x))) {
+                    x++;
+                    if (((i + x) >= l1.size()) || ((j + x) >= l2.size())) break;
+                }
+                if (x > max) {
+                    max = x;
+                    start1 = i;
+                    start2 = j;
+                }
+            }
+        }
+        return max != 0 ? new int[] { start1, start2, max } : null;
     }
 
     private boolean cursorDownIsNewLine() {

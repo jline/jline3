@@ -966,7 +966,7 @@ public class Nano {
         size.copy(console.getSize());
         display.clear();
         display.reset();
-        display.setColumns(size.getColumns());
+        display.resize(size.getRows(), size.getColumns());
 
         this.shortcuts = standardShortcuts();
 
@@ -1735,7 +1735,7 @@ public class Nano {
 
     void resetDisplay() {
         display.clear();
-        display.setColumns(size.getColumns());
+        display.resize(size.getRows(), size.getColumns());
         for (Buffer buffer : buffers) {
             buffer.resetDisplay();
         }

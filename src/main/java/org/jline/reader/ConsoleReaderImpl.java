@@ -457,7 +457,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             }
 
             display = new Display(console, false);
-            display.setColumns(size.getColumns());
+            display.resize(size.getRows(), size.getColumns());
             display.setTabWidth(TAB_WIDTH);
 
             // Move into application mode
@@ -786,13 +786,13 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     protected void handleSignal(Signal signal) {
         if (signal == Signal.WINCH) {
             size.copy(console.getSize());
-            display.setColumns(size.getColumns());
+            display.resize(size.getRows(), size.getColumns());
             redisplay();
         }
         else if (signal == Signal.CONT) {
             console.enterRawMode();
             size.copy(console.getSize());
-            display.setColumns(size.getColumns());
+            display.resize(size.getRows(), size.getColumns());
             console.puts(Capability.keypad_xmit);
             redrawLine();
             redisplay();
