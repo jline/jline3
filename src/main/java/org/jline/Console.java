@@ -11,6 +11,7 @@ package org.jline;
 import java.io.Closeable;
 import java.io.Flushable;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 
 import org.jline.JLine.ConsoleReaderBuilder;
@@ -56,6 +57,10 @@ public interface Console extends Closeable, Flushable {
     NonBlockingReader reader();
 
     PrintWriter writer();
+
+    InputStream input();
+
+    OutputStream output();
 
     //
     // Readline

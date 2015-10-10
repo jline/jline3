@@ -24,6 +24,8 @@ import org.jline.console.Size;
 import org.jline.utils.NonBlockingReader;
 
 public class DumbConsole extends AbstractConsole {
+    private final InputStream input;
+    private final OutputStream output;
     private final NonBlockingReader reader;
     private final PrintWriter writer;
     private final Attributes attributes;
@@ -31,6 +33,8 @@ public class DumbConsole extends AbstractConsole {
 
     public DumbConsole(ConsoleReaderBuilder consoleReaderBuilder, InputStream in, OutputStream out) throws IOException {
         super("ansi", consoleReaderBuilder);
+        this.input = in;
+        this.output = out;
         this.reader = new NonBlockingReader(new InputStreamReader(in));
         this.writer = new PrintWriter(new OutputStreamWriter(out));
         this.attributes = new Attributes();
@@ -48,6 +52,16 @@ public class DumbConsole extends AbstractConsole {
 
     public PrintWriter writer() {
         return writer;
+    }
+
+    @Override
+    public InputStream input() {
+        return input;
+    }
+
+    @Override
+    public OutputStream output() {
+        return output;
     }
 
     public Attributes getAttributes() {

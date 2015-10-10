@@ -75,7 +75,6 @@ public interface ConsoleReader {
     String EXPAND_WORD = "expand-word";
     String FORWARD_CHAR = "forward-char";
     String FORWARD_WORD = "forward-word";
-    String GET_LINE = "get-line";
     String HISTORY_BEGINNING_SEARCH_BACKWARD = "history-beginning-search-backward";
     String HISTORY_BEGINNING_SEARCH_FORWARD = "history-beginning-search-forward";
     String HISTORY_INCREMENTAL_PATTERN_SEARCH_BACKWARD = "history-incremental-pattern-search-backward";

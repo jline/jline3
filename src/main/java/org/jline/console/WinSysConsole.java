@@ -39,6 +39,8 @@ import org.jline.utils.Signals;
 
 public class WinSysConsole extends AbstractConsole {
 
+    protected final InputStream input;
+    protected final OutputStream output;
     protected final NonBlockingReader reader;
     protected final PrintWriter writer;
     protected final Map<Signal, Object> nativeHandlers = new HashMap<Signal, Object>();
@@ -55,14 +57,14 @@ public class WinSysConsole extends AbstractConsole {
 
     public WinSysConsole(boolean nativeSignals, ConsoleReaderBuilder consoleReaderBuilder) throws IOException {
         super("windows", consoleReaderBuilder);
-        InputStream in = new DirectInputStream();
-        OutputStream out = new WindowsAnsiOutputStream(new FileOutputStream(FileDescriptor.out));
+        input = new DirectInputStream();
+        output = new WindowsAnsiOutputStream(new FileOutputStream(FileDescriptor.out));
         String encoding = getConsoleEncoding();
         if (encoding == null) {
             encoding = Charset.defaultCharset().name();
         }
-        this.reader = new NonBlockingReader(new InputStreamReader(in, encoding));
-        this.writer = new PrintWriter(new OutputStreamWriter(out, encoding));
+        this.reader = new NonBlockingReader(new InputStreamReader(input, encoding));
+        this.writer = new PrintWriter(new OutputStreamWriter(output, encoding));
         parseInfoCmp();
         // Handle signals
         if (nativeSignals) {
@@ -95,6 +97,16 @@ public class WinSysConsole extends AbstractConsole {
 
     public PrintWriter writer() {
         return writer;
+    }
+
+    @Override
+    public InputStream input() {
+        return input;
+    }
+
+    @Override
+    public OutputStream output() {
+        return output;
     }
 
     public Attributes getAttributes() {

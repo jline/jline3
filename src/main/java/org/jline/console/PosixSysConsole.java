@@ -9,6 +9,8 @@
 package org.jline.console;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.HashMap;
@@ -25,6 +27,8 @@ import static org.jline.utils.Preconditions.checkNotNull;
 
 public class PosixSysConsole extends AbstractPosixConsole {
 
+    protected final InputStream input;
+    protected final OutputStream output;
     protected final NonBlockingReader reader;
     protected final PrintWriter writer;
     protected final Map<Signal, Object> nativeHandlers = new HashMap<>();
@@ -33,8 +37,10 @@ public class PosixSysConsole extends AbstractPosixConsole {
     public PosixSysConsole(String type, ConsoleReaderBuilder consoleReaderBuilder, Pty pty, String encoding, boolean nativeSignals) throws IOException {
         super(type, consoleReaderBuilder, pty);
         checkNotNull(encoding);
-        this.reader = new NonBlockingReader(new InputStreamReader(pty.getSlaveInput(), encoding));
-        this.writer = new PrintWriter(new OutputStreamWriter(pty.getSlaveOutput(), encoding));
+        this.input = pty.getSlaveInput();
+        this.output = pty.getSlaveOutput();
+        this.reader = new NonBlockingReader(new InputStreamReader(input, encoding));
+        this.writer = new PrintWriter(new OutputStreamWriter(output, encoding));
         parseInfoCmp();
         if (nativeSignals) {
             for (final Signal signal : Signal.values()) {
@@ -51,6 +57,16 @@ public class PosixSysConsole extends AbstractPosixConsole {
 
     public PrintWriter writer() {
         return writer;
+    }
+
+    @Override
+    public InputStream input() {
+        return input;
+    }
+
+    @Override
+    public OutputStream output() {
+        return output;
     }
 
     @Override

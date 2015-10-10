@@ -31,6 +31,8 @@ import static org.jline.utils.Preconditions.checkNotNull;
 
 public class EmulatedConsole extends AbstractConsole {
 
+    private final InputStream input;
+    private final OutputStream output;
     private final PipedReader filterIn;
     private final PipedWriter filterInOut;
     private final NonBlockingReader reader;
@@ -42,21 +44,17 @@ public class EmulatedConsole extends AbstractConsole {
     private final Thread pumpThread;
 
     public EmulatedConsole(String type, ConsoleReaderBuilder consoleReaderBuilder, InputStream in, OutputStream out, final String encoding) throws IOException {
-        this(type, consoleReaderBuilder,
-                new InputStreamReader(in, encoding != null ? encoding : Charset.defaultCharset().name()),
-                new OutputStreamWriter(out, encoding != null ? encoding : Charset.defaultCharset().name()));
-    }
-
-    public EmulatedConsole(String type, ConsoleReaderBuilder consoleReaderBuilder, Reader in, Writer out) throws IOException {
         super(type, consoleReaderBuilder);
         checkNotNull(in);
         checkNotNull(out);
+        this.input = in;
+        this.output = out;
+        this.inReader = new InputStreamReader(input, encoding != null ? encoding : Charset.defaultCharset().name());
+        this.outWriter = new OutputStreamWriter(output, encoding != null ? encoding : Charset.defaultCharset().name());
         this.filterIn = new PipedReader();
         this.filterInOut = new PipedWriter(filterIn);
         this.pumpThread = new PumpThread();
         this.reader = new NonBlockingReader(filterIn);
-        this.inReader = in;
-        this.outWriter = out;
         this.writer = new PrintWriter(new FilteringWriter());
         this.attributes = new Attributes();
         this.size = new Size(160, 50);
@@ -70,6 +68,16 @@ public class EmulatedConsole extends AbstractConsole {
 
     public PrintWriter writer() {
         return writer;
+    }
+
+    @Override
+    public InputStream input() {
+        return input;
+    }
+
+    @Override
+    public OutputStream output() {
+        return output;
     }
 
     public Attributes getAttributes() {
