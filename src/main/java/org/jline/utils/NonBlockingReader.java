@@ -143,7 +143,7 @@ public class NonBlockingReader
         if (ch >= -1) {
             assert exception == null;
         }
-        else if (timeout == 0L && !threadIsReading) {
+        else if (!isPeek && timeout <= 0L && !threadIsReading) {
             ch = in.read();
         }
         else {
