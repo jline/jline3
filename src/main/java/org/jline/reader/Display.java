@@ -58,9 +58,11 @@ public class Display {
     }
 
     public void resize(int rows, int columns) {
-        this.rows = rows;
-        this.columns = columns;
-        oldLines = AnsiHelper.splitLines(String.join("\n", oldLines), columns, tabWidth);
+        if (this.rows != rows || this.columns != columns) {
+            this.rows = rows;
+            this.columns = columns;
+            oldLines = AnsiHelper.splitLines(String.join("\n", oldLines), columns, tabWidth);
+        }
     }
 
     public void setTabWidth(int tabWidth) {
