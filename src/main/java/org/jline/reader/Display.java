@@ -8,10 +8,13 @@
  */
 package org.jline.reader;
 
+import java.io.IOError;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import org.jline.Console;
@@ -38,9 +41,20 @@ public class Display {
     protected int tabWidth = ConsoleReaderImpl.TAB_WIDTH;
     protected boolean reset;
 
+    protected final Map<Capability, Integer> cost = new HashMap<>();
+    protected final boolean canScroll;
+    protected final boolean noWrapAtEol;
+    protected final boolean cursorDownIsNewLine;
+
     public Display(Console console, boolean fullscreen) {
         this.console = console;
         this.fullScreen = fullscreen;
+
+        this.canScroll = can(Capability.insert_line, Capability.parm_insert_line)
+                            && can(Capability.delete_line, Capability.parm_delete_line);
+        this.noWrapAtEol = console.getBooleanCapability(Capability.auto_right_margin)
+                            && console.getBooleanCapability(Capability.eat_newline_glitch);
+        this.cursorDownIsNewLine = "\n".equals(tput(Capability.cursor_down));
     }
 
     public void resize(int rows, int columns) {
@@ -69,8 +83,6 @@ public class Display {
 
     /**
      * Update the display according to the new lines
-     *
-     * TODO: use scrolling if appropriate
      */
     public void update(List<String> newLines, int targetCursorPos) {
         if (reset) {
@@ -82,11 +94,7 @@ public class Display {
         }
 
         // Detect scrolling
-        boolean hasInsert = console.getStringCapability(Capability.parm_insert_line) != null
-                         || console.getStringCapability(Capability.insert_line) != null;
-        boolean hasDelete = console.getStringCapability(Capability.parm_delete_line) != null
-                         || console.getStringCapability(Capability.delete_line) != null;
-        if (fullScreen && newLines.size() == oldLines.size() && hasInsert && hasDelete) {
+        if (fullScreen && newLines.size() == oldLines.size() && canScroll) {
             int nbHeaders = 0;
             int nbFooters = 0;
             // Find common headers and footers
@@ -167,19 +175,7 @@ public class Display {
                         if (i <= diffs.size() - 2
                                 && diffs.get(i + 1).operation == DiffHelper.Operation.EQUAL) {
                             cursorPos = moveVisualCursorTo(currentPos);
-                            boolean hasIch = console.getStringCapability(Capability.parm_ich) != null;
-                            boolean hasIch1 = console.getStringCapability(Capability.insert_character) != null;
-                            if (hasIch) {
-                                console.puts(Capability.parm_ich, width);
-                                rawPrint(diff.text);
-                                cursorPos += width;
-                                cursorOk = false;
-                                currentPos = cursorPos;
-                                break;
-                            } else if (hasIch1) {
-                                for (int j = 0; j < width; j++) {
-                                    console.puts(Capability.insert_character);
-                                }
+                            if (insertChars(width)) {
                                 rawPrint(diff.text);
                                 cursorPos += width;
                                 cursorOk = false;
@@ -215,15 +211,7 @@ public class Display {
                                 && diffs.get(i + 1).operation == DiffHelper.Operation.EQUAL) {
                             if (currentPos + wcwidth(diffs.get(i + 1).text, currentPos % columns) < columns) {
                                 moveVisualCursorTo(currentPos);
-                                boolean hasDch = console.getStringCapability(Capability.parm_dch) != null;
-                                boolean hasDch1 = console.getStringCapability(Capability.delete_character) != null;
-                                if (hasDch) {
-                                    console.puts(Capability.parm_dch, width);
-                                    break;
-                                } else if (hasDch1) {
-                                    for (int j = 0; j < width; j++) {
-                                        console.puts(Capability.delete_character);
-                                    }
+                                if (deleteChars(width)) {
                                     break;
                                 }
                             }
@@ -243,10 +231,7 @@ public class Display {
                 }
             }
             lineIndex++;
-            if (!cursorOk
-                    && console.getBooleanCapability(Capability.auto_right_margin)
-                    && console.getBooleanCapability(Capability.eat_newline_glitch)
-                    && cursorPos == curCol + columns) {
+            if (!cursorOk && noWrapAtEol && cursorPos == curCol + columns) {
                 console.puts(Capability.carriage_return); // CR / not newline.
                 cursorPos = curCol;
                 cursorOk = true;
@@ -273,10 +258,7 @@ public class Display {
                 cursorPos += wcwidth(newLines.get(lineIndex));
                 cursorOk = false;
             }
-            if (!cursorOk
-                    && console.getBooleanCapability(Capability.auto_right_margin)
-                    && console.getBooleanCapability(Capability.eat_newline_glitch)
-                    && cursorPos == currentPos + columns) {
+            if (!cursorOk && noWrapAtEol && cursorPos == currentPos + columns) {
                 console.puts(Capability.carriage_return); // CR / not newline.
                 cursorPos = currentPos;
                 cursorOk = true;
@@ -292,25 +274,63 @@ public class Display {
         oldLines = newLines;
     }
 
-    protected void deleteLines(int nb) {
-        if (console.getStringCapability(Capability.parm_delete_line) != null
-                && (nb > 1 || console.getStringCapability(Capability.delete_line) == null)) {
-            console.puts(Capability.parm_delete_line, nb);
-        } else {
+    protected boolean deleteLines(int nb) {
+        return perform(Capability.delete_line, Capability.parm_delete_line, nb);
+    }
+
+    protected boolean insertLines(int nb) {
+        return perform(Capability.insert_line, Capability.parm_insert_line, nb);
+    }
+
+    protected boolean insertChars(int nb) {
+        return perform(Capability.insert_character, Capability.parm_ich, nb);
+    }
+
+    protected boolean deleteChars(int nb) {
+        return perform(Capability.delete_character, Capability.parm_dch, nb);
+    }
+
+    protected boolean can(Capability single, Capability multi) {
+        return console.getStringCapability(single) != null
+                || console.getStringCapability(multi) != null;
+    }
+
+    protected boolean perform(Capability single, Capability multi, int nb) {
+        boolean hasMulti = console.getStringCapability(multi) != null;
+        boolean hasSingle = console.getStringCapability(single) != null;
+        if (hasMulti && (!hasSingle || cost(single) * nb > cost(multi))) {
+            console.puts(multi, nb);
+            return true;
+        } else if (hasSingle) {
             for (int i = 0; i < nb; i++) {
-                console.puts(Capability.delete_line);
+                console.puts(single);
             }
+            return true;
+        } else {
+            return false;
         }
     }
 
-    protected void insertLines(int nb) {
-        if (console.getStringCapability(Capability.parm_insert_line) != null
-                && (nb > 1 || console.getStringCapability(Capability.insert_line) == null)) {
-            console.puts(Capability.parm_insert_line, nb);
-        } else {
-            for (int i = 0; i < nb; i++) {
-                console.puts(Capability.insert_line);
+    private int cost(Capability cap) {
+        return cost.computeIfAbsent(cap, this::computeCost);
+    }
+
+    private int computeCost(Capability cap) {
+        String s = tput(cap, 0);
+        return s != null ? s.length() : Integer.MAX_VALUE;
+    }
+
+    private String tput(Capability cap, Object... params) {
+        try {
+            StringWriter sw = new StringWriter();
+            String d = console.getStringCapability(cap);
+            if (d != null) {
+                Curses.tputs(sw, d, params);
+                return sw.toString();
             }
+            return null;
+        } catch (IOException e) {
+            throw new IOError(e);
         }
     }
 
@@ -335,19 +355,6 @@ public class Display {
         return max != 0 ? new int[] { start1, start2, max } : null;
     }
 
-    private boolean cursorDownIsNewLine() {
-        try {
-            StringWriter sw = new StringWriter();
-            String d = console.getStringCapability(Capability.cursor_down);
-            if (d != null) {
-                Curses.tputs(sw, d);
-                return sw.toString().equals("\n");
-            }
-        } catch (IOException e) {
-        }
-        return false;
-    }
-
     protected int moveVisualCursorTo(int i1) {
         int i0 = cursorPos;
         if (i0 == i1) return i1;
@@ -356,23 +363,16 @@ public class Display {
         int c0 = i0 % width;
         int l1 = i1 / width;
         int c1 = i1 % width;
-        if (l0 == l1 + 1) {
-            if (!console.puts(Capability.cursor_up)) {
-                console.puts(Capability.parm_up_cursor, 1);
-            }
-        } else if (l0 > l1) {
-            if (!console.puts(Capability.parm_up_cursor, l0 - l1)) {
-                for (int i = l1; i < l0; i++) {
-                    console.puts(Capability.cursor_up);
-                }
-            }
+        if (l0 > l1) {
+            perform(Capability.cursor_up, Capability.parm_up_cursor, l0 - l1);
         } else if (l0 < l1) {
+            // TODO: clean the following
             if (fullScreen) {
                 if (!console.puts(Capability.parm_down_cursor, l1 - l0)) {
                     for (int i = l0; i < l1; i++) {
                         console.puts(Capability.cursor_down);
                     }
-                    if (cursorDownIsNewLine()) {
+                    if (cursorDownIsNewLine) {
                         c0 = 0;
                     }
                 }
@@ -383,22 +383,10 @@ public class Display {
         }
         if (c0 != 0 && c1 == 0) {
             console.puts(Capability.carriage_return);
-        } else if (c0 == c1 - 1) {
-            console.puts(Capability.cursor_right);
-        } else if (c0 == c1 + 1) {
-            console.puts(Capability.cursor_left);
         } else if (c0 < c1) {
-            if (!console.puts(Capability.parm_right_cursor, c1 - c0)) {
-                for (int i = c0; i < c1; i++) {
-                    console.puts(Capability.cursor_right);
-                }
-            }
+            perform(Capability.cursor_right, Capability.parm_right_cursor, c1 - c0);
         } else if (c0 > c1) {
-            if (!console.puts(Capability.parm_left_cursor, c0 - c1)) {
-                for (int i = c1; i < c0; i++) {
-                    console.puts(Capability.cursor_left);
-                }
-            }
+            perform(Capability.cursor_left, Capability.parm_left_cursor, c0 - c1);
         }
         cursorPos = i1;
         cursorOk = true;
