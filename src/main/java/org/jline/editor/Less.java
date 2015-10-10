@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
 import org.jline.Console;
@@ -39,6 +38,7 @@ import org.jline.utils.Ansi;
 import org.jline.utils.Ansi.Attribute;
 import org.jline.utils.AnsiHelper;
 import org.jline.utils.InfoCmp.Capability;
+import org.jline.utils.NonBlockingReader;
 
 import static org.jline.keymap.KeyMap.alt;
 import static org.jline.keymap.KeyMap.ctrl;
@@ -127,8 +127,6 @@ public class Less {
 
     protected String message;
     protected final StringBuilder buffer = new StringBuilder();
-    protected Thread displayThread;
-    protected final AtomicBoolean redraw = new AtomicBoolean();
 
     protected final Map<String, Operation> options = new TreeMap<>();
 
@@ -150,7 +148,11 @@ public class Less {
 
     public void handle(Signal signal) {
         size.copy(console.getSize());
-        redraw();
+        try {
+            display();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void run(Source... sources) throws IOException, InterruptedException {
@@ -181,14 +183,7 @@ public class Less {
                 console.puts(Capability.keypad_xmit);
                 console.writer().flush();
 
-                displayThread = new Thread() {
-                    @Override
-                    public void run() {
-                        redrawLoop();
-                    }
-                };
-                displayThread.start();
-                redraw();
+                display();
                 checkInterrupted();
 
                 options.put("-e", Operation.OPT_QUIT_AT_SECOND_EOF);
@@ -220,40 +215,38 @@ public class Less {
                     //
                     if (buffer.length() > 0 && buffer.charAt(0) == '-') {
                         int c = console.reader().read();
-                        synchronized (redraw) {
-                            message = null;
-                            if (buffer.length() == 1) {
-                                buffer.append((char) c);
-                                if (c != '-') {
-                                    op = options.get(buffer.toString());
-                                    if (op == null) {
-                                        message = "There is no " + printable(buffer.toString()) + " option";
-                                        buffer.setLength(0);
-                                    }
-                                }
-                            } else if (c == '\r') {
+                        message = null;
+                        if (buffer.length() == 1) {
+                            buffer.append((char) c);
+                            if (c != '-') {
                                 op = options.get(buffer.toString());
                                 if (op == null) {
                                     message = "There is no " + printable(buffer.toString()) + " option";
                                     buffer.setLength(0);
                                 }
-                            } else {
-                                buffer.append((char) c);
-                                Map<String, Operation> matching = new HashMap<>();
-                                for (Map.Entry<String, Operation> entry : options.entrySet()) {
-                                    if (entry.getKey().startsWith(buffer.toString())) {
-                                        matching.put(entry.getKey(), entry.getValue());
-                                    }
+                            }
+                        } else if (c == '\r') {
+                            op = options.get(buffer.toString());
+                            if (op == null) {
+                                message = "There is no " + printable(buffer.toString()) + " option";
+                                buffer.setLength(0);
+                            }
+                        } else {
+                            buffer.append((char) c);
+                            Map<String, Operation> matching = new HashMap<>();
+                            for (Map.Entry<String, Operation> entry : options.entrySet()) {
+                                if (entry.getKey().startsWith(buffer.toString())) {
+                                    matching.put(entry.getKey(), entry.getValue());
                                 }
-                                switch (matching.size()) {
-                                    case 0:
-                                        buffer.setLength(0);
-                                        break;
-                                    case 1:
-                                        buffer.setLength(0);
-                                        buffer.append(matching.keySet().iterator().next());
-                                        break;
-                                }
+                            }
+                            switch (matching.size()) {
+                                case 0:
+                                    buffer.setLength(0);
+                                    break;
+                                case 1:
+                                    buffer.setLength(0);
+                                    buffer.append(matching.keySet().iterator().next());
+                                    break;
                             }
                         }
                     }
@@ -262,19 +255,17 @@ public class Less {
                     //
                     else if (buffer.length() > 0 && (buffer.charAt(0) == '/' || buffer.charAt(0) == '?')) {
                         int c = console.reader().read();
-                        synchronized (redraw) {
-                            message = null;
-                            if (c == '\r') {
-                                pattern = buffer.toString().substring(1);
-                                if (buffer.charAt(0) == '/') {
-                                    moveToNextMatch();
-                                } else {
-                                    moveToPreviousMatch();
-                                }
-                                buffer.setLength(0);
+                        message = null;
+                        if (c == '\r') {
+                            pattern = buffer.toString().substring(1);
+                            if (buffer.charAt(0) == '/') {
+                                moveToNextMatch();
                             } else {
-                                buffer.append((char) c);
+                                moveToPreviousMatch();
                             }
+                            buffer.setLength(0);
+                        } else {
+                            buffer.append((char) c);
                         }
                     }
                     //
@@ -283,132 +274,128 @@ public class Less {
                     else {
                         Object obj = bindingReader.readBinding(keys, null, false);
                         if (obj == Operation.CHAR) {
-                            synchronized (redraw) {
-                                char c = bindingReader.getLastBinding().charAt(0);
-                                // Enter option mode or pattern edit mode
-                                if (c == '-' || c == '/' || c == '?') {
-                                    buffer.setLength(0);
-                                }
-                                buffer.append(c);
+                            char c = bindingReader.getLastBinding().charAt(0);
+                            // Enter option mode or pattern edit mode
+                            if (c == '-' || c == '/' || c == '?') {
+                                buffer.setLength(0);
                             }
+                            buffer.append(c);
                         } else if (obj instanceof Operation) {
                             op = (Operation) obj;
                         }
                     }
                     if (op != null) {
-                        synchronized (redraw) {
-                            message = null;
-                            switch (op) {
-                                case FORWARD_ONE_LINE:
-                                    moveForward(getStrictPositiveNumberInBuffer(1));
-                                    break;
-                                case BACKWARD_ONE_LINE:
-                                    moveBackward(getStrictPositiveNumberInBuffer(1));
-                                    break;
-                                case FORWARD_ONE_WINDOW_OR_LINES:
-                                    moveForward(getStrictPositiveNumberInBuffer(window));
-                                    break;
-                                case FORWARD_ONE_WINDOW_AND_SET:
-                                    window = getStrictPositiveNumberInBuffer(window);
-                                    moveForward(window);
-                                    break;
-                                case FORWARD_ONE_WINDOW_NO_STOP:
-                                    moveForward(window);
-                                    // TODO: handle no stop
-                                    break;
-                                case FORWARD_HALF_WINDOW_AND_SET:
-                                    halfWindow = getStrictPositiveNumberInBuffer(halfWindow);
-                                    moveForward(halfWindow);
-                                    break;
-                                case BACKWARD_ONE_WINDOW_AND_SET:
-                                    window = getStrictPositiveNumberInBuffer(window);
-                                    moveBackward(window);
-                                    break;
-                                case BACKWARD_ONE_WINDOW_OR_LINES:
-                                    moveBackward(getStrictPositiveNumberInBuffer(window));
-                                    break;
-                                case BACKWARD_HALF_WINDOW_AND_SET:
-                                    halfWindow = getStrictPositiveNumberInBuffer(halfWindow);
-                                    moveBackward(halfWindow);
-                                    break;
-                                case GO_TO_FIRST_LINE_OR_N:
-                                    // TODO: handle number
-                                    firstLineToDisplay = firstLineInMemory;
-                                    offsetInLine = 0;
-                                    break;
-                                case GO_TO_LAST_LINE_OR_N:
-                                    // TODO: handle number
-                                    moveForward(Integer.MAX_VALUE);
-                                    break;
-                                case LEFT_ONE_HALF_SCREEN:
-                                    firstColumnToDisplay = Math.max(0, firstColumnToDisplay - size.getColumns() / 2);
-                                    break;
-                                case RIGHT_ONE_HALF_SCREEN:
-                                    firstColumnToDisplay += size.getColumns() / 2;
-                                    break;
-                                case REPEAT_SEARCH_BACKWARD:
-                                case REPEAT_SEARCH_BACKWARD_SPAN_FILES:
-                                    moveToPreviousMatch();
-                                    break;
-                                case REPEAT_SEARCH_FORWARD:
-                                case REPEAT_SEARCH_FORWARD_SPAN_FILES:
-                                    moveToNextMatch();
-                                    break;
-                                case UNDO_SEARCH:
-                                    pattern = null;
-                                    break;
-                                case OPT_PRINT_LINES:
-                                    buffer.setLength(0);
-                                    printLineNumbers = !printLineNumbers;
-                                    message = printLineNumbers ? "Constantly display line numbers" : "Don't use line numbers";
-                                    break;
-                                case OPT_QUIET:
-                                    buffer.setLength(0);
-                                    quiet = !quiet;
-                                    veryQuiet = false;
-                                    message = quiet ? "Ring the bell for errors but not at eof/bof" : "Ring the bell for errors AND at eof/bof";
-                                    break;
-                                case OPT_VERY_QUIET:
-                                    buffer.setLength(0);
-                                    veryQuiet = !veryQuiet;
-                                    quiet = false;
-                                    message = veryQuiet ? "Never ring the bell" : "Ring the bell for errors AND at eof/bof";
-                                    break;
-                                case OPT_CHOP_LONG_LINES:
-                                    buffer.setLength(0);
-                                    offsetInLine = 0;
-                                    chopLongLines = !chopLongLines;
-                                    message = chopLongLines ? "Chop long lines" : "Fold long lines";
-                                    break;
-                                case OPT_IGNORE_CASE_COND:
-                                    ignoreCaseCond = !ignoreCaseCond;
-                                    ignoreCaseAlways = false;
-                                    message = ignoreCaseCond ? "Ignore case in searches" : "Case is significant in searches";
-                                    break;
-                                case OPT_IGNORE_CASE_ALWAYS:
-                                    ignoreCaseAlways = !ignoreCaseAlways;
-                                    ignoreCaseCond = false;
-                                    message = ignoreCaseAlways ? "Ignore case in searches and in patterns" : "Case is significant in searches";
-                                    break;
-                                case NEXT_FILE:
-                                    if (sourceIdx < sources.size() - 1) {
-                                        sourceIdx++;
-                                        openSource();
-                                    } else {
-                                        message = "No next file";
-                                    }
-                                    break;
-                                case PREV_FILE:
-                                    if (sourceIdx > 0) {
-                                        sourceIdx--;
-                                        openSource();
-                                    } else {
-                                        message = "No previous file";
-                                    }
-                                    break;
-                            }
-                            buffer.setLength(0);
+                        message = null;
+                        switch (op) {
+                            case FORWARD_ONE_LINE:
+                                moveForward(getStrictPositiveNumberInBuffer(1));
+                                break;
+                            case BACKWARD_ONE_LINE:
+                                moveBackward(getStrictPositiveNumberInBuffer(1));
+                                break;
+                            case FORWARD_ONE_WINDOW_OR_LINES:
+                                moveForward(getStrictPositiveNumberInBuffer(window));
+                                break;
+                            case FORWARD_ONE_WINDOW_AND_SET:
+                                window = getStrictPositiveNumberInBuffer(window);
+                                moveForward(window);
+                                break;
+                            case FORWARD_ONE_WINDOW_NO_STOP:
+                                moveForward(window);
+                                // TODO: handle no stop
+                                break;
+                            case FORWARD_HALF_WINDOW_AND_SET:
+                                halfWindow = getStrictPositiveNumberInBuffer(halfWindow);
+                                moveForward(halfWindow);
+                                break;
+                            case BACKWARD_ONE_WINDOW_AND_SET:
+                                window = getStrictPositiveNumberInBuffer(window);
+                                moveBackward(window);
+                                break;
+                            case BACKWARD_ONE_WINDOW_OR_LINES:
+                                moveBackward(getStrictPositiveNumberInBuffer(window));
+                                break;
+                            case BACKWARD_HALF_WINDOW_AND_SET:
+                                halfWindow = getStrictPositiveNumberInBuffer(halfWindow);
+                                moveBackward(halfWindow);
+                                break;
+                            case GO_TO_FIRST_LINE_OR_N:
+                                // TODO: handle number
+                                firstLineToDisplay = firstLineInMemory;
+                                offsetInLine = 0;
+                                break;
+                            case GO_TO_LAST_LINE_OR_N:
+                                // TODO: handle number
+                                moveForward(Integer.MAX_VALUE);
+                                break;
+                            case LEFT_ONE_HALF_SCREEN:
+                                firstColumnToDisplay = Math.max(0, firstColumnToDisplay - size.getColumns() / 2);
+                                break;
+                            case RIGHT_ONE_HALF_SCREEN:
+                                firstColumnToDisplay += size.getColumns() / 2;
+                                break;
+                            case REPEAT_SEARCH_BACKWARD:
+                            case REPEAT_SEARCH_BACKWARD_SPAN_FILES:
+                                moveToPreviousMatch();
+                                break;
+                            case REPEAT_SEARCH_FORWARD:
+                            case REPEAT_SEARCH_FORWARD_SPAN_FILES:
+                                moveToNextMatch();
+                                break;
+                            case UNDO_SEARCH:
+                                pattern = null;
+                                break;
+                            case OPT_PRINT_LINES:
+                                buffer.setLength(0);
+                                printLineNumbers = !printLineNumbers;
+                                message = printLineNumbers ? "Constantly display line numbers" : "Don't use line numbers";
+                                break;
+                            case OPT_QUIET:
+                                buffer.setLength(0);
+                                quiet = !quiet;
+                                veryQuiet = false;
+                                message = quiet ? "Ring the bell for errors but not at eof/bof" : "Ring the bell for errors AND at eof/bof";
+                                break;
+                            case OPT_VERY_QUIET:
+                                buffer.setLength(0);
+                                veryQuiet = !veryQuiet;
+                                quiet = false;
+                                message = veryQuiet ? "Never ring the bell" : "Ring the bell for errors AND at eof/bof";
+                                break;
+                            case OPT_CHOP_LONG_LINES:
+                                buffer.setLength(0);
+                                offsetInLine = 0;
+                                chopLongLines = !chopLongLines;
+                                message = chopLongLines ? "Chop long lines" : "Fold long lines";
+                                break;
+                            case OPT_IGNORE_CASE_COND:
+                                ignoreCaseCond = !ignoreCaseCond;
+                                ignoreCaseAlways = false;
+                                message = ignoreCaseCond ? "Ignore case in searches" : "Case is significant in searches";
+                                break;
+                            case OPT_IGNORE_CASE_ALWAYS:
+                                ignoreCaseAlways = !ignoreCaseAlways;
+                                ignoreCaseCond = false;
+                                message = ignoreCaseAlways ? "Ignore case in searches and in patterns" : "Case is significant in searches";
+                                break;
+                            case NEXT_FILE:
+                                if (sourceIdx < sources.size() - 1) {
+                                    sourceIdx++;
+                                    openSource();
+                                } else {
+                                    message = "No next file";
+                                }
+                                break;
+                            case PREV_FILE:
+                                if (sourceIdx > 0) {
+                                    sourceIdx--;
+                                    openSource();
+                                } else {
+                                    message = "No previous file";
+                                }
+                                break;
                         }
+                        buffer.setLength(0);
                     }
                     if (quitAtFirstEof && nbEof > 0 || quitAtSecondEof && nbEof > 1) {
                         if (sourceIdx < sources.size() - 1) {
@@ -418,7 +405,7 @@ public class Less {
                             op = Operation.EXIT;
                         }
                     }
-                    redraw();
+                    display();
                 } while (op != Operation.EXIT);
             } catch (InterruptedException ie) {
                 // Do nothing
@@ -427,8 +414,6 @@ public class Less {
                 if (prevHandler != null) {
                     console.handle(Console.Signal.WINCH, prevHandler);
                 }
-                displayThread.interrupt();
-                displayThread.join();
                 // Use main buffer
                 console.puts(Capability.exit_ca_mode);
                 console.puts(Capability.keypad_local);
@@ -598,29 +583,6 @@ public class Less {
         }
     }
 
-    void redraw() {
-        synchronized (redraw) {
-            redraw.set(true);
-            redraw.notifyAll();
-        }
-    }
-
-    void redrawLoop() {
-        synchronized (redraw) {
-            for (; ; ) {
-                try {
-                    if (redraw.compareAndSet(true, false)) {
-                        display();
-                    } else {
-                        redraw.wait();
-                    }
-                } catch (Exception e) {
-                    return;
-                }
-            }
-        }
-    }
-
     void display() throws IOException {
         List<String> newLines = new ArrayList<>();
         int width = size.getColumns() - (printLineNumbers ? 8 : 0);
@@ -666,7 +628,8 @@ public class Less {
         String msg;
         if (buffer.length() > 0) {
             msg = " " + buffer;
-        } else if (bindingReader.getCurrentBuffer().length() > 0) {
+        } else if (bindingReader.getCurrentBuffer().length() > 0
+                && console.reader().peek(1) != NonBlockingReader.READ_EXPIRED) {
             msg = " " + printable(bindingReader.getCurrentBuffer());
         } else if (message != null) {
             msg = Ansi.ansi().a(Attribute.NEGATIVE_ON).a(message).a(Attribute.NEGATIVE_OFF).toString();
