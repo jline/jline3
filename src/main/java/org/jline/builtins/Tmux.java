@@ -81,14 +81,14 @@ public class Tmux {
         // Setup defaults bindings
         serverOptions.put(OPT_PREFIX, "`");
         keyMap.bind(UNMAPPED, KeyMap.range("^@-^?"));
-        keyMap.bind(new Command(CMD_SEND_PREFIX), serverOptions.get(OPT_PREFIX));
-        keyMap.bind(new Command(CMD_SEND_PREFIX), serverOptions.get(OPT_PREFIX));
-        keyMap.bind(new Command(CMD_SPLIT_WINDOW), "\"");
-        keyMap.bind(new Command(CMD_SPLIT_WINDOW + " -h"), "%");
-        keyMap.bind(new Command(CMD_SELECT_PANE + " -U"), KeyMap.key(console, Capability.key_up));
-        keyMap.bind(new Command(CMD_SELECT_PANE + " -L"), KeyMap.key(console, Capability.key_left));
-        keyMap.bind(new Command(CMD_SELECT_PANE + " -R"), KeyMap.key(console, Capability.key_right));
-        keyMap.bind(new Command(CMD_SELECT_PANE + " -D"), KeyMap.key(console, Capability.key_down));
+        keyMap.bind(CMD_SEND_PREFIX, serverOptions.get(OPT_PREFIX));
+        keyMap.bind(CMD_SEND_PREFIX, serverOptions.get(OPT_PREFIX));
+        keyMap.bind(CMD_SPLIT_WINDOW, "\"");
+        keyMap.bind(CMD_SPLIT_WINDOW + " -h", "%");
+        keyMap.bind(CMD_SELECT_PANE + " -U", KeyMap.key(console, Capability.key_up));
+        keyMap.bind(CMD_SELECT_PANE + " -L", KeyMap.key(console, Capability.key_left));
+        keyMap.bind(CMD_SELECT_PANE + " -R", KeyMap.key(console, Capability.key_right));
+        keyMap.bind(CMD_SELECT_PANE + " -D", KeyMap.key(console, Capability.key_down));
     }
 
     public void run() throws IOException {
@@ -150,10 +150,12 @@ public class Tmux {
                 if (pfx != null && c == pfx.charAt(0)) {
                     // escape sequences
                     Object b = new BindingReader(console, UNMAPPED).readBinding(keyMap);
-                    if (b instanceof Command) {
-                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                        try (PrintStream ps = new PrintStream(baos)) {
-                            execute(ps, ((Command) b).command());
+                    if (b instanceof String) {
+                        ByteArrayOutputStream out = new ByteArrayOutputStream();
+                        ByteArrayOutputStream err = new ByteArrayOutputStream();
+                        try (PrintStream pout = new PrintStream(out);
+                             PrintStream perr = new PrintStream(err)) {
+                            execute(pout, perr, (String) b);
                         } catch (Exception e) {
                             // TODO: log
                         }
@@ -224,28 +226,28 @@ public class Tmux {
         display.clear();
     }
 
-    public void execute(PrintStream err, String command) throws Exception {
+    public void execute(PrintStream out, PrintStream err, String command) throws Exception {
         ParsedLine line = new DefaultParser().parse(command.trim(), 0);
-        execute(err, line.words());
+        execute(out, err, line.words());
     }
 
-    public synchronized void execute(PrintStream err, List<String> command) throws Exception {
+    public synchronized void execute(PrintStream out, PrintStream err, List<String> command) throws Exception {
         String name = command.get(0);
         List<String> args = command.subList(1, command.size());
         switch (name) {
             case CMD_SEND_PREFIX:
-                sendPrefix(args);
+                sendPrefix(out, err, args);
                 break;
             case CMD_SPLIT_WINDOW:
-                splitWindow(args);
+                splitWindow(out, err, args);
                 break;
             case CMD_SELECT_PANE:
-                selectPane(args);
+                selectPane(out, err, args);
                 break;
         }
     }
 
-    protected void selectPane(List<String> args) throws IOException {
+    protected void selectPane(PrintStream out, PrintStream err, List<String> args) throws IOException {
         final String[] usage = {
                 "select-pane - ",
                 "Usage: select-pane [-UDLR] [-t target-pane]",
@@ -276,7 +278,7 @@ public class Tmux {
         }
     }
 
-    protected void sendPrefix(List<String> args) throws IOException {
+    protected void sendPrefix(PrintStream out, PrintStream err, List<String> args) throws IOException {
         final String[] usage = {
                 "send-prefix - ",
                 "Usage: send-prefix [-2] [-t target-pane]",
@@ -290,7 +292,7 @@ public class Tmux {
         active.writeInput(serverOptions.get(OPT_PREFIX));
     }
 
-    protected void splitWindow(List<String> args) throws IOException {
+    protected void splitWindow(PrintStream out, PrintStream err, List<String> args) throws IOException {
         final String[] usage = {
                 "split-window - ",
                 "Usage: split-window [-bdhvP] [-c start-directory] [-F format] [-p percentage|-l size] [-t target-pane] [command]",
@@ -617,18 +619,6 @@ public class Tmux {
             closer.accept(this);
         }
 
-    }
-
-    private static class Command {
-        private final String command;
-
-        public Command(String command) {
-            this.command = command;
-        }
-
-        public String command() {
-            return command;
-        }
     }
 
 }

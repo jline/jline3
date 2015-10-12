@@ -76,7 +76,7 @@ public class Commands {
         } else {
             Object instance = getter.get();
             if (instance != null) {
-                ((Tmux) instance).execute(err, Arrays.asList(argv));
+                ((Tmux) instance).execute(out, err, Arrays.asList(argv));
             } else {
                 err.println("tmux: no instance running");
             }
