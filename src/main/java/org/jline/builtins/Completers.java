@@ -164,7 +164,10 @@ public class Completers {
                         List<CompletionData> completions = comp.get(command);
                         if (completions != null) {
                             for (CompletionData completion : completions) {
-                                if (completion.options == null) {
+                                if (completion.description != null
+                                        && completion.options == null
+                                        && completion.argument == null
+                                        && completion.condition == null) {
                                     desc = completion.description;
                                 }
                             }
