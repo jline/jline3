@@ -13,6 +13,7 @@ import java.io.PrintStream;
 import java.net.URI;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -23,6 +24,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.jline.Console;
 import org.jline.ConsoleReader;
@@ -42,20 +44,44 @@ import org.jline.utils.Ansi;
 public class Commands {
 
     public void tmux(Console console, PrintStream out, PrintStream err,
+                     Supplier<Object> getter,
+                     Consumer<Object> setter,
                      Consumer<Console> runner,
                      String[] argv) throws Exception {
         final String[] usage = {
                 "tmux -  terminal multiplexer",
-                "Usage: tmux",
+                "Usage: tmux [command]",
                 "  -? --help                    Show help",
         };
-        Options opt = Options.compile(usage).parse(argv);
-        if (opt.isSet("help")) {
-            opt.usage(err);
+        // Simplified parsing
+        if (argv.length == 1 && ("--help".equals(argv[0]) || "-?".equals(argv[0]))) {
+            for (String s : usage) {
+                err.println(s);
+            }
             return;
         }
-        Tmux tmux = new Tmux(console, err, runner);
-        tmux.run();
+        // Tmux with no args
+        if (argv.length == 0) {
+            Object instance = getter.get();
+            if (instance != null) {
+                err.println("tmux: can't run tmux inside itself");
+            } else {
+                Tmux tmux = new Tmux(console, err, runner);
+                setter.accept(tmux);
+                try {
+                    tmux.run();
+                } finally {
+                    setter.accept(null);
+                }
+            }
+        } else {
+            Object instance = getter.get();
+            if (instance != null) {
+                ((Tmux) instance).execute(err, Arrays.asList(argv));
+            } else {
+                err.println("tmux: no instance running");
+            }
+        }
     }
 
     public void nano(Console console, PrintStream out, PrintStream err,

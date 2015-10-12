@@ -8,6 +8,7 @@
  */
 package org.jline.builtins;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -151,7 +152,12 @@ public class Tmux {
                     // escape sequences
                     Binding b = new BindingReader(console, UNMAPPED).readBinding(keyMap);
                     if (b instanceof Command) {
-                        execute(((Command) b).command());
+                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                        try (PrintStream ps = new PrintStream(baos)) {
+                            execute(ps, ((Command) b).command());
+                        } catch (Exception e) {
+                            // TODO: log
+                        }
                     }
                 } else {
                     if (Character.isBmpCodePoint(c)) {
@@ -219,24 +225,24 @@ public class Tmux {
         display.clear();
     }
 
-    public synchronized void execute(String command) {
-        try {
-            ParsedLine line = new DefaultParser().parse(command.trim(), 0);
-            String name = line.words().get(0);
-            List<String> args = line.words().subList(0, line.words().size());
-            switch (name) {
-                case CMD_SEND_PREFIX:
-                    sendPrefix(args);
-                    break;
-                case CMD_SPLIT_WINDOW:
-                    splitWindow(args);
-                    break;
-                case CMD_SELECT_PANE:
-                    selectPane(args);
-                    break;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+    public void execute(PrintStream err, String command) throws Exception {
+        ParsedLine line = new DefaultParser().parse(command.trim(), 0);
+        execute(err, line.words());
+    }
+
+    public synchronized void execute(PrintStream err, List<String> command) throws Exception {
+        String name = command.get(0);
+        List<String> args = command.subList(1, command.size());
+        switch (name) {
+            case CMD_SEND_PREFIX:
+                sendPrefix(args);
+                break;
+            case CMD_SPLIT_WINDOW:
+                splitWindow(args);
+                break;
+            case CMD_SELECT_PANE:
+                selectPane(args);
+                break;
         }
     }
 
