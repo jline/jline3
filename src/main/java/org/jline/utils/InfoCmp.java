@@ -521,21 +521,14 @@ public final class InfoCmp {
         }
     }
 
+    public static void setDefaultInfoCmp(String terminal, String caps) {
+        CAPS.putIfAbsent(terminal, caps);
+    }
+
     public static String getInfoCmp(
             String terminal
     ) throws IOException, InterruptedException {
         String caps = CAPS.get(terminal);
-        if (caps == null) {
-            if ("ansi".equals(terminal)) {
-                caps = ANSI_CAPS;
-            } else if ("xterm".equals(terminal)) {
-                caps = XTERM_CAPS;
-            } else if ("xterm-256color".equals(terminal)) {
-                caps = XTERM_256COLOR_CAPS;
-            } else if ("windows".equals(terminal)) {
-                caps = WINDOWS_CAPS;
-            }
-        }
         if (caps == null) {
             Process p = new ProcessBuilder(OSUtils.INFOCMP_COMMAND, terminal).start();
             caps = ExecHelper.waitAndCapture(p);
@@ -736,4 +729,12 @@ public final class InfoCmp {
             "\tsmir=\\E[4h, smkx=\\E[?1h\\E=, smm=\\E[?1034h, smso=\\E[7m,\n" +
             "\tsmul=\\E[4m, tbc=\\E[3g, u6=\\E[%i%d;%dR, u7=\\E[6n,\n" +
             "\tu8=\\E[?1;2c, u9=\\E[c, vpa=\\E[%i%p1%dd,";
+
+    static {
+        setDefaultInfoCmp("ansi", ANSI_CAPS);
+        setDefaultInfoCmp("xterm", XTERM_CAPS);
+        setDefaultInfoCmp("xterm-256color", XTERM_256COLOR_CAPS);
+        setDefaultInfoCmp("windows", WINDOWS_CAPS);
+    }
+
 }
