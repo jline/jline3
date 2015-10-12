@@ -146,6 +146,7 @@ public abstract class AbstractDisciplinedConsole extends AbstractConsole {
         }
         if (attributes.getLocalFlag(LocalFlag.ECHO)) {
             processOutputChar(c);
+            doFlush();
         }
         filterInOut.write(c);
         filterInOut.flush();
