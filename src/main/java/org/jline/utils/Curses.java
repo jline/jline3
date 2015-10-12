@@ -322,6 +322,16 @@ public final class Curses {
                             throw new UnsupportedOperationException();
                     }
                     break;
+                case '$':
+                    if (str.charAt(index) == '<') {
+                        // We don't honour delays, just skip
+                        while (str.charAt(index++) != '>');
+                    } else {
+                        if (exec) {
+                            out.write(ch);
+                        }
+                    }
+                    break;
                 default:
                     if (exec) {
                         out.write(ch);
