@@ -11,7 +11,7 @@ package org.jline.keymap;
 /**
  * A reference to a {@link Widget}.
  */
-public class Reference implements Binding {
+public class Reference {
 
     private final String name;
 

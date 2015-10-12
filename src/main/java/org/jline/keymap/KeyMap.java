@@ -26,12 +26,12 @@ import org.jline.utils.InfoCmp.Capability;
  * @author <a href="mailto:gnodet@gmail.com">Guillaume Nodet</a>
  * @since 2.6
  */
-public class KeyMap implements Binding {
+public class KeyMap {
 
     public static final int KEYMAP_LENGTH = 128;
 
-    private Binding[] mapping = new Binding[KEYMAP_LENGTH];
-    private Binding anotherKey = null;
+    private Object[] mapping = new Object[KEYMAP_LENGTH];
+    private Object anotherKey = null;
 
     public static String display(String key) {
         StringBuilder sb = new StringBuilder();
@@ -270,13 +270,13 @@ public class KeyMap implements Binding {
         return len1 - len2;
     };
 
-    public Map<String, Binding> getBoundKeys() {
-        Map<String, Binding> bound = new TreeMap<>(KEYSEQ_COMPARATOR);
+    public Map<String, Object> getBoundKeys() {
+        Map<String, Object> bound = new TreeMap<>(KEYSEQ_COMPARATOR);
         doGetBoundKeys(this, "", bound);
         return bound;
     }
 
-    private static void doGetBoundKeys(KeyMap keyMap, String prefix, Map<String, Binding> bound) {
+    private static void doGetBoundKeys(KeyMap keyMap, String prefix, Map<String, Object> bound) {
         if (keyMap.anotherKey != null) {
             bound.put(prefix, keyMap.anotherKey);
         }
@@ -291,7 +291,7 @@ public class KeyMap implements Binding {
         }
     }
 
-    public Binding getBound(CharSequence keySeq, int[] remaining) {
+    public Object getBound(CharSequence keySeq, int[] remaining) {
         remaining[0] = -1;
         if (keySeq != null && keySeq.length() > 0) {
             char c = keySeq.charAt(0);
@@ -315,31 +315,31 @@ public class KeyMap implements Binding {
         }
     }
 
-    public Binding getBound(CharSequence keySeq) {
+    public Object getBound(CharSequence keySeq) {
         int[] remaining = new int[1];
-        Binding res = getBound(keySeq, remaining);
+        Object res = getBound(keySeq, remaining);
         return remaining[0] <= 0 ? res : null;
     }
 
-    public void bindIfNotBound(Binding function, CharSequence keySeq) {
+    public void bindIfNotBound(Object function, CharSequence keySeq) {
         if (function != null && keySeq != null) {
             bind(this, keySeq, function, true);
         }
     }
 
-    public void bind(Binding function, CharSequence... keySeqs) {
+    public void bind(Object function, CharSequence... keySeqs) {
         for (CharSequence keySeq : keySeqs) {
             bind(function, keySeq);
         }
     }
 
-    public void bind(Binding function, Iterable<? extends CharSequence> keySeqs) {
+    public void bind(Object function, Iterable<? extends CharSequence> keySeqs) {
         for (CharSequence keySeq : keySeqs) {
             bind(function, keySeq);
         }
     }
 
-    public void bind(Binding function, CharSequence keySeq) {
+    public void bind(Object function, CharSequence keySeq) {
         if (keySeq != null) {
             if (function == null) {
                 unbind(keySeq);
@@ -361,7 +361,7 @@ public class KeyMap implements Binding {
         }
     }
 
-    private static Binding unbind(KeyMap map, CharSequence keySeq) {
+    private static Object unbind(KeyMap map, CharSequence keySeq) {
         KeyMap prev = null;
         if (keySeq != null && keySeq.length() > 0) {
             for (int i = 0; i < keySeq.length() - 1; i++) {
@@ -381,11 +381,11 @@ public class KeyMap implements Binding {
             }
             if (map.mapping[c] instanceof KeyMap) {
                 KeyMap sub = (KeyMap) map.mapping[c];
-                Binding res = sub.anotherKey;
+                Object res = sub.anotherKey;
                 sub.anotherKey = null;
                 return res;
             } else {
-                Binding res = map.mapping[c];
+                Object res = map.mapping[c];
                 map.mapping[c] = null;
                 int nb = 0;
                 for (int i = 0; i < map.mapping.length; i++) {
@@ -402,7 +402,7 @@ public class KeyMap implements Binding {
         return null;
     }
 
-    private static void bind(KeyMap map, CharSequence keySeq, Binding function, boolean onlyIfNotBound) {
+    private static void bind(KeyMap map, CharSequence keySeq, Object function, boolean onlyIfNotBound) {
         if (keySeq != null && keySeq.length() > 0) {
             for (int i = 0; i < keySeq.length(); i++) {
                 char c = keySeq.charAt(i);

@@ -8,7 +8,7 @@
  */
 package org.jline.keymap;
 
-public class Macro implements Binding {
+public class Macro {
 
     private final String sequence;
 

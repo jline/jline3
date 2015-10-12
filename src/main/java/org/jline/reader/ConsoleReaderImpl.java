@@ -48,7 +48,6 @@ import org.jline.History;
 import org.jline.console.Attributes;
 import org.jline.console.Attributes.ControlChar;
 import org.jline.console.Size;
-import org.jline.keymap.Binding;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
 import org.jline.keymap.Macro;
@@ -495,7 +494,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 if (isInViCmdMode() && regionActive != RegionType.NONE) {
                     local = keyMaps.get(VISUAL);
                 }
-                Binding o = readBinding(getKeys(), local);
+                Object o = readBinding(getKeys(), local);
                 if (o == null) {
                     return null;
                 }
@@ -639,12 +638,12 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * @return the decoded binding or <code>null</code> if the end of
      *         stream has been reached
      */
-    public Binding readBinding(KeyMap keys) {
+    public Object readBinding(KeyMap keys) {
         return readBinding(keys, null);
     }
 
-    public Binding readBinding(KeyMap keys, KeyMap local) {
-        Binding o = bindingReader.readBinding(keys, local);
+    public Object readBinding(KeyMap keys, KeyMap local) {
+        Object o = bindingReader.readBinding(keys, local);
         /*
          * The kill ring keeps record of whether or not the
          * previous command was a yank or a kill. We reset
@@ -800,7 +799,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     @SuppressWarnings("unchecked")
-    protected Widget getWidget(Binding binding) {
+    protected Widget getWidget(Object binding) {
         Widget w = null;
         if (binding instanceof Widget) {
             w = (Widget) binding;
@@ -1758,7 +1757,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         int ch = readCharacter();
         KeyMap km = keyMaps.get(MAIN);
         if (km != null) {
-            Binding b = km.getBound(new String(Character.toChars(ch)));
+            Object b = km.getBound(new String(Character.toChars(ch)));
             if (b instanceof Reference) {
                 String func = ((Reference) b).name();
                 if (SEND_BREAK.equals(func)) {
@@ -1877,7 +1876,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         while (true) {
             post = () -> searchPrompt + searchBuffer.toString() + "_";
             redisplay();
-            Binding b = bindingReader.readBinding(keyMap);
+            Object b = bindingReader.readBinding(keyMap);
             if (b instanceof Reference) {
                 String func = ((Reference) b).name();
                 switch (func) {
@@ -2157,7 +2156,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected boolean viDelete() {
         int cursorStart = buf.cursor();
-        Binding o = readBinding(getKeys());
+        Object o = readBinding(getKeys());
         if (o instanceof Reference) {
             // TODO: be smarter on how to get the vi range
             String op = viDeleteChangeYankToRemap(((Reference) o).name());
@@ -2185,7 +2184,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected boolean viYankTo() {
         int cursorStart = buf.cursor();
-        Binding o = readBinding(getKeys());
+        Object o = readBinding(getKeys());
         if (o instanceof Reference) {
             // TODO: be smarter on how to get the vi range
             String op = viDeleteChangeYankToRemap(((Reference) o).name());
@@ -2210,7 +2209,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected boolean viChange() {
         int cursorStart = buf.cursor();
-        Binding o = readBinding(getKeys());
+        Object o = readBinding(getKeys());
         if (o instanceof Reference) {
             // TODO: be smarter on how to get the vi range
             String op = viDeleteChangeYankToRemap(((Reference) o).name());
@@ -2316,7 +2315,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         try {
             while (true) {
-                Binding o = readBinding(getKeys(), terminators);
+                Object o = readBinding(getKeys(), terminators);
                 if (new Reference(SEND_BREAK).equals(o)) {
                     buf.setBuffer(originalBuffer);
                     return true;
@@ -3592,7 +3591,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             }
             if (completion.suffix() != null) {
                 redisplay();
-                Binding op = readBinding(getKeys());
+                Object op = readBinding(getKeys());
                 if (op != null) {
                     String chars = getString(REMOVE_SUFFIX_CHARS, DEFAULT_REMOVE_SUFFIX_CHARS);
                     String ref = op instanceof Reference ? ((Reference) op).name() : null;
@@ -3715,7 +3714,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     protected boolean nextBindingIsComplete() {
         redisplay();
         KeyMap keyMap = keyMaps.get(MENU);
-        Binding operation = readBinding(getKeys(), keyMap);
+        Object operation = readBinding(getKeys(), keyMap);
         if (operation instanceof Reference && MENU_COMPLETE.equals(((Reference) operation).name())) {
             return true;
         } else {
@@ -3885,7 +3884,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         // Loop
         console.puts(Capability.keypad_xmit);
         KeyMap keyMap = keyMaps.get(MENU);
-        Binding operation;
+        Object operation;
         while ((operation = readBinding(getKeys(), keyMap)) != null) {
             String ref = (operation instanceof Reference) ? ((Reference) operation).name() : "";
             switch (ref) {

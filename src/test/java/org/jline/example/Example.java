@@ -20,7 +20,6 @@ import org.jline.Console;
 import org.jline.ConsoleReader;
 import org.jline.JLine;
 import org.jline.JLine.ConsoleBuilder;
-import org.jline.keymap.Binding;
 import org.jline.keymap.KeyMap;
 import org.jline.keymap.Macro;
 import org.jline.keymap.Reference;
@@ -209,8 +208,8 @@ public class Example
                 else if ("bindkey".equals(pl.word())) {
                     if (pl.words().size() == 1) {
                         StringBuilder sb = new StringBuilder();
-                        Map<String, Binding> bound = ((ConsoleReaderImpl) reader).getKeys().getBoundKeys();
-                        for (Map.Entry<String, Binding> entry : bound.entrySet()) {
+                        Map<String, Object> bound = ((ConsoleReaderImpl) reader).getKeys().getBoundKeys();
+                        for (Map.Entry<String, Object> entry : bound.entrySet()) {
                             sb.append("\"");
                             entry.getKey().chars().forEachOrdered(c -> {
                                 if (c < 32) {

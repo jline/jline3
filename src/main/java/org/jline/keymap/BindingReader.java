@@ -23,15 +23,15 @@ public class BindingReader {
     protected final StringBuilder opBuffer = new StringBuilder();
     protected final Stack<Integer> pushBackChar = new Stack<>();
 
-    protected Binding unicode;
+    protected Object unicode;
     protected long ambiguousTimeout;
     protected String lastBinding;
 
-    public BindingReader(Console console, Binding unicode) {
+    public BindingReader(Console console, Object unicode) {
         this(console, unicode, DEFAULT_AMBIGUOUS_TIMEOUT);
     }
 
-    public BindingReader(Console console, Binding unicode, long ambiguousTimeout) {
+    public BindingReader(Console console, Object unicode, long ambiguousTimeout) {
         this.console = console;
         this.unicode = unicode;
         this.ambiguousTimeout = ambiguousTimeout;
@@ -48,17 +48,17 @@ public class BindingReader {
      * @return the decoded binding or <code>null</code> if the end of
      *         stream has been reached
      */
-    public Binding readBinding(KeyMap keys) {
+    public Object readBinding(KeyMap keys) {
         return readBinding(keys, null);
     }
 
-    public Binding readBinding(KeyMap keys, KeyMap local) {
+    public Object readBinding(KeyMap keys, KeyMap local) {
         return readBinding(keys, local, true);
     }
 
-    public Binding readBinding(KeyMap keys, KeyMap local, boolean block) {
+    public Object readBinding(KeyMap keys, KeyMap local, boolean block) {
         lastBinding = null;
-        Binding o = null;
+        Object o = null;
         int[] remaining = new int[1];
         do {
             int c = readCharacter();

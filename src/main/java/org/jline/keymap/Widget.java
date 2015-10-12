@@ -10,10 +10,9 @@ package org.jline.keymap;
 
 /**
  *
- * @param <T>
  */
 @FunctionalInterface
-public interface Widget extends Binding {
+public interface Widget {
 
     boolean apply();
 

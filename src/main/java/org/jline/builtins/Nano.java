@@ -46,7 +46,6 @@ import org.jline.console.Attributes.ControlChar;
 import org.jline.console.Attributes.InputFlag;
 import org.jline.console.Attributes.LocalFlag;
 import org.jline.console.Size;
-import org.jline.keymap.Binding;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Display;
@@ -1936,7 +1935,7 @@ public class Nano {
         keys.bind(Operation.LEFT, key(console, Capability.key_left));
     }
 
-    enum Operation implements Binding {
+    enum Operation {
         DO_LOWER_CASE,
 
         QUIT,

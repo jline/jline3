@@ -31,7 +31,6 @@ import org.jline.Console.Signal;
 import org.jline.Console.SignalHandler;
 import org.jline.console.Attributes;
 import org.jline.console.Size;
-import org.jline.keymap.Binding;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Display;
@@ -731,7 +730,7 @@ public class Less {
         "-/0123456789?".chars().forEach(c -> map.bind(Operation.CHAR, Character.toString((char) c)));
     }
 
-    enum Operation implements Binding {
+    enum Operation {
 
         // General
         HELP,

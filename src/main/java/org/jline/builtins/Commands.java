@@ -34,7 +34,6 @@ import org.jline.builtins.Completers.CompletionData;
 import org.jline.builtins.Less.Source;
 import org.jline.builtins.Less.StdInSource;
 import org.jline.builtins.Less.URLSource;
-import org.jline.keymap.Binding;
 import org.jline.keymap.KeyMap;
 import org.jline.keymap.Macro;
 import org.jline.keymap.Reference;
@@ -417,7 +416,7 @@ public class Commands {
             }
             KeyMap map = new KeyMap();
             if (org != null) {
-                for (Map.Entry<String, Binding> bound : org.getBoundKeys().entrySet()) {
+                for (Map.Entry<String, Object> bound : org.getBoundKeys().entrySet()) {
                     map.bind(bound.getValue(), bound.getKey());
                 }
             }
@@ -503,7 +502,7 @@ public class Commands {
             boolean range = opt.isSet("R");
             boolean prefix = opt.isSet("p");
             Set<String> toRemove = new HashSet<>();
-            Map<String, Binding> bound = map.getBoundKeys();
+            Map<String, Object> bound = map.getBoundKeys();
             for (String arg : opt.args()) {
                 if (range) {
                     Collection<String> r = KeyMap.range(opt.args().get(0));
@@ -564,7 +563,7 @@ public class Commands {
                 return;
             }
             for (int i = 0; i < opt.args().size(); i += 2) {
-                Binding bout = opt.isSet("s")
+                Object bout = opt.isSet("s")
                         ? new Macro(KeyMap.translate(opt.args().get(i + 1)))
                         : new Reference(opt.args().get(i + 1));
                 if (range) {
@@ -619,13 +618,13 @@ public class Commands {
                 return;
             }
             if (opt.args().size() > 0 || !opt.isSet("e") && !opt.isSet("v")) {
-                Map<String, Binding> bound = map.getBoundKeys();
+                Map<String, Object> bound = map.getBoundKeys();
                 String seq = opt.args().size() > 0 ? KeyMap.translate(opt.args().get(0)) : null;
-                Map.Entry<String, Binding> begin = null;
+                Map.Entry<String, Object> begin = null;
                 String last = null;
-                Iterator<Entry<String, Binding>> iterator = bound.entrySet().iterator();
+                Iterator<Entry<String, Object>> iterator = bound.entrySet().iterator();
                 while (iterator.hasNext()) {
-                    Map.Entry<String, Binding> entry = iterator.next();
+                    Map.Entry<String, Object> entry = iterator.next();
                     String key = entry.getKey();
                     if (seq == null
                             || prefix && key.startsWith(seq) && !key.equals(seq)

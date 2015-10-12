@@ -26,7 +26,6 @@ import org.jline.JLine;
 import org.jline.console.AbstractDisciplinedConsole;
 import org.jline.console.Attributes;
 import org.jline.console.Size;
-import org.jline.keymap.Binding;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.DefaultParser;
@@ -66,7 +65,7 @@ public class Tmux {
     private final Map<String, String> serverOptions = new HashMap<>();
     private final KeyMap keyMap = new KeyMap();
 
-    private static final Binding UNMAPPED = new Binding() { };
+    private static final Object UNMAPPED = new Object();
 
 
     public Tmux(Console console, PrintStream err, Consumer<Console> runner) throws IOException {
@@ -150,7 +149,7 @@ public class Tmux {
                 String pfx = serverOptions.get(OPT_PREFIX);
                 if (pfx != null && c == pfx.charAt(0)) {
                     // escape sequences
-                    Binding b = new BindingReader(console, UNMAPPED).readBinding(keyMap);
+                    Object b = new BindingReader(console, UNMAPPED).readBinding(keyMap);
                     if (b instanceof Command) {
                         ByteArrayOutputStream baos = new ByteArrayOutputStream();
                         try (PrintStream ps = new PrintStream(baos)) {
@@ -620,7 +619,7 @@ public class Tmux {
 
     }
 
-    private static class Command implements Binding {
+    private static class Command {
         private final String command;
 
         public Command(String command) {
