@@ -12,7 +12,7 @@ import java.io.InputStream;
 import java.util.Map;
 
 import org.jline.keymap.KeyMap;
-import org.jline.keymap.Widget;
+import org.jline.reader.Widget;
 import org.jline.reader.Buffer;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.ParsedLine;

@@ -23,6 +23,7 @@ import org.jline.Console;
 import org.jline.reader.ConsoleReaderImpl;
 import org.jline.reader.DumbConsole;
 import org.jline.reader.ReaderTestSupport.EofPipedInputStream;
+import org.jline.reader.Reference;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

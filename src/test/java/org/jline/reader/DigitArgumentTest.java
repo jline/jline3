@@ -8,7 +8,6 @@
  */
 package org.jline.reader;
 
-import org.jline.keymap.Reference;
 import org.junit.Test;
 
 import static org.jline.keymap.KeyMap.alt;

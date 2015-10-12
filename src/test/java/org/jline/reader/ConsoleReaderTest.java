@@ -15,8 +15,6 @@ import org.jline.ConsoleReader;
 import org.jline.ConsoleReader.Option;
 import org.jline.History;
 import org.jline.keymap.KeyMap;
-import org.jline.keymap.Reference;
-import org.jline.keymap.Widget;
 import org.jline.reader.history.MemoryHistory;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp.Capability;

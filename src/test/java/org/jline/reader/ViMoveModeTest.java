@@ -9,7 +9,6 @@
 package org.jline.reader;
 
 import org.jline.History;
-import org.jline.keymap.Reference;
 import org.junit.Before;
 import org.junit.Test;
 

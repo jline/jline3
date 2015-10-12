@@ -6,7 +6,7 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.keymap;
+package org.jline.reader;
 
 public class Macro {
 

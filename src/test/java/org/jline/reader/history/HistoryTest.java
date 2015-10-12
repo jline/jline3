@@ -9,7 +9,7 @@
 package org.jline.reader.history;
 
 import org.jline.keymap.KeyMap;
-import org.jline.keymap.Reference;
+import org.jline.reader.Reference;
 import org.jline.reader.ReaderTestSupport;
 import org.junit.Test;
 

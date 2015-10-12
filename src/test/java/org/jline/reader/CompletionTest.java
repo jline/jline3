@@ -12,7 +12,6 @@ import java.io.IOException;
 
 import org.jline.Completer;
 import org.jline.ConsoleReader.Option;
-import org.jline.keymap.Reference;
 import org.jline.reader.completer.AggregateCompleter;
 import org.jline.reader.completer.ArgumentCompleter;
 import org.jline.reader.completer.NullCompleter;

@@ -35,9 +35,9 @@ import org.jline.builtins.Less.Source;
 import org.jline.builtins.Less.StdInSource;
 import org.jline.builtins.Less.URLSource;
 import org.jline.keymap.KeyMap;
-import org.jline.keymap.Macro;
-import org.jline.keymap.Reference;
-import org.jline.keymap.Widget;
+import org.jline.reader.Macro;
+import org.jline.reader.Reference;
+import org.jline.reader.Widget;
 import org.jline.utils.Ansi;
 
 public class Commands {

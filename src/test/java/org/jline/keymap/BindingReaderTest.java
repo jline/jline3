@@ -18,6 +18,7 @@ import java.util.logging.Logger;
 import org.jline.Console;
 import org.jline.reader.DumbConsole;
 import org.jline.reader.ReaderTestSupport.EofPipedInputStream;
+import org.jline.reader.Reference;
 import org.junit.Before;
 import org.junit.Test;
 

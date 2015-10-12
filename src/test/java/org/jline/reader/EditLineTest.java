@@ -9,7 +9,6 @@
 package org.jline.reader;
 
 import org.jline.ConsoleReader;
-import org.jline.keymap.Reference;
 import org.junit.Test;
 
 import static org.jline.ConsoleReader.BACKWARD_KILL_LINE;
