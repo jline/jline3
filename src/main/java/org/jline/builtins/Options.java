@@ -65,12 +65,12 @@ public class Options {
 
     private final Map<String, Boolean> unmodifiableOptSet;
     private final Map<String, Object> unmodifiableOptArg;
-    private final Map<String, Boolean> optSet = new HashMap<String, Boolean>();
-    private final Map<String, Object> optArg = new HashMap<String, Object>();
+    private final Map<String, Boolean> optSet = new HashMap<>();
+    private final Map<String, Object> optArg = new HashMap<>();
 
-    private final Map<String, String> optName = new HashMap<String, String>();
-    private final Map<String, String> optAlias = new HashMap<String, String>();
-    private final List<Object> xargs = new ArrayList<Object>();
+    private final Map<String, String> optName = new HashMap<>();
+    private final Map<String, String> optAlias = new HashMap<>();
+    private final List<Object> xargs = new ArrayList<>();
     private List<String> args = null;
 
     private static final String UNKNOWN = "unknown";
@@ -138,7 +138,7 @@ public class Options {
         }
         
         if (arg instanceof String) { // default value
-            list = new ArrayList<Object>();
+            list = new ArrayList<>();
             if (!"".equals(arg))
                 list.add(arg);
         }
@@ -150,7 +150,7 @@ public class Options {
     }
 
     public List<String> getList(String name) {
-        ArrayList<String> list = new ArrayList<String>();
+        ArrayList<String> list = new ArrayList<>();
         for (Object o : getObjectList(name)) {
             try {
                 list.add((String) o);
@@ -167,7 +167,7 @@ public class Options {
         Object arg = optArg.get(name);
 
         if (arg instanceof String) { // default value
-            list = new ArrayList<Object>();
+            list = new ArrayList<>();
             optArg.put(name, list);
         }
         else {
@@ -202,7 +202,7 @@ public class Options {
 
     public List<String> args() {
         if (args == null) {
-            args = new ArrayList<String>();
+            args = new ArrayList<>();
             for (Object arg : xargs) {
                 args.add(arg == null ? "null" : arg.toString());
             }
@@ -246,14 +246,14 @@ public class Options {
             this.spec = spec;
         }
         else {
-            ArrayList<String> list = new ArrayList<String>();
+            ArrayList<String> list = new ArrayList<>();
             list.addAll(Arrays.asList(spec));
             list.addAll(Arrays.asList(gspec != null ? gspec : opt.gspec));
-            this.spec = list.toArray(new String[0]);
+            this.spec = list.toArray(new String[list.size()]);
         }
 
-        Map<String, Boolean> myOptSet = new HashMap<String, Boolean>();
-        Map<String, Object> myOptArg = new HashMap<String, Object>();
+        Map<String, Boolean> myOptSet = new HashMap<>();
+        Map<String, Object> myOptArg = new HashMap<>();
 
         parseSpec(myOptSet, myOptArg);
 
@@ -344,7 +344,7 @@ public class Options {
         return parse(argv, false);
     }
 
-    public Options parse(List<? extends Object> argv) {
+    public Options parse(List<?> argv) {
         return parse(argv, false);
     }
 
@@ -355,9 +355,9 @@ public class Options {
         return parse(Arrays.asList(argv), skipArg0);
     }
 
-    public Options parse(List<? extends Object> argv, boolean skipArg0) {
+    public Options parse(List<?> argv, boolean skipArg0) {
         reset();
-        List<Object> args = new ArrayList<Object>();
+        List<Object> args = new ArrayList<>();
         args.addAll(Arrays.asList(defArgs));
 
         for (Object arg : argv) {
@@ -397,7 +397,7 @@ public class Options {
                     int eq = arg.indexOf("=");
                     String value = (eq == -1) ? null : arg.substring(eq + 1);
                     String name = arg.substring(2, ((eq == -1) ? arg.length() : eq));
-                    List<String> names = new ArrayList<String>();
+                    List<String> names = new ArrayList<>();
 
                     if (optSet.containsKey(name)) {
                         names.add(name);

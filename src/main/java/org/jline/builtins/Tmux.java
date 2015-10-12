@@ -42,104 +42,6 @@ import org.jline.utils.InfoCmp.Capability;
  */
 public class Tmux {
 
-    public static class VirtualTerminal extends AbstractDisciplinedConsole {
-        private final ScreenTerminal terminal;
-        private final StringBuilder buffer = new StringBuilder();
-        private final Consumer<VirtualTerminal> closer;
-        private int left;
-        private int top;
-
-        public VirtualTerminal(String type, int left, int top, int columns, int rows, Runnable dirty, Consumer<VirtualTerminal> closer) throws IOException {
-            super(type, JLine.readerBuilder());
-            this.left = left;
-            this.top = top;
-            this.closer = closer;
-            this.terminal = new ScreenTerminal(columns, rows) {
-                @Override
-                protected void setDirty() {
-                    super.setDirty();
-                    dirty.run();
-                }
-            };
-            size.setColumns(columns);
-            size.setRows(rows);
-        }
-
-        public int getLeft() {
-            return left;
-        }
-
-        public int getTop() {
-            return top;
-        }
-
-        public void resize(int left, int top, int width, int height) {
-            this.left = left;
-            this.top = top;
-            size.setColumns(width);
-            size.setRows(height);
-            terminal.setSize(width, height);
-            raise(Signal.WINCH);
-        }
-
-        public void writeInput(int c) throws IOException {
-            filterInOut.write(c);
-        }
-
-        public void writeInput(String str) throws IOException {
-            filterInOut.write(str);
-        }
-
-        public void writeInput(char[] cbuf) throws IOException {
-            filterInOut.write(cbuf);
-        }
-
-        public void flushInput() throws IOException {
-            filterInOut.flush();
-        }
-
-        public void dump(int[] fullscreen, int ftop, int fleft, int fheight, int fwidth, int[] cursor) {
-            terminal.dump(fullscreen, ftop, fleft, fheight, fwidth, cursor);
-        }
-
-        @Override
-        protected void doWriteChar(int c) throws IOException {
-            buffer.append((char) c);
-        }
-
-        @Override
-        protected void doFlush() throws IOException {
-            terminal.write(buffer.toString());
-            filterInOut.write(terminal.read());
-            filterInOut.flush();
-            buffer.setLength(0);
-        }
-
-        @Override
-        protected void doClose() throws IOException {
-            doFlush();
-        }
-
-        @Override
-        public void close() throws IOException {
-            super.close();
-            closer.accept(this);
-        }
-
-    }
-
-    public static class Command implements Binding {
-        private final String command;
-
-        public Command(String command) {
-            this.command = command;
-        }
-
-        public String command() {
-            return command;
-        }
-    }
-
     public static final String OPT_PREFIX = "prefix";
 
     public static final String CMD_SEND_PREFIX = "send-prefix";
@@ -625,4 +527,103 @@ public class Tmux {
                     "\tsgr=\\E[0%?%p6%t;1%;%?%p1%t;3%;%?%p2%t;4%;%?%p3%t;7%;%?%p4%t;5%;m%?%p9%t\\016%e\\017%;,\n" +
                     "\tsgr0=\\E[m\\017, smacs=^N, smcup=\\E[?1049h, smir=\\E[4h,\n" +
                     "\tsmkx=\\E[?1h\\E=, smso=\\E[3m, smul=\\E[4m, tbc=\\E[3g,\n";
+
+    private static class VirtualTerminal extends AbstractDisciplinedConsole {
+        private final ScreenTerminal terminal;
+        private final StringBuilder buffer = new StringBuilder();
+        private final Consumer<VirtualTerminal> closer;
+        private int left;
+        private int top;
+
+        public VirtualTerminal(String type, int left, int top, int columns, int rows, Runnable dirty, Consumer<VirtualTerminal> closer) throws IOException {
+            super(type, JLine.readerBuilder());
+            this.left = left;
+            this.top = top;
+            this.closer = closer;
+            this.terminal = new ScreenTerminal(columns, rows) {
+                @Override
+                protected void setDirty() {
+                    super.setDirty();
+                    dirty.run();
+                }
+            };
+            size.setColumns(columns);
+            size.setRows(rows);
+        }
+
+        public int getLeft() {
+            return left;
+        }
+
+        public int getTop() {
+            return top;
+        }
+
+        public void resize(int left, int top, int width, int height) {
+            this.left = left;
+            this.top = top;
+            size.setColumns(width);
+            size.setRows(height);
+            terminal.setSize(width, height);
+            raise(Signal.WINCH);
+        }
+
+        public void writeInput(int c) throws IOException {
+            filterInOut.write(c);
+        }
+
+        public void writeInput(String str) throws IOException {
+            filterInOut.write(str);
+        }
+
+        public void writeInput(char[] cbuf) throws IOException {
+            filterInOut.write(cbuf);
+        }
+
+        public void flushInput() throws IOException {
+            filterInOut.flush();
+        }
+
+        public void dump(int[] fullscreen, int ftop, int fleft, int fheight, int fwidth, int[] cursor) {
+            terminal.dump(fullscreen, ftop, fleft, fheight, fwidth, cursor);
+        }
+
+        @Override
+        protected void doWriteChar(int c) throws IOException {
+            buffer.append((char) c);
+        }
+
+        @Override
+        protected void doFlush() throws IOException {
+            terminal.write(buffer.toString());
+            filterInOut.write(terminal.read());
+            filterInOut.flush();
+            buffer.setLength(0);
+        }
+
+        @Override
+        protected void doClose() throws IOException {
+            doFlush();
+        }
+
+        @Override
+        public void close() throws IOException {
+            super.close();
+            closer.accept(this);
+        }
+
+    }
+
+    private static class Command implements Binding {
+        private final String command;
+
+        public Command(String command) {
+            this.command = command;
+        }
+
+        public String command() {
+            return command;
+        }
+    }
+
 }

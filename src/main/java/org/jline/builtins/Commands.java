@@ -45,7 +45,7 @@ public class Commands {
                      Consumer<Console> runner,
                      String[] argv) throws Exception {
         final String[] usage = {
-                "tmux - terminal multiplexer",
+                "tmux -  terminal multiplexer",
                 "Usage: tmux",
                 "  -? --help                    Show help",
         };
@@ -62,7 +62,7 @@ public class Commands {
                      URI currentDir,
                      String[] argv) throws Exception {
         final String[] usage = {
-                "nano - edit a file",
+                "nano -  edit files",
                 "Usage: nano [FILES]",
                 "  -? --help                    Show help",
         };
