@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.jline.Console;
@@ -39,6 +40,23 @@ import org.jline.keymap.Widget;
 import org.jline.utils.Ansi;
 
 public class Commands {
+
+    public void tmux(Console console, PrintStream out, PrintStream err,
+                     Consumer<Console> runner,
+                     String[] argv) throws Exception {
+        final String[] usage = {
+                "tmux - terminal multiplexer",
+                "Usage: tmux",
+                "  -? --help                    Show help",
+        };
+        Options opt = Options.compile(usage).parse(argv);
+        if (opt.isSet("help")) {
+            opt.usage(err);
+            return;
+        }
+        Tmux tmux = new Tmux(console, err, runner);
+        tmux.run();
+    }
 
     public void nano(Console console, PrintStream out, PrintStream err,
                      URI currentDir,
