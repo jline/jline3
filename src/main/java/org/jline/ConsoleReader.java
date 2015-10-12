@@ -272,6 +272,12 @@ public interface ConsoleReader {
         }
     }
 
+    enum RegionType {
+        NONE,
+        CHAR,
+        LINE
+    }
+
     /**
      * Read the next line and return the contents of the buffer.
      *
@@ -365,5 +371,9 @@ public interface ConsoleReader {
     ParsedLine getParsedLine();
 
     String getSearchTerm();
+
+    RegionType getRegionActive();
+
+    int getRegionMark();
 
 }

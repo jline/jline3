@@ -9,8 +9,8 @@
 package org.jline.reader;
 
 import org.jline.ConsoleReader;
+import org.jline.ConsoleReader.RegionType;
 import org.jline.Highlighter;
-import org.jline.reader.ConsoleReaderImpl.RegionType;
 import org.jline.utils.Ansi;
 import org.jline.utils.Ansi.Attribute;
 import org.jline.utils.WCWidth;
@@ -23,33 +23,31 @@ public class DefaultHighlighter implements Highlighter {
         int underlineEnd = -1;
         int negativeStart = -1;
         int negativeEnd = -1;
-        if (reader instanceof ConsoleReaderImpl) {
-            ConsoleReaderImpl r = (ConsoleReaderImpl) reader;
-            StringBuffer search = r.searchTerm;
-            if (search != null && search.length() > 0) {
-                underlineStart = buffer.indexOf(search.toString());
-                if (underlineStart >= 0) {
-                    underlineEnd = underlineStart + search.length() - 1;
-                }
+        String search = reader.getSearchTerm();
+        if (search != null && search.length() > 0) {
+            underlineStart = buffer.indexOf(search);
+            if (underlineStart >= 0) {
+                underlineEnd = underlineStart + search.length() - 1;
             }
-            if (r.regionActive != RegionType.NONE) {
-                negativeStart = r.regionMark;
-                negativeEnd = r.buf.cursor();
-                if (negativeStart > negativeEnd) {
-                    int x = negativeEnd;
-                    negativeEnd = negativeStart;
-                    negativeStart = x;
+        }
+        if (reader.getRegionActive() != RegionType.NONE) {
+            negativeStart = reader.getRegionMark();
+            negativeEnd = reader.getBuffer().cursor();
+            if (negativeStart > negativeEnd) {
+                int x = negativeEnd;
+                negativeEnd = negativeStart;
+                negativeStart = x;
+            }
+            if (reader.getRegionActive() == RegionType.LINE) {
+                while (negativeStart > 0 && reader.getBuffer().atChar(negativeStart - 1) != '\n') {
+                    negativeStart--;
                 }
-                if (r.regionActive == RegionType.LINE) {
-                    while (negativeStart > 0 && r.buf.atChar(negativeStart - 1) != '\n') {
-                        negativeStart--;
-                    }
-                    while (negativeEnd < r.buf.length() - 1 && r.buf.atChar(negativeEnd + 1) != '\n') {
-                        negativeEnd++;
-                    }
+                while (negativeEnd < reader.getBuffer().length() - 1 && reader.getBuffer().atChar(negativeEnd + 1) != '\n') {
+                    negativeEnd++;
                 }
             }
         }
+
         Ansi ansi = new Ansi();
         for (int i = 0; i < buffer.length(); i++) {
             if (i == underlineStart) {

@@ -129,12 +129,6 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         VISIBLE
     }
 
-    protected enum RegionType {
-        NONE,
-        CHAR,
-        LINE
-    }
-
     //
     // Constructor variables
     //
@@ -670,6 +664,16 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     public String getSearchTerm() {
         return searchTerm != null ? searchTerm.toString() : null;
+    }
+
+    @Override
+    public RegionType getRegionActive() {
+        return regionActive;
+    }
+
+    @Override
+    public int getRegionMark() {
+        return regionMark;
     }
 
     //
