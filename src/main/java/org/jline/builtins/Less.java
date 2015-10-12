@@ -6,7 +6,7 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.editor;
+package org.jline.builtins;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -51,6 +52,27 @@ public class Less {
         String getName();
 
         InputStream read() throws IOException;
+
+    }
+
+    public static class URLSource implements Source {
+        final URL url;
+        final String name;
+
+        public URLSource(URL url, String name) {
+            this.url = url;
+            this.name = name;
+        }
+
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public InputStream read() throws IOException {
+            return url.openStream();
+        }
 
     }
 
@@ -417,9 +439,6 @@ public class Less {
                 // Use main buffer
                 console.puts(Capability.exit_ca_mode);
                 console.puts(Capability.keypad_local);
-                console.writer().flush();
-                // Clear line
-                console.writer().println();
                 console.writer().flush();
             }
         } finally {

@@ -6,7 +6,7 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.editor;
+package org.jline.builtins;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
