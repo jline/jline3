@@ -12,12 +12,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.io.PipedReader;
-import java.io.PipedWriter;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.Writer;
-import java.nio.charset.Charset;
 
 import org.jline.JLine.ConsoleReaderBuilder;
 import org.jline.console.Attributes.ControlChar;
@@ -31,19 +30,47 @@ import static org.jline.utils.Preconditions.checkNotNull;
 
 public abstract class AbstractDisciplinedConsole extends AbstractConsole {
 
-    protected final PipedReader filterIn;
-    protected final PipedWriter filterInOut;
+    protected final OutputStream output;
+
+    protected final InputStream filterIn;
+    protected final OutputStream filterInOut;
+    protected final Writer filterInOutWriter;
     protected final NonBlockingReader reader;
     protected final PrintWriter writer;
     protected final Attributes attributes;
     protected final Size size;
 
-    public AbstractDisciplinedConsole(String type, ConsoleReaderBuilder consoleReaderBuilder) throws IOException {
+    public AbstractDisciplinedConsole(String type, ConsoleReaderBuilder consoleReaderBuilder, String encoding) throws IOException {
         super(type, consoleReaderBuilder);
-        this.filterIn = new PipedReader();
-        this.filterInOut = new PipedWriter(filterIn);
-        this.reader = new NonBlockingReader(filterIn);
-        this.writer = new PrintWriter(new FilteringWriter());
+        PipedInputStream input = new PipedInputStream() {
+            @Override
+            public void close() throws IOException {
+                super.close();
+            }
+        };
+        // This is a hack to fix a problem in gogo where closure closes
+        // streams for commands if they are PipedInputStreams.
+        // So we need to get around and make sure it's not an instance of
+        // that class.
+        this.filterIn = new InputStream() {
+            @Override
+            public int read() throws IOException {
+                return input.read();
+            }
+            @Override
+            public void close() throws IOException {
+                input.close();
+            }
+            @Override
+            public int available() throws IOException {
+                return input.available();
+            }
+        };
+        this.filterInOut = new PipedOutputStream(input);
+        this.filterInOutWriter = new OutputStreamWriter(filterInOut, encoding);
+        this.reader = new NonBlockingReader(new InputStreamReader(filterIn, encoding));
+        this.output = new FilteringOutputStream();
+        this.writer = new PrintWriter(new OutputStreamWriter(output, encoding));
         this.attributes = new Attributes();
         this.size = new Size(160, 50);
         parseInfoCmp();
@@ -59,30 +86,12 @@ public abstract class AbstractDisciplinedConsole extends AbstractConsole {
 
     @Override
     public InputStream input() {
-        return new InputStream() {
-            @Override
-            public int read() throws IOException {
-                return reader.read();
-            }
-            public int read(byte b[], int off, int len) throws IOException {
-                int c = read();
-                if (c >= 0) {
-                    b[off] = (byte) c;
-                    return 1;
-                }
-                return -1;
-            }
-        };
+        return filterIn;
     }
 
     @Override
     public OutputStream output() {
-        return new OutputStream() {
-            @Override
-            public void write(int b) throws IOException {
-                writer.write(b);
-            }
-        };
+        return output;
     }
 
     public Attributes getAttributes() {
@@ -119,7 +128,7 @@ public abstract class AbstractDisciplinedConsole extends AbstractConsole {
         super.raise(signal);
     }
 
-    protected void processInputChar(int c) throws IOException {
+    protected void processInputByte(int c) throws IOException {
         if (attributes.getLocalFlag(LocalFlag.ISIG)) {
             if (c == attributes.getControlChar(ControlChar.VINTR)) {
                 raise(Signal.INT);
@@ -145,27 +154,27 @@ public abstract class AbstractDisciplinedConsole extends AbstractConsole {
             c = '\r';
         }
         if (attributes.getLocalFlag(LocalFlag.ECHO)) {
-            processOutputChar(c);
+            processOutputByte(c);
             doFlush();
         }
         filterInOut.write(c);
         filterInOut.flush();
     }
 
-    protected void processOutputChar(int c) throws IOException {
+    protected void processOutputByte(int c) throws IOException {
         if (attributes.getOutputFlag(OutputFlag.OPOST)) {
             if (c == '\n') {
                 if (attributes.getOutputFlag(OutputFlag.ONLCR)) {
-                    doWriteChar('\r');
-                    doWriteChar('\n');
+                    doWriteByte('\r');
+                    doWriteByte('\n');
                     return;
                 }
             }
         }
-        doWriteChar(c);
+        doWriteByte(c);
     }
 
-    protected abstract void doWriteChar(int c) throws IOException;
+    protected abstract void doWriteByte(int c) throws IOException;
 
     protected abstract void doFlush() throws IOException;
 
@@ -176,14 +185,13 @@ public abstract class AbstractDisciplinedConsole extends AbstractConsole {
         filterInOut.close();
         reader.close();
         writer.close();
+        output.close();
     }
 
-    private class FilteringWriter extends Writer {
+    private class FilteringOutputStream extends OutputStream {
         @Override
-        public void write(char[] cbuf, int off, int len) throws IOException {
-            for (int i = 0; i < len; i++) {
-                processOutputChar(cbuf[off + i]);
-            }
+        public void write(int b) throws IOException {
+            processOutputByte(b);
         }
 
         @Override

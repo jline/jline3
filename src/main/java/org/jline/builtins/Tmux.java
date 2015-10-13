@@ -11,6 +11,7 @@ package org.jline.builtins;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -549,7 +550,7 @@ public class Tmux {
         private int top;
 
         public VirtualTerminal(String type, int left, int top, int columns, int rows, Runnable dirty, Consumer<VirtualTerminal> closer) throws IOException {
-            super(type, JLine.readerBuilder());
+            super(type, JLine.readerBuilder(), Charset.defaultCharset().name());
             this.left = left;
             this.top = top;
             this.closer = closer;
@@ -582,19 +583,19 @@ public class Tmux {
         }
 
         public void writeInput(int c) throws IOException {
-            filterInOut.write(c);
+            filterInOutWriter.write(c);
         }
 
         public void writeInput(String str) throws IOException {
-            filterInOut.write(str);
+            filterInOutWriter.write(str);
         }
 
         public void writeInput(char[] cbuf) throws IOException {
-            filterInOut.write(cbuf);
+            filterInOutWriter.write(cbuf);
         }
 
         public void flushInput() throws IOException {
-            filterInOut.flush();
+            filterInOutWriter.flush();
         }
 
         public void dump(int[] fullscreen, int ftop, int fleft, int fheight, int fwidth, int[] cursor) {
@@ -602,15 +603,15 @@ public class Tmux {
         }
 
         @Override
-        protected void doWriteChar(int c) throws IOException {
+        protected void doWriteByte(int c) throws IOException {
             buffer.append((char) c);
         }
 
         @Override
         protected void doFlush() throws IOException {
             terminal.write(buffer.toString());
-            filterInOut.write(terminal.read());
-            filterInOut.flush();
+            filterInOutWriter.write(terminal.read());
+            filterInOutWriter.flush();
             buffer.setLength(0);
         }
 

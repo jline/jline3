@@ -43,6 +43,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.jline.utils.WCWidth;
+
 /**
  * Screen terminal implementation.
  * This class is copied from Apache Karaf WebConsole Gogo plugin
@@ -108,10 +110,6 @@ public class ScreenTerminal {
 
     private List<Integer> tab_stops;
 
-    private int utf8_char;
-    private int utf8_units_count;
-    private int utf8_units_received;
-
     private AtomicBoolean dirty = new AtomicBoolean(true);
 
     public ScreenTerminal() {
@@ -135,10 +133,6 @@ public class ScreenTerminal {
         //	F:	Foreground
         //	B:	Background
         attr = 0x00ff0000;
-        // UTF-8 decoder
-        utf8_units_count = 0;
-        utf8_units_received = 0;
-        utf8_char = 0;
         // Key filter
         vt100_keyfilter_escape = false;
         // Last char
@@ -214,53 +208,8 @@ public class ScreenTerminal {
     // UTF-8 functions
     //
 
-    private String utf8_decode(String d) {
-        StringBuilder o = new StringBuilder();
-        for (char c : d.toCharArray()) {
-            if (utf8_units_count != utf8_units_received) {
-                utf8_units_received++;
-                if ((c & 0xc0) == 0x80) {
-                    utf8_char = (utf8_char << 6) | (c & 0x3f);
-                    if (utf8_units_count == utf8_units_received) {
-                        if (utf8_char < 0x10000) {
-                            o.append((char) utf8_char);
-                        }
-                        utf8_units_count = utf8_units_received = 0;
-                    }
-                } else {
-                    o.append('?');
-                    while (utf8_units_received-- > 0) {
-                        o.append('?');
-                    }
-                    utf8_units_count = 0;
-                }
-            } else {
-                if ((c & 0x80) == 0x00) {
-                    o.append(c);
-                } else if ((c & 0xe0) == 0xc0) {
-                    utf8_units_count = 1;
-                    utf8_char = c & 0x1f;
-                } else if ((c & 0xf0) == 0xe0) {
-                    utf8_units_count = 2;
-                    utf8_char = c & 0x0f;
-                } else if ((c & 0xf8) == 0xf0) {
-                    utf8_units_count = 3;
-                    utf8_char = c & 0x07;
-                } else {
-                    o.append('?');
-                }
-
-            }
-        }
-        return o.toString();
-    }
-
     private int utf8_charwidth(int c) {
-        if (c >= 0x2e80) {
-            return 2;
-        } else {
-            return 1;
-        }
+        return WCWidth.wcwidth(c);
     }
 
     //
@@ -1792,19 +1741,12 @@ public class ScreenTerminal {
         return o;
     }
 
-    public synchronized boolean write(String d) {
-        d = utf8_decode(d);
-        for (int c : d.toCharArray()) {
-            if (vt100_write(c)) {
-                continue;
-            }
-            if (dumb_write(c)) {
-                continue;
-            }
-            if (c <= 0xffff) {
+    public synchronized boolean write(CharSequence d) {
+        d.codePoints().forEachOrdered(c -> {
+            if (!vt100_write(c) && !dumb_write(c) && c <= 0xffff) {
                 dumb_echo(c);
             }
-        }
+        });
         return true;
     }
 
