@@ -292,8 +292,8 @@ public class NonBlockingReader
     }
 
     public synchronized void clear() throws IOException {
-        while (ready()) {
-            read();
-        }
+//        while (ready()) {
+//            read();
+//        }
     }
 }
