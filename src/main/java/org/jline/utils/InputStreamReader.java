@@ -44,13 +44,15 @@ import java.nio.charset.UnmappableCharacterException;
 public class InputStreamReader extends Reader {
     private InputStream in;
 
-    private static final int BUFFER_SIZE = 8192;
+    private static final int BUFFER_SIZE = 4;
 
     private boolean endOfInput = false;
 
     CharsetDecoder decoder;
 
     ByteBuffer bytes = ByteBuffer.allocate(BUFFER_SIZE);
+
+    char pending = (char) -1;
 
     /**
      * Constructs a new {@code InputStreamReader} on the {@link InputStream}
@@ -189,8 +191,21 @@ public class InputStreamReader extends Reader {
                 throw new IOException("InputStreamReader is closed.");
             }
 
-            char buf[] = new char[1];
-            return read(buf, 0, 1) != -1 ? Character.codePointAt(buf, 0) : -1;
+            if (pending != (char) -1) {
+                char c = pending;
+                pending = (char) -1;
+                return c;
+            }
+            char buf[] = new char[2];
+            int nb = read(buf, 0, 2);
+            if (nb == 2) {
+                pending = buf[1];
+            }
+            if (nb > 0) {
+                return buf[0];
+            } else {
+                return -1;
+            }
         }
     }
 
@@ -238,7 +253,7 @@ public class InputStreamReader extends Reader {
             // when 1-st time entered, it'll be equal to zero
             boolean needInput = !bytes.hasRemaining();
 
-            while (out.hasRemaining()) {
+            while (out.position() == offset) {
                 // fill the buffer if needed
                 if (needInput) {
                     try {
@@ -251,9 +266,8 @@ public class InputStreamReader extends Reader {
                         // available didn't work so just try the read
                     }
 
-                    int to_read = bytes.capacity() - bytes.limit();
                     int off = bytes.arrayOffset() + bytes.limit();
-                    int was_red = in.read(bytes.array(), off, to_read);
+                    int was_red = in.read(bytes.array(), off, 1);
 
                     if (was_red == -1) {
                         endOfInput = true;
@@ -262,7 +276,6 @@ public class InputStreamReader extends Reader {
                         break;
                     }
                     bytes.limit(bytes.limit() + was_red);
-                    needInput = false;
                 }
 
                 // decode bytes
