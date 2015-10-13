@@ -28,14 +28,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
-public class EmulatedConsoleTest {
+public class ExternalConsoleTest {
 
     @Test
     public void testInput() throws IOException, InterruptedException {
         PipedInputStream in = new PipedInputStream();
         PipedOutputStream outIn = new PipedOutputStream(in);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        EmulatedConsole console = new EmulatedConsole("ansi", new ConsoleReaderBuilder(), in, out, "UTF-8");
+        ExternalConsole console = new ExternalConsole("ansi", new ConsoleReaderBuilder(), in, out, "UTF-8");
 
         testConsole(outIn, out, console);
     }
@@ -74,7 +74,7 @@ public class EmulatedConsoleTest {
         PipedInputStream in = new PipedInputStream();
         final PipedOutputStream outIn = new PipedOutputStream(in);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        EmulatedConsole console = new EmulatedConsole("ansi", new ConsoleReaderBuilder(), in, out, "UTF-8");
+        ExternalConsole console = new ExternalConsole("ansi", new ConsoleReaderBuilder(), in, out, "UTF-8");
         Attributes attributes = console.getAttributes();
         attributes.setLocalFlag(LocalFlag.ISIG, true);
         attributes.setControlChar(ControlChar.VINTR, 3);

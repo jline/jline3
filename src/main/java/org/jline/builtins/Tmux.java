@@ -9,7 +9,9 @@
 package org.jline.builtins;
 
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -24,8 +26,8 @@ import org.jline.Console;
 import org.jline.Console.Signal;
 import org.jline.Console.SignalHandler;
 import org.jline.JLine;
-import org.jline.console.AbstractDisciplinedConsole;
 import org.jline.console.Attributes;
+import org.jline.console.LineDisciplineConsole;
 import org.jline.console.Size;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
@@ -58,8 +60,8 @@ public class Tmux {
     private final PrintStream err;
     private final String term;
     private final Consumer<Console> runner;
-    private List<VirtualTerminal> panes = new ArrayList<>();
-    private VirtualTerminal active;
+    private List<VirtualConsole> panes = new ArrayList<>();
+    private VirtualConsole active;
     private final AtomicBoolean running = new AtomicBoolean(true);
     private final Size size = new Size();
 
@@ -102,10 +104,10 @@ public class Tmux {
         try {
             // Create first pane
             size.copy(console.getSize());
-            active = new VirtualTerminal(term, 0, 0, size.getColumns(), size.getRows() - 1, this::setDirty, this::close);
-            active.setAttributes(console.getAttributes());
+            active = new VirtualConsole(term, 0, 0, size.getColumns(), size.getRows() - 1, this::setDirty, this::close);
+            active.getConsole().setAttributes(console.getAttributes());
             panes.add(active);
-            runner.accept(active);
+            runner.accept(active.getConsole());
             // Start input loop
             new Thread(this::inputLoop, "Mux input loop").start();
             // Redraw loop
@@ -164,12 +166,9 @@ public class Tmux {
                         }
                     }
                 } else {
-                    if (Character.isBmpCodePoint(c)) {
-                        active.writeInput(c);
-                    } else {
-                        active.writeInput(Character.toChars(c));
-                    }
-                    active.flushInput();
+                    String s = new String(Character.toChars(c));
+                    active.getMasterInputOutput().write(s.getBytes());
+                    active.getMasterInputOutput().flush();
                 }
             }
         } catch (IOException e) {
@@ -180,7 +179,7 @@ public class Tmux {
         }
     }
 
-    private synchronized void close(VirtualTerminal terminal) {
+    private synchronized void close(VirtualConsole terminal) {
         int idx = panes.indexOf(terminal);
         if (idx >= 0) {
             panes.remove(idx);
@@ -202,7 +201,7 @@ public class Tmux {
     }
 
     private void interrupt(Signal signal) {
-        active.raise(signal);
+        active.getConsole().raise(signal);
     }
 
     private void handleResize() {
@@ -221,7 +220,7 @@ public class Tmux {
         int colWidth = (width - nbCols + 1) / nbCols;
         int rowHeight = (height - nbRows + 1) / nbRows;
         for (int pane = 0; pane < nbPanes; pane++) {
-            VirtualTerminal terminal = panes.get(pane);
+            VirtualConsole terminal = panes.get(pane);
             int i = pane % nbCols;
             int j = pane / nbCols;
             int l = i * colWidth + i;
@@ -269,7 +268,7 @@ public class Tmux {
             opt.usage(err);
             return;
         }
-        VirtualTerminal prevActive = active;
+        VirtualConsole prevActive = active;
         if (opt.isSet("L")) {
             // TODO: this is a wrong implementation
             int idx = panes.indexOf(active);
@@ -296,7 +295,7 @@ public class Tmux {
             opt.usage(err);
             return;
         }
-        active.writeInput(serverOptions.get(OPT_PREFIX));
+        active.getMasterInputOutput().write(serverOptions.get(OPT_PREFIX).getBytes());
     }
 
     protected void splitWindow(PrintStream out, PrintStream err, List<String> args) throws IOException {
@@ -312,7 +311,7 @@ public class Tmux {
             opt.usage(err);
             return;
         }
-        VirtualTerminal target = active;
+        VirtualConsole target = active;
         if (opt.isSet("h")) {
             int l0 = target.getLeft();
             int t0 = target.getTop();
@@ -323,10 +322,10 @@ public class Tmux {
             int l2 = l1 + w1 + 1;
             int w2 = l0 + w0 - l2;
             target.resize(l1, t0, w1, h0);
-            active = new VirtualTerminal(term, l2, t0, w2, h0, this::setDirty, this::close);
-            active.setAttributes(console.getAttributes());
+            active = new VirtualConsole(term, l2, t0, w2, h0, this::setDirty, this::close);
+            active.getConsole().setAttributes(console.getAttributes());
             panes.add(panes.indexOf(target) + 1, active);
-            runner.accept(active);
+            runner.accept(active.getConsole());
         } else {
             int l0 = target.getLeft();
             int t0 = target.getTop();
@@ -337,10 +336,10 @@ public class Tmux {
             int t2 = t1 + h1 + 1;
             int h2 = t0 + h0 - t2;
             target.resize(l0, t1, w0, h1);
-            active = new VirtualTerminal(term, l0, t2, w0, h2, this::setDirty, this::close);
-            active.setAttributes(console.getAttributes());
+            active = new VirtualConsole(term, l0, t2, w0, h2, this::setDirty, this::close);
+            active.getConsole().setAttributes(console.getAttributes());
             panes.add(panes.indexOf(target) + 1, active);
-            runner.accept(active);
+            runner.accept(active.getConsole());
         }
     }
 
@@ -349,7 +348,7 @@ public class Tmux {
         // Fill
         Arrays.fill(screen, 0x00ff0020);
         int[] cursor = new int[2];
-        for (VirtualTerminal terminal : panes) {
+        for (VirtualConsole terminal : panes) {
             // Dump terminal
             terminal.dump(screen, terminal.getTop(), terminal.getLeft(), size.getRows(), size.getColumns(),
                     terminal == active ? cursor : null);
@@ -459,7 +458,7 @@ public class Tmux {
         console.flush();
     }
 
-    private void drawBorder(int[] screen, Size size, VirtualTerminal terminal, int attr) {
+    private void drawBorder(int[] screen, Size size, VirtualConsole terminal, int attr) {
         for (int i = terminal.getLeft(); i < terminal.getLeft() + terminal.getWidth(); i++) {
             int y0 = terminal.getTop() - 1;
             int y1 = terminal.getTop() + terminal.getHeight();
@@ -542,15 +541,16 @@ public class Tmux {
                     "\tsgr0=\\E[m\\017, smacs=^N, smcup=\\E[?1049h, smir=\\E[4h,\n" +
                     "\tsmkx=\\E[?1h\\E=, smso=\\E[3m, smul=\\E[4m, tbc=\\E[3g,\n";
 
-    private static class VirtualTerminal extends AbstractDisciplinedConsole {
+    private static class VirtualConsole implements Closeable {
         private final ScreenTerminal terminal;
-        private final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        private final Consumer<VirtualTerminal> closer;
+        private final Consumer<VirtualConsole> closer;
         private int left;
         private int top;
+        private final OutputStream masterOutput;
+        private final OutputStream masterInputOutput;
+        private final LineDisciplineConsole console;
 
-        public VirtualTerminal(String type, int left, int top, int columns, int rows, Runnable dirty, Consumer<VirtualTerminal> closer) throws IOException {
-            super(type, JLine.readerBuilder(), Charset.defaultCharset().name());
+        public VirtualConsole(String type, int left, int top, int columns, int rows, Runnable dirty, Consumer<VirtualConsole> closer) throws IOException {
             this.left = left;
             this.top = top;
             this.closer = closer;
@@ -561,8 +561,19 @@ public class Tmux {
                     dirty.run();
                 }
             };
-            size.setColumns(columns);
-            size.setRows(rows);
+            this.masterOutput = new MasterOutputStream();
+            this.masterInputOutput = new OutputStream() {
+                @Override
+                public void write(int b) throws IOException {
+                    console.processInputByte(b);
+                }
+            };
+            this.console = new LineDisciplineConsole(
+                    type,
+                    JLine.readerBuilder(),
+                    masterOutput,
+                    Charset.defaultCharset().name());
+            this.console.setSize(new Size(columns, rows));
         }
 
         public int getLeft() {
@@ -573,29 +584,28 @@ public class Tmux {
             return top;
         }
 
+        public int getWidth() {
+            return console.getWidth();
+        }
+
+        public int getHeight() {
+            return console.getHeight();
+        }
+
+        public LineDisciplineConsole getConsole() {
+            return console;
+        }
+
+        public OutputStream getMasterInputOutput() {
+            return masterInputOutput;
+        }
+
         public void resize(int left, int top, int width, int height) {
             this.left = left;
             this.top = top;
-            size.setColumns(width);
-            size.setRows(height);
+            console.setSize(new Size(width, height));
             terminal.setSize(width, height);
-            raise(Signal.WINCH);
-        }
-
-        public void writeInput(int c) throws IOException {
-            filterInOutWriter.write(c);
-        }
-
-        public void writeInput(String str) throws IOException {
-            filterInOutWriter.write(str);
-        }
-
-        public void writeInput(char[] cbuf) throws IOException {
-            filterInOutWriter.write(cbuf);
-        }
-
-        public void flushInput() throws IOException {
-            filterInOutWriter.flush();
+            console.raise(Signal.WINCH);
         }
 
         public void dump(int[] fullscreen, int ftop, int fleft, int fheight, int fwidth, int[] cursor) {
@@ -603,27 +613,30 @@ public class Tmux {
         }
 
         @Override
-        protected void doWriteByte(int c) throws IOException {
-            buffer.write(c);
-        }
-
-        @Override
-        protected void doFlush() throws IOException {
-            terminal.write(buffer.toString());
-            filterInOutWriter.write(terminal.read());
-            filterInOutWriter.flush();
-            buffer.reset();
-        }
-
-        @Override
-        protected void doClose() throws IOException {
-            doFlush();
-        }
-
-        @Override
         public void close() throws IOException {
-            super.close();
+            console.close();
             closer.accept(this);
+        }
+
+        private class MasterOutputStream extends OutputStream {
+            private final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+
+            @Override
+            public synchronized void write(int b) {
+                buffer.write(b);
+            }
+
+            @Override
+            public synchronized void flush() throws IOException {
+                terminal.write(buffer.toString());
+                masterInputOutput.write(terminal.read().getBytes());
+                buffer.reset();
+            }
+
+            @Override
+            public void close() throws IOException {
+                flush();
+            }
         }
 
     }

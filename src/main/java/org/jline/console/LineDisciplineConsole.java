@@ -8,6 +8,7 @@
  */
 package org.jline.console;
 
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -15,7 +16,6 @@ import java.io.OutputStreamWriter;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.io.PrintWriter;
-import java.io.Reader;
 import java.io.Writer;
 
 import org.jline.JLine.ConsoleReaderBuilder;
@@ -28,70 +28,87 @@ import org.jline.utils.NonBlockingReader;
 
 import static org.jline.utils.Preconditions.checkNotNull;
 
-public abstract class AbstractDisciplinedConsole extends AbstractConsole {
+/**
+ * Abstract console with support for line discipline.
+ * The {@link org.jline.Console} interface represents the slave
+ * side of a PTY, but implementations derived from this class
+ * will handle both the slave and master side of things.
+ *
+ * In order to correctly handle line discipline, the console
+ * needs to read the input in advance in order to raise the
+ * signals as fast as possible.
+ * For example, when the user hits Ctrl+C, we can't wait until
+ * the application consumes all the read events.
+ * The same applies to echoing, when enabled, as the echoing
+ * has to happen as soon as the user hit the keyboard, and not
+ * only when the application running in the terminal processes
+ * the input.
+ */
+public class LineDisciplineConsole extends AbstractConsole {
 
-    protected final OutputStream output;
+    private static final int PIPE_SIZE = 1024;
 
-    protected final InputStream filterIn;
-    protected final OutputStream filterInOut;
-    protected final Writer filterInOutWriter;
-    protected final NonBlockingReader reader;
-    protected final PrintWriter writer;
+    /*
+     * Master output stream
+     */
+    protected final OutputStream masterOutput;
+
+    /*
+     * Slave input pipe write side
+     */
+    protected final OutputStream slaveInputPipe;
+
+    /*
+     * Slave streams
+     */
+    protected final InputStream slaveInput;
+    protected final NonBlockingReader slaveReader;
+    protected final PrintWriter slaveWriter;
+    protected final OutputStream slaveOutput;
+
+    /**
+     * Console data
+     */
     protected final Attributes attributes;
     protected final Size size;
 
-    public AbstractDisciplinedConsole(String type, ConsoleReaderBuilder consoleReaderBuilder, String encoding) throws IOException {
+    public LineDisciplineConsole(String type,
+                                 ConsoleReaderBuilder consoleReaderBuilder,
+                                 OutputStream masterOutput,
+                                 String encoding) throws IOException {
         super(type, consoleReaderBuilder);
-        PipedInputStream input = new PipedInputStream() {
-            @Override
-            public void close() throws IOException {
-                super.close();
-            }
-        };
+        PipedInputStream input = new PipedInputStream(PIPE_SIZE);
+        this.slaveInputPipe = new PipedOutputStream(input);
         // This is a hack to fix a problem in gogo where closure closes
-        // streams for commands if they are PipedInputStreams.
+        // streams for commands if they are instances of PipedInputStream.
         // So we need to get around and make sure it's not an instance of
-        // that class.
-        this.filterIn = new InputStream() {
-            @Override
-            public int read() throws IOException {
-                return input.read();
-            }
-            @Override
-            public void close() throws IOException {
-                input.close();
-            }
-            @Override
-            public int available() throws IOException {
-                return input.available();
-            }
-        };
-        this.filterInOut = new PipedOutputStream(input);
-        this.filterInOutWriter = new OutputStreamWriter(filterInOut, encoding);
-        this.reader = new NonBlockingReader(new InputStreamReader(filterIn, encoding));
-        this.output = new FilteringOutputStream();
-        this.writer = new PrintWriter(new OutputStreamWriter(output, encoding));
+        // that class by using a dumb FilterInputStream class to wrap it.
+        this.slaveInput = new FilterInputStream(input) {};
+        this.slaveReader = new NonBlockingReader(new InputStreamReader(slaveInput, encoding));
+        this.slaveOutput = new FilteringOutputStream();
+        this.slaveWriter = new PrintWriter(new OutputStreamWriter(slaveOutput, encoding));
+        this.masterOutput = masterOutput;
         this.attributes = new Attributes();
         this.size = new Size(160, 50);
         parseInfoCmp();
     }
 
     public NonBlockingReader reader() {
-        return reader;
+        return slaveReader;
     }
 
     public PrintWriter writer() {
-        return writer;
+        return slaveWriter;
     }
 
     @Override
     public InputStream input() {
-        return filterIn;
+        return slaveInput;
     }
 
     @Override
     public OutputStream output() {
-        return output;
+        return slaveOutput;
     }
 
     public Attributes getAttributes() {
@@ -117,18 +134,31 @@ public abstract class AbstractDisciplinedConsole extends AbstractConsole {
    @Override
     public void raise(Signal signal) {
         checkNotNull(signal);
+        // Do not call clear() atm as this can cause
+        // deadlock between reading / writing threads
+        // TODO: any way to fix that ?
+        /*
         if (!attributes.getLocalFlag(LocalFlag.NOFLSH)) {
             try {
-                reader.clear();
+                slaveReader.clear();
             } catch (IOException e) {
                 // Ignore
             }
         }
+        */
         echoSignal(signal);
         super.raise(signal);
     }
 
-    protected void processInputByte(int c) throws IOException {
+    /**
+     * Master input processing.
+     * All data coming to the console should be provided
+     * using this method.
+     *
+     * @param c the input byte
+     * @throws IOException
+     */
+    public void processInputByte(int c) throws IOException {
         if (attributes.getLocalFlag(LocalFlag.ISIG)) {
             if (c == attributes.getControlChar(ControlChar.VINTR)) {
                 raise(Signal.INT);
@@ -155,37 +185,45 @@ public abstract class AbstractDisciplinedConsole extends AbstractConsole {
         }
         if (attributes.getLocalFlag(LocalFlag.ECHO)) {
             processOutputByte(c);
-            doFlush();
+            masterOutput.flush();
         }
-        filterInOut.write(c);
-        filterInOut.flush();
+        slaveInputPipe.write(c);
+        slaveInputPipe.flush();
     }
 
+    /**
+     * Master output processing.
+     * All data going to the master should be provided by this method.
+     *
+     * @param c the output byte
+     * @throws IOException
+     */
     protected void processOutputByte(int c) throws IOException {
         if (attributes.getOutputFlag(OutputFlag.OPOST)) {
             if (c == '\n') {
                 if (attributes.getOutputFlag(OutputFlag.ONLCR)) {
-                    doWriteByte('\r');
-                    doWriteByte('\n');
+                    masterOutput.write('\r');
+                    masterOutput.write('\n');
                     return;
                 }
             }
         }
-        doWriteByte(c);
+        masterOutput.write(c);
     }
 
-    protected abstract void doWriteByte(int c) throws IOException;
-
-    protected abstract void doFlush() throws IOException;
-
-    protected abstract void doClose() throws IOException;
-
     public void close() throws IOException {
-        filterIn.close();
-        filterInOut.close();
-        reader.close();
-        writer.close();
-        output.close();
+        try {
+            slaveReader.close();
+        } finally {
+            try {
+                slaveInputPipe.close();
+            } finally {
+                try {
+                } finally {
+                    slaveWriter.close();
+                }
+            }
+        }
     }
 
     private class FilteringOutputStream extends OutputStream {
@@ -196,12 +234,12 @@ public abstract class AbstractDisciplinedConsole extends AbstractConsole {
 
         @Override
         public void flush() throws IOException {
-            doFlush();
+            masterOutput.flush();
         }
 
         @Override
         public void close() throws IOException {
-            doClose();
+            masterOutput.close();
         }
     }
 }

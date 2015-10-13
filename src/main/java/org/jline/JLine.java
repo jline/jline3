@@ -16,7 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.jline.console.CygwinPty;
-import org.jline.console.EmulatedConsole;
+import org.jline.console.ExternalConsole;
 import org.jline.console.ExecPty;
 import org.jline.console.PosixSysConsole;
 import org.jline.console.Pty;
@@ -144,7 +144,7 @@ public final class JLine {
                     return new PosixSysConsole(type, consoleReaderBuilder, pty, encoding, nativeSignals);
                 }
             } else {
-                return new EmulatedConsole(type, consoleReaderBuilder, in, out, encoding);
+                return new ExternalConsole(type, consoleReaderBuilder, in, out, encoding);
             }
         }
     }

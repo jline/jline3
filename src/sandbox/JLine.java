@@ -15,7 +15,7 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.jline.console.EmulatedConsole;
+import org.jline.console.ExternalConsole;
 import org.jline.console.ExecPty;
 import org.jline.console.NativePty;
 import org.jline.console.PosixPtyConsole;
@@ -155,7 +155,7 @@ public final class JLine {
                 }
             } else if ((system != null && !system) || (system == null && in != null && out != null)) {
                 if (isWindows || posix == null || !posix) {
-                    return new EmulatedConsole(type, consoleReaderBuilder, in, out, encoding);
+                    return new ExternalConsole(type, consoleReaderBuilder, in, out, encoding);
                 } else {
                     Pty pty = NativePty.open(null, null); // TODO: non native pty are not supported
                     return new PosixPtyConsole(type, consoleReaderBuilder, pty, in, out, encoding);
