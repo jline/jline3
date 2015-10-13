@@ -6,7 +6,7 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.reader.impl;
+package org.jline.utils;
 
 import java.io.IOError;
 import java.io.IOException;
@@ -18,11 +18,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.jline.console.Console;
-import org.jline.utils.AnsiHelper;
-import org.jline.utils.Curses;
-import org.jline.utils.DiffHelper;
 import org.jline.utils.InfoCmp.Capability;
-import org.jline.utils.WCWidth;
 
 /**
  * Handle display and visual cursor.
@@ -38,7 +34,7 @@ public class Display {
     protected boolean cursorOk;
     protected int columns;
     protected int rows;
-    protected int tabWidth = ConsoleReaderImpl.TAB_WIDTH;
+    protected int tabWidth = 4;
     protected boolean reset;
 
     protected final Map<Capability, Integer> cost = new HashMap<>();

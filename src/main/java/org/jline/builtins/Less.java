@@ -33,7 +33,7 @@ import org.jline.console.Console.SignalHandler;
 import org.jline.console.Size;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
-import org.jline.reader.impl.Display;
+import org.jline.utils.Display;
 import org.jline.utils.Ansi;
 import org.jline.utils.Ansi.Attribute;
 import org.jline.utils.AnsiHelper;
