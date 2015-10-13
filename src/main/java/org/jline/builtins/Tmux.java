@@ -544,7 +544,7 @@ public class Tmux {
 
     private static class VirtualTerminal extends AbstractDisciplinedConsole {
         private final ScreenTerminal terminal;
-        private final StringBuilder buffer = new StringBuilder();
+        private final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         private final Consumer<VirtualTerminal> closer;
         private int left;
         private int top;
@@ -604,7 +604,7 @@ public class Tmux {
 
         @Override
         protected void doWriteByte(int c) throws IOException {
-            buffer.append((char) c);
+            buffer.write(c);
         }
 
         @Override
@@ -612,7 +612,7 @@ public class Tmux {
             terminal.write(buffer.toString());
             filterInOutWriter.write(terminal.read());
             filterInOutWriter.flush();
-            buffer.setLength(0);
+            buffer.reset();
         }
 
         @Override
