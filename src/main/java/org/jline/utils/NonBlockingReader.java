@@ -37,6 +37,7 @@ public class NonBlockingReader
     private Reader in;                  // The actual input stream
     private int    ch   = READ_EXPIRED; // Recently read character
 
+    private String      name;
     private boolean     threadIsReading      = false;
     private IOException exception            = null;
     private long        threadDelay          = 60 * 1000;
@@ -49,14 +50,15 @@ public class NonBlockingReader
      * {@link #shutdown()} method must be called in order to shut this thread down.
      * @param in The reader to wrap
      */
-    public NonBlockingReader(Reader in) {
+    public NonBlockingReader(String name, Reader in) {
         this.in = in;
+        this.name = name;
     }
 
     private synchronized void startReadingThreadIfNeeded() {
         if (thread == null) {
             thread = new Thread(this);
-            thread.setName("NonBlockingReaderThread");
+            thread.setName(name + " non blocking reader thread");
             thread.setDaemon(true);
             thread.start();
         }

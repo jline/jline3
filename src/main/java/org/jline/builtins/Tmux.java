@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import org.jline.Console;
@@ -64,6 +65,7 @@ public class Tmux {
     private VirtualConsole active;
     private final AtomicBoolean running = new AtomicBoolean(true);
     private final Size size = new Size();
+    private final AtomicInteger paneId = new AtomicInteger();
 
     private final Map<String, String> serverOptions = new HashMap<>();
     private final KeyMap keyMap = new KeyMap();
@@ -104,7 +106,7 @@ public class Tmux {
         try {
             // Create first pane
             size.copy(console.getSize());
-            active = new VirtualConsole(term, 0, 0, size.getColumns(), size.getRows() - 1, this::setDirty, this::close);
+            active = new VirtualConsole(getNewPaneName(), term, 0, 0, size.getColumns(), size.getRows() - 1, this::setDirty, this::close);
             active.getConsole().setAttributes(console.getAttributes());
             panes.add(active);
             runner.accept(active.getConsole());
@@ -322,7 +324,7 @@ public class Tmux {
             int l2 = l1 + w1 + 1;
             int w2 = l0 + w0 - l2;
             target.resize(l1, t0, w1, h0);
-            active = new VirtualConsole(term, l2, t0, w2, h0, this::setDirty, this::close);
+            active = new VirtualConsole(getNewPaneName(), term, l2, t0, w2, h0, this::setDirty, this::close);
             active.getConsole().setAttributes(console.getAttributes());
             panes.add(panes.indexOf(target) + 1, active);
             runner.accept(active.getConsole());
@@ -336,7 +338,7 @@ public class Tmux {
             int t2 = t1 + h1 + 1;
             int h2 = t0 + h0 - t2;
             target.resize(l0, t1, w0, h1);
-            active = new VirtualConsole(term, l0, t2, w0, h2, this::setDirty, this::close);
+            active = new VirtualConsole(getNewPaneName(), term, l0, t2, w0, h2, this::setDirty, this::close);
             active.getConsole().setAttributes(console.getAttributes());
             panes.add(panes.indexOf(target) + 1, active);
             runner.accept(active.getConsole());
@@ -484,6 +486,10 @@ public class Tmux {
         }
     }
 
+    private String getNewPaneName() {
+        return String.format("tmux%02d", paneId.incrementAndGet());
+    }
+
     private static final String SCREEN_CAPS =
                     "#\tReconstructed via infocmp from file: /usr/share/terminfo/73/screen\n" +
                     "screen|VT 100/ANSI X3.64 virtual terminal,\n" +
@@ -550,7 +556,7 @@ public class Tmux {
         private final OutputStream masterInputOutput;
         private final LineDisciplineConsole console;
 
-        public VirtualConsole(String type, int left, int top, int columns, int rows, Runnable dirty, Consumer<VirtualConsole> closer) throws IOException {
+        public VirtualConsole(String name, String type, int left, int top, int columns, int rows, Runnable dirty, Consumer<VirtualConsole> closer) throws IOException {
             this.left = left;
             this.top = top;
             this.closer = closer;
@@ -569,6 +575,7 @@ public class Tmux {
                 }
             };
             this.console = new LineDisciplineConsole(
+                    name,
                     type,
                     JLine.readerBuilder(),
                     masterOutput,

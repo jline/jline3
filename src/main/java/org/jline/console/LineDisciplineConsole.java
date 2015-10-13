@@ -72,11 +72,12 @@ public class LineDisciplineConsole extends AbstractConsole {
     protected final Attributes attributes;
     protected final Size size;
 
-    public LineDisciplineConsole(String type,
+    public LineDisciplineConsole(String name,
+                                 String type,
                                  ConsoleReaderBuilder consoleReaderBuilder,
                                  OutputStream masterOutput,
                                  String encoding) throws IOException {
-        super(type, consoleReaderBuilder);
+        super(name, type, consoleReaderBuilder);
         PipedInputStream input = new PipedInputStream(PIPE_SIZE);
         this.slaveInputPipe = new PipedOutputStream(input);
         // This is a hack to fix a problem in gogo where closure closes
@@ -84,7 +85,7 @@ public class LineDisciplineConsole extends AbstractConsole {
         // So we need to get around and make sure it's not an instance of
         // that class by using a dumb FilterInputStream class to wrap it.
         this.slaveInput = new FilterInputStream(input) {};
-        this.slaveReader = new NonBlockingReader(new InputStreamReader(slaveInput, encoding));
+        this.slaveReader = new NonBlockingReader(getName(), new InputStreamReader(slaveInput, encoding));
         this.slaveOutput = new FilteringOutputStream();
         this.slaveWriter = new PrintWriter(new OutputStreamWriter(slaveOutput, encoding));
         this.masterOutput = masterOutput;

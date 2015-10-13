@@ -12,8 +12,8 @@ public abstract class AbstractPosixConsole extends AbstractConsole {
     protected final Pty pty;
     protected final Attributes originalAttributes;
 
-    public AbstractPosixConsole(String type, ConsoleReaderBuilder consoleReaderBuilder, Pty pty) throws IOException {
-        super(type, consoleReaderBuilder);
+    public AbstractPosixConsole(String name, String type, ConsoleReaderBuilder consoleReaderBuilder, Pty pty) throws IOException {
+        super(name, type, consoleReaderBuilder);
         checkNotNull(pty);
         this.pty = pty;
         this.originalAttributes = this.pty.getAttr();

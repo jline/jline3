@@ -25,6 +25,8 @@ import org.jline.utils.NonBlockingReader;
 
 public interface Console extends Closeable, Flushable {
 
+    public String getName();
+
     //
     // Signal support
     //

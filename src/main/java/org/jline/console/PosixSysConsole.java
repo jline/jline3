@@ -34,12 +34,12 @@ public class PosixSysConsole extends AbstractPosixConsole {
     protected final Map<Signal, Object> nativeHandlers = new HashMap<>();
     protected final Task closer;
 
-    public PosixSysConsole(String type, ConsoleReaderBuilder consoleReaderBuilder, Pty pty, String encoding, boolean nativeSignals) throws IOException {
-        super(type, consoleReaderBuilder, pty);
+    public PosixSysConsole(String name, String type, ConsoleReaderBuilder consoleReaderBuilder, Pty pty, String encoding, boolean nativeSignals) throws IOException {
+        super(name, type, consoleReaderBuilder, pty);
         checkNotNull(encoding);
         this.input = pty.getSlaveInput();
         this.output = pty.getSlaveOutput();
-        this.reader = new NonBlockingReader(new InputStreamReader(input, encoding));
+        this.reader = new NonBlockingReader(getName(), new InputStreamReader(input, encoding));
         this.writer = new PrintWriter(new OutputStreamWriter(output, encoding));
         parseInfoCmp();
         if (nativeSignals) {

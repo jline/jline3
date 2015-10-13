@@ -55,15 +55,15 @@ public class WinSysConsole extends AbstractConsole {
     private static final int ENABLE_QUICK_EDIT_MODE = 0x0040;
 
 
-    public WinSysConsole(boolean nativeSignals, ConsoleReaderBuilder consoleReaderBuilder) throws IOException {
-        super("windows", consoleReaderBuilder);
+    public WinSysConsole(String name, boolean nativeSignals, ConsoleReaderBuilder consoleReaderBuilder) throws IOException {
+        super(name, "windows", consoleReaderBuilder);
         input = new DirectInputStream();
         output = new WindowsAnsiOutputStream(new FileOutputStream(FileDescriptor.out));
         String encoding = getConsoleEncoding();
         if (encoding == null) {
             encoding = Charset.defaultCharset().name();
         }
-        this.reader = new NonBlockingReader(new InputStreamReader(input, encoding));
+        this.reader = new NonBlockingReader(getName(), new InputStreamReader(input, encoding));
         this.writer = new PrintWriter(new OutputStreamWriter(output, encoding));
         parseInfoCmp();
         // Handle signals

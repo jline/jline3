@@ -32,10 +32,10 @@ public class ExternalConsole extends LineDisciplineConsole {
     private final Thread pumpThread;
     protected final InputStream masterInput;
 
-    public ExternalConsole(String type, ConsoleReaderBuilder consoleReaderBuilder,
+    public ExternalConsole(String name, String type, ConsoleReaderBuilder consoleReaderBuilder,
                            InputStream masterInput, OutputStream masterOutput,
                            String encoding) throws IOException {
-        super(type, consoleReaderBuilder, masterOutput, encoding);
+        super(name, type, consoleReaderBuilder, masterOutput, encoding);
         this.masterInput = masterInput;
         this.pumpThread = new Thread(this::pump, toString() + " input pump thread");
         this.pumpThread.start();

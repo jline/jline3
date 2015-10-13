@@ -45,6 +45,7 @@ public final class JLine {
 
     public static class ConsoleBuilder {
 
+        private String name;
         private InputStream in;
         private OutputStream out;
         private String type;
@@ -54,6 +55,11 @@ public final class JLine {
         private final ConsoleReaderBuilder consoleReaderBuilder = JLine.readerBuilder();
 
         public ConsoleBuilder() {
+        }
+
+        public ConsoleBuilder name(String name) {
+            this.name = name;
+            return this;
         }
 
         public ConsoleBuilder streams(InputStream in, OutputStream out) {
@@ -113,6 +119,13 @@ public final class JLine {
         }
 
         public Console build() throws IOException {
+            String name = this.name;
+            if (name == null) {
+                name = consoleReaderBuilder.appName;
+            }
+            if (name == null) {
+                name = "JLine console";
+            }
             if ((system != null && system) || (system == null && in == null && out == null)) {
                 //
                 // Cygwin support
@@ -127,10 +140,10 @@ public final class JLine {
                         encoding = Charset.defaultCharset().name();
                     }
                     Pty pty = CygwinPty.current();
-                    return new PosixSysConsole(type, consoleReaderBuilder, pty, encoding, nativeSignals);
+                    return new PosixSysConsole(name, type, consoleReaderBuilder, pty, encoding, nativeSignals);
                 }
                 else if (OSUtils.IS_WINDOWS) {
-                    return new WinSysConsole(nativeSignals, consoleReaderBuilder);
+                    return new WinSysConsole(name, nativeSignals, consoleReaderBuilder);
                 } else {
                     String type = this.type;
                     if (type == null) {
@@ -141,10 +154,10 @@ public final class JLine {
                         encoding = Charset.defaultCharset().name();
                     }
                     Pty pty = ExecPty.current();
-                    return new PosixSysConsole(type, consoleReaderBuilder, pty, encoding, nativeSignals);
+                    return new PosixSysConsole(name, type, consoleReaderBuilder, pty, encoding, nativeSignals);
                 }
             } else {
-                return new ExternalConsole(type, consoleReaderBuilder, in, out, encoding);
+                return new ExternalConsole(name, type, consoleReaderBuilder, in, out, encoding);
             }
         }
     }

@@ -33,6 +33,7 @@ import static org.jline.utils.Preconditions.checkNotNull;
 
 public abstract class AbstractConsole implements Console {
 
+    protected final String name;
     protected final String type;
     protected final ConsoleReaderBuilder consoleReaderBuilder;
     protected final Map<Signal, SignalHandler> handlers = new HashMap<>();
@@ -40,7 +41,8 @@ public abstract class AbstractConsole implements Console {
     protected final Map<Capability, Integer> ints = new HashMap<>();
     protected final Map<Capability, String> strings = new HashMap<>();
 
-    public AbstractConsole(String type, ConsoleReaderBuilder consoleReaderBuilder) throws IOException {
+    public AbstractConsole(String name, String type, ConsoleReaderBuilder consoleReaderBuilder) throws IOException {
+        this.name = name;
         this.type = type;
         this.consoleReaderBuilder = consoleReaderBuilder;
         for (Signal signal : Signal.values()) {
@@ -120,6 +122,10 @@ public abstract class AbstractConsole implements Console {
             setAttributes(attr);
         }
         return prev;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public String getType() {

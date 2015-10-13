@@ -32,10 +32,10 @@ public class DumbConsole extends AbstractConsole {
     private final Size size;
 
     public DumbConsole(ConsoleReaderBuilder consoleReaderBuilder, InputStream in, OutputStream out) throws IOException {
-        super("ansi", consoleReaderBuilder);
+        super("dumb", "ansi", consoleReaderBuilder);
         this.input = in;
         this.output = out;
-        this.reader = new NonBlockingReader(new InputStreamReader(in));
+        this.reader = new NonBlockingReader(getName(), new InputStreamReader(in));
         this.writer = new PrintWriter(new OutputStreamWriter(out));
         this.attributes = new Attributes();
         this.attributes.setControlChar(ControlChar.VERASE,  (char) 127);
