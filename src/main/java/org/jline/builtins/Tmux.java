@@ -92,7 +92,8 @@ public class Tmux {
     }
 
     public void run() throws IOException {
-        SignalHandler prevHandler = console.handle(Signal.WINCH, this::resize);
+        SignalHandler prevWinchHandler = console.handle(Signal.WINCH, this::resize);
+        SignalHandler prevIntHandler = console.handle(Signal.INT, this::interrupt);
         Attributes attributes = console.enterRawMode();
         console.puts(Capability.enter_ca_mode);
         console.puts(Capability.keypad_xmit);
@@ -113,7 +114,8 @@ public class Tmux {
             console.puts(Capability.exit_ca_mode);
             console.flush();
             console.setAttributes(attributes);
-            console.handle(Signal.WINCH, prevHandler);
+            console.handle(Signal.WINCH, prevWinchHandler);
+            console.handle(Signal.INT, prevIntHandler);
         }
     }
 
@@ -196,6 +198,10 @@ public class Tmux {
     private void resize(Signal signal) {
         resized.set(true);
         setDirty();
+    }
+
+    private void interrupt(Signal signal) {
+        active.raise(signal);
     }
 
     private void handleResize() {
