@@ -26,18 +26,18 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.jline.Console;
-import org.jline.ConsoleReader;
-import org.jline.ConsoleReader.Option;
-import org.jline.History;
 import org.jline.builtins.Completers.CompletionData;
 import org.jline.builtins.Less.Source;
 import org.jline.builtins.Less.StdInSource;
 import org.jline.builtins.Less.URLSource;
+import org.jline.console.Console;
 import org.jline.keymap.KeyMap;
-import org.jline.reader.Macro;
+import org.jline.reader.ConsoleReader;
+import org.jline.reader.ConsoleReader.Option;
+import org.jline.reader.History;
 import org.jline.reader.Reference;
 import org.jline.reader.Widget;
+import org.jline.reader.impl.Macro;
 import org.jline.utils.Ansi;
 
 public class Commands {
@@ -733,7 +733,7 @@ public class Commands {
                 tname = tname.replaceAll("\\?", "[a-z]");
             }
             boolean found = false;
-            for (org.jline.ConsoleReader.Option option : org.jline.ConsoleReader.Option.values()) {
+            for (ConsoleReader.Option option : ConsoleReader.Option.values()) {
                 String optName = option.name().toLowerCase().replaceAll("[-_]", "");
                 if (match ? optName.matches(tname) : optName.equals(tname)) {
                     if (set) {

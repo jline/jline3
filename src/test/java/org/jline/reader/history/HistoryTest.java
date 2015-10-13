@@ -10,16 +10,16 @@ package org.jline.reader.history;
 
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Reference;
-import org.jline.reader.ReaderTestSupport;
+import org.jline.reader.impl.ReaderTestSupport;
 import org.junit.Test;
 
-import static org.jline.ConsoleReader.ACCEPT_LINE;
-import static org.jline.ConsoleReader.BACKWARD_CHAR;
-import static org.jline.ConsoleReader.BEGINNING_OF_LINE;
-import static org.jline.ConsoleReader.DOWN_HISTORY;
-import static org.jline.ConsoleReader.HISTORY_SEARCH_BACKWARD;
-import static org.jline.ConsoleReader.HISTORY_SEARCH_FORWARD;
-import static org.jline.ConsoleReader.UP_HISTORY;
+import static org.jline.reader.ConsoleReader.ACCEPT_LINE;
+import static org.jline.reader.ConsoleReader.BACKWARD_CHAR;
+import static org.jline.reader.ConsoleReader.BEGINNING_OF_LINE;
+import static org.jline.reader.ConsoleReader.DOWN_HISTORY;
+import static org.jline.reader.ConsoleReader.HISTORY_SEARCH_BACKWARD;
+import static org.jline.reader.ConsoleReader.HISTORY_SEARCH_FORWARD;
+import static org.jline.reader.ConsoleReader.UP_HISTORY;
 
 /**
  * Tests command history.

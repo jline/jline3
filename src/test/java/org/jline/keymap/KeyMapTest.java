@@ -19,26 +19,26 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.jline.Console;
-import org.jline.reader.ConsoleReaderImpl;
-import org.jline.reader.DumbConsole;
-import org.jline.reader.ReaderTestSupport.EofPipedInputStream;
+import org.jline.console.Console;
 import org.jline.reader.Reference;
+import org.jline.reader.impl.ConsoleReaderImpl;
+import org.jline.reader.impl.DumbConsole;
+import org.jline.reader.impl.ReaderTestSupport.EofPipedInputStream;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.jline.ConsoleReader.ACCEPT_LINE;
-import static org.jline.ConsoleReader.BACKWARD_WORD;
-import static org.jline.ConsoleReader.COMPLETE_WORD;
-import static org.jline.ConsoleReader.DOWN_HISTORY;
-import static org.jline.ConsoleReader.KILL_WHOLE_LINE;
-import static org.jline.ConsoleReader.SEND_BREAK;
-import static org.jline.ConsoleReader.UP_HISTORY;
 import static org.jline.keymap.KeyMap.alt;
 import static org.jline.keymap.KeyMap.display;
 import static org.jline.keymap.KeyMap.range;
 import static org.jline.keymap.KeyMap.translate;
+import static org.jline.reader.ConsoleReader.ACCEPT_LINE;
+import static org.jline.reader.ConsoleReader.BACKWARD_WORD;
+import static org.jline.reader.ConsoleReader.COMPLETE_WORD;
+import static org.jline.reader.ConsoleReader.DOWN_HISTORY;
+import static org.jline.reader.ConsoleReader.KILL_WHOLE_LINE;
+import static org.jline.reader.ConsoleReader.SEND_BREAK;
+import static org.jline.reader.ConsoleReader.UP_HISTORY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
@@ -60,7 +60,7 @@ public class KeyMapTest {
 
         in = new EofPipedInputStream();
         out = new ByteArrayOutputStream();
-        console = new DumbConsole(null, in, out);
+        console = new DumbConsole(in, out);
     }
 
     @Test

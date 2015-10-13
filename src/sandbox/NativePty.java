@@ -19,6 +19,7 @@ import java.lang.reflect.Constructor;
 import org.fusesource.jansi.internal.CLibrary;
 import org.fusesource.jansi.internal.CLibrary.Termios;
 import org.fusesource.jansi.internal.CLibrary.WinSize;
+import org.jline.console.impl.Pty;
 
 public class NativePty implements Pty {
 

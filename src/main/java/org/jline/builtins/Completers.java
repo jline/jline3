@@ -17,10 +17,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.jline.Candidate;
-import org.jline.ConsoleReader;
+import org.jline.reader.Candidate;
+import org.jline.reader.ConsoleReader;
 import org.jline.reader.ParsedLine;
-import org.jline.reader.completer.FileNameCompleter;
+import org.jline.reader.impl.completer.completer.FileNameCompleter;
 
 public class Completers {
 
@@ -46,7 +46,7 @@ public class Completers {
         }
     }
 
-    public static class Completer implements org.jline.Completer {
+    public static class Completer implements org.jline.reader.Completer {
 
         private final CompletionEnvironment environment;
 

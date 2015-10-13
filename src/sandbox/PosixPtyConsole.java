@@ -15,6 +15,8 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 
 import org.jline.JLine.ConsoleReaderBuilder;
+import org.jline.console.impl.AbstractPosixConsole;
+import org.jline.console.impl.Pty;
 import org.jline.utils.InputStreamReader;
 import org.jline.utils.NonBlockingReader;
 

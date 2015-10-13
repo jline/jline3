@@ -26,14 +26,14 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
-import org.jline.Console;
-import org.jline.Console.Signal;
-import org.jline.Console.SignalHandler;
 import org.jline.console.Attributes;
+import org.jline.console.Console;
+import org.jline.console.Console.Signal;
+import org.jline.console.Console.SignalHandler;
 import org.jline.console.Size;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
-import org.jline.reader.Display;
+import org.jline.reader.impl.Display;
 import org.jline.utils.Ansi;
 import org.jline.utils.Ansi.Attribute;
 import org.jline.utils.AnsiHelper;

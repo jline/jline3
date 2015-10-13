@@ -8,7 +8,8 @@
  */
 package org.jline.reader.history;
 
-import org.jline.History;
+import org.jline.reader.History;
+import org.jline.reader.impl.history.history.MemoryHistory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

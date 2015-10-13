@@ -16,7 +16,7 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.jline.Console;
+import org.jline.console.Console;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp.Capability;
 

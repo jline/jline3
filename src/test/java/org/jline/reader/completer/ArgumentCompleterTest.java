@@ -8,7 +8,9 @@
  */
 package org.jline.reader.completer;
 
-import org.jline.reader.ReaderTestSupport;
+import org.jline.reader.impl.ReaderTestSupport;
+import org.jline.reader.impl.completer.completer.ArgumentCompleter;
+import org.jline.reader.impl.completer.completer.StringsCompleter;
 import org.junit.Test;
 
 /**

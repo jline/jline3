@@ -15,10 +15,10 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.jline.Console;
-import org.jline.reader.DumbConsole;
-import org.jline.reader.ReaderTestSupport.EofPipedInputStream;
+import org.jline.console.Console;
 import org.jline.reader.Reference;
+import org.jline.reader.impl.DumbConsole;
+import org.jline.reader.impl.ReaderTestSupport.EofPipedInputStream;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -42,7 +42,7 @@ public class BindingReaderTest {
 
         in = new EofPipedInputStream();
         out = new ByteArrayOutputStream();
-        console = new DumbConsole(null, in, out);
+        console = new DumbConsole(in, out);
     }
 
     @Test

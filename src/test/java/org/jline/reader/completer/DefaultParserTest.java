@@ -10,9 +10,9 @@ package org.jline.reader.completer;
 
 import java.util.Arrays;
 
-import org.jline.reader.DefaultParser;
 import org.jline.reader.ParsedLine;
-import org.jline.reader.ReaderTestSupport;
+import org.jline.reader.impl.DefaultParser;
+import org.jline.reader.impl.ReaderTestSupport;
 import org.junit.Before;
 import org.junit.Test;
 

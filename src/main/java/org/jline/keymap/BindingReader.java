@@ -12,7 +12,7 @@ import java.io.IOError;
 import java.io.IOException;
 import java.util.Stack;
 
-import org.jline.Console;
+import org.jline.console.Console;
 import org.jline.utils.NonBlockingReader;
 
 public class BindingReader {

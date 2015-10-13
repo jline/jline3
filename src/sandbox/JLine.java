@@ -15,16 +15,21 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.jline.console.ExternalConsole;
-import org.jline.console.ExecPty;
+import org.jline.console.Console;
+import org.jline.console.impl.ExternalConsole;
+import org.jline.console.impl.ExecPty;
 import org.jline.console.NativePty;
 import org.jline.console.PosixPtyConsole;
-import org.jline.console.PosixSysConsole;
-import org.jline.console.Pty;
-import org.jline.console.WinSysConsole;
-import org.jline.reader.ConsoleReaderImpl;
+import org.jline.console.impl.PosixSysConsole;
+import org.jline.console.impl.Pty;
+import org.jline.console.impl.WinSysConsole;
+import org.jline.reader.Completer;
+import org.jline.reader.ConsoleReader;
+import org.jline.reader.Highlighter;
+import org.jline.reader.History;
+import org.jline.reader.impl.ConsoleReaderImpl;
 import org.jline.reader.Parser;
-import org.jline.reader.history.MemoryHistory;
+import org.jline.reader.impl.history.history.MemoryHistory;
 
 public final class JLine {
 

@@ -15,21 +15,21 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.Map;
 
-import org.jline.Completer;
-import org.jline.Console;
-import org.jline.ConsoleReader;
-import org.jline.JLine;
-import org.jline.JLine.ConsoleBuilder;
+import org.jline.console.Console;
+import org.jline.console.ConsoleBuilder;
 import org.jline.keymap.KeyMap;
-import org.jline.reader.Macro;
-import org.jline.reader.Reference;
-import org.jline.reader.ConsoleReaderImpl;
+import org.jline.reader.Completer;
+import org.jline.reader.ConsoleReader;
+import org.jline.reader.ConsoleReaderBuilder;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.ParsedLine;
+import org.jline.reader.Reference;
 import org.jline.reader.UserInterruptException;
-import org.jline.reader.completer.ArgumentCompleter;
-import org.jline.reader.completer.FileNameCompleter;
-import org.jline.reader.completer.StringsCompleter;
+import org.jline.reader.impl.ConsoleReaderImpl;
+import org.jline.reader.impl.Macro;
+import org.jline.reader.impl.completer.completer.ArgumentCompleter;
+import org.jline.reader.impl.completer.completer.FileNameCompleter;
+import org.jline.reader.impl.completer.completer.StringsCompleter;
 import org.jline.utils.Ansi;
 import org.jline.utils.Ansi.Color;
 import org.jline.utils.InfoCmp.Capability;
@@ -69,7 +69,7 @@ public class Example
             String trigger = null;
             boolean color = false;
 
-            ConsoleBuilder builder = JLine.builder();
+            ConsoleBuilder builder = ConsoleBuilder.builder();
 
             if ((args == null) || (args.length == 0)) {
                 usage();
@@ -154,10 +154,12 @@ public class Example
                 trigger = args[index];
             }
 
-            builder.completer(completer);
-
             Console console = builder.build();
-            ConsoleReader reader = console.newConsoleReader();
+
+            ConsoleReader reader = ConsoleReaderBuilder.builder()
+                    .console(console)
+                    .completer(completer)
+                    .build();
 
             while (true) {
                 String line = null;
@@ -184,7 +186,7 @@ public class Example
                 // If we input the special word then we will mask
                 // the next line.
                 if ((trigger != null) && (line.compareTo(trigger) == 0)) {
-                    line = console.readLine("password> ", mask);
+                    line = reader.readLine("password> ", mask);
                 }
                 if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) {
                     break;
@@ -192,7 +194,7 @@ public class Example
                 ParsedLine pl = ((ConsoleReaderImpl) reader).getParser().parse(line, 0);
                 if ("set".equals(pl.word())) {
                     if (pl.words().size() == 3) {
-                        builder.variable(pl.words().get(1), pl.words().get(2));
+                        reader.setVariable(pl.words().get(1), pl.words().get(2));
                     }
                 }
                 else if ("tput".equals(pl.word())) {
