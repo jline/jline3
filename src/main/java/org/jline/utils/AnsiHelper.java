@@ -49,7 +49,7 @@ public class AnsiHelper {
 
     public static List<String> splitLines(String text, int maxLength, int tabs) {
         try {
-            AnsiSplitterWriter splitter = new AnsiSplitterWriter(maxLength);
+            AnsiSplitterWriter splitter = new AnsiSplitterWriter(0, maxLength, Integer.MAX_VALUE);
             splitter.setTabs(tabs);
             splitter.write(text);
             splitter.close();
