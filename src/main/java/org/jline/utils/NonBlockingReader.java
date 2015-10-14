@@ -155,7 +155,7 @@ public class NonBlockingReader
             if (!threadIsReading) {
                 threadIsReading = true;
                 startReadingThreadIfNeeded();
-                notify();
+                notifyAll();
             }
 
             boolean isInfinite = (timeout <= 0L);
