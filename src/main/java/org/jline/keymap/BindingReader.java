@@ -22,9 +22,8 @@ public class BindingReader {
     protected final Console console;
     protected final StringBuilder opBuffer = new StringBuilder();
     protected final Stack<Integer> pushBackChar = new Stack<>();
-
-    protected Object unicode;
-    protected long ambiguousTimeout;
+    protected final Object unicode;
+    protected final long ambiguousTimeout;
     protected String lastBinding;
 
     public BindingReader(Console console, Object unicode) {
