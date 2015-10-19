@@ -20,9 +20,8 @@ import org.jline.reader.Completer;
 import org.jline.reader.ConsoleReader;
 import org.jline.reader.ConsoleReader.Option;
 import org.jline.reader.ParsedLine;
-import org.jline.reader.impl.ConsoleReaderImpl;
-import org.jline.utils.Ansi;
-import org.jline.utils.Ansi.Color;
+import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.AttributedStyle;
 
 /**
  * A file name completer takes the buffer and issues a list of
@@ -76,10 +75,10 @@ public class FileNameCompleter implements Completer
                 String value = curBuf + p.getFileName().toString();
                 if (Files.isDirectory(p)) {
                     candidates.add(new Candidate(
-                            value + (((ConsoleReaderImpl) reader).isSet(Option.AUTO_PARAM_SLASH) ? "/" : ""),
+                            value + (reader.isSet(Option.AUTO_PARAM_SLASH) ? "/" : ""),
                             getDisplay(p),
                             null, null,
-                            ((ConsoleReaderImpl) reader).isSet(Option.AUTO_REMOVE_SLASH) ? "/" : null,
+                            reader.isSet(Option.AUTO_REMOVE_SLASH) ? "/" : null,
                             null,
                             false));
                 } else {
@@ -107,9 +106,19 @@ public class FileNameCompleter implements Completer
         // TODO: use $LS_COLORS for output
         String name = p.getFileName().toString();
         if (Files.isDirectory(p)) {
-            name = Ansi.ansi().fg(Color.RED).bold(name).fg(Color.DEFAULT).a("/").toString();
+            AttributedStringBuilder sb = new AttributedStringBuilder();
+            sb.style(AttributedStyle.BOLD.foreground(AttributedStyle.RED));
+            sb.append(name);
+            sb.style(AttributedStyle.DEFAULT);
+            sb.append("/");
+            name = sb.toAnsi();
         } else if (Files.isSymbolicLink(p)) {
-            name = Ansi.ansi().fg(Color.RED).bold(name).fg(Color.DEFAULT).a("@").toString();
+            AttributedStringBuilder sb = new AttributedStringBuilder();
+            sb.style(AttributedStyle.BOLD.foreground(AttributedStyle.RED));
+            sb.append(name);
+            sb.style(AttributedStyle.DEFAULT);
+            sb.append("@");
+            name = sb.toAnsi();
         }
         return name;
     }

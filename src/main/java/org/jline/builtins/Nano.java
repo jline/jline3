@@ -48,10 +48,10 @@ import org.jline.console.Console.SignalHandler;
 import org.jline.console.Size;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
+import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.AttributedStyle;
 import org.jline.utils.Display;
-import org.jline.utils.Ansi;
-import org.jline.utils.Ansi.Attribute;
-import org.jline.utils.Ansi.Color;
 import org.jline.utils.InfoCmp.Capability;
 import org.mozilla.universalchardet.UniversalDetector;
 
@@ -60,9 +60,6 @@ import static org.jline.keymap.KeyMap.alt;
 import static org.jline.keymap.KeyMap.ctrl;
 import static org.jline.keymap.KeyMap.del;
 import static org.jline.keymap.KeyMap.key;
-import static org.jline.utils.Ansi.ansi;
-import static org.jline.utils.AnsiHelper.length;
-import static org.jline.utils.AnsiHelper.substring;
 
 public class Nano {
 
@@ -508,7 +505,7 @@ public class Nano {
         }
 
         void ensureCursorVisible() {
-            List<String> header = computeHeader();
+            List<AttributedString> header = computeHeader();
             int rwidth = size.getColumns();
             int height = size.getRows() - header.size() - computeFooter().size();
 
@@ -572,7 +569,7 @@ public class Nano {
             return file != null ? "File: " + file : "New Buffer";
         }
 
-        List<String> computeHeader() {
+        List<AttributedString> computeHeader() {
             String left = Nano.this.getTitle();
             String middle = null;
             String right = dirty ? "Modified" : "        ";
@@ -615,88 +612,86 @@ public class Nano {
             }
 
             int pos = 0;
-            StringBuilder sb = new StringBuilder();
-            Ansi ansi = ansi(sb);
-            ansi.a(Attribute.NEGATIVE_ON);
-            ansi.a("  ");
+            AttributedStringBuilder sb = new AttributedStringBuilder();
+            sb.style(AttributedStyle.INVERSE);
+            sb.append("  ");
             pos += 2;
 
             if (left != null) {
-                ansi.a(left);
+                sb.append(left);
                 pos += left.length();
-                ansi.a(" ");
+                sb.append(" ");
                 pos += 1;
                 for (int i = 1; i < (size.getColumns() - middle.length()) / 2 - left.length() - 1 - 2; i++) {
-                    ansi.a(" ");
+                    sb.append(" ");
                     pos++;
                 }
             }
-            ansi.a(middle);
+            sb.append(middle);
             pos += middle.length();
             while (pos < width - 8 - 2) {
-                ansi.a(" ");
+                sb.append(" ");
                 pos++;
             }
-            ansi.a(right);
-            ansi.a("  ");
-            ansi.a(Attribute.NEGATIVE_OFF);
+            sb.append(right);
+            sb.append("  ");
             if (oneMoreLine) {
-                return Collections.singletonList(ansi.toString());
+                return Collections.singletonList(sb.toAttributedString());
             } else {
-                return Arrays.asList(ansi.toString(), "");
+                return Arrays.asList(sb.toAttributedString(), new AttributedString(""));
             }
         }
 
-        List<String> getDisplayedLines(int nbLines) {
-            String cut = Ansi.ansi().fgBright(Color.BLACK).a("…").fg(Color.DEFAULT).toString();
-            String ret = Ansi.ansi().fgBright(Color.BLACK).a("↩").fg(Color.DEFAULT).toString();
+        List<AttributedString> getDisplayedLines(int nbLines) {
+            AttributedStyle s = AttributedStyle.DEFAULT.foreground(AttributedStyle.BLACK + AttributedStyle.BRIGHT);
+            AttributedString cut = new AttributedString("…", s);
+            AttributedString ret = new AttributedString("↩", s);
 
-            List<String> newLines = new ArrayList<>();
+            List<AttributedString> newLines = new ArrayList<>();
             int rwidth = size.getColumns();
             int width = rwidth - (printLineNumbers ? 8 : 0);
             int curLine = firstLineToDisplay;
             int curOffset = offsetInLineToDisplay;
             int prevLine = -1;
             for (int terminalLine = 0; terminalLine < nbLines; terminalLine++) {
-                String prefix;
+                AttributedStringBuilder line = new AttributedStringBuilder().tabs(tabs);
                 if (printLineNumbers && curLine < lines.size()) {
-                    Ansi pfx = ansi().fgBright(Color.BLACK);
+                    line.style(s);
                     if (curLine != prevLine) {
-                        pfx.format("%7d ", curLine + 1);
+                        line.append(String.format("%7d ", curLine + 1));
                     } else {
-                        pfx.a("      ‧ ");
+                        line.append("      ‧ ");
                     }
-                    pfx.fg(Color.DEFAULT);
-                    prefix = pfx.toString();
+                    line.style(AttributedStyle.DEFAULT);
                     prevLine = curLine;
-                } else {
-                    prefix = "";
                 }
-                String toDisplay;
                 if (curLine >= lines.size()) {
-                    toDisplay = "";
+                    // Nothing to do
                 } else if (firstColumnToDisplay > 0 || !wrapping) {
-                    String line = getLine(curLine);
-                    String rem = substring(line, firstColumnToDisplay, Integer.MAX_VALUE, tabs);
-                    if (length(rem, tabs) >= width) {
-                        toDisplay = substring(rem, 0, width - 1, tabs) + cut;
+                    AttributedString disp = new AttributedString(getLine(curLine));
+                    disp = disp.columnSubSequence(firstColumnToDisplay, Integer.MAX_VALUE);
+                    if (disp.columnLength() >= width) {
+                        line.append(disp.columnSubSequence(0, width - cut.columnLength()));
+                        line.append(cut);
                     } else {
-                        toDisplay = rem;
+                        line.append(disp);
                     }
                     curLine++;
                 } else {
                     Optional<Integer> nextOffset = nextLineOffset(curLine, curOffset);
                     if (nextOffset.isPresent()) {
-                        toDisplay = getLine(curLine).substring(curOffset, nextOffset.get()) + ret;
+                        AttributedString disp = new AttributedString(getLine(curLine));
+                        line.append(disp.columnSubSequence(curOffset, nextOffset.get()));
+                        line.append(ret);
                         curOffset = nextOffset.get();
                     } else {
-                        toDisplay = getLine(curLine).substring(curOffset);
+                        AttributedString disp = new AttributedString(getLine(curLine));
+                        line.append(disp.columnSubSequence(curOffset, Integer.MAX_VALUE));
                         curLine++;
                         curOffset = 0;
                     }
-                    toDisplay = substring(toDisplay, 0, Integer.MAX_VALUE, tabs);
                 }
-                newLines.add(prefix + toDisplay);
+                newLines.add(line.toAttributedString());
             }
             return newLines;
         }
@@ -919,6 +914,10 @@ public class Nano {
             } else {
                 setMessage("Not a bracket");
             }
+        }
+
+        private int length(String line, int tabs) {
+            return new AttributedStringBuilder().tabs(tabs).append(line).columnLength();
         }
     }
 
@@ -1747,11 +1746,11 @@ public class Nano {
             }
         }
 
-        List<String> header = buffer.computeHeader();
-        List<String> footer = computeFooter();
+        List<AttributedString> header = buffer.computeHeader();
+        List<AttributedString> footer = computeFooter();
 
         int nbLines = size.getRows() - header.size() - footer.size();
-        List<String> newLines = buffer.getDisplayedLines(nbLines);
+        List<AttributedString> newLines = buffer.getDisplayedLines(nbLines);
         newLines.addAll(0, header);
         newLines.addAll(footer);
 
@@ -1772,33 +1771,31 @@ public class Nano {
         console.flush();
     }
 
-    protected List<String> computeFooter() {
-        List<String> footer = new ArrayList<>();
+    protected List<AttributedString> computeFooter() {
+        List<AttributedString> footer = new ArrayList<>();
 
         if (editMessage != null) {
-            Ansi ansi = ansi();
-            ansi.a(Attribute.NEGATIVE_ON);
-            ansi.a(editMessage);
-            ansi.a(editBuffer);
+            AttributedStringBuilder sb = new AttributedStringBuilder();
+            sb.style(AttributedStyle.INVERSE);
+            sb.append(editMessage);
+            sb.append(editBuffer);
             for (int i = editMessage.length() + editBuffer.length(); i < size.getColumns(); i++) {
-                ansi.a(' ');
+                sb.append(' ');
             }
-            ansi.a(Attribute.NEGATIVE_OFF);
-            footer.add(ansi.toString());
+            footer.add(sb.toAttributedString());
         } else if (message != null || constantCursor) {
             int rwidth = size.getColumns();
             String text = "[ " + (message == null ? computeCurPos() : message) + " ]";
             int len = text.length();
-            Ansi ansi = ansi();
+            AttributedStringBuilder sb = new AttributedStringBuilder();
             for (int i = 0; i < (rwidth - len) / 2; i++) {
-                ansi.a(' ');
+                sb.append(' ');
             }
-            ansi.a(Attribute.NEGATIVE_ON);
-            ansi.a(text);
-            ansi.a(Attribute.NEGATIVE_OFF);
-            footer.add(ansi.toString());
+            sb.style(AttributedStyle.INVERSE);
+            sb.append(text);
+            footer.add(sb.toAttributedString());
         } else {
-            footer.add("");
+            footer.add(new AttributedString(""));
         }
 
         Iterator<Entry<String, String>> sit = shortcuts.entrySet().iterator();
@@ -1806,30 +1803,28 @@ public class Nano {
         int cw = size.getColumns() / cols;
         int rem = size.getColumns() % cols;
         for (int l = 0; l < 2; l++) {
-            StringBuilder sb = new StringBuilder();
+            AttributedStringBuilder sb = new AttributedStringBuilder();
             for (int c = 0; c < cols; c++) {
-                Ansi ansi = ansi();
                 Map.Entry<String, String> entry = sit.hasNext() ? sit.next() : null;
                 String key = entry != null ? entry.getKey() : "";
                 String val = entry != null ? entry.getValue() : "";
-                ansi.a(Attribute.NEGATIVE_ON);
-                ansi.a(key);
-                ansi.a(Attribute.NEGATIVE_OFF);
-                ansi.a(" ");
+                sb.style(AttributedStyle.INVERSE);
+                sb.append(key);
+                sb.style(AttributedStyle.DEFAULT);
+                sb.append(" ");
                 int nb = cw - key.length() - 1 + (c < rem ? 1 : 0);
                 if (val.length() > nb) {
-                    ansi.a(val.substring(0, nb));
+                    sb.append(val.substring(0, nb));
                 } else {
-                    ansi.a(val);
+                    sb.append(val);
                     if (c < cols - 1) {
                         for (int i = 0; i < nb - val.length(); i++) {
-                            ansi.a(" ");
+                            sb.append(" ");
                         }
                     }
                 }
-                sb.append(ansi.toString());
             }
-            footer.add(sb.toString());
+            footer.add(sb.toAttributedString());
         }
 
         return footer;

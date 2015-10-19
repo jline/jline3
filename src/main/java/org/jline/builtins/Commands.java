@@ -38,7 +38,8 @@ import org.jline.reader.History;
 import org.jline.reader.Reference;
 import org.jline.reader.Widget;
 import org.jline.reader.impl.Macro;
-import org.jline.utils.Ansi;
+import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.AttributedStyle;
 
 public class Commands {
 
@@ -183,13 +184,14 @@ public class Commands {
             return;
         }
         for (int index = history.first(); index <= history.last(); index++) {
-            out.println(
-                    Ansi.ansi()
-                            .a("  ")
-                            .bold(String.format("%3d", index))
-                            .a("  ")
-                            .a(history.get(index))
-                            .toString());
+            AttributedStringBuilder sb = new AttributedStringBuilder();
+            sb.append("  ");
+            sb.style(AttributedStyle.BOLD);
+            sb.append(String.format("%3d", index));
+            sb.style(AttributedStyle.DEFAULT);
+            sb.append("  ");
+            sb.append(history.get(index));
+            out.println(sb.toAnsi());
         }
     }
 

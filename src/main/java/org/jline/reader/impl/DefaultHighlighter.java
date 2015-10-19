@@ -11,14 +11,14 @@ package org.jline.reader.impl;
 import org.jline.reader.ConsoleReader;
 import org.jline.reader.ConsoleReader.RegionType;
 import org.jline.reader.Highlighter;
-import org.jline.utils.Ansi;
-import org.jline.utils.Ansi.Attribute;
+import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.WCWidth;
 
 public class DefaultHighlighter implements Highlighter {
 
     @Override
-    public String highlight(ConsoleReader reader, String buffer) {
+    public AttributedString highlight(ConsoleReader reader, String buffer) {
         int underlineStart = -1;
         int underlineEnd = -1;
         int negativeStart = -1;
@@ -48,34 +48,36 @@ public class DefaultHighlighter implements Highlighter {
             }
         }
 
-        Ansi ansi = new Ansi();
+        AttributedStringBuilder sb = new AttributedStringBuilder();
         for (int i = 0; i < buffer.length(); i++) {
             if (i == underlineStart) {
-                ansi.a(Attribute.UNDERLINE);
+                sb.style(sb.style().underline());
             }
             if (i == negativeStart) {
-                ansi.a(Attribute.NEGATIVE_ON);
+                sb.style(sb.style().inverse());
             }
             char c = buffer.charAt(i);
             if (c == '\t' || c == '\n') {
-                ansi.a(c);
+                sb.append(c);
             } else if (c < 32) {
-                ansi.a(Attribute.NEGATIVE_ON)
-                        .a('^').a((char) (c + '@')).a(Attribute.NEGATIVE_OFF);
+                sb.style(sb.style().inverseNeg())
+                        .append('^')
+                        .append((char) (c + '@'))
+                        .style(sb.style().inverseNeg());
             } else {
                 int w = WCWidth.wcwidth(c);
                 if (w > 0) {
-                    ansi.a(c);
+                    sb.append(c);
                 }
             }
             if (i == underlineEnd) {
-                ansi.a(Attribute.UNDERLINE_OFF);
+                sb.style(sb.style().underlineOff());
             }
             if (i == negativeEnd) {
-                ansi.a(Attribute.NEGATIVE_OFF);
+                sb.style(sb.style().inverseOff());
             }
         }
-        return ansi.toString();
+        return sb.toAttributedString();
     }
 
 }

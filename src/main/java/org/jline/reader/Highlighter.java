@@ -8,7 +8,9 @@
  */
 package org.jline.reader;
 
+import org.jline.utils.AttributedString;
+
 public interface Highlighter {
 
-    String highlight(ConsoleReader reader, String buffer);
+    AttributedString highlight(ConsoleReader reader, String buffer);
 }

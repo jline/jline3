@@ -59,10 +59,9 @@ import org.jline.reader.SyntaxError;
 import org.jline.reader.UserInterruptException;
 import org.jline.reader.Widget;
 import org.jline.reader.impl.history.history.MemoryHistory;
-import org.jline.utils.Ansi;
-import org.jline.utils.Ansi.Attribute;
-import org.jline.utils.Ansi.Color;
-import org.jline.utils.AnsiHelper;
+import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.AttributedStyle;
 import org.jline.utils.Display;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.Levenshtein;
@@ -168,8 +167,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected final Size size = new Size();
 
-    protected String prompt;
-    protected String rightPrompt;
+    protected AttributedString prompt;
+    protected AttributedString rightPrompt;
 
     protected Character mask;
 
@@ -223,7 +222,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     protected State   state = State.DONE;
     protected boolean reading;
 
-    protected Supplier<String> post;
+    protected Supplier<AttributedString> post;
 
     protected Map<String, Widget> builtinWidgets;
     protected Map<String, Widget> widgets;
@@ -457,18 +456,21 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
             display = new Display(console, false);
             display.resize(size.getRows(), size.getColumns());
-            display.setTabWidth(TAB_WIDTH);
 
             // Move into application mode
             console.puts(Capability.keypad_xmit);
             // Make sure we position the cursor on column 0
-            print(Ansi.ansi().bg(Color.DEFAULT).fgBright(Color.BLACK).a("~").fg(Color.DEFAULT).toString());
+            AttributedStringBuilder sb = new AttributedStringBuilder();
+            sb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.BLACK + AttributedStyle.BRIGHT));
+            sb.append("~");
+            sb.style(AttributedStyle.DEFAULT);
             for (int i = 0; i < size.getColumns() - 1; i++) {
-                print(" ");
+                sb.append(" ");
             }
-            console.puts(Capability.carriage_return);
-            print(" ");
-            console.puts(Capability.carriage_return);
+            sb.append(KeyMap.key(console, Capability.carriage_return));
+            sb.append(" ");
+            sb.append(KeyMap.key(console, Capability.carriage_return));
+            print(sb.toAnsi());
 
             setPrompt(prompt);
             setRightPrompt(rightPrompt);
@@ -823,7 +825,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             String name = ((Reference) binding).name();
             w = widgets.get(name);
             if (w == null) {
-                post = () -> "No such widget `" + name + "'";
+                post = () -> new AttributedString("No such widget `" + name + "'");
             }
         }
         return w;
@@ -834,11 +836,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     //
 
     protected void setPrompt(final String prompt) {
-        this.prompt = prompt != null ? prompt : "";
+        this.prompt = AttributedString.fromAnsi(prompt != null ? prompt : "");
     }
 
     protected void setRightPrompt(final String rightPrompt) {
-        this.rightPrompt = rightPrompt != null ? rightPrompt : "";
+        this.rightPrompt = AttributedString.fromAnsi(rightPrompt != null ? rightPrompt : "");
     }
 
     protected void setBuffer(BufferImpl buffer) {
@@ -1884,7 +1886,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             keyMap = keyMaps.get(SAFE);
         }
         while (true) {
-            post = () -> searchPrompt + searchBuffer.toString() + "_";
+            post = () -> new AttributedString(searchPrompt + searchBuffer.toString() + "_");
             redisplay();
             Object b = bindingReader.readBinding(keyMap);
             if (b instanceof Reference) {
@@ -2558,7 +2560,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     public void printSearchStatus(String searchTerm, String match, boolean backward) {
         String searchLabel = backward ? "bck-i-search" : "i-search";
-        post = () -> searchLabel + ": " + searchTerm + "_";
+        post = () -> new AttributedString(searchLabel + ": " + searchTerm + "_");
         setBuffer(match);
         buf.move(match.indexOf(searchTerm) - buf.cursor());
     }
@@ -3112,7 +3114,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected boolean whatCursorPosition() {
         post = () -> {
-            StringBuilder sb = new StringBuilder();
+            AttributedStringBuilder sb = new AttributedStringBuilder();
             if (buf.cursor() < buf.length()) {
                 int c = buf.currChar();
                 sb.append("Char: ");
@@ -3138,16 +3140,16 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             }
             sb.append("   ");
             sb.append("point ");
-            sb.append(buf.cursor() + 1);
+            sb.append(Integer.toString(buf.cursor() + 1));
             sb.append(" of ");
-            sb.append(buf.length() + 1);
+            sb.append(Integer.toString(buf.length() + 1));
             sb.append(" (");
-            sb.append(buf.length() == 0 ? 100 : ((100 * buf.cursor()) / buf.length()));
+            sb.append(Integer.toString(buf.length() == 0 ? 100 : ((100 * buf.cursor()) / buf.length())));
             sb.append("%)");
             sb.append("   ");
             sb.append("column ");
-            sb.append(buf.cursor() - findbol());
-            return sb.toString();
+            sb.append(Integer.toString(buf.cursor() - findbol()));
+            return sb.toAttributedString();
         };
         return true;
     }
@@ -3296,6 +3298,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
         // TODO: support TERM_SHORT, terminal lines < 3
         String buffer = buf.toString();
+        AttributedString attBuf;
         if (mask != null) {
             if (mask == NULL_MASK) {
                 buffer = "";
@@ -3306,31 +3309,50 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 }
                 buffer = sb.toString();
             }
+            attBuf = new AttributedString(buffer);
         } else if (highlighter != null) {
-            buffer = highlighter.highlight(this, buffer);
+            attBuf = highlighter.highlight(this, buffer);
+        } else {
+            attBuf = new AttributedString(buffer);
         }
 
-        List<String> secondaryPrompts = new ArrayList<>();
-        String tNewBuf = insertSecondaryPrompts(buffer, secondaryPrompts);
+        List<AttributedString> secondaryPrompts = new ArrayList<>();
+        AttributedString tNewBuf = insertSecondaryPrompts(attBuf, secondaryPrompts);
+        AttributedStringBuilder full = new AttributedStringBuilder().tabs(TAB_WIDTH);
+        full.append(prompt);
+        full.append(tNewBuf);
+        if (post != null) {
+            full.append("\n");
+            full.append(post.get());
+        }
 
-        List<String> newLines = AnsiHelper.splitLines(prompt + tNewBuf + (post != null ? "\n" + post.get() : ""), size.getColumns(), TAB_WIDTH);
-        List<String> rightPromptLines = rightPrompt.isEmpty() ? Collections.emptyList() : AnsiHelper.splitLines(rightPrompt, size.getColumns(), TAB_WIDTH);
 
+        List<AttributedString> newLines = full.toAttributedString().columnSplitLength(size.getColumns());
+
+        List<AttributedString> rightPromptLines;
+        if (rightPrompt.length() == 0) {
+            rightPromptLines = new ArrayList<>();
+        } else {
+            rightPromptLines = rightPrompt.columnSplitLength(size.getColumns());
+        }
         while (newLines.size() < rightPromptLines.size()) {
-            newLines.add("");
+            newLines.add(new AttributedString(""));
         }
         for (int i = 0; i < rightPromptLines.size(); i++) {
-            String line = rightPromptLines.get(i);
+            AttributedString line = rightPromptLines.get(i);
             newLines.set(i, addRightPrompt(line, newLines.get(i)));
         }
 
         int cursorPos = -1;
         // TODO: buf.upToCursor() does not take into account the mask which could modify the display length
         // TODO: in case of wide chars
-        List<String> promptLines = AnsiHelper.splitLines(prompt + insertSecondaryPrompts(buf.upToCursor(), secondaryPrompts, false), size.getColumns(), TAB_WIDTH);
+        AttributedStringBuilder sb = new AttributedStringBuilder().tabs(TAB_WIDTH);
+        sb.append(prompt);
+        sb.append(insertSecondaryPrompts(new AttributedString(buf.upToCursor()), secondaryPrompts));
+        List<AttributedString> promptLines = sb.columnSplitLength(size.getColumns());
         if (!promptLines.isEmpty()) {
             cursorPos = (promptLines.size() - 1) * size.getColumns()
-                            + display.wcwidth(promptLines.get(promptLines.size() - 1));
+                            + promptLines.get(promptLines.size() - 1).columnLength();
         }
 
         display.update(newLines, cursorPos);
@@ -3342,28 +3364,27 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     private static String SECONDARY_PROMPT = "> ";
 
-    private String insertSecondaryPrompts(String str, List<String> prompts) {
+    private AttributedString insertSecondaryPrompts(AttributedString str, List<AttributedString> prompts) {
         return insertSecondaryPrompts(str, prompts, true);
     }
 
-    private String insertSecondaryPrompts(String str, List<String> prompts, boolean computePrompts) {
+    private AttributedString insertSecondaryPrompts(AttributedString strAtt, List<AttributedString> prompts, boolean computePrompts) {
         checkNotNull(prompts);
-        List<String> strippedLines = AnsiHelper.splitLines(AnsiHelper.strip(str), Integer.MAX_VALUE, TAB_WIDTH);
-        List<String> ansiLines = AnsiHelper.splitLines(str, Integer.MAX_VALUE, TAB_WIDTH);
-        StringBuilder sb = new StringBuilder();
+        List<AttributedString> lines = strAtt.columnSplitLength(Integer.MAX_VALUE);
+        AttributedStringBuilder sb = new AttributedStringBuilder();
         int line = 0;
         if (computePrompts || !isSet(Option.PAD_PROMPTS) || prompts.size() < 2) {
-            StringBuilder buf = new StringBuilder();
-            while (line < strippedLines.size() - 1) {
-                sb.append(ansiLines.get(line)).append("\n");
-                buf.append(strippedLines.get(line)).append("\n");
-                String prompt;
+            AttributedStringBuilder buf = new AttributedStringBuilder();
+            while (line < lines.size() - 1) {
+                sb.append(lines.get(line)).append("\n");
+                buf.append(lines.get(line)).append("\n");
+                AttributedString prompt;
                 if (computePrompts) {
-                    prompt = SECONDARY_PROMPT;
+                    prompt = new AttributedString(SECONDARY_PROMPT);
                     try {
                         parser.parse(buf.toString(), buf.length());
                     } catch (EOFError e) {
-                        prompt = e.getMissing() + SECONDARY_PROMPT;
+                        prompt = new AttributedString(e.getMissing() + SECONDARY_PROMPT);
                     } catch (SyntaxError e) {
                         // Ignore
                     }
@@ -3374,47 +3395,47 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 sb.append(prompt);
                 line++;
             }
-            sb.append(ansiLines.get(line));
-            buf.append(strippedLines.get(line));
+            sb.append(lines.get(line));
+            buf.append(lines.get(line));
         }
         if (isSet(Option.PAD_PROMPTS) && prompts.size() >= 2) {
             if (computePrompts) {
-                int max = prompts.stream().map(String::length).max(Comparator.<Integer>naturalOrder()).get();
-                for (ListIterator<String> it = prompts.listIterator(); it.hasNext(); ) {
-                    String prompt = it.next();
-                    if (prompt.length() < max) {
-                        StringBuilder pb = new StringBuilder(max);
+                int max = prompts.stream().map(AttributedString::columnLength).max(Comparator.<Integer>naturalOrder()).get();
+                for (ListIterator<AttributedString> it = prompts.listIterator(); it.hasNext(); ) {
+                    AttributedString prompt = it.next();
+                    if (prompt.columnLength() < max) {
+                        AttributedStringBuilder pb = new AttributedStringBuilder(max);
                         pb.append(prompt, 0, prompt.length() - SECONDARY_PROMPT.length());
                         while (pb.length() < max - SECONDARY_PROMPT.length()) {
                             pb.append(' ');
                         }
                         pb.append(SECONDARY_PROMPT);
-                        it.set(pb.toString());
+                        it.set(pb.toAttributedString());
                     }
                 }
             }
             sb.setLength(0);
             line = 0;
-            while (line < strippedLines.size() - 1) {
-                sb.append(ansiLines.get(line)).append("\n");
+            while (line < lines.size() - 1) {
+                sb.append(lines.get(line)).append("\n");
                 sb.append(prompts.get(line++));
             }
-            sb.append(ansiLines.get(line));
+            sb.append(lines.get(line));
         }
-        return sb.toString();
+        return sb.toAttributedString();
     }
 
-    private String addRightPrompt(String prompt, String line) {
-        int width = display.wcwidth(prompt);
-        int nb = size.getColumns() - width - display.wcwidth(line) - 3;
+    private AttributedString addRightPrompt(AttributedString prompt, AttributedString line) {
+        int width = prompt.columnLength();
+        int nb = size.getColumns() - width - line.columnLength() - 3;
         if (nb >= 0) {
-            StringBuilder sb = new StringBuilder(size.getColumns());
+            AttributedStringBuilder sb = new AttributedStringBuilder(size.getColumns());
             sb.append(line);
             for (int j = 0; j < nb + 2; j++) {
                 sb.append(' ');
             }
             sb.append(prompt);
-            line = sb.toString();
+            line = sb.toAttributedString();
         }
         return line;
     }
@@ -3511,7 +3532,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 new TreeMap<>(caseInsensitive ? String.CASE_INSENSITIVE_ORDER : null);
         for (Candidate cand : candidates) {
             sortedCandidates
-                    .computeIfAbsent(AnsiHelper.strip(cand.value()), s -> new ArrayList<>())
+                    .computeIfAbsent(AttributedString.fromAnsi(cand.value()).toString(), s -> new ArrayList<>())
                     .add(cand);
         }
 
@@ -3733,12 +3754,12 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
     }
 
-    private class MenuSupport implements Supplier<String> {
+    private class MenuSupport implements Supplier<AttributedString> {
         final List<Candidate> possible;
         int selection;
         int topLine;
         String word;
-        String computed;
+        AttributedString computed;
         int lines;
         int columns;
 
@@ -3849,8 +3870,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
             // Compute displayed prompt
             PostResult pr = computePost(possible, completion(), null);
-            String text = insertSecondaryPrompts(prompt + buf.toString(), new ArrayList<>());
-            int promptLines = AnsiHelper.splitLines(text, size.getColumns(), TAB_WIDTH).size();
+            AttributedString text = insertSecondaryPrompts(AttributedStringBuilder.append(prompt, buf.toString()), new ArrayList<>());
+            int promptLines = text.columnSplitLength(size.getColumns()).size();
             if (pr.lines >= size.getRows() - promptLines) {
                 int displayed = size.getRows() - promptLines - 1;
                 if (pr.selectedLine >= 0) {
@@ -3860,12 +3881,18 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                         topLine = pr.selectedLine - displayed + 1;
                     }
                 }
-                List<String> lines = AnsiHelper.splitLines(pr.post, size.getColumns(), TAB_WIDTH);
-                List<String> sub = new ArrayList<>(lines.subList(topLine, topLine + displayed));
-                sub.add(Ansi.ansi().fg(Color.CYAN).a("rows ")
-                        .a(topLine + 1).a(" to ").a(topLine + displayed)
-                        .a(" of ").a(lines.size()).fg(Color.DEFAULT).toString());
-                computed = String.join("\n", sub);
+                List<AttributedString> lines = pr.post.columnSplitLength(size.getColumns());
+                List<AttributedString> sub = new ArrayList<>(lines.subList(topLine, topLine + displayed));
+                sub.add(new AttributedStringBuilder()
+                        .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.CYAN))
+                        .append("rows ")
+                        .append(Integer.toString(topLine + 1))
+                        .append(" to ")
+                        .append(Integer.toString(topLine + displayed))
+                        .append(" of ")
+                        .append(Integer.toString(lines.size()))
+                        .style(AttributedStyle.DEFAULT).toAttributedString());
+                computed = AttributedString.join(new AttributedString("\n"), sub);
             } else {
                 computed = pr.post;
             }
@@ -3874,7 +3901,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
 
         @Override
-        public String get() {
+        public AttributedString get() {
             return computed;
         }
 
@@ -3959,8 +3986,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         // for confirmation, display the list
         // and redraw the line at the bottom
         mergeCandidates(possible);
-        String text = insertSecondaryPrompts(prompt + buf.toString(), new ArrayList<>());
-        int promptLines = AnsiHelper.splitLines(text, size.getColumns(), TAB_WIDTH).size();
+        AttributedString text = insertSecondaryPrompts(AttributedStringBuilder.append(prompt, buf.toString()), new ArrayList<>());
+        int promptLines = text.columnSplitLength(size.getColumns()).size();
         PostResult postResult = computePost(possible, null, null);
         int lines = postResult.lines;
         int listMax = getInt(LIST_MAX, DEFAULT_LIST_MAX);
@@ -3982,8 +4009,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             }
         }
         post = () -> {
-            String t = insertSecondaryPrompts(prompt + buf.toString(), new ArrayList<>());
-            int pl = AnsiHelper.splitLines(t, size.getColumns(), TAB_WIDTH).size();
+            AttributedString t = insertSecondaryPrompts(AttributedStringBuilder.append(prompt, buf.toString()), new ArrayList<>());
+            int pl = t.columnSplitLength(size.getColumns()).size();
             PostResult pr = computePost(possible, null, null);
             if (pr.lines >= size.getRows() - pl) {
                 post = null;
@@ -3992,20 +4019,20 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 redisplay(false);
                 buf.cursor(oldCursor);
                 println();
-                println(postResult.post);
+                println(postResult.post.toAnsi(console));
                 redrawLine();
-                return "";
+                return new AttributedString("");
             }
             return pr.post;
         };
     }
 
     private static class PostResult {
-        final String post;
+        final AttributedString post;
         final int lines;
         final int selectedLine;
 
-        public PostResult(String post, int lines, int selectedLine) {
+        public PostResult(AttributedString post, int lines, int selectedLine) {
             this.post = post;
             this.lines = lines;
             this.selectedLine = selectedLine;
@@ -4087,25 +4114,24 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             }
         }
         // Build columns
-        Ansi ansi = Ansi.ansi();
+        AttributedStringBuilder sb = new AttributedStringBuilder();
         for (Object list : items) {
-            toColumns(list, width, maxWidth, ansi, selection, out);
+            toColumns(list, width, maxWidth, sb, selection, out);
         }
-        String str = ansi.toString();
-        if (str.endsWith("\n")) {
-            str = str.substring(0, str.length() - 1);
+        if (sb.length() > 0 && sb.charAt(sb.length() - 1) == '\n') {
+            sb.setLength(sb.length() - 1);
         }
-        return new PostResult(str, out[0], out[1]);
+        return new PostResult(sb.toAttributedString(), out[0], out[1]);
     }
 
     @SuppressWarnings("unchecked")
-    protected void toColumns(Object items, int width, int maxWidth, Ansi ansi, Candidate selection, int[] out) {
+    protected void toColumns(Object items, int width, int maxWidth, AttributedStringBuilder sb, Candidate selection, int[] out) {
         // This is a group
         if (items instanceof String) {
-            ansi.fg(Color.CYAN)
-                    .a((String) items)
-                    .fg(Color.DEFAULT)
-                    .a("\n");
+            sb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.CYAN))
+                    .append((String) items)
+                    .style(AttributedStyle.DEFAULT)
+                    .append("\n");
             out[0]++;
         }
         // This is a Candidate list
@@ -4130,53 +4156,55 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                     if (idx < candidates.size()) {
                         Candidate cand = candidates.get(idx);
                         boolean hasRightItem = j < columns - 1 && index.applyAsInt(i, j + 1) < candidates.size();
-                        String left = cand.displ();
-                        String right = cand.descr();
-                        int lw = display.wcwidth(left);
+                        AttributedString left = AttributedString.fromAnsi(cand.displ());
+                        AttributedString right = AttributedString.fromAnsi(cand.descr());
+                        int lw = left.columnLength();
                         int rw = 0;
                         if (right != null) {
                             int rem = maxWidth - (lw + MARGIN_BETWEEN_DISPLAY_AND_DESC
                                     + DESC_PREFIX.length() + DESC_SUFFIX.length());
-                            rw = display.wcwidth(right);
+                            rw = right.columnLength();
                             if (rw > rem) {
-                                right = AnsiHelper.cut(right, rem - WCWidth.wcwidth('…'), 1) + "…";
-                                rw = display.wcwidth(right);
+                                right = AttributedStringBuilder.append(
+                                            right.columnSubSequence(0, rem - WCWidth.wcwidth('…')),
+                                            "…");
+                                rw = right.columnLength();
                             }
-                            right = DESC_PREFIX + right + DESC_SUFFIX;
+                            right = AttributedStringBuilder.append(DESC_PREFIX, right, DESC_SUFFIX);
                             rw += DESC_PREFIX.length() + DESC_SUFFIX.length();
                         }
                         if (cand == selection) {
                             out[1] = i;
-                            ansi.a(Attribute.NEGATIVE_ON);
-                            ansi.a(AnsiHelper.strip(left));
+                            sb.style(AttributedStyle.INVERSE);
+                            sb.append(left);
                             for (int k = 0; k < maxWidth - lw - rw; k++) {
-                                ansi.a(' ');
+                                sb.append(' ');
                             }
                             if (right != null) {
-                                ansi.a(AnsiHelper.strip(right));
+                                sb.append(right);
                             }
-                            ansi.a(Attribute.NEGATIVE_OFF);
+                            sb.style(AttributedStyle.DEFAULT);
                         } else {
-                            ansi.a(left);
+                            sb.append(left);
                             if (right != null || hasRightItem) {
                                 for (int k = 0; k < maxWidth - lw - rw; k++) {
-                                    ansi.a(' ');
+                                    sb.append(' ');
                                 }
                             }
                             if (right != null) {
-                                ansi.fgBright(Color.BLACK);
-                                ansi.a(right);
-                                ansi.fg(Color.DEFAULT);
+                                sb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.BLACK + AttributedStyle.BRIGHT));
+                                sb.append(right);
+                                sb.style(AttributedStyle.DEFAULT);
                             }
                         }
                         if (hasRightItem) {
                             for (int k = 0; k < MARGIN_BETWEEN_COLUMNS; k++) {
-                                ansi.a(' ');
+                                sb.append(' ');
                             }
                         }
                     }
                 }
-                ansi.a('\n');
+                sb.append('\n');
             }
             out[0] += lines;
         }

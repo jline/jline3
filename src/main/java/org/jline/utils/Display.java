@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.jline.console.Console;
 import org.jline.utils.InfoCmp.Capability;
@@ -29,12 +30,11 @@ public class Display {
 
     protected final Console console;
     protected final boolean fullScreen;
-    protected List<String> oldLines = Collections.emptyList();
+    protected List<AttributedString> oldLines = Collections.emptyList();
     protected int cursorPos;
     protected boolean cursorOk;
     protected int columns;
     protected int rows;
-    protected int tabWidth = 4;
     protected boolean reset;
 
     protected final Map<Capability, Integer> cost = new HashMap<>();
@@ -57,12 +57,8 @@ public class Display {
         if (this.rows != rows || this.columns != columns) {
             this.rows = rows;
             this.columns = columns;
-            oldLines = AnsiHelper.splitLines(String.join("\n", oldLines), columns, tabWidth);
+            oldLines = AttributedString.join(new AttributedString("\n"), oldLines).columnSplitLength(columns);
         }
-    }
-
-    public void setTabWidth(int tabWidth) {
-        this.tabWidth = tabWidth;
     }
 
     public void reset() {
@@ -79,10 +75,14 @@ public class Display {
         }
     }
 
+    public void updateAnsi(List<String> newLines, int targetCursorPos) {
+        update(newLines.stream().map(AttributedString::fromAnsi).collect(Collectors.toList()), targetCursorPos);
+    }
+
     /**
      * Update the display according to the new lines
      */
-    public void update(List<String> newLines, int targetCursorPos) {
+    public void update(List<AttributedString> newLines, int targetCursorPos) {
         if (reset) {
             console.puts(Capability.clear_screen);
             oldLines.clear();
@@ -105,8 +105,8 @@ public class Display {
                     && Objects.equals(newLines.get(newLines.size() - nbFooters - 1), oldLines.get(oldLines.size() - nbFooters - 1))) {
                 nbFooters++;
             }
-            List<String> o1 = newLines.subList(nbHeaders, newLines.size() - nbFooters);
-            List<String> o2 = oldLines.subList(nbHeaders, oldLines.size() - nbFooters);
+            List<AttributedString> o1 = newLines.subList(nbHeaders, newLines.size() - nbFooters);
+            List<AttributedString> o2 = oldLines.subList(nbHeaders, oldLines.size() - nbFooters);
             int[] common = longestCommon(o1, o2);
             if (common != null) {
                 int s1 = common[0];
@@ -123,7 +123,7 @@ public class Display {
                         moveVisualCursorTo((nbHeaders + s1 + sl) * columns);
                         insertLines(nb);
                         for (int i = 0; i < nb; i++) {
-                            oldLines.add(nbHeaders + s1 + sl, "");
+                            oldLines.add(nbHeaders + s1 + sl, new AttributedString(""));
                         }
                     }
                 } else if (sl > 1 && s1 > s2) {
@@ -138,7 +138,7 @@ public class Display {
                     moveVisualCursorTo((nbHeaders + s2) * columns);
                     insertLines(nb);
                     for (int i = 0; i < nb; i++) {
-                        oldLines.add(nbHeaders + s2, "");
+                        oldLines.add(nbHeaders + s2, new AttributedString(""));
                     }
                 }
             }
@@ -147,8 +147,8 @@ public class Display {
         int lineIndex = 0;
         int currentPos = 0;
         while (lineIndex < Math.min(oldLines.size(), newLines.size())) {
-            String oldLine = oldLines.get(lineIndex);
-            String newLine = newLines.get(lineIndex);
+            AttributedString oldLine = oldLines.get(lineIndex);
+            AttributedString newLine = newLines.get(lineIndex);
 
             List<DiffHelper.Diff> diffs = DiffHelper.diff(oldLine, newLine);
             boolean ident = true;
@@ -156,7 +156,7 @@ public class Display {
             int curCol = currentPos;
             for (int i = 0; i < diffs.size(); i++) {
                 DiffHelper.Diff diff = diffs.get(i);
-                int width = wcwidth(diff.text, currentPos % columns);
+                int width = diff.text.columnLength();
                 switch (diff.operation) {
                     case EQUAL:
                         if (!ident) {
@@ -182,7 +182,7 @@ public class Display {
                             }
                         } else if (i <= diffs.size() - 2
                                 && diffs.get(i + 1).operation == DiffHelper.Operation.DELETE
-                                && width == wcwidth(diffs.get(i + 1).text, currentPos % columns)) {
+                                && width == diffs.get(i + 1).text.columnLength()) {
                             moveVisualCursorTo(currentPos);
                             rawPrint(diff.text);
                             cursorPos += width;
@@ -207,15 +207,15 @@ public class Display {
                         }
                         if (i <= diffs.size() - 2
                                 && diffs.get(i + 1).operation == DiffHelper.Operation.EQUAL) {
-                            if (currentPos + wcwidth(diffs.get(i + 1).text, currentPos % columns) < columns) {
+                            if (currentPos + diffs.get(i + 1).text.columnLength() < columns) {
                                 moveVisualCursorTo(currentPos);
                                 if (deleteChars(width)) {
                                     break;
                                 }
                             }
                         }
-                        int oldLen = wcwidth(oldLine);
-                        int newLen = wcwidth(newLine);
+                        int oldLen = oldLine.columnLength();
+                        int newLen = newLine.columnLength();
                         int nb = Math.max(oldLen, newLen) - currentPos;
                         moveVisualCursorTo(currentPos);
                         if (!console.puts(Capability.clr_eol)) {
@@ -237,7 +237,7 @@ public class Display {
             if (lineIndex < Math.max(oldLines.size(), newLines.size())) {
                 currentPos = curCol + columns;
             } else {
-                currentPos = curCol + wcwidth(newLine);
+                currentPos = curCol + newLine.columnLength();
             }
         }
         while (lineIndex < Math.max(oldLines.size(), newLines.size())) {
@@ -246,14 +246,14 @@ public class Display {
                 if (console.getStringCapability(Capability.clr_eol) != null) {
                     console.puts(Capability.clr_eol);
                 } else {
-                    int nb = wcwidth(newLines.get(lineIndex));
+                    int nb = newLines.get(lineIndex).columnLength();
                     rawPrint(' ', nb);
                     cursorPos += nb;
                     cursorOk = false;
                 }
             } else {
                 rawPrint(newLines.get(lineIndex));
-                cursorPos += wcwidth(newLines.get(lineIndex));
+                cursorPos += newLines.get(lineIndex).columnLength();
                 cursorOk = false;
             }
             if (!cursorOk && noWrapAtEol && cursorPos == currentPos + columns) {
@@ -332,7 +332,7 @@ public class Display {
         }
     }
 
-    private static int[] longestCommon(List<String> l1, List<String> l2) {
+    private static int[] longestCommon(List<AttributedString> l1, List<AttributedString> l2) {
         int start1 = 0;
         int start2 = 0;
         int max = 0;
@@ -401,56 +401,12 @@ public class Display {
         console.writer().write(c);
     }
 
-    void rawPrint(String str) {
-        console.writer().write(str);
+    void rawPrint(AttributedString str) {
+        console.writer().write(str.toAnsi(console));
     }
 
     public int wcwidth(String str) {
-        return wcwidth(str, 0);
-    }
-
-    int wcwidth(CharSequence str, int pos) {
-        String tr = AnsiHelper.strip(str);
-        return wcwidth(tr, 0, tr.length(), pos);
-    }
-
-    int wcwidth(CharSequence str, int start, int end, int pos) {
-        int cur = pos;
-        for (int i = start; i < end; ) {
-            int ucs;
-            char c1 = str.charAt(i++);
-            if (!Character.isHighSurrogate(c1) || i >= end) {
-                ucs = c1;
-            } else {
-                char c2 = str.charAt(i);
-                if (Character.isLowSurrogate(c2)) {
-                    i++;
-                    ucs = Character.toCodePoint(c1, c2);
-                } else {
-                    ucs = c1;
-                }
-            }
-            cur += wcwidth(ucs, cur);
-        }
-        return cur - pos;
-    }
-
-    int wcwidth(int ucs, int pos) {
-        if (ucs == '\t') {
-            return nextTabStop(pos);
-        } else if (ucs < 32) {
-            return 2;
-        } else {
-            int w = WCWidth.wcwidth(ucs);
-            return w > 0 ? w : 0;
-        }
-    }
-
-    int nextTabStop(int pos) {
-        int width = columns;
-        int mod = (pos + tabWidth - 1) % tabWidth;
-        int npos = pos + tabWidth - mod;
-        return npos < width ? npos - pos : width - pos;
+        return AttributedString.fromAnsi(str).columnLength();
     }
 
 }

@@ -30,8 +30,8 @@ import org.jline.reader.impl.Macro;
 import org.jline.reader.impl.completer.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.completer.FileNameCompleter;
 import org.jline.reader.impl.completer.completer.StringsCompleter;
-import org.jline.utils.Ansi;
-import org.jline.utils.Ansi.Color;
+import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.AttributedStyle;
 import org.jline.utils.InfoCmp.Capability;
 
 import static java.time.temporal.ChronoField.HOUR_OF_DAY;
@@ -124,23 +124,26 @@ public class Example
                         break label;
                     case "color":
                         color = true;
-                        prompt = Ansi.ansi().bg(Color.GREEN).a("foo").reset()
-                                .a("@bar")
-                                .fg(Color.GREEN)
-                                .a("\nbaz")
-                                .reset()
-                                .a("> ").toString();
-                        rightPrompt = Ansi.ansi().fg(Color.RED)
-                                .a(LocalDate.now().format(DateTimeFormatter.ISO_DATE))
-                                .a("\n")
-                                .fgBright(Color.RED)
-                                .a(LocalTime.now().format(new DateTimeFormatterBuilder()
-                                        .appendValue(HOUR_OF_DAY, 2)
-                                        .appendLiteral(':')
-                                        .appendValue(MINUTE_OF_HOUR, 2)
-                                        .toFormatter()))
-                                .reset()
-                                .toString();
+                        prompt = new AttributedStringBuilder()
+                                .style(AttributedStyle.DEFAULT.background(AttributedStyle.GREEN))
+                                .append("foo")
+                                .style(AttributedStyle.DEFAULT)
+                                .append("@bar")
+                                .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN))
+                                .append("\nbaz")
+                                .style(AttributedStyle.DEFAULT)
+                                .append("> ").toAnsi();
+                        rightPrompt = new AttributedStringBuilder()
+                                .style(AttributedStyle.DEFAULT.background(AttributedStyle.RED))
+                                .append(LocalDate.now().format(DateTimeFormatter.ISO_DATE))
+                                .append("\n")
+                                .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.RED | AttributedStyle.BRIGHT))
+                                .append(LocalTime.now().format(new DateTimeFormatterBuilder()
+                                                .appendValue(HOUR_OF_DAY, 2)
+                                                .appendLiteral(':')
+                                                .appendValue(MINUTE_OF_HOUR, 2)
+                                                .toFormatter()))
+                                .toAnsi();
                         completer = new StringsCompleter("\u001B[1mfoo\u001B[0m", "bar", "\u001B[32mbaz\u001B[0m", "foobar");
                         break label;
                     default:
@@ -191,7 +194,7 @@ public class Example
                 if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) {
                     break;
                 }
-                ParsedLine pl = ((ConsoleReaderImpl) reader).getParser().parse(line, 0);
+                ParsedLine pl = reader.getParser().parse(line, 0);
                 if ("set".equals(pl.word())) {
                     if (pl.words().size() == 3) {
                         reader.setVariable(pl.words().get(1), pl.words().get(2));

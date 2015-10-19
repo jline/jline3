@@ -33,10 +33,10 @@ import org.jline.console.Console.SignalHandler;
 import org.jline.console.Size;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
+import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.AttributedStyle;
 import org.jline.utils.Display;
-import org.jline.utils.Ansi;
-import org.jline.utils.Ansi.Attribute;
-import org.jline.utils.AnsiHelper;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.NonBlockingReader;
 
@@ -140,7 +140,7 @@ public class Less {
     protected KeyMap keys;
 
     protected int firstLineInMemory = 0;
-    protected List<String> lines = new ArrayList<>();
+    protected List<AttributedString> lines = new ArrayList<>();
 
     protected int firstLineToDisplay = 0;
     protected int firstColumnToDisplay = 0;
@@ -468,7 +468,7 @@ public class Less {
         Pattern compiled = getPattern();
         if (compiled != null) {
             for (int lineNumber = firstLineToDisplay + 1; ; lineNumber++) {
-                String line = getLine(lineNumber);
+                AttributedString line = getLine(lineNumber);
                 if (line == null) {
                     break;
                 } else if (compiled.matcher(line).find()) {
@@ -485,7 +485,7 @@ public class Less {
         Pattern compiled = getPattern();
         if (compiled != null) {
             for (int lineNumber = firstLineToDisplay - 1; lineNumber >= firstLineInMemory; lineNumber--) {
-                String line = getLine(lineNumber);
+                AttributedString line = getLine(lineNumber);
                 if (line == null) {
                     break;
                 } else if (compiled.matcher(line).find()) {
@@ -526,11 +526,11 @@ public class Less {
             } else {
                 int off = offsetInLine;
                 for (int l = 0; l < height - 1; l++) {
-                    String line = getLine(lastLineToDisplay);
+                    AttributedString line = getLine(lastLineToDisplay);
                     if (line == null) {
                         break;
                     }
-                    if (ansiLength(line) > off + width) {
+                    if (line.columnLength() > off + width) {
                         off += width;
                     } else {
                         off = 0;
@@ -543,8 +543,8 @@ public class Less {
                 return;
             }
 
-            String line = getLine(firstLineToDisplay);
-            if (ansiLength(line) > width + offsetInLine) {
+            AttributedString line = getLine(firstLineToDisplay);
+            if (line.columnLength() > width + offsetInLine) {
                 offsetInLine += width;
             } else {
                 offsetInLine = 0;
@@ -560,8 +560,8 @@ public class Less {
                 offsetInLine = Math.max(0, offsetInLine - width);
             } else if (firstLineInMemory < firstLineToDisplay) {
                 firstLineToDisplay--;
-                String line = getLine(firstLineToDisplay);
-                int length = ansiLength(line);
+                AttributedString line = getLine(firstLineToDisplay);
+                int length = line.columnLength();
                 offsetInLine = length - length % width;
             } else {
                 bof();
@@ -602,59 +602,63 @@ public class Less {
     }
 
     void display() throws IOException {
-        List<String> newLines = new ArrayList<>();
+        List<AttributedString> newLines = new ArrayList<>();
         int width = size.getColumns() - (printLineNumbers ? 8 : 0);
         int height = size.getRows();
         int inputLine = firstLineToDisplay;
-        String curLine = null;
+        AttributedString curLine = null;
         Pattern compiled = getPattern();
         for (int terminalLine = 0; terminalLine < height - 1; terminalLine++) {
             if (curLine == null) {
                 curLine = getLine(inputLine++);
                 if (curLine == null) {
-                    curLine = "";
+                    curLine = new AttributedString("");
                 }
                 if (compiled != null) {
-                    String repl = Ansi.ansi().a(Attribute.NEGATIVE_ON).a("$1").a(Attribute.NEGATIVE_OFF).toString();
-                    curLine = compiled.matcher(curLine).replaceAll(repl);
+                    curLine = curLine.styleMatches(compiled, AttributedStyle.DEFAULT.inverse());
                 }
             }
-            String toDisplay;
+            AttributedString toDisplay;
             if (firstColumnToDisplay > 0 || chopLongLines) {
                 int off = firstColumnToDisplay;
                 if (terminalLine == 0 && offsetInLine > 0) {
                     off = Math.max(offsetInLine, off);
                 }
-                toDisplay = ansiSubstring(curLine, off, off + width);
+                toDisplay = curLine.columnSubSequence(off, off + width);
                 curLine = null;
             } else {
                 if (terminalLine == 0 && offsetInLine > 0) {
-                    curLine = ansiSubstring(curLine, offsetInLine, Integer.MAX_VALUE);
+                    curLine = curLine.columnSubSequence(offsetInLine, Integer.MAX_VALUE);
                 }
-                toDisplay = ansiSubstring(curLine, 0, width);
-                curLine = ansiSubstring(curLine, width, Integer.MAX_VALUE);
+                toDisplay = curLine.columnSubSequence(0, width);
+                curLine = curLine.columnSubSequence(width, Integer.MAX_VALUE);
                 if (curLine.length() == 0) {
                     curLine = null;
                 }
             }
             if (printLineNumbers) {
-                newLines.add(String.format("%7d ", inputLine) + toDisplay);
+                AttributedStringBuilder sb = new AttributedStringBuilder();
+                sb.append(String.format("%7d ", inputLine));
+                sb.append(toDisplay);
+                newLines.add(sb.toAttributedString());
             } else {
                 newLines.add(toDisplay);
             }
         }
-        String msg;
+        AttributedStringBuilder msg = new AttributedStringBuilder();
         if (buffer.length() > 0) {
-            msg = " " + buffer;
+            msg.append(" ").append(buffer);
         } else if (bindingReader.getCurrentBuffer().length() > 0
                 && console.reader().peek(1) != NonBlockingReader.READ_EXPIRED) {
-            msg = " " + printable(bindingReader.getCurrentBuffer());
+            msg.append(" ").append(printable(bindingReader.getCurrentBuffer()));
         } else if (message != null) {
-            msg = Ansi.ansi().a(Attribute.NEGATIVE_ON).a(message).a(Attribute.NEGATIVE_OFF).toString();
+            msg.style(AttributedStyle.INVERSE);
+            msg.append(message);
+            msg.style(AttributedStyle.INVERSE.inverseOff());
         } else {
-            msg = ":";
+            msg.append(":");
         }
-        newLines.add(msg);
+        newLines.add(msg.toAttributedString());
 
         display.resize(size.getRows(), size.getColumns());
         display.update(newLines, -1);
@@ -670,19 +674,11 @@ public class Less {
         return compiled;
     }
 
-    private int ansiLength(String curLine) throws IOException {
-        return AnsiHelper.length(curLine, tabs);
-    }
-
-    private String ansiSubstring(String curLine, int begin, int end) throws IOException {
-        return AnsiHelper.substring(curLine, begin, end, tabs);
-    }
-
-    String getLine(int line) throws IOException {
+    AttributedString getLine(int line) throws IOException {
         while (line >= lines.size()) {
             String str = reader.readLine();
             if (str != null) {
-                lines.add(str);
+                lines.add(AttributedString.fromAnsi(str));
             } else {
                 break;
             }

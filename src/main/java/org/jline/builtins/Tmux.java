@@ -33,10 +33,10 @@ import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.impl.DefaultParser;
+import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.AttributedStyle;
 import org.jline.utils.Display;
-import org.jline.utils.Ansi;
-import org.jline.utils.Ansi.Attribute;
-import org.jline.utils.Ansi.Color;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.InfoCmp.Capability;
 
@@ -370,7 +370,7 @@ public class Tmux {
         //	F:	Foreground
         //	B:	Background
 
-        List<String> lines = new ArrayList<>();
+        List<AttributedString> lines = new ArrayList<>();
         int prevBg = 15;
         int prevFg = 15;
         boolean prevInv = false;
@@ -380,7 +380,7 @@ public class Tmux {
         boolean prevFgBright = false;
         boolean prevBgBright = false;
         for (int y = 0; y < size.getRows(); y++) {
-            Ansi ansi = new Ansi(size.getColumns() * 2);
+            AttributedStringBuilder sb = new AttributedStringBuilder(size.getColumns());
             for (int x = 0; x < size.getColumns(); x++) {
                 int d = screen[y * size.getColumns() + x];
                 int c = d & 0xffff;
@@ -394,65 +394,34 @@ public class Tmux {
                 boolean fgBright = ((a & 0x1000) != 0);
                 boolean bgBright = ((a & 0x2000) != 0);
                 if (bg != prevBg || prevBgBright != bgBright) {
-                    Color col = Color.DEFAULT;
-                    switch (bg) {
-                        case 0: col = Color.BLACK; break;
-                        case 1: col = Color.RED; break;
-                        case 2: col = Color.GREEN; break;
-                        case 3: col = Color.YELLOW; break;
-                        case 4: col = Color.BLUE; break;
-                        case 5: col = Color.MAGENTA; break;
-                        case 6: col = Color.CYAN; break;
-                        case 7: col = Color.WHITE; break;
-                    }
-                    if (bgBright) {
-                        ansi.bgBright(col);
-                    } else {
-                        ansi.bg(col);
-                    }
+                    sb.style(sb.style().background(bg + (bgBright ? AttributedStyle.BRIGHT : 0)));
                     prevBg = bg;
                     prevBgBright = bgBright;
                 }
                 if (fg != prevFg || fgBright != prevFgBright) {
-                    Color col = Color.DEFAULT;
-                    switch (fg) {
-                        case 0: col = Color.BLACK; break;
-                        case 1: col = Color.RED; break;
-                        case 2: col = Color.GREEN; break;
-                        case 3: col = Color.YELLOW; break;
-                        case 4: col = Color.BLUE; break;
-                        case 5: col = Color.MAGENTA; break;
-                        case 6: col = Color.CYAN; break;
-                        case 7: col = Color.WHITE; break;
-                    }
-                    if (fgBright) {
-                        ansi.fgBright(col);
-                    } else {
-                        ansi.fg(col);
-                    }
+                    sb.style(sb.style().foreground(fg + (fgBright ? AttributedStyle.BRIGHT : 0)));
                     prevFg = fg;
                     prevFgBright = fgBright;
                 }
                 if (conceal != prevConceal) {
-                    ansi.a(conceal ? Attribute.CONCEAL_ON : Attribute.CONCEAL_OFF);
+                    sb.style(conceal ? sb.style().conceal() : sb.style().concealOff());
                     prevConceal = conceal;
                 }
                 if (inv != prevInv) {
-                    ansi.a(inv ? Attribute.NEGATIVE_ON : Attribute.NEGATIVE_OFF);
+                    sb.style(conceal ? sb.style().inverse() : sb.style().inverseOff());
                     prevInv = inv;
                 }
                 if (ul != prevUl) {
-                    ansi.a(ul ? Attribute.UNDERLINE : Attribute.UNDERLINE_OFF);
+                    sb.style(conceal ? sb.style().underline() : sb.style().underlineOff());
                     prevUl = ul;
                 }
                 if (bold != prevBold) {
-                    ansi.a(bold ? Attribute.INTENSITY_BOLD : Attribute.INTENSITY_BOLD_OFF);
+                    sb.style(conceal ? sb.style().bold() : sb.style().boldOff());
                     prevBold = bold;
                 }
-                ansi.a((char) c);
+                sb.append((char) c);
             }
-            ansi.reset();
-            lines.add(ansi.toString());
+            lines.add(sb.toAttributedString());
         }
         display.resize(size.getRows(), size.getColumns());
         display.update(lines, cursor[1] * size.getColumns() + cursor[0]);

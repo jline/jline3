@@ -17,7 +17,7 @@ import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
 import org.jline.reader.ConsoleReader;
 import org.jline.reader.ParsedLine;
-import org.jline.utils.AnsiHelper;
+import org.jline.utils.AttributedString;
 
 /**
  * Completer for a set of strings.
@@ -39,7 +39,7 @@ public class StringsCompleter implements Completer
     public StringsCompleter(Iterable<String> strings) {
         assert strings != null;
         for (String string : strings) {
-            candidates.add(new Candidate(AnsiHelper.strip(string), string, null, null, null, null, true));
+            candidates.add(new Candidate(AttributedString.stripAnsi(string), string, null, null, null, null, true));
         }
     }
 
