@@ -28,6 +28,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Function;
@@ -74,7 +75,6 @@ import static org.jline.keymap.KeyMap.del;
 import static org.jline.keymap.KeyMap.esc;
 import static org.jline.keymap.KeyMap.range;
 import static org.jline.keymap.KeyMap.translate;
-import static org.jline.utils.Preconditions.checkNotNull;
 
 /**
  * A reader for console applications. It supports custom tab-completion,
@@ -252,7 +252,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     public ConsoleReaderImpl(Console console, String appName, Map<String, Object> variables) {
-        checkNotNull(console);
+        Objects.requireNonNull(console);
         this.console = console;
         if (appName == null) {
             appName = "JLine";
@@ -327,7 +327,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     //
 
     public void setHistory(final History history) {
-        checkNotNull(history);
+        Objects.requireNonNull(history);
         this.history = history;
     }
 
@@ -3369,7 +3369,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     private AttributedString insertSecondaryPrompts(AttributedString strAtt, List<AttributedString> prompts, boolean computePrompts) {
-        checkNotNull(prompts);
+        Objects.requireNonNull(prompts);
         List<AttributedString> lines = strAtt.columnSplitLength(Integer.MAX_VALUE);
         AttributedStringBuilder sb = new AttributedStringBuilder();
         int line = 0;

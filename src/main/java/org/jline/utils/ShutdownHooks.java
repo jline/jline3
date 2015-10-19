@@ -10,8 +10,7 @@ package org.jline.utils;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.jline.utils.Preconditions.checkNotNull;
+import java.util.Objects;
 
 /**
  * Manages the JLine shutdown-hook thread and tasks to execute on shutdown.
@@ -26,7 +25,7 @@ public final class ShutdownHooks
     private static Thread hook;
 
     public static synchronized <T extends Task> T add(final T task) {
-        checkNotNull(task);
+        Objects.requireNonNull(task);
 
         // Install the hook thread if needed
         if (hook == null) {
@@ -76,7 +75,7 @@ public final class ShutdownHooks
     }
 
     public static synchronized void remove(final Task task) {
-        checkNotNull(task);
+        Objects.requireNonNull(task);
 
         // ignore if hook never installed
         if (hook == null) {

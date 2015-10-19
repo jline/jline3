@@ -16,6 +16,7 @@ import java.io.OutputStreamWriter;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.io.PrintWriter;
+import java.util.Objects;
 
 import org.jline.console.Attributes;
 import org.jline.console.Attributes.ControlChar;
@@ -26,8 +27,6 @@ import org.jline.console.Console;
 import org.jline.console.Size;
 import org.jline.utils.InputStreamReader;
 import org.jline.utils.NonBlockingReader;
-
-import static org.jline.utils.Preconditions.checkNotNull;
 
 /**
  * Abstract console with support for line discipline.
@@ -134,7 +133,7 @@ public class LineDisciplineConsole extends AbstractConsole {
 
    @Override
     public void raise(Signal signal) {
-        checkNotNull(signal);
+       Objects.requireNonNull(signal);
         // Do not call clear() atm as this can cause
         // deadlock between reading / writing threads
         // TODO: any way to fix that ?

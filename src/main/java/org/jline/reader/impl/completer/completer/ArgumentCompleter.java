@@ -14,13 +14,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
 import org.jline.reader.ConsoleReader;
 import org.jline.reader.ParsedLine;
-
-import static org.jline.utils.Preconditions.checkNotNull;
 
 /**
  * A {@link Completer} implementation that invokes a child completer using the appropriate <i>separator</i> argument.
@@ -42,7 +41,7 @@ public class ArgumentCompleter implements Completer
      * @param completers    The embedded completers
      */
     public ArgumentCompleter(final Collection<Completer> completers) {
-        checkNotNull(completers);
+        Objects.requireNonNull(completers);
         this.completers.addAll(completers);
     }
 
@@ -82,8 +81,8 @@ public class ArgumentCompleter implements Completer
     }
 
     public void complete(ConsoleReader reader, ParsedLine line, final List<Candidate> candidates) {
-        checkNotNull(line);
-        checkNotNull(candidates);
+        Objects.requireNonNull(line);
+        Objects.requireNonNull(candidates);
 
         if (line.wordIndex() < 0) {
             return;

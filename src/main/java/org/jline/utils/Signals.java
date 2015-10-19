@@ -11,8 +11,7 @@ package org.jline.utils;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-
-import static org.jline.utils.Preconditions.checkNotNull;
+import java.util.Objects;
 
 /**
  * Signals helpers.
@@ -34,7 +33,7 @@ public final class Signals {
      *         method to unregister the handler
      */
     public static Object register(String name, Runnable handler) {
-        checkNotNull(handler);
+        Objects.requireNonNull(handler);
         return register(name, handler, handler.getClass().getClassLoader());
     }
 

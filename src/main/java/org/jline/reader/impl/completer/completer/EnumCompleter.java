@@ -8,10 +8,10 @@
  */
 package org.jline.reader.impl.completer.completer;
 
+import java.util.Objects;
+
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
-
-import static org.jline.utils.Preconditions.checkNotNull;
 
 /**
  * {@link Completer} for {@link Enum} names.
@@ -22,7 +22,7 @@ import static org.jline.utils.Preconditions.checkNotNull;
 public class EnumCompleter extends StringsCompleter
 {
     public EnumCompleter(Class<? extends Enum<?>> source) {
-        checkNotNull(source);
+        Objects.requireNonNull(source);
         for (Enum<?> n : source.getEnumConstants()) {
             candidates.add(new Candidate(n.name().toLowerCase()));
         }

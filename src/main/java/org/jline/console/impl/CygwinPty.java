@@ -18,6 +18,7 @@ import java.io.OutputStream;
 import java.lang.ProcessBuilder.Redirect;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -31,8 +32,6 @@ import org.jline.console.Size;
 import org.jline.utils.ExecHelper;
 import org.jline.utils.Log;
 import org.jline.utils.OSUtils;
-
-import static org.jline.utils.Preconditions.checkNotNull;
 
 public class CygwinPty implements Pty {
 
@@ -267,7 +266,7 @@ public class CygwinPty implements Pty {
     }
 
     private static String exec(final String... cmd) throws IOException {
-        checkNotNull(cmd);
+        Objects.requireNonNull(cmd);
         try {
             Log.trace("Running: ", cmd);
             Process p = new ProcessBuilder(cmd).redirectInput(Redirect.INHERIT).start();

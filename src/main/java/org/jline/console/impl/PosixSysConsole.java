@@ -15,14 +15,13 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import org.jline.utils.InputStreamReader;
 import org.jline.utils.NonBlockingReader;
 import org.jline.utils.ShutdownHooks;
 import org.jline.utils.ShutdownHooks.Task;
 import org.jline.utils.Signals;
-
-import static org.jline.utils.Preconditions.checkNotNull;
 
 public class PosixSysConsole extends AbstractPosixConsole {
 
@@ -35,7 +34,7 @@ public class PosixSysConsole extends AbstractPosixConsole {
 
     public PosixSysConsole(String name, String type, Pty pty, String encoding, boolean nativeSignals) throws IOException {
         super(name, type, pty);
-        checkNotNull(encoding);
+        Objects.requireNonNull(encoding);
         this.input = pty.getSlaveInput();
         this.output = pty.getSlaveOutput();
         this.reader = new NonBlockingReader(getName(), new InputStreamReader(input, encoding));

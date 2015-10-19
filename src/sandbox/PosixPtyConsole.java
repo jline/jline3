@@ -31,8 +31,8 @@ public class PosixPtyConsole extends AbstractPosixConsole {
 
     public PosixPtyConsole(String type, ConsoleReaderBuilder consoleReaderBuilder, Pty pty, InputStream in, OutputStream out, String encoding) throws IOException {
         super(type, consoleReaderBuilder, pty);
-        checkNotNull(in);
-        checkNotNull(out);
+        Objects.requireNonNull(in);
+        Objects.requireNonNull(out);
         this.reader = new NonBlockingReader(new InputStreamReader(pty.getSlaveInput(), encoding));
         this.writer = new PrintWriter(new OutputStreamWriter(pty.getSlaveOutput(), encoding));
         this.inputPumpThread = new PumpThread(in, getPty().getMasterOutput());

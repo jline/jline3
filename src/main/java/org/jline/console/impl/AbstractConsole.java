@@ -14,6 +14,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.jline.console.Attributes;
@@ -25,8 +26,6 @@ import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.Log;
-
-import static org.jline.utils.Preconditions.checkNotNull;
 
 public abstract class AbstractConsole implements Console {
 
@@ -46,13 +45,13 @@ public abstract class AbstractConsole implements Console {
     }
 
     public SignalHandler handle(Signal signal, SignalHandler handler) {
-        checkNotNull(signal);
-        checkNotNull(handler);
+        Objects.requireNonNull(signal);
+        Objects.requireNonNull(handler);
         return handlers.put(signal, handler);
     }
 
     public void raise(Signal signal) {
-        checkNotNull(signal);
+        Objects.requireNonNull(signal);
         SignalHandler handler = handlers.get(signal);
         if (handler == SignalHandler.SIG_DFL) {
             handleDefaultSignal(signal);

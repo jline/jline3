@@ -2,11 +2,10 @@ package org.jline.console.impl;
 
 import java.io.IOError;
 import java.io.IOException;
+import java.util.Objects;
 
 import org.jline.console.Attributes;
 import org.jline.console.Size;
-
-import static org.jline.utils.Preconditions.checkNotNull;
 
 public abstract class AbstractPosixConsole extends AbstractConsole {
 
@@ -15,7 +14,7 @@ public abstract class AbstractPosixConsole extends AbstractConsole {
 
     public AbstractPosixConsole(String name, String type, Pty pty) throws IOException {
         super(name, type);
-        checkNotNull(pty);
+        Objects.requireNonNull(pty);
         this.pty = pty;
         this.originalAttributes = this.pty.getAttr();
     }

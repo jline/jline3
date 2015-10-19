@@ -11,13 +11,12 @@ package org.jline.reader.impl.completer.completer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
 import org.jline.reader.ConsoleReader;
 import org.jline.reader.ParsedLine;
-
-import static org.jline.utils.Preconditions.checkNotNull;
 
 /**
  * Completer which contains multiple completers and aggregates them together.
@@ -66,8 +65,8 @@ public class AggregateCompleter
      * @see Completer#complete(ConsoleReader, ParsedLine, List)
      */
     public void complete(ConsoleReader reader, final ParsedLine line, final List<Candidate> candidates) {
-        checkNotNull(line);
-        checkNotNull(candidates);
+        Objects.requireNonNull(line);
+        Objects.requireNonNull(candidates);
 
         for (Completer completer : completers) {
             completer.complete(reader, line, candidates);

@@ -8,7 +8,7 @@
  */
 package org.jline.reader;
 
-import static org.jline.utils.Preconditions.checkNotNull;
+import java.util.Objects;
 
 public class Candidate implements Comparable<Candidate> {
 
@@ -25,7 +25,7 @@ public class Candidate implements Comparable<Candidate> {
     }
 
     public Candidate(String value, String displ, String group, String descr, String suffix, String key, boolean complete) {
-        checkNotNull(value);
+        Objects.requireNonNull(value);
         this.value = value;
         this.displ = displ;
         this.group = group;

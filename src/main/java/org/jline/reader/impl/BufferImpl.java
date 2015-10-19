@@ -8,9 +8,9 @@
  */
 package org.jline.reader.impl;
 
-import org.jline.reader.Buffer;
+import java.util.Objects;
 
-import static org.jline.utils.Preconditions.checkNotNull;
+import org.jline.reader.Buffer;
 
 /**
  * A holder for a {@link StringBuilder} that also contains the current cursor position.
@@ -121,12 +121,12 @@ public class BufferImpl implements Buffer
      * Insert the specified chars into the buffer, setting the cursor to the end of the insertion point.
      */
     public void write(CharSequence str) {
-        checkNotNull(str);
+        Objects.requireNonNull(str);
         write(str.codePoints().toArray());
     }
 
     public void write(CharSequence str, boolean overTyping) {
-        checkNotNull(str);
+        Objects.requireNonNull(str);
         int[] ucps = str.codePoints().toArray();
         if (overTyping) {
             delete(ucps.length);

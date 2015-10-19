@@ -18,11 +18,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.Reader;
+import java.util.Objects;
 
 import org.jline.reader.History;
 import org.jline.utils.Log;
-
-import static org.jline.utils.Preconditions.checkNotNull;
 
 /**
  * {@link History} using a file for persistent backing.
@@ -38,7 +37,7 @@ public class FileHistory extends MemoryHistory
     private final File file;
 
     public FileHistory(File file) throws IOException {
-        this.file = checkNotNull(file).getAbsoluteFile();
+        this.file = Objects.requireNonNull(file).getAbsoluteFile();
         load(file);
     }
 
@@ -47,7 +46,7 @@ public class FileHistory extends MemoryHistory
     }
 
     public void load(final File file) throws IOException {
-        checkNotNull(file);
+        Objects.requireNonNull(file);
         if (file.exists()) {
             Log.trace("Loading history from: ", file);
             load(new FileReader(file));
@@ -55,12 +54,12 @@ public class FileHistory extends MemoryHistory
     }
 
     public void load(final InputStream input) throws IOException {
-        checkNotNull(input);
+        Objects.requireNonNull(input);
         load(new InputStreamReader(input));
     }
 
     public void load(final Reader reader) throws IOException {
-        checkNotNull(reader);
+        Objects.requireNonNull(reader);
         BufferedReader input = new BufferedReader(reader);
 
         String item;

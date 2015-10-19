@@ -11,11 +11,10 @@ package org.jline.reader.impl;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 import org.jline.reader.ParsedLine;
 import org.jline.reader.Parser;
-
-import static org.jline.utils.Preconditions.checkNotNull;
 
 public class DefaultParser implements Parser {
 
@@ -193,7 +192,7 @@ public class DefaultParser implements Parser {
 
         public ArgumentList(final String line, final List<String> words, final int wordIndex, final int wordCursor, final int cursor) {
             this.line = line;
-            this.words = Collections.unmodifiableList(checkNotNull(words));
+            this.words = Collections.unmodifiableList(Objects.requireNonNull(words));
             this.wordIndex = wordIndex;
             this.wordCursor = wordCursor;
             this.cursor = cursor;

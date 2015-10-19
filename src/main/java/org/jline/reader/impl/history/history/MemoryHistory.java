@@ -13,10 +13,9 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 
 import org.jline.reader.History;
-
-import static org.jline.utils.Preconditions.checkNotNull;
 
 /**
  * Non-persistent {@link History}.
@@ -115,7 +114,7 @@ public class MemoryHistory
     }
 
     public void add(String item) {
-        checkNotNull(item);
+        Objects.requireNonNull(item);
 
         if (isAutoTrim()) {
             item = String.valueOf(item).trim();
