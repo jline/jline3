@@ -18,6 +18,7 @@ import java.util.Map;
 import org.jline.console.Console;
 import org.jline.console.ConsoleBuilder;
 import org.jline.keymap.KeyMap;
+import org.jline.reader.Binding;
 import org.jline.reader.Completer;
 import org.jline.reader.ConsoleReader;
 import org.jline.reader.ConsoleReaderBuilder;
@@ -213,8 +214,8 @@ public class Example
                 else if ("bindkey".equals(pl.word())) {
                     if (pl.words().size() == 1) {
                         StringBuilder sb = new StringBuilder();
-                        Map<String, Object> bound = ((ConsoleReaderImpl) reader).getKeys().getBoundKeys();
-                        for (Map.Entry<String, Object> entry : bound.entrySet()) {
+                        Map<String, Binding> bound = ((ConsoleReaderImpl) reader).getKeys().getBoundKeys();
+                        for (Map.Entry<String, Binding> entry : bound.entrySet()) {
                             sb.append("\"");
                             entry.getKey().chars().forEachOrdered(c -> {
                                 if (c < 32) {

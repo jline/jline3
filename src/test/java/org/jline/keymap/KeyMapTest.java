@@ -20,6 +20,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.jline.console.Console;
+import org.jline.reader.Binding;
 import org.jline.reader.Reference;
 import org.jline.reader.impl.ConsoleReaderImpl;
 import org.jline.reader.impl.DumbConsole;
@@ -65,7 +66,7 @@ public class KeyMapTest {
 
     @Test
     public void testBound() throws Exception {
-        KeyMap map = new ConsoleReaderImpl(console).emacs();
+        KeyMap<Binding> map = new ConsoleReaderImpl(console).emacs();
 
         Assert.assertEquals(new Reference(COMPLETE_WORD), map.getBound("\u001B\u001B"));
         assertEquals(new Reference(BACKWARD_WORD), map.getBound(alt("b")));
@@ -90,7 +91,7 @@ public class KeyMapTest {
 
     @Test
     public void testRemaining() throws Exception {
-        KeyMap map = new KeyMap();
+        KeyMap<Binding> map = new KeyMap<>();
 
         int[] remaining = new int[1];
         assertNull(map.getBound("ab", remaining));

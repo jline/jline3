@@ -12,6 +12,7 @@ import java.io.ByteArrayInputStream;
 import java.io.StringWriter;
 
 import org.jline.keymap.KeyMap;
+import org.jline.reader.Binding;
 import org.jline.reader.ConsoleReader;
 import org.jline.reader.ConsoleReader.Option;
 import org.jline.reader.History;
@@ -342,11 +343,11 @@ public class ConsoleReaderTest extends ReaderTestSupport
     public void testReadBinding() throws Exception {
         in.setIn(new ByteArrayInputStream(new TestBuffer("abcde").getBytes()));
 
-        KeyMap map = new KeyMap();
+        KeyMap<Binding> map = new KeyMap<>();
         map.bind(new Reference("foo"), "bc");
         map.bind(new Reference("bar"), "e");
 
-        Object b = reader.readBinding(map);
+        Binding b = reader.readBinding(map);
         assertEquals(new Reference("foo"), b);
         assertEquals("bc", reader.getLastBinding());
         b = reader.readBinding(map);

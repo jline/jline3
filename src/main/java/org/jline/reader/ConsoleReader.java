@@ -231,7 +231,7 @@ public interface ConsoleReader {
      */
     String AMBIGUOUS_BINDING = "ambigous-binding";
 
-    Map<String, KeyMap> defaultKeyMaps();
+    Map<String, KeyMap<Binding>> defaultKeyMaps();
 
     enum Option {
         COMPLETE_IN_WORD,
@@ -361,7 +361,7 @@ public interface ConsoleReader {
 
     Highlighter getHighlighter();
 
-    Map<String, KeyMap> getKeyMaps();
+    Map<String, KeyMap<Binding>> getKeyMaps();
 
     ParsedLine getParsedLine();
 

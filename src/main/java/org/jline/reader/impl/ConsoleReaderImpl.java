@@ -46,6 +46,7 @@ import org.jline.console.Console.SignalHandler;
 import org.jline.console.Size;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
+import org.jline.reader.Binding;
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
 import org.jline.reader.ConsoleReader;
@@ -146,7 +147,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     /** The application name */
     protected final String appName;
     /** The console keys mapping */
-    protected final Map<String, KeyMap> keyMaps;
+    protected final Map<String, KeyMap<Binding>> keyMaps;
 
     //
     // Configuration
@@ -267,9 +268,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         builtinWidgets = builtinWidgets();
         widgets = new HashMap<>(builtinWidgets);
-        bindingReader = new BindingReader(console,
-                new Reference(SELF_INSERT),
-                getLong(AMBIGUOUS_BINDING, DEFAULT_AMBIGUOUS_BINDING));
+        bindingReader = new BindingReader(console.reader());
     }
 
     public Console getConsole() {
@@ -280,11 +279,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return appName;
     }
 
-    public Map<String, KeyMap> getKeyMaps() {
+    public Map<String, KeyMap<Binding>> getKeyMaps() {
         return keyMaps;
     }
 
-    public KeyMap getKeys() {
+    public KeyMap<Binding> getKeys() {
         return keyMaps.get(keyMap);
     }
 
@@ -492,11 +491,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
             while (true) {
 
-                KeyMap local = null;
+                KeyMap<Binding> local = null;
                 if (isInViCmdMode() && regionActive != RegionType.NONE) {
                     local = keyMaps.get(VISUAL);
                 }
-                Object o = readBinding(getKeys(), local);
+                Binding o = readBinding(getKeys(), local);
                 if (o == null) {
                     return null;
                 }
@@ -640,12 +639,12 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * @return the decoded binding or <code>null</code> if the end of
      *         stream has been reached
      */
-    public Object readBinding(KeyMap keys) {
+    public Binding readBinding(KeyMap<Binding> keys) {
         return readBinding(keys, null);
     }
 
-    public Object readBinding(KeyMap keys, KeyMap local) {
-        Object o = bindingReader.readBinding(keys, local);
+    public Binding readBinding(KeyMap<Binding> keys, KeyMap<Binding> local) {
+        Binding o = bindingReader.readBinding(keys, local);
         /*
          * The kill ring keeps record of whether or not the
          * previous command was a yank or a kill. We reset
@@ -699,7 +698,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      *    not recognized.
      */
     public boolean setKeyMap(String name) {
-        KeyMap map = keyMaps.get(name);
+        KeyMap<Binding> map = keyMaps.get(name);
         if (map == null) {
             return false;
         }
@@ -1767,9 +1766,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     private int vigetkey() {
         int ch = readCharacter();
-        KeyMap km = keyMaps.get(MAIN);
+        KeyMap<Binding> km = keyMaps.get(MAIN);
         if (km != null) {
-            Object b = km.getBound(new String(Character.toChars(ch)));
+            Binding b = km.getBound(new String(Character.toChars(ch)));
             if (b instanceof Reference) {
                 String func = ((Reference) b).name();
                 if (SEND_BREAK.equals(func)) {
@@ -1881,14 +1880,14 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         String searchPrompt = searchDir < 0 ? "?" : "/";
         BufferImpl searchBuffer = new BufferImpl();
 
-        KeyMap keyMap = keyMaps.get(MAIN);
+        KeyMap<Binding> keyMap = keyMaps.get(MAIN);
         if (keyMap == null) {
             keyMap = keyMaps.get(SAFE);
         }
         while (true) {
             post = () -> new AttributedString(searchPrompt + searchBuffer.toString() + "_");
             redisplay();
-            Object b = bindingReader.readBinding(keyMap);
+            Binding b = bindingReader.readBinding(keyMap);
             if (b instanceof Reference) {
                 String func = ((Reference) b).name();
                 switch (func) {
@@ -2168,7 +2167,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected boolean viDelete() {
         int cursorStart = buf.cursor();
-        Object o = readBinding(getKeys());
+        Binding o = readBinding(getKeys());
         if (o instanceof Reference) {
             // TODO: be smarter on how to get the vi range
             String op = viDeleteChangeYankToRemap(((Reference) o).name());
@@ -2196,7 +2195,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected boolean viYankTo() {
         int cursorStart = buf.cursor();
-        Object o = readBinding(getKeys());
+        Binding o = readBinding(getKeys());
         if (o instanceof Reference) {
             // TODO: be smarter on how to get the vi range
             String op = viDeleteChangeYankToRemap(((Reference) o).name());
@@ -2221,7 +2220,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected boolean viChange() {
         int cursorStart = buf.cursor();
-        Object o = readBinding(getKeys());
+        Binding o = readBinding(getKeys());
         if (o instanceof Reference) {
             // TODO: be smarter on how to get the vi range
             String op = viDeleteChangeYankToRemap(((Reference) o).name());
@@ -2321,13 +2320,13 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         redisplay();
 
-        KeyMap terminators = new KeyMap();
+        KeyMap<Binding> terminators = new KeyMap<>();
         getString(SEARCH_TERMINATORS, DEFAULT_SEARCH_TERMINATORS)
                 .codePoints().forEach(c -> bind(terminators, ACCEPT_LINE, new String(Character.toChars(c))));
 
         try {
             while (true) {
-                Object o = readBinding(getKeys(), terminators);
+                Binding o = readBinding(getKeys(), terminators);
                 if (new Reference(SEND_BREAK).equals(o)) {
                     buf.setBuffer(originalBuffer);
                     return true;
@@ -3622,7 +3621,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             }
             if (completion.suffix() != null) {
                 redisplay();
-                Object op = readBinding(getKeys());
+                Binding op = readBinding(getKeys());
                 if (op != null) {
                     String chars = getString(REMOVE_SUFFIX_CHARS, DEFAULT_REMOVE_SUFFIX_CHARS);
                     String ref = op instanceof Reference ? ((Reference) op).name() : null;
@@ -3744,8 +3743,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected boolean nextBindingIsComplete() {
         redisplay();
-        KeyMap keyMap = keyMaps.get(MENU);
-        Object operation = readBinding(getKeys(), keyMap);
+        KeyMap<Binding> keyMap = keyMaps.get(MENU);
+        Binding operation = readBinding(getKeys(), keyMap);
         if (operation instanceof Reference && MENU_COMPLETE.equals(((Reference) operation).name())) {
             return true;
         } else {
@@ -3920,8 +3919,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         // Loop
         console.puts(Capability.keypad_xmit);
-        KeyMap keyMap = keyMaps.get(MENU);
-        Object operation;
+        KeyMap<Binding> keyMap = keyMaps.get(MENU);
+        Binding operation;
         while ((operation = readBinding(getKeys(), keyMap)) != null) {
             String ref = (operation instanceof Reference) ? ((Reference) operation).name() : "";
             switch (ref) {
@@ -4659,8 +4658,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     @Override
-    public Map<String, KeyMap> defaultKeyMaps() {
-        Map<String, KeyMap> keyMaps = new HashMap<>();
+    public Map<String, KeyMap<Binding>> defaultKeyMaps() {
+        Map<String, KeyMap<Binding>> keyMaps = new HashMap<>();
         keyMaps.put(EMACS, emacs());
         keyMaps.put(VICMD, viCmd());
         keyMaps.put(VIINS, viInsertion());
@@ -4673,13 +4672,18 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             bindConsoleChars(keyMaps.get(EMACS), attr);
             bindConsoleChars(keyMaps.get(VIINS), attr);
         }
+        // Put default
+        for (KeyMap<Binding> keyMap : keyMaps.values()) {
+            keyMap.setUnicode(new Reference(SELF_INSERT));
+            keyMap.setAmbigousTimeout(getLong(AMBIGUOUS_BINDING, DEFAULT_AMBIGUOUS_BINDING));
+        }
         // By default, link main to emacs
         keyMaps.put(MAIN, keyMaps.get(EMACS));
         return keyMaps;
     }
 
-    public KeyMap emacs() {
-        KeyMap emacs = new KeyMap();
+    public KeyMap<Binding> emacs() {
+        KeyMap<Binding> emacs = new KeyMap<>();
         bind(emacs, SET_MARK_COMMAND,                       ctrl('@'));
         bind(emacs, BEGINNING_OF_LINE,                      ctrl('A'));
         bind(emacs, BACKWARD_CHAR,                          ctrl('B'));
@@ -4750,8 +4754,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return emacs;
     }
 
-    public KeyMap viInsertion() {
-        KeyMap viins = new KeyMap();
+    public KeyMap<Binding> viInsertion() {
+        KeyMap<Binding> viins = new KeyMap<>();
         bind(viins, SELF_INSERT,                            range("^@-^_"));
         bind(viins, LIST_CHOICES,                           ctrl('D'));
         bind(viins, SEND_BREAK,                             ctrl('G'));
@@ -4782,8 +4786,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return viins;
     }
 
-    public KeyMap viCmd() {
-        KeyMap vicmd = new KeyMap();
+    public KeyMap<Binding> viCmd() {
+        KeyMap<Binding> vicmd = new KeyMap<>();
         bind(vicmd, LIST_CHOICES,                           ctrl('D'));
         bind(vicmd, EMACS_EDITING_MODE,                     ctrl('E'));
         bind(vicmd, SEND_BREAK,                             ctrl('G'));
@@ -4895,8 +4899,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return vicmd;
     }
 
-    public KeyMap menu() {
-        KeyMap menu = new KeyMap();
+    public KeyMap<Binding> menu() {
+        KeyMap<Binding> menu = new KeyMap<>();
         bind(menu, MENU_COMPLETE,                     "\t");
         bind(menu, REVERSE_MENU_COMPLETE,             key(Capability.back_tab));
         bind(menu, ACCEPT_LINE,                       "\r", "\n");
@@ -4904,16 +4908,16 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return menu;
     }
 
-    public KeyMap safe() {
-        KeyMap safe = new KeyMap();
+    public KeyMap<Binding> safe() {
+        KeyMap<Binding> safe = new KeyMap<>();
         bind(safe, SELF_INSERT,                 range("^@-^?"));
         bind(safe, ACCEPT_LINE,                 "\r", "\n");
         bind(safe, SEND_BREAK,                  ctrl('G'));
         return safe;
     }
 
-    public KeyMap visual() {
-        KeyMap visual = new KeyMap();
+    public KeyMap<Binding> visual() {
+        KeyMap<Binding> visual = new KeyMap<>();
         bind(visual, UP_LINE,                   key(Capability.key_up),     "k");
         bind(visual, DOWN_LINE,                 key(Capability.key_down),   "j");
         bind(visual, this::deactivateRegion,    esc());
@@ -4924,23 +4928,23 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return visual;
     }
 
-    public KeyMap viOpp() {
-        KeyMap viOpp = new KeyMap();
+    public KeyMap<Binding> viOpp() {
+        KeyMap<Binding> viOpp = new KeyMap<>();
         bind(viOpp, UP_LINE,                    key(Capability.key_up),     "k");
         bind(viOpp, DOWN_LINE,                  key(Capability.key_down),   "j");
         bind(viOpp, VI_CMD_MODE,                esc());
         return viOpp;
     }
 
-    private void bind(KeyMap map, String widget, Iterable<? extends CharSequence> keySeqs) {
+    private void bind(KeyMap<Binding> map, String widget, Iterable<? extends CharSequence> keySeqs) {
         map.bind(new Reference(widget), keySeqs);
     }
 
-    private void bind(KeyMap map, String widget, CharSequence... keySeqs) {
+    private void bind(KeyMap<Binding> map, String widget, CharSequence... keySeqs) {
         map.bind(new Reference(widget), keySeqs);
     }
 
-    private void bind(KeyMap map, Widget widget, CharSequence... keySeqs) {
+    private void bind(KeyMap<Binding> map, Widget widget, CharSequence... keySeqs) {
         map.bind(widget, keySeqs);
     }
 
@@ -4948,7 +4952,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         return KeyMap.key(console, capability);
     }
 
-    private void bindArrowKeys(KeyMap map) {
+    private void bindArrowKeys(KeyMap<Binding> map) {
         bind(map, UP_LINE_OR_HISTORY,   key(Capability.key_up));
         bind(map, DOWN_LINE_OR_HISTORY, key(Capability.key_down));
         bind(map, BACKWARD_CHAR,        key(Capability.key_left));
@@ -4964,7 +4968,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * Bind special chars defined by the console instead of
      * the default bindings
      */
-    private void bindConsoleChars(KeyMap keyMap, Attributes attr) {
+    private void bindConsoleChars(KeyMap<Binding> keyMap, Attributes attr) {
         if (attr != null) {
             rebind(keyMap, BACKWARD_DELETE_CHAR,
                     del(), (char) attr.getControlChar(ControlChar.VERASE));
@@ -4977,7 +4981,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         }
     }
 
-    private void rebind(KeyMap keyMap, String operation, String prevBinding, char newBinding) {
+    private void rebind(KeyMap<Binding> keyMap, String operation, String prevBinding, char newBinding) {
         if (newBinding > 0 && newBinding < 128) {
             Reference ref = new Reference(operation);
             bind(keyMap, SELF_INSERT, prevBinding);

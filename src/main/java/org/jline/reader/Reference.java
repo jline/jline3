@@ -11,7 +11,7 @@ package org.jline.reader;
 /**
  * A reference to a {@link Widget}.
  */
-public class Reference {
+public class Reference implements Binding {
 
     private final String name;
 

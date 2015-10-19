@@ -137,7 +137,7 @@ public class Less {
     protected List<Source> sources;
     protected int sourceIdx;
     protected BufferedReader reader;
-    protected KeyMap keys;
+    protected KeyMap<Operation> keys;
 
     protected int firstLineInMemory = 0;
     protected List<AttributedString> lines = new ArrayList<>();
@@ -164,7 +164,7 @@ public class Less {
     public Less(Console console) {
         this.console = console;
         this.display = new Display(console, true);
-        this.bindingReader = new BindingReader(console, null);
+        this.bindingReader = new BindingReader(console.reader());
     }
 
     public void handle(Signal signal) {
@@ -196,7 +196,7 @@ public class Less {
             try {
                 window = size.getRows() - 1;
                 halfWindow = window / 2;
-                keys = new KeyMap();
+                keys = new KeyMap<>();
                 bindKeys(keys);
 
                 // Use alternate buffer
@@ -701,7 +701,7 @@ public class Less {
         }
     }
 
-    private void bindKeys(KeyMap map) {
+    private void bindKeys(KeyMap<Operation> map) {
         map.bind(Operation.HELP, "h", "H");
         map.bind(Operation.EXIT, "q", ":q", "Q", ":Q", "ZZ");
         map.bind(Operation.FORWARD_ONE_LINE, "e", ctrl('E'), "j", ctrl('N'), "\r", key(console, Capability.key_down));

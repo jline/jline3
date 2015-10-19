@@ -71,7 +71,7 @@ public class Nano {
     protected final Path root;
 
     // Keys
-    protected KeyMap keys;
+    protected KeyMap<Operation> keys;
 
     // Configuration
     public String title = "JLine Nano 3.0.0";
@@ -929,7 +929,7 @@ public class Nano {
         this.console = console;
         this.root = root;
         this.display = new Display(console, true);
-        this.bindingReader = new BindingReader(console, Operation.INSERT);
+        this.bindingReader = new BindingReader(console.reader());
         this.size = new Size();
         bindKeys();
     }
@@ -1099,7 +1099,8 @@ public class Nano {
     }
 
     boolean write() throws IOException {
-        KeyMap writeKeyMap = new KeyMap();
+        KeyMap<Operation> writeKeyMap = new KeyMap<>();
+        writeKeyMap.setUnicode(Operation.INSERT);
         for (char i = 32; i < 256; i++) {
             writeKeyMap.bind(Operation.INSERT, Character.toString(i));
         }
@@ -1167,13 +1168,13 @@ public class Nano {
         }
     }
 
-    private Operation readOperation(KeyMap keymap) {
+    private Operation readOperation(KeyMap<Operation> keymap) {
         while (true) {
-            Object op = bindingReader.readBinding(keymap);
+            Operation op = bindingReader.readBinding(keymap);
             if (op == Operation.DO_LOWER_CASE) {
                 bindingReader.runMacro(bindingReader.getLastBinding().toLowerCase());
-            } else if (op instanceof Operation) {
-                return (Operation) op;
+            } else {
+                return op;
             }
         }
     }
@@ -1243,7 +1244,7 @@ public class Nano {
         try {
             editMessage = message;
             editBuffer.setLength(0);
-            KeyMap yncKeyMap = new KeyMap();
+            KeyMap<Operation> yncKeyMap = new KeyMap<>();
             yncKeyMap.bind(Operation.YES, "y", "Y");
             yncKeyMap.bind(Operation.NO, "n", "N");
             yncKeyMap.bind(Operation.CANCEL, ctrl('C'));
@@ -1292,7 +1293,8 @@ public class Nano {
     }
 
     void read() {
-        KeyMap readKeyMap = new KeyMap();
+        KeyMap<Operation> readKeyMap = new KeyMap<>();
+        readKeyMap.setUnicode(Operation.INSERT);
         for (char i = 32; i < 256; i++) {
             readKeyMap.bind(Operation.INSERT, Character.toString(i));
         }
@@ -1504,7 +1506,8 @@ public class Nano {
     }
 
     void search() throws IOException {
-        KeyMap searchKeyMap = new KeyMap();
+        KeyMap<Operation> searchKeyMap = new KeyMap<>();
+        searchKeyMap.setUnicode(Operation.INSERT);
         searchKeyMap.bind(Operation.CASE_SENSITIVE, alt('c'));
         searchKeyMap.bind(Operation.BACKWARDS, alt('b'));
         searchKeyMap.bind(Operation.REGEXP, alt('r'));
@@ -1839,7 +1842,8 @@ public class Nano {
     }
 
     protected void bindKeys() {
-        keys = new KeyMap();
+        keys = new KeyMap<>();
+        keys.setUnicode(Operation.INSERT);
 
         for (char i = 32; i < KEYMAP_LENGTH; i++) {
             keys.bind(Operation.INSERT, Character.toString(i));

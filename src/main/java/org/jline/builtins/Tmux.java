@@ -67,7 +67,7 @@ public class Tmux {
     private final AtomicInteger paneId = new AtomicInteger();
 
     private final Map<String, String> serverOptions = new HashMap<>();
-    private final KeyMap keyMap = new KeyMap();
+    private final KeyMap<Object> keyMap = new KeyMap<>();
 
     private static final Object UNMAPPED = new Object();
 
@@ -84,6 +84,7 @@ public class Tmux {
         term = (colors != null && colors >= 256) ? "screen-256color" : "screen";
         // Setup defaults bindings
         serverOptions.put(OPT_PREFIX, "`");
+        keyMap.setUnicode(UNMAPPED);
         keyMap.bind(UNMAPPED, KeyMap.range("^@-^?"));
         keyMap.bind(CMD_SEND_PREFIX, serverOptions.get(OPT_PREFIX));
         keyMap.bind(CMD_SEND_PREFIX, serverOptions.get(OPT_PREFIX));
@@ -155,7 +156,7 @@ public class Tmux {
                 String pfx = serverOptions.get(OPT_PREFIX);
                 if (pfx != null && c == pfx.charAt(0)) {
                     // escape sequences
-                    Object b = new BindingReader(console, UNMAPPED).readBinding(keyMap);
+                    Object b = new BindingReader(console.reader()).readBinding(keyMap);
                     if (b instanceof String) {
                         ByteArrayOutputStream out = new ByteArrayOutputStream();
                         ByteArrayOutputStream err = new ByteArrayOutputStream();

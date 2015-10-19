@@ -8,7 +8,9 @@
  */
 package org.jline.reader.impl;
 
-public class Macro {
+import org.jline.reader.Binding;
+
+public class Macro implements Binding {
 
     private final String sequence;
 

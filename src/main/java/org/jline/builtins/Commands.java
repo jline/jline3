@@ -32,6 +32,7 @@ import org.jline.builtins.Less.StdInSource;
 import org.jline.builtins.Less.URLSource;
 import org.jline.console.Console;
 import org.jline.keymap.KeyMap;
+import org.jline.reader.Binding;
 import org.jline.reader.ConsoleReader;
 import org.jline.reader.ConsoleReader.Option;
 import org.jline.reader.History;
@@ -366,7 +367,7 @@ public class Commands {
             return;
         }
 
-        Map<String, KeyMap> keyMaps = reader.getKeyMaps();
+        Map<String, KeyMap<Binding>> keyMaps = reader.getKeyMaps();
 
         int actions = (opt.isSet("N") ? 1 : 0)
                 + (opt.isSet("d") ? 1 : 0)
@@ -384,7 +385,7 @@ public class Commands {
             // TODO: handle commands
             if (opt.args().size() > 0) {
                 for (String arg : opt.args()) {
-                    KeyMap map = keyMaps.get(arg);
+                    KeyMap<Binding> map = keyMaps.get(arg);
                     if (map == null) {
                         err.println("keymap: no such keymap: `" + arg + "'");
                     } else {
@@ -408,7 +409,7 @@ public class Commands {
                 err.println("keymap: too many arguments for -N");
                 return;
             }
-            KeyMap org = null;
+            KeyMap<Binding> org = null;
             if (opt.args().size() == 2) {
                 org = keyMaps.get(opt.args().get(1));
                 if (org == null) {
@@ -416,9 +417,9 @@ public class Commands {
                     return;
                 }
             }
-            KeyMap map = new KeyMap();
+            KeyMap<Binding> map = new KeyMap<>();
             if (org != null) {
-                for (Map.Entry<String, Object> bound : org.getBoundKeys().entrySet()) {
+                for (Map.Entry<String, Binding> bound : org.getBoundKeys().entrySet()) {
                     map.bind(bound.getValue(), bound.getKey());
                 }
             }
@@ -437,7 +438,7 @@ public class Commands {
                 err.println("keymap: too many arguments for -A");
                 return;
             }
-            KeyMap org = keyMaps.get(opt.args().get(0));
+            KeyMap<Binding> org = keyMaps.get(opt.args().get(0));
             if (org == null) {
                 err.println("keymap: no such keymap `" + opt.args().get(0) + "'");
                 return;
@@ -495,7 +496,7 @@ public class Commands {
                 }
                 keyMapName = opt.args().remove(0);
             }
-            KeyMap map = keyMaps.get(keyMapName);
+            KeyMap<Binding> map = keyMaps.get(keyMapName);
             if (map == null) {
                 err.println("keymap: no such keymap `" + keyMapName + "'");
                 return;
@@ -504,7 +505,7 @@ public class Commands {
             boolean range = opt.isSet("R");
             boolean prefix = opt.isSet("p");
             Set<String> toRemove = new HashSet<>();
-            Map<String, Object> bound = map.getBoundKeys();
+            Map<String, Binding> bound = map.getBoundKeys();
             for (String arg : opt.args()) {
                 if (range) {
                     Collection<String> r = KeyMap.range(opt.args().get(0));
@@ -553,7 +554,7 @@ public class Commands {
                 }
                 keyMapName = opt.args().remove(0);
             }
-            KeyMap map = keyMaps.get(keyMapName);
+            KeyMap<Binding> map = keyMaps.get(keyMapName);
             if (map == null) {
                 err.println("keymap: no such keymap `" + keyMapName + "'");
                 return;
@@ -565,7 +566,7 @@ public class Commands {
                 return;
             }
             for (int i = 0; i < opt.args().size(); i += 2) {
-                Object bout = opt.isSet("s")
+                Binding bout = opt.isSet("s")
                         ? new Macro(KeyMap.translate(opt.args().get(i + 1)))
                         : new Reference(opt.args().get(i + 1));
                 if (range) {
@@ -607,7 +608,7 @@ public class Commands {
                 }
                 keyMapName = opt.args().remove(0);
             }
-            KeyMap map = keyMaps.get(keyMapName);
+            KeyMap<Binding> map = keyMaps.get(keyMapName);
             if (map == null) {
                 err.println("keymap: no such keymap `" + keyMapName + "'");
                 return;
@@ -620,13 +621,13 @@ public class Commands {
                 return;
             }
             if (opt.args().size() > 0 || !opt.isSet("e") && !opt.isSet("v")) {
-                Map<String, Object> bound = map.getBoundKeys();
+                Map<String, Binding> bound = map.getBoundKeys();
                 String seq = opt.args().size() > 0 ? KeyMap.translate(opt.args().get(0)) : null;
-                Map.Entry<String, Object> begin = null;
+                Map.Entry<String, Binding> begin = null;
                 String last = null;
-                Iterator<Entry<String, Object>> iterator = bound.entrySet().iterator();
+                Iterator<Entry<String, Binding>> iterator = bound.entrySet().iterator();
                 while (iterator.hasNext()) {
-                    Map.Entry<String, Object> entry = iterator.next();
+                    Map.Entry<String, Binding> entry = iterator.next();
                     String key = entry.getKey();
                     if (seq == null
                             || prefix && key.startsWith(seq) && !key.equals(seq)

@@ -9,6 +9,7 @@
 package org.jline.reader.history;
 
 import org.jline.keymap.KeyMap;
+import org.jline.reader.Binding;
 import org.jline.reader.Reference;
 import org.jline.reader.impl.ReaderTestSupport;
 import org.junit.Test;
@@ -85,7 +86,7 @@ public class HistoryTest
 
     @Test
     public void testHistorySearchBackwardAndForward() throws Exception {
-        KeyMap map = reader.getKeys();
+        KeyMap<Binding> map = reader.getKeys();
 
         // Map in HISTORY_SEARCH_BACKWARD.
         map.bind(new Reference(HISTORY_SEARCH_BACKWARD), "\033[0A");
