@@ -16,13 +16,13 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 
-import org.jline.console.Attributes;
-import org.jline.console.Attributes.ControlChar;
-import org.jline.console.Size;
-import org.jline.console.impl.AbstractConsole;
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Attributes.ControlChar;
+import org.jline.terminal.Size;
+import org.jline.terminal.impl.AbstractTerminal;
 import org.jline.utils.NonBlockingReader;
 
-public class DumbConsole extends AbstractConsole {
+public class DumbTerminal extends AbstractTerminal {
     private final InputStream input;
     private final OutputStream output;
     private final NonBlockingReader reader;
@@ -30,7 +30,7 @@ public class DumbConsole extends AbstractConsole {
     private final Attributes attributes;
     private final Size size;
 
-    public DumbConsole(InputStream in, OutputStream out) throws IOException {
+    public DumbTerminal(InputStream in, OutputStream out) throws IOException {
         super("dumb", "ansi");
         this.input = in;
         this.output = out;

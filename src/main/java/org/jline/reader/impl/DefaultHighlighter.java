@@ -8,8 +8,8 @@
  */
 package org.jline.reader.impl;
 
-import org.jline.reader.ConsoleReader;
-import org.jline.reader.ConsoleReader.RegionType;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReader.RegionType;
 import org.jline.reader.Highlighter;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
@@ -18,7 +18,7 @@ import org.jline.utils.WCWidth;
 public class DefaultHighlighter implements Highlighter {
 
     @Override
-    public AttributedString highlight(ConsoleReader reader, String buffer) {
+    public AttributedString highlight(LineReader reader, String buffer) {
         int underlineStart = -1;
         int underlineEnd = -1;
         int negativeStart = -1;

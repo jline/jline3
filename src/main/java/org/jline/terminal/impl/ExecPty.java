@@ -6,7 +6,7 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.console.impl;
+package org.jline.terminal.impl;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -21,13 +21,13 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.jline.console.Attributes;
-import org.jline.console.Attributes.ControlChar;
-import org.jline.console.Attributes.ControlFlag;
-import org.jline.console.Attributes.InputFlag;
-import org.jline.console.Attributes.LocalFlag;
-import org.jline.console.Attributes.OutputFlag;
-import org.jline.console.Size;
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Attributes.ControlChar;
+import org.jline.terminal.Attributes.ControlFlag;
+import org.jline.terminal.Attributes.InputFlag;
+import org.jline.terminal.Attributes.LocalFlag;
+import org.jline.terminal.Attributes.OutputFlag;
+import org.jline.terminal.Size;
 import org.jline.utils.ExecHelper;
 import org.jline.utils.Log;
 import org.jline.utils.OSUtils;

@@ -6,7 +6,7 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.console.impl;
+package org.jline.terminal.impl;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,7 +23,7 @@ import org.jline.utils.ShutdownHooks;
 import org.jline.utils.ShutdownHooks.Task;
 import org.jline.utils.Signals;
 
-public class PosixSysConsole extends AbstractPosixConsole {
+public class PosixSysTerminal extends AbstractPosixTerminal {
 
     protected final InputStream input;
     protected final OutputStream output;
@@ -32,7 +32,7 @@ public class PosixSysConsole extends AbstractPosixConsole {
     protected final Map<Signal, Object> nativeHandlers = new HashMap<>();
     protected final Task closer;
 
-    public PosixSysConsole(String name, String type, Pty pty, String encoding, boolean nativeSignals) throws IOException {
+    public PosixSysTerminal(String name, String type, Pty pty, String encoding, boolean nativeSignals) throws IOException {
         super(name, type, pty);
         Objects.requireNonNull(encoding);
         this.input = pty.getSlaveInput();
@@ -45,7 +45,7 @@ public class PosixSysConsole extends AbstractPosixConsole {
                 nativeHandlers.put(signal, Signals.register(signal.name(), () -> raise(signal)));
             }
         }
-        closer = PosixSysConsole.this::close;
+        closer = PosixSysTerminal.this::close;
         ShutdownHooks.add(closer);
     }
 

@@ -11,7 +11,7 @@ package org.jline.utils;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.jline.console.Console;
+import org.jline.terminal.Terminal;
 import org.jline.utils.InfoCmp.Capability;
 
 import static org.jline.utils.AttributedStyle.BG_COLOR;
@@ -36,10 +36,10 @@ public abstract class AttributedCharSequence implements CharSequence {
         return toAnsi(null);
     }
 
-    public String toAnsi(Console console) {
+    public String toAnsi(Terminal terminal) {
         StringBuilder sb = new StringBuilder();
         int style = 0;
-        boolean color256 = (console != null && console.getNumericCapability(Capability.max_colors) >= 256);
+        boolean color256 = (terminal != null && terminal.getNumericCapability(Capability.max_colors) >= 256);
         for (int i = 0; i < length(); i++) {
             char c = charAt(i);
             int  s = styleAt(i).getStyle();

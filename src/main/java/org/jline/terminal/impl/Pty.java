@@ -6,15 +6,15 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.console.impl;
+package org.jline.terminal.impl;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import org.jline.console.Attributes;
-import org.jline.console.Size;
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Size;
 
 public interface Pty extends Closeable {
 

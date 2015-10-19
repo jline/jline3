@@ -16,7 +16,7 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.jline.console.Console;
+import org.jline.terminal.Terminal;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp.Capability;
 
@@ -239,9 +239,9 @@ public class KeyMap<T> {
         return key == '?' ? del() : Character.toString((char) (Character.toUpperCase(key) & 0x1f));
     }
 
-    public static String key(Console console, Capability capability) {
+    public static String key(Terminal terminal, Capability capability) {
         try {
-            String str = console.getStringCapability(capability);
+            String str = terminal.getStringCapability(capability);
             if (str != null) {
                 StringWriter sw = new StringWriter();
                 Curses.tputs(sw, str);

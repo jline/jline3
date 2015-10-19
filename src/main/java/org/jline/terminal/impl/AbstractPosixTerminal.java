@@ -1,18 +1,18 @@
-package org.jline.console.impl;
+package org.jline.terminal.impl;
 
 import java.io.IOError;
 import java.io.IOException;
 import java.util.Objects;
 
-import org.jline.console.Attributes;
-import org.jline.console.Size;
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Size;
 
-public abstract class AbstractPosixConsole extends AbstractConsole {
+public abstract class AbstractPosixTerminal extends AbstractTerminal {
 
     protected final Pty pty;
     protected final Attributes originalAttributes;
 
-    public AbstractPosixConsole(String name, String type, Pty pty) throws IOException {
+    public AbstractPosixTerminal(String name, String type, Pty pty) throws IOException {
         super(name, type);
         Objects.requireNonNull(pty);
         this.pty = pty;

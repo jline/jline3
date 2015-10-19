@@ -11,10 +11,10 @@ package org.jline.example;
 
 import java.io.IOException;
 
-import org.jline.console.Console;
-import org.jline.console.ConsoleBuilder;
-import org.jline.reader.ConsoleReader;
-import org.jline.reader.ConsoleReaderBuilder;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 
 public class PasswordReader
 {
@@ -24,9 +24,9 @@ public class PasswordReader
     }
 
     public static void main(String[] args) throws IOException {
-        Console console = ConsoleBuilder.console();
-        ConsoleReader reader = ConsoleReaderBuilder.builder()
-                .console(console).build();
+        Terminal terminal = TerminalBuilder.terminal();
+        LineReader reader = LineReaderBuilder.builder()
+                .terminal(terminal).build();
 
         Character mask = (args.length == 0)
             ? new Character((char) 0)

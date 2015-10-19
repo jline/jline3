@@ -14,7 +14,7 @@ import org.junit.Test;
 import static org.jline.keymap.KeyMap.alt;
 import static org.jline.keymap.KeyMap.ctrl;
 import static org.jline.keymap.KeyMap.translate;
-import static org.jline.reader.impl.ConsoleReaderImpl.EMACS;
+import static org.jline.reader.impl.LineReaderImpl.EMACS;
 
 public class DigitArgumentTest extends ReaderTestSupport {
 

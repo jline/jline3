@@ -38,18 +38,12 @@ import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.jline.console.Attributes;
-import org.jline.console.Attributes.ControlChar;
-import org.jline.console.Console;
-import org.jline.console.Console.Signal;
-import org.jline.console.Console.SignalHandler;
-import org.jline.console.Size;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
-import org.jline.reader.ConsoleReader;
+import org.jline.reader.LineReader;
 import org.jline.reader.EOFError;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.Highlighter;
@@ -61,6 +55,12 @@ import org.jline.reader.SyntaxError;
 import org.jline.reader.UserInterruptException;
 import org.jline.reader.Widget;
 import org.jline.reader.impl.history.history.MemoryHistory;
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Attributes.ControlChar;
+import org.jline.terminal.Size;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.Terminal.Signal;
+import org.jline.terminal.Terminal.SignalHandler;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
@@ -78,7 +78,7 @@ import static org.jline.keymap.KeyMap.range;
 import static org.jline.keymap.KeyMap.translate;
 
 /**
- * A reader for console applications. It supports custom tab-completion,
+ * A reader for terminal applications. It supports custom tab-completion,
  * saveable command history, and command line editing.
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
@@ -86,7 +86,7 @@ import static org.jline.keymap.KeyMap.translate;
  * @author <a href="mailto:gnodet@gmail.com">Guillaume Nodet</a>
  */
 @SuppressWarnings("StatementWithEmptyBody")
-public class ConsoleReaderImpl implements ConsoleReader, Flushable
+public class LineReaderImpl implements LineReader, Flushable
 {
     public static final char NULL_MASK = 0;
 
@@ -142,11 +142,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     // Constructor variables
     //
 
-    /** The console to use */
-    protected final Console console;
+    /** The terminal to use */
+    protected final Terminal terminal;
     /** The application name */
     protected final String appName;
-    /** The console keys mapping */
+    /** The terminal keys mapping */
     protected final Map<String, KeyMap<Binding>> keyMaps;
 
     //
@@ -244,17 +244,17 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     protected String keyMap;
 
 
-    public ConsoleReaderImpl(Console console) throws IOException {
-        this(console, null, null);
+    public LineReaderImpl(Terminal terminal) throws IOException {
+        this(terminal, null, null);
     }
 
-    public ConsoleReaderImpl(Console console, String appName) throws IOException {
-        this(console, appName, null);
+    public LineReaderImpl(Terminal terminal, String appName) throws IOException {
+        this(terminal, appName, null);
     }
 
-    public ConsoleReaderImpl(Console console, String appName, Map<String, Object> variables) {
-        Objects.requireNonNull(console);
-        this.console = console;
+    public LineReaderImpl(Terminal terminal, String appName, Map<String, Object> variables) {
+        Objects.requireNonNull(terminal);
+        this.terminal = terminal;
         if (appName == null) {
             appName = "JLine";
         }
@@ -268,11 +268,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
         builtinWidgets = builtinWidgets();
         widgets = new HashMap<>(builtinWidgets);
-        bindingReader = new BindingReader(console.reader());
+        bindingReader = new BindingReader(terminal.reader());
     }
 
-    public Console getConsole() {
-        return console;
+    public Terminal getTerminal() {
+        return terminal;
     }
 
     public String getAppName() {
@@ -381,8 +381,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * Read a line from the <i>in</i> {@link InputStream}, and return the line
      * (without any trailing newlines).
      *
-     * @param prompt    The prompt to issue to the console, may be null.
-     * @return          A line that is read from the console, or null if there was null input (e.g., <i>CTRL-D</i>
+     * @param prompt    The prompt to issue to the terminal, may be null.
+     * @return          A line that is read from the terminal, or null if there was null input (e.g., <i>CTRL-D</i>
      *                  was pressed).
      */
     public String readLine(String prompt, Character mask) throws UserInterruptException, EndOfFileException {
@@ -393,8 +393,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * Read a line from the <i>in</i> {@link InputStream}, and return the line
      * (without any trailing newlines).
      *
-     * @param prompt    The prompt to issue to the console, may be null.
-     * @return          A line that is read from the console, or null if there was null input (e.g., <i>CTRL-D</i>
+     * @param prompt    The prompt to issue to the terminal, may be null.
+     * @return          A line that is read from the terminal, or null if there was null input (e.g., <i>CTRL-D</i>
      *                  was pressed).
      */
     public String readLine(String prompt, Character mask, String buffer) throws UserInterruptException, EndOfFileException {
@@ -405,8 +405,8 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * Read a line from the <i>in</i> {@link InputStream}, and return the line
      * (without any trailing newlines).
      *
-     * @param prompt    The prompt to issue to the console, may be null.
-     * @return          A line that is read from the console, or null if there was null input (e.g., <i>CTRL-D</i>
+     * @param prompt    The prompt to issue to the terminal, may be null.
+     * @return          A line that is read from the terminal, or null if there was null input (e.g., <i>CTRL-D</i>
      *                  was pressed).
      */
     public String readLine(String prompt, String rightPrompt, Character mask, String buffer) throws UserInterruptException, EndOfFileException {
@@ -425,10 +425,10 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             }
             reading = true;
 
-            previousIntrHandler = console.handle(Signal.INT, signal -> readLineThread.interrupt());
-            previousWinchHandler = console.handle(Signal.WINCH, this::handleSignal);
-            previousContHandler = console.handle(Signal.CONT, this::handleSignal);
-            originalAttributes = console.enterRawMode();
+            previousIntrHandler = terminal.handle(Signal.INT, signal -> readLineThread.interrupt());
+            previousWinchHandler = terminal.handle(Signal.WINCH, this::handleSignal);
+            previousContHandler = terminal.handle(Signal.CONT, this::handleSignal);
+            originalAttributes = terminal.enterRawMode();
 
             this.mask = mask;
 
@@ -446,18 +446,18 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
             modifiedHistory.clear();
 
-            // Cache console size for the duration of the call to readLine()
+            // Cache terminal size for the duration of the call to readLine()
             // It will eventually be updated with WINCH signals
-            size.copy(console.getSize());
+            size.copy(terminal.getSize());
             if (size.getColumns() == 0 || size.getRows() == 0) {
                 throw new IllegalStateException("Invalid terminal size: " + size);
             }
 
-            display = new Display(console, false);
+            display = new Display(terminal, false);
             display.resize(size.getRows(), size.getColumns());
 
             // Move into application mode
-            console.puts(Capability.keypad_xmit);
+            terminal.puts(Capability.keypad_xmit);
             // Make sure we position the cursor on column 0
             AttributedStringBuilder sb = new AttributedStringBuilder();
             sb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.BLACK + AttributedStyle.BRIGHT));
@@ -466,9 +466,9 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             for (int i = 0; i < size.getColumns() - 1; i++) {
                 sb.append(" ");
             }
-            sb.append(KeyMap.key(console, Capability.carriage_return));
+            sb.append(KeyMap.key(terminal, Capability.carriage_return));
             sb.append(" ");
-            sb.append(KeyMap.key(console, Capability.carriage_return));
+            sb.append(KeyMap.key(terminal, Capability.carriage_return));
             print(sb.toAnsi());
 
             setPrompt(prompt);
@@ -555,16 +555,16 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
             cleanup();
             reading = false;
             if (originalAttributes != null) {
-                console.setAttributes(originalAttributes);
+                terminal.setAttributes(originalAttributes);
             }
             if (previousIntrHandler != null) {
-                console.handle(Signal.INT, previousIntrHandler);
+                terminal.handle(Signal.INT, previousIntrHandler);
             }
             if (previousWinchHandler != null) {
-                console.handle(Signal.WINCH, previousWinchHandler);
+                terminal.handle(Signal.WINCH, previousWinchHandler);
             }
             if (previousContHandler != null) {
-                console.handle(Signal.CONT, previousContHandler);
+                terminal.handle(Signal.CONT, previousContHandler);
             }
         }
     }
@@ -604,11 +604,11 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     /**
-     * Flush the console output stream. This is important for printout out single characters (like a buf.backspace or
-     * keyboard) that we want the console to handle immediately.
+     * Flush the terminal output stream. This is important for printout out single characters (like a buf.backspace or
+     * keyboard) that we want the terminal to handle immediately.
      */
     public void flush() {
-        console.writer().flush();
+        terminal.writer().flush();
     }
 
     public boolean isKeyMap(String name) {
@@ -616,7 +616,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     /**
-     * Read a character from the console.
+     * Read a character from the terminal.
      *
      * @return the character, or -1 if an EOF is received.
      */
@@ -795,15 +795,15 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     protected void handleSignal(Signal signal) {
         if (signal == Signal.WINCH) {
-            size.copy(console.getSize());
+            size.copy(terminal.getSize());
             display.resize(size.getRows(), size.getColumns());
             redisplay();
         }
         else if (signal == Signal.CONT) {
-            console.enterRawMode();
-            size.copy(console.getSize());
+            terminal.enterRawMode();
+            size.copy(terminal.getSize());
             display.resize(size.getRows(), size.getColumns());
-            console.puts(Capability.keypad_xmit);
+            terminal.puts(Capability.keypad_xmit);
             redrawLine();
             redisplay();
         }
@@ -849,7 +849,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
 
     /**
      * Set the current buffer's content to the specified {@link String}. The
-     * visual console will be modified to show the current buffer.
+     * visual terminal will be modified to show the current buffer.
      *
      * @param buffer the new contents of the buffer.
      */
@@ -2286,7 +2286,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         if (size.getColumns() > 0 || size.getRows() > 0) {
             redisplay(false);
             println();
-            console.puts(Capability.keypad_local);
+            terminal.puts(Capability.keypad_local);
             flush();
         }
         history.moveToEnd();
@@ -3918,7 +3918,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         redisplay();
 
         // Loop
-        console.puts(Capability.keypad_xmit);
+        terminal.puts(Capability.keypad_xmit);
         KeyMap<Binding> keyMap = keyMaps.get(MENU);
         Binding operation;
         while ((operation = readBinding(getKeys(), keyMap)) != null) {
@@ -3969,13 +3969,13 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                         pushBackBinding(true);
                     }
                     post = null;
-                    console.puts(Capability.keypad_local);
+                    terminal.puts(Capability.keypad_local);
                     return true;
                 }
             }
             redisplay();
         }
-        console.puts(Capability.keypad_local);
+        terminal.puts(Capability.keypad_local);
         return false;
     }
 
@@ -4018,7 +4018,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 redisplay(false);
                 buf.cursor(oldCursor);
                 println();
-                println(postResult.post.toAnsi(console));
+                println(postResult.post.toAnsi(terminal));
                 redrawLine();
                 return new AttributedString("");
             }
@@ -4277,7 +4277,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * Raw output printing
      */
     void print(String str) {
-        console.writer().write(str);
+        terminal.writer().write(str);
     }
 
     void println(String s) {
@@ -4289,7 +4289,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * Output a platform-dependant newline.
      */
     void println() {
-        console.puts(Capability.carriage_return);
+        terminal.puts(Capability.carriage_return);
         print("\n");
         redrawLine();
     }
@@ -4504,7 +4504,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
      * Clear the screen by issuing the ANSI "clear screen" code.
      */
     public boolean clearScreen() {
-        if (console.puts(Capability.clear_screen)) {
+        if (terminal.puts(Capability.clear_screen)) {
             redrawLine();
         } else {
             println();
@@ -4534,12 +4534,12 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
                 break;
         }
         if (bell_preference == BellType.VISIBLE) {
-            if (console.puts(Capability.flash_screen)
-                    || console.puts(Capability.bell)) {
+            if (terminal.puts(Capability.flash_screen)
+                    || terminal.puts(Capability.bell)) {
                 flush();
             }
         } else if (bell_preference == BellType.AUDIBLE) {
-            if (console.puts(Capability.bell)) {
+            if (terminal.puts(Capability.bell)) {
                 flush();
             }
         }
@@ -4547,7 +4547,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     /**
-     * Paste the contents of the clipboard into the console buffer
+     * Paste the contents of the clipboard into the terminal buffer
      *
      * @return true if clipboard contents pasted
      */
@@ -4668,7 +4668,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
         keyMaps.put(VISUAL, visual());
         keyMaps.put(SAFE, safe());
         if (getBoolean(BIND_TTY_SPECIAL_CHARS, true)) {
-            Attributes attr = console.getAttributes();
+            Attributes attr = terminal.getAttributes();
             bindConsoleChars(keyMaps.get(EMACS), attr);
             bindConsoleChars(keyMaps.get(VIINS), attr);
         }
@@ -4949,7 +4949,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     private String key(Capability capability) {
-        return KeyMap.key(console, capability);
+        return KeyMap.key(terminal, capability);
     }
 
     private void bindArrowKeys(KeyMap<Binding> map) {
@@ -4965,7 +4965,7 @@ public class ConsoleReaderImpl implements ConsoleReader, Flushable
     }
 
     /**
-     * Bind special chars defined by the console instead of
+     * Bind special chars defined by the terminal instead of
      * the default bindings
      */
     private void bindConsoleChars(KeyMap<Binding> keyMap, Attributes attr) {

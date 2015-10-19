@@ -18,7 +18,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import org.jline.console.Console;
+import org.jline.terminal.Terminal;
 import org.jline.utils.InfoCmp.Capability;
 
 /**
@@ -28,7 +28,7 @@ import org.jline.utils.InfoCmp.Capability;
  */
 public class Display {
 
-    protected final Console console;
+    protected final Terminal terminal;
     protected final boolean fullScreen;
     protected List<AttributedString> oldLines = Collections.emptyList();
     protected int cursorPos;
@@ -42,14 +42,14 @@ public class Display {
     protected final boolean noWrapAtEol;
     protected final boolean cursorDownIsNewLine;
 
-    public Display(Console console, boolean fullscreen) {
-        this.console = console;
+    public Display(Terminal terminal, boolean fullscreen) {
+        this.terminal = terminal;
         this.fullScreen = fullscreen;
 
         this.canScroll = can(Capability.insert_line, Capability.parm_insert_line)
                             && can(Capability.delete_line, Capability.parm_delete_line);
-        this.noWrapAtEol = console.getBooleanCapability(Capability.auto_right_margin)
-                            && console.getBooleanCapability(Capability.eat_newline_glitch);
+        this.noWrapAtEol = terminal.getBooleanCapability(Capability.auto_right_margin)
+                            && terminal.getBooleanCapability(Capability.eat_newline_glitch);
         this.cursorDownIsNewLine = "\n".equals(tput(Capability.cursor_down));
     }
 
@@ -84,7 +84,7 @@ public class Display {
      */
     public void update(List<AttributedString> newLines, int targetCursorPos) {
         if (reset) {
-            console.puts(Capability.clear_screen);
+            terminal.puts(Capability.clear_screen);
             oldLines.clear();
             cursorPos = 0;
             cursorOk = true;
@@ -218,7 +218,7 @@ public class Display {
                         int newLen = newLine.columnLength();
                         int nb = Math.max(oldLen, newLen) - currentPos;
                         moveVisualCursorTo(currentPos);
-                        if (!console.puts(Capability.clr_eol)) {
+                        if (!terminal.puts(Capability.clr_eol)) {
                             rawPrint(' ', nb);
                             cursorPos += nb;
                             cursorOk = false;
@@ -230,7 +230,7 @@ public class Display {
             }
             lineIndex++;
             if (!cursorOk && noWrapAtEol && cursorPos == curCol + columns) {
-                console.puts(Capability.carriage_return); // CR / not newline.
+                terminal.puts(Capability.carriage_return); // CR / not newline.
                 cursorPos = curCol;
                 cursorOk = true;
             }
@@ -243,8 +243,8 @@ public class Display {
         while (lineIndex < Math.max(oldLines.size(), newLines.size())) {
             moveVisualCursorTo(currentPos);
             if (lineIndex < oldLines.size()) {
-                if (console.getStringCapability(Capability.clr_eol) != null) {
-                    console.puts(Capability.clr_eol);
+                if (terminal.getStringCapability(Capability.clr_eol) != null) {
+                    terminal.puts(Capability.clr_eol);
                 } else {
                     int nb = newLines.get(lineIndex).columnLength();
                     rawPrint(' ', nb);
@@ -257,7 +257,7 @@ public class Display {
                 cursorOk = false;
             }
             if (!cursorOk && noWrapAtEol && cursorPos == currentPos + columns) {
-                console.puts(Capability.carriage_return); // CR / not newline.
+                terminal.puts(Capability.carriage_return); // CR / not newline.
                 cursorPos = currentPos;
                 cursorOk = true;
             }
@@ -289,19 +289,19 @@ public class Display {
     }
 
     protected boolean can(Capability single, Capability multi) {
-        return console.getStringCapability(single) != null
-                || console.getStringCapability(multi) != null;
+        return terminal.getStringCapability(single) != null
+                || terminal.getStringCapability(multi) != null;
     }
 
     protected boolean perform(Capability single, Capability multi, int nb) {
-        boolean hasMulti = console.getStringCapability(multi) != null;
-        boolean hasSingle = console.getStringCapability(single) != null;
+        boolean hasMulti = terminal.getStringCapability(multi) != null;
+        boolean hasSingle = terminal.getStringCapability(single) != null;
         if (hasMulti && (!hasSingle || cost(single) * nb > cost(multi))) {
-            console.puts(multi, nb);
+            terminal.puts(multi, nb);
             return true;
         } else if (hasSingle) {
             for (int i = 0; i < nb; i++) {
-                console.puts(single);
+                terminal.puts(single);
             }
             return true;
         } else {
@@ -321,7 +321,7 @@ public class Display {
     private String tput(Capability cap, Object... params) {
         try {
             StringWriter sw = new StringWriter();
-            String d = console.getStringCapability(cap);
+            String d = terminal.getStringCapability(cap);
             if (d != null) {
                 Curses.tputs(sw, d, params);
                 return sw.toString();
@@ -366,9 +366,9 @@ public class Display {
         } else if (l0 < l1) {
             // TODO: clean the following
             if (fullScreen) {
-                if (!console.puts(Capability.parm_down_cursor, l1 - l0)) {
+                if (!terminal.puts(Capability.parm_down_cursor, l1 - l0)) {
                     for (int i = l0; i < l1; i++) {
-                        console.puts(Capability.cursor_down);
+                        terminal.puts(Capability.cursor_down);
                     }
                     if (cursorDownIsNewLine) {
                         c0 = 0;
@@ -380,7 +380,7 @@ public class Display {
             }
         }
         if (c0 != 0 && c1 == 0) {
-            console.puts(Capability.carriage_return);
+            terminal.puts(Capability.carriage_return);
         } else if (c0 < c1) {
             perform(Capability.cursor_right, Capability.parm_right_cursor, c1 - c0);
         } else if (c0 > c1) {
@@ -398,11 +398,11 @@ public class Display {
     }
 
     void rawPrint(int c) {
-        console.writer().write(c);
+        terminal.writer().write(c);
     }
 
     void rawPrint(AttributedString str) {
-        console.writer().write(str.toAnsi(console));
+        terminal.writer().write(str.toAnsi(terminal));
     }
 
     public int wcwidth(String str) {

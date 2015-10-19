@@ -26,13 +26,13 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
-import org.jline.console.Attributes;
-import org.jline.console.Console;
-import org.jline.console.Console.Signal;
-import org.jline.console.Console.SignalHandler;
-import org.jline.console.Size;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Size;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.Terminal.Signal;
+import org.jline.terminal.Terminal.SignalHandler;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
@@ -130,7 +130,7 @@ public class Less {
     public boolean ignoreCaseAlways;
     public int tabs = 4;
 
-    protected final Console console;
+    protected final Terminal terminal;
     protected final Display display;
     protected final BindingReader bindingReader;
 
@@ -161,14 +161,14 @@ public class Less {
     protected final Size size = new Size();
 
 
-    public Less(Console console) {
-        this.console = console;
-        this.display = new Display(console, true);
-        this.bindingReader = new BindingReader(console.reader());
+    public Less(Terminal terminal) {
+        this.terminal = terminal;
+        this.display = new Display(terminal, true);
+        this.bindingReader = new BindingReader(terminal.reader());
     }
 
     public void handle(Signal signal) {
-        size.copy(console.getSize());
+        size.copy(terminal.getSize());
         try {
             display();
         } catch (IOException e) {
@@ -190,9 +190,9 @@ public class Less {
         openSource();
 
         try {
-            size.copy(console.getSize());
-            SignalHandler prevHandler = console.handle(Signal.WINCH, this::handle);
-            Attributes attr = console.enterRawMode();
+            size.copy(terminal.getSize());
+            SignalHandler prevHandler = terminal.handle(Signal.WINCH, this::handle);
+            Attributes attr = terminal.enterRawMode();
             try {
                 window = size.getRows() - 1;
                 halfWindow = window / 2;
@@ -200,9 +200,9 @@ public class Less {
                 bindKeys(keys);
 
                 // Use alternate buffer
-                console.puts(Capability.enter_ca_mode);
-                console.puts(Capability.keypad_xmit);
-                console.writer().flush();
+                terminal.puts(Capability.enter_ca_mode);
+                terminal.puts(Capability.keypad_xmit);
+                terminal.writer().flush();
 
                 display();
                 checkInterrupted();
@@ -235,7 +235,7 @@ public class Less {
                     // Option edition
                     //
                     if (buffer.length() > 0 && buffer.charAt(0) == '-') {
-                        int c = console.reader().read();
+                        int c = terminal.reader().read();
                         message = null;
                         if (buffer.length() == 1) {
                             buffer.append((char) c);
@@ -275,7 +275,7 @@ public class Less {
                     // Pattern edition
                     //
                     else if (buffer.length() > 0 && (buffer.charAt(0) == '/' || buffer.charAt(0) == '?')) {
-                        int c = console.reader().read();
+                        int c = terminal.reader().read();
                         message = null;
                         if (c == '\r') {
                             pattern = buffer.toString().substring(1);
@@ -431,14 +431,14 @@ public class Less {
             } catch (InterruptedException ie) {
                 // Do nothing
             } finally {
-                console.setAttributes(attr);
+                terminal.setAttributes(attr);
                 if (prevHandler != null) {
-                    console.handle(Console.Signal.WINCH, prevHandler);
+                    terminal.handle(Terminal.Signal.WINCH, prevHandler);
                 }
                 // Use main buffer
-                console.puts(Capability.exit_ca_mode);
-                console.puts(Capability.keypad_local);
-                console.writer().flush();
+                terminal.puts(Capability.exit_ca_mode);
+                terminal.puts(Capability.keypad_local);
+                terminal.writer().flush();
             }
         } finally {
             reader.close();
@@ -578,15 +578,15 @@ public class Less {
             message = "(END)";
         }
         if (!quiet && !veryQuiet && !quitAtFirstEof && !quitAtSecondEof) {
-            console.puts(Capability.bell);
-            console.writer().flush();
+            terminal.puts(Capability.bell);
+            terminal.writer().flush();
         }
     }
 
     private void bof() {
         if (!quiet && !veryQuiet) {
-            console.puts(Capability.bell);
-            console.writer().flush();
+            terminal.puts(Capability.bell);
+            terminal.writer().flush();
         }
     }
 
@@ -649,7 +649,7 @@ public class Less {
         if (buffer.length() > 0) {
             msg.append(" ").append(buffer);
         } else if (bindingReader.getCurrentBuffer().length() > 0
-                && console.reader().peek(1) != NonBlockingReader.READ_EXPIRED) {
+                && terminal.reader().peek(1) != NonBlockingReader.READ_EXPIRED) {
             msg.append(" ").append(printable(bindingReader.getCurrentBuffer()));
         } else if (message != null) {
             msg.style(AttributedStyle.INVERSE);
@@ -662,7 +662,7 @@ public class Less {
 
         display.resize(size.getRows(), size.getColumns());
         display.update(newLines, -1);
-        console.flush();
+        terminal.flush();
     }
 
     private Pattern getPattern() {
@@ -704,8 +704,8 @@ public class Less {
     private void bindKeys(KeyMap<Operation> map) {
         map.bind(Operation.HELP, "h", "H");
         map.bind(Operation.EXIT, "q", ":q", "Q", ":Q", "ZZ");
-        map.bind(Operation.FORWARD_ONE_LINE, "e", ctrl('E'), "j", ctrl('N'), "\r", key(console, Capability.key_down));
-        map.bind(Operation.BACKWARD_ONE_LINE, "y", ctrl('Y'), "k", ctrl('K'), ctrl('P'), key(console, Capability.key_up));
+        map.bind(Operation.FORWARD_ONE_LINE, "e", ctrl('E'), "j", ctrl('N'), "\r", key(terminal, Capability.key_down));
+        map.bind(Operation.BACKWARD_ONE_LINE, "y", ctrl('Y'), "k", ctrl('K'), ctrl('P'), key(terminal, Capability.key_up));
         map.bind(Operation.FORWARD_ONE_WINDOW_OR_LINES, "f", ctrl('F'), ctrl('V'), " ");
         map.bind(Operation.BACKWARD_ONE_WINDOW_OR_LINES, "b", ctrl('B'), alt('v'));
         map.bind(Operation.FORWARD_ONE_WINDOW_AND_SET, "z");
@@ -713,8 +713,8 @@ public class Less {
         map.bind(Operation.FORWARD_ONE_WINDOW_NO_STOP, alt(' '));
         map.bind(Operation.FORWARD_HALF_WINDOW_AND_SET, "d", ctrl('D'));
         map.bind(Operation.BACKWARD_HALF_WINDOW_AND_SET, "u", ctrl('U'));
-        map.bind(Operation.RIGHT_ONE_HALF_SCREEN, alt(')'), key(console, Capability.key_right));
-        map.bind(Operation.LEFT_ONE_HALF_SCREEN, alt('('), key(console, Capability.key_left));
+        map.bind(Operation.RIGHT_ONE_HALF_SCREEN, alt(')'), key(terminal, Capability.key_right));
+        map.bind(Operation.LEFT_ONE_HALF_SCREEN, alt('('), key(terminal, Capability.key_left));
         map.bind(Operation.FORWARD_FOREVER, "F");
         map.bind(Operation.REPEAT_SEARCH_FORWARD, "n", "N");
         map.bind(Operation.REPEAT_SEARCH_FORWARD_SPAN_FILES, alt('n'), alt('N'));

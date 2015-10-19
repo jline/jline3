@@ -23,16 +23,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-import org.jline.console.Attributes;
-import org.jline.console.Console;
-import org.jline.console.Console.Signal;
-import org.jline.console.Console.SignalHandler;
-import org.jline.console.Size;
-import org.jline.console.impl.LineDisciplineConsole;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.impl.DefaultParser;
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Size;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.Terminal.Signal;
+import org.jline.terminal.Terminal.SignalHandler;
+import org.jline.terminal.impl.LineDisciplineTerminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
@@ -55,11 +55,11 @@ public class Tmux {
 
     private final AtomicBoolean dirty = new AtomicBoolean(true);
     private final AtomicBoolean resized = new AtomicBoolean(true);
-    private final Console console;
+    private final Terminal terminal;
     private final Display display;
     private final PrintStream err;
     private final String term;
-    private final Consumer<Console> runner;
+    private final Consumer<Terminal> runner;
     private List<VirtualConsole> panes = new ArrayList<>();
     private VirtualConsole active;
     private final AtomicBoolean running = new AtomicBoolean(true);
@@ -72,15 +72,15 @@ public class Tmux {
     private static final Object UNMAPPED = new Object();
 
 
-    public Tmux(Console console, PrintStream err, Consumer<Console> runner) throws IOException {
+    public Tmux(Terminal terminal, PrintStream err, Consumer<Terminal> runner) throws IOException {
         InfoCmp.setDefaultInfoCmp("screen", SCREEN_CAPS);
         InfoCmp.setDefaultInfoCmp("screen-256color", SCREEN_256COLOR_CAPS);
-        this.console = console;
+        this.terminal = terminal;
         this.err = err;
         this.runner = runner;
-        display = new Display(console, true);
+        display = new Display(terminal, true);
         // Find terminal to use
-        Integer colors = console.getNumericCapability(Capability.max_colors);
+        Integer colors = terminal.getNumericCapability(Capability.max_colors);
         term = (colors != null && colors >= 256) ? "screen-256color" : "screen";
         // Setup defaults bindings
         serverOptions.put(OPT_PREFIX, "`");
@@ -90,24 +90,24 @@ public class Tmux {
         keyMap.bind(CMD_SEND_PREFIX, serverOptions.get(OPT_PREFIX));
         keyMap.bind(CMD_SPLIT_WINDOW, "\"");
         keyMap.bind(CMD_SPLIT_WINDOW + " -h", "%");
-        keyMap.bind(CMD_SELECT_PANE + " -U", KeyMap.key(console, Capability.key_up));
-        keyMap.bind(CMD_SELECT_PANE + " -L", KeyMap.key(console, Capability.key_left));
-        keyMap.bind(CMD_SELECT_PANE + " -R", KeyMap.key(console, Capability.key_right));
-        keyMap.bind(CMD_SELECT_PANE + " -D", KeyMap.key(console, Capability.key_down));
+        keyMap.bind(CMD_SELECT_PANE + " -U", KeyMap.key(terminal, Capability.key_up));
+        keyMap.bind(CMD_SELECT_PANE + " -L", KeyMap.key(terminal, Capability.key_left));
+        keyMap.bind(CMD_SELECT_PANE + " -R", KeyMap.key(terminal, Capability.key_right));
+        keyMap.bind(CMD_SELECT_PANE + " -D", KeyMap.key(terminal, Capability.key_down));
     }
 
     public void run() throws IOException {
-        SignalHandler prevWinchHandler = console.handle(Signal.WINCH, this::resize);
-        SignalHandler prevIntHandler = console.handle(Signal.INT, this::interrupt);
-        Attributes attributes = console.enterRawMode();
-        console.puts(Capability.enter_ca_mode);
-        console.puts(Capability.keypad_xmit);
-        console.flush();
+        SignalHandler prevWinchHandler = terminal.handle(Signal.WINCH, this::resize);
+        SignalHandler prevIntHandler = terminal.handle(Signal.INT, this::interrupt);
+        Attributes attributes = terminal.enterRawMode();
+        terminal.puts(Capability.enter_ca_mode);
+        terminal.puts(Capability.keypad_xmit);
+        terminal.flush();
         try {
             // Create first pane
-            size.copy(console.getSize());
+            size.copy(terminal.getSize());
             active = new VirtualConsole(getNewPaneName(), term, 0, 0, size.getColumns(), size.getRows() - 1, this::setDirty, this::close);
-            active.getConsole().setAttributes(console.getAttributes());
+            active.getConsole().setAttributes(terminal.getAttributes());
             panes.add(active);
             runner.accept(active.getConsole());
             // Start input loop
@@ -115,12 +115,12 @@ public class Tmux {
             // Redraw loop
             redrawLoop();
         } finally {
-            console.puts(Capability.keypad_local);
-            console.puts(Capability.exit_ca_mode);
-            console.flush();
-            console.setAttributes(attributes);
-            console.handle(Signal.WINCH, prevWinchHandler);
-            console.handle(Signal.INT, prevIntHandler);
+            terminal.puts(Capability.keypad_local);
+            terminal.puts(Capability.exit_ca_mode);
+            terminal.flush();
+            terminal.setAttributes(attributes);
+            terminal.handle(Signal.WINCH, prevWinchHandler);
+            terminal.handle(Signal.INT, prevIntHandler);
         }
     }
 
@@ -152,11 +152,11 @@ public class Tmux {
     private void inputLoop() {
         try {
             int c;
-            while ((c = console.reader().read()) >= 0) {
+            while ((c = terminal.reader().read()) >= 0) {
                 String pfx = serverOptions.get(OPT_PREFIX);
                 if (pfx != null && c == pfx.charAt(0)) {
                     // escape sequences
-                    Object b = new BindingReader(console.reader()).readBinding(keyMap);
+                    Object b = new BindingReader(terminal.reader()).readBinding(keyMap);
                     if (b instanceof String) {
                         ByteArrayOutputStream out = new ByteArrayOutputStream();
                         ByteArrayOutputStream err = new ByteArrayOutputStream();
@@ -210,7 +210,7 @@ public class Tmux {
         // Re-compute the layout
         // TODO: implement this correctly
         // TODO: for now, force a tiled-layout
-        size.copy(console.getSize());
+        size.copy(terminal.getSize());
         int nbPanes = panes.size();
         int nbRows = 1;
         while (nbRows * nbRows < nbPanes) {
@@ -325,7 +325,7 @@ public class Tmux {
             int w2 = l0 + w0 - l2;
             target.resize(l1, t0, w1, h0);
             active = new VirtualConsole(getNewPaneName(), term, l2, t0, w2, h0, this::setDirty, this::close);
-            active.getConsole().setAttributes(console.getAttributes());
+            active.getConsole().setAttributes(terminal.getAttributes());
             panes.add(panes.indexOf(target) + 1, active);
             runner.accept(active.getConsole());
         } else {
@@ -339,7 +339,7 @@ public class Tmux {
             int h2 = t0 + h0 - t2;
             target.resize(l0, t1, w0, h1);
             active = new VirtualConsole(getNewPaneName(), term, l0, t2, w0, h2, this::setDirty, this::close);
-            active.getConsole().setAttributes(console.getAttributes());
+            active.getConsole().setAttributes(terminal.getAttributes());
             panes.add(panes.indexOf(target) + 1, active);
             runner.accept(active.getConsole());
         }
@@ -426,7 +426,7 @@ public class Tmux {
         }
         display.resize(size.getRows(), size.getColumns());
         display.update(lines, cursor[1] * size.getColumns() + cursor[0]);
-        console.flush();
+        terminal.flush();
     }
 
     private void drawBorder(int[] screen, Size size, VirtualConsole terminal, int attr) {
@@ -523,7 +523,7 @@ public class Tmux {
         private int top;
         private final OutputStream masterOutput;
         private final OutputStream masterInputOutput;
-        private final LineDisciplineConsole console;
+        private final LineDisciplineTerminal console;
 
         public VirtualConsole(String name, String type, int left, int top, int columns, int rows, Runnable dirty, Consumer<VirtualConsole> closer) throws IOException {
             this.left = left;
@@ -543,7 +543,7 @@ public class Tmux {
                     console.processInputByte(b);
                 }
             };
-            this.console = new LineDisciplineConsole(
+            this.console = new LineDisciplineTerminal(
                     name,
                     type,
                     masterOutput,
@@ -567,7 +567,7 @@ public class Tmux {
             return console.getHeight();
         }
 
-        public LineDisciplineConsole getConsole() {
+        public LineDisciplineTerminal getConsole() {
             return console;
         }
 

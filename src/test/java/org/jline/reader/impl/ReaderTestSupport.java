@@ -20,26 +20,26 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.jline.console.Console;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Candidate;
+import org.jline.terminal.Terminal;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp.Capability;
 import org.junit.Before;
 
-import static org.jline.reader.ConsoleReader.ACCEPT_LINE;
-import static org.jline.reader.ConsoleReader.BACKWARD_CHAR;
-import static org.jline.reader.ConsoleReader.BACKWARD_DELETE_CHAR;
-import static org.jline.reader.ConsoleReader.BACKWARD_KILL_WORD;
-import static org.jline.reader.ConsoleReader.BACKWARD_WORD;
-import static org.jline.reader.ConsoleReader.BEGINNING_OF_LINE;
-import static org.jline.reader.ConsoleReader.COMPLETE_WORD;
-import static org.jline.reader.ConsoleReader.DOWN_HISTORY;
-import static org.jline.reader.ConsoleReader.END_OF_LINE;
-import static org.jline.reader.ConsoleReader.KILL_WORD;
-import static org.jline.reader.ConsoleReader.UP_HISTORY;
-import static org.jline.reader.ConsoleReader.YANK;
-import static org.jline.reader.ConsoleReader.YANK_POP;
+import static org.jline.reader.LineReader.ACCEPT_LINE;
+import static org.jline.reader.LineReader.BACKWARD_CHAR;
+import static org.jline.reader.LineReader.BACKWARD_DELETE_CHAR;
+import static org.jline.reader.LineReader.BACKWARD_KILL_WORD;
+import static org.jline.reader.LineReader.BACKWARD_WORD;
+import static org.jline.reader.LineReader.BEGINNING_OF_LINE;
+import static org.jline.reader.LineReader.COMPLETE_WORD;
+import static org.jline.reader.LineReader.DOWN_HISTORY;
+import static org.jline.reader.LineReader.END_OF_LINE;
+import static org.jline.reader.LineReader.KILL_WORD;
+import static org.jline.reader.LineReader.UP_HISTORY;
+import static org.jline.reader.LineReader.YANK;
+import static org.jline.reader.LineReader.YANK_POP;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -48,8 +48,8 @@ import static org.junit.Assert.assertTrue;
  */
 public abstract class ReaderTestSupport
 {
-    protected Console console;
-    protected TestConsoleReader reader;
+    protected Terminal terminal;
+    protected TestLineReader reader;
     protected EofPipedInputStream in;
     protected ByteArrayOutputStream out;
     protected Character mask;
@@ -65,9 +65,9 @@ public abstract class ReaderTestSupport
 
         in = new EofPipedInputStream();
         out = new ByteArrayOutputStream();
-        console = new DumbConsole(in, out);
-        reader = new TestConsoleReader(console, "JLine", null);
-        reader.setKeyMap(ConsoleReaderImpl.EMACS);
+        terminal = new DumbTerminal(in, out);
+        reader = new TestLineReader(terminal, "JLine", null);
+        reader.setKeyMap(LineReaderImpl.EMACS);
         mask = null;
     }
 
@@ -77,7 +77,7 @@ public abstract class ReaderTestSupport
     }
 
     protected void assertBeeped() throws IOException {
-        String bellCap = console.getStringCapability(Capability.bell);
+        String bellCap = terminal.getStringCapability(Capability.bell);
         StringWriter sw = new StringWriter();
         Curses.tputs(sw, bellCap);
         assertConsoleOutputContains(sw.toString());
@@ -302,11 +302,11 @@ public abstract class ReaderTestSupport
         }
     }
 
-    public static class TestConsoleReader extends ConsoleReaderImpl {
+    public static class TestLineReader extends LineReaderImpl {
         boolean list = false;
         boolean menu = false;
-        public TestConsoleReader(Console console, String appName, Map<String, Object> variables) {
-            super(console, appName, variables);
+        public TestLineReader(Terminal terminal, String appName, Map<String, Object> variables) {
+            super(terminal, appName, variables);
         }
 
         @Override

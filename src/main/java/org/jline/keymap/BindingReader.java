@@ -12,9 +12,7 @@ import java.io.IOError;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.Stack;
 
-import org.jline.console.Console;
 import org.jline.utils.NonBlockingReader;
 
 /**
@@ -112,7 +110,7 @@ public class BindingReader {
     }
 
     /**
-     * Read a codepoint from the console.
+     * Read a codepoint from the terminal.
      *
      * @return the character, or -1 if an EOF is received.
      */

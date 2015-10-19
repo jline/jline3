@@ -15,22 +15,22 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.Map;
 
-import org.jline.console.Console;
-import org.jline.console.ConsoleBuilder;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
 import org.jline.reader.Completer;
-import org.jline.reader.ConsoleReader;
-import org.jline.reader.ConsoleReaderBuilder;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.Reference;
 import org.jline.reader.UserInterruptException;
-import org.jline.reader.impl.ConsoleReaderImpl;
+import org.jline.reader.impl.LineReaderImpl;
 import org.jline.reader.impl.Macro;
 import org.jline.reader.impl.completer.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.completer.FileNameCompleter;
 import org.jline.reader.impl.completer.completer.StringsCompleter;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 import org.jline.utils.InfoCmp.Capability;
@@ -70,7 +70,7 @@ public class Example
             String trigger = null;
             boolean color = false;
 
-            ConsoleBuilder builder = ConsoleBuilder.builder();
+            TerminalBuilder builder = TerminalBuilder.builder();
 
             if ((args == null) || (args.length == 0)) {
                 usage();
@@ -158,10 +158,10 @@ public class Example
                 trigger = args[index];
             }
 
-            Console console = builder.build();
+            Terminal terminal = builder.build();
 
-            ConsoleReader reader = ConsoleReaderBuilder.builder()
-                    .console(console)
+            LineReader reader = LineReaderBuilder.builder()
+                    .terminal(terminal)
                     .completer(completer)
                     .build();
 
@@ -180,12 +180,12 @@ public class Example
 
                 line = line.trim();
                 if (color){
-                    console.writer().println("\u001B[33m======>\u001B[0m\"" + line + "\"");
+                    terminal.writer().println("\u001B[33m======>\u001B[0m\"" + line + "\"");
 
                 } else {
-                    console.writer().println("======>\"" + line + "\"");
+                    terminal.writer().println("======>\"" + line + "\"");
                 }
-                console.flush();
+                terminal.flush();
 
                 // If we input the special word then we will mask
                 // the next line.
@@ -205,16 +205,16 @@ public class Example
                     if (pl.words().size() == 2) {
                         Capability vcap = Capability.byName(pl.words().get(1));
                         if (vcap != null) {
-                            console.puts(vcap);
+                            terminal.puts(vcap);
                         } else {
-                            console.writer().println("Unknown capability");
+                            terminal.writer().println("Unknown capability");
                         }
                     }
                 }
                 else if ("bindkey".equals(pl.word())) {
                     if (pl.words().size() == 1) {
                         StringBuilder sb = new StringBuilder();
-                        Map<String, Binding> bound = ((ConsoleReaderImpl) reader).getKeys().getBoundKeys();
+                        Map<String, Binding> bound = ((LineReaderImpl) reader).getKeys().getBoundKeys();
                         for (Map.Entry<String, Binding> entry : bound.entrySet()) {
                             sb.append("\"");
                             entry.getKey().chars().forEachOrdered(c -> {
@@ -244,17 +244,17 @@ public class Example
                             }
                             sb.append("\n");
                         }
-                        console.writer().print(sb.toString());
-                        console.flush();
+                        terminal.writer().print(sb.toString());
+                        terminal.flush();
                     } else if (pl.words().size() == 3) {
-                        ((ConsoleReaderImpl) reader).getKeys().bind(
+                        ((LineReaderImpl) reader).getKeys().bind(
                                 new Reference(pl.words().get(2)), KeyMap.translate(pl.words().get(1))
                         );
                     }
                 }
                 else if ("cls".equals(pl.word())) {
-                    console.puts(Capability.clear_screen);
-                    console.flush();
+                    terminal.puts(Capability.clear_screen);
+                    terminal.flush();
                 }
                 else if ("sleep".equals(pl.word())) {
                     Thread.sleep(3000);

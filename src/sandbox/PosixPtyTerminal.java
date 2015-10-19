@@ -6,7 +6,7 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.console;
+package org.jline.terminal;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,14 +15,14 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 
 import org.jline.JLine.ConsoleReaderBuilder;
-import org.jline.console.impl.AbstractPosixConsole;
-import org.jline.console.impl.Pty;
+import org.jline.terminal.impl.AbstractPosixTerminal;
+import org.jline.terminal.impl.Pty;
 import org.jline.utils.InputStreamReader;
 import org.jline.utils.NonBlockingReader;
 
 import static org.jline.utils.Preconditions.checkNotNull;
 
-public class PosixPtyConsole extends AbstractPosixConsole {
+public class PosixPtyConsole extends AbstractPosixTerminal {
 
     private final NonBlockingReader reader;
     private final PrintWriter writer;

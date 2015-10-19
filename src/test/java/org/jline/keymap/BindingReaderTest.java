@@ -15,11 +15,11 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.jline.console.Console;
 import org.jline.reader.Binding;
 import org.jline.reader.Reference;
-import org.jline.reader.impl.DumbConsole;
+import org.jline.reader.impl.DumbTerminal;
 import org.jline.reader.impl.ReaderTestSupport.EofPipedInputStream;
+import org.jline.terminal.Terminal;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -28,7 +28,7 @@ import static org.junit.Assert.assertNull;
 
 public class BindingReaderTest {
 
-    protected Console console;
+    protected Terminal terminal;
     protected EofPipedInputStream in;
     protected ByteArrayOutputStream out;
 
@@ -43,13 +43,13 @@ public class BindingReaderTest {
 
         in = new EofPipedInputStream();
         out = new ByteArrayOutputStream();
-        console = new DumbConsole(in, out);
+        terminal = new DumbTerminal(in, out);
     }
 
     @Test
     public void testBindingReaderNoUnicode() {
         in.setIn(new ByteArrayInputStream("\uD834\uDD21abc".getBytes()));
-        BindingReader reader = new BindingReader(console.reader());
+        BindingReader reader = new BindingReader(terminal.reader());
         KeyMap<Binding> keyMap = new KeyMap<>();
         keyMap.bind(new Reference("foo"), "b");
         assertEquals(new Reference("foo"), reader.readBinding(keyMap));
@@ -60,7 +60,7 @@ public class BindingReaderTest {
     @Test
     public void testBindingReaderUnicode() {
         in.setIn(new ByteArrayInputStream("\uD834\uDD21abc".getBytes()));
-        BindingReader reader = new BindingReader(console.reader());
+        BindingReader reader = new BindingReader(terminal.reader());
         KeyMap<Binding> keyMap = new KeyMap<>();
         keyMap.setUnicode(new Reference("insert"));
         keyMap.bind(new Reference("foo"), "b");

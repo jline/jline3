@@ -576,7 +576,7 @@ public final class InfoCmp {
     }
 
     public static final String WINDOWS_CAPS =
-            "windows|windows console compatibility,\n" +
+            "windows|windows terminal compatibility,\n" +
             "\tam, mc5i, mir, msgr,\n" +
             "\tcolors#8, cols#80, it#8, lines#24, ncv#3, pairs#64,\n" +
             "\tbel=^G, blink=\\E[5m, bold=\\E[1m, cbt=\\E[Z, clear=\\E[H\\E[J,\n" +

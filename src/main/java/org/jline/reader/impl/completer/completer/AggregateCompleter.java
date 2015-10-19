@@ -15,7 +15,7 @@ import java.util.Objects;
 
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
-import org.jline.reader.ConsoleReader;
+import org.jline.reader.LineReader;
 import org.jline.reader.ParsedLine;
 
 /**
@@ -62,9 +62,9 @@ public class AggregateCompleter
     /**
      * Perform a completion operation across all aggregated completers.
      *
-     * @see Completer#complete(ConsoleReader, ParsedLine, List)
+     * @see Completer#complete(LineReader, ParsedLine, List)
      */
-    public void complete(ConsoleReader reader, final ParsedLine line, final List<Candidate> candidates) {
+    public void complete(LineReader reader, final ParsedLine line, final List<Candidate> candidates) {
         Objects.requireNonNull(line);
         Objects.requireNonNull(candidates);
 

@@ -6,7 +6,7 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.console.impl;
+package org.jline.terminal.impl;
 
 import java.io.IOError;
 import java.io.IOException;
@@ -17,17 +17,17 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import org.jline.console.Attributes;
-import org.jline.console.Attributes.ControlChar;
-import org.jline.console.Attributes.InputFlag;
-import org.jline.console.Attributes.LocalFlag;
-import org.jline.console.Console;
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Attributes.ControlChar;
+import org.jline.terminal.Attributes.InputFlag;
+import org.jline.terminal.Attributes.LocalFlag;
+import org.jline.terminal.Terminal;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.Log;
 
-public abstract class AbstractConsole implements Console {
+public abstract class AbstractTerminal implements Terminal {
 
     protected final String name;
     protected final String type;
@@ -36,7 +36,7 @@ public abstract class AbstractConsole implements Console {
     protected final Map<Capability, Integer> ints = new HashMap<>();
     protected final Map<Capability, String> strings = new HashMap<>();
 
-    public AbstractConsole(String name, String type) throws IOException {
+    public AbstractTerminal(String name, String type) throws IOException {
         this.name = name;
         this.type = type;
         for (Signal signal : Signal.values()) {

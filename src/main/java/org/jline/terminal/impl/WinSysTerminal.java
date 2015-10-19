@@ -6,7 +6,7 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.console.impl;
+package org.jline.terminal.impl;
 
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
@@ -26,9 +26,9 @@ import org.fusesource.jansi.internal.Kernel32;
 import org.fusesource.jansi.internal.Kernel32.INPUT_RECORD;
 import org.fusesource.jansi.internal.Kernel32.KEY_EVENT_RECORD;
 import org.fusesource.jansi.internal.WindowsSupport;
-import org.jline.console.Attributes;
-import org.jline.console.Attributes.LocalFlag;
-import org.jline.console.Size;
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Attributes.LocalFlag;
+import org.jline.terminal.Size;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.InputStreamReader;
@@ -38,7 +38,7 @@ import org.jline.utils.ShutdownHooks;
 import org.jline.utils.ShutdownHooks.Task;
 import org.jline.utils.Signals;
 
-public class WinSysConsole extends AbstractConsole {
+public class WinSysTerminal extends AbstractTerminal {
 
     protected final InputStream input;
     protected final OutputStream output;
@@ -56,7 +56,7 @@ public class WinSysConsole extends AbstractConsole {
     private static final int ENABLE_QUICK_EDIT_MODE = 0x0040;
 
 
-    public WinSysConsole(String name, boolean nativeSignals) throws IOException {
+    public WinSysTerminal(String name, boolean nativeSignals) throws IOException {
         super(name, "windows");
         input = new DirectInputStream();
         output = new WindowsAnsiOutputStream(new FileOutputStream(FileDescriptor.out));
@@ -141,7 +141,7 @@ public class WinSysConsole extends AbstractConsole {
     }
 
     public void setSize(Size size) {
-        throw new UnsupportedOperationException("Can not resize windows console");
+        throw new UnsupportedOperationException("Can not resize windows terminal");
     }
 
     public void close() throws IOException {
@@ -159,7 +159,7 @@ public class WinSysConsole extends AbstractConsole {
         try {
             events = WindowsSupport.readConsoleInput(1);
         } catch (IOException e) {
-            Log.debug("read Windows console input error: ", e);
+            Log.debug("read Windows terminal input error: ", e);
         }
         if (events == null) {
             return new byte[0];

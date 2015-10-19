@@ -28,5 +28,5 @@ public interface Completer
      * @param line          The parsed command line
      * @param candidates    The {@link List} of candidates to populate
      */
-    void complete(ConsoleReader reader, ParsedLine line, List<Candidate> candidates);
+    void complete(LineReader reader, ParsedLine line, List<Candidate> candidates);
 }

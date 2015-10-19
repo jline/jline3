@@ -19,12 +19,12 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.jline.console.Console;
 import org.jline.reader.Binding;
 import org.jline.reader.Reference;
-import org.jline.reader.impl.ConsoleReaderImpl;
-import org.jline.reader.impl.DumbConsole;
+import org.jline.reader.impl.LineReaderImpl;
+import org.jline.reader.impl.DumbTerminal;
 import org.jline.reader.impl.ReaderTestSupport.EofPipedInputStream;
+import org.jline.terminal.Terminal;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,20 +33,20 @@ import static org.jline.keymap.KeyMap.alt;
 import static org.jline.keymap.KeyMap.display;
 import static org.jline.keymap.KeyMap.range;
 import static org.jline.keymap.KeyMap.translate;
-import static org.jline.reader.ConsoleReader.ACCEPT_LINE;
-import static org.jline.reader.ConsoleReader.BACKWARD_WORD;
-import static org.jline.reader.ConsoleReader.COMPLETE_WORD;
-import static org.jline.reader.ConsoleReader.DOWN_HISTORY;
-import static org.jline.reader.ConsoleReader.KILL_WHOLE_LINE;
-import static org.jline.reader.ConsoleReader.SEND_BREAK;
-import static org.jline.reader.ConsoleReader.UP_HISTORY;
+import static org.jline.reader.LineReader.ACCEPT_LINE;
+import static org.jline.reader.LineReader.BACKWARD_WORD;
+import static org.jline.reader.LineReader.COMPLETE_WORD;
+import static org.jline.reader.LineReader.DOWN_HISTORY;
+import static org.jline.reader.LineReader.KILL_WHOLE_LINE;
+import static org.jline.reader.LineReader.SEND_BREAK;
+import static org.jline.reader.LineReader.UP_HISTORY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 
 public class KeyMapTest {
 
-    protected Console console;
+    protected Terminal terminal;
     protected EofPipedInputStream in;
     protected ByteArrayOutputStream out;
 
@@ -61,12 +61,12 @@ public class KeyMapTest {
 
         in = new EofPipedInputStream();
         out = new ByteArrayOutputStream();
-        console = new DumbConsole(in, out);
+        terminal = new DumbTerminal(in, out);
     }
 
     @Test
     public void testBound() throws Exception {
-        KeyMap<Binding> map = new ConsoleReaderImpl(console).emacs();
+        KeyMap<Binding> map = new LineReaderImpl(terminal).emacs();
 
         Assert.assertEquals(new Reference(COMPLETE_WORD), map.getBound("\u001B\u001B"));
         assertEquals(new Reference(BACKWARD_WORD), map.getBound(alt("b")));

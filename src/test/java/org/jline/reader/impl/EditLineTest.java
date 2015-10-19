@@ -8,16 +8,16 @@
  */
 package org.jline.reader.impl;
 
-import org.jline.reader.ConsoleReader;
+import org.jline.reader.LineReader;
 import org.jline.reader.Reference;
 import org.junit.Test;
 
 import static org.jline.keymap.KeyMap.ctrl;
-import static org.jline.reader.ConsoleReader.BACKWARD_KILL_LINE;
-import static org.jline.reader.ConsoleReader.BACKWARD_KILL_WORD;
-import static org.jline.reader.ConsoleReader.BACKWARD_WORD;
-import static org.jline.reader.ConsoleReader.END_OF_LINE;
-import static org.jline.reader.ConsoleReader.KILL_WORD;
+import static org.jline.reader.LineReader.BACKWARD_KILL_LINE;
+import static org.jline.reader.LineReader.BACKWARD_KILL_WORD;
+import static org.jline.reader.LineReader.BACKWARD_WORD;
+import static org.jline.reader.LineReader.END_OF_LINE;
+import static org.jline.reader.LineReader.KILL_WORD;
 
 /**
  * Tests various features of editing lines.
@@ -186,7 +186,7 @@ public class EditLineTest
 
     @Test
     public void testAbortPartialBuffer() throws Exception {
-        reader.setVariable(ConsoleReader.BELL_STYLE, "audible");
+        reader.setVariable(LineReader.BELL_STYLE, "audible");
         assertBuffer("", new TestBuffer("This is a test").ctrl('G'));
         assertConsoleOutputContains("\n");
         assertBeeped();

@@ -11,7 +11,7 @@ package org.jline.reader.impl;
 import java.io.IOException;
 
 import org.jline.reader.Completer;
-import org.jline.reader.ConsoleReader.Option;
+import org.jline.reader.LineReader.Option;
 import org.jline.reader.Reference;
 import org.jline.reader.impl.completer.completer.AggregateCompleter;
 import org.jline.reader.impl.completer.completer.ArgumentCompleter;

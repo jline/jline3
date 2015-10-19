@@ -6,7 +6,7 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.console;
+package org.jline.terminal;
 
 import java.util.EnumSet;
 

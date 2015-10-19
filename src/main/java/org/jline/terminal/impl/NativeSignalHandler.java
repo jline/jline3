@@ -6,10 +6,10 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.console.impl;
+package org.jline.terminal.impl;
 
-import org.jline.console.Console.Signal;
-import org.jline.console.Console.SignalHandler;
+import org.jline.terminal.Terminal.Signal;
+import org.jline.terminal.Terminal.SignalHandler;
 
 public final class NativeSignalHandler implements SignalHandler {
 

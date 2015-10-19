@@ -15,7 +15,7 @@ import java.util.List;
 
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
-import org.jline.reader.ConsoleReader;
+import org.jline.reader.LineReader;
 import org.jline.reader.ParsedLine;
 import org.jline.utils.AttributedString;
 
@@ -43,7 +43,7 @@ public class StringsCompleter implements Completer
         }
     }
 
-    public void complete(ConsoleReader reader, final ParsedLine commandLine, final List<Candidate> candidates) {
+    public void complete(LineReader reader, final ParsedLine commandLine, final List<Candidate> candidates) {
         assert commandLine != null;
         assert candidates != null;
         candidates.addAll(this.candidates);

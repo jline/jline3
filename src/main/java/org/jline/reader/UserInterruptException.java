@@ -8,10 +8,10 @@
  */
 package org.jline.reader;
 
-import org.jline.console.Console;
+import org.jline.terminal.Terminal;
 
 /**
- * This exception is thrown by {@link Console#readLine} when
+ * This exception is thrown by {@link Terminal#readLine} when
  * user interrupt handling is enabled and the user types the
  * interrupt character (ctrl-C). The partially entered line is
  * available via the {@link #getPartialLine()} method.

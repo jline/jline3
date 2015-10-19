@@ -18,7 +18,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.jline.reader.Candidate;
-import org.jline.reader.ConsoleReader;
+import org.jline.reader.LineReader;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.impl.completer.completer.FileNameCompleter;
 
@@ -29,7 +29,7 @@ public class Completers {
         Set<String> getCommands();
         String resolveCommand(String command);
         String commandName(String command);
-        Object evaluate(ConsoleReader reader, ParsedLine line, String func) throws Exception;
+        Object evaluate(LineReader reader, ParsedLine line, String func) throws Exception;
     }
 
     public static class CompletionData {
@@ -54,7 +54,7 @@ public class Completers {
             this.environment = environment;
         }
 
-        public void complete(ConsoleReader reader, ParsedLine line, List<Candidate> candidates) {
+        public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
             if (line.wordIndex() == 0) {
                 completeCommand(candidates);
             } else {
@@ -63,7 +63,7 @@ public class Completers {
         }
 
         @SuppressWarnings("unchecked")
-        protected void tryCompleteArguments(ConsoleReader reader, ParsedLine line, List<Candidate> candidates) {
+        protected void tryCompleteArguments(LineReader reader, ParsedLine line, List<Candidate> candidates) {
             String command = line.words().get(0);
             String resolved = environment.resolveCommand(command);
             Map<String, List<CompletionData>> comp = environment.getCompletions();
@@ -76,7 +76,7 @@ public class Completers {
         }
 
         @SuppressWarnings("unchecked")
-        protected void completeCommandArguments(ConsoleReader reader, ParsedLine line, List<Candidate> candidates, List<CompletionData> completions) {
+        protected void completeCommandArguments(LineReader reader, ParsedLine line, List<Candidate> candidates, List<CompletionData> completions) {
             for (CompletionData completion : completions) {
                 boolean isOption = line.word().startsWith("-");
                 String prevOption = line.wordIndex() >= 2 && line.words().get(line.wordIndex() - 1).startsWith("-")

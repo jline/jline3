@@ -6,7 +6,7 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.console;
+package org.jline.terminal;
 
 import java.io.Closeable;
 import java.io.Flushable;
@@ -14,11 +14,11 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 
-import org.jline.console.impl.NativeSignalHandler;
+import org.jline.terminal.impl.NativeSignalHandler;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.NonBlockingReader;
 
-public interface Console extends Closeable, Flushable {
+public interface Terminal extends Closeable, Flushable {
 
     String getName();
 

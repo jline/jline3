@@ -18,7 +18,7 @@ import java.util.Objects;
 
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
-import org.jline.reader.ConsoleReader;
+import org.jline.reader.LineReader;
 import org.jline.reader.ParsedLine;
 
 /**
@@ -80,7 +80,7 @@ public class ArgumentCompleter implements Completer
         return completers;
     }
 
-    public void complete(ConsoleReader reader, ParsedLine line, final List<Candidate> candidates) {
+    public void complete(LineReader reader, ParsedLine line, final List<Candidate> candidates) {
         Objects.requireNonNull(line);
         Objects.requireNonNull(candidates);
 

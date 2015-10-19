@@ -6,7 +6,7 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.console;
+package org.jline.terminal;
 
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
@@ -19,7 +19,7 @@ import java.lang.reflect.Constructor;
 import org.fusesource.jansi.internal.CLibrary;
 import org.fusesource.jansi.internal.CLibrary.Termios;
 import org.fusesource.jansi.internal.CLibrary.WinSize;
-import org.jline.console.impl.Pty;
+import org.jline.terminal.impl.Pty;
 
 public class NativePty implements Pty {
 

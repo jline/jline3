@@ -13,8 +13,8 @@ import java.io.StringWriter;
 
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
-import org.jline.reader.ConsoleReader;
-import org.jline.reader.ConsoleReader.Option;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReader.Option;
 import org.jline.reader.History;
 import org.jline.reader.Reference;
 import org.jline.reader.Widget;
@@ -30,9 +30,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
- * Tests for the {@link ConsoleReaderImpl}.
+ * Tests for the {@link LineReaderImpl}.
  */
-public class ConsoleReaderTest extends ReaderTestSupport
+public class TerminalReaderTest extends ReaderTestSupport
 {
 
     @Before
@@ -203,7 +203,7 @@ public class ConsoleReaderTest extends ReaderTestSupport
     public void testIllegalExpansionDoesntCrashReadLine() throws Exception {
         MemoryHistory history = new MemoryHistory();
         reader.setHistory(history);
-        reader.setVariable(ConsoleReader.BELL_STYLE, "audible");
+        reader.setVariable(LineReader.BELL_STYLE, "audible");
 
         assertLine("", new TestBuffer("!f\n"));
         assertEquals(0, history.size());
@@ -314,13 +314,13 @@ public class ConsoleReaderTest extends ReaderTestSupport
 
     @Test
     public void testBell() throws Exception {
-        reader.setVariable(ConsoleReader.BELL_STYLE, "off");
+        reader.setVariable(LineReader.BELL_STYLE, "off");
         reader.beep();
         assertEquals("out should not have received bell", 0, out.size());
 
-        reader.setVariable(ConsoleReader.BELL_STYLE, "audible");
+        reader.setVariable(LineReader.BELL_STYLE, "audible");
         reader.beep();
-        String bellCap = console.getStringCapability(Capability.bell);
+        String bellCap = terminal.getStringCapability(Capability.bell);
         StringWriter sw = new StringWriter();
         Curses.tputs(sw, bellCap);
         assertEquals("out should have received bell", sw.toString(), out.toString());
@@ -387,7 +387,7 @@ public class ConsoleReaderTest extends ReaderTestSupport
      * Validates that an 'event not found' IllegalArgumentException is thrown
      * for the expansion event.
      */
-    protected void assertExpansionIllegalArgumentException(ConsoleReaderImpl reader, String event) throws Exception {
+    protected void assertExpansionIllegalArgumentException(LineReaderImpl reader, String event) throws Exception {
         try {
             reader.expandEvents(event);
             fail("Expected IllegalArgumentException for " + event);

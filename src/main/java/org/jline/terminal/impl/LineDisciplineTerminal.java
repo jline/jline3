@@ -6,7 +6,7 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.console.impl;
+package org.jline.terminal.impl;
 
 import java.io.FilterInputStream;
 import java.io.IOException;
@@ -18,23 +18,23 @@ import java.io.PipedOutputStream;
 import java.io.PrintWriter;
 import java.util.Objects;
 
-import org.jline.console.Attributes;
-import org.jline.console.Attributes.ControlChar;
-import org.jline.console.Attributes.InputFlag;
-import org.jline.console.Attributes.LocalFlag;
-import org.jline.console.Attributes.OutputFlag;
-import org.jline.console.Console;
-import org.jline.console.Size;
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Attributes.ControlChar;
+import org.jline.terminal.Attributes.InputFlag;
+import org.jline.terminal.Attributes.LocalFlag;
+import org.jline.terminal.Attributes.OutputFlag;
+import org.jline.terminal.Size;
+import org.jline.terminal.Terminal;
 import org.jline.utils.InputStreamReader;
 import org.jline.utils.NonBlockingReader;
 
 /**
- * Abstract console with support for line discipline.
- * The {@link Console} interface represents the slave
+ * Abstract terminal with support for line discipline.
+ * The {@link Terminal} interface represents the slave
  * side of a PTY, but implementations derived from this class
  * will handle both the slave and master side of things.
  *
- * In order to correctly handle line discipline, the console
+ * In order to correctly handle line discipline, the terminal
  * needs to read the input in advance in order to raise the
  * signals as fast as possible.
  * For example, when the user hits Ctrl+C, we can't wait until
@@ -44,7 +44,7 @@ import org.jline.utils.NonBlockingReader;
  * only when the application running in the terminal processes
  * the input.
  */
-public class LineDisciplineConsole extends AbstractConsole {
+public class LineDisciplineTerminal extends AbstractTerminal {
 
     private static final int PIPE_SIZE = 1024;
 
@@ -72,10 +72,10 @@ public class LineDisciplineConsole extends AbstractConsole {
     protected final Attributes attributes;
     protected final Size size;
 
-    public LineDisciplineConsole(String name,
-                                 String type,
-                                 OutputStream masterOutput,
-                                 String encoding) throws IOException {
+    public LineDisciplineTerminal(String name,
+                                  String type,
+                                  OutputStream masterOutput,
+                                  String encoding) throws IOException {
         super(name, type);
         PipedInputStream input = new PipedInputStream(PIPE_SIZE);
         this.slaveInputPipe = new PipedOutputStream(input);
@@ -152,7 +152,7 @@ public class LineDisciplineConsole extends AbstractConsole {
 
     /**
      * Master input processing.
-     * All data coming to the console should be provided
+     * All data coming to the terminal should be provided
      * using this method.
      *
      * @param c the input byte

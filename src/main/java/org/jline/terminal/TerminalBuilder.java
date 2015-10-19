@@ -6,29 +6,29 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.console;
+package org.jline.terminal;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 
-import org.jline.console.impl.CygwinPty;
-import org.jline.console.impl.ExecPty;
-import org.jline.console.impl.ExternalConsole;
-import org.jline.console.impl.PosixSysConsole;
-import org.jline.console.impl.Pty;
-import org.jline.console.impl.WinSysConsole;
+import org.jline.terminal.impl.CygwinPty;
+import org.jline.terminal.impl.ExecPty;
+import org.jline.terminal.impl.ExternalTerminal;
+import org.jline.terminal.impl.PosixSysTerminal;
+import org.jline.terminal.impl.Pty;
+import org.jline.terminal.impl.WinSysTerminal;
 import org.jline.utils.OSUtils;
 
-public final class ConsoleBuilder {
+public final class TerminalBuilder {
 
-    public static Console console() throws IOException {
+    public static Terminal terminal() throws IOException {
         return builder().build();
     }
 
-    public static ConsoleBuilder builder() {
-        return new ConsoleBuilder();
+    public static TerminalBuilder builder() {
+        return new TerminalBuilder();
     }
 
     private String name;
@@ -39,39 +39,39 @@ public final class ConsoleBuilder {
     private Boolean system;
     private boolean nativeSignals = true;
 
-    private ConsoleBuilder() {
+    private TerminalBuilder() {
     }
 
-    public ConsoleBuilder name(String name) {
+    public TerminalBuilder name(String name) {
         this.name = name;
         return this;
     }
 
-    public ConsoleBuilder streams(InputStream in, OutputStream out) {
+    public TerminalBuilder streams(InputStream in, OutputStream out) {
         this.in = in;
         this.out = out;
         return this;
     }
 
-    public ConsoleBuilder system(boolean system) {
+    public TerminalBuilder system(boolean system) {
         this.system = system;
         return this;
     }
 
-    public ConsoleBuilder type(String type) {
+    public TerminalBuilder type(String type) {
         this.type = type;
         return this;
     }
 
-    public ConsoleBuilder encoding(String encoding) {
+    public TerminalBuilder encoding(String encoding) {
         this.encoding = encoding;
         return this;
     }
 
-    public Console build() throws IOException {
+    public Terminal build() throws IOException {
         String name = this.name;
         if (name == null) {
-            name = "JLine console";
+            name = "JLine terminal";
         }
         if ((system != null && system) || (system == null && in == null && out == null)) {
             //
@@ -87,10 +87,10 @@ public final class ConsoleBuilder {
                     encoding = Charset.defaultCharset().name();
                 }
                 Pty pty = CygwinPty.current();
-                return new PosixSysConsole(name, type, pty, encoding, nativeSignals);
+                return new PosixSysTerminal(name, type, pty, encoding, nativeSignals);
             }
             else if (OSUtils.IS_WINDOWS) {
-                return new WinSysConsole(name, nativeSignals);
+                return new WinSysTerminal(name, nativeSignals);
             } else {
                 String type = this.type;
                 if (type == null) {
@@ -101,10 +101,10 @@ public final class ConsoleBuilder {
                     encoding = Charset.defaultCharset().name();
                 }
                 Pty pty = ExecPty.current();
-                return new PosixSysConsole(name, type, pty, encoding, nativeSignals);
+                return new PosixSysTerminal(name, type, pty, encoding, nativeSignals);
             }
         } else {
-            return new ExternalConsole(name, type, in, out, encoding);
+            return new ExternalTerminal(name, type, in, out, encoding);
         }
     }
 }

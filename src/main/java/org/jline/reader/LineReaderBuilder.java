@@ -11,17 +11,17 @@ package org.jline.reader;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.jline.console.Console;
-import org.jline.reader.impl.ConsoleReaderImpl;
+import org.jline.reader.impl.LineReaderImpl;
 import org.jline.reader.impl.history.history.MemoryHistory;
+import org.jline.terminal.Terminal;
 
-public final class ConsoleReaderBuilder {
+public final class LineReaderBuilder {
 
-    public static ConsoleReaderBuilder builder() {
-        return new ConsoleReaderBuilder();
+    public static LineReaderBuilder builder() {
+        return new LineReaderBuilder();
     }
 
-    Console console;
+    Terminal terminal;
     String appName;
     Map<String, Object> variables;
     History history;
@@ -30,20 +30,20 @@ public final class ConsoleReaderBuilder {
     Highlighter highlighter;
     Parser parser;
 
-    private ConsoleReaderBuilder() {
+    private LineReaderBuilder() {
     }
 
-    public ConsoleReaderBuilder console(Console console) {
-        this.console = console;
+    public LineReaderBuilder terminal(Terminal terminal) {
+        this.terminal = terminal;
         return this;
     }
 
-    public ConsoleReaderBuilder appName(String appName) {
+    public LineReaderBuilder appName(String appName) {
         this.appName = appName;
         return this;
     }
 
-    public ConsoleReaderBuilder variables(Map<String, Object> variables) {
+    public LineReaderBuilder variables(Map<String, Object> variables) {
         Map<String, Object> old = this.variables;
         this.variables = variables;
         if (old != null) {
@@ -52,7 +52,7 @@ public final class ConsoleReaderBuilder {
         return this;
     }
 
-    public ConsoleReaderBuilder variable(String name, Object value) {
+    public LineReaderBuilder variable(String name, Object value) {
         if (variables == null) {
             variables = new HashMap<>();
         }
@@ -60,28 +60,28 @@ public final class ConsoleReaderBuilder {
         return this;
     }
 
-    public ConsoleReaderBuilder history(History history) {
+    public LineReaderBuilder history(History history) {
         this.history = history;
         return this;
     }
 
-    public ConsoleReaderBuilder completer(Completer completer) {
+    public LineReaderBuilder completer(Completer completer) {
         this.completer = completer;
         return this;
     }
 
-    public ConsoleReaderBuilder highlighter(Highlighter highlighter) {
+    public LineReaderBuilder highlighter(Highlighter highlighter) {
         this.highlighter = highlighter;
         return this;
     }
 
-    public ConsoleReaderBuilder parser(Parser parser) {
+    public LineReaderBuilder parser(Parser parser) {
         this.parser = parser;
         return this;
     }
 
-    public ConsoleReader build() {
-        ConsoleReaderImpl reader = new ConsoleReaderImpl(console, appName, variables);
+    public LineReader build() {
+        LineReaderImpl reader = new LineReaderImpl(terminal, appName, variables);
         if (history != null) {
             reader.setHistory(history);
         } else {

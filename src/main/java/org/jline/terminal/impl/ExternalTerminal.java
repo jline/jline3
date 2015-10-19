@@ -6,7 +6,7 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.console.impl;
+package org.jline.terminal.impl;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,23 +16,23 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Console implementation with embedded line disciplined.
  *
- * This console is well-suited for supporting incoming external
+ * This terminal is well-suited for supporting incoming external
  * connections, such as from the network (through telnet, ssh,
  * or any kind of protocol).
- * The console will start consuming the input in a separate thread
+ * The terminal will start consuming the input in a separate thread
  * to generate interruption events.
  *
- * @see LineDisciplineConsole
+ * @see LineDisciplineTerminal
  */
-public class ExternalConsole extends LineDisciplineConsole {
+public class ExternalTerminal extends LineDisciplineTerminal {
 
     private final AtomicBoolean closed = new AtomicBoolean();
     private final Thread pumpThread;
     protected final InputStream masterInput;
 
-    public ExternalConsole(String name, String type,
-                           InputStream masterInput, OutputStream masterOutput,
-                           String encoding) throws IOException {
+    public ExternalTerminal(String name, String type,
+                            InputStream masterInput, OutputStream masterOutput,
+                            String encoding) throws IOException {
         super(name, type, masterOutput, encoding);
         this.masterInput = masterInput;
         this.pumpThread = new Thread(this::pump, toString() + " input pump thread");

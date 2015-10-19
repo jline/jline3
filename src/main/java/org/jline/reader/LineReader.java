@@ -14,7 +14,7 @@ import java.util.Map;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.impl.BufferImpl;
 
-public interface ConsoleReader {
+public interface LineReader {
 
     //
     // Widget names
@@ -308,10 +308,10 @@ public interface ConsoleReader {
      * Read a line from the <i>in</i> {@link InputStream}, and return the line
      * (without any trailing newlines).
      *
-     * @param prompt    The prompt to issue to the console, may be null.
+     * @param prompt    The prompt to issue to the terminal, may be null.
      * @param mask      The character mask, may be null.
      * @param buffer    The default value presented to the user to edit, may be null.
-     * @return          A line that is read from the console, can never be null.
+     * @return          A line that is read from the terminal, can never be null.
      *
      * Equivalent to <code>readLine(prompt, null, mask, buffer)</code>
      */
@@ -321,11 +321,11 @@ public interface ConsoleReader {
      * Read a line from the <i>in</i> {@link InputStream}, and return the line
      * (without any trailing newlines).
      *
-     * @param prompt      The prompt to issue to the console, may be null.
+     * @param prompt      The prompt to issue to the terminal, may be null.
      * @param rightPrompt The right prompt
      * @param mask        The character mask, may be null.
      * @param buffer      The default value presented to the user to edit, may be null.
-     * @return            A line that is read from the console, can never be null.
+     * @return            A line that is read from the terminal, can never be null.
      *
      * @throws UserInterruptException if readLine was interrupted (using Ctrl-C for example)
      * @throws EndOfFileException if an EOF has been found (using Ctrl-D for example)

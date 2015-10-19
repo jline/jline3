@@ -6,18 +6,18 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.console.impl;
+package org.jline.terminal.impl;
 
 import java.io.IOException;
 import java.util.EnumSet;
 
-import org.jline.console.Attributes;
-import org.jline.console.Attributes.ControlChar;
-import org.jline.console.Attributes.ControlFlag;
-import org.jline.console.Attributes.InputFlag;
-import org.jline.console.Attributes.LocalFlag;
-import org.jline.console.Attributes.OutputFlag;
-import org.jline.console.Size;
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Attributes.ControlChar;
+import org.jline.terminal.Attributes.ControlFlag;
+import org.jline.terminal.Attributes.InputFlag;
+import org.jline.terminal.Attributes.LocalFlag;
+import org.jline.terminal.Attributes.OutputFlag;
+import org.jline.terminal.Size;
 import org.junit.Assert;
 import org.junit.Test;
 

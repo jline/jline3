@@ -14,13 +14,13 @@ import org.jline.reader.Reference;
 import org.jline.reader.impl.ReaderTestSupport;
 import org.junit.Test;
 
-import static org.jline.reader.ConsoleReader.ACCEPT_LINE;
-import static org.jline.reader.ConsoleReader.BACKWARD_CHAR;
-import static org.jline.reader.ConsoleReader.BEGINNING_OF_LINE;
-import static org.jline.reader.ConsoleReader.DOWN_HISTORY;
-import static org.jline.reader.ConsoleReader.HISTORY_SEARCH_BACKWARD;
-import static org.jline.reader.ConsoleReader.HISTORY_SEARCH_FORWARD;
-import static org.jline.reader.ConsoleReader.UP_HISTORY;
+import static org.jline.reader.LineReader.ACCEPT_LINE;
+import static org.jline.reader.LineReader.BACKWARD_CHAR;
+import static org.jline.reader.LineReader.BEGINNING_OF_LINE;
+import static org.jline.reader.LineReader.DOWN_HISTORY;
+import static org.jline.reader.LineReader.HISTORY_SEARCH_BACKWARD;
+import static org.jline.reader.LineReader.HISTORY_SEARCH_FORWARD;
+import static org.jline.reader.LineReader.UP_HISTORY;
 
 /**
  * Tests command history.

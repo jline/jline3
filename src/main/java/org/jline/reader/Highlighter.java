@@ -12,5 +12,5 @@ import org.jline.utils.AttributedString;
 
 public interface Highlighter {
 
-    AttributedString highlight(ConsoleReader reader, String buffer);
+    AttributedString highlight(LineReader reader, String buffer);
 }

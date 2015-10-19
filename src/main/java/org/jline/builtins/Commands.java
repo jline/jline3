@@ -30,24 +30,24 @@ import org.jline.builtins.Completers.CompletionData;
 import org.jline.builtins.Less.Source;
 import org.jline.builtins.Less.StdInSource;
 import org.jline.builtins.Less.URLSource;
-import org.jline.console.Console;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
-import org.jline.reader.ConsoleReader;
-import org.jline.reader.ConsoleReader.Option;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReader.Option;
 import org.jline.reader.History;
 import org.jline.reader.Reference;
 import org.jline.reader.Widget;
 import org.jline.reader.impl.Macro;
+import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 
 public class Commands {
 
-    public void tmux(Console console, PrintStream out, PrintStream err,
+    public void tmux(Terminal terminal, PrintStream out, PrintStream err,
                      Supplier<Object> getter,
                      Consumer<Object> setter,
-                     Consumer<Console> runner,
+                     Consumer<Terminal> runner,
                      String[] argv) throws Exception {
         final String[] usage = {
                 "tmux -  terminal multiplexer",
@@ -67,7 +67,7 @@ public class Commands {
             if (instance != null) {
                 err.println("tmux: can't run tmux inside itself");
             } else {
-                Tmux tmux = new Tmux(console, err, runner);
+                Tmux tmux = new Tmux(terminal, err, runner);
                 setter.accept(tmux);
                 try {
                     tmux.run();
@@ -85,7 +85,7 @@ public class Commands {
         }
     }
 
-    public void nano(Console console, PrintStream out, PrintStream err,
+    public void nano(Terminal terminal, PrintStream out, PrintStream err,
                      URI currentDir,
                      String[] argv) throws Exception {
         final String[] usage = {
@@ -98,12 +98,12 @@ public class Commands {
             opt.usage(err);
             return;
         }
-        Nano edit = new Nano(console, Paths.get(currentDir));
+        Nano edit = new Nano(terminal, Paths.get(currentDir));
         edit.open(opt.args());
         edit.run();
     }
 
-    public void less(Console console, PrintStream out, PrintStream err,
+    public void less(Terminal terminal, PrintStream out, PrintStream err,
                      URI currentDir,
                      String[] argv) throws IOException, InterruptedException {
         final String[] usage = {
@@ -128,7 +128,7 @@ public class Commands {
             return;
         }
 
-        Less less = new Less(console);
+        Less less = new Less(terminal);
         less.quitAtFirstEof = opt.isSet("QUIT-AT-EOF");
         less.quitAtSecondEof = opt.isSet("quit-at-eof");
         less.quiet = opt.isSet("quiet");
@@ -154,7 +154,7 @@ public class Commands {
         less.run(sources);
     }
 
-    public void history(ConsoleReader reader, PrintStream out, PrintStream err,
+    public void history(LineReader reader, PrintStream out, PrintStream err,
                         String[] argv) throws IOException {
         final String[] usage = {
                 "history -  list history of commands",
@@ -196,7 +196,7 @@ public class Commands {
         }
     }
 
-    public void complete(ConsoleReader reader, PrintStream out, PrintStream err,
+    public void complete(LineReader reader, PrintStream out, PrintStream err,
                          Map<String, List<CompletionData>> completions,
                          String[] argv) {
         final String[] usage = {
@@ -250,7 +250,7 @@ public class Commands {
         cmdCompletions.add(new CompletionData(options, description, argument, condition));
     }
 
-    public void widget(ConsoleReader reader, PrintStream out, PrintStream err,
+    public void widget(LineReader reader, PrintStream out, PrintStream err,
                        Function<String, Widget> widgetCreator,
                        String[] argv) throws Exception {
         final String[] usage = {
@@ -332,7 +332,7 @@ public class Commands {
         }
     }
 
-    public void keymap(ConsoleReader reader, PrintStream out, PrintStream err, String[] argv) {
+    public void keymap(LineReader reader, PrintStream out, PrintStream err, String[] argv) {
         final String[] usage = {
                 "keymap -  manipulate keymaps",
                 "Usage: keymap [options] -l [-L] [keymap ...]",
@@ -475,7 +475,7 @@ public class Commands {
         }
         else if (opt.isSet("r")) {
             // Select keymap
-            String keyMapName = ConsoleReader.MAIN;
+            String keyMapName = LineReader.MAIN;
             int sel = (opt.isSet("a") ? 1 : 0)
                     + (opt.isSet("e") ? 1 : 0)
                     + (opt.isSet("v") ? 1 : 0)
@@ -484,11 +484,11 @@ public class Commands {
                 err.println("keymap: incompatible keymap selection options");
                 return;
             } else if (opt.isSet("a")) {
-                keyMapName = ConsoleReader.VICMD;
+                keyMapName = LineReader.VICMD;
             } else if (opt.isSet("e")) {
-                keyMapName = ConsoleReader.EMACS;
+                keyMapName = LineReader.EMACS;
             } else if (opt.isSet("v")) {
-                keyMapName = ConsoleReader.VIINS;
+                keyMapName = LineReader.VIINS;
             } else if (opt.isSet("M")) {
                 if (opt.args().isEmpty()) {
                     err.println("keymap: argument expected: -M");
@@ -528,12 +528,12 @@ public class Commands {
                 map.unbind(seq);
             }
             if (opt.isSet("e") || opt.isSet("v")) {
-                keyMaps.put(ConsoleReader.MAIN, map);
+                keyMaps.put(LineReader.MAIN, map);
             }
         }
         else if (opt.isSet("s") || opt.args().size() > 1) {
             // Select keymap
-            String keyMapName = ConsoleReader.MAIN;
+            String keyMapName = LineReader.MAIN;
             int sel = (opt.isSet("a") ? 1 : 0)
                     + (opt.isSet("e") ? 1 : 0)
                     + (opt.isSet("v") ? 1 : 0)
@@ -542,11 +542,11 @@ public class Commands {
                 err.println("keymap: incompatible keymap selection options");
                 return;
             } else if (opt.isSet("a")) {
-                keyMapName = ConsoleReader.VICMD;
+                keyMapName = LineReader.VICMD;
             } else if (opt.isSet("e")) {
-                keyMapName = ConsoleReader.EMACS;
+                keyMapName = LineReader.EMACS;
             } else if (opt.isSet("v")) {
-                keyMapName = ConsoleReader.VIINS;
+                keyMapName = LineReader.VIINS;
             } else if (opt.isSet("M")) {
                 if (opt.args().isEmpty()) {
                     err.println("keymap: argument expected: -M");
@@ -582,12 +582,12 @@ public class Commands {
                 }
             }
             if (opt.isSet("e") || opt.isSet("v")) {
-                keyMaps.put(ConsoleReader.MAIN, map);
+                keyMaps.put(LineReader.MAIN, map);
             }
         }
         else {
             // Select keymap
-            String keyMapName = ConsoleReader.MAIN;
+            String keyMapName = LineReader.MAIN;
             int sel = (opt.isSet("a") ? 1 : 0)
                     + (opt.isSet("e") ? 1 : 0)
                     + (opt.isSet("v") ? 1 : 0)
@@ -596,11 +596,11 @@ public class Commands {
                 err.println("keymap: incompatible keymap selection options");
                 return;
             } else if (opt.isSet("a")) {
-                keyMapName = ConsoleReader.VICMD;
+                keyMapName = LineReader.VICMD;
             } else if (opt.isSet("e")) {
-                keyMapName = ConsoleReader.EMACS;
+                keyMapName = LineReader.EMACS;
             } else if (opt.isSet("v")) {
-                keyMapName = ConsoleReader.VIINS;
+                keyMapName = LineReader.VIINS;
             } else if (opt.isSet("M")) {
                 if (opt.args().isEmpty()) {
                     err.println("keymap: argument expected: -M");
@@ -671,12 +671,12 @@ public class Commands {
                 }
             }
             if (opt.isSet("e") || opt.isSet("v")) {
-                keyMaps.put(ConsoleReader.MAIN, map);
+                keyMaps.put(LineReader.MAIN, map);
             }
         }
     }
 
-    public void setopt(ConsoleReader reader, PrintStream out, PrintStream err, String[] argv) {
+    public void setopt(LineReader reader, PrintStream out, PrintStream err, String[] argv) {
         final String[] usage = {
                 "setopt -  set options",
                 "Usage: setopt [-m] option ...",
@@ -702,7 +702,7 @@ public class Commands {
         }
     }
 
-    public void unsetopt(ConsoleReader reader, PrintStream out, PrintStream err, String[] argv) {
+    public void unsetopt(LineReader reader, PrintStream out, PrintStream err, String[] argv) {
         final String[] usage = {
                 "unsetopt -  unset options",
                 "Usage: unsetopt [-m] option ...",
@@ -728,7 +728,7 @@ public class Commands {
         }
     }
 
-    private void doSetOpts(ConsoleReader reader, PrintStream out, PrintStream err, List<String> options, boolean match, boolean set) {
+    private void doSetOpts(LineReader reader, PrintStream out, PrintStream err, List<String> options, boolean match, boolean set) {
         for (String name : options) {
             String tname = name.toLowerCase().replaceAll("[-_]", "");
             if (match) {
@@ -736,7 +736,7 @@ public class Commands {
                 tname = tname.replaceAll("\\?", "[a-z]");
             }
             boolean found = false;
-            for (ConsoleReader.Option option : ConsoleReader.Option.values()) {
+            for (LineReader.Option option : LineReader.Option.values()) {
                 String optName = option.name().toLowerCase().replaceAll("[-_]", "");
                 if (match ? optName.matches(tname) : optName.equals(tname)) {
                     if (set) {

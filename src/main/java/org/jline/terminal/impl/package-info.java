@@ -11,4 +11,4 @@
  *
  * @since 3.0
  */
-package org.jline.console.impl;
+package org.jline.terminal.impl;

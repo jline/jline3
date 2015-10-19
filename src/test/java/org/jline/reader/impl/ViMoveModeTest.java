@@ -14,11 +14,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.jline.keymap.KeyMap.ctrl;
-import static org.jline.reader.ConsoleReader.BACKWARD_KILL_LINE;
-import static org.jline.reader.impl.ConsoleReaderImpl.MAIN;
-import static org.jline.reader.impl.ConsoleReaderImpl.VICMD;
-import static org.jline.reader.impl.ConsoleReaderImpl.VIINS;
-import static org.jline.reader.impl.ConsoleReaderImpl.VISUAL;
+import static org.jline.reader.LineReader.BACKWARD_KILL_LINE;
+import static org.jline.reader.impl.LineReaderImpl.MAIN;
+import static org.jline.reader.impl.LineReaderImpl.VICMD;
+import static org.jline.reader.impl.LineReaderImpl.VIINS;
+import static org.jline.reader.impl.LineReaderImpl.VISUAL;
 
 /**
  * Unit tests for the greatest keymap binding in the world! Vi!!!!

@@ -27,7 +27,7 @@ import java.nio.charset.UnmappableCharacterException;
  *
  * NOTE for JLine: the default InputStreamReader that comes from the JRE
  * usually read more bytes than needed from the input stream, which
- * is not usable in a character per character model used in the console.
+ * is not usable in a character per character model used in the terminal.
  * We thus use the harmony code which only reads the minimal number of bytes.
  */
 

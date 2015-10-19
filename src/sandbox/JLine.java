@@ -15,19 +15,19 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.jline.console.Console;
-import org.jline.console.impl.ExternalConsole;
-import org.jline.console.impl.ExecPty;
-import org.jline.console.NativePty;
-import org.jline.console.PosixPtyConsole;
-import org.jline.console.impl.PosixSysConsole;
-import org.jline.console.impl.Pty;
-import org.jline.console.impl.WinSysConsole;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.impl.ExternalTerminal;
+import org.jline.terminal.impl.ExecPty;
+import org.jline.terminal.NativePty;
+import org.jline.terminal.PosixPtyConsole;
+import org.jline.terminal.impl.PosixSysTerminal;
+import org.jline.terminal.impl.Pty;
+import org.jline.terminal.impl.WinSysTerminal;
 import org.jline.reader.Completer;
-import org.jline.reader.ConsoleReader;
+import org.jline.reader.LineReader;
 import org.jline.reader.Highlighter;
 import org.jline.reader.History;
-import org.jline.reader.impl.ConsoleReaderImpl;
+import org.jline.reader.impl.LineReaderImpl;
 import org.jline.reader.Parser;
 import org.jline.reader.impl.history.history.MemoryHistory;
 
@@ -36,7 +36,7 @@ public final class JLine {
     private JLine() {
     }
 
-    public static Console console() throws IOException {
+    public static Terminal console() throws IOException {
         return builder().build();
     }
 
@@ -129,11 +129,11 @@ public final class JLine {
             return this;
         }
 
-        public Console build() throws IOException {
+        public Terminal build() throws IOException {
             boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
             if ((system != null && system) || (system == null && in == null && out == null)) {
                 if (isWindows) {
-                    return new WinSysConsole(nativeSignals, consoleReaderBuilder);
+                    return new WinSysTerminal(nativeSignals, consoleReaderBuilder);
                 } else {
                     String type = this.type;
                     if (type == null) {
@@ -156,11 +156,11 @@ public final class JLine {
                     } else {
                         pty = ExecPty.current();
                     }
-                    return new PosixSysConsole(type, consoleReaderBuilder, pty, encoding, nativeSignals);
+                    return new PosixSysTerminal(type, consoleReaderBuilder, pty, encoding, nativeSignals);
                 }
             } else if ((system != null && !system) || (system == null && in != null && out != null)) {
                 if (isWindows || posix == null || !posix) {
-                    return new ExternalConsole(type, consoleReaderBuilder, in, out, encoding);
+                    return new ExternalTerminal(type, consoleReaderBuilder, in, out, encoding);
                 } else {
                     Pty pty = NativePty.open(null, null); // TODO: non native pty are not supported
                     return new PosixPtyConsole(type, consoleReaderBuilder, pty, in, out, encoding);
@@ -173,7 +173,7 @@ public final class JLine {
 
     public static class ConsoleReaderBuilder {
 
-        Console console;
+        Terminal terminal;
         String appName;
         Map<String, Object> variables;
         History history;
@@ -185,8 +185,8 @@ public final class JLine {
         public ConsoleReaderBuilder() {
         }
 
-        public ConsoleReaderBuilder console(Console console) {
-            this.console = console;
+        public ConsoleReaderBuilder console(Terminal terminal) {
+            this.console = terminal;
             return this;
         }
 
@@ -232,8 +232,8 @@ public final class JLine {
             return this;
         }
 
-        public ConsoleReader build() {
-            ConsoleReaderImpl reader = new ConsoleReaderImpl(console, appName, variables);
+        public LineReader build() {
+            LineReaderImpl reader = new LineReaderImpl(console, appName, variables);
             if (history != null) {
                 reader.setHistory(history);
             } else {

@@ -38,16 +38,16 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.jline.console.Attributes;
-import org.jline.console.Attributes.ControlChar;
-import org.jline.console.Attributes.InputFlag;
-import org.jline.console.Attributes.LocalFlag;
-import org.jline.console.Console;
-import org.jline.console.Console.Signal;
-import org.jline.console.Console.SignalHandler;
-import org.jline.console.Size;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Attributes.ControlChar;
+import org.jline.terminal.Attributes.InputFlag;
+import org.jline.terminal.Attributes.LocalFlag;
+import org.jline.terminal.Size;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.Terminal.Signal;
+import org.jline.terminal.Terminal.SignalHandler;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
@@ -64,7 +64,7 @@ import static org.jline.keymap.KeyMap.key;
 public class Nano {
 
     // Final fields
-    protected final Console console;
+    protected final Terminal terminal;
     protected final Display display;
     protected final BindingReader bindingReader;
     protected final Size size;
@@ -921,15 +921,15 @@ public class Nano {
         }
     }
 
-    public Nano(Console console, File root) {
-        this(console, root.toPath());
+    public Nano(Terminal terminal, File root) {
+        this(terminal, root.toPath());
     }
 
-    public Nano(Console console, Path root) {
-        this.console = console;
+    public Nano(Terminal terminal, Path root) {
+        this.terminal = terminal;
         this.root = root;
-        this.display = new Display(console, true);
-        this.bindingReader = new BindingReader(console.reader());
+        this.display = new Display(terminal, true);
+        this.bindingReader = new BindingReader(terminal.reader());
         this.size = new Size();
         bindKeys();
     }
@@ -950,18 +950,18 @@ public class Nano {
         }
         buffer = buffers.get(bufferIndex);
 
-        Attributes attributes = console.getAttributes();
+        Attributes attributes = terminal.getAttributes();
         Attributes newAttr = new Attributes(attributes);
         newAttr.setLocalFlags(EnumSet.of(LocalFlag.ICANON, LocalFlag.ECHO, LocalFlag.IEXTEN), false);
         newAttr.setInputFlags(EnumSet.of(InputFlag.IXON, InputFlag.ICRNL, InputFlag.INLCR), false);
         newAttr.setControlChar(ControlChar.VMIN, 1);
         newAttr.setControlChar(ControlChar.VTIME, 0);
         newAttr.setControlChar(ControlChar.VINTR, 0);
-        console.setAttributes(newAttr);
-        SignalHandler prevHandler = console.handle(Signal.WINCH, this::handle);
-        console.puts(Capability.enter_ca_mode);
-        console.puts(Capability.keypad_xmit);
-        size.copy(console.getSize());
+        terminal.setAttributes(newAttr);
+        SignalHandler prevHandler = terminal.handle(Signal.WINCH, this::handle);
+        terminal.puts(Capability.enter_ca_mode);
+        terminal.puts(Capability.keypad_xmit);
+        size.copy(terminal.getSize());
         display.clear();
         display.reset();
         display.resize(size.getRows(), size.getColumns());
@@ -1090,11 +1090,11 @@ public class Nano {
                 display();
             }
         } finally {
-            console.puts(Capability.exit_ca_mode);
-            console.puts(Capability.keypad_local);
-            console.flush();
-            console.setAttributes(attributes);
-            console.handle(Signal.WINCH, prevHandler);
+            terminal.puts(Capability.exit_ca_mode);
+            terminal.puts(Capability.keypad_local);
+            terminal.flush();
+            terminal.setAttributes(attributes);
+            terminal.handle(Signal.WINCH, prevHandler);
         }
     }
 
@@ -1116,7 +1116,7 @@ public class Nano {
         writeKeyMap.bind(Operation.TO_FILES, ctrl('T'));
         writeKeyMap.bind(Operation.ACCEPT, "\r");
         writeKeyMap.bind(Operation.CANCEL, ctrl('C'));
-        writeKeyMap.bind(Operation.HELP, ctrl('G'), key(console, Capability.key_f1));
+        writeKeyMap.bind(Operation.HELP, ctrl('G'), key(terminal, Capability.key_f1));
 
         editMessage = getWriteMessage();
         editBuffer.setLength(0);
@@ -1304,7 +1304,7 @@ public class Nano {
         readKeyMap.bind(Operation.EXECUTE, ctrl('X'));
         readKeyMap.bind(Operation.ACCEPT, "\r");
         readKeyMap.bind(Operation.CANCEL, ctrl('C'));
-        readKeyMap.bind(Operation.HELP, ctrl('G'), key(console, Capability.key_f1));
+        readKeyMap.bind(Operation.HELP, ctrl('G'), key(terminal, Capability.key_f1));
 
         editMessage = getReadMessage();
         editBuffer.setLength(0);
@@ -1465,7 +1465,7 @@ public class Nano {
         this.buffer = newBuf;
         try {
             this.message = null;
-            console.puts(Capability.cursor_invisible);
+            terminal.puts(Capability.cursor_invisible);
             display();
             while (true) {
                 switch (readOperation(keys)) {
@@ -1501,7 +1501,7 @@ public class Nano {
             this.printLineNumbers = oldPrintLineNumbers;
             this.constantCursor = oldConstantCursor;
             this.shortcuts = oldShortcuts;
-            console.puts(Capability.cursor_visible);
+            terminal.puts(Capability.cursor_visible);
         }
     }
 
@@ -1771,7 +1771,7 @@ public class Nano {
     }
 
     protected void flush() {
-        console.flush();
+        terminal.flush();
     }
 
     protected List<AttributedString> computeFooter() {
@@ -1834,7 +1834,7 @@ public class Nano {
     }
 
     protected void handle(Signal signal) {
-        size.copy(console.getSize());
+        size.copy(terminal.getSize());
         buffer.computeAllOffsets();
         buffer.moveToChar(buffer.offsetInLine + buffer.column);
         resetDisplay();
@@ -1853,25 +1853,25 @@ public class Nano {
             keys.bind(Operation.DO_LOWER_CASE, alt(i));
         }
 
-        keys.bind(Operation.HELP, ctrl('G'), key(console, Capability.key_f1));
-        keys.bind(Operation.QUIT, ctrl('X'), key(console, Capability.key_f2));
-        keys.bind(Operation.WRITE, ctrl('O'), key(console, Capability.key_f3));
-        keys.bind(Operation.JUSTIFY_PARAGRAPH, ctrl('J'), key(console, Capability.key_f4));
+        keys.bind(Operation.HELP, ctrl('G'), key(terminal, Capability.key_f1));
+        keys.bind(Operation.QUIT, ctrl('X'), key(terminal, Capability.key_f2));
+        keys.bind(Operation.WRITE, ctrl('O'), key(terminal, Capability.key_f3));
+        keys.bind(Operation.JUSTIFY_PARAGRAPH, ctrl('J'), key(terminal, Capability.key_f4));
 
-        keys.bind(Operation.READ, ctrl('R'), key(console, Capability.key_f5));
-        keys.bind(Operation.SEARCH, ctrl('W'), key(console, Capability.key_f6));
-        keys.bind(Operation.PREV_PAGE, ctrl('Y'), key(console, Capability.key_f7));
-        keys.bind(Operation.NEXT_PAGE, ctrl('V'), key(console, Capability.key_f8));
+        keys.bind(Operation.READ, ctrl('R'), key(terminal, Capability.key_f5));
+        keys.bind(Operation.SEARCH, ctrl('W'), key(terminal, Capability.key_f6));
+        keys.bind(Operation.PREV_PAGE, ctrl('Y'), key(terminal, Capability.key_f7));
+        keys.bind(Operation.NEXT_PAGE, ctrl('V'), key(terminal, Capability.key_f8));
 
-        keys.bind(Operation.CUT, ctrl('K'), key(console, Capability.key_f9));
-        keys.bind(Operation.UNCUT, ctrl('U'), key(console, Capability.key_f10));
-        keys.bind(Operation.CUR_POS, ctrl('C'), key(console, Capability.key_f11));
-        keys.bind(Operation.TO_SPELL, ctrl('T'), key(console, Capability.key_f11));
+        keys.bind(Operation.CUT, ctrl('K'), key(terminal, Capability.key_f9));
+        keys.bind(Operation.UNCUT, ctrl('U'), key(terminal, Capability.key_f10));
+        keys.bind(Operation.CUR_POS, ctrl('C'), key(terminal, Capability.key_f11));
+        keys.bind(Operation.TO_SPELL, ctrl('T'), key(terminal, Capability.key_f11));
 
-        keys.bind(Operation.GOTO, ctrl('_'), key(console, Capability.key_f13), alt('g'));
-        keys.bind(Operation.REPLACE, ctrl('\\'), key(console, Capability.key_f14), alt('r'));
-        keys.bind(Operation.MARK, ctrl('^'), key(console, Capability.key_f15), alt('a'));
-        keys.bind(Operation.NEXT_SEARCH, key(console, Capability.key_f16), alt('w'));
+        keys.bind(Operation.GOTO, ctrl('_'), key(terminal, Capability.key_f13), alt('g'));
+        keys.bind(Operation.REPLACE, ctrl('\\'), key(terminal, Capability.key_f14), alt('r'));
+        keys.bind(Operation.MARK, ctrl('^'), key(terminal, Capability.key_f15), alt('a'));
+        keys.bind(Operation.NEXT_SEARCH, key(terminal, Capability.key_f16), alt('w'));
 
         keys.bind(Operation.COPY, alt('^'));
         keys.bind(Operation.INDENT, alt('}'));
@@ -1928,10 +1928,10 @@ public class Nano {
         keys.bind(Operation.NUMBERS, alt('n'));
 
         // TODO: map other keys
-        keys.bind(Operation.UP, key(console, Capability.key_up));
-        keys.bind(Operation.DOWN, key(console, Capability.key_down));
-        keys.bind(Operation.RIGHT, key(console, Capability.key_right));
-        keys.bind(Operation.LEFT, key(console, Capability.key_left));
+        keys.bind(Operation.UP, key(terminal, Capability.key_up));
+        keys.bind(Operation.DOWN, key(terminal, Capability.key_down));
+        keys.bind(Operation.RIGHT, key(terminal, Capability.key_right));
+        keys.bind(Operation.LEFT, key(terminal, Capability.key_left));
     }
 
     enum Operation {

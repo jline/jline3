@@ -6,7 +6,7 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.console.impl;
+package org.jline.terminal.impl;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -14,29 +14,29 @@ import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.util.EnumSet;
 
-import org.jline.console.Attributes;
-import org.jline.console.Attributes.ControlChar;
-import org.jline.console.Attributes.InputFlag;
-import org.jline.console.Attributes.LocalFlag;
-import org.jline.console.Attributes.OutputFlag;
-import org.jline.console.Console;
-import org.jline.reader.ConsoleReader;
-import org.jline.reader.ConsoleReaderBuilder;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.UserInterruptException;
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Attributes.ControlChar;
+import org.jline.terminal.Attributes.InputFlag;
+import org.jline.terminal.Attributes.LocalFlag;
+import org.jline.terminal.Attributes.OutputFlag;
+import org.jline.terminal.Terminal;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
-public class ExternalConsoleTest {
+public class ExternalTerminalTest {
 
     @Test
     public void testInput() throws IOException, InterruptedException {
         PipedInputStream in = new PipedInputStream();
         PipedOutputStream outIn = new PipedOutputStream(in);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ExternalConsole console = new ExternalConsole("foo", "ansi", in, out, "UTF-8");
+        ExternalTerminal console = new ExternalTerminal("foo", "ansi", in, out, "UTF-8");
 
         testConsole(outIn, out, console);
     }
@@ -48,18 +48,18 @@ public class ExternalConsoleTest {
         PipedOutputStream outIn = new PipedOutputStream(in);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-        Console console = new PosixPtyConsole("ansi", new ConsoleReaderBuilder(), NativePty.open(null, null), in, out, "UTF-8");
+        Console terminal = new PosixPtyConsole("ansi", new ConsoleReaderBuilder(), NativePty.open(null, null), in, out, "UTF-8");
 
-        testConsole(outIn, out, console);
+        testConsole(outIn, out, terminal);
     }
     */
 
-    private void testConsole(PipedOutputStream outIn, ByteArrayOutputStream out, Console console) throws IOException, InterruptedException {
-        Attributes attributes = console.getAttributes();
+    private void testConsole(PipedOutputStream outIn, ByteArrayOutputStream out, Terminal terminal) throws IOException, InterruptedException {
+        Attributes attributes = terminal.getAttributes();
         attributes.setLocalFlag(LocalFlag.ECHO, true);
         attributes.setInputFlag(InputFlag.IGNCR, true);
         attributes.setOutputFlags(EnumSet.of(OutputFlag.OPOST));
-        console.setAttributes(attributes);
+        terminal.setAttributes(attributes);
 
         outIn.write("a\r\nb".getBytes());
         while (out.size() < 3) {
@@ -75,14 +75,14 @@ public class ExternalConsoleTest {
         PipedInputStream in = new PipedInputStream();
         final PipedOutputStream outIn = new PipedOutputStream(in);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ExternalConsole console = new ExternalConsole("foo", "ansi", in, out, "UTF-8");
+        ExternalTerminal console = new ExternalTerminal("foo", "ansi", in, out, "UTF-8");
         Attributes attributes = console.getAttributes();
         attributes.setLocalFlag(LocalFlag.ISIG, true);
         attributes.setControlChar(ControlChar.VINTR, 3);
         console.setAttributes(attributes);
-        ConsoleReader consoleReader = ConsoleReaderBuilder.builder()
-                .console(console).build();
-        assertNotNull(consoleReader);
+        LineReader lineReader = LineReaderBuilder.builder()
+                .terminal(console).build();
+        assertNotNull(lineReader);
         Thread th = new Thread() {
             public void run() {
                 try {
@@ -101,7 +101,7 @@ public class ExternalConsoleTest {
         };
         th.start();
         try {
-            consoleReader.readLine();
+            lineReader.readLine();
             fail("Expected UserInterruptException");
         } catch (UserInterruptException e) {
             assertEquals("ab", e.getPartialLine());
