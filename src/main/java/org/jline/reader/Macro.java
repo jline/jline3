@@ -6,9 +6,7 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.reader.impl;
-
-import org.jline.reader.Binding;
+package org.jline.reader;
 
 public class Macro implements Binding {
 

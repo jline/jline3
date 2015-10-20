@@ -25,7 +25,7 @@ import org.jline.reader.ParsedLine;
 import org.jline.reader.Reference;
 import org.jline.reader.UserInterruptException;
 import org.jline.reader.impl.LineReaderImpl;
-import org.jline.reader.impl.Macro;
+import org.jline.reader.Macro;
 import org.jline.reader.impl.completer.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.completer.FileNameCompleter;
 import org.jline.reader.impl.completer.completer.StringsCompleter;

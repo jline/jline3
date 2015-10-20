@@ -10,8 +10,7 @@ package org.jline.builtins;
 
 import java.io.IOException;
 import java.io.PrintStream;
-import java.net.URI;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -32,12 +31,12 @@ import org.jline.builtins.Less.StdInSource;
 import org.jline.builtins.Less.URLSource;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
+import org.jline.reader.History;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReader.Option;
-import org.jline.reader.History;
+import org.jline.reader.Macro;
 import org.jline.reader.Reference;
 import org.jline.reader.Widget;
-import org.jline.reader.impl.Macro;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
@@ -86,7 +85,7 @@ public class Commands {
     }
 
     public void nano(Terminal terminal, PrintStream out, PrintStream err,
-                     URI currentDir,
+                     Path currentDir,
                      String[] argv) throws Exception {
         final String[] usage = {
                 "nano -  edit files",
@@ -98,13 +97,13 @@ public class Commands {
             opt.usage(err);
             return;
         }
-        Nano edit = new Nano(terminal, Paths.get(currentDir));
+        Nano edit = new Nano(terminal, currentDir);
         edit.open(opt.args());
         edit.run();
     }
 
     public void less(Terminal terminal, PrintStream out, PrintStream err,
-                     URI currentDir,
+                     Path currentDir,
                      String[] argv) throws IOException, InterruptedException {
         final String[] usage = {
                 "less -  file pager",
@@ -148,7 +147,7 @@ public class Commands {
             if ("-".equals(arg)) {
                 sources.add(new StdInSource());
             } else {
-                sources.add(new URLSource(currentDir.resolve(arg).toURL(), arg));
+                sources.add(new URLSource(currentDir.resolve(arg).toUri().toURL(), arg));
             }
         }
         less.run(sources);

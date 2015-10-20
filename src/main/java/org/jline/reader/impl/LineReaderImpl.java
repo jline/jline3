@@ -48,6 +48,7 @@ import org.jline.reader.EOFError;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.Highlighter;
 import org.jline.reader.History;
+import org.jline.reader.Macro;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.Parser;
 import org.jline.reader.Reference;
