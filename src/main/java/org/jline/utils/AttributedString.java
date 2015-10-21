@@ -57,6 +57,18 @@ public class AttributedString extends AttributedCharSequence {
             }
             this.start = as.start + start;
             this.end = as.start + end;
+        } else if (str instanceof AttributedStringBuilder) {
+            AttributedStringBuilder asb = (AttributedStringBuilder) str;
+            AttributedString as = asb.subSequence(start, end);
+            this.buffer = as.buffer;
+            this.style = as.style;
+            if (s != null) {
+                for (int i = 0; i < style.length; i++) {
+                    this.style[i] = (this.style[i] & ~s.getMask()) | s.getStyle();
+                }
+            }
+            this.start = as.start;
+            this.end = as.end;
         } else {
             int l = end - start;
             buffer = new char[l];
