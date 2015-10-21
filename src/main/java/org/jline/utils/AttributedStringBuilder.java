@@ -9,6 +9,8 @@
 package org.jline.utils;
 
 import java.util.Arrays;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Attributed string builder
@@ -305,6 +307,16 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
 
     public AttributedStringBuilder tabs(int tabs) {
         this.tabs = tabs;
+        return this;
+    }
+
+    public AttributedStringBuilder styleMatches(Pattern pattern, AttributedStyle s) {
+        Matcher matcher = pattern.matcher(this);
+        while (matcher.find()) {
+            for (int i = matcher.start(); i < matcher.end(); i++) {
+                style[i] = (style[i] & ~s.getMask()) | s.getStyle();
+            }
+        }
         return this;
     }
 
