@@ -31,7 +31,8 @@ public class ExternalTerminal extends LineDisciplineTerminal {
     protected final InputStream masterInput;
 
     public ExternalTerminal(String name, String type,
-                            InputStream masterInput, OutputStream masterOutput,
+                            InputStream masterInput,
+                            OutputStream masterOutput,
                             String encoding) throws IOException {
         super(name, type, masterOutput, encoding);
         this.masterInput = masterInput;
