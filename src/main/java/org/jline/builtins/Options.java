@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -87,19 +88,27 @@ public class Options {
     private boolean stopOnBadOption = false;
 
     public static Options compile(String[] optSpec) {
-        return new Options(optSpec, null, null);
+        return new Options(optSpec, null, null, System::getenv);
+    }
+
+    public static Options compile(String[] optSpec, Function<String, String> env) {
+        return new Options(optSpec, null, null, env);
     }
 
     public static Options compile(String optSpec) {
-        return compile(optSpec.split("\\n"));
+        return compile(optSpec.split("\\n"), System::getenv);
+    }
+
+    public static Options compile(String optSpec, Function<String, String> env) {
+        return compile(optSpec.split("\\n"), env);
     }
 
     public static Options compile(String[] optSpec, Options gopt) {
-        return new Options(optSpec, null, gopt);
+        return new Options(optSpec, null, gopt, System::getenv);
     }
 
     public static Options compile(String[] optSpec, String[] gspec) {
-        return new Options(optSpec, gspec, null);
+        return new Options(optSpec, gspec, null, System::getenv);
     }
 
     public Options setStopOnBadOption(boolean stopOnBadOption) {
@@ -239,7 +248,7 @@ public class Options {
     }
 
     // internal constructor
-    private Options(String[] spec, String[] gspec, Options opt) {
+    private Options(String[] spec, String[] gspec, Options opt, Function<String, String> env) {
         this.gspec = gspec;
 
         if (gspec == null && opt == null) {
@@ -274,7 +283,7 @@ public class Options {
         unmodifiableOptSet = Collections.unmodifiableMap(myOptSet);
         unmodifiableOptArg = Collections.unmodifiableMap(myOptArg);
 
-        defOpts = System.getenv(usageName.toUpperCase() + "_OPTS");
+        defOpts = env != null ? env.apply(usageName.toUpperCase() + "_OPTS") : null;
         defArgs = (defOpts != null) ? defOpts.split("\\s+") : new String[0];
     }
 
