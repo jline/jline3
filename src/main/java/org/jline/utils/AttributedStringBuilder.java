@@ -148,7 +148,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                     String[] params = ansi.substring(ansiStart, i).split(";");
                     int j = 0;
                     while (j < params.length) {
-                        int ansiParam = Integer.parseInt(params[j]);
+                        int ansiParam = params[j].isEmpty() ? 0 : Integer.parseInt(params[j]);
                         switch (ansiParam) {
                             case 0:
                                 current = AttributedStyle.DEFAULT;
