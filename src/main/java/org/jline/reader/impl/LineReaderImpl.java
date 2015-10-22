@@ -4766,6 +4766,8 @@ public class LineReaderImpl implements LineReader, Flushable
         bindArrowKeys(emacs);
         bind(emacs, FORWARD_WORD,                           alt(key(Capability.key_right)));
         bind(emacs, BACKWARD_WORD,                          alt(key(Capability.key_left)));
+        bind(emacs, FORWARD_WORD,                           alt(translate("^[[C")));
+        bind(emacs, BACKWARD_WORD,                          alt(translate("^[[D")));
         return emacs;
     }
 
