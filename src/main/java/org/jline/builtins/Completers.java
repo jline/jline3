@@ -10,6 +10,7 @@ package org.jline.builtins;
 
 import java.io.File;
 import java.lang.reflect.Array;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
@@ -225,7 +226,7 @@ public class Completers {
 
         @Override
         protected boolean accept(Path path) {
-            return java.nio.file.Files.isDirectory(path);
+            return Files.isDirectory(path) && super.accept(path);
         }
     }
 

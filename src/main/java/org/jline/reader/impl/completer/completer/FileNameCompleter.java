@@ -91,7 +91,11 @@ public class FileNameCompleter implements Completer
     }
 
     protected boolean accept(Path path) {
-        return true;
+        try {
+            return !Files.isHidden(path);
+        } catch (IOException e) {
+            return false;
+        }
     }
 
     protected Path getUserDir() {
@@ -102,7 +106,7 @@ public class FileNameCompleter implements Completer
         return Paths.get(System.getProperty("user.home"));
     }
 
-    private String getDisplay(Path p) {
+    protected String getDisplay(Path p) {
         // TODO: use $LS_COLORS for output
         String name = p.getFileName().toString();
         if (Files.isDirectory(p)) {
