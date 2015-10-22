@@ -3286,7 +3286,7 @@ public class LineReaderImpl implements LineReader, Flushable
         return widgets;
     }
 
-    protected boolean redisplay() {
+    public boolean redisplay() {
         redisplay(true);
         return true;
     }
