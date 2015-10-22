@@ -3590,7 +3590,7 @@ public class LineReaderImpl implements LineReader, Flushable
             List<Candidate> possible = matching.entrySet().stream()
                     .flatMap(e -> e.getValue().stream())
                     .collect(Collectors.toList());
-            doList(possible);
+            doList(possible, line.word());
             return !possible.isEmpty();
         }
 
@@ -3646,7 +3646,7 @@ public class LineReaderImpl implements LineReader, Flushable
         if (useMenu) {
             buf.move(line.word().length() - line.wordCursor());
             buf.backspace(line.word().length());
-            doMenu(possible);
+            doMenu(possible, line.word());
             return true;
         }
 
@@ -3678,7 +3678,7 @@ public class LineReaderImpl implements LineReader, Flushable
             }
         }
         if (isSet(Option.AUTO_LIST)) {
-            doList(possible);
+            doList(possible, line.word());
             if (isSet(Option.AUTO_MENU)) {
                 if (!nextBindingIsComplete()) {
                     return true;
@@ -3687,7 +3687,7 @@ public class LineReaderImpl implements LineReader, Flushable
         }
         if (isSet(Option.AUTO_MENU)) {
             buf.backspace(current.length());
-            doMenu(possible);
+            doMenu(possible, line.word());
         }
         return true;
     }
@@ -3762,13 +3762,15 @@ public class LineReaderImpl implements LineReader, Flushable
         AttributedString computed;
         int lines;
         int columns;
+        String completed;
 
-        public MenuSupport(List<Candidate> original) {
+        public MenuSupport(List<Candidate> original, String completed) {
             this.possible = new ArrayList<>();
             this.selection = -1;
             this.topLine = 0;
             this.word = "";
-            computePost(original, null, possible);
+            this.completed = completed;
+            computePost(original, null, possible, completed);
             next();
         }
 
@@ -3869,7 +3871,7 @@ public class LineReaderImpl implements LineReader, Flushable
             buf.write(word);
 
             // Compute displayed prompt
-            PostResult pr = computePost(possible, completion(), null);
+            PostResult pr = computePost(possible, completion(), null, completed);
             AttributedString text = insertSecondaryPrompts(AttributedStringBuilder.append(prompt, buf.toString()), new ArrayList<>());
             int promptLines = text.columnSplitLength(size.getColumns()).size();
             if (pr.lines >= size.getRows() - promptLines) {
@@ -3907,14 +3909,14 @@ public class LineReaderImpl implements LineReader, Flushable
 
     }
 
-    protected boolean doMenu(List<Candidate> original) {
+    protected boolean doMenu(List<Candidate> original, String completed) {
         // Reorder candidates according to display order
         final List<Candidate> possible = new ArrayList<>();
         mergeCandidates(original);
-        computePost(original, null, possible);
+        computePost(original, null, possible, completed);
 
         // Build menu support
-        MenuSupport menuSupport = new MenuSupport(original);
+        MenuSupport menuSupport = new MenuSupport(original, completed);
         post = menuSupport;
         redisplay();
 
@@ -3980,7 +3982,7 @@ public class LineReaderImpl implements LineReader, Flushable
         return false;
     }
 
-    protected void doList(List<Candidate> possible) {
+    protected void doList(List<Candidate> possible, String completed) {
         // If we list only and if there's a big
         // number of items, we should ask the user
         // for confirmation, display the list
@@ -3988,7 +3990,7 @@ public class LineReaderImpl implements LineReader, Flushable
         mergeCandidates(possible);
         AttributedString text = insertSecondaryPrompts(AttributedStringBuilder.append(prompt, buf.toString()), new ArrayList<>());
         int promptLines = text.columnSplitLength(size.getColumns()).size();
-        PostResult postResult = computePost(possible, null, null);
+        PostResult postResult = computePost(possible, null, null, completed);
         int lines = postResult.lines;
         int listMax = getInt(LIST_MAX, DEFAULT_LIST_MAX);
         if (listMax > 0 && possible.size() >= listMax
@@ -4011,7 +4013,7 @@ public class LineReaderImpl implements LineReader, Flushable
         post = () -> {
             AttributedString t = insertSecondaryPrompts(AttributedStringBuilder.append(prompt, buf.toString()), new ArrayList<>());
             int pl = t.columnSplitLength(size.getColumns()).size();
-            PostResult pr = computePost(possible, null, null);
+            PostResult pr = computePost(possible, null, null, completed);
             if (pr.lines >= size.getRows() - pl) {
                 post = null;
                 int oldCursor = buf.cursor();
@@ -4039,7 +4041,7 @@ public class LineReaderImpl implements LineReader, Flushable
         }
     }
 
-    protected PostResult computePost(List<Candidate> possible, Candidate selection, List<Candidate> ordered) {
+    protected PostResult computePost(List<Candidate> possible, Candidate selection, List<Candidate> ordered, String completed) {
         List<Object> strings = new ArrayList<>();
         boolean groupName = isSet(Option.GROUP);
         if (groupName) {
@@ -4080,7 +4082,7 @@ public class LineReaderImpl implements LineReader, Flushable
                 ordered.addAll(sorted.values());
             }
         }
-        return toColumns(strings, selection);
+        return toColumns(strings, selection, completed);
     }
 
     private static final String DESC_PREFIX = "(";
@@ -4089,7 +4091,7 @@ public class LineReaderImpl implements LineReader, Flushable
     private static final int MARGIN_BETWEEN_COLUMNS = 3;
 
     @SuppressWarnings("unchecked")
-    protected PostResult toColumns(List<Object> items, Candidate selection) {
+    protected PostResult toColumns(List<Object> items, Candidate selection, String completed) {
         int[] out = new int[2];
         int width = size.getColumns();
         // TODO: support Option.LIST_PACKED
@@ -4116,7 +4118,7 @@ public class LineReaderImpl implements LineReader, Flushable
         // Build columns
         AttributedStringBuilder sb = new AttributedStringBuilder();
         for (Object list : items) {
-            toColumns(list, width, maxWidth, sb, selection, out);
+            toColumns(list, width, maxWidth, sb, selection, completed, out);
         }
         if (sb.length() > 0 && sb.charAt(sb.length() - 1) == '\n') {
             sb.setLength(sb.length() - 1);
@@ -4125,7 +4127,7 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     @SuppressWarnings("unchecked")
-    protected void toColumns(Object items, int width, int maxWidth, AttributedStringBuilder sb, Candidate selection, int[] out) {
+    protected void toColumns(Object items, int width, int maxWidth, AttributedStringBuilder sb, Candidate selection, String completed, int[] out) {
         // This is a group
         if (items instanceof String) {
             sb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.CYAN))
@@ -4176,7 +4178,12 @@ public class LineReaderImpl implements LineReader, Flushable
                         if (cand == selection) {
                             out[1] = i;
                             sb.style(AttributedStyle.INVERSE);
-                            sb.append(left);
+                            if (left.toString().startsWith(completed)) {
+                                sb.append(left.toString(), 0, completed.length());
+                                sb.append(left.toString(), completed.length(), left.length());
+                            } else {
+                                sb.append(left.toString());
+                            }
                             for (int k = 0; k < maxWidth - lw - rw; k++) {
                                 sb.append(' ');
                             }
@@ -4185,7 +4192,14 @@ public class LineReaderImpl implements LineReader, Flushable
                             }
                             sb.style(AttributedStyle.DEFAULT);
                         } else {
-                            sb.append(left);
+                            if (left.toString().startsWith(completed)) {
+                                sb.style(sb.style().foreground(AttributedStyle.CYAN));
+                                sb.append(left, 0, completed.length());
+                                sb.style(AttributedStyle.DEFAULT);
+                                sb.append(left, completed.length(), left.length());
+                            } else {
+                                sb.append(left);
+                            }
                             if (right != null || hasRightItem) {
                                 for (int k = 0; k < maxWidth - lw - rw; k++) {
                                     sb.append(' ');

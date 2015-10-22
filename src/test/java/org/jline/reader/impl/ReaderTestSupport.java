@@ -310,14 +310,14 @@ public abstract class ReaderTestSupport
         }
 
         @Override
-        protected void doList(List<Candidate> possible) {
+        protected void doList(List<Candidate> possible, String completed) {
             list = true;
-            super.doList(possible);
+            super.doList(possible, completed);
         }
         @Override
-        protected boolean doMenu(List<Candidate> possible) {
+        protected boolean doMenu(List<Candidate> possible, String completed) {
             menu = true;
-            return super.doMenu(possible);
+            return super.doMenu(possible, completed);
         }
     }
 
