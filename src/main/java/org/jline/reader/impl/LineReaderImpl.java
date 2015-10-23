@@ -3598,7 +3598,7 @@ public class LineReaderImpl implements LineReader, Flushable
             List<Candidate> possible = matching.entrySet().stream()
                     .flatMap(e -> e.getValue().stream())
                     .collect(Collectors.toList());
-            doList(possible, line.word());
+            doList(possible, line.word(), false);
             return !possible.isEmpty();
         }
 
@@ -3686,11 +3686,8 @@ public class LineReaderImpl implements LineReader, Flushable
             }
         }
         if (isSet(Option.AUTO_LIST)) {
-            doList(possible, line.word());
-            if (isSet(Option.AUTO_MENU)) {
-                if (!nextBindingIsComplete()) {
-                    return true;
-                }
+            if (!doList(possible, current, true)) {
+                return false;
             }
         }
         if (isSet(Option.AUTO_MENU)) {
@@ -3929,7 +3926,6 @@ public class LineReaderImpl implements LineReader, Flushable
         redisplay();
 
         // Loop
-        terminal.puts(Capability.keypad_xmit);
         KeyMap<Binding> keyMap = keyMaps.get(MENU);
         Binding operation;
         while ((operation = readBinding(getKeys(), keyMap)) != null) {
@@ -3973,24 +3969,21 @@ public class LineReaderImpl implements LineReader, Flushable
                         buf.write(' ');
                     }
                     if (!ACCEPT_LINE.equals(ref)
-                            && !BACKWARD_DELETE_CHAR.equals(ref)
                             && !(SELF_INSERT.equals(ref)
                                 && completion.suffix() != null
                                 && completion.suffix().startsWith(getLastBinding()))) {
                         pushBackBinding(true);
                     }
                     post = null;
-                    terminal.puts(Capability.keypad_local);
                     return true;
                 }
             }
             redisplay();
         }
-        terminal.puts(Capability.keypad_local);
         return false;
     }
 
-    protected void doList(List<Candidate> possible, String completed) {
+    protected boolean doList(List<Candidate> possible, String completed, boolean runLoop) {
         // If we list only and if there's a big
         // number of items, we should ask the user
         // for confirmation, display the list
@@ -4015,26 +4008,76 @@ public class LineReaderImpl implements LineReader, Flushable
             flush();
             int c = readCharacter();
             if (c != 'y' && c != 'Y' && c != '\t') {
-                return;
+                return false;
             }
         }
-        post = () -> {
-            AttributedString t = insertSecondaryPrompts(AttributedStringBuilder.append(prompt, buf.toString()), new ArrayList<>());
-            int pl = t.columnSplitLength(size.getColumns()).size();
-            PostResult pr = computePost(possible, null, null, completed);
-            if (pr.lines >= size.getRows() - pl) {
-                post = null;
-                int oldCursor = buf.cursor();
-                buf.cursor(buf.length());
-                redisplay(false);
-                buf.cursor(oldCursor);
-                println();
-                println(postResult.post.toAnsi(terminal));
-                redrawLine();
-                return new AttributedString("");
+
+        StringBuilder sb = new StringBuilder();
+        while (true) {
+            String current = completed + sb.toString();
+            List<Candidate> cands = possible.stream()
+                    .filter(c -> c.value().startsWith(current))
+                    .collect(Collectors.toList());
+            post = () -> {
+                AttributedString t = insertSecondaryPrompts(AttributedStringBuilder.append(prompt, buf.toString()), new ArrayList<>());
+                int pl = t.columnSplitLength(size.getColumns()).size();
+                PostResult pr = computePost(cands, null, null, current);
+                if (pr.lines >= size.getRows() - pl) {
+                    post = null;
+                    int oldCursor = buf.cursor();
+                    buf.cursor(buf.length());
+                    redisplay(false);
+                    buf.cursor(oldCursor);
+                    println();
+                    println(postResult.post.toAnsi(terminal));
+                    redrawLine();
+                    return new AttributedString("");
+                }
+                return pr.post;
+            };
+            if (!runLoop) {
+                return false;
             }
-            return pr.post;
-        };
+            redisplay();
+            // TODO: use a different keyMap ?
+            Binding b = bindingReader.readBinding(getKeys());
+            if (b instanceof Reference) {
+                String name = ((Reference) b).name();
+                if (BACKWARD_DELETE_CHAR.equals(name) || VI_BACKWARD_DELETE_CHAR.equals(name)) {
+                    if (sb.length() == 0) {
+                        pushBackBinding();
+                        post = null;
+                        return false;
+                    } else {
+                        sb.setLength(sb.length() - 1);
+                        buf.backspace();
+                    }
+                } else if (SELF_INSERT.equals(name)) {
+                    sb.append(getLastBinding());
+                    buf.write(getLastBinding());
+                    if (cands.isEmpty()) {
+                        post = null;
+                        return false;
+                    }
+                } else if ("\t".equals(getLastBinding())) {
+                    if (cands.size() == 1 || sb.length() > 0) {
+                        post = null;
+                        pushBackBinding();
+                    } else if (isSet(Option.AUTO_MENU)) {
+                        buf.backspace(current.length());
+                        doMenu(cands, current);
+                    }
+                    return false;
+                } else {
+                    pushBackBinding();
+                    post = null;
+                    return false;
+                }
+            } else if (b == null) {
+                post = null;
+                return false;
+            }
+        }
     }
 
     private static class PostResult {

@@ -310,9 +310,9 @@ public abstract class ReaderTestSupport
         }
 
         @Override
-        protected void doList(List<Candidate> possible, String completed) {
+        protected boolean doList(List<Candidate> possible, String completed, boolean runLoop) {
             list = true;
-            super.doList(possible, completed);
+            return super.doList(possible, completed, runLoop);
         }
         @Override
         protected boolean doMenu(List<Candidate> possible, String completed) {
