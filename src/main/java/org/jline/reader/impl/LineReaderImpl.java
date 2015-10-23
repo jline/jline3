@@ -518,7 +518,7 @@ public class LineReaderImpl implements LineReader, Flushable
                 // Get executable widget
                 BufferImpl copy = buf.copy();
                 Widget w = getWidget(o);
-                if (w == null || !w.apply()) {
+                if (!w.apply()) {
                     beep();
                 }
                 if (!isUndo && !copy.toString().equals(buf.toString())) {
@@ -812,7 +812,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
     @SuppressWarnings("unchecked")
     protected Widget getWidget(Object binding) {
-        Widget w = null;
+        Widget w;
         if (binding instanceof Widget) {
             w = (Widget) binding;
         } else if (binding instanceof Macro) {
@@ -825,8 +825,16 @@ public class LineReaderImpl implements LineReader, Flushable
             String name = ((Reference) binding).name();
             w = widgets.get(name);
             if (w == null) {
-                post = () -> new AttributedString("No such widget `" + name + "'");
+                w = () -> {
+                    post = () -> new AttributedString("No such widget `" + name + "'");
+                    return false;
+                };
             }
+        } else {
+            w = () -> {
+                post = () -> new AttributedString("Unsupported widget");
+                return false;
+            };
         }
         return w;
     }
