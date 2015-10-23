@@ -43,11 +43,11 @@ import org.jline.utils.AttributedStyle;
 
 public class Commands {
 
-    public void tmux(Terminal terminal, PrintStream out, PrintStream err,
-                     Supplier<Object> getter,
-                     Consumer<Object> setter,
-                     Consumer<Terminal> runner,
-                     String[] argv) throws Exception {
+    public static void tmux(Terminal terminal, PrintStream out, PrintStream err,
+                            Supplier<Object> getter,
+                            Consumer<Object> setter,
+                            Consumer<Terminal> runner,
+                            String[] argv) throws Exception {
         final String[] usage = {
                 "tmux -  terminal multiplexer",
                 "Usage: tmux [command]",
@@ -84,9 +84,9 @@ public class Commands {
         }
     }
 
-    public void nano(Terminal terminal, PrintStream out, PrintStream err,
-                     Path currentDir,
-                     String[] argv) throws Exception {
+    public static void nano(Terminal terminal, PrintStream out, PrintStream err,
+                            Path currentDir,
+                            String[] argv) throws Exception {
         final String[] usage = {
                 "nano -  edit files",
                 "Usage: nano [FILES]",
@@ -102,9 +102,9 @@ public class Commands {
         edit.run();
     }
 
-    public void less(Terminal terminal, PrintStream out, PrintStream err,
-                     Path currentDir,
-                     String[] argv) throws IOException, InterruptedException {
+    public static void less(Terminal terminal, PrintStream out, PrintStream err,
+                            Path currentDir,
+                            String[] argv) throws IOException, InterruptedException {
         final String[] usage = {
                 "less -  file pager",
                 "Usage: less [OPTIONS] [FILES]",
@@ -153,8 +153,8 @@ public class Commands {
         less.run(sources);
     }
 
-    public void history(LineReader reader, PrintStream out, PrintStream err,
-                        String[] argv) throws IOException {
+    public static void history(LineReader reader, PrintStream out, PrintStream err,
+                               String[] argv) throws IOException {
         final String[] usage = {
                 "history -  list history of commands",
                 "Usage: history [OPTIONS]",
@@ -195,9 +195,9 @@ public class Commands {
         }
     }
 
-    public void complete(LineReader reader, PrintStream out, PrintStream err,
-                         Map<String, List<CompletionData>> completions,
-                         String[] argv) {
+    public static void complete(LineReader reader, PrintStream out, PrintStream err,
+                                Map<String, List<CompletionData>> completions,
+                                String[] argv) {
         final String[] usage = {
                 "complete -  edit command specific tab-completions",
                 "Usage: complete",
@@ -249,9 +249,9 @@ public class Commands {
         cmdCompletions.add(new CompletionData(options, description, argument, condition));
     }
 
-    public void widget(LineReader reader, PrintStream out, PrintStream err,
-                       Function<String, Widget> widgetCreator,
-                       String[] argv) throws Exception {
+    public static void widget(LineReader reader, PrintStream out, PrintStream err,
+                              Function<String, Widget> widgetCreator,
+                              String[] argv) throws Exception {
         final String[] usage = {
                 "widget -  manipulate widgets",
                 "Usage: widget [options] -N new-widget [function-name]",
@@ -331,7 +331,10 @@ public class Commands {
         }
     }
 
-    public void keymap(LineReader reader, PrintStream out, PrintStream err, String[] argv) {
+    public static void keymap(LineReader reader,
+                              PrintStream out,
+                              PrintStream err,
+                              String[] argv) {
         final String[] usage = {
                 "keymap -  manipulate keymaps",
                 "Usage: keymap [options] -l [-L] [keymap ...]",
@@ -675,7 +678,10 @@ public class Commands {
         }
     }
 
-    public void setopt(LineReader reader, PrintStream out, PrintStream err, String[] argv) {
+    public static void setopt(LineReader reader,
+                              PrintStream out,
+                              PrintStream err,
+                              String[] argv) {
         final String[] usage = {
                 "setopt -  set options",
                 "Usage: setopt [-m] option ...",
@@ -701,7 +707,10 @@ public class Commands {
         }
     }
 
-    public void unsetopt(LineReader reader, PrintStream out, PrintStream err, String[] argv) {
+    public static void unsetopt(LineReader reader,
+                                PrintStream out,
+                                PrintStream err,
+                                String[] argv) {
         final String[] usage = {
                 "unsetopt -  unset options",
                 "Usage: unsetopt [-m] option ...",
@@ -727,7 +736,7 @@ public class Commands {
         }
     }
 
-    private void doSetOpts(LineReader reader, PrintStream out, PrintStream err, List<String> options, boolean match, boolean set) {
+    private static void doSetOpts(LineReader reader, PrintStream out, PrintStream err, List<String> options, boolean match, boolean set) {
         for (String name : options) {
             String tname = name.toLowerCase().replaceAll("[-_]", "");
             if (match) {
@@ -765,7 +774,7 @@ public class Commands {
         }
     }
 
-    private void displayValue(StringBuilder sb, Object value) {
+    private static void displayValue(StringBuilder sb, Object value) {
         if (value == null) {
             sb.append("undefined-key");
         } else if (value instanceof Macro) {
