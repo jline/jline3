@@ -26,9 +26,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.jline.builtins.Completers.CompletionData;
-import org.jline.builtins.Less.Source;
-import org.jline.builtins.Less.StdInSource;
-import org.jline.builtins.Less.URLSource;
+import org.jline.builtins.Source.StdInSource;
+import org.jline.builtins.Source.URLSource;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
 import org.jline.reader.History;
