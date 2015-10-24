@@ -132,6 +132,7 @@
             <groupId>org.fusesource.jansi</groupId>
             <artifactId>jansi</artifactId>
             <version>${jansi.version}</version>
+            <optional>true</optional>
         </dependency>
 
         <dependency>
@@ -351,6 +352,7 @@
                         </goals>
                         <configuration>
                             <instructions>
+                                <Export-Package>*</Export-Package>
                             </instructions>
                         </configuration>
                     </execution>
