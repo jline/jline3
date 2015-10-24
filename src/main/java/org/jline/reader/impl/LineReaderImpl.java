@@ -3687,7 +3687,7 @@ public class LineReaderImpl implements LineReader, Flushable
         }
         if (isSet(Option.AUTO_LIST)) {
             if (!doList(possible, current, true)) {
-                return false;
+                return true;
             }
         }
         if (isSet(Option.AUTO_MENU)) {
