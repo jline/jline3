@@ -20,6 +20,7 @@ import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReader.Option;
 import org.jline.reader.ParsedLine;
+import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 
@@ -76,13 +77,14 @@ public class FileNameCompleter implements Completer
                 if (Files.isDirectory(p)) {
                     candidates.add(new Candidate(
                             value + (reader.isSet(Option.AUTO_PARAM_SLASH) ? "/" : ""),
-                            getDisplay(p),
+                            getDisplay(reader.getTerminal(), p),
                             null, null,
                             reader.isSet(Option.AUTO_REMOVE_SLASH) ? "/" : null,
                             null,
                             false));
                 } else {
-                    candidates.add(new Candidate(value, getDisplay(p), null, null, null, null, true));
+                    candidates.add(new Candidate(value, getDisplay(reader.getTerminal(), p),
+                            null, null, null, null, true));
                 }
             });
         } catch (IOException e) {
@@ -106,7 +108,7 @@ public class FileNameCompleter implements Completer
         return Paths.get(System.getProperty("user.home"));
     }
 
-    protected String getDisplay(Path p) {
+    protected String getDisplay(Terminal terminal, Path p) {
         // TODO: use $LS_COLORS for output
         String name = p.getFileName().toString();
         if (Files.isDirectory(p)) {
@@ -115,14 +117,14 @@ public class FileNameCompleter implements Completer
             sb.append(name);
             sb.style(AttributedStyle.DEFAULT);
             sb.append("/");
-            name = sb.toAnsi();
+            name = sb.toAnsi(terminal);
         } else if (Files.isSymbolicLink(p)) {
             AttributedStringBuilder sb = new AttributedStringBuilder();
             sb.style(AttributedStyle.BOLD.foreground(AttributedStyle.RED));
             sb.append(name);
             sb.style(AttributedStyle.DEFAULT);
             sb.append("@");
-            name = sb.toAnsi();
+            name = sb.toAnsi(terminal);
         }
         return name;
     }

@@ -470,7 +470,7 @@ public class LineReaderImpl implements LineReader, Flushable
             sb.append(KeyMap.key(terminal, Capability.carriage_return));
             sb.append(" ");
             sb.append(KeyMap.key(terminal, Capability.carriage_return));
-            print(sb.toAnsi());
+            print(sb.toAnsi(terminal));
 
             setPrompt(prompt);
             setRightPrompt(rightPrompt);

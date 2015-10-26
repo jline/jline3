@@ -13,6 +13,7 @@ import java.util.Map;
 
 import org.jline.keymap.KeyMap;
 import org.jline.reader.impl.BufferImpl;
+import org.jline.terminal.Terminal;
 
 public interface LineReader {
 
@@ -346,6 +347,8 @@ public interface LineReader {
     void setOpt(Option option);
 
     void unsetOpt(Option option);
+
+    Terminal getTerminal();
 
     Map<String, Widget> getWidgets();
 

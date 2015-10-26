@@ -190,7 +190,7 @@ public class Commands {
             sb.style(AttributedStyle.DEFAULT);
             sb.append("  ");
             sb.append(history.get(index));
-            out.println(sb.toAnsi());
+            out.println(sb.toAnsi(reader.getTerminal()));
         }
     }
 
