@@ -63,8 +63,7 @@ public interface LineReader {
     String END_OF_LINE = "end-of-line";
     String END_OF_LINE_HIST = "end-of-line-hist";
     String EXCHANGE_POINT_AND_MARK = "exchange-point-and-mark";
-    String EXECUTE_NAMED_CMD = "exexecute-named-cmda";
-    String EXPAND_CMD_PATH = "expand-cmd-path";
+    String EXECUTE_NAMED_CMD = "execute-named-cmd";
     String EXPAND_HISTORY = "expand-history";
     String EXPAND_OR_COMPLETE = "expand-or-complete";
     String EXPAND_OR_COMPLETE_PREFIX = "expand-or-complete-prefix";
@@ -363,6 +362,8 @@ public interface LineReader {
     Parser getParser();
 
     Highlighter getHighlighter();
+
+    Expander getExpander();
 
     Map<String, KeyMap<Binding>> getKeyMaps();
 

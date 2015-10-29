@@ -13,6 +13,7 @@ import java.io.StringWriter;
 
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
+import org.jline.reader.Expander;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReader.Option;
 import org.jline.reader.History;
@@ -67,43 +68,44 @@ public class TerminalReaderTest extends ReaderTestSupport
         history.add("dir");
         history.add("cd c:\\");
         history.add("mkdir monkey");
-        reader.setHistory(history);
+        
+        Expander expander = new DefaultExpander();
 
-        assertEquals("echo a!", reader.expandEvents("echo a!"));
-        assertEquals("mkdir monkey ; echo a!", reader.expandEvents("!! ; echo a!"));
-        assertEquals("echo ! a", reader.expandEvents("echo ! a"));
-        assertEquals("echo !\ta", reader.expandEvents("echo !\ta"));
+        assertEquals("echo a!", expander.expandHistory(history, "echo a!"));
+        assertEquals("mkdir monkey ; echo a!", expander.expandHistory(history, "!! ; echo a!"));
+        assertEquals("echo ! a", expander.expandHistory(history, "echo ! a"));
+        assertEquals("echo !\ta", expander.expandHistory(history, "echo !\ta"));
 
-        assertEquals("mkdir barey", reader.expandEvents("^monk^bar^"));
-        assertEquals("mkdir barey", reader.expandEvents("^monk^bar"));
-        assertEquals("a^monk^bar", reader.expandEvents("a^monk^bar"));
+        assertEquals("mkdir barey", expander.expandHistory(history, "^monk^bar^"));
+        assertEquals("mkdir barey", expander.expandHistory(history, "^monk^bar"));
+        assertEquals("a^monk^bar", expander.expandHistory(history, "a^monk^bar"));
 
-        assertEquals("mkdir monkey", reader.expandEvents("!!"));
-        assertEquals("echo echo a", reader.expandEvents("echo !#a"));
+        assertEquals("mkdir monkey", expander.expandHistory(history, "!!"));
+        assertEquals("echo echo a", expander.expandHistory(history, "echo !#a"));
 
-        assertEquals("mkdir monkey", reader.expandEvents("!mk"));
+        assertEquals("mkdir monkey", expander.expandHistory(history, "!mk"));
         try {
-            reader.expandEvents("!mz");
+            expander.expandHistory(history, "!mz");
             fail("expected IllegalArgumentException");
         } catch (IllegalArgumentException e) {
             assertEquals("!mz: event not found", e.getMessage());
         }
 
-        assertEquals("mkdir monkey", reader.expandEvents("!?mo"));
-        assertEquals("mkdir monkey", reader.expandEvents("!?mo?"));
+        assertEquals("mkdir monkey", expander.expandHistory(history, "!?mo"));
+        assertEquals("mkdir monkey", expander.expandHistory(history, "!?mo?"));
 
-        assertEquals("mkdir monkey", reader.expandEvents("!-1"));
-        assertEquals("cd c:\\", reader.expandEvents("!-2"));
-        assertEquals("cd c:\\", reader.expandEvents("!3"));
-        assertEquals("mkdir monkey", reader.expandEvents("!4"));
+        assertEquals("mkdir monkey", expander.expandHistory(history, "!-1"));
+        assertEquals("cd c:\\", expander.expandHistory(history, "!-2"));
+        assertEquals("cd c:\\", expander.expandHistory(history, "!3"));
+        assertEquals("mkdir monkey", expander.expandHistory(history, "!4"));
         try {
-            reader.expandEvents("!20");
+            expander.expandHistory(history, "!20");
             fail("expected IllegalArgumentException");
         } catch (IllegalArgumentException e) {
             assertEquals("!20: event not found", e.getMessage());
         }
         try {
-            reader.expandEvents("!-20");
+            expander.expandHistory(history, "!-20");
             fail("expected IllegalArgumentException");
         } catch (IllegalArgumentException e) {
             assertEquals("!-20: event not found", e.getMessage());
@@ -122,24 +124,25 @@ public class TerminalReaderTest extends ReaderTestSupport
         history.add("history1");
         history.add("history2");
         history.add("history3");
-        reader.setHistory(history);
+
+        Expander expander = new DefaultExpander();
 
         // Validate !n
-        assertExpansionIllegalArgumentException(reader, "!0");
-        assertEquals("history1", reader.expandEvents("!1"));
-        assertEquals("history2", reader.expandEvents("!2"));
-        assertEquals("history3", reader.expandEvents("!3"));
-        assertExpansionIllegalArgumentException(reader, "!4");
+        assertExpansionIllegalArgumentException(expander, history, "!0");
+        assertEquals("history1", expander.expandHistory(history, "!1"));
+        assertEquals("history2", expander.expandHistory(history, "!2"));
+        assertEquals("history3", expander.expandHistory(history, "!3"));
+        assertExpansionIllegalArgumentException(expander, history, "!4");
 
         // Validate !-n
-        assertExpansionIllegalArgumentException(reader, "!-0");
-        assertEquals("history3", reader.expandEvents("!-1"));
-        assertEquals("history2", reader.expandEvents("!-2"));
-        assertEquals("history1", reader.expandEvents("!-3"));
-        assertExpansionIllegalArgumentException(reader, "!-4");
+        assertExpansionIllegalArgumentException(expander, history, "!-0");
+        assertEquals("history3", expander.expandHistory(history, "!-1"));
+        assertEquals("history2", expander.expandHistory(history, "!-2"));
+        assertEquals("history1", expander.expandHistory(history, "!-3"));
+        assertExpansionIllegalArgumentException(expander, history, "!-4");
 
         // Validate !!
-        assertEquals("history3", reader.expandEvents("!!"));
+        assertEquals("history3", expander.expandHistory(history, "!!"));
 
         // Add two new entries. Because maxSize=3, history is:
         // 3 history3
@@ -149,34 +152,35 @@ public class TerminalReaderTest extends ReaderTestSupport
         history.add("history5");
 
         // Validate !n
-        assertExpansionIllegalArgumentException(reader, "!0");
-        assertExpansionIllegalArgumentException(reader, "!1");
-        assertExpansionIllegalArgumentException(reader, "!2");
-        assertEquals("history3", reader.expandEvents("!3"));
-        assertEquals("history4", reader.expandEvents("!4"));
-        assertEquals("history5", reader.expandEvents("!5"));
-        assertExpansionIllegalArgumentException(reader, "!6");
+        assertExpansionIllegalArgumentException(expander, history, "!0");
+        assertExpansionIllegalArgumentException(expander, history, "!1");
+        assertExpansionIllegalArgumentException(expander, history, "!2");
+        assertEquals("history3", expander.expandHistory(history, "!3"));
+        assertEquals("history4", expander.expandHistory(history, "!4"));
+        assertEquals("history5", expander.expandHistory(history, "!5"));
+        assertExpansionIllegalArgumentException(expander, history, "!6");
 
         // Validate !-n
-        assertExpansionIllegalArgumentException(reader, "!-0");
-        assertEquals("history5", reader.expandEvents("!-1"));
-        assertEquals("history4", reader.expandEvents("!-2"));
-        assertEquals("history3", reader.expandEvents("!-3"));
-        assertExpansionIllegalArgumentException(reader, "!-4");
+        assertExpansionIllegalArgumentException(expander, history, "!-0");
+        assertEquals("history5", expander.expandHistory(history, "!-1"));
+        assertEquals("history4", expander.expandHistory(history, "!-2"));
+        assertEquals("history3", expander.expandHistory(history, "!-3"));
+        assertExpansionIllegalArgumentException(expander, history, "!-4");
 
         // Validate !!
-        assertEquals("history5", reader.expandEvents("!!"));
+        assertEquals("history5", expander.expandHistory(history, "!!"));
     }
 
     @Test
     public void testArgsExpansion() throws Exception {
         MemoryHistory history = new MemoryHistory();
         history.setMaxSize(3);
-        reader.setHistory(history);
 
+        Expander expander = new DefaultExpander();
+        
         // we can't go back to previous arguments if there are none
         try {
-            reader.expandEvents("!$");
+            expander.expandHistory(history, "!$");
             fail("expected IllegalArgumentException");
         } catch (IllegalArgumentException e) {
             assertEquals("!$: event not found", e.getMessage());
@@ -184,19 +188,19 @@ public class TerminalReaderTest extends ReaderTestSupport
 
         // if no arguments were given, it should expand to the command itself
         history.add("ls");
-        assertEquals("ls", reader.expandEvents("!$"));
+        assertEquals("ls", expander.expandHistory(history, "!$"));
 
         // now we can expand to the last argument
         history.add("ls /home");
-        assertEquals("/home", reader.expandEvents("!$"));
+        assertEquals("/home", expander.expandHistory(history, "!$"));
 
         //we always take the last argument
         history.add("ls /home /etc");
-        assertEquals("/etc", reader.expandEvents("!$"));
+        assertEquals("/etc", expander.expandHistory(history, "!$"));
 
         //make sure we don't add spaces accidentally
         history.add("ls /home  /foo ");
-        assertEquals("/foo", reader.expandEvents("!$"));
+        assertEquals("/foo", expander.expandHistory(history, "!$"));
     }
 
     @Test
@@ -205,8 +209,8 @@ public class TerminalReaderTest extends ReaderTestSupport
         reader.setHistory(history);
         reader.setVariable(LineReader.BELL_STYLE, "audible");
 
-        assertLine("", new TestBuffer("!f\n"));
-        assertEquals(0, history.size());
+        assertLine("!f", new TestBuffer("!f\n"));
+        assertEquals(1, history.size());
     }
 
     @Test
@@ -387,9 +391,9 @@ public class TerminalReaderTest extends ReaderTestSupport
      * Validates that an 'event not found' IllegalArgumentException is thrown
      * for the expansion event.
      */
-    protected void assertExpansionIllegalArgumentException(LineReaderImpl reader, String event) throws Exception {
+    protected void assertExpansionIllegalArgumentException(Expander expander, History history, String event) throws Exception {
         try {
-            reader.expandEvents(event);
+            expander.expandHistory(history, event);
             fail("Expected IllegalArgumentException for " + event);
         } catch (IllegalArgumentException e) {
             assertEquals(event + ": event not found", e.getMessage());

@@ -43,6 +43,7 @@ import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
+import org.jline.reader.Expander;
 import org.jline.reader.LineReader;
 import org.jline.reader.EOFError;
 import org.jline.reader.EndOfFileException;
@@ -158,6 +159,7 @@ public class LineReaderImpl implements LineReader, Flushable
     protected Completer completer = null;
     protected Highlighter highlighter = new DefaultHighlighter();
     protected Parser parser = new DefaultParser();
+    protected Expander expander = new DefaultExpander();
 
     //
     // State variables
@@ -353,6 +355,15 @@ public class LineReaderImpl implements LineReader, Flushable
 
     public void setParser(Parser parser) {
         this.parser = parser;
+    }
+
+    @Override
+    public Expander getExpander() {
+        return expander;
+    }
+
+    public void setExpander(Expander expander) {
+        this.expander = expander;
     }
 
     //
@@ -865,154 +876,6 @@ public class LineReaderImpl implements LineReader, Flushable
     protected void setBuffer(final String buffer) {
         buf.clear();
         buf.write(buffer);
-    }
-
-    /**
-     * Expand event designator such as !!, !#, !3, etc...
-     * See http://www.gnu.org/software/bash/manual/html_node/Event-Designators.html
-     */
-    @SuppressWarnings("fallthrough")
-    protected String expandEvents(String str) {
-        StringBuilder sb = new StringBuilder();
-        boolean escaped = false;
-        for (int i = 0; i < str.length(); i++) {
-            char c = str.charAt(i);
-            if (escaped) {
-                escaped = false;
-                sb.append(c);
-                continue;
-            }
-            switch (c) {
-                case '\\':
-                    // any '\!' should be considered an expansion escape, so skip expansion and strip the escape character
-                    // a leading '\^' should be considered an expansion escape, so skip expansion and strip the escape character
-                    // otherwise, add the escape
-                    escaped = true;
-                    sb.append(c);
-                    break;
-                case '!':
-                    if (i + 1 < str.length()) {
-                        c = str.charAt(++i);
-                        boolean neg = false;
-                        String rep = null;
-                        int i1, idx;
-                        switch (c) {
-                            case '!':
-                                if (history.size() == 0) {
-                                    throw new IllegalArgumentException("!!: event not found");
-                                }
-                                rep = history.get(history.index() - 1);
-                                break;
-                            case '#':
-                                sb.append(sb.toString());
-                                break;
-                            case '?':
-                                i1 = str.indexOf('?', i + 1);
-                                if (i1 < 0) {
-                                    i1 = str.length();
-                                }
-                                String sc = str.substring(i + 1, i1);
-                                i = i1;
-                                idx = searchBackwards(sc);
-                                if (idx < 0) {
-                                    throw new IllegalArgumentException("!?" + sc + ": event not found");
-                                } else {
-                                    rep = history.get(idx);
-                                }
-                                break;
-                            case '$':
-                                if (history.size() == 0) {
-                                    throw new IllegalArgumentException("!$: event not found");
-                                }
-                                String previous = history.get(history.index() - 1).trim();
-                                int lastSpace = previous.lastIndexOf(' ');
-                                if(lastSpace != -1) {
-                                    rep = previous.substring(lastSpace+1);
-                                } else {
-                                    rep = previous;
-                                }
-                                break;
-                            case ' ':
-                            case '\t':
-                                sb.append('!');
-                                sb.append(c);
-                                break;
-                            case '-':
-                                neg = true;
-                                i++;
-                                // fall through
-                            case '0':
-                            case '1':
-                            case '2':
-                            case '3':
-                            case '4':
-                            case '5':
-                            case '6':
-                            case '7':
-                            case '8':
-                            case '9':
-                                i1 = i;
-                                for (; i < str.length(); i++) {
-                                    c = str.charAt(i);
-                                    if (c < '0' || c > '9') {
-                                        break;
-                                    }
-                                }
-                                try {
-                                    idx = Integer.parseInt(str.substring(i1, i));
-                                } catch (NumberFormatException e) {
-                                    throw new IllegalArgumentException((neg ? "!-" : "!") + str.substring(i1, i) + ": event not found");
-                                }
-                                if (neg && idx > 0 && idx <= history.size()) {
-                                    rep = history.get(history.index() - idx);
-                                } else if (!neg && idx > history.index() - history.size() && idx <= history.index()) {
-                                    rep = history.get(idx - 1);
-                                } else {
-                                    throw new IllegalArgumentException((neg ? "!-" : "!") + str.substring(i1, i) + ": event not found");
-                                }
-                                break;
-                            default:
-                                String ss = str.substring(i);
-                                i = str.length();
-                                idx = searchBackwards(ss, history.index(), true);
-                                if (idx < 0) {
-                                    throw new IllegalArgumentException("!" + ss + ": event not found");
-                                } else {
-                                    rep = history.get(idx);
-                                }
-                                break;
-                        }
-                        if (rep != null) {
-                            sb.append(rep);
-                        }
-                    } else {
-                        sb.append(c);
-                    }
-                    break;
-                case '^':
-                    if (i == 0) {
-                        int i1 = str.indexOf('^', i + 1);
-                        int i2 = str.indexOf('^', i1 + 1);
-                        if (i2 < 0) {
-                            i2 = str.length();
-                        }
-                        if (i1 > 0 && i2 > 0) {
-                            String s1 = str.substring(i + 1, i1);
-                            String s2 = str.substring(i1 + 1, i2);
-                            String s = history.get(history.index() - 1).replace(s1, s2);
-                            sb.append(s);
-                            i = i2 + 1;
-                            break;
-                        }
-                    }
-                    sb.append(c);
-                    break;
-                default:
-                    sb.append(c);
-                    break;
-            }
-        }
-        return sb.toString();
     }
 
     /**
@@ -2579,7 +2442,27 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     protected boolean acceptLine() {
+        parsedLine = null;
         String str = buf.toString();
+        if (!isSet(Option.DISABLE_EVENT_EXPANSION)) {
+            try {
+                String exp = expander.expandHistory(history, str);
+                if (!exp.equals(str)) {
+                    buf.clear();
+                    buf.write(exp);
+                    if (isSet(Option.HISTORY_VERIFY)) {
+                        return true;
+                    }
+                }
+            } catch (IllegalArgumentException e) {
+//                Log.error("Could not expand event", e);
+//                buf.clear();
+//                println();
+//                println(e.getMessage());
+//                flush();
+//                return false;
+            }
+        }
         try {
             parsedLine = parser.parse(str, buf.cursor());
         } catch (EOFError e) {
@@ -2590,25 +2473,6 @@ public class LineReaderImpl implements LineReader, Flushable
         }
         callWidget(CALLBACK_FINISH);
         state = State.DONE;
-        if (!isSet(Option.DISABLE_EVENT_EXPANSION)) {
-            try {
-                String exp = expandEvents(str);
-                if (!exp.equals(str)) {
-                    buf.clear();
-                    buf.write(exp);
-                    if (isSet(Option.HISTORY_VERIFY)) {
-                        state = State.NORMAL;
-                    }
-                }
-            } catch (IllegalArgumentException e) {
-                Log.error("Could not expand event", e);
-                beep();
-                buf.clear();
-                println();
-                println(e.getMessage());
-                flush();
-            }
-        }
         return true;
     }
 
@@ -3201,6 +3065,10 @@ public class LineReaderImpl implements LineReader, Flushable
         widgets.put(END_OF_LINE, this::endOfLine);
         widgets.put(END_OF_LINE_HIST, this::endOfLineHist);
         widgets.put(EXCHANGE_POINT_AND_MARK, this::exchangePointAndMark);
+        widgets.put(EXPAND_HISTORY, this::expandHistory);
+        widgets.put(EXPAND_OR_COMPLETE, this::expandOrComplete);
+        widgets.put(EXPAND_OR_COMPLETE_PREFIX, this::expandOrCompletePrefix);
+        widgets.put(EXPAND_WORD, this::expandWord);
         widgets.put(FORWARD_CHAR, this::forwardChar);
         widgets.put(FORWARD_WORD, this::forwardWord);
         widgets.put(HISTORY_INCREMENTAL_SEARCH_BACKWARD, this::historyIncrementalSearchBackward);
@@ -3218,6 +3086,7 @@ public class LineReaderImpl implements LineReader, Flushable
         widgets.put(KILL_WORD, this::killWord);
         widgets.put(LIST_CHOICES, this::listChoices);
         widgets.put(MENU_COMPLETE, this::menuComplete);
+        widgets.put(MENU_EXPAND_OR_COMPLETE, this::menuExpandOrComplete);
         widgets.put(NEG_ARGUMENT, this::negArgument);
         widgets.put(OVERWRITE_MODE, this::overwriteMode);
 //        widgets.put(PASTE_FROM_CLIPBOARD, this::pasteFromClipboard);
@@ -3456,9 +3325,9 @@ public class LineReaderImpl implements LineReader, Flushable
         return getLastBinding().equals("\t") && buf.toString().matches("(^|[\\s\\S]*\n)[\r\n\t ]*");
     }
 
-    protected boolean doExpandHist() {
+    protected boolean expandHistory() {
         String str = buf.toString();
-        String exp = expandEvents(str);
+        String exp = expander.expandHistory(history, str);
         if (!exp.equals(str)) {
             buf.clear();
             buf.write(exp);
@@ -3469,8 +3338,34 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     enum CompletionType {
+        Expand,
+        ExpandComplete,
         Complete,
         List,
+    }
+
+    protected boolean expandWord() {
+        if (insertTab()) {
+            return selfInsert();
+        } else {
+            return doComplete(CompletionType.Expand, isSet(Option.MENU_COMPLETE), false);
+        }
+    }
+
+    protected boolean expandOrComplete() {
+        if (insertTab()) {
+            return selfInsert();
+        } else {
+            return doComplete(CompletionType.ExpandComplete, isSet(Option.MENU_COMPLETE), false);
+        }
+    }
+
+    protected boolean expandOrCompletePrefix() {
+        if (insertTab()) {
+            return selfInsert();
+        } else {
+            return doComplete(CompletionType.ExpandComplete, isSet(Option.MENU_COMPLETE), true);
+        }
     }
 
     protected boolean completeWord() {
@@ -3486,6 +3381,14 @@ public class LineReaderImpl implements LineReader, Flushable
             return selfInsert();
         } else {
             return doComplete(CompletionType.Complete, true, false);
+        }
+    }
+
+    protected boolean menuExpandOrComplete() {
+        if (insertTab()) {
+            return selfInsert();
+        } else {
+            return doComplete(CompletionType.ExpandComplete, true, false);
         }
     }
 
@@ -3513,7 +3416,7 @@ public class LineReaderImpl implements LineReader, Flushable
         // Try to expand history first
         // If there is actually an expansion, bail out now
         try {
-            if (doExpandHist()) {
+            if (expandHistory()) {
                 return true;
             }
         } catch (IllegalArgumentException e) {
@@ -3530,6 +3433,25 @@ public class LineReaderImpl implements LineReader, Flushable
             }
         } catch (Exception e) {
             return false;
+        }
+
+        if (lst == CompletionType.ExpandComplete || lst == CompletionType.Expand) {
+            String w = expander.expandVar(line.word());
+            if (!line.word().equals(w)) {
+                if (prefix) {
+                    buf.backspace(line.wordCursor());
+                } else {
+                    buf.move(line.word().length() - line.wordCursor());
+                    buf.backspace(line.word().length());
+                }
+                buf.write(w);
+                return true;
+            }
+            if (lst == CompletionType.Expand) {
+                return false;
+            } else {
+                lst = CompletionType.Complete;
+            }
         }
 
         boolean caseInsensitive = isSet(Option.CASE_INSENSITIVE);
@@ -3941,7 +3863,7 @@ public class LineReaderImpl implements LineReader, Flushable
                     menuSupport.up();
                     break;
                 case DOWN_LINE_OR_HISTORY:
-                    menuSupport.up();
+                    menuSupport.down();
                     break;
                 case FORWARD_CHAR:
                     menuSupport.right();
@@ -4758,7 +4680,7 @@ public class LineReaderImpl implements LineReader, Flushable
         bind(emacs, FORWARD_CHAR,                           ctrl('F'));
         bind(emacs, SEND_BREAK,                             ctrl('G'));
         bind(emacs, BACKWARD_DELETE_CHAR,                   ctrl('H'));
-        bind(emacs, COMPLETE_WORD,                          ctrl('I'));
+        bind(emacs, EXPAND_OR_COMPLETE,                     ctrl('I'));
         bind(emacs, ACCEPT_LINE,                            ctrl('J'));
         bind(emacs, KILL_LINE,                              ctrl('K'));
         bind(emacs, CLEAR_SCREEN,                           ctrl('L'));
@@ -4828,7 +4750,7 @@ public class LineReaderImpl implements LineReader, Flushable
         bind(viins, LIST_CHOICES,                           ctrl('D'));
         bind(viins, SEND_BREAK,                             ctrl('G'));
         bind(viins, BACKWARD_DELETE_CHAR,                   ctrl('H'));
-        bind(viins, COMPLETE_WORD,                          ctrl('I'));
+        bind(viins, EXPAND_OR_COMPLETE,                     ctrl('I'));
         bind(viins, ACCEPT_LINE,                            ctrl('J'));
         bind(viins, CLEAR_SCREEN,                           ctrl('L'));
         bind(viins, ACCEPT_LINE,                            ctrl('M'));

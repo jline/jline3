@@ -29,6 +29,7 @@ public final class LineReaderBuilder {
     History memoryHistory;
     Highlighter highlighter;
     Parser parser;
+    Expander expander;
 
     private LineReaderBuilder() {
     }
@@ -80,6 +81,11 @@ public final class LineReaderBuilder {
         return this;
     }
 
+    public LineReaderBuilder expander(Expander expander) {
+        this.expander = expander;
+        return this;
+    }
+
     public LineReader build() {
         LineReaderImpl reader = new LineReaderImpl(terminal, appName, variables);
         if (history != null) {
@@ -98,6 +104,9 @@ public final class LineReaderBuilder {
         }
         if (parser != null) {
             reader.setParser(parser);
+        }
+        if (expander != null) {
+            reader.setExpander(expander);
         }
         return reader;
     }
