@@ -113,6 +113,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
             if (tabs > 0 && c == '\t') {
                 insertTab(new AttributedStyle(s, 0));
             } else {
+                ensureCapacity(length + 1);
                 buffer[length] = c;
                 style[length] = s;
                 length++;
