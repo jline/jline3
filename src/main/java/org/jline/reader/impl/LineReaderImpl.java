@@ -2277,7 +2277,8 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     protected boolean historySearchForward() {
-        if (historyBuffer == null || !buf.toString().equals(history.current())) {
+        if (historyBuffer == null || buf.length() == 0
+                || !buf.toString().equals(history.current())) {
             historyBuffer = buf.copy();
             searchBuffer = getFirstWord();
         }
@@ -2325,7 +2326,8 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     protected boolean historySearchBackward() {
-        if (historyBuffer == null || !buf.toString().equals(history.current())) {
+        if (historyBuffer == null || buf.length() == 0
+                || !buf.toString().equals(history.current())) {
             historyBuffer = buf.copy();
             searchBuffer = getFirstWord();
         }
