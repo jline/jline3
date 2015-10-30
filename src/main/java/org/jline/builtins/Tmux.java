@@ -99,6 +99,7 @@ public class Tmux {
     public void run() throws IOException {
         SignalHandler prevWinchHandler = terminal.handle(Signal.WINCH, this::resize);
         SignalHandler prevIntHandler = terminal.handle(Signal.INT, this::interrupt);
+        SignalHandler prevSuspHandler = terminal.handle(Signal.TSTP, this::suspend);
         Attributes attributes = terminal.enterRawMode();
         terminal.puts(Capability.enter_ca_mode);
         terminal.puts(Capability.keypad_xmit);
@@ -121,6 +122,7 @@ public class Tmux {
             terminal.setAttributes(attributes);
             terminal.handle(Signal.WINCH, prevWinchHandler);
             terminal.handle(Signal.INT, prevIntHandler);
+            terminal.handle(Signal.TSTP, prevSuspHandler);
         }
     }
 
@@ -203,6 +205,10 @@ public class Tmux {
     }
 
     private void interrupt(Signal signal) {
+        active.getConsole().raise(signal);
+    }
+
+    private void suspend(Signal signal) {
         active.getConsole().raise(signal);
     }
 
