@@ -395,12 +395,20 @@ public class Tmux {
                 boolean fgBright = ((a & 0x1000) != 0);
                 boolean bgBright = ((a & 0x2000) != 0);
                 if (bg != prevBg || prevBgBright != bgBright) {
-                    sb.style(sb.style().background(bg + (bgBright ? AttributedStyle.BRIGHT : 0)));
+                    if (bg == 0x000f) {
+                        sb.style(sb.style().backgroundDefault());
+                    } else {
+                        sb.style(sb.style().background(bg + (bgBright ? AttributedStyle.BRIGHT : 0)));
+                    }
                     prevBg = bg;
                     prevBgBright = bgBright;
                 }
                 if (fg != prevFg || fgBright != prevFgBright) {
-                    sb.style(sb.style().foreground(fg + (fgBright ? AttributedStyle.BRIGHT : 0)));
+                    if (fg == 0x000f) {
+                        sb.style(sb.style().foregroundDefault());
+                    } else {
+                        sb.style(sb.style().foreground(fg + (fgBright ? AttributedStyle.BRIGHT : 0)));
+                    }
                     prevFg = fg;
                     prevFgBright = fgBright;
                 }
