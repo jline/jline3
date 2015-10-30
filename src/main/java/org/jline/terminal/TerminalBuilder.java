@@ -73,33 +73,25 @@ public final class TerminalBuilder {
         if (name == null) {
             name = "JLine terminal";
         }
+        String encoding = this.encoding;
+        if (encoding == null) {
+            encoding = Charset.defaultCharset().name();
+        }
+        String type = this.type;
+        if (type == null) {
+            type = System.getenv("TERM");
+        }
         if ((system != null && system) || (system == null && in == null && out == null)) {
             //
             // Cygwin support
             //
             if (OSUtils.IS_CYGWIN) {
-                String type = this.type;
-                if (type == null) {
-                    type = System.getenv("TERM");
-                }
-                String encoding = this.encoding;
-                if (encoding == null) {
-                    encoding = Charset.defaultCharset().name();
-                }
                 Pty pty = CygwinPty.current();
                 return new PosixSysTerminal(name, type, pty, encoding, nativeSignals);
             }
             else if (OSUtils.IS_WINDOWS) {
                 return new WinSysTerminal(name, nativeSignals);
             } else {
-                String type = this.type;
-                if (type == null) {
-                    type = System.getenv("TERM");
-                }
-                String encoding = this.encoding;
-                if (encoding == null) {
-                    encoding = Charset.defaultCharset().name();
-                }
                 Pty pty = ExecPty.current();
                 return new PosixSysTerminal(name, type, pty, encoding, nativeSignals);
             }
