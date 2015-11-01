@@ -2450,6 +2450,7 @@ public class LineReaderImpl implements LineReader, Flushable
             try {
                 String exp = expander.expandHistory(history, str);
                 if (!exp.equals(str)) {
+                    str = exp;
                     buf.clear();
                     buf.write(exp);
                     if (isSet(Option.HISTORY_VERIFY)) {
@@ -2457,16 +2458,11 @@ public class LineReaderImpl implements LineReader, Flushable
                     }
                 }
             } catch (IllegalArgumentException e) {
-//                Log.error("Could not expand event", e);
-//                buf.clear();
-//                println();
-//                println(e.getMessage());
-//                flush();
-//                return false;
+                // Ignore
             }
         }
         try {
-            parsedLine = parser.parse(str, buf.cursor());
+            parsedLine = parser.parse(str, str.length());
         } catch (EOFError e) {
             buf.write("\n");
             return true;
