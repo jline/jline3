@@ -6,7 +6,7 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.terminal.impl;
+package org.jline.terminal.impl.jna.win;
 
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
@@ -21,14 +21,12 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.fusesource.jansi.WindowsAnsiOutputStream;
-import org.fusesource.jansi.internal.Kernel32;
-import org.fusesource.jansi.internal.Kernel32.INPUT_RECORD;
-import org.fusesource.jansi.internal.Kernel32.KEY_EVENT_RECORD;
-import org.fusesource.jansi.internal.WindowsSupport;
+import com.sun.jna.Pointer;
+import com.sun.jna.ptr.IntByReference;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Size;
+import org.jline.terminal.impl.AbstractTerminal;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.InputStreamReader;
@@ -38,25 +36,18 @@ import org.jline.utils.ShutdownHooks;
 import org.jline.utils.ShutdownHooks.Task;
 import org.jline.utils.Signals;
 
-public class WinSysTerminal extends AbstractTerminal {
+public class JnaWinSysTerminal extends AbstractTerminal {
 
     protected final InputStream input;
     protected final OutputStream output;
     protected final NonBlockingReader reader;
     protected final PrintWriter writer;
-    protected final Map<Signal, Object> nativeHandlers = new HashMap<Signal, Object>();
+    protected final Map<Signal, Object> nativeHandlers = new HashMap<>();
     protected final Task closer;
 
-    private static final int ENABLE_PROCESSED_INPUT = 0x0001;
-    private static final int ENABLE_LINE_INPUT      = 0x0002;
-    private static final int ENABLE_ECHO_INPUT      = 0x0004;
-    private static final int ENABLE_WINDOW_INPUT    = 0x0008;
-    private static final int ENABLE_MOUSE_INPUT     = 0x0010;
-    private static final int ENABLE_INSERT_MODE     = 0x0020;
-    private static final int ENABLE_QUICK_EDIT_MODE = 0x0040;
+    private static final Pointer console = Kernel32.INSTANCE.GetStdHandle(Kernel32.STD_OUTPUT_HANDLE);
 
-
-    public WinSysTerminal(String name, boolean nativeSignals) throws IOException {
+    public JnaWinSysTerminal(String name, boolean nativeSignals) throws IOException {
         super(name, "windows");
         input = new DirectInputStream();
         output = new WindowsAnsiOutputStream(new FileOutputStream(FileDescriptor.out));
@@ -79,14 +70,14 @@ public class WinSysTerminal extends AbstractTerminal {
 
     @SuppressWarnings("InjectedReferences")
     protected static String getConsoleEncoding() {
-        int codepage = Kernel32.GetConsoleOutputCP();
+        int codepage = Kernel32.INSTANCE.GetConsoleOutputCP();
         //http://docs.oracle.com/javase/6/docs/technotes/guides/intl/encoding.doc.html
         String charsetMS = "ms" + codepage;
-        if (java.nio.charset.Charset.isSupported(charsetMS)) {
+        if (Charset.isSupported(charsetMS)) {
             return charsetMS;
         }
         String charsetCP = "cp" + codepage;
-        if (java.nio.charset.Charset.isSupported(charsetCP)) {
+        if (Charset.isSupported(charsetCP)) {
             return charsetCP;
         }
         return null;
@@ -111,12 +102,13 @@ public class WinSysTerminal extends AbstractTerminal {
     }
 
     public Attributes getAttributes() {
-        int mode = WindowsSupport.getConsoleMode();
+        IntByReference mode = new IntByReference();
+        Kernel32.INSTANCE.GetConsoleMode(console, mode);
         Attributes attributes = new Attributes();
-        if ((mode & ENABLE_ECHO_INPUT) != 0) {
+        if ((mode.getValue() & Kernel32.ENABLE_ECHO_INPUT) != 0) {
             attributes.setLocalFlag(LocalFlag.ECHO, true);
         }
-        if ((mode & ENABLE_LINE_INPUT) != 0) {
+        if ((mode.getValue() & Kernel32.ENABLE_LINE_INPUT) != 0) {
             attributes.setLocalFlag(LocalFlag.ICANON, true);
         }
         return attributes;
@@ -125,19 +117,18 @@ public class WinSysTerminal extends AbstractTerminal {
     public void setAttributes(Attributes attr) {
         int mode = 0;
         if (attr.getLocalFlag(LocalFlag.ECHO)) {
-            mode |= ENABLE_ECHO_INPUT;
+            mode |= Kernel32.ENABLE_ECHO_INPUT;
         }
         if (attr.getLocalFlag(LocalFlag.ICANON)) {
-            mode |= ENABLE_LINE_INPUT;
+            mode |= Kernel32.ENABLE_LINE_INPUT;
         }
-        WindowsSupport.setConsoleMode(mode);
+        Kernel32.INSTANCE.SetConsoleMode(console, mode);
     }
 
     public Size getSize() {
-        Size size = new Size();
-        size.setColumns(WindowsSupport.getWindowsTerminalWidth());
-        size.setRows(WindowsSupport.getWindowsTerminalHeight());
-        return size;
+        Kernel32.CONSOLE_SCREEN_BUFFER_INFO info = new Kernel32.CONSOLE_SCREEN_BUFFER_INFO();
+        Kernel32.INSTANCE.GetConsoleScreenBufferInfo(console, info);
+        return new Size(info.windowWidth(), info.windowHeight());
     }
 
     public void setSize(Size size) {
@@ -155,9 +146,9 @@ public class WinSysTerminal extends AbstractTerminal {
 
     private byte[] readConsoleInput() {
         // XXX does how many events to read in one call matter?
-        INPUT_RECORD[] events = null;
+        Kernel32.INPUT_RECORD[] events = null;
         try {
-            events = WindowsSupport.readConsoleInput(1);
+            events = doReadConsoleInput();
         } catch (IOException e) {
             Log.debug("read Windows terminal input error: ", e);
         }
@@ -165,30 +156,30 @@ public class WinSysTerminal extends AbstractTerminal {
             return new byte[0];
         }
         StringBuilder sb = new StringBuilder();
-        for (INPUT_RECORD event : events) {
-            KEY_EVENT_RECORD keyEvent = event.keyEvent;
+        for (Kernel32.INPUT_RECORD event : events) {
+            Kernel32.KEY_EVENT_RECORD keyEvent = event.Event.KeyEvent;
             // support some C1 control sequences: ALT + [@-_] (and [a-z]?) => ESC <ascii>
             // http://en.wikipedia.org/wiki/C0_and_C1_control_codes#C1_set
-            final int altState = KEY_EVENT_RECORD.LEFT_ALT_PRESSED | KEY_EVENT_RECORD.RIGHT_ALT_PRESSED;
+            final int altState = Kernel32.LEFT_ALT_PRESSED | Kernel32.RIGHT_ALT_PRESSED;
             // Pressing "Alt Gr" is translated to Alt-Ctrl, hence it has to be checked that Ctrl is _not_ pressed,
             // otherwise inserting of "Alt Gr" codes on non-US keyboards would yield errors
-            final int ctrlState = KEY_EVENT_RECORD.LEFT_CTRL_PRESSED | KEY_EVENT_RECORD.RIGHT_CTRL_PRESSED;
+            final int ctrlState = Kernel32.LEFT_CTRL_PRESSED | Kernel32.RIGHT_CTRL_PRESSED;
             // Compute the overall alt state
-            boolean isAlt = ((keyEvent.controlKeyState & altState) != 0) && ((keyEvent.controlKeyState & ctrlState) == 0);
+            boolean isAlt = ((keyEvent.dwControlKeyState & altState) != 0) && ((keyEvent.dwControlKeyState & ctrlState) == 0);
 
             //Log.trace(keyEvent.keyDown? "KEY_DOWN" : "KEY_UP", "key code:", keyEvent.keyCode, "char:", (long)keyEvent.uchar);
-            if (keyEvent.keyDown) {
-                if (keyEvent.uchar > 0) {
+            if (keyEvent.bKeyDown) {
+                if (keyEvent.uChar.UnicodeChar > 0) {
                     if (isAlt) {
                         sb.append('\033');
                     }
-                    sb.append(keyEvent.uchar);
+                    sb.append(keyEvent.uChar.UnicodeChar);
                 }
                 else {
                     // virtual keycodes: http://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
                     // TODO: numpad keys, modifiers
                     String escapeSequence = null;
-                    switch (keyEvent.keyCode) {
+                    switch (keyEvent.wVirtualKeyCode) {
                         case 0x08: // VK_BACK BackSpace
                             escapeSequence = getSequence(Capability.key_backspace);
                             break;
@@ -262,7 +253,7 @@ public class WinSysTerminal extends AbstractTerminal {
                             break;
                     }
                     if (escapeSequence != null) {
-                        for (int k = 0; k < keyEvent.repeatCount; k++) {
+                        for (int k = 0; k < keyEvent.wRepeatCount; k++) {
                             if (isAlt) {
                                 sb.append('\033');
                             }
@@ -273,12 +264,29 @@ public class WinSysTerminal extends AbstractTerminal {
             } else {
                 // key up event
                 // support ALT+NumPad input method
-                if (keyEvent.keyCode == 0x12/*VK_MENU ALT key*/ && keyEvent.uchar > 0) {
-                    sb.append(keyEvent.uchar);
+                if (keyEvent.wVirtualKeyCode == 0x12/*VK_MENU ALT key*/ && keyEvent.uChar.UnicodeChar > 0) {
+                    sb.append(keyEvent.uChar.UnicodeChar);
                 }
             }
         }
         return sb.toString().getBytes();
+    }
+
+    private Kernel32.INPUT_RECORD[] doReadConsoleInput() throws IOException {
+        Kernel32.INPUT_RECORD[] ir = new Kernel32.INPUT_RECORD[1];
+        IntByReference r = new IntByReference();
+        Kernel32.INSTANCE.GetNumberOfConsoleInputEvents(console, r);
+        while (r.getValue() > 0) {
+            Kernel32.INSTANCE.ReadConsoleInput(console, ir, ir.length, r);
+            for (int i = 0; i < r.getValue(); ++i) {
+                switch (ir[i].EventType) {
+                    case Kernel32.INPUT_RECORD.KEY_EVENT:
+                        return ir;
+                }
+            }
+            Kernel32.INSTANCE.GetNumberOfConsoleInputEvents(console, r);
+        }
+        return null;
     }
 
     private String getSequence(Capability cap) {
@@ -327,4 +335,5 @@ public class WinSysTerminal extends AbstractTerminal {
             return 1;
         }
     }
+
 }

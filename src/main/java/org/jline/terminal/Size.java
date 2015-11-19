@@ -10,8 +10,8 @@ package org.jline.terminal;
 
 public class Size {
 
-    private short ws_row;
-    private short ws_col;
+    private int rows;
+    private int cols;
 
     public Size() {
     }
@@ -23,19 +23,19 @@ public class Size {
     }
 
     public int getColumns() {
-        return ws_col;
+        return cols;
     }
 
     public void setColumns(int columns) {
-        ws_col = (short) columns;
+        cols = (short) columns;
     }
 
     public int getRows() {
-        return ws_row;
+        return rows;
     }
 
     public void setRows(int rows) {
-        ws_row = (short) rows;
+        this.rows = (short) rows;
     }
 
     public void copy(Size size) {
@@ -45,28 +45,21 @@ public class Size {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        Size size = (Size) o;
-
-        if (ws_row != size.ws_row) return false;
-        return ws_col == size.ws_col;
-
+        if (o instanceof Size) {
+            Size size = (Size) o;
+            return rows == size.rows && cols == size.cols;
+        } else {
+            return false;
+        }
     }
 
     @Override
     public int hashCode() {
-        int result = (int) ws_row;
-        result = 31 * result + (int) ws_col;
-        return result;
+        return rows * 31 + cols;
     }
 
     @Override
     public String toString() {
-        return "Size[" +
-                "cols=" + ws_col +
-                ", rows=" + ws_row +
-                ']';
+        return "Size[" + "cols=" + cols + ", rows=" + rows + ']';
     }
 }

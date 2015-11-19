@@ -181,8 +181,8 @@ public class ExecPtyTest {
         assertEquals(ExecPty.parseControlChar("^R"), attributes.getControlChar(ControlChar.VREPRINT));
         assertEquals(ExecPty.parseControlChar("^W"), attributes.getControlChar(ControlChar.VWERASE));
         assertEquals(ExecPty.parseControlChar("^V"), attributes.getControlChar(ControlChar.VLNEXT));
-        assertEquals(0, attributes.getControlChar(ControlChar.VMIN));
-        assertEquals(0, attributes.getControlChar(ControlChar.VTIME));
+        assertEquals(-1, attributes.getControlChar(ControlChar.VMIN));
+        assertEquals(-1, attributes.getControlChar(ControlChar.VTIME));
     }
 
     @Test
@@ -203,13 +203,13 @@ public class ExecPtyTest {
         assertEquals('@', attributes.getControlChar(ControlChar.VKILL));
         assertEquals(ExecPty.parseControlChar("^D"), attributes.getControlChar(ControlChar.VEOF));
         assertEquals(0, attributes.getControlChar(ControlChar.VEOL));
-        assertEquals(0, attributes.getControlChar(ControlChar.VEOL2));
+        assertEquals(-1, attributes.getControlChar(ControlChar.VEOL2));
         assertEquals(ExecPty.parseControlChar("^Q"), attributes.getControlChar(ControlChar.VSTART));
         assertEquals(ExecPty.parseControlChar("^S"), attributes.getControlChar(ControlChar.VSTOP));
-        assertEquals(0, attributes.getControlChar(ControlChar.VSUSP));
-        assertEquals(0, attributes.getControlChar(ControlChar.VREPRINT));
-        assertEquals(0, attributes.getControlChar(ControlChar.VWERASE));
-        assertEquals(0, attributes.getControlChar(ControlChar.VLNEXT));
+        assertEquals(-1, attributes.getControlChar(ControlChar.VSUSP));
+        assertEquals(-1, attributes.getControlChar(ControlChar.VREPRINT));
+        assertEquals(-1, attributes.getControlChar(ControlChar.VWERASE));
+        assertEquals(-1, attributes.getControlChar(ControlChar.VLNEXT));
         assertEquals(4, attributes.getControlChar(ControlChar.VMIN));
         assertEquals(0, attributes.getControlChar(ControlChar.VTIME));
     }

@@ -119,7 +119,7 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
-        <jansi.version>1.11</jansi.version>
+        <jansi.version>1.12-SNAPSHOT</jansi.version>
         <juniversalchardet.version>1.0.3</juniversalchardet.version>
     </properties>
 
@@ -139,6 +139,13 @@
             <groupId>com.googlecode.juniversalchardet</groupId>
             <artifactId>juniversalchardet</artifactId>
             <version>${juniversalchardet.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>4.0.0</version>
             <optional>true</optional>
         </dependency>
 

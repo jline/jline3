@@ -16,9 +16,12 @@ import java.nio.charset.Charset;
 import org.jline.terminal.impl.CygwinPty;
 import org.jline.terminal.impl.ExecPty;
 import org.jline.terminal.impl.ExternalTerminal;
+import org.jline.terminal.impl.PosixPtyTerminal;
 import org.jline.terminal.impl.PosixSysTerminal;
 import org.jline.terminal.impl.Pty;
-import org.jline.terminal.impl.WinSysTerminal;
+import org.jline.terminal.impl.jansi.JansiWinSysTerminal;
+import org.jline.terminal.impl.jna.JnaNativePty;
+import org.jline.terminal.impl.jna.win.JnaWinSysTerminal;
 import org.jline.utils.OSUtils;
 
 public final class TerminalBuilder {
@@ -37,6 +40,8 @@ public final class TerminalBuilder {
     private String type;
     private String encoding;
     private Boolean system;
+    private Attributes attributes;
+    private Size size;
     private boolean nativeSignals = true;
 
     private TerminalBuilder() {
@@ -68,6 +73,16 @@ public final class TerminalBuilder {
         return this;
     }
 
+    public TerminalBuilder attributes(Attributes attributes) {
+        this.attributes = attributes;
+        return this;
+    }
+
+    public TerminalBuilder size(Size size) {
+        this.size = size;
+        return this;
+    }
+
     public Terminal build() throws IOException {
         String name = this.name;
         if (name == null) {
@@ -90,13 +105,30 @@ public final class TerminalBuilder {
                 return new PosixSysTerminal(name, type, pty, encoding, nativeSignals);
             }
             else if (OSUtils.IS_WINDOWS) {
-                return new WinSysTerminal(name, nativeSignals);
+                try {
+                    return new JnaWinSysTerminal(name, nativeSignals);
+                } catch (Throwable t) {
+                    return new JansiWinSysTerminal(name, nativeSignals);
+                }
             } else {
-                Pty pty = ExecPty.current();
+                Pty pty = null;
+                try {
+                    pty = JnaNativePty.current();
+                } catch (Throwable t) {
+                    // ignore
+                }
+                if (pty == null) {
+                    pty = ExecPty.current();
+                }
                 return new PosixSysTerminal(name, type, pty, encoding, nativeSignals);
             }
         } else {
-            return new ExternalTerminal(name, type, in, out, encoding);
+            try {
+                Pty pty = JnaNativePty.open(attributes, size);
+                return new PosixPtyTerminal(name, type, pty, in, out, encoding);
+            } catch (Throwable t) {
+                return new ExternalTerminal(name, type, in, out, encoding);
+            }
         }
     }
 }

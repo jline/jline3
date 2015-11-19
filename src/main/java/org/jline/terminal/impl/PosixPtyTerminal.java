@@ -6,35 +6,35 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.terminal;
+package org.jline.terminal.impl;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.util.Objects;
 
-import org.jline.JLine.ConsoleReaderBuilder;
-import org.jline.terminal.impl.AbstractPosixTerminal;
-import org.jline.terminal.impl.Pty;
 import org.jline.utils.InputStreamReader;
 import org.jline.utils.NonBlockingReader;
 
-import static org.jline.utils.Preconditions.checkNotNull;
+public class PosixPtyTerminal extends AbstractPosixTerminal {
 
-public class PosixPtyConsole extends AbstractPosixTerminal {
-
+    protected final InputStream input;
+    protected final OutputStream output;
     private final NonBlockingReader reader;
     private final PrintWriter writer;
     private final Thread inputPumpThread;
     private final Thread outputPumpThread;
 
-    public PosixPtyConsole(String type, ConsoleReaderBuilder consoleReaderBuilder, Pty pty, InputStream in, OutputStream out, String encoding) throws IOException {
-        super(type, consoleReaderBuilder, pty);
+    public PosixPtyTerminal(String name, String type, Pty pty, InputStream in, OutputStream out, String encoding) throws IOException {
+        super(name, type, pty);
         Objects.requireNonNull(in);
         Objects.requireNonNull(out);
-        this.reader = new NonBlockingReader(new InputStreamReader(pty.getSlaveInput(), encoding));
-        this.writer = new PrintWriter(new OutputStreamWriter(pty.getSlaveOutput(), encoding));
+        this.input = pty.getSlaveInput();
+        this.output = pty.getSlaveOutput();
+        this.reader = new NonBlockingReader(name, new InputStreamReader(input, encoding));
+        this.writer = new PrintWriter(new OutputStreamWriter(output, encoding));
         this.inputPumpThread = new PumpThread(in, getPty().getMasterOutput());
         this.outputPumpThread = new PumpThread(getPty().getMasterInput(), out);
         parseInfoCmp();
@@ -42,8 +42,16 @@ public class PosixPtyConsole extends AbstractPosixTerminal {
         this.outputPumpThread.start();
     }
 
+    public InputStream input() {
+        return input;
+    }
+
     public NonBlockingReader reader() {
         return reader;
+    }
+
+    public OutputStream output() {
+        return output;
     }
 
     public PrintWriter writer() {
@@ -68,6 +76,7 @@ public class PosixPtyConsole extends AbstractPosixTerminal {
                         break;
                     }
                     out.write(b);
+                    out.flush();
                 }
             } catch (IOException e) {
                 e.printStackTrace();
