@@ -117,10 +117,16 @@ public final class TerminalBuilder {
                 } catch (Throwable t) {
                     // ignore
                 }
-                if (pty == null) {
+                try {
                     pty = ExecPty.current();
+                } catch (IOException e) {
+                    // Ignore if not a tty
                 }
-                return new PosixSysTerminal(name, type, pty, encoding, nativeSignals);
+                if (pty != null) {
+                    return new PosixSysTerminal(name, type, pty, encoding, nativeSignals);
+                } else {
+                    return new ExternalTerminal(name, type, System.in, System.out, encoding);
+                }
             }
         } else {
             try {
