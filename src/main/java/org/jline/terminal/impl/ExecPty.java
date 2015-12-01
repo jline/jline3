@@ -141,7 +141,7 @@ public class ExecPty implements Pty {
         }
         if (!commands.isEmpty()) {
             commands.add(0, OSUtils.STTY_COMMAND);
-            commands.add(1, "-f");
+            commands.add(1, OSUtils.STTY_F_OPTION);
             commands.add(2, getName());
             exec(commands.toArray(new String[commands.size()]));
         }
@@ -154,7 +154,7 @@ public class ExecPty implements Pty {
     }
 
     protected String doGetConfig() throws IOException {
-        return exec(OSUtils.STTY_COMMAND, "-f", getName(), "-a");
+        return exec(OSUtils.STTY_COMMAND, OSUtils.STTY_F_OPTION, getName(), "-a");
     }
 
     static Attributes doGetAttr(String cfg) throws IOException {
@@ -262,7 +262,7 @@ public class ExecPty implements Pty {
     @Override
     public void setSize(Size size) throws IOException {
         exec(OSUtils.STTY_COMMAND,
-             "-f", getName(),
+             OSUtils.STTY_F_OPTION, getName(),
              "columns", Integer.toString(size.getColumns()),
              "rows", Integer.toString(size.getRows()));
     }

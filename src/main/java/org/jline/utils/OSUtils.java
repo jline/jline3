@@ -18,17 +18,22 @@ public class OSUtils {
             && System.getenv("PWD") != null
             && System.getenv("PWD").startsWith("/");
 
+    public static final boolean IS_OSX = System.getProperty("os.name").toLowerCase().contains("mac");
+
     public static String TTY_COMMAND;
     public static String STTY_COMMAND;
+    public static String STTY_F_OPTION;
     public static String INFOCMP_COMMAND;
 
     static {
         String tty;
         String stty;
+        String sttyfopt;
         String infocmp;
         if (OSUtils.IS_CYGWIN) {
             tty = "tty.exe";
             stty = "stty.exe";
+            sttyfopt = null;
             infocmp = "infocmp.exe";
             String path = System.getenv("PATH");
             if (path != null) {
@@ -49,9 +54,16 @@ public class OSUtils {
             tty = "tty";
             stty = "stty";
             infocmp = "infocmp";
+            if (IS_OSX) {
+                sttyfopt = "-f";
+            }
+            else {
+                sttyfopt = "-F";
+            }
         }
         TTY_COMMAND = tty;
         STTY_COMMAND = stty;
+        STTY_F_OPTION = sttyfopt;
         INFOCMP_COMMAND = infocmp;
     }
 
