@@ -19,7 +19,7 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
         this.originalAttributes = this.pty.getAttr();
     }
 
-    protected Pty getPty() {
+    public Pty getPty() {
         return pty;
     }
 
