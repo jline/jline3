@@ -1,0 +1,113 @@
+package de.codeshelf.consoleui;
+
+import de.codeshelf.consoleui.elements.Checkbox;
+import de.codeshelf.consoleui.elements.InputValue;
+import de.codeshelf.consoleui.elements.ListChoice;
+import de.codeshelf.consoleui.elements.items.CheckboxItemIF;
+import de.codeshelf.consoleui.elements.items.ListItemIF;
+import de.codeshelf.consoleui.elements.items.impl.*;
+import de.codeshelf.consoleui.prompt.CheckboxPrompt;
+import de.codeshelf.consoleui.prompt.InputPrompt;
+import de.codeshelf.consoleui.prompt.ListPrompt;
+import jline.TerminalFactory;
+import jline.console.ConsoleReader;
+import jline.console.Operation;
+import jline.console.completer.FileNameCompleter;
+import jline.console.completer.StringsCompleter;
+import org.fusesource.jansi.AnsiConsole;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+
+import static org.fusesource.jansi.Ansi.ansi;
+
+/**
+ * User: andy
+ * Date: 29.11.15
+ */
+public class Basic {
+
+  public static void main(String[] args) {
+    AnsiConsole.systemInstall();
+    System.out.println(ansi().eraseScreen().render("@|red,italic Hello|@ @|green World|@\n@|blue no text|@"));
+
+
+    try {
+      checkBoxDemo();
+      listChoiceDemo();
+      inputDemo();
+    } catch (IOException e) {
+      e.printStackTrace();
+    } finally {
+      try {
+        TerminalFactory.get().restore();
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+
+  }
+
+  private static void listChoiceDemo() throws IOException {
+    ListPrompt listPrompt = new ListPrompt();
+    List<ListItemIF> list= new ArrayList<ListItemIF>();
+
+    ListItemBuilder listItemBuilder = ListItemBuilder.create();
+    list.add(new ListItem("One"));
+    list.add(new ListItem("Two"));
+    list.add(listItemBuilder.name("3").text("Three").build());
+    list.add(new Separator("some extra items"));
+    list.add(new ListItem("Four"));
+    list.add(new Separator());
+    list.add(listItemBuilder.text("Five").build());
+    ListChoice listChoice = new ListChoice("my first list choice", null, list);
+    LinkedHashSet<String> result = listPrompt.prompt(listChoice);
+    //System.out.println("result = " + result);
+  }
+
+  private static void checkBoxDemo() throws IOException {
+    CheckboxPrompt checkboxPrompt = new CheckboxPrompt();
+    List<CheckboxItemIF> list=new ArrayList<CheckboxItemIF>();
+
+
+    list.add(new CheckboxItem("One"));
+    list.add(new CheckboxItem(true,"Two"));
+    list.add(CheckboxItemBuilder.create().name("3").text("Three").disabledText("always in").check().build());
+    list.add(new Separator("some extra items"));
+    list.add(new CheckboxItem("Four"));
+    list.add(new Separator());
+    list.add(new CheckboxItem(true,"Five"));
+    Checkbox checkbox = new Checkbox("my first checkbox", null, list);
+    LinkedHashSet<String> result = checkboxPrompt.prompt(checkbox);
+    //System.out.println("result = " + result);
+  }
+
+  private static void inputDemo() throws IOException {
+    InputPrompt inputPrompt = new InputPrompt();
+    inputPrompt.prompt(new InputValue("name", "enter your name"));
+    inputPrompt.prompt(new InputValue("firstname","enter your first name",null,"John"));
+    InputValue branch = new InputValue("branch", "enter a branch name", null, null);
+    branch.addCompleter(new StringsCompleter("consoleui_1","consoleui_1_412_1","consoleui_1_769_2","simplegui_4_32"));
+    branch.addCompleter(new FileNameCompleter());
+    inputPrompt.prompt(branch);
+  }
+
+  private static void readBindingsDemo(ConsoleReader console) throws IOException {
+    Object o = console.readBinding(console.getKeys());
+    System.out.println("o = " + o);
+  }
+
+  private static void readCharsDemo(ConsoleReader console) throws IOException {
+    int c=0;
+    while (c != -1) {
+      Operation o = (Operation) console.readBinding(console.getKeys());
+      System.out.println("o = " + o + " "+o.getClass().getName());
+      String lastBinding = console.getLastBinding();
+      System.out.println(lastBinding);
+      System.out.println("after read");
+    }
+    //System.out.println("finished");
+  }
+}

@@ -1,0 +1,27 @@
+group 'ConsoleUI'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+apply plugin: 'idea'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.11'
+    compile 'org.fusesource.jansi:jansi:1.11'
+    compile 'jline:jline:2.13'
+}
+
+
+jar {
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+
+    manifest {
+        attributes 'Implementation-Title': 'ConsoleUI',
+                'Implementation-Version': version,
+                'Main-Class': 'de.codeshelf.consoleui.Basic'
+
+    }
+}
