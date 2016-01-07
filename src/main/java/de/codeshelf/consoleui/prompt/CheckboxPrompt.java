@@ -46,9 +46,9 @@ public class CheckboxPrompt extends AbstractPrompt implements PromptIF<Checkbox>
     if (this.reader == null) {
       this.reader = new ConsoleReaderImpl();
     }
-    this.reader.addAllowedPrintableKey(Character.valueOf('j'));
-    this.reader.addAllowedPrintableKey(Character.valueOf('k'));
-    this.reader.addAllowedPrintableKey(Character.valueOf(' '));
+    this.reader.addAllowedPrintableKey('j');
+    this.reader.addAllowedPrintableKey('k');
+    this.reader.addAllowedPrintableKey(' ');
     this.reader.addAllowedSpecialKey(ReaderIF.SpecialKey.DOWN);
     this.reader.addAllowedSpecialKey(ReaderIF.SpecialKey.UP);
     this.reader.addAllowedSpecialKey(ReaderIF.SpecialKey.ENTER);
@@ -59,11 +59,11 @@ public class CheckboxPrompt extends AbstractPrompt implements PromptIF<Checkbox>
     ReaderIF.ReaderInput readerInput = this.reader.read();
     while (readerInput.getSpecialKey() != ReaderIF.SpecialKey.ENTER) {
       if (readerInput.getSpecialKey() == ReaderIF.SpecialKey.PRINTABLE_KEY) {
-        if (readerInput.getPrintableKey().equals(Character.valueOf(' '))) {
+        if (readerInput.getPrintableKey().equals(' ')) {
           toggleSelection();
-        } else if (readerInput.getPrintableKey().equals(Character.valueOf('j'))) {
+        } else if (readerInput.getPrintableKey().equals('j')) {
           this.selectedItemIndex = getNextSelectableItemIndex();
-        } else if (readerInput.getPrintableKey().equals(Character.valueOf('k'))) {
+        } else if (readerInput.getPrintableKey().equals('k')) {
           this.selectedItemIndex = getPreviousSelectableItemIndex();
         }
       } else if (readerInput.getSpecialKey() == ReaderIF.SpecialKey.DOWN) {
@@ -74,7 +74,7 @@ public class CheckboxPrompt extends AbstractPrompt implements PromptIF<Checkbox>
       render();
       readerInput = this.reader.read();
     }
-    LinkedHashSet<String> selections = new LinkedHashSet();
+    LinkedHashSet<String> selections = new LinkedHashSet<String>();
     for (CheckboxItemIF item : itemList) {
       if ((item instanceof CheckboxItem)) {
         CheckboxItem checkboxItem = (CheckboxItem) item;
@@ -91,7 +91,7 @@ public class CheckboxPrompt extends AbstractPrompt implements PromptIF<Checkbox>
     List<CheckboxItemIF> itemList = this.checkbox.getCheckboxItemList();
     for (int i = 0; i < itemList.size(); i++) {
       int newIndex = (this.selectedItemIndex + 1 + i) % itemList.size();
-      CheckboxItemIF item = (CheckboxItemIF) itemList.get(newIndex);
+      CheckboxItemIF item = itemList.get(newIndex);
       if (item.isSelectable()) {
         return newIndex;
       }
@@ -103,7 +103,7 @@ public class CheckboxPrompt extends AbstractPrompt implements PromptIF<Checkbox>
     List<CheckboxItemIF> itemList = this.checkbox.getCheckboxItemList();
     for (int i = 0; i < itemList.size(); i++) {
       int newIndex = (this.selectedItemIndex - 1 - i + itemList.size()) % itemList.size();
-      CheckboxItemIF item = (CheckboxItemIF) itemList.get(newIndex);
+      CheckboxItemIF item = itemList.get(newIndex);
       if (item.isSelectable()) {
         return newIndex;
       }
