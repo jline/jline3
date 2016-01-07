@@ -6,7 +6,6 @@ import de.codeshelf.consoleui.elements.items.impl.ListItem;
 import de.codeshelf.consoleui.prompt.reader.ConsoleReaderImpl;
 import de.codeshelf.consoleui.prompt.reader.ReaderIF;
 import de.codeshelf.consoleui.prompt.renderer.CUIRenderer;
-import org.fusesource.jansi.Ansi;
 
 import java.io.IOException;
 import java.util.LinkedHashSet;

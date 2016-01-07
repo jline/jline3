@@ -1,7 +1,6 @@
 package de.codeshelf.consoleui.elements;
 
 import jline.console.completer.Completer;
-import jline.console.completer.StringsCompleter;
 
 import java.util.ArrayList;
 import java.util.List;

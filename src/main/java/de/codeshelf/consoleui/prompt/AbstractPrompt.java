@@ -2,8 +2,6 @@ package de.codeshelf.consoleui.prompt;
 
 import org.fusesource.jansi.Ansi;
 
-import java.util.LinkedHashSet;
-
 import static org.fusesource.jansi.Ansi.ansi;
 
 /**
