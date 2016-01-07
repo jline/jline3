@@ -5,6 +5,7 @@ import de.codeshelf.consoleui.elements.items.CheckboxItemIF;
 import de.codeshelf.consoleui.elements.items.impl.CheckboxItem;
 import de.codeshelf.consoleui.elements.items.impl.Separator;
 import de.codeshelf.consoleui.prompt.reader.ReaderIF;
+import jline.console.completer.Completer;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -50,6 +51,10 @@ public class CheckboxPromptTest {
 
       public ReaderInput read() {
         return new ReaderInput(SpecialKey.ENTER);
+      }
+
+      public ReaderInput readLine(List<Completer> completer, String promt, String value) throws IOException {
+        return null;
       }
     });
 
