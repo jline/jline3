@@ -16,7 +16,8 @@ public interface ReaderIF {
     UP,
     DOWN,
     ENTER,
-    PRINTABLE_KEY, // not really a special key, but indicates an ordianry printable key
+    BACKSPACE,
+    PRINTABLE_KEY,  // not really a special key, but indicates an ordianry printable key
   }
 
   void setAllowedSpecialKeys(Set<SpecialKey> allowedSpecialKeys);

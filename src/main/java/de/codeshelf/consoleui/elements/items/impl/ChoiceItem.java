@@ -1,12 +1,13 @@
 package de.codeshelf.consoleui.elements.items.impl;
 
 import de.codeshelf.consoleui.elements.PromptableElementIF;
+import de.codeshelf.consoleui.elements.items.ConsoleUIItemIF;
 
 /**
  * User: andy
  * Date: 07.01.16
  */
-public class ChoiceItem implements PromptableElementIF {
+public class ChoiceItem implements PromptableElementIF, ConsoleUIItemIF {
   private Character key;
   private String name;
   private String message;
@@ -27,5 +28,9 @@ public class ChoiceItem implements PromptableElementIF {
 
   public String getMessage() {
     return message;
+  }
+
+  public boolean isSelectable() {
+    return true;
   }
 }

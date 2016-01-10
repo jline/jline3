@@ -1,12 +1,14 @@
 package de.codeshelf.consoleui;
 
 import de.codeshelf.consoleui.elements.Checkbox;
+import de.codeshelf.consoleui.elements.ExpandableChoice;
 import de.codeshelf.consoleui.elements.InputValue;
 import de.codeshelf.consoleui.elements.ListChoice;
 import de.codeshelf.consoleui.elements.items.CheckboxItemIF;
 import de.codeshelf.consoleui.elements.items.ListItemIF;
 import de.codeshelf.consoleui.elements.items.impl.*;
 import de.codeshelf.consoleui.prompt.CheckboxPrompt;
+import de.codeshelf.consoleui.prompt.ExpandableChoicePrompt;
 import de.codeshelf.consoleui.prompt.InputPrompt;
 import de.codeshelf.consoleui.prompt.ListPrompt;
 import jline.TerminalFactory;
@@ -29,15 +31,19 @@ import static org.fusesource.jansi.Ansi.ansi;
  */
 public class Basic {
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws InterruptedException {
     AnsiConsole.systemInstall();
-    System.out.println(ansi().eraseScreen().render("@|red,italic Hello|@ @|green World|@\n@|blue no text|@"));
+    System.out.println(ansi().eraseScreen().render("@|red,italic Hello|@ @|green World|@\n@|reset " +
+            "This is a demonstration of ConsoleUI java library. It provides a simple console interface\n" +
+            "for querying information from the user. ConsoleUI is inspired by Inquirer.js which is written\n" +
+            "in JavaScrpt.|@"));
 
 
     try {
       checkBoxDemo();
       listChoiceDemo();
       inputDemo();
+      exandableChoiceDemo();
     } catch (IOException e) {
       e.printStackTrace();
     } finally {
@@ -92,6 +98,17 @@ public class Basic {
     branch.addCompleter(new StringsCompleter("consoleui_1","consoleui_1_412_1","consoleui_1_769_2","simplegui_4_32"));
     branch.addCompleter(new FileNameCompleter());
     inputPrompt.prompt(branch);
+  }
+
+  private static void exandableChoiceDemo() throws IOException {
+    ExpandableChoicePrompt expandableChoicePrompt = new ExpandableChoicePrompt();
+    LinkedHashSet<ChoiceItem> choiceItems=new LinkedHashSet<ChoiceItem>();
+    choiceItems.add(new ChoiceItem('o',"overwrite","Overwrite"));
+    choiceItems.add(new ChoiceItem('a',"overwriteAll","Overwrite this one and all next"));
+    choiceItems.add(new ChoiceItem('d',"diff","Show diff"));
+    choiceItems.add(new ChoiceItem('x',"abort","Abort"));
+    ExpandableChoice expChoice=new ExpandableChoice("Conflict in 'MyBestClass.java'", "conflict", choiceItems);
+    expandableChoicePrompt.prompt(expChoice);
   }
 
   private static void readBindingsDemo(ConsoleReader console) throws IOException {

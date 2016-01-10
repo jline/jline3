@@ -57,6 +57,8 @@ public class ConsoleReaderImpl implements ReaderIF {
             return new ReaderInput(SpecialKey.UP);
           if (operation == Operation.ACCEPT_LINE && this.allowedSpecialKeys.contains(SpecialKey.ENTER))
             return new ReaderInput(SpecialKey.ENTER);
+          if (operation == Operation.BACKWARD_CHAR && this.allowedSpecialKeys.contains(SpecialKey.BACKSPACE))
+            return new ReaderInput(SpecialKey.BACKSPACE);
 
           if (operation == Operation.SELF_INSERT) {
             String lastBinding = console.getLastBinding();

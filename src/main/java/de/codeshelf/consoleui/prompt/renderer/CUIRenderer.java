@@ -3,6 +3,7 @@ package de.codeshelf.consoleui.prompt.renderer;
 import de.codeshelf.consoleui.elements.InputValue;
 import de.codeshelf.consoleui.elements.items.ConsoleUIItemIF;
 import de.codeshelf.consoleui.elements.items.impl.CheckboxItem;
+import de.codeshelf.consoleui.elements.items.impl.ChoiceItem;
 import de.codeshelf.consoleui.elements.items.impl.ListItem;
 import de.codeshelf.consoleui.elements.items.impl.Separator;
 import org.fusesource.jansi.Ansi;
@@ -54,14 +55,24 @@ public class CUIRenderer {
     if (item instanceof ListItem) {
       ListItem listItem = (ListItem) item;
       if (withCursor) {
-        return cursorSymbol+ansi()
+        return cursorSymbol + ansi()
                 .fg(Ansi.Color.CYAN).a(listItem.getText()
                 ).reset().toString();
       } else {
-        return noCursorSpace+ ansi()
+        return noCursorSpace + ansi()
                 .fg(Ansi.Color.DEFAULT).a(listItem.getText()
                 ).reset().toString();
       }
+    }
+
+    if (item instanceof ChoiceItem) {
+      ChoiceItem checkboxItem = (ChoiceItem) item;
+      if (withCursor) {
+        return cursorSymbol + ansi()
+                .fg(Ansi.Color.CYAN).a(checkboxItem.getMessage()).reset().toString();
+      } else
+        return noCursorSpace + ansi()
+                .fg(Ansi.Color.DEFAULT).a(checkboxItem.getMessage()).reset().toString();
     }
 
     if (item instanceof Separator) {
@@ -73,14 +84,14 @@ public class CUIRenderer {
   }
 
   public String renderOptionalDefaultValue(InputValue inputElement) {
-    if (inputElement.getDefaultValue()!=null) {
-      return " ("+inputElement.getDefaultValue()+") ";
+    if (inputElement.getDefaultValue() != null) {
+      return " (" + inputElement.getDefaultValue() + ") ";
     }
     return " ";
   }
 
   public String renderValue(InputValue inputElement) {
-    if (inputElement.getValue()!=null) {
+    if (inputElement.getValue() != null) {
       return inputElement.getValue();
     }
     return "";
