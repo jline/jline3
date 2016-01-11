@@ -1,4 +1,4 @@
-<img src="./doc/ConsoleUI-Logo.png" width="200" >
+<img src="./doc/ConsoleUI-Logo.png" width="200"  align="right">
 
 # Console UI
 
