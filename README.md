@@ -1,4 +1,4 @@
-![](doc/ConsoleUI-Logo.png =160x)
+![](./doc/ConsoleUI-Logo.png =160x)
 
 # Console UI
 
