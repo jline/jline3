@@ -1,7 +1,8 @@
+![](doc/ConsoleUI-Logo-small.png)
 
-
-# consoleui
+# Console UI
 
 Tiny java library that enables simple UI elements on ANSI console based terminals.
+
 
 
