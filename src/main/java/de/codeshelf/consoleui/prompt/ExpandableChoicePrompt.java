@@ -40,15 +40,19 @@ public class ExpandableChoicePrompt extends AbstractPrompt implements PromptIF<E
       int itemNumber = 0;
       LinkedHashSet<ChoiceItem> itemList = expandableChoice.getChoiceItems();
 
-      if (renderHeight == 0) {
+      if (renderHeight == 1) {
+        // first time we expand the list...
         renderHeight = 2 + itemList.size();
+        System.out.println("");
+        System.out.println(ansi().eraseLine().cursorUp(2).a(renderMessagePrompt(expandableChoice.getMessage())).eraseLine(Ansi.Erase.FORWARD));
+        System.out.flush();
       } else {
         System.out.println(ansi().cursorUp(renderHeight));
       }
 
       for (ChoiceItem choiceItem : itemList) {
         String renderedItem = itemRenderer.render(choiceItem, (selectedItemIndex == itemNumber));
-        System.out.println(renderedItem);
+        System.out.println(renderedItem+ansi().eraseLine(Ansi.Erase.FORWARD));
         itemNumber++;
       }
     } else if (renderState == RenderState.FOLDED) {

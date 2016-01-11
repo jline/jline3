@@ -107,7 +107,7 @@ public class Basic {
     choiceItems.add(new ChoiceItem('a',"overwriteAll","Overwrite this one and all next"));
     choiceItems.add(new ChoiceItem('d',"diff","Show diff"));
     choiceItems.add(new ChoiceItem('x',"abort","Abort"));
-    ExpandableChoice expChoice=new ExpandableChoice("Conflict in 'MyBestClass.java'", "conflict", choiceItems);
+    ExpandableChoice expChoice=new ExpandableChoice("conflict in 'MyBestClass.java'", "conflict", choiceItems);
     expandableChoicePrompt.prompt(expChoice);
   }
 
