@@ -1,4 +1,4 @@
-![](doc/ConsoleUI-Logo.svg)
+![](doc/ConsoleUI-Logo.svg?raw=true)
 
 # Console UI
 
