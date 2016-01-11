@@ -1,4 +1,4 @@
-![](doc/ConsoleUI-Logo.svg?raw=true)
+![](doc/ConsoleUI-Logo.png =160x)
 
 # Console UI
 
