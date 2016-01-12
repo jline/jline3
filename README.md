@@ -24,6 +24,10 @@ a Java clone of Inquirer.js.
  - Lists
  - Expandable Choices (multiple key based answers for a question with help and optional list navigation)
  
+# Dependencies
+
+Console UI uses jansi and jline for the dirty console things.
+
 
 
 
