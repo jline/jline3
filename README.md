@@ -1,5 +1,7 @@
 <img src="./doc/ConsoleUI-Logo.png" width="200"  align="right">
 
+[![Build Status](https://travis-ci.org/awegmann/consoleui.svg?branch=master)](https://travis-ci.org/awegmann/consoleui)
+
 # Console UI
 
 Tiny java library that provides simple UI elements on ANSI console based terminals. ConsoleUI is inspired by 
