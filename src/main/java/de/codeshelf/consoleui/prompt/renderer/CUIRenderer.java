@@ -69,10 +69,10 @@ public class CUIRenderer {
       ChoiceItem checkboxItem = (ChoiceItem) item;
       if (withCursor) {
         return cursorSymbol + ansi()
-                .fg(Ansi.Color.CYAN).a(checkboxItem.getMessage()).reset().toString();
+                .fg(Ansi.Color.CYAN).a(checkboxItem.getKey() + " - " + checkboxItem.getMessage()).reset().toString();
       } else
         return noCursorSpace + ansi()
-                .fg(Ansi.Color.DEFAULT).a(checkboxItem.getMessage()).reset().toString();
+                .fg(Ansi.Color.DEFAULT).a(checkboxItem.getKey() + " - " + checkboxItem.getMessage()).reset().toString();
     }
 
     if (item instanceof Separator) {
