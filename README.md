@@ -3,7 +3,7 @@
 # Console UI
 
 Tiny java library that provides simple UI elements on ANSI console based terminals. ConsoleUI is inspired by 
-[Inquirer.js](https://github.com/SBoudrias/Inquirer.js) which is written in JavaScrpt.
+[Inquirer.js](https://github.com/SBoudrias/Inquirer.js) which is written in JavaScript.
 
 # Intention
 
