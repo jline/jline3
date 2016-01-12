@@ -72,9 +72,7 @@ public class ExpandableChoicePrompt extends AbstractPrompt implements PromptIF<E
   }
 
 
-  public LinkedHashSet<String>
-
-  prompt(ExpandableChoice expandableChoice) throws IOException {
+  public LinkedHashSet<String> prompt(ExpandableChoice expandableChoice) throws IOException {
     this.expandableChoice = expandableChoice;
     if (reader == null) {
       reader = new ConsoleReaderImpl();
