@@ -63,7 +63,7 @@ public class ExpandableChoicePrompt extends AbstractPrompt implements PromptIF<E
       renderHeight = 1;
     } else if (renderState == RenderState.FOLDED_ANSWERED) {
       System.out.println("");
-      System.out.println(ansi().fg(Ansi.Color.CYAN).a(">> ").reset().a(choosenItem.getMessage()));
+      System.out.println(ansi().fg(Ansi.Color.CYAN).a(">> ").reset().a(choosenItem.getMessage()).eraseLine());
       System.out.print(ansi().cursorUp(2));
       System.out.print(renderMessagePrompt(expandableChoice.getMessage()) + " (" + promptString + ") ");
       System.out.flush();
