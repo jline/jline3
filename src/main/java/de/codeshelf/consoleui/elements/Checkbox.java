@@ -5,7 +5,7 @@ import de.codeshelf.consoleui.elements.items.CheckboxItemIF;
 import java.util.List;
 
 /**
- * User: andy
+ * User: Andreas Wegmann
  * Date: 01.01.16
  */
 public class Checkbox extends AbstractPromptableElement {

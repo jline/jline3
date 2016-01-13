@@ -3,7 +3,7 @@ package de.codeshelf.consoleui.elements.items.impl;
 import de.codeshelf.consoleui.elements.items.CheckboxItemIF;
 
 /**
- * User: andy
+ * User: Andreas Wegmann
  * Date: 07.12.15
  */
 public class CheckboxItem implements CheckboxItemIF {

@@ -1,13 +1,14 @@
 package de.codeshelf.consoleui.elements.items.impl;
 
 import de.codeshelf.consoleui.elements.PromptableElementIF;
+import de.codeshelf.consoleui.elements.items.ChoiceItemIF;
 import de.codeshelf.consoleui.elements.items.ConsoleUIItemIF;
 
 /**
- * User: andy
+ * User: Andreas Wegmann
  * Date: 07.01.16
  */
-public class ChoiceItem implements PromptableElementIF, ConsoleUIItemIF {
+public class ChoiceItem implements PromptableElementIF, ConsoleUIItemIF, ChoiceItemIF {
   private Character key;
   private String name;
   private String message;

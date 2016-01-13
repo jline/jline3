@@ -1,13 +1,14 @@
 package de.codeshelf.consoleui.elements.items.impl;
 
 import de.codeshelf.consoleui.elements.items.CheckboxItemIF;
+import de.codeshelf.consoleui.elements.items.ChoiceItemIF;
 import de.codeshelf.consoleui.elements.items.ListItemIF;
 
 /**
- * User: andy
+ * User: Andreas Wegmann
  * Date: 01.01.16
  */
-public class Separator implements CheckboxItemIF, ListItemIF {
+public class Separator implements CheckboxItemIF, ListItemIF, ChoiceItemIF {
   private String message;
 
   public Separator(String message) {

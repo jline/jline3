@@ -5,7 +5,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 /**
- * User: andy
+ * User: Andreas Wegmann
  * Date: 08.01.16
  */
 public class ExpandableChoicePromptTest {

@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * User: andy
+ * User: Andreas Wegmann
  * Date: 07.12.15
  */
 public class CheckboxPromptTest {

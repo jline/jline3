@@ -5,7 +5,7 @@ import de.codeshelf.consoleui.elements.items.impl.ChoiceItem;
 import java.util.LinkedHashSet;
 
 /**
- * User: andy
+ * User: Andreas Wegmann
  * Date: 07.01.16
  */
 public class ExpandableChoice extends AbstractPromptableElement {

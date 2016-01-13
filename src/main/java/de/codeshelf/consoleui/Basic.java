@@ -26,7 +26,7 @@ import java.util.List;
 import static org.fusesource.jansi.Ansi.ansi;
 
 /**
- * User: andy
+ * User: Andreas Wegmann
  * Date: 29.11.15
  */
 public class Basic {

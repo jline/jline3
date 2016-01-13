@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * User: andy
+ * User: Andreas Wegmann
  * Date: 02.01.16
  */
 public class ConsoleReaderImpl implements ReaderIF {

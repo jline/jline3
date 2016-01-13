@@ -3,7 +3,7 @@ package de.codeshelf.consoleui.elements.items.impl;
 import de.codeshelf.consoleui.util.BuilderIF;
 
 /**
- * User: andy
+ * User: Andreas Wegmann
  * Date: 04.01.16
  */
 public class ListItemBuilder implements BuilderIF<ListItem> {

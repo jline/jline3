@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * User: andy
+ * User: Andreas Wegmann
  * Date: 06.01.16
  */
 public class InputValue extends AbstractPromptableElement {

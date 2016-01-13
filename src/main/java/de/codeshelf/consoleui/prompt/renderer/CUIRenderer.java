@@ -11,7 +11,7 @@ import org.fusesource.jansi.Ansi;
 import static org.fusesource.jansi.Ansi.ansi;
 
 /**
- * User: andy
+ * User: Andreas Wegmann
  * Date: 01.01.16
  */
 public class CUIRenderer {

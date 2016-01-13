@@ -1,7 +1,7 @@
 package de.codeshelf.consoleui.elements.items.impl;
 
 /**
- * User: andy
+ * User: Andreas Wegmann
  * Date: 01.01.16
  */
 public class Message {

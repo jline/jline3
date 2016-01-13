@@ -1,7 +1,7 @@
 package de.codeshelf.consoleui.elements;
 
 /**
- * User: andy
+ * User: Andreas Wegmann
  * Date: 06.01.16
  */
 public class AbstractPromptableElement implements PromptableElementIF {

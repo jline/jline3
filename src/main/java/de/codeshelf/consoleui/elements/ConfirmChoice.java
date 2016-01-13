@@ -1,7 +1,7 @@
 package de.codeshelf.consoleui.elements;
 
 /**
- * User: andy
+ * User: Andreas Wegmann
  * Date: 07.01.16
  */
 public class ConfirmChoice extends AbstractPromptableElement {

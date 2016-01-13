@@ -13,7 +13,7 @@ import java.util.List;
 import static org.fusesource.jansi.Ansi.ansi;
 
 /**
- * User: andy
+ * User: Andreas Wegmann
  * Date: 06.01.16
  */
 public class InputPrompt extends AbstractPrompt implements PromptIF<InputValue> {

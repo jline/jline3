@@ -14,7 +14,7 @@ import java.util.List;
 import static org.fusesource.jansi.Ansi.ansi;
 
 /**
- * User: andy
+ * User: Andreas Wegmann
  * Date: 01.01.16
  */
 public class ListPrompt extends AbstractPrompt implements PromptIF<ListChoice> {

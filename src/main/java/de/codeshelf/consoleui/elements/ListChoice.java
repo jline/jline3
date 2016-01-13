@@ -5,7 +5,7 @@ import de.codeshelf.consoleui.elements.items.ListItemIF;
 import java.util.List;
 
 /**
- * User: andy
+ * User: Andreas Wegmann
  * Date: 04.01.16
  */
 public class ListChoice extends AbstractPromptableElement {
