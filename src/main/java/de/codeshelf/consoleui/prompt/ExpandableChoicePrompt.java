@@ -96,10 +96,10 @@ public class ExpandableChoicePrompt extends AbstractPrompt implements PromptIF<E
       promptString += choiceItem.getKey();
     }
 
-    choiceItems.add(new ChoiceItem('h', resourceBundle.getString("help"), resourceBundle.getString("help.list.all.options")));
+    choiceItems.add(new ChoiceItem('h', "help", resourceBundle.getString("help.list.all.options")));
     reader.addAllowedPrintableKey('h');
     promptString += "h";
-    System.out.println("promptString = " + promptString);
+
     reader.addAllowedSpecialKey(ReaderIF.SpecialKey.ENTER);
     reader.addAllowedSpecialKey(ReaderIF.SpecialKey.BACKSPACE);
     renderState = RenderState.FOLDED;

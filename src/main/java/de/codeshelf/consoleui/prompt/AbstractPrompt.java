@@ -26,6 +26,6 @@ public class AbstractPrompt {
   }
 
   public AbstractPrompt() {
-    resourceBundle= ResourceBundle.getBundle("consoleui");
+    resourceBundle= ResourceBundle.getBundle("consoleui_messages");
   }
 }
