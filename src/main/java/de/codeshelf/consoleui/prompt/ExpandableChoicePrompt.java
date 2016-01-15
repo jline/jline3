@@ -2,7 +2,6 @@ package de.codeshelf.consoleui.prompt;
 
 import de.codeshelf.consoleui.elements.ExpandableChoice;
 import de.codeshelf.consoleui.elements.items.ConsoleUIItemIF;
-import de.codeshelf.consoleui.elements.items.ListItemIF;
 import de.codeshelf.consoleui.elements.items.impl.ChoiceItem;
 import de.codeshelf.consoleui.prompt.reader.ConsoleReaderImpl;
 import de.codeshelf.consoleui.prompt.reader.ReaderIF;
@@ -12,7 +11,6 @@ import org.fusesource.jansi.Ansi;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
-import java.util.List;
 
 import static org.fusesource.jansi.Ansi.ansi;
 
@@ -62,7 +60,7 @@ public class ExpandableChoicePrompt extends AbstractPrompt implements PromptIF<E
   private void renderList() {
     if (renderHeight == 1) {
       // first time we expand the list...
-      renderHeight = 2 + itemList.size();
+      renderHeight = 1 + itemList.size();
       System.out.println("");
       System.out.println(ansi().eraseLine().cursorUp(2).a(renderMessagePrompt(expandableChoice.getMessage())).eraseLine(Ansi.Erase.FORWARD));
       System.out.flush();
@@ -113,12 +111,14 @@ public class ExpandableChoicePrompt extends AbstractPrompt implements PromptIF<E
     ReaderIF.ReaderInput readerInput = this.reader.read();
     while (true) {
       if (readerInput.getSpecialKey() == ReaderIF.SpecialKey.ENTER) {
+        // if ENTER pressed
         if (choosenItem != null && choosenItem.getKey() == 'h') {
           renderState = RenderState.EXPANDED;
 
           itemList = new ArrayList<ConsoleUIItemIF>();
           itemList.addAll(expandableChoice.getChoiceItems());
 
+          selectedItemIndex = getFirstSelectableItemIndex();
           render();
           reader.addAllowedSpecialKey(ReaderIF.SpecialKey.UP);
           reader.addAllowedSpecialKey(ReaderIF.SpecialKey.DOWN);
@@ -126,7 +126,11 @@ public class ExpandableChoicePrompt extends AbstractPrompt implements PromptIF<E
           readerInput = this.reader.read();
         } else {
           LinkedHashSet<String> hashSet = new LinkedHashSet<String>();
-          System.out.println("");
+          if (renderState != RenderState.EXPANDED) {
+            System.out.println("");
+          } else {
+            renderHeight++;
+          }
           if (choosenItem != null) {
             renderMessagePromptAndResult(expandableChoice.getMessage(), choosenItem.getMessage());
             hashSet.add(choosenItem.getName());
@@ -137,28 +141,32 @@ public class ExpandableChoicePrompt extends AbstractPrompt implements PromptIF<E
           return hashSet;
         }
       } else if (readerInput.getSpecialKey() == ReaderIF.SpecialKey.UP) {
-
+        this.selectedItemIndex = getPreviousSelectableItemIndex();
       } else if (readerInput.getSpecialKey() == ReaderIF.SpecialKey.DOWN) {
-
+        this.selectedItemIndex = getNextSelectableItemIndex();
       }
       if (readerInput.getSpecialKey() == ReaderIF.SpecialKey.PRINTABLE_KEY) {
         Character pressedKey = readerInput.getPrintableKey();
         if (promptString.toLowerCase().contains("" + pressedKey)) {
           // find the new choosen item
+          selectedItemIndex = 0;
           for (ChoiceItem choiceItem : choiceItems) {
             if (choiceItem.getKey() == pressedKey) {
               choosenItem = choiceItem;
               break;
             }
+            selectedItemIndex++;
+          }
+          if (renderState == RenderState.FOLDED) {
+            renderState = RenderState.FOLDED_ANSWERED;
           }
         } else {
           // not in valid choices
           choosenItem = errorMessageItem;
         }
-        renderState = RenderState.FOLDED_ANSWERED;
-        render();
-        readerInput = this.reader.read();
       }
+      render();
+      readerInput = this.reader.read();
     }
   }
 
