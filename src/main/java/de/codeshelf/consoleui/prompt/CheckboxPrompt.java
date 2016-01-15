@@ -8,6 +8,7 @@ import de.codeshelf.consoleui.prompt.reader.ReaderIF;
 import de.codeshelf.consoleui.prompt.renderer.CUIRenderer;
 import org.fusesource.jansi.Ansi;
 
+import javax.swing.*;
 import java.io.IOException;
 import java.util.LinkedHashSet;
 import java.util.List;

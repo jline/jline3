@@ -2,6 +2,10 @@ package de.codeshelf.consoleui.prompt;
 
 import org.fusesource.jansi.Ansi;
 
+import javax.swing.*;
+
+import java.util.ResourceBundle;
+
 import static org.fusesource.jansi.Ansi.ansi;
 
 /**
@@ -10,6 +14,7 @@ import static org.fusesource.jansi.Ansi.ansi;
  */
 public class AbstractPrompt {
   protected int renderHeight;
+  protected ResourceBundle resourceBundle;
 
   protected void renderMessagePromptAndResult(String message, String resultValue) {
 
@@ -18,5 +23,9 @@ public class AbstractPrompt {
 
   protected String renderMessagePrompt(String message) {
     return (ansi().fg(Ansi.Color.GREEN).a("? ").fgBright(Ansi.Color.WHITE).a(message)).fg(Ansi.Color.DEFAULT).toString();
+  }
+
+  public AbstractPrompt() {
+    resourceBundle= ResourceBundle.getBundle("consoleui");
   }
 }

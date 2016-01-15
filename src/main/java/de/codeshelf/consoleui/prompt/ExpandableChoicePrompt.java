@@ -25,7 +25,7 @@ public class ExpandableChoicePrompt extends AbstractPrompt implements PromptIF<E
   private int selectedItemIndex;
   ChoiceItem choosenItem;
   ChoiceItem defaultItem;
-  private ChoiceItem errorMessageItem = new ChoiceItem(' ', "error", "Please enter a valid command");
+  private ChoiceItem errorMessageItem = new ChoiceItem(' ', "error", resourceBundle.getString("please.enter.a.valid.command"));
   ArrayList<ConsoleUIItemIF> itemList;
 
   enum RenderState {
@@ -96,7 +96,7 @@ public class ExpandableChoicePrompt extends AbstractPrompt implements PromptIF<E
       promptString += choiceItem.getKey();
     }
 
-    choiceItems.add(new ChoiceItem('h', "help", "Help, list all options"));
+    choiceItems.add(new ChoiceItem('h', resourceBundle.getString("help"), resourceBundle.getString("help.list.all.options")));
     reader.addAllowedPrintableKey('h');
     promptString += "h";
     System.out.println("promptString = " + promptString);
