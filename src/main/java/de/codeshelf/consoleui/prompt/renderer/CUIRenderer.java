@@ -15,8 +15,9 @@ import static org.fusesource.jansi.Ansi.ansi;
  * Date: 01.01.16
  */
 public class CUIRenderer {
-  private final String cursorSymbol = ansi().fg(Ansi.Color.CYAN).a("> ").toString();
-  private final String noCursorSpace = ansi().fg(Ansi.Color.DEFAULT).a("  ").toString();
+  //private final String cursorSymbol = ansi().fg(Ansi.Color.CYAN).a("\uF078> ").toString();
+  private final String cursorSymbol;
+  private final String noCursorSpace;
 
   private final String uncheckedBox;
   private final String checkedBox;
@@ -27,8 +28,9 @@ public class CUIRenderer {
   public CUIRenderer() {
     checkedBox = "\u25C9 ";
     uncheckedBox = "\u25EF ";
-
     line = "\u2500─────────────";
+    cursorSymbol = ansi().fg(Ansi.Color.CYAN).a("❯ ").toString();
+    noCursorSpace = ansi().fg(Ansi.Color.DEFAULT).a("  ").toString();
   }
 
   public static CUIRenderer getRenderer() {
