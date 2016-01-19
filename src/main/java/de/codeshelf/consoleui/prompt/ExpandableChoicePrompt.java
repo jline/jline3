@@ -85,7 +85,7 @@ public class ExpandableChoicePrompt extends AbstractListablePrompt implements Pr
 
     for (ChoiceItem choiceItem : choiceItems) {
       if (choiceItem.getKey() == 'h') {
-        throw new IllegalStateException("expandableChoice may not use the reserved key 'h' for an element.");
+        throw new IllegalStateException("you may not use the reserved key 'h' for an element of expandableChoice.");
       }
       if (defaultItem == null) {
         defaultItem = choiceItem;
@@ -139,9 +139,11 @@ public class ExpandableChoicePrompt extends AbstractListablePrompt implements Pr
           return hashSet;
         }
       } else if (readerInput.getSpecialKey() == ReaderIF.SpecialKey.UP) {
-        this.selectedItemIndex = getPreviousSelectableItemIndex();
+        selectedItemIndex = getPreviousSelectableItemIndex();
+        chosenItem = (ChoiceItem) itemList.get(selectedItemIndex);
       } else if (readerInput.getSpecialKey() == ReaderIF.SpecialKey.DOWN) {
-        this.selectedItemIndex = getNextSelectableItemIndex();
+        selectedItemIndex = getNextSelectableItemIndex();
+        chosenItem = (ChoiceItem) itemList.get(selectedItemIndex);
       }
       if (readerInput.getSpecialKey() == ReaderIF.SpecialKey.PRINTABLE_KEY) {
         Character pressedKey = readerInput.getPrintableKey();

@@ -50,7 +50,7 @@ public class InputPrompt extends AbstractPrompt implements PromptIF<InputValue> 
     renderMessagePromptAndResult(inputElement.getMessage(), lineInput);
 
     LinkedHashSet<String> resultSet = new LinkedHashSet<String>();
-    resultSet.add(readerInput.getLineInput());
+    resultSet.add(lineInput);
     return resultSet;
   }
 }

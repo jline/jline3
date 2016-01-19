@@ -70,7 +70,7 @@ public class Basic {
     list.add(listItemBuilder.text("Five").build());
     ListChoice listChoice = new ListChoice("my first list choice", null, list);
     LinkedHashSet<String> result = listPrompt.prompt(listChoice);
-    //System.out.println("result = " + result);
+    System.out.println("result = " + result);
   }
 
   private static void checkBoxDemo() throws IOException {
@@ -87,17 +87,24 @@ public class Basic {
     list.add(new CheckboxItem(true,"Five"));
     Checkbox checkbox = new Checkbox("my first checkbox", null, list);
     LinkedHashSet<String> result = checkboxPrompt.prompt(checkbox);
-    //System.out.println("result = " + result);
+    System.out.println("result = " + result);
   }
 
   private static void inputDemo() throws IOException {
+    LinkedHashSet<String> result;
     InputPrompt inputPrompt = new InputPrompt();
-    inputPrompt.prompt(new InputValue("name", "enter your name"));
-    inputPrompt.prompt(new InputValue("firstname","enter your first name",null,"John"));
+
+    result =inputPrompt.prompt(new InputValue("name", "enter your name"));
+    System.out.println("result = " + result);
+
+    result =inputPrompt.prompt(new InputValue("firstname","enter your first name",null,"John"));
+    System.out.println("result = " + result);
+
     InputValue branch = new InputValue("branch", "enter a branch name", null, null);
     branch.addCompleter(new StringsCompleter("consoleui_1","consoleui_1_412_1","consoleui_1_769_2","simplegui_4_32"));
     branch.addCompleter(new FileNameCompleter());
-    inputPrompt.prompt(branch);
+    result = inputPrompt.prompt(branch);
+    System.out.println("result = " + result);
   }
 
   private static void exandableChoiceDemo() throws IOException {
@@ -108,7 +115,8 @@ public class Basic {
     choiceItems.add(new ChoiceItem('d',"diff","Show diff"));
     choiceItems.add(new ChoiceItem('x',"abort","Abort"));
     ExpandableChoice expChoice=new ExpandableChoice("conflict in 'MyBestClass.java'", "conflict", choiceItems);
-    expandableChoicePrompt.prompt(expChoice);
+    LinkedHashSet<String> result = expandableChoicePrompt.prompt(expChoice);
+    System.out.println("result = " + result);
   }
 
   private static void readBindingsDemo(ConsoleReader console) throws IOException {
