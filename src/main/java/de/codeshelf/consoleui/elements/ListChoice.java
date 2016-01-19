@@ -1,7 +1,9 @@
 package de.codeshelf.consoleui.elements;
 
+import de.codeshelf.consoleui.elements.items.ConsoleUIItemIF;
 import de.codeshelf.consoleui.elements.items.ListItemIF;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -21,7 +23,7 @@ public class ListChoice extends AbstractPromptableElement {
     return message;
   }
 
-  public List<ListItemIF> getListItemList() {
-    return listItemList;
+  public ArrayList<ConsoleUIItemIF> getListItemList() {
+    return new ArrayList<ConsoleUIItemIF>(listItemList);
   }
 }

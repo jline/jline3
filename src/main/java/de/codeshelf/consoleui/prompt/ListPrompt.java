@@ -1,7 +1,7 @@
 package de.codeshelf.consoleui.prompt;
 
 import de.codeshelf.consoleui.elements.ListChoice;
-import de.codeshelf.consoleui.elements.items.ListItemIF;
+import de.codeshelf.consoleui.elements.items.ConsoleUIItemIF;
 import de.codeshelf.consoleui.elements.items.impl.ListItem;
 import de.codeshelf.consoleui.prompt.reader.ConsoleReaderImpl;
 import de.codeshelf.consoleui.prompt.reader.ReaderIF;
@@ -9,7 +9,6 @@ import de.codeshelf.consoleui.prompt.renderer.CUIRenderer;
 
 import java.io.IOException;
 import java.util.LinkedHashSet;
-import java.util.List;
 
 import static org.fusesource.jansi.Ansi.ansi;
 
@@ -17,7 +16,7 @@ import static org.fusesource.jansi.Ansi.ansi;
  * User: Andreas Wegmann
  * Date: 01.01.16
  */
-public class ListPrompt extends AbstractPrompt implements PromptIF<ListChoice> {
+public class ListPrompt extends AbstractListablePrompt implements PromptIF<ListChoice> {
   private ListChoice listChoice;
 
   ReaderIF reader;
@@ -26,7 +25,6 @@ public class ListPrompt extends AbstractPrompt implements PromptIF<ListChoice> {
     this.reader = reader;
   }
 
-  int selectedItemIndex;
   CUIRenderer itemRenderer = CUIRenderer.getRenderer();
 
   public ListPrompt() {
@@ -35,7 +33,6 @@ public class ListPrompt extends AbstractPrompt implements PromptIF<ListChoice> {
 
   private void render() {
     int itemNumber = 0;
-    List<ListItemIF> itemList = listChoice.getListItemList();
 
     if (renderHeight == 0) {
       renderHeight = 2 + itemList.size();
@@ -44,7 +41,7 @@ public class ListPrompt extends AbstractPrompt implements PromptIF<ListChoice> {
     }
 
     System.out.println(renderMessagePrompt(listChoice.getMessage()));
-    for (ListItemIF listItem : itemList) {
+    for (ConsoleUIItemIF listItem : itemList) {
       String renderedItem = itemRenderer.render(listItem,(selectedItemIndex == itemNumber));
       System.out.println(renderedItem);
       itemNumber++;
@@ -53,7 +50,7 @@ public class ListPrompt extends AbstractPrompt implements PromptIF<ListChoice> {
 
   public LinkedHashSet<String> prompt(ListChoice listChoice) throws IOException {
     this.listChoice = listChoice;
-    List<ListItemIF> itemList = listChoice.getListItemList();
+    itemList = listChoice.getListItemList();
     if (reader == null) {
       reader = new ConsoleReaderImpl();
     }
@@ -91,40 +88,6 @@ public class ListPrompt extends AbstractPrompt implements PromptIF<ListChoice> {
     selection.add(listItem.getName());
     renderMessagePromptAndResult(listChoice.getMessage(),selection.toString());
     return selection ;
-  }
-
-
-  private int getNextSelectableItemIndex() {
-    List<ListItemIF> itemList = listChoice.getListItemList();
-    for (int i = 0; i < itemList.size(); i++) {
-      int newIndex = (selectedItemIndex + 1 + i) % itemList.size();
-      ListItemIF item = itemList.get(newIndex);
-      if (item.isSelectable())
-        return newIndex;
-    }
-    return selectedItemIndex;
-  }
-
-  private int getPreviousSelectableItemIndex() {
-    List<ListItemIF> itemList = listChoice.getListItemList();
-    for (int i = 0; i < itemList.size(); i++) {
-      int newIndex = (selectedItemIndex - 1 - i + itemList.size()) % itemList.size();
-      ListItemIF item = itemList.get(newIndex);
-      if (item.isSelectable())
-        return newIndex;
-    }
-    return selectedItemIndex;
-  }
-
-  private int getFirstSelectableItemIndex() {
-    int index = 0;
-    List<ListItemIF> itemList = listChoice.getListItemList();
-    for (ListItemIF item : itemList) {
-      if (item.isSelectable())
-        return index;
-      index++;
-    }
-    throw new IllegalStateException("no selectable item in list");
   }
 
 

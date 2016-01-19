@@ -53,5 +53,4 @@ public class InputPrompt extends AbstractPrompt implements PromptIF<InputValue> 
     resultSet.add(readerInput.getLineInput());
     return resultSet;
   }
-
 }

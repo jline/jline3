@@ -18,15 +18,13 @@ import static org.fusesource.jansi.Ansi.ansi;
  * User: Andreas Wegmann
  * Date: 07.01.16
  */
-public class ExpandableChoicePrompt extends AbstractPrompt implements PromptIF<ExpandableChoice> {
+public class ExpandableChoicePrompt extends AbstractListablePrompt implements PromptIF<ExpandableChoice> {
   private ConsoleReaderImpl reader;
   private ExpandableChoice expandableChoice;
   CUIRenderer itemRenderer = CUIRenderer.getRenderer();
-  private int selectedItemIndex;
-  ChoiceItem choosenItem;
+  ChoiceItem chosenItem;
   ChoiceItem defaultItem;
   private ChoiceItem errorMessageItem = new ChoiceItem(' ', "error", resourceBundle.getString("please.enter.a.valid.command"));
-  ArrayList<ConsoleUIItemIF> itemList;
 
   enum RenderState {
     FOLDED,
@@ -49,7 +47,7 @@ public class ExpandableChoicePrompt extends AbstractPrompt implements PromptIF<E
       renderHeight = 1;
     } else if (renderState == RenderState.FOLDED_ANSWERED) {
       System.out.println("");
-      System.out.println(ansi().fg(Ansi.Color.CYAN).a(">> ").reset().a(choosenItem.getMessage()).eraseLine());
+      System.out.println(ansi().fg(Ansi.Color.CYAN).a(">> ").reset().a(chosenItem.getMessage()).eraseLine());
       System.out.print(ansi().cursorUp(2));
       System.out.print(renderMessagePrompt(expandableChoice.getMessage()) + " (" + promptString + ") ");
       System.out.flush();
@@ -112,7 +110,7 @@ public class ExpandableChoicePrompt extends AbstractPrompt implements PromptIF<E
     while (true) {
       if (readerInput.getSpecialKey() == ReaderIF.SpecialKey.ENTER) {
         // if ENTER pressed
-        if (choosenItem != null && choosenItem.getKey() == 'h') {
+        if (chosenItem != null && chosenItem.getKey() == 'h') {
           renderState = RenderState.EXPANDED;
 
           itemList = new ArrayList<ConsoleUIItemIF>();
@@ -131,9 +129,9 @@ public class ExpandableChoicePrompt extends AbstractPrompt implements PromptIF<E
           } else {
             renderHeight++;
           }
-          if (choosenItem != null) {
-            renderMessagePromptAndResult(expandableChoice.getMessage(), choosenItem.getMessage());
-            hashSet.add(choosenItem.getName());
+          if (chosenItem != null) {
+            renderMessagePromptAndResult(expandableChoice.getMessage(), chosenItem.getMessage());
+            hashSet.add(chosenItem.getName());
           } else {
             renderMessagePromptAndResult(expandableChoice.getMessage(), defaultItem.getMessage());
             hashSet.add(defaultItem.getName());
@@ -148,11 +146,11 @@ public class ExpandableChoicePrompt extends AbstractPrompt implements PromptIF<E
       if (readerInput.getSpecialKey() == ReaderIF.SpecialKey.PRINTABLE_KEY) {
         Character pressedKey = readerInput.getPrintableKey();
         if (promptString.toLowerCase().contains("" + pressedKey)) {
-          // find the new choosen item
+          // find the new chosen item
           selectedItemIndex = 0;
           for (ChoiceItem choiceItem : choiceItems) {
             if (choiceItem.getKey() == pressedKey) {
-              choosenItem = choiceItem;
+              chosenItem = choiceItem;
               break;
             }
             selectedItemIndex++;
@@ -162,43 +160,11 @@ public class ExpandableChoicePrompt extends AbstractPrompt implements PromptIF<E
           }
         } else {
           // not in valid choices
-          choosenItem = errorMessageItem;
+          chosenItem = errorMessageItem;
         }
       }
       render();
       readerInput = this.reader.read();
     }
   }
-
-  private int getNextSelectableItemIndex() {
-    for (int i = 0; i < itemList.size(); i++) {
-      int newIndex = (selectedItemIndex + 1 + i) % itemList.size();
-      ConsoleUIItemIF item = itemList.get(newIndex);
-      if (item.isSelectable())
-        return newIndex;
-    }
-    return selectedItemIndex;
-  }
-
-  private int getPreviousSelectableItemIndex() {
-    for (int i = 0; i < itemList.size(); i++) {
-      int newIndex = (selectedItemIndex - 1 - i + itemList.size()) % itemList.size();
-      ConsoleUIItemIF item = itemList.get(newIndex);
-      if (item.isSelectable())
-        return newIndex;
-    }
-    return selectedItemIndex;
-  }
-
-  private int getFirstSelectableItemIndex() {
-    int index = 0;
-    for (ConsoleUIItemIF item : itemList) {
-      if (item.isSelectable())
-        return index;
-      index++;
-    }
-    throw new IllegalStateException("no selectable item in list");
-  }
-
-
 }

@@ -2,8 +2,6 @@ package de.codeshelf.consoleui.prompt;
 
 import org.fusesource.jansi.Ansi;
 
-import javax.swing.*;
-
 import java.util.ResourceBundle;
 
 import static org.fusesource.jansi.Ansi.ansi;
@@ -28,4 +26,5 @@ public class AbstractPrompt {
   public AbstractPrompt() {
     resourceBundle= ResourceBundle.getBundle("consoleui_messages");
   }
+
 }
