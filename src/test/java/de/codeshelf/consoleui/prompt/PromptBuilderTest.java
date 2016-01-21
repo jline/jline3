@@ -3,7 +3,7 @@ package de.codeshelf.consoleui.prompt;
 import org.junit.Test;
 
 /**
- * User: ${FULL_NAME}
+ * User: Andreas Wegmann
  * Date: 20.01.16
  */
 public class PromptBuilderTest {
@@ -15,40 +15,52 @@ public class PromptBuilderTest {
 
     promptBuilder.createInputPrompt()
             .name("name")
-            .message("message")
-            .defaultValue("defaultValue")
-            .add();
+            .message("Please enter your name")
+            .defaultValue("John Doe")
+            .addPrompt();
 
     promptBuilder.createListPrompt()
-            .name("name")
-            .message("message")
-            .getItemBuilder()
-            .name("item1.name").text("item1 text").add()
-            .name("item2.name").text("item2 text").add()
-            .name("item3.name").text("item3 text").add()
-            .name("item4.name").text("item4 text").add();
-
-    promptBuilder.createChoicePrompt()
-            .name("choicePrompt")
-            .message("choice Message")
-            .getItemBuilder()
-            .name("name1").message("message a").key('a').add()
-            .name("name2").message("message b").key('b').add()
-            .name("name3").message("message c").key('c').asDefault().add();
+            .name("pizzatype")
+            .message("Which pizza do you want?")
+            .newItem().text("Margherita").add()  // without name (name defaults to text)
+            .newItem("veneziana").text("Veniziana").add()
+            .newItem("hawai").text("Hawai").add()
+            .newItem("quattro").text("Quattro Stagioni").add()
+            .addPrompt();
 
     promptBuilder.createCheckboxPrompt()
-            .name("name")
-            .message("message")
-            .getItemBuilder()
-            .name("item1.name").text("item1 text").add()
-            .name("item2.name").text("item2 text").disabledText("I'm disabled").add()
-            .separator().add()
-            .name("item3.name").text("item3 text").check().add()
-            .name("item3.name").text("item3 text").add()
-            .separator("and the last...").add()
-            .name("item4.name").text("item4 text").checked(true).add();
+            .name("topping")
+            .message("Please select additional toppings:")
 
+            .newSeparator("standard toppings").add()
 
+            .newItem().name("cheese").text("Cheese").add()
+            .newItem("bacon").text("Bacon").add()
+            .newItem("onions").text("Onions").disabledText("Sorry. Out of stock.").add()
 
+            .newSeparator().text("special toppings").add()
+
+            .newItem("salami").text("Very hot salami").check().add()
+            .newItem("salmon").text("Smoked Salmon").add()
+
+            .newSeparator("and our speciality...").add()
+
+            .newItem("special").text("Anchovies, and olives").checked(true).add()
+            .addPrompt();
+
+    promptBuilder.createChoicePrompt()
+            .name("payment")
+            .message("How do you want to pay?")
+
+            .newItem().name("cash").message("Cash").key('c').asDefault().add()
+            .newItem("visa").message("Visa Card").key('v').add()
+            .newItem("master").message("Master Card").key('m').add()
+            .newSeparator("online payment").add()
+            .newItem("paypal").message("Paypal").key('p').add()
+            .addPrompt();
+
+    prompt.prompt(promptBuilder.build());
   }
+
+
 }

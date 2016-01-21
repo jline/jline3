@@ -94,13 +94,13 @@ public class Basic {
     LinkedHashSet<String> result;
     InputPrompt inputPrompt = new InputPrompt();
 
-    result =inputPrompt.prompt(new InputValue("name", "enter your name"));
+    result =inputPrompt.prompt(new InputValue("newItem", "enter your newItem"));
     System.out.println("result = " + result);
 
-    result =inputPrompt.prompt(new InputValue("firstname","enter your first name",null,"John"));
+    result =inputPrompt.prompt(new InputValue("firstname","enter your first newItem",null,"John"));
     System.out.println("result = " + result);
 
-    InputValue branch = new InputValue("branch", "enter a branch name", null, null);
+    InputValue branch = new InputValue("branch", "enter a branch newItem", null, null);
     branch.addCompleter(new StringsCompleter("consoleui_1","consoleui_1_412_1","consoleui_1_769_2","simplegui_4_32"));
     branch.addCompleter(new FileNameCompleter());
     result = inputPrompt.prompt(branch);

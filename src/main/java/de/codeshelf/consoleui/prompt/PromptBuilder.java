@@ -1,14 +1,15 @@
 package de.codeshelf.consoleui.prompt;
 
 import de.codeshelf.consoleui.elements.PromptableElementIF;
+import jline.console.completer.Completer;
 
+import java.awt.peer.ChoicePeer;
 import java.util.List;
 
 /**
  * Created by andy on 20.01.16.
  */
 public class PromptBuilder {
-
 
 
   public List<PromptableElementIF> build() {
@@ -44,7 +45,11 @@ public class PromptBuilder {
       return null;
     }
 
-    public PromptBuilder add() {
+    public InputValueBuilder addCompleter(Completer completer) {
+      return null;
+    }
+
+    public PromptBuilder addPrompt() {
 
       return null;
     }
@@ -59,20 +64,29 @@ public class PromptBuilder {
       return null;
     }
 
-    public ListItemBuilder getItemBuilder() {
+    public ListItemBuilder newItem() {
+      return null;
+    }
+
+    public ListItemBuilder newItem(String name) {
+      return null;
+    }
+
+    public PromptBuilder addPrompt() {
+
       return null;
     }
 
     public class ListItemBuilder {
-      public ListItemBuilder name(String name) {
-        return null;
-      }
-
       public ListItemBuilder text(String text) {
         return null;
       }
 
-      public ListItemBuilder add() {
+      public ListItemBuilder name(String name) {
+        return null;
+      }
+
+      public ListPromptBuilder add() {
         return null;
       }
     }
@@ -92,7 +106,20 @@ public class PromptBuilder {
       return null;
     }
 
-    public ExpandableChoiceItemBuilder getItemBuilder() {
+    public ExpandableChoiceItemBuilder newItem() {
+      return null;
+    }
+
+    public ExpandableChoiceItemBuilder newItem(String name) {
+      return null;
+    }
+
+    public PromptBuilder addPrompt() {
+
+      return null;
+    }
+
+    public ExpandableChoiceItemBuilder newSeparator(String text) {
       return null;
     }
 
@@ -109,7 +136,7 @@ public class PromptBuilder {
         return null;
       }
 
-      public ExpandableChoiceItemBuilder add() {
+      public ExpandableChoicePromptBuilder add() {
         return null;
       }
 
@@ -128,7 +155,23 @@ public class PromptBuilder {
       return null;
     }
 
-    public CheckboxItemBuilder getItemBuilder() {
+    public CheckboxItemBuilder newItem() {
+      return null;
+    }
+
+    public CheckboxItemBuilder newItem(String name) {
+      return null;
+    }
+
+    public PromptBuilder addPrompt() {
+      return null;
+    }
+
+    public CheckboxItemBuilder newSeparator() {
+      return null;
+    }
+
+    public CheckboxItemBuilder newSeparator(String text) {
       return null;
     }
 
@@ -143,7 +186,7 @@ public class PromptBuilder {
         return null;
       }
 
-      public CheckboxItemBuilder add() {
+      public CheckboxPromptBuilder add() {
         return null;
       }
 
@@ -158,14 +201,6 @@ public class PromptBuilder {
       public CheckboxItemBuilder checked(boolean checked) {
         this.checked = checked;
         return this;
-      }
-
-      public CheckboxItemBuilder separator() {
-        return null;
-      }
-
-      public CheckboxItemBuilder separator(String text) {
-        return null;
       }
     }
   }
