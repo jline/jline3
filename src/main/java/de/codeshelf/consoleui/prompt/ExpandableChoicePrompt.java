@@ -13,6 +13,7 @@ import org.fusesource.jansi.Ansi;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 
 import static org.fusesource.jansi.Ansi.ansi;
@@ -120,8 +121,11 @@ public class ExpandableChoicePrompt extends AbstractListablePrompt implements Pr
         if (chosenItem != null && chosenItem.getKey() == 'h') {
           renderState = RenderState.EXPANDED;
 
-          itemList = new ArrayList<ConsoleUIItemIF>();
-          itemList.addAll((Collection<? extends CheckboxItemIF>) expandableChoice.getChoiceItems());
+          itemList = new ArrayList<CheckboxItemIF>();
+          for (Iterator iterator = expandableChoice.getChoiceItems().iterator(); iterator.hasNext(); ) {
+            Object next =  iterator.next();
+            itemList.add(next);
+          }
 
           selectedItemIndex = getFirstSelectableItemIndex();
           render();
