@@ -8,10 +8,7 @@ import de.codeshelf.consoleui.elements.items.CheckboxItemIF;
 import de.codeshelf.consoleui.elements.items.ChoiceItemIF;
 import de.codeshelf.consoleui.elements.items.ListItemIF;
 import de.codeshelf.consoleui.elements.items.impl.*;
-import de.codeshelf.consoleui.prompt.CheckboxPrompt;
-import de.codeshelf.consoleui.prompt.ExpandableChoicePrompt;
-import de.codeshelf.consoleui.prompt.InputPrompt;
-import de.codeshelf.consoleui.prompt.ListPrompt;
+import de.codeshelf.consoleui.prompt.*;
 import jline.TerminalFactory;
 import jline.console.ConsoleReader;
 import jline.console.Operation;
@@ -21,6 +18,7 @@ import org.fusesource.jansi.AnsiConsole;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 
@@ -41,6 +39,59 @@ public class Basic {
 
 
     try {
+      ConsolePrompt prompt = new ConsolePrompt();
+      PromptBuilder promptBuilder = prompt.getPromptBuilder();
+
+      promptBuilder.createInputPrompt()
+              .name("name")
+              .message("Please enter your name")
+              .defaultValue("John Doe")
+              .addCompleter(new StringsCompleter("Jim", "Jack", "John"))
+              .addPrompt();
+
+      promptBuilder.createListPrompt()
+              .name("pizzatype")
+              .message("Which pizza do you want?")
+              .newItem().text("Margherita").add()  // without name (name defaults to text)
+              .newItem("veneziana").text("Veneziana").add()
+              .newItem("hawai").text("Hawai").add()
+              .newItem("quattro").text("Quattro Stagioni").add()
+              .addPrompt();
+
+      promptBuilder.createCheckboxPrompt()
+              .name("topping")
+              .message("Please select additional toppings:")
+
+              .newSeparator("standard toppings")
+              .add()
+
+              .newItem().name("cheese").text("Cheese").add()
+              .newItem("bacon").text("Bacon").add()
+              .newItem("onions").text("Onions").disabledText("Sorry. Out of stock.").add()
+
+              .newSeparator().text("special toppings").add()
+
+              .newItem("salami").text("Very hot salami").check().add()
+              .newItem("salmon").text("Smoked Salmon").add()
+
+              .newSeparator("and our speciality...").add()
+
+              .newItem("special").text("Anchovies, and olives").checked(true).add()
+              .addPrompt();
+
+      promptBuilder.createChoicePrompt()
+              .name("payment")
+              .message("How do you want to pay?")
+
+              .newItem().name("cash").message("Cash").key('c').asDefault().add()
+              .newItem("visa").message("Visa Card").key('v').add()
+              .newItem("master").message("Master Card").key('m').add()
+              .newSeparator("online payment").add()
+              .newItem("paypal").message("Paypal").key('p').add()
+              .addPrompt();
+
+      HashMap<String, Object> result = prompt.prompt(promptBuilder.build());
+      System.out.println("result = " + result);
       checkBoxDemo();
       listChoiceDemo();
       inputDemo();

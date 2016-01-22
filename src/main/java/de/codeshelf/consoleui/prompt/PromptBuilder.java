@@ -119,7 +119,7 @@ public class PromptBuilder {
     }
 
     public PromptBuilder addPrompt() {
-      ListChoice listChoice = new ListChoice(name, message, itemList);
+      ListChoice listChoice = new ListChoice(message, name, itemList);
       promptBuilder.addPrompt(listChoice);
       return promptBuilder;
     }
@@ -296,7 +296,7 @@ public class PromptBuilder {
     }
 
     public PromptBuilder addPrompt() {
-      Checkbox checkbox = new Checkbox(name, message, itemList);
+      Checkbox checkbox = new Checkbox(message, name, itemList);
       promptBuilder.addPrompt(checkbox);
       return promptBuilder;
     }
