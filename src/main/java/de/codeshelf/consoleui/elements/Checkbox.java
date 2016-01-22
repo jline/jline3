@@ -1,7 +1,6 @@
 package de.codeshelf.consoleui.elements;
 
 import de.codeshelf.consoleui.elements.items.CheckboxItemIF;
-import de.codeshelf.consoleui.elements.items.ConsoleUIItemIF;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +22,7 @@ public class Checkbox extends AbstractPromptableElement {
     return message;
   }
 
-  public ArrayList<ConsoleUIItemIF> getCheckboxItemList() {
-    return new ArrayList<ConsoleUIItemIF>(checkboxItemList);
+  public ArrayList<CheckboxItemIF> getCheckboxItemList() {
+    return new ArrayList<CheckboxItemIF>(checkboxItemList);
   }
 }

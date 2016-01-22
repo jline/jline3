@@ -1,6 +1,8 @@
 package de.codeshelf.consoleui.prompt;
 
 import de.codeshelf.consoleui.elements.ExpandableChoice;
+import de.codeshelf.consoleui.elements.items.CheckboxItemIF;
+import de.codeshelf.consoleui.elements.items.ChoiceItemIF;
 import de.codeshelf.consoleui.elements.items.ConsoleUIItemIF;
 import de.codeshelf.consoleui.elements.items.impl.ChoiceItem;
 import de.codeshelf.consoleui.prompt.reader.ConsoleReaderImpl;
@@ -10,6 +12,7 @@ import org.fusesource.jansi.Ansi;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashSet;
 
 import static org.fusesource.jansi.Ansi.ansi;
@@ -33,7 +36,7 @@ public class ExpandableChoicePrompt extends AbstractListablePrompt implements Pr
   }
 
   RenderState renderState = RenderState.FOLDED;
-  LinkedHashSet<ChoiceItem> choiceItems;
+  LinkedHashSet<ChoiceItemIF> choiceItems;
   String promptString;
 
   private void render() {
@@ -83,15 +86,19 @@ public class ExpandableChoicePrompt extends AbstractListablePrompt implements Pr
     choiceItems = expandableChoice.getChoiceItems();
     promptString = "";
 
-    for (ChoiceItem choiceItem : choiceItems) {
-      if (choiceItem.getKey() == 'h') {
-        throw new IllegalStateException("you may not use the reserved key 'h' for an element of expandableChoice.");
+    for (ChoiceItemIF choiceItem : choiceItems) {
+      if (choiceItem instanceof ChoiceItem) {
+        ChoiceItem item = (ChoiceItem) choiceItem;
+
+        if (item.getKey() == 'h') {
+          throw new IllegalStateException("you may not use the reserved key 'h' for an element of expandableChoice.");
+        }
+        if (defaultItem == null) {
+          defaultItem = item;
+        }
+        reader.addAllowedPrintableKey(item.getKey());
+        promptString += item.getKey();
       }
-      if (defaultItem == null) {
-        defaultItem = choiceItem;
-      }
-      reader.addAllowedPrintableKey(choiceItem.getKey());
-      promptString += choiceItem.getKey();
     }
 
     choiceItems.add(new ChoiceItem('h', "help", resourceBundle.getString("help.list.all.options")));
@@ -114,7 +121,7 @@ public class ExpandableChoicePrompt extends AbstractListablePrompt implements Pr
           renderState = RenderState.EXPANDED;
 
           itemList = new ArrayList<ConsoleUIItemIF>();
-          itemList.addAll(expandableChoice.getChoiceItems());
+          itemList.addAll((Collection<? extends CheckboxItemIF>) expandableChoice.getChoiceItems());
 
           selectedItemIndex = getFirstSelectableItemIndex();
           render();
@@ -150,12 +157,15 @@ public class ExpandableChoicePrompt extends AbstractListablePrompt implements Pr
         if (promptString.toLowerCase().contains("" + pressedKey)) {
           // find the new chosen item
           selectedItemIndex = 0;
-          for (ChoiceItem choiceItem : choiceItems) {
-            if (choiceItem.getKey() == pressedKey) {
-              chosenItem = choiceItem;
-              break;
+          for (ChoiceItemIF choiceItem : choiceItems) {
+            if (choiceItem instanceof ChoiceItem) {
+              ChoiceItem item = (ChoiceItem) choiceItem;
+              if (item.getKey() == pressedKey) {
+                chosenItem = item;
+                break;
+              }
+              selectedItemIndex++;
             }
-            selectedItemIndex++;
           }
           if (renderState == RenderState.FOLDED) {
             renderState = RenderState.FOLDED_ANSWERED;

@@ -1,5 +1,6 @@
 package de.codeshelf.consoleui.prompt;
 
+import de.codeshelf.consoleui.elements.items.CheckboxItemIF;
 import de.codeshelf.consoleui.elements.items.ConsoleUIItemIF;
 
 import java.util.ArrayList;
@@ -11,7 +12,7 @@ import java.util.ArrayList;
 public abstract class AbstractListablePrompt extends AbstractPrompt {
 
   protected int selectedItemIndex;
-  ArrayList<ConsoleUIItemIF> itemList;
+  ArrayList<CheckboxItemIF> itemList;
 
   protected int getNextSelectableItemIndex() {
     for (int i = 0; i < itemList.size(); i++) {

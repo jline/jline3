@@ -5,6 +5,7 @@ import de.codeshelf.consoleui.elements.ExpandableChoice;
 import de.codeshelf.consoleui.elements.InputValue;
 import de.codeshelf.consoleui.elements.ListChoice;
 import de.codeshelf.consoleui.elements.items.CheckboxItemIF;
+import de.codeshelf.consoleui.elements.items.ChoiceItemIF;
 import de.codeshelf.consoleui.elements.items.ListItemIF;
 import de.codeshelf.consoleui.elements.items.impl.*;
 import de.codeshelf.consoleui.prompt.CheckboxPrompt;
@@ -109,7 +110,7 @@ public class Basic {
 
   private static void exandableChoiceDemo() throws IOException {
     ExpandableChoicePrompt expandableChoicePrompt = new ExpandableChoicePrompt();
-    LinkedHashSet<ChoiceItem> choiceItems=new LinkedHashSet<ChoiceItem>();
+    LinkedHashSet<ChoiceItemIF> choiceItems=new LinkedHashSet<ChoiceItemIF>();
     choiceItems.add(new ChoiceItem('o',"overwrite","Overwrite"));
     choiceItems.add(new ChoiceItem('a',"overwriteAll","Overwrite this one and all next"));
     choiceItems.add(new ChoiceItem('d',"diff","Show diff"));

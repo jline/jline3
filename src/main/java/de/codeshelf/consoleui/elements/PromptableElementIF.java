@@ -5,4 +5,6 @@ package de.codeshelf.consoleui.elements;
  * Date: 04.01.16
  */
 public interface PromptableElementIF {
+
+  String getName();
 }

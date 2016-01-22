@@ -1,122 +1,205 @@
 package de.codeshelf.consoleui.prompt;
 
-import de.codeshelf.consoleui.elements.PromptableElementIF;
+import de.codeshelf.consoleui.elements.*;
+import de.codeshelf.consoleui.elements.items.CheckboxItemIF;
+import de.codeshelf.consoleui.elements.items.ChoiceItemIF;
+import de.codeshelf.consoleui.elements.items.ListItemIF;
+import de.codeshelf.consoleui.elements.items.impl.CheckboxItem;
+import de.codeshelf.consoleui.elements.items.impl.ChoiceItem;
+import de.codeshelf.consoleui.elements.items.impl.ListItem;
+import de.codeshelf.consoleui.elements.items.impl.Separator;
 import jline.console.completer.Completer;
 
-import java.awt.peer.ChoicePeer;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 /**
- * Created by andy on 20.01.16.
+ * Created by Andreas Wegmann
+ * on 20.01.16.
  */
 public class PromptBuilder {
-
+  List<PromptableElementIF> promptList = new ArrayList<PromptableElementIF>();
 
   public List<PromptableElementIF> build() {
-    return null;
+    return promptList;
+  }
+
+  private void addPrompt(PromptableElementIF promptableElement) {
+    promptList.add(promptableElement);
   }
 
   public InputValueBuilder createInputPrompt() {
-    return null;
+    return new InputValueBuilder(this);
   }
 
   public ListPromptBuilder createListPrompt() {
-    return null;
+    return new ListPromptBuilder(this);
   }
 
   public ExpandableChoicePromptBuilder createChoicePrompt() {
-    return null;
+    return new ExpandableChoicePromptBuilder(this);
   }
 
   public CheckboxPromptBuilder createCheckboxPrompt() {
-    return null;
+    return new CheckboxPromptBuilder(this);
   }
 
   public class InputValueBuilder {
+    private final PromptBuilder promptBuilder;
+    private String name;
+    private String defaultValue;
+    private String message;
+    private ArrayList<Completer> completers;
+
+    public InputValueBuilder(PromptBuilder promptBuilder) {
+      this.promptBuilder = promptBuilder;
+    }
+
     public InputValueBuilder name(String name) {
-      return null;
+      this.name = name;
+      return this;
     }
 
     public InputValueBuilder defaultValue(String defaultValue) {
-      return null;
+      this.defaultValue = defaultValue;
+      return this;
     }
 
     public InputValueBuilder message(String message) {
-      return null;
+      this.message = message;
+      return this;
     }
 
     public InputValueBuilder addCompleter(Completer completer) {
-      return null;
+      if (completers == null) {
+        completers = new ArrayList<Completer>();
+      }
+      this.completers.add(completer);
+      return this;
     }
 
     public PromptBuilder addPrompt() {
-
-      return null;
+      InputValue inputValue = new InputValue(name, message, null, defaultValue);
+      if (completers != null) {
+        inputValue.setCompleter(completers);
+      }
+      promptBuilder.addPrompt(inputValue);
+      return promptBuilder;
     }
   }
 
   public class ListPromptBuilder {
+    private final PromptBuilder promptBuilder;
+    private String name;
+    private String message;
+    private List<ListItemIF> itemList = new ArrayList<ListItemIF>();
+
+    public ListPromptBuilder(PromptBuilder promptBuilder) {
+      this.promptBuilder = promptBuilder;
+    }
+
     public ListPromptBuilder name(String name) {
-      return null;
+      this.name = name;
+      return this;
     }
 
     public ListPromptBuilder message(String message) {
-      return null;
+      this.message = message;
+      return this;
     }
 
     public ListItemBuilder newItem() {
-      return null;
+      return new ListItemBuilder(this);
     }
 
     public ListItemBuilder newItem(String name) {
-      return null;
+      ListItemBuilder listItemBuilder = new ListItemBuilder(this);
+      return listItemBuilder.name(name);
     }
 
     public PromptBuilder addPrompt() {
+      ListChoice listChoice = new ListChoice(name, message, itemList);
+      promptBuilder.addPrompt(listChoice);
+      return promptBuilder;
+    }
 
-      return null;
+    private void addItem(ListItem listItem) {
+      this.itemList.add(listItem);
     }
 
     public class ListItemBuilder {
+      private final ListPromptBuilder listPromptBuilder;
+      private String text;
+      private String name;
+
+      public ListItemBuilder(ListPromptBuilder listPromptBuilder) {
+        this.listPromptBuilder = listPromptBuilder;
+      }
+
       public ListItemBuilder text(String text) {
-        return null;
+        this.text = text;
+        return this;
       }
 
       public ListItemBuilder name(String name) {
-        return null;
+        this.name = name;
+        return this;
       }
 
       public ListPromptBuilder add() {
-        return null;
+        listPromptBuilder.addItem(new ListItem(text, name));
+        return listPromptBuilder;
       }
     }
+
   }
 
 
   public class ExpandableChoicePromptBuilder {
+    private final PromptBuilder promptBuilder;
+    private String name;
+    private String text;
+    private String message;
+    private LinkedHashSet<ChoiceItemIF> itemList;
+
+    public ExpandableChoicePromptBuilder(PromptBuilder promptBuilder) {
+      this.promptBuilder = promptBuilder;
+      this.itemList = new LinkedHashSet<ChoiceItemIF>();
+    }
+
+    private void addItem(ChoiceItemIF choiceItem) {
+      this.itemList.add(choiceItem);
+    }
+
     public ExpandableChoicePromptBuilder name(String name) {
-      return null;
+      this.name = name;
+      return this;
     }
 
     public ExpandableChoicePromptBuilder text(String text) {
-      return null;
+      this.text = text;
+      return this;
     }
 
     public ExpandableChoicePromptBuilder message(String message) {
-      return null;
+      this.message = message;
+      return this;
     }
 
     public ExpandableChoiceItemBuilder newItem() {
-      return null;
+      return new ExpandableChoiceItemBuilder(this);
     }
 
     public ExpandableChoiceItemBuilder newItem(String name) {
-      return null;
+      ExpandableChoiceItemBuilder expandableChoiceItemBuilder = new ExpandableChoiceItemBuilder(this);
+      return expandableChoiceItemBuilder.name(name);
     }
 
     public PromptBuilder addPrompt() {
-
-      return null;
+      ExpandableChoice expandableChoice = new ExpandableChoice(message, name, itemList);
+      promptBuilder.addPrompt(expandableChoice);
+      return promptBuilder;
     }
 
     public ExpandableChoiceItemBuilder newSeparator(String text) {
@@ -124,78 +207,127 @@ public class PromptBuilder {
     }
 
     public class ExpandableChoiceItemBuilder {
-      public ExpandableChoiceItemBuilder name(String name1) {
-        return null;
+      private final ExpandableChoicePromptBuilder choicePromptBuilder;
+      private String name;
+      private String message;
+      private Character key;
+
+      public ExpandableChoiceItemBuilder(ExpandableChoicePromptBuilder choicePromptBuilder) {
+        this.choicePromptBuilder = choicePromptBuilder;
+      }
+
+      public ExpandableChoiceItemBuilder name(String name) {
+        this.name = name;
+        return this;
       }
 
       public ExpandableChoiceItemBuilder message(String message) {
-        return null;
+        this.message = message;
+        return this;
       }
 
       public ExpandableChoiceItemBuilder key(char key) {
-        return null;
+        this.key = key;
+        return this;
       }
 
       public ExpandableChoicePromptBuilder add() {
-        return null;
+        ChoiceItem choiceItem = new ChoiceItem(key, name, message);
+        choicePromptBuilder.addItem(choiceItem);
+        return choicePromptBuilder;
       }
 
       public ExpandableChoiceItemBuilder asDefault() {
         return null;
       }
     }
+
   }
 
   public class CheckboxPromptBuilder {
+    private final PromptBuilder promptBuilder;
+    private String name;
+    private String message;
+    private List<CheckboxItemIF> itemList;
+
+    public CheckboxPromptBuilder(PromptBuilder promptBuilder) {
+      this.promptBuilder = promptBuilder;
+      itemList = new ArrayList<CheckboxItemIF>();
+    }
+
+    private void addItem(CheckboxItemIF checkboxItem) {
+      itemList.add(checkboxItem);
+    }
+
     public CheckboxPromptBuilder name(String name) {
-      return null;
+      this.name = name;
+      return this;
     }
 
     public CheckboxPromptBuilder message(String message) {
-      return null;
+      this.message = message;
+      return this;
     }
 
     public CheckboxItemBuilder newItem() {
-      return null;
+      return new CheckboxItemBuilder(this);
     }
 
     public CheckboxItemBuilder newItem(String name) {
-      return null;
+      CheckboxItemBuilder checkboxItemBuilder = new CheckboxItemBuilder(this);
+      return checkboxItemBuilder.name(name);
     }
 
     public PromptBuilder addPrompt() {
-      return null;
+      Checkbox checkbox = new Checkbox(name, message, itemList);
+      promptBuilder.addPrompt(checkbox);
+      return promptBuilder;
     }
 
-    public CheckboxItemBuilder newSeparator() {
-      return null;
+    public CheckboxSeperatorBuilder newSeparator() {
+      return new CheckboxSeperatorBuilder(this);
     }
 
-    public CheckboxItemBuilder newSeparator(String text) {
-      return null;
+    public CheckboxSeperatorBuilder newSeparator(String text) {
+      CheckboxSeperatorBuilder checkboxSeperatorBuilder = new CheckboxSeperatorBuilder(this);
+      return checkboxSeperatorBuilder.text(text);
     }
 
     public class CheckboxItemBuilder {
+      private final CheckboxPromptBuilder checkboxPromptBuilder;
       private boolean checked;
+      private String name;
+      private String text;
+      private String disabledText;
+
+      public CheckboxItemBuilder(CheckboxPromptBuilder checkboxPromptBuilder) {
+        this.checkboxPromptBuilder = checkboxPromptBuilder;
+      }
 
       public CheckboxItemBuilder name(String name) {
-        return null;
+        this.name = name;
+        return this;
       }
 
       public CheckboxItemBuilder text(String text) {
-        return null;
+        this.text = text;
+        return this;
       }
 
       public CheckboxPromptBuilder add() {
-        return null;
+        CheckboxItemIF item = new CheckboxItem(checked, text, disabledText, name);
+        checkboxPromptBuilder.addItem(item);
+        return checkboxPromptBuilder;
       }
 
       public CheckboxItemBuilder disabledText(String disabledText) {
-        return null;
+        this.disabledText = disabledText;
+        return this;
       }
 
       public CheckboxItemBuilder check() {
-        return null;
+        this.checked = true;
+        return this;
       }
 
       public CheckboxItemBuilder checked(boolean checked) {
@@ -203,5 +335,28 @@ public class PromptBuilder {
         return this;
       }
     }
+
+
+    public class CheckboxSeperatorBuilder {
+      private final CheckboxPromptBuilder promptBuilder;
+      private String text;
+
+      public CheckboxSeperatorBuilder(CheckboxPromptBuilder checkboxPromptBuilder) {
+        this.promptBuilder = checkboxPromptBuilder;
+      }
+
+      public CheckboxPromptBuilder add() {
+        Separator separator = new Separator(text);
+        promptBuilder.addItem(separator);
+
+        return promptBuilder;
+      }
+
+      public CheckboxSeperatorBuilder text(String text) {
+        this.text = text;
+        return this;
+      }
+    }
+
   }
 }

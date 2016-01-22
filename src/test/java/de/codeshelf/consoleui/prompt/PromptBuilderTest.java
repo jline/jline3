@@ -1,5 +1,6 @@
 package de.codeshelf.consoleui.prompt;
 
+import jline.console.completer.StringsCompleter;
 import org.junit.Test;
 
 /**
@@ -17,13 +18,14 @@ public class PromptBuilderTest {
             .name("name")
             .message("Please enter your name")
             .defaultValue("John Doe")
+            .addCompleter(new StringsCompleter("Jim", "Jack", "John"))
             .addPrompt();
 
     promptBuilder.createListPrompt()
             .name("pizzatype")
             .message("Which pizza do you want?")
             .newItem().text("Margherita").add()  // without name (name defaults to text)
-            .newItem("veneziana").text("Veniziana").add()
+            .newItem("veneziana").text("Veneziana").add()
             .newItem("hawai").text("Hawai").add()
             .newItem("quattro").text("Quattro Stagioni").add()
             .addPrompt();
@@ -32,7 +34,8 @@ public class PromptBuilderTest {
             .name("topping")
             .message("Please select additional toppings:")
 
-            .newSeparator("standard toppings").add()
+            .newSeparator("standard toppings")
+            .add()
 
             .newItem().name("cheese").text("Cheese").add()
             .newItem("bacon").text("Bacon").add()
