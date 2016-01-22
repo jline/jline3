@@ -1,9 +1,8 @@
 package de.codeshelf.consoleui.prompt;
 
+import de.codeshelf.consoleui.prompt.builder.PromptBuilder;
 import jline.console.completer.StringsCompleter;
 import org.junit.Test;
-
-import java.util.HashMap;
 
 import static org.junit.Assert.assertNotNull;
 

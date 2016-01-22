@@ -9,6 +9,7 @@ import de.codeshelf.consoleui.elements.items.ChoiceItemIF;
 import de.codeshelf.consoleui.elements.items.ListItemIF;
 import de.codeshelf.consoleui.elements.items.impl.*;
 import de.codeshelf.consoleui.prompt.*;
+import de.codeshelf.consoleui.prompt.builder.PromptBuilder;
 import jline.TerminalFactory;
 import jline.console.ConsoleReader;
 import jline.console.Operation;

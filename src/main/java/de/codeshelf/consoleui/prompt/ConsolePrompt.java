@@ -1,6 +1,7 @@
 package de.codeshelf.consoleui.prompt;
 
 import de.codeshelf.consoleui.elements.*;
+import de.codeshelf.consoleui.prompt.builder.PromptBuilder;
 
 import java.io.IOException;
 import java.util.HashMap;
