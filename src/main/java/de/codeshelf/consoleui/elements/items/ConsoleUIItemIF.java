@@ -6,4 +6,6 @@ package de.codeshelf.consoleui.elements.items;
  */
 public interface ConsoleUIItemIF {
   boolean isSelectable();
+
+  String getName();
 }

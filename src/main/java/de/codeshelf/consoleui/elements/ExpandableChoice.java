@@ -1,8 +1,9 @@
 package de.codeshelf.consoleui.elements;
 
 import de.codeshelf.consoleui.elements.items.ChoiceItemIF;
-import de.codeshelf.consoleui.elements.items.impl.ChoiceItem;
+import de.codeshelf.consoleui.elements.items.ConsoleUIItemIF;
 
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 
 /**
@@ -18,7 +19,7 @@ public class ExpandableChoice extends AbstractPromptableElement {
     this.choiceItems = choiceItems;
   }
 
-  public LinkedHashSet<ChoiceItemIF> getChoiceItems() {
-    return choiceItems;
+  public ArrayList<ConsoleUIItemIF> getChoiceItems() {
+    return new ArrayList<ConsoleUIItemIF>(choiceItems);
   }
 }

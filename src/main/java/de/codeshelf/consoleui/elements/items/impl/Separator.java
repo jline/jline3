@@ -26,4 +26,9 @@ public class Separator implements CheckboxItemIF, ListItemIF, ChoiceItemIF {
     return false;
   }
 
+  @Override
+  public String getName() {
+    return null;
+  }
+
 }

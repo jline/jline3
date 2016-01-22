@@ -111,10 +111,10 @@ public class Basic {
   private static void exandableChoiceDemo() throws IOException {
     ExpandableChoicePrompt expandableChoicePrompt = new ExpandableChoicePrompt();
     LinkedHashSet<ChoiceItemIF> choiceItems=new LinkedHashSet<ChoiceItemIF>();
-    choiceItems.add(new ChoiceItem('o',"overwrite","Overwrite"));
-    choiceItems.add(new ChoiceItem('a',"overwriteAll","Overwrite this one and all next"));
-    choiceItems.add(new ChoiceItem('d',"diff","Show diff"));
-    choiceItems.add(new ChoiceItem('x',"abort","Abort"));
+    choiceItems.add(new ChoiceItem('o',"overwrite","Overwrite", false));
+    choiceItems.add(new ChoiceItem('a',"overwriteAll","Overwrite this one and all next", false));
+    choiceItems.add(new ChoiceItem('d',"diff","Show diff", false));
+    choiceItems.add(new ChoiceItem('x',"abort","Abort", false));
     ExpandableChoice expChoice=new ExpandableChoice("conflict in 'MyBestClass.java'", "conflict", choiceItems);
     LinkedHashSet<String> result = expandableChoicePrompt.prompt(expChoice);
     System.out.println("result = " + result);

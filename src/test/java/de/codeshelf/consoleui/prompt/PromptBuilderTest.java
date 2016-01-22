@@ -3,6 +3,10 @@ package de.codeshelf.consoleui.prompt;
 import jline.console.completer.StringsCompleter;
 import org.junit.Test;
 
+import java.util.HashMap;
+
+import static org.junit.Assert.assertNotNull;
+
 /**
  * User: Andreas Wegmann
  * Date: 20.01.16
@@ -51,6 +55,7 @@ public class PromptBuilderTest {
             .newItem("special").text("Anchovies, and olives").checked(true).add()
             .addPrompt();
 
+    assertNotNull(promptBuilder);
     promptBuilder.createChoicePrompt()
             .name("payment")
             .message("How do you want to pay?")
@@ -62,7 +67,8 @@ public class PromptBuilderTest {
             .newItem("paypal").message("Paypal").key('p').add()
             .addPrompt();
 
-    prompt.prompt(promptBuilder.build());
+    //HashMap<String, Object> result = prompt.prompt(promptBuilder.build());
+
   }
 
 

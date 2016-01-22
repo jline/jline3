@@ -159,7 +159,6 @@ public class PromptBuilder {
   public class ExpandableChoicePromptBuilder {
     private final PromptBuilder promptBuilder;
     private String name;
-    private String text;
     private String message;
     private LinkedHashSet<ChoiceItemIF> itemList;
 
@@ -174,11 +173,6 @@ public class PromptBuilder {
 
     public ExpandableChoicePromptBuilder name(String name) {
       this.name = name;
-      return this;
-    }
-
-    public ExpandableChoicePromptBuilder text(String text) {
-      this.text = text;
       return this;
     }
 
@@ -202,8 +196,9 @@ public class PromptBuilder {
       return promptBuilder;
     }
 
-    public ExpandableChoiceItemBuilder newSeparator(String text) {
-      return null;
+    public ExpandableChoiceSeparatorBuilder newSeparator(String text) {
+      ExpandableChoiceSeparatorBuilder expandableChoiceSeparatorBuilder = new ExpandableChoiceSeparatorBuilder(this);
+      return expandableChoiceSeparatorBuilder.text(text);
     }
 
     public class ExpandableChoiceItemBuilder {
@@ -211,6 +206,7 @@ public class PromptBuilder {
       private String name;
       private String message;
       private Character key;
+      private boolean asDefault;
 
       public ExpandableChoiceItemBuilder(ExpandableChoicePromptBuilder choicePromptBuilder) {
         this.choicePromptBuilder = choicePromptBuilder;
@@ -232,16 +228,37 @@ public class PromptBuilder {
       }
 
       public ExpandableChoicePromptBuilder add() {
-        ChoiceItem choiceItem = new ChoiceItem(key, name, message);
+        ChoiceItem choiceItem = new ChoiceItem(key, name, message, asDefault);
         choicePromptBuilder.addItem(choiceItem);
         return choicePromptBuilder;
       }
 
       public ExpandableChoiceItemBuilder asDefault() {
-        return null;
+        this.asDefault = true;
+        return this;
       }
     }
 
+    public class ExpandableChoiceSeparatorBuilder {
+      private final ExpandableChoicePromptBuilder expandableChoicePromptBuilder;
+      private String text;
+
+      public ExpandableChoiceSeparatorBuilder(ExpandableChoicePromptBuilder expandableChoicePromptBuilder) {
+        this.expandableChoicePromptBuilder = expandableChoicePromptBuilder;
+      }
+
+      public ExpandableChoiceSeparatorBuilder text(String text) {
+        this.text = text;
+        return this;
+      }
+
+      public ExpandableChoicePromptBuilder add() {
+        Separator separator = new Separator(text);
+        expandableChoicePromptBuilder.addItem(separator);
+
+        return expandableChoicePromptBuilder;
+      }
+    }
   }
 
   public class CheckboxPromptBuilder {

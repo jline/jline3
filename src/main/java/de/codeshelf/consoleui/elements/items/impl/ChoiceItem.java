@@ -1,22 +1,22 @@
 package de.codeshelf.consoleui.elements.items.impl;
 
-import de.codeshelf.consoleui.elements.PromptableElementIF;
 import de.codeshelf.consoleui.elements.items.ChoiceItemIF;
-import de.codeshelf.consoleui.elements.items.ConsoleUIItemIF;
 
 /**
  * User: Andreas Wegmann
  * Date: 07.01.16
  */
-public class ChoiceItem implements PromptableElementIF, ConsoleUIItemIF, ChoiceItemIF {
+public class ChoiceItem implements ChoiceItemIF {
   private Character key;
   private String name;
   private String message;
+  private boolean defaultChoice;
 
-  public ChoiceItem(Character key, String name, String message) {
+  public ChoiceItem(Character key, String name, String message, boolean isDefaultChoice) {
     this.key = key;
     this.name = name;
     this.message = message;
+    this.defaultChoice = isDefaultChoice;
   }
 
   public Character getKey() {
@@ -33,5 +33,9 @@ public class ChoiceItem implements PromptableElementIF, ConsoleUIItemIF, ChoiceI
 
   public boolean isSelectable() {
     return true;
+  }
+
+  public boolean isDefaultChoice() {
+    return defaultChoice;
   }
 }
