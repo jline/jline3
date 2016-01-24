@@ -3,7 +3,6 @@ package de.codeshelf.consoleui.prompt;
 import de.codeshelf.consoleui.elements.Checkbox;
 import de.codeshelf.consoleui.elements.items.ConsoleUIItemIF;
 import de.codeshelf.consoleui.elements.items.impl.CheckboxItem;
-import de.codeshelf.consoleui.prompt.reader.ConsoleReaderImpl;
 import de.codeshelf.consoleui.prompt.reader.ReaderIF;
 import de.codeshelf.consoleui.prompt.renderer.CUIRenderer;
 import org.fusesource.jansi.Ansi;
@@ -13,10 +12,10 @@ import java.util.LinkedHashSet;
 
 public class CheckboxPrompt extends AbstractListablePrompt implements PromptIF<Checkbox> {
   private Checkbox checkbox;
-  ReaderIF reader;
 
-  public void setReader(ReaderIF reader) {
-    this.reader = reader;
+
+  public CheckboxPrompt() throws IOException {
+    super();
   }
 
   CUIRenderer itemRenderer = CUIRenderer.getRenderer();
@@ -42,9 +41,6 @@ public class CheckboxPrompt extends AbstractListablePrompt implements PromptIF<C
     this.checkbox = checkbox;
     itemList = this.checkbox.getCheckboxItemList();
 
-    if (this.reader == null) {
-      this.reader = new ConsoleReaderImpl();
-    }
     this.reader.addAllowedPrintableKey('j');
     this.reader.addAllowedPrintableKey('k');
     this.reader.addAllowedPrintableKey(' ');

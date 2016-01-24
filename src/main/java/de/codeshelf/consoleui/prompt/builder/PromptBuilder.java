@@ -37,4 +37,7 @@ public class PromptBuilder {
   }
 
 
+  public ConfirmPromptBuilder createConfirmPromp() {
+    return new ConfirmPromptBuilder(this);
+  }
 }

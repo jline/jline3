@@ -1,8 +1,13 @@
 package de.codeshelf.consoleui.prompt;
 
+import de.codeshelf.consoleui.elements.ConfirmChoice;
+import de.codeshelf.consoleui.elements.PromptableElementIF;
 import de.codeshelf.consoleui.prompt.builder.PromptBuilder;
 import jline.console.completer.StringsCompleter;
 import org.junit.Test;
+
+import java.util.HashMap;
+import java.util.List;
 
 import static org.junit.Assert.assertNotNull;
 
@@ -16,6 +21,12 @@ public class PromptBuilderTest {
   public void testBuilder() throws Exception {
     ConsolePrompt prompt = new ConsolePrompt();
     PromptBuilder promptBuilder = prompt.getPromptBuilder();
+
+    promptBuilder.createConfirmPromp()
+            .name("wantapizza")
+            .message("Do you want to order a pizza?")
+            .defaultValue(ConfirmChoice.ConfirmationValue.YES)
+            .addPrompt();
 
     promptBuilder.createInputPrompt()
             .name("name")
@@ -66,7 +77,12 @@ public class PromptBuilderTest {
             .newItem("paypal").message("Paypal").key('p').add()
             .addPrompt();
 
-    //HashMap<String, Object> result = prompt.prompt(promptBuilder.build());
+    List<PromptableElementIF> promptableElementList = promptBuilder.build();
+
+    // only for test. reset the default reader to a test reader to automate the input
+    //promptableElementList.get(0)
+
+    //HashMap<String, Object> result = prompt.prompt(promptableElementList);
 
   }
 

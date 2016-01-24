@@ -32,7 +32,7 @@ public class CheckboxPromptTest {
     list.add(new CheckboxItem("Four"));
     list.add(new CheckboxItem(true,"Five"));
 
-    checkboxPrompt.  setReader(new ReaderIF() {
+    checkboxPrompt.setReader(new ReaderIF() {
       public void setAllowedSpecialKeys(Set<SpecialKey> allowedSpecialKeys) {
 
       }

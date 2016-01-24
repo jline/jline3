@@ -1,5 +1,6 @@
 package de.codeshelf.consoleui.prompt.renderer;
 
+import de.codeshelf.consoleui.elements.ConfirmChoice;
 import de.codeshelf.consoleui.elements.InputValue;
 import de.codeshelf.consoleui.elements.items.ConsoleUIItemIF;
 import de.codeshelf.consoleui.elements.items.impl.CheckboxItem;
@@ -7,6 +8,8 @@ import de.codeshelf.consoleui.elements.items.impl.ChoiceItem;
 import de.codeshelf.consoleui.elements.items.impl.ListItem;
 import de.codeshelf.consoleui.elements.items.impl.Separator;
 import org.fusesource.jansi.Ansi;
+
+import java.util.ResourceBundle;
 
 import static org.fusesource.jansi.Ansi.ansi;
 
@@ -24,6 +27,7 @@ public class CUIRenderer {
   private final String line;
 
   private static CUIRenderer renderer = new CUIRenderer();
+  private final ResourceBundle resourceBundle;
 
   public CUIRenderer() {
     checkedBox = "\u25C9 ";
@@ -31,6 +35,7 @@ public class CUIRenderer {
     line = "\u2500─────────────";
     cursorSymbol = ansi().fg(Ansi.Color.CYAN).a("❯ ").toString();
     noCursorSpace = ansi().fg(Ansi.Color.DEFAULT).a("  ").toString();
+    resourceBundle = ResourceBundle.getBundle("consoleui_messages");
   }
 
   public static CUIRenderer getRenderer() {
@@ -97,5 +102,14 @@ public class CUIRenderer {
       return inputElement.getValue();
     }
     return "";
+  }
+
+  public String renderConfirmChoiceOptions(ConfirmChoice confirmChoice) {
+    if (confirmChoice.getDefaultConfirmation() == ConfirmChoice.ConfirmationValue.YES) {
+      return resourceBundle.getString("confirmation_yes_default");
+    } else if (confirmChoice.getDefaultConfirmation() == ConfirmChoice.ConfirmationValue.NO) {
+      return resourceBundle.getString("confirmation_no_default");
+    }
+    return resourceBundle.getString("confimation_without_default");
   }
 }

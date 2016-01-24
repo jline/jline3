@@ -13,10 +13,17 @@ import java.util.List;
  */
 public class ConsolePrompt {
 
-  InputPrompt inputPrompt = new InputPrompt();
-  ExpandableChoicePrompt expandableChoicePrompt = new ExpandableChoicePrompt();
-  CheckboxPrompt checkboxPrompt = new CheckboxPrompt();
+  InputPrompt inputPrompt;
+  ExpandableChoicePrompt expandableChoicePrompt;
+  CheckboxPrompt checkboxPrompt;
   ListPrompt listPrompt = new ListPrompt();
+  ConfirmPrompt confirmPrompt = new ConfirmPrompt();
+
+  public ConsolePrompt() throws IOException {
+    inputPrompt = new InputPrompt();
+    checkboxPrompt = new CheckboxPrompt();
+    expandableChoicePrompt = new ExpandableChoicePrompt();
+  }
 
 
   public HashMap<String, Object> prompt(List<PromptableElementIF> promptableElementList) throws IOException {
@@ -33,12 +40,18 @@ public class ConsolePrompt {
         result = doPrompt((ExpandableChoice) promptableElement);
       } else if (promptableElement instanceof Checkbox) {
         result = doPrompt((Checkbox) promptableElement);
+      } else if (promptableElement instanceof ConfirmChoice) {
+        result = doPrompt((ConfirmChoice) promptableElement);
       } else {
         throw new IllegalArgumentException("wrong type of promptable element");
       }
       resultMap.put(promptableElement.getName(),result);
     }
     return resultMap;
+  }
+
+  private LinkedHashSet<String> doPrompt(ConfirmChoice confirmChoice) throws IOException {
+    return confirmPrompt.prompt(confirmChoice);
   }
 
   private LinkedHashSet<String> doPrompt(ListChoice listChoice) throws IOException {

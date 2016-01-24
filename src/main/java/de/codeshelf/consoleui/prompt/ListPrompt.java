@@ -27,7 +27,8 @@ public class ListPrompt extends AbstractListablePrompt implements PromptIF<ListC
 
   CUIRenderer itemRenderer = CUIRenderer.getRenderer();
 
-  public ListPrompt() {
+  public ListPrompt() throws IOException {
+    super();
   }
 
 

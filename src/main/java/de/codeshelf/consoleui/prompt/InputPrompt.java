@@ -22,6 +22,9 @@ public class InputPrompt extends AbstractPrompt implements PromptIF<InputValue> 
   private ReaderIF reader;
   CUIRenderer itemRenderer = CUIRenderer.getRenderer();
 
+  public InputPrompt() throws IOException {
+  }
+
 
   public LinkedHashSet<String> prompt(InputValue inputElement) throws IOException {
     this.inputElement = inputElement;

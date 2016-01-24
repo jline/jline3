@@ -1,9 +1,6 @@
 package de.codeshelf.consoleui;
 
-import de.codeshelf.consoleui.elements.Checkbox;
-import de.codeshelf.consoleui.elements.ExpandableChoice;
-import de.codeshelf.consoleui.elements.InputValue;
-import de.codeshelf.consoleui.elements.ListChoice;
+import de.codeshelf.consoleui.elements.*;
 import de.codeshelf.consoleui.elements.items.CheckboxItemIF;
 import de.codeshelf.consoleui.elements.items.ChoiceItemIF;
 import de.codeshelf.consoleui.elements.items.ListItemIF;
@@ -42,6 +39,13 @@ public class Basic {
     try {
       ConsolePrompt prompt = new ConsolePrompt();
       PromptBuilder promptBuilder = prompt.getPromptBuilder();
+
+      promptBuilder.createConfirmPromp()
+              .name("wantapizza")
+              .message("Do you want to order a pizza?")
+              .defaultValue(ConfirmChoice.ConfirmationValue.YES)
+              .addPrompt();
+
 
       promptBuilder.createInputPrompt()
               .name("name")

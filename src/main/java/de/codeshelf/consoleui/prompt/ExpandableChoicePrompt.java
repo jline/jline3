@@ -3,7 +3,6 @@ package de.codeshelf.consoleui.prompt;
 import de.codeshelf.consoleui.elements.ExpandableChoice;
 import de.codeshelf.consoleui.elements.items.ConsoleUIItemIF;
 import de.codeshelf.consoleui.elements.items.impl.ChoiceItem;
-import de.codeshelf.consoleui.prompt.reader.ConsoleReaderImpl;
 import de.codeshelf.consoleui.prompt.reader.ReaderIF;
 import de.codeshelf.consoleui.prompt.renderer.CUIRenderer;
 import org.fusesource.jansi.Ansi;
@@ -19,12 +18,14 @@ import static org.fusesource.jansi.Ansi.ansi;
  * Date: 07.01.16
  */
 public class ExpandableChoicePrompt extends AbstractListablePrompt implements PromptIF<ExpandableChoice> {
-  private ConsoleReaderImpl reader;
   private ExpandableChoice expandableChoice;
   CUIRenderer itemRenderer = CUIRenderer.getRenderer();
   ChoiceItem chosenItem;
   ChoiceItem defaultItem;
   private ChoiceItem errorMessageItem = new ChoiceItem(' ', "error", resourceBundle.getString("please.enter.a.valid.command"), false);
+
+  public ExpandableChoicePrompt() throws IOException {
+  }
 
   enum RenderState {
     FOLDED,
@@ -76,9 +77,6 @@ public class ExpandableChoicePrompt extends AbstractListablePrompt implements Pr
 
   public LinkedHashSet<String> prompt(ExpandableChoice expandableChoice) throws IOException {
     this.expandableChoice = expandableChoice;
-    if (reader == null) {
-      reader = new ConsoleReaderImpl();
-    }
 
     choiceItems = expandableChoice.getChoiceItems();
     promptString = "";
@@ -94,7 +92,7 @@ public class ExpandableChoicePrompt extends AbstractListablePrompt implements Pr
           defaultItem = item;
         }
         reader.addAllowedPrintableKey(item.getKey());
-        promptString += item.getKey();
+        promptString += item.isDefaultChoice() ? item.getKey().toString().toUpperCase() : item.getKey();
       }
     }
 
