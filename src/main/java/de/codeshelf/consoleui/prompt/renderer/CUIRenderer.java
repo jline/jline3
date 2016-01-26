@@ -30,11 +30,20 @@ public class CUIRenderer {
   private final ResourceBundle resourceBundle;
 
   public CUIRenderer() {
-    checkedBox = "\u25C9 ";
-    uncheckedBox = "\u25EF ";
-    line = "\u2500─────────────";
-    cursorSymbol = ansi().fg(Ansi.Color.CYAN).a("❯ ").toString();
-    noCursorSpace = ansi().fg(Ansi.Color.DEFAULT).a("  ").toString();
+    String os = System.getProperty("os.name");
+    if( os.startsWith("Windows") ) {
+      checkedBox = "(*) ";
+      uncheckedBox = "( ) ";
+      line = "---------";
+      cursorSymbol = ansi().fg(Ansi.Color.CYAN).a("> ").toString();
+      noCursorSpace = ansi().fg(Ansi.Color.DEFAULT).a("  ").toString();
+    } else {
+      checkedBox = "\u25C9 ";
+      uncheckedBox = "\u25EF ";
+      line = "\u2500─────────────";
+      cursorSymbol = ansi().fg(Ansi.Color.CYAN).a("❯ ").toString();
+      noCursorSpace = ansi().fg(Ansi.Color.DEFAULT).a("  ").toString();
+    }
     resourceBundle = ResourceBundle.getBundle("consoleui_messages");
   }
 
