@@ -9,4 +9,11 @@ public class ListResult implements PromtResultItemIF {
   public ListResult(String selectedId) {
     this.selectedId = selectedId;
   }
+
+  @Override
+  public String toString() {
+    return "ListResult{" +
+            "selectedId='" + selectedId + '\'' +
+            '}';
+  }
 }

@@ -14,7 +14,7 @@ import static org.fusesource.jansi.Ansi.ansi;
  * User: Andreas Wegmann
  * Date: 06.01.16
  */
-public class ConfirmPrompt extends AbstractPrompt implements PromptIF<ConfirmChoice> {
+public class ConfirmPrompt extends AbstractPrompt implements PromptIF<ConfirmChoice,ConfirmResult> {
 
   private ReaderIF reader;
   CUIRenderer itemRenderer = CUIRenderer.getRenderer();
@@ -34,7 +34,7 @@ public class ConfirmPrompt extends AbstractPrompt implements PromptIF<ConfirmCho
   }
 
 
-  public LinkedHashSet<String> prompt(ConfirmChoice confirmChoice) throws IOException {
+  public ConfirmResult prompt(ConfirmChoice confirmChoice) throws IOException {
     givenAnswer = null;
     this.confirmChoice = confirmChoice;
 
@@ -81,9 +81,7 @@ public class ConfirmPrompt extends AbstractPrompt implements PromptIF<ConfirmCho
     System.out.println();
     renderMessagePromptAndResult(confirmChoice.getMessage(), resultValue);
 
-    LinkedHashSet<String> resultSet = new LinkedHashSet<String>();
-    resultSet.add(givenAnswer.toString());
-    return resultSet;
+    return new ConfirmResult(givenAnswer);
   }
 
   private void render() {

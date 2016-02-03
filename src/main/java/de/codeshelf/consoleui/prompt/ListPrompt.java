@@ -86,7 +86,7 @@ public class ListPrompt extends AbstractListablePrompt implements PromptIF<ListC
 
     ListItem listItem = (ListItem) itemList.get(selectedItemIndex);
     ListResult selection=new ListResult(listItem.getName());
-    renderMessagePromptAndResult(listChoice.getMessage(),selection.toString());
+    renderMessagePromptAndResult(listChoice.getMessage(),((ListItem) itemList.get(selectedItemIndex)).getText());
     return selection ;
   }
 

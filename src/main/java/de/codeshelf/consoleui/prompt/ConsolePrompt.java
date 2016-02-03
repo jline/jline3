@@ -26,47 +26,50 @@ public class ConsolePrompt {
   }
 
 
-  public HashMap<String, Object> prompt(List<PromptableElementIF> promptableElementList) throws IOException {
-    HashMap<String, Object> resultMap = new HashMap<String, Object>();
+  public HashMap<String, ? extends PromtResultItemIF> prompt(List<PromptableElementIF> promptableElementList) throws IOException {
+    HashMap<String, PromtResultItemIF> resultMap = new HashMap<String, PromtResultItemIF>();
 
     for (int i = 0; i < promptableElementList.size(); i++) {
       PromptableElementIF promptableElement = promptableElementList.get(i);
-      LinkedHashSet<String> result=null;
       if (promptableElement instanceof ListChoice) {
-        result = doPrompt((ListChoice) promptableElement);
+        ListResult result = doPrompt((ListChoice) promptableElement);
+        resultMap.put(promptableElement.getName(),result);
       } else if (promptableElement instanceof InputValue) {
-        result = doPrompt((InputValue) promptableElement);
+        InputResult result = doPrompt((InputValue) promptableElement);
+        resultMap.put(promptableElement.getName(),result);
       } else if (promptableElement instanceof ExpandableChoice) {
-        result = doPrompt((ExpandableChoice) promptableElement);
+        ExpandableChoiceResult result = doPrompt((ExpandableChoice) promptableElement);
+        resultMap.put(promptableElement.getName(),result);
       } else if (promptableElement instanceof Checkbox) {
-        result = doPrompt((Checkbox) promptableElement);
+        CheckboxResult result = doPrompt((Checkbox) promptableElement);
+        resultMap.put(promptableElement.getName(),result);
       } else if (promptableElement instanceof ConfirmChoice) {
-        result = doPrompt((ConfirmChoice) promptableElement);
+        ConfirmResult result = doPrompt((ConfirmChoice) promptableElement);
+        resultMap.put(promptableElement.getName(),result);
       } else {
         throw new IllegalArgumentException("wrong type of promptable element");
       }
-      resultMap.put(promptableElement.getName(),result);
     }
     return resultMap;
   }
 
-  private LinkedHashSet<String> doPrompt(ConfirmChoice confirmChoice) throws IOException {
+  private ConfirmResult doPrompt(ConfirmChoice confirmChoice) throws IOException {
     return confirmPrompt.prompt(confirmChoice);
   }
 
-  private LinkedHashSet<String> doPrompt(ListChoice listChoice) throws IOException {
+  private ListResult doPrompt(ListChoice listChoice) throws IOException {
     return listPrompt.prompt(listChoice);
   }
 
-  private LinkedHashSet<String> doPrompt(InputValue listChoice) throws IOException {
+  private InputResult doPrompt(InputValue listChoice) throws IOException {
     return inputPrompt.prompt(listChoice);
   }
 
-  private LinkedHashSet<String> doPrompt(Checkbox listChoice) throws IOException {
+  private CheckboxResult doPrompt(Checkbox listChoice) throws IOException {
     return checkboxPrompt.prompt(listChoice);
   }
 
-  private LinkedHashSet<String> doPrompt(ExpandableChoice listChoice) throws IOException {
+  private ExpandableChoiceResult doPrompt(ExpandableChoice listChoice) throws IOException {
     return expandableChoicePrompt.prompt(listChoice);
   }
 

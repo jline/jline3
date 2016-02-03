@@ -95,7 +95,7 @@ public class Basic {
               .newItem("paypal").message("Paypal").key('p').add()
               .addPrompt();
 
-      HashMap<String, Object> result = prompt.prompt(promptBuilder.build());
+      HashMap<String, ? extends PromtResultItemIF> result = prompt.prompt(promptBuilder.build());
       System.out.println("result = " + result);
       //checkBoxDemo();
       //listChoiceDemo();
@@ -126,7 +126,7 @@ public class Basic {
     list.add(new Separator());
     list.add(listItemBuilder.text("Five").build());
     ListChoice listChoice = new ListChoice("my first list choice", null, list);
-    LinkedHashSet<String> result = listPrompt.prompt(listChoice);
+    ListResult result = listPrompt.prompt(listChoice);
     System.out.println("result = " + result);
   }
 
@@ -143,12 +143,12 @@ public class Basic {
     list.add(new Separator());
     list.add(new CheckboxItem(true,"Five"));
     Checkbox checkbox = new Checkbox("my first checkbox", null, list);
-    LinkedHashSet<String> result = checkboxPrompt.prompt(checkbox);
+    CheckboxResult result = checkboxPrompt.prompt(checkbox);
     System.out.println("result = " + result);
   }
 
   private static void inputDemo() throws IOException {
-    LinkedHashSet<String> result;
+    InputResult result;
     InputPrompt inputPrompt = new InputPrompt();
 
     result =inputPrompt.prompt(new InputValue("newItem", "enter your newItem"));
@@ -172,7 +172,7 @@ public class Basic {
     choiceItems.add(new ChoiceItem('d',"diff","Show diff", false));
     choiceItems.add(new ChoiceItem('x',"abort","Abort", false));
     ExpandableChoice expChoice=new ExpandableChoice("conflict in 'MyBestClass.java'", "conflict", choiceItems);
-    LinkedHashSet<String> result = expandableChoicePrompt.prompt(expChoice);
+    ExpandableChoiceResult result = expandableChoicePrompt.prompt(expChoice);
     System.out.println("result = " + result);
   }
 

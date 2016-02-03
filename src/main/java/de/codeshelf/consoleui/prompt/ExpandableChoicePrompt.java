@@ -9,7 +9,6 @@ import org.fusesource.jansi.Ansi;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 
 import static org.fusesource.jansi.Ansi.ansi;
 
@@ -17,7 +16,7 @@ import static org.fusesource.jansi.Ansi.ansi;
  * User: Andreas Wegmann
  * Date: 07.01.16
  */
-public class ExpandableChoicePrompt extends AbstractListablePrompt implements PromptIF<ExpandableChoice> {
+public class ExpandableChoicePrompt extends AbstractListablePrompt implements PromptIF<ExpandableChoice, ExpandableChoiceResult> {
   private ExpandableChoice expandableChoice;
   CUIRenderer itemRenderer = CUIRenderer.getRenderer();
   ChoiceItem chosenItem;
@@ -75,7 +74,7 @@ public class ExpandableChoicePrompt extends AbstractListablePrompt implements Pr
     }
   }
 
-  public LinkedHashSet<String> prompt(ExpandableChoice expandableChoice) throws IOException {
+  public ExpandableChoiceResult prompt(ExpandableChoice expandableChoice) throws IOException {
     this.expandableChoice = expandableChoice;
 
     choiceItems = expandableChoice.getChoiceItems();
@@ -124,7 +123,6 @@ public class ExpandableChoicePrompt extends AbstractListablePrompt implements Pr
 
           readerInput = this.reader.read();
         } else {
-          LinkedHashSet<String> hashSet = new LinkedHashSet<String>();
           if (renderState != RenderState.EXPANDED) {
             System.out.println("");
           } else {
@@ -132,12 +130,11 @@ public class ExpandableChoicePrompt extends AbstractListablePrompt implements Pr
           }
           if (chosenItem != null) {
             renderMessagePromptAndResult(expandableChoice.getMessage(), chosenItem.getMessage());
-            hashSet.add(chosenItem.getName());
+            return new ExpandableChoiceResult(chosenItem.getName());
           } else {
             renderMessagePromptAndResult(expandableChoice.getMessage(), defaultItem.getMessage());
-            hashSet.add(defaultItem.getName());
+            return new ExpandableChoiceResult(defaultItem.getName());
           }
-          return hashSet;
         }
       } else if (readerInput.getSpecialKey() == ReaderIF.SpecialKey.UP) {
         selectedItemIndex = getPreviousSelectableItemIndex();

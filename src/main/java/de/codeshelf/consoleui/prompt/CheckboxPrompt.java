@@ -8,9 +8,9 @@ import de.codeshelf.consoleui.prompt.renderer.CUIRenderer;
 import org.fusesource.jansi.Ansi;
 
 import java.io.IOException;
-import java.util.LinkedHashSet;
+import java.util.HashSet;
 
-public class CheckboxPrompt extends AbstractListablePrompt implements PromptIF<Checkbox> {
+public class CheckboxPrompt extends AbstractListablePrompt implements PromptIF<Checkbox,CheckboxResult> {
   private Checkbox checkbox;
 
 
@@ -36,7 +36,7 @@ public class CheckboxPrompt extends AbstractListablePrompt implements PromptIF<C
     }
   }
 
-  public LinkedHashSet<String> prompt(Checkbox checkbox)
+  public CheckboxResult prompt(Checkbox checkbox)
           throws IOException {
     this.checkbox = checkbox;
     itemList = this.checkbox.getCheckboxItemList();
@@ -69,7 +69,9 @@ public class CheckboxPrompt extends AbstractListablePrompt implements PromptIF<C
       render();
       readerInput = this.reader.read();
     }
-    LinkedHashSet<String> selections = new LinkedHashSet<String>();
+
+    HashSet<String> selections = new HashSet<String>();
+
     for (ConsoleUIItemIF item : itemList) {
       if ((item instanceof CheckboxItem)) {
         CheckboxItem checkboxItem = (CheckboxItem) item;
@@ -79,7 +81,7 @@ public class CheckboxPrompt extends AbstractListablePrompt implements PromptIF<C
       }
     }
     renderMessagePromptAndResult(checkbox.getMessage(), selections.toString());
-    return selections;
+    return new CheckboxResult(selections);
   }
 
   private void toggleSelection() {

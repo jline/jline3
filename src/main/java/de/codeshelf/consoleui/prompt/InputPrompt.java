@@ -16,7 +16,7 @@ import static org.fusesource.jansi.Ansi.ansi;
  * User: Andreas Wegmann
  * Date: 06.01.16
  */
-public class InputPrompt extends AbstractPrompt implements PromptIF<InputValue> {
+public class InputPrompt extends AbstractPrompt implements PromptIF<InputValue,InputResult> {
 
   private InputValue inputElement;
   private ReaderIF reader;
@@ -26,7 +26,7 @@ public class InputPrompt extends AbstractPrompt implements PromptIF<InputValue> 
   }
 
 
-  public LinkedHashSet<String> prompt(InputValue inputElement) throws IOException {
+  public InputResult prompt(InputValue inputElement) throws IOException {
     this.inputElement = inputElement;
 
     if (reader == null) {
@@ -52,8 +52,6 @@ public class InputPrompt extends AbstractPrompt implements PromptIF<InputValue> 
     }
     renderMessagePromptAndResult(inputElement.getMessage(), lineInput);
 
-    LinkedHashSet<String> resultSet = new LinkedHashSet<String>();
-    resultSet.add(lineInput);
-    return resultSet;
+    return new InputResult(lineInput);
   }
 }
