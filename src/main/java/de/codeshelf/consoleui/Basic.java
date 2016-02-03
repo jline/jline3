@@ -40,12 +40,6 @@ public class Basic {
       ConsolePrompt prompt = new ConsolePrompt();
       PromptBuilder promptBuilder = prompt.getPromptBuilder();
 
-      promptBuilder.createConfirmPromp()
-              .name("wantapizza")
-              .message("Do you want to order a pizza?")
-              .defaultValue(ConfirmChoice.ConfirmationValue.YES)
-              .addPrompt();
-
 
       promptBuilder.createInputPrompt()
               .name("name")
@@ -95,12 +89,19 @@ public class Basic {
               .newItem("paypal").message("Paypal").key('p').add()
               .addPrompt();
 
+      promptBuilder.createConfirmPromp()
+              .name("delivery")
+              .message("Is this pizza for delivery?")
+              .defaultValue(ConfirmChoice.ConfirmationValue.YES)
+              .addPrompt();
+
       HashMap<String, ? extends PromtResultItemIF> result = prompt.prompt(promptBuilder.build());
       System.out.println("result = " + result);
-      //checkBoxDemo();
-      //listChoiceDemo();
-      //inputDemo();
-      //exandableChoiceDemo();
+
+      ConfirmResult delivery = (ConfirmResult) result.get("delivery");
+      if (delivery.getConfirmed()== ConfirmChoice.ConfirmationValue.YES) {
+        System.out.println("We will deliver the pizza in 5 minutes");
+      }
     } catch (IOException e) {
       e.printStackTrace();
     } finally {
