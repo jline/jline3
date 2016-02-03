@@ -97,10 +97,10 @@ public class Basic {
 
       HashMap<String, Object> result = prompt.prompt(promptBuilder.build());
       System.out.println("result = " + result);
-      checkBoxDemo();
-      listChoiceDemo();
-      inputDemo();
-      exandableChoiceDemo();
+      //checkBoxDemo();
+      //listChoiceDemo();
+      //inputDemo();
+      //exandableChoiceDemo();
     } catch (IOException e) {
       e.printStackTrace();
     } finally {
