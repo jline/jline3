@@ -25,6 +25,7 @@ a Java clone of Inquirer.js.
  - Checkboxes
  - Lists
  - Expandable Choices (multiple key based answers for a question with help and optional list navigation)
+ - Yes/No-Questions
  
 # Dependencies
 
