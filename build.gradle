@@ -11,6 +11,11 @@ repositories {
     mavenCentral()
 }
 
+task wrapper(type: Wrapper) {
+  gradleVersion = '2.11'
+}
+
+
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.11'
     compile 'org.fusesource.jansi:jansi:1.11'
@@ -71,9 +76,19 @@ group = "de.codeshelf.consoleui"
 archivesBaseName = "consoleui"
 
 uploadArchives {
+  repositories {
+    mavenDeployer {
+      repository(url: "file://localhost/Users/andy/work/myRepo/")
+    }
+  }
+}
+
+/*
+uploadArchives {
     repositories {
         mavenDeployer {
             beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
         }
     }
 }
+*/
