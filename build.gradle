@@ -32,6 +32,7 @@ task sourcesJar(type: Jar) {
     from sourceSets.main.allSource
 }
 
+/*
 jar {
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
 
@@ -42,6 +43,7 @@ jar {
 
     }
 }
+*/
 
 artifacts {
     archives javadocJar, sourcesJar
@@ -78,17 +80,31 @@ archivesBaseName = "consoleui"
 uploadArchives {
   repositories {
     mavenDeployer {
-      repository(url: "file://localhost/Users/andy/work/myRepo/")
+      beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+      //repository(url: "file://localhost/${rootDir}/../myRepo/")
+
+      repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+        authentication(userName: sonatypeUsername, password: sonatypePassword)
+      }
+
+      snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+        authentication(userName: ossrhUsername, password: ossrhPassword)
+      }
+
+      pom.project {
+        name 'ConsoleUI'
+        packaging 'jar'
+        description 'Library for Ansi-Console user interaction'
+        url 'https://github.com/awegmann/consoleui/'
+
+        licenses {
+          license {
+            name 'The Apache Software License, Version 2.0'
+            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+            distribution 'repo'
+          }
+        }
+      }
     }
   }
 }
-
-/*
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-        }
-    }
-}
-*/
