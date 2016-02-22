@@ -1,5 +1,5 @@
 group 'ConsoleUI'
-version '0.0.1-SNAPSHOT'
+version '0.0.1'
 
 apply plugin: 'java'
 apply plugin: 'idea'
@@ -49,16 +49,18 @@ artifacts {
     archives javadocJar, sourcesJar
 }
 
-/*
+
 signing {
   sign configurations.archives
 }
 
+/*
 distributions {
   custom {}
 }
 */
 
+/*
 distributions {
     main {
         //baseName = 'someName'
@@ -73,35 +75,54 @@ distributions {
     }
 }
 
+*/
 
 group = "de.codeshelf.consoleui"
 archivesBaseName = "consoleui"
 
-uploadArchives {
-  repositories {
-    mavenDeployer {
-      beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-      //repository(url: "file://localhost/${rootDir}/../myRepo/")
+if (project.hasProperty('release')) {
+  uploadArchives {
+    repositories {
+      mavenDeployer {
+        beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+        /*
+        repository(url: "file://localhost/${rootDir}/../myRepo/")
+        */
 
-      repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-        authentication(userName: sonatypeUsername, password: sonatypePassword)
-      }
+        repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+          authentication(userName: sonatypeUsername, password: sonatypePassword)
+        }
 
-      snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-        authentication(userName: ossrhUsername, password: ossrhPassword)
-      }
+        snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+          authentication(userName: ossrhUsername, password: ossrhPassword)
+        }
 
-      pom.project {
-        name 'ConsoleUI'
-        packaging 'jar'
-        description 'Library for Ansi-Console user interaction'
-        url 'https://github.com/awegmann/consoleui/'
+        pom.project {
+          name 'ConsoleUI'
+          packaging 'jar'
+          description 'Library for Ansi-Console user interaction'
+          url 'https://github.com/awegmann/consoleui/'
 
-        licenses {
-          license {
-            name 'The Apache Software License, Version 2.0'
-            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-            distribution 'repo'
+          licenses {
+            license {
+              name 'The Apache Software License, Version 2.0'
+              url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+              distribution 'repo'
+            }
+          }
+
+          developers {
+            developer {
+              id "an10nn";
+              name "Andreas Wegmann";
+              email "andreas.we9mann@gmail.com";
+            }
+          }
+
+          scm {
+            connection 'scm:git:git://github.com/awegmann/consoleui.git'
+            developerConnection 'scm:git:ssh://git@github.com:awegmann/consoleui.git'
+            url 'https://github.com/awegmann/consoleui/'
           }
         }
       }
