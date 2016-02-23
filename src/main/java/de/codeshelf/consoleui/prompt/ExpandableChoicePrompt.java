@@ -151,7 +151,7 @@ public class ExpandableChoicePrompt extends AbstractListablePrompt implements Pr
           for (ConsoleUIItemIF choiceItem : choiceItems) {
             if (choiceItem instanceof ChoiceItem) {
               ChoiceItem item = (ChoiceItem) choiceItem;
-              if (item.getKey() == pressedKey) {
+              if (item.getKey().equals(pressedKey)) {
                 chosenItem = item;
                 break;
               }

@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * PromptBuilder is the builder class which creates
+ *
  * Created by Andreas Wegmann
  * on 20.01.16.
  */
