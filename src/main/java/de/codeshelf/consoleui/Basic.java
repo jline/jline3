@@ -176,21 +176,4 @@ public class Basic {
     ExpandableChoiceResult result = expandableChoicePrompt.prompt(expChoice);
     System.out.println("result = " + result);
   }
-
-  private static void readBindingsDemo(ConsoleReader console) throws IOException {
-    Object o = console.readBinding(console.getKeys());
-    System.out.println("o = " + o);
-  }
-
-  private static void readCharsDemo(ConsoleReader console) throws IOException {
-    int c=0;
-    while (c != -1) {
-      Operation o = (Operation) console.readBinding(console.getKeys());
-      System.out.println("o = " + o + " "+o.getClass().getName());
-      String lastBinding = console.getLastBinding();
-      System.out.println(lastBinding);
-      System.out.println("after read");
-    }
-    //System.out.println("finished");
-  }
 }

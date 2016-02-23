@@ -12,8 +12,10 @@ public class ListItem implements ListItemIF {
 
   public ListItem(String text, String name) {
     this.text = text;
-    if (name ==null) {
+    if (name==null) {
       this.name = text;
+    } else {
+      this.name = name;
     }
   }
 

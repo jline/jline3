@@ -31,7 +31,6 @@ public class ListPrompt extends AbstractListablePrompt implements PromptIF<ListC
     super();
   }
 
-
   private void render() {
     int itemNumber = 0;
 
@@ -83,12 +82,9 @@ public class ListPrompt extends AbstractListablePrompt implements PromptIF<ListC
       readerInput = reader.read();
     }
 
-
     ListItem listItem = (ListItem) itemList.get(selectedItemIndex);
     ListResult selection=new ListResult(listItem.getName());
     renderMessagePromptAndResult(listChoice.getMessage(),((ListItem) itemList.get(selectedItemIndex)).getText());
     return selection ;
   }
-
-
 }
