@@ -22,6 +22,7 @@ public class ListPromptBuilder {
 
   public ListPromptBuilder name(String name) {
     this.name = name;
+    this.message = name;
     return this;
   }
 
@@ -36,7 +37,7 @@ public class ListPromptBuilder {
 
   public ListItemBuilder newItem(String name) {
     ListItemBuilder listItemBuilder = new ListItemBuilder(this);
-    return listItemBuilder.name(name);
+    return listItemBuilder.name(name).text(name);
   }
 
   public PromptBuilder addPrompt() {
