@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Stack;
 
 /**
  * User: Andreas Wegmann
@@ -46,9 +47,18 @@ public class ConsoleReaderImpl implements ReaderIF {
 
   public ReaderInput read() {
     Object op;
-    while (true) {
-      try {
-        op = console.readBinding(console.getKeys());
+
+    StringBuilder sb = new StringBuilder();
+    Stack<Character> pushBackChar = new Stack<Character>();
+    try {
+      while (true) {
+        int c = pushBackChar.isEmpty() ? console.readCharacter() : pushBackChar.pop ();
+        if (c == -1) {
+            return null;
+        }
+        sb.appendCodePoint(c);
+
+        op = console.getKeys().getBound( sb );
         if (op instanceof Operation) {
           Operation operation = (Operation) op;
           if (operation == Operation.NEXT_HISTORY && this.allowedSpecialKeys.contains(SpecialKey.DOWN))
@@ -61,25 +71,26 @@ public class ConsoleReaderImpl implements ReaderIF {
             return new ReaderInput(SpecialKey.BACKSPACE);
 
           if (operation == Operation.SELF_INSERT) {
-            String lastBinding = console.getLastBinding();
-            Character c = lastBinding.charAt(0);
-            if (allowedPrintableKeys.contains(c)) {
-              return new ReaderInput(SpecialKey.PRINTABLE_KEY, c);
+            String lastBinding = sb.toString();
+            Character cc = lastBinding.charAt(0);
+            if (allowedPrintableKeys.contains(cc)) {
+              return new ReaderInput(SpecialKey.PRINTABLE_KEY, cc);
             }
           }
         }
-      } catch (IOException e) {
-        e.printStackTrace();
       }
+    } catch (IOException e) {
+      e.printStackTrace();
     }
+    return null;
   }
 
   /**
    * Wrapper around JLine 2 library.
    *
-   * @param completer
-   * @param prompt
-   * @return
+   * @param completer List of completes to use
+   * @param prompt the text to display as prompt left side from the input
+   * @return a ReaderInput object with results
    */
   public ReaderInput readLine(List<Completer> completer, String prompt, String value) throws IOException {
     if (completer != null) {
@@ -87,7 +98,8 @@ public class ConsoleReaderImpl implements ReaderIF {
         console.addCompleter(c);
       }
     }
-    String readLine = console.readLine(prompt, null, value);
+    //String readLine = console.readLine(prompt, null, value);
+    String readLine = console.readLine(prompt);
 
     return new ReaderInput(SpecialKey.PRINTABLE_KEY, readLine);
   }

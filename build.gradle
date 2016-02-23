@@ -1,5 +1,8 @@
-group 'ConsoleUI'
-version '0.0.1'
+group = "de.codeshelf.consoleui"
+archivesBaseName = "consoleui"
+version '0.0.2-SNAPSHOT'
+
+ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
 apply plugin: 'java'
 apply plugin: 'idea'
@@ -19,7 +22,7 @@ task wrapper(type: Wrapper) {
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.11'
     compile 'org.fusesource.jansi:jansi:1.11'
-    compile 'jline:jline:2.13'
+    compile 'jline:jline:2.12'
 }
 
 task javadocJar(type: Jar) {
@@ -33,6 +36,7 @@ task sourcesJar(type: Jar) {
 }
 
 /*
+// Fat-jar
 jar {
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
 
@@ -43,6 +47,7 @@ jar {
 
     }
 }
+
 */
 
 artifacts {
@@ -51,6 +56,8 @@ artifacts {
 
 
 signing {
+  required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
+
   sign configurations.archives
 }
 
@@ -76,9 +83,6 @@ distributions {
 }
 
 */
-
-group = "de.codeshelf.consoleui"
-archivesBaseName = "consoleui"
 
 if (project.hasProperty('release')) {
   uploadArchives {
