@@ -1,14 +1,12 @@
-group = "de.codeshelf.consoleui"
-archivesBaseName = "consoleui"
 version '0.0.2-SNAPSHOT'
 
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
+
 
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'maven'
 apply plugin: 'signing'
-apply plugin: 'distribution'
 
 repositories {
     mavenCentral()
@@ -35,20 +33,19 @@ task sourcesJar(type: Jar) {
     from sourceSets.main.allSource
 }
 
-/*
 // Fat-jar
-jar {
-    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
 
-    manifest {
-        attributes 'Implementation-Title': 'ConsoleUI',
-                'Implementation-Version': version,
-                'Main-Class': 'de.codeshelf.consoleui.Basic'
+task fatJar(type: Jar) {
+  from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+  baseName = project.name + '-all'
+  manifest {
+      attributes 'Implementation-Title': 'ConsoleUI',
+                 'Implementation-Version': version,
+                 'Main-Class': 'de.codeshelf.consoleui.Basic'
 
     }
 }
 
-*/
 
 artifacts {
     archives javadocJar, sourcesJar
@@ -61,35 +58,15 @@ signing {
   sign configurations.archives
 }
 
-/*
-distributions {
-  custom {}
-}
-*/
 
-/*
-distributions {
-    main {
-        //baseName = 'someName'
-        contents {
-            into("$name-$version") {
-                into('lib') {
-                    from libsDir
-                    include '*.jar' //copy the fat jar created by bootRepackage
-                }
-            }
-        }
-    }
-}
-
-*/
+group = "de.codeshelf.consoleui"
 
 if (project.hasProperty('release')) {
   uploadArchives {
     repositories {
       mavenDeployer {
         beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-        /*
+        /* just for testing
         repository(url: "file://localhost/${rootDir}/../myRepo/")
         */
 
