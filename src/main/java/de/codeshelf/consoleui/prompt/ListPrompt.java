@@ -8,22 +8,18 @@ import de.codeshelf.consoleui.prompt.reader.ReaderIF;
 import de.codeshelf.consoleui.prompt.renderer.CUIRenderer;
 
 import java.io.IOException;
-import java.util.LinkedHashSet;
 
 import static org.fusesource.jansi.Ansi.ansi;
 
 /**
+ * ListPrompt implements the list choice handling.
+ *
  * User: Andreas Wegmann
  * Date: 01.01.16
  */
 public class ListPrompt extends AbstractListablePrompt implements PromptIF<ListChoice,ListResult> {
+  // the list to let the user choose from
   private ListChoice listChoice;
-
-  ReaderIF reader;
-
-  public void setReader(ReaderIF reader) {
-    this.reader = reader;
-  }
 
   CUIRenderer itemRenderer = CUIRenderer.getRenderer();
 

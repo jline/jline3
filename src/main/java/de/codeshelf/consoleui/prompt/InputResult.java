@@ -1,11 +1,12 @@
 package de.codeshelf.consoleui.prompt;
 
 /**
- * User: ${FULL_NAME}
+ *
+ * User: Andreas Wegmann
  * Date: 03.02.16
  */
 public class InputResult implements PromtResultItemIF {
-  String input;
+  private String input;
 
   public InputResult(String input) {
     this.input = input;

@@ -10,16 +10,31 @@ import org.fusesource.jansi.Ansi;
 import java.io.IOException;
 import java.util.HashSet;
 
+/**
+ * CheckboxPrompt implements the checkbox choice handling.
+ */
 public class CheckboxPrompt extends AbstractListablePrompt implements PromptIF<Checkbox,CheckboxResult> {
+
+  // checkbox object to prompt the user for.
   private Checkbox checkbox;
 
+  /**
+   * helper class with render functionality.
+   */
+  CUIRenderer itemRenderer = CUIRenderer.getRenderer();
 
+  /**
+   * Empty default constructor.
+   * @throws IOException  may be thrown by super class
+   */
   public CheckboxPrompt() throws IOException {
     super();
   }
 
-  CUIRenderer itemRenderer = CUIRenderer.getRenderer();
 
+  /**
+   * render the checkbox on the terminal.
+   */
   private void render() {
     int itemNumber = 0;
 
@@ -36,6 +51,14 @@ public class CheckboxPrompt extends AbstractListablePrompt implements PromptIF<C
     }
   }
 
+  /**
+   * Prompt the user for selecting zero to many choices from a checkbox.
+   *
+   * @param checkbox checkbox with items to choose from.
+   * @return {@link CheckboxResult} which holds the users choices.
+   *
+   * @throws IOException  may be thrown by console reader
+   */
   public CheckboxResult prompt(Checkbox checkbox)
           throws IOException {
     this.checkbox = checkbox;
@@ -84,6 +107,9 @@ public class CheckboxPrompt extends AbstractListablePrompt implements PromptIF<C
     return new CheckboxResult(selections);
   }
 
+  /**
+   * Toggles the selection of the currently selected checkbox item.
+   */
   private void toggleSelection() {
     CheckboxItem checkboxItem = (CheckboxItem) itemList.get(this.selectedItemIndex);
     checkboxItem.setChecked(!checkboxItem.isChecked());
