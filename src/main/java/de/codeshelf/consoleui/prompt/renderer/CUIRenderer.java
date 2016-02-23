@@ -119,6 +119,6 @@ public class CUIRenderer {
     } else if (confirmChoice.getDefaultConfirmation() == ConfirmChoice.ConfirmationValue.NO) {
       return resourceBundle.getString("confirmation_no_default");
     }
-    return resourceBundle.getString("confimation_without_default");
+    return resourceBundle.getString("confirmation_without_default");
   }
 }

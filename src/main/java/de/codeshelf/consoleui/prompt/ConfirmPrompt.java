@@ -6,7 +6,6 @@ import de.codeshelf.consoleui.prompt.reader.ReaderIF;
 import de.codeshelf.consoleui.prompt.renderer.CUIRenderer;
 
 import java.io.IOException;
-import java.util.LinkedHashSet;
 
 import static org.fusesource.jansi.Ansi.ansi;
 
@@ -30,7 +29,7 @@ public class ConfirmPrompt extends AbstractPrompt implements PromptIF<ConfirmCho
     yes_key = resourceBundle.getString("confirmation_yes_key").trim().charAt(0);
     no_key = resourceBundle.getString("confirmation_no_key").trim().charAt(0);
     yes_answer = resourceBundle.getString("confirmation_yes_answer");
-    no_answer = resourceBundle.getString("confimation_no_answer");
+    no_answer = resourceBundle.getString("confirmation_no_answer");
   }
 
 
