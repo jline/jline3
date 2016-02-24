@@ -3,7 +3,7 @@ package de.codeshelf.consoleui.prompt;
 import java.util.HashSet;
 
 /**
- * Result of a checkbox choicee. CheckboxResult contains a {@link java.util.Set} with the
+ * Result of a checkbox choice. CheckboxResult contains a {@link java.util.Set} with the
  * IDs of the selected checkbox items.
  * <p>
  * User: Andreas Wegmann

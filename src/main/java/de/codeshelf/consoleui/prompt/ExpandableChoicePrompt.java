@@ -15,11 +15,11 @@ import static org.fusesource.jansi.Ansi.ansi;
 /**
  * Implementation of the expandable choice. The user is asked a question to be answered with
  * a single key. Each key represents a choice from a given set of items.
- *
+ * <p>
  * Items with the key 'h' are not allowed. This key is reserved for the help message. With the
  * help message the prompt can be expanded to a list with the answers.
- *
- * User: Andreas Wegmann
+ * <p>
+ * User: Andreas Wegmann<br/>
  * Date: 07.01.16
  */
 public class ExpandableChoicePrompt extends AbstractListablePrompt implements PromptIF<ExpandableChoice, ExpandableChoiceResult> {

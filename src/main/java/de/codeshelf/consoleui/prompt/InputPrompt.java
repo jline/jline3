@@ -13,7 +13,11 @@ import java.util.List;
 import static org.fusesource.jansi.Ansi.ansi;
 
 /**
- * User: Andreas Wegmann
+ * Implementation of the input choice prompt. The user will be asked for a string input value.
+ * With support of completers an automatic expansion of strings and filenames can be configured.
+ * Defining a mask character, a password like input is possible.
+ * <p>
+ * User: Andreas Wegmann<br/>
  * Date: 06.01.16
  */
 public class InputPrompt extends AbstractPrompt implements PromptIF<InputValue,InputResult> {
