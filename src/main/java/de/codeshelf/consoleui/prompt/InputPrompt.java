@@ -17,7 +17,7 @@ import static org.fusesource.jansi.Ansi.ansi;
  * With support of completers an automatic expansion of strings and filenames can be configured.
  * Defining a mask character, a password like input is possible.
  * <p>
- * User: Andreas Wegmann<br/>
+ * User: Andreas Wegmann<p>
  * Date: 06.01.16
  */
 public class InputPrompt extends AbstractPrompt implements PromptIF<InputValue,InputResult> {

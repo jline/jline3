@@ -90,7 +90,7 @@ public class ConsoleReaderImpl implements ReaderIF {
    *
    * @param completer List of completes to use
    * @param prompt the text to display as prompt left side from the input
-   * @param mask
+   * @param mask optional mask character (may be used for password entry)
    * @return a ReaderInput object with results
    */
   public ReaderInput readLine(List<Completer> completer, String prompt, String value, Character mask) throws IOException {

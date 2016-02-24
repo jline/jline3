@@ -19,7 +19,7 @@ import static org.fusesource.jansi.Ansi.ansi;
  * Items with the key 'h' are not allowed. This key is reserved for the help message. With the
  * help message the prompt can be expanded to a list with the answers.
  * <p>
- * User: Andreas Wegmann<br/>
+ * User: Andreas Wegmann<p>
  * Date: 07.01.16
  */
 public class ExpandableChoicePrompt extends AbstractListablePrompt implements PromptIF<ExpandableChoice, ExpandableChoiceResult> {

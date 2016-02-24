@@ -4,7 +4,7 @@ package de.codeshelf.consoleui.prompt;
  * Result of a an expandable choice. ExpandableChoiceResult contains a String with the
  * IDs of the selected item.
  * <p>
- * User: Andreas Wegmann<br/>
+ * User: Andreas Wegmann<p>
  * Date: 03.02.16
  */
 public class ExpandableChoiceResult implements PromtResultItemIF {
