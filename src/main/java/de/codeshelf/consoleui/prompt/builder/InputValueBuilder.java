@@ -13,6 +13,7 @@ public class InputValueBuilder {
   private String name;
   private String defaultValue;
   private String message;
+  private Character mask;
   private ArrayList<Completer> completers;
 
   public InputValueBuilder(PromptBuilder promptBuilder) {
@@ -42,12 +43,21 @@ public class InputValueBuilder {
     return this;
   }
 
+  public InputValueBuilder mask(char mask) {
+    this.mask = mask;
+    return this;
+  }
+
   public PromptBuilder addPrompt() {
     InputValue inputValue = new InputValue(name, message, null, defaultValue);
     if (completers != null) {
       inputValue.setCompleter(completers);
     }
+    if (mask != null) {
+      inputValue.setMask(mask);
+    }
     promptBuilder.addPrompt(inputValue);
     return promptBuilder;
   }
+
 }

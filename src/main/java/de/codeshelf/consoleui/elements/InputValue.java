@@ -13,6 +13,7 @@ public class InputValue extends AbstractPromptableElement {
   private String value;
   private String defaultValue;
   private List<Completer> completer;
+  private Character mask;
 
   public InputValue(String name, String message) {
     super(message, name);
@@ -49,5 +50,13 @@ public class InputValue extends AbstractPromptableElement {
       this.completer=new ArrayList<Completer>();
     }
     this.completer.add(completer);
+  }
+
+  public void setMask(Character mask) {
+    this.mask = mask;
+  }
+
+  public Character getMask() {
+    return mask;
   }
 }

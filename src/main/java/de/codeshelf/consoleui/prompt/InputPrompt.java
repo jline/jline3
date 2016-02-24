@@ -43,14 +43,28 @@ public class InputPrompt extends AbstractPrompt implements PromptIF<InputValue,I
     //System.out.print(prompt + itemRenderer.renderValue(this.inputElement));
     //System.out.flush();
     List<Completer> completer = inputElement.getCompleter();
-    ReaderIF.ReaderInput readerInput = reader.readLine(completer,prompt,inputElement.getValue());
+    Character mask = inputElement.getMask();
+    ReaderIF.ReaderInput readerInput = reader.readLine(completer,prompt,inputElement.getValue(),mask);
 
     String lineInput = readerInput.getLineInput();
 
     if (lineInput == null || lineInput.trim().length() == 0) {
       lineInput = inputElement.getDefaultValue();
     }
-    renderMessagePromptAndResult(inputElement.getMessage(), lineInput);
+
+    String result;
+    if (mask == null) {
+      result=lineInput;
+    } else {
+      result="";
+      if (lineInput!=null) {
+        for (int i=0; i<lineInput.length(); i++) {
+          result+=mask;
+        }
+      }
+    }
+
+    renderMessagePromptAndResult(inputElement.getMessage(), result);
 
     return new InputResult(lineInput);
   }

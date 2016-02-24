@@ -90,16 +90,22 @@ public class ConsoleReaderImpl implements ReaderIF {
    *
    * @param completer List of completes to use
    * @param prompt the text to display as prompt left side from the input
+   * @param mask
    * @return a ReaderInput object with results
    */
-  public ReaderInput readLine(List<Completer> completer, String prompt, String value) throws IOException {
+  public ReaderInput readLine(List<Completer> completer, String prompt, String value, Character mask) throws IOException {
     if (completer != null) {
       for (Completer c : completer) {
         console.addCompleter(c);
       }
     }
-    //String readLine = console.readLine(prompt, null, value);
-    String readLine = console.readLine(prompt);
+    String readLine;
+    if (mask == null) {
+      readLine = console.readLine(prompt);
+    } else {
+      readLine = console.readLine(prompt, mask);
+    }
+
 
     return new ReaderInput(SpecialKey.PRINTABLE_KEY, readLine);
   }

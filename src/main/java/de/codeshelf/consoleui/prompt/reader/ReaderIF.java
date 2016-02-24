@@ -30,7 +30,7 @@ public interface ReaderIF {
 
   ReaderInput read();
 
-  ReaderInput readLine(List<Completer> completer, String promt, String value) throws IOException;
+  ReaderInput readLine(List<Completer> completer, String promt, String value, Character mask) throws IOException;
 
   class ReaderInput {
     private SpecialKey specialKey;

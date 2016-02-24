@@ -37,6 +37,7 @@ public class Basic {
               .name("name")
               .message("Please enter your name")
               .defaultValue("John Doe")
+              //.mask('*')
               .addCompleter(new StringsCompleter("Jim", "Jack", "John"))
               .addPrompt();
 

@@ -53,7 +53,7 @@ public class CheckboxPromptTest {
         return new ReaderInput(SpecialKey.ENTER);
       }
 
-      public ReaderInput readLine(List<Completer> completer, String promt, String value) throws IOException {
+      public ReaderInput readLine(List<Completer> completer, String promt, String value, Character mask) throws IOException {
         return null;
       }
     });
