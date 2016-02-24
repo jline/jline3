@@ -1,4 +1,4 @@
-version '0.0.2'
+version '0.0.3-SNAPSHOT'
 
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
@@ -33,10 +33,12 @@ task sourcesJar(type: Jar) {
     from sourceSets.main.allSource
 }
 
-// Fat-jar
 
-task fatJar(type: Jar) {
+// Fat-jar
+task fatJar(type: Jar, dependsOn: [':compileJava', ':processResources']) {
   from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+  from files(sourceSets.main.output.classesDir)
+  from files(sourceSets.main.resources)
   baseName = project.name + '-all'
   manifest {
       attributes 'Implementation-Title': 'ConsoleUI',
