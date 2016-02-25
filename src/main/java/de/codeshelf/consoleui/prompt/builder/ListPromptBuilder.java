@@ -22,12 +22,17 @@ public class ListPromptBuilder {
 
   public ListPromptBuilder name(String name) {
     this.name = name;
-    this.message = name;
+    if (message != null) {
+      this.message = name;
+    }
     return this;
   }
 
   public ListPromptBuilder message(String message) {
     this.message = message;
+    if (name == null) {
+      name = message;
+    }
     return this;
   }
 
