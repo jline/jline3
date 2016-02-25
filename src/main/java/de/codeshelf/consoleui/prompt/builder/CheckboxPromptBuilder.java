@@ -26,11 +26,17 @@ public class CheckboxPromptBuilder {
 
   public CheckboxPromptBuilder name(String name) {
     this.name = name;
+    if (message == null) {
+      message = name;
+    }
     return this;
   }
 
   public CheckboxPromptBuilder message(String message) {
     this.message = message;
+    if (name == null) {
+      name = message;
+    }
     return this;
   }
 

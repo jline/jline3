@@ -25,11 +25,17 @@ public class ExpandableChoicePromptBuilder {
 
   public ExpandableChoicePromptBuilder name(String name) {
     this.name = name;
+    if (message == null) {
+      message = name;
+    }
     return this;
   }
 
   public ExpandableChoicePromptBuilder message(String message) {
     this.message = message;
+    if (name == null) {
+      name = message;
+    }
     return this;
   }
 

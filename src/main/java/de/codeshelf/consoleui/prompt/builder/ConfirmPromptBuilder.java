@@ -3,7 +3,7 @@ package de.codeshelf.consoleui.prompt.builder;
 import de.codeshelf.consoleui.elements.ConfirmChoice;
 
 /**
- * User: ${FULL_NAME}
+ * User: Andreas Wegmann
  * Date: 24.01.16
  */
 public class ConfirmPromptBuilder {
@@ -18,11 +18,17 @@ public class ConfirmPromptBuilder {
 
   public ConfirmPromptBuilder name(String name) {
     this.name = name;
+    if (message == null) {
+      message = name;
+    }
     return this;
   }
 
   public ConfirmPromptBuilder message(String message) {
     this.message = message;
+    if (name == null) {
+      name = message;
+    }
     return this;
   }
 
