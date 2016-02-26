@@ -75,6 +75,8 @@ public class ConsoleReaderImpl implements ReaderIF {
             Character cc = lastBinding.charAt(0);
             if (allowedPrintableKeys.contains(cc)) {
               return new ReaderInput(SpecialKey.PRINTABLE_KEY, cc);
+            } else {
+              sb = new StringBuilder();
             }
           }
         }
