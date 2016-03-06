@@ -59,6 +59,9 @@ task fatJar(type: Jar, dependsOn: [':compileJava', ':processResources']) {
     }
 }
 
+task printEnv {
+  println "username "+sonatypeUsername
+}
 
 artifacts {
     archives javadocJar, sourcesJar
@@ -88,7 +91,7 @@ if (project.hasProperty('release')) {
         }
 
         snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-          authentication(userName: ossrhUsername, password: ossrhPassword)
+          authentication(userName: sonatypeUsername, password: sonatypePassword)
         }
 
         pom.project {
