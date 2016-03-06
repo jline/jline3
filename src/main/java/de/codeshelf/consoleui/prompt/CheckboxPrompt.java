@@ -9,6 +9,7 @@ import org.fusesource.jansi.Ansi;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 
 /**
  * CheckboxPrompt implements the checkbox choice handling.
@@ -93,7 +94,7 @@ public class CheckboxPrompt extends AbstractListablePrompt implements PromptIF<C
       readerInput = this.reader.read();
     }
 
-    HashSet<String> selections = new HashSet<String>();
+    LinkedHashSet<String> selections = new LinkedHashSet<>();
 
     for (ConsoleUIItemIF item : itemList) {
       if ((item instanceof CheckboxItem)) {
