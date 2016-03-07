@@ -13,7 +13,6 @@ apply plugin: 'net.researchgate.release'
 
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
-
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'maven'
@@ -22,6 +21,12 @@ apply plugin: 'signing'
 repositories {
     mavenCentral()
 }
+
+compileJava {
+  sourceCompatibility = 1.6
+  targetCompatibility = 1.6
+}
+
 
 task wrapper(type: Wrapper) {
   gradleVersion = '2.11'

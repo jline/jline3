@@ -94,7 +94,7 @@ public class CheckboxPrompt extends AbstractListablePrompt implements PromptIF<C
       readerInput = this.reader.read();
     }
 
-    LinkedHashSet<String> selections = new LinkedHashSet<>();
+    LinkedHashSet<String> selections = new LinkedHashSet<String>();
 
     for (ConsoleUIItemIF item : itemList) {
       if ((item instanceof CheckboxItem)) {

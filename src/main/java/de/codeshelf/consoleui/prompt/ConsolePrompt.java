@@ -86,7 +86,7 @@ public class ConsolePrompt {
    */
   public HashMap<String, ? extends PromtResultItemIF> prompt(List<PromptableElementIF> promptableElementList)
           throws IOException {
-    HashMap<String, PromtResultItemIF> resultMap = new HashMap<>();
+    HashMap<String, PromtResultItemIF> resultMap = new HashMap<String, PromtResultItemIF>();
 
     for (int i = 0; i < promptableElementList.size(); i++) {
       PromptableElementIF promptableElement = promptableElementList.get(i);
