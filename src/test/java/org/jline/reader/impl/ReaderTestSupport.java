@@ -22,7 +22,9 @@ import java.util.logging.Logger;
 
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Candidate;
+import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
+import org.jline.terminal.impl.DumbTerminal;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp.Capability;
 import org.junit.Before;
@@ -66,6 +68,7 @@ public abstract class ReaderTestSupport
         in = new EofPipedInputStream();
         out = new ByteArrayOutputStream();
         terminal = new DumbTerminal(in, out);
+        terminal.setSize(new Size(160, 80));
         reader = new TestLineReader(terminal, "JLine", null);
         reader.setKeyMap(LineReaderImpl.EMACS);
         mask = null;

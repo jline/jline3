@@ -17,7 +17,8 @@ import java.util.logging.Logger;
 
 import org.jline.reader.Binding;
 import org.jline.reader.Reference;
-import org.jline.reader.impl.DumbTerminal;
+import org.jline.terminal.Size;
+import org.jline.terminal.impl.DumbTerminal;
 import org.jline.reader.impl.ReaderTestSupport.EofPipedInputStream;
 import org.jline.terminal.Terminal;
 import org.junit.Before;
@@ -44,6 +45,7 @@ public class BindingReaderTest {
         in = new EofPipedInputStream();
         out = new ByteArrayOutputStream();
         terminal = new DumbTerminal(in, out);
+        terminal.setSize(new Size(160, 80));
     }
 
     @Test

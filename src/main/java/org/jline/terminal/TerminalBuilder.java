@@ -8,6 +8,9 @@
  */
 package org.jline.terminal;
 
+import java.io.FileDescriptor;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -15,6 +18,7 @@ import java.nio.charset.Charset;
 
 import org.jline.terminal.impl.AbstractPosixTerminal;
 import org.jline.terminal.impl.CygwinPty;
+import org.jline.terminal.impl.DumbTerminal;
 import org.jline.terminal.impl.ExecPty;
 import org.jline.terminal.impl.ExternalTerminal;
 import org.jline.terminal.impl.PosixPtyTerminal;
@@ -140,7 +144,10 @@ public final class TerminalBuilder {
                 if (pty != null) {
                     return new PosixSysTerminal(name, type, pty, encoding, nativeSignals);
                 } else {
-                    return new ExternalTerminal(name, type, System.in, System.out, encoding);
+                    return new DumbTerminal(name, type,
+                                            new FileInputStream(FileDescriptor.in),
+                                            new FileOutputStream(FileDescriptor.out),
+                                            encoding);
                 }
             }
         } else {

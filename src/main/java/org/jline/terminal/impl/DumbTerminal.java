@@ -1,4 +1,4 @@
-package org.jline.reader.impl;
+package org.jline.terminal.impl;
 
 /*
  * Copyright (c) 2002-2015, the original author or authors.
@@ -15,6 +15,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Attributes.ControlChar;
@@ -23,6 +24,7 @@ import org.jline.terminal.impl.AbstractTerminal;
 import org.jline.utils.NonBlockingReader;
 
 public class DumbTerminal extends AbstractTerminal {
+
     private final InputStream input;
     private final OutputStream output;
     private final NonBlockingReader reader;
@@ -31,17 +33,21 @@ public class DumbTerminal extends AbstractTerminal {
     private final Size size;
 
     public DumbTerminal(InputStream in, OutputStream out) throws IOException {
-        super("dumb", "ansi");
+        this("dumb", "ansi", in, out, Charset.defaultCharset().name());
+    }
+
+    public DumbTerminal(String name, String type, InputStream in, OutputStream out, String encoding) throws IOException {
+        super(name, type);
         this.input = in;
         this.output = out;
-        this.reader = new NonBlockingReader(getName(), new InputStreamReader(in));
-        this.writer = new PrintWriter(new OutputStreamWriter(out));
+        this.reader = new NonBlockingReader(getName(), new InputStreamReader(in, encoding));
+        this.writer = new PrintWriter(new OutputStreamWriter(out, encoding));
         this.attributes = new Attributes();
         this.attributes.setControlChar(ControlChar.VERASE,  (char) 127);
         this.attributes.setControlChar(ControlChar.VWERASE, (char) 23);
         this.attributes.setControlChar(ControlChar.VKILL,   (char) 21);
         this.attributes.setControlChar(ControlChar.VLNEXT,  (char) 22);
-        this.size = new Size(160, 50);
+        this.size = new Size();
         parseInfoCmp();
     }
 
@@ -71,10 +77,6 @@ public class DumbTerminal extends AbstractTerminal {
 
     public void setAttributes(Attributes attr) {
         attributes.copy(attr);
-    }
-
-    public void setAttributes(Attributes attr, int actions) {
-        setAttributes(attr);
     }
 
     public Size getSize() {

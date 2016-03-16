@@ -461,12 +461,16 @@ public class LineReaderImpl implements LineReader, Flushable
             // Cache terminal size for the duration of the call to readLine()
             // It will eventually be updated with WINCH signals
             size.copy(terminal.getSize());
-            if (size.getColumns() == 0 || size.getRows() == 0) {
-                throw new IllegalStateException("Invalid terminal size: " + size);
-            }
+//            if (size.getColumns() == 0 || size.getRows() == 0) {
+//                throw new IllegalStateException("Invalid terminal size: " + size);
+//            }
 
             display = new Display(terminal, false);
-            display.resize(size.getRows(), size.getColumns());
+            if (size.getRows() == 0 || size.getColumns() == 0) {
+               display.resize(1, Integer.MAX_VALUE);
+            } else {
+                display.resize(size.getRows(), size.getColumns());
+            }
 
             // Move into application mode
             terminal.puts(Capability.keypad_xmit);
@@ -3202,10 +3206,16 @@ public class LineReaderImpl implements LineReader, Flushable
         }
 
 
-        List<AttributedString> newLines = full.toAttributedString().columnSplitLength(size.getColumns());
+        List<AttributedString> newLines;
+        if (size.getColumns() <= 0) {
+            newLines = new ArrayList<>();
+            newLines.add(full.toAttributedString());
+        } else {
+            newLines = full.toAttributedString().columnSplitLength(size.getColumns());
+        }
 
         List<AttributedString> rightPromptLines;
-        if (rightPrompt.length() == 0) {
+        if (rightPrompt.length() == 0 || size.getColumns() <= 0) {
             rightPromptLines = new ArrayList<>();
         } else {
             rightPromptLines = rightPrompt.columnSplitLength(size.getColumns());
@@ -3219,15 +3229,17 @@ public class LineReaderImpl implements LineReader, Flushable
         }
 
         int cursorPos = -1;
-        // TODO: buf.upToCursor() does not take into account the mask which could modify the display length
-        // TODO: in case of wide chars
-        AttributedStringBuilder sb = new AttributedStringBuilder().tabs(TAB_WIDTH);
-        sb.append(prompt);
-        sb.append(insertSecondaryPrompts(new AttributedString(buf.upToCursor()), secondaryPrompts));
-        List<AttributedString> promptLines = sb.columnSplitLength(size.getColumns());
-        if (!promptLines.isEmpty()) {
-            cursorPos = (promptLines.size() - 1) * size.getColumns()
-                            + promptLines.get(promptLines.size() - 1).columnLength();
+        if (size.getColumns() > 0) {
+            // TODO: buf.upToCursor() does not take into account the mask which could modify the display length
+            // TODO: in case of wide chars
+            AttributedStringBuilder sb = new AttributedStringBuilder().tabs(TAB_WIDTH);
+            sb.append(prompt);
+            sb.append(insertSecondaryPrompts(new AttributedString(buf.upToCursor()), secondaryPrompts));
+            List<AttributedString> promptLines = sb.columnSplitLength(size.getColumns());
+            if (!promptLines.isEmpty()) {
+                cursorPos = (promptLines.size() - 1) * size.getColumns()
+                        + promptLines.get(promptLines.size() - 1).columnLength();
+            }
         }
 
         display.update(newLines, cursorPos);
