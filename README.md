@@ -31,6 +31,42 @@ a Java clone of Inquirer.js.
 
 Console UI uses jansi and jline for the dirty console things.
 
+# Usage
+
+Before you can use Console UI the AnsiConsole library has to be initialized.
+
+    AnsiConsole.systemInstall();
+    
+Entry point to the builder classes is to create a new object of type `ConsolePrompt`.
+    
+    ConsolePrompt prompt = new ConsolePrompt();
+    
+From the prompt object, use the `getPromptBuilder()` method to create the builder for all subsequent UI elements 
+you want to use.
+    
+    PromptBuilder promptBuilder = prompt.getPromptBuilder();
+
+From with this `PromptBuilder` you can access UI builder with the following methods:
+
+- createCheckboxPrompt()
+    * creates a checkbox prompt. This prompt lets the user choose any number of items of a given list.
+- createChoicePrompt()
+    * creates a choice prompt. This prompt lets the user choose one from a given number of possible answers.     
+- createConfirmPromp()
+    * creates a confirm prompt. This prompt lets the user answer with 'yes' or 'no' to a given question.
+- createInputPrompt()
+    * creates a input prompt. This prompt is a classic entry line like a shell. Because of the underlying readline
+      implementation it offers you to provide completers (like file name completer or string completer). In addition
+      to his, you can define a mask character which is printed on the screen instead of the typed keys like used
+      for hidden password entry.
+- createListPrompt()
+    * creates a list prompt. This prompt lets the user choose one item from a given list.
+    
+    
+          
+
+
+
 
 
 
