@@ -26,8 +26,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class ExternalTerminal extends LineDisciplineTerminal {
 
-    private final AtomicBoolean closed = new AtomicBoolean();
-    private final Thread pumpThread;
+    protected final AtomicBoolean closed = new AtomicBoolean();
+    protected final Thread pumpThread;
     protected final InputStream masterInput;
 
     public ExternalTerminal(String name, String type,
@@ -60,10 +60,8 @@ public class ExternalTerminal extends LineDisciplineTerminal {
             try {
                 close();
             } catch (Throwable t) {
-                e.addSuppressed(t);
+                // Ignore
             }
-            // TODO: log
-            e.printStackTrace();
         }
     }
 
