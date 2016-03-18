@@ -163,7 +163,7 @@ public class Nano {
                 return;
             }
 
-            try (InputStream fis = Files.newInputStream(root.resolve(file)))
+            try (InputStream fis = Files.newInputStream(path))
             {
                 read(fis);
             } catch (IOException e) {
