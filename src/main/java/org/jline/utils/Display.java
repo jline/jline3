@@ -246,7 +246,7 @@ public class Display {
                 if (terminal.getStringCapability(Capability.clr_eol) != null) {
                     terminal.puts(Capability.clr_eol);
                 } else {
-                    int nb = newLines.get(lineIndex).columnLength();
+                    int nb = lineIndex < newLines.size() ? newLines.get(lineIndex).columnLength() : columns;
                     rawPrint(' ', nb);
                     cursorPos += nb;
                     cursorOk = false;
