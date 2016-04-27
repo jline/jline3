@@ -33,6 +33,13 @@ a Java clone of Inquirer.js.
 
 Console UI uses jansi and jline for the dirty console things.
 
+# Test Run
+
+You can get an idea how the project works by looking at `de.codeshelf.consoleui.Basic`.  You can run this by executing the following from the project root:
+
+gradlew fatJar
+java -jar build/libs/consoleui-all-0.0.10.jar 
+
 
 
 
