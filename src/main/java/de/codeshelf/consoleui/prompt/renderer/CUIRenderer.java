@@ -41,7 +41,7 @@ public class CUIRenderer {
       checkedBox = "\u25C9 ";
       uncheckedBox = "\u25EF ";
       line = "\u2500─────────────";
-      cursorSymbol = ansi().fg(Ansi.Color.CYAN).a("❯ ").toString();
+      cursorSymbol = ansi().fg(Ansi.Color.CYAN).a("\u276F ").toString();
       noCursorSpace = ansi().fg(Ansi.Color.DEFAULT).a("  ").toString();
     }
     resourceBundle = ResourceBundle.getBundle("consoleui_messages");
