@@ -4,6 +4,8 @@
 
 # Console UI
 
+[![Join the chat at https://gitter.im/awegmann/consoleui](https://badges.gitter.im/awegmann/consoleui.svg)](https://gitter.im/awegmann/consoleui?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Tiny java library that provides simple UI elements on ANSI console based terminals. ConsoleUI is inspired by 
 [Inquirer.js](https://github.com/SBoudrias/Inquirer.js) which is written in JavaScript.
 
