@@ -37,8 +37,8 @@ Console UI uses jansi and jline for the dirty console things.
 
 You can get an idea how the project works by looking at `de.codeshelf.consoleui.Basic`.  You can run this by executing the following from the project root:
 
-gradlew fatJar
-java -jar build/libs/consoleui-all-0.0.10.jar     # <- replace with the latest version
+    gradlew fatJar 
+    java -jar build/libs/consoleui-all-0.0.10.jar     # <- replace with the latest version
 
 # Usage
 
@@ -70,12 +70,6 @@ From with this `PromptBuilder` you can access UI builder with the following meth
       for hidden password entry.
 - createListPrompt()
     * creates a list prompt. This prompt lets the user choose one item from a given list.
-    
-    
-          
-
-
->>>>>>> feature/documentation
 
 
 
