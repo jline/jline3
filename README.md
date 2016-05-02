@@ -29,7 +29,7 @@ a Java clone of Inquirer.js.
  - Expandable Choices (multiple key based answers for a question with help and optional list navigation)
  - Yes/No-Questions
 
- A screen recording of the basic elements demo can be fund on Youtube [console UI demo](https://youtu.be/6dB3CyOX9rU).
+A screen recording of the basic elements demo can be fund on Youtube [console UI demo](https://youtu.be/6dB3CyOX9rU).
 
 # Dependencies
 
