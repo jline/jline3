@@ -49,7 +49,15 @@ public class FileHistory extends MemoryHistory
         Objects.requireNonNull(file);
         if (file.exists()) {
             Log.trace("Loading history from: ", file);
-            load(new FileReader(file));
+            FileReader reader = null;
+            try{
+                reader = new FileReader(file);
+                load(reader);
+            } finally{
+                if(reader != null){
+                    reader.close();
+                }
+            }
         }
     }
 
