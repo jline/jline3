@@ -174,6 +174,11 @@ public class LineReaderImpl implements LineReader, Flushable
     protected AttributedString prompt;
     protected AttributedString rightPrompt;
 
+    private static final String SECONDARY_PROMPT = "> ";
+    protected String secondaryPromptPattern = "%M" + SECONDARY_PROMPT;
+
+    protected int lineNumber;
+
     protected Character mask;
 
     protected Map<Integer, String> modifiedHistory = new HashMap<>();
@@ -365,6 +370,10 @@ public class LineReaderImpl implements LineReader, Flushable
     public void setExpander(Expander expander) {
         this.expander = expander;
     }
+
+    public int getLineNumber() { return lineNumber; }
+    
+    public void setLineNumber(int line) { this.lineNumber = line; }
 
     //
     // Line Reading
@@ -852,6 +861,10 @@ public class LineReaderImpl implements LineReader, Flushable
             };
         }
         return w;
+    }
+
+    public void setSecondaryPromptPattern(String prompt) {
+        this.secondaryPromptPattern = prompt;
     }
 
     //
@@ -3249,7 +3262,59 @@ public class LineReaderImpl implements LineReader, Flushable
         }
     }
 
-    private static String SECONDARY_PROMPT = "> ";
+    private AttributedString expandPromptPattern(String pattern, int padToWidth,
+                                                 String message, int line) {
+        StringBuilder sb = new StringBuilder();
+        int plen = pattern.length();
+        int padChar = -1;
+        int padPos = -1;
+        for (int i = 0; i < plen; ) {
+            char ch = pattern.charAt(i++);
+            if (ch == '%' && i < plen) {
+                ch = pattern.charAt(i++);
+                int count = -1;
+                switch (ch) {
+                case '%':
+                    sb.append(ch);
+                    break;
+                case 'N':
+                    sb.append(getLineNumber() + line);
+                    break;
+                case 'M':
+                    if (message != null)
+                        sb.append(message);
+                    break;
+                case 'P':
+                    if (count >= 0)
+                        padToWidth = count;
+                    if (i < plen) {
+                        padChar = pattern.charAt(i++);
+                        // FIXME check surrogate
+                    }
+                    padPos = sb.length();
+                    break;
+                default:
+                    while (ch >= '0' && ch <= '9') {
+                        count = (count < 0 ? 0 : 10 * count)
+                            + (ch - '0');
+                        ch = pattern.charAt(i++);
+                    }
+                    i--;
+                }
+            } else
+                sb.append(ch);
+        }
+        AttributedString astr = AttributedString.fromAnsi(sb.toString());
+        int cols = astr.columnLength();
+        if (padToWidth > cols) {
+            int padCharCols = WCWidth.wcwidth(padChar);
+            int padCount = (padToWidth - cols) / padCharCols;
+            while (--padCount >= 0)
+                sb.insert(padPos, (char) padChar); // FIXME if wide
+            astr = AttributedString.fromAnsi(sb.toString());
+        }
+        return astr;
+    }
 
     private AttributedString insertSecondaryPrompts(AttributedString str, List<AttributedString> prompts) {
         return insertSecondaryPrompts(str, prompts, true);
@@ -3260,21 +3325,30 @@ public class LineReaderImpl implements LineReader, Flushable
         List<AttributedString> lines = strAtt.columnSplitLength(Integer.MAX_VALUE);
         AttributedStringBuilder sb = new AttributedStringBuilder();
         int line = 0;
-        if (computePrompts || !isSet(Option.PAD_PROMPTS) || prompts.size() < 2) {
+        if (computePrompts || prompts.size() < 2) {
+            boolean needsMessage = secondaryPromptPattern.indexOf("%M") >= 0;
             AttributedStringBuilder buf = new AttributedStringBuilder();
+            int width = 0;
+            if (secondaryPromptPattern.indexOf("%P") >= 0) {
+                width = prompt.columnLength();
+            }
             while (line < lines.size() - 1) {
                 sb.append(lines.get(line)).append("\n");
                 buf.append(lines.get(line)).append("\n");
                 AttributedString prompt;
                 if (computePrompts) {
-                    prompt = new AttributedString(SECONDARY_PROMPT);
-                    try {
-                        parser.parse(buf.toString(), buf.length());
-                    } catch (EOFError e) {
-                        prompt = new AttributedString(e.getMissing() + SECONDARY_PROMPT);
-                    } catch (SyntaxError e) {
-                        // Ignore
+                    String missing = "";
+                    if (needsMessage) {
+                        try {
+                            parser.parse(buf.toString(), buf.length());
+                        } catch (EOFError e) {
+                            missing = e.getMissing();
+                        } catch (SyntaxError e) {
+                            // Ignore
+                        }
                     }
+                    prompt = expandPromptPattern(secondaryPromptPattern,
+                                                 width, missing, line+1);
                 } else {
                     prompt = prompts.get(line);
                 }
@@ -3284,30 +3358,6 @@ public class LineReaderImpl implements LineReader, Flushable
             }
             sb.append(lines.get(line));
             buf.append(lines.get(line));
-        }
-        if (isSet(Option.PAD_PROMPTS) && prompts.size() >= 2) {
-            if (computePrompts) {
-                int max = prompts.stream().map(AttributedString::columnLength).max(Comparator.<Integer>naturalOrder()).get();
-                for (ListIterator<AttributedString> it = prompts.listIterator(); it.hasNext(); ) {
-                    AttributedString prompt = it.next();
-                    if (prompt.columnLength() < max) {
-                        AttributedStringBuilder pb = new AttributedStringBuilder(max);
-                        pb.append(prompt, 0, prompt.length() - SECONDARY_PROMPT.length());
-                        while (pb.length() < max - SECONDARY_PROMPT.length()) {
-                            pb.append(' ');
-                        }
-                        pb.append(SECONDARY_PROMPT);
-                        it.set(pb.toAttributedString());
-                    }
-                }
-            }
-            sb.setLength(0);
-            line = 0;
-            while (line < lines.size() - 1) {
-                sb.append(lines.get(line)).append("\n");
-                sb.append(prompts.get(line++));
-            }
-            sb.append(lines.get(line));
         }
         return sb.toAttributedString();
     }
