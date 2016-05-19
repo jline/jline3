@@ -48,8 +48,8 @@ public class Display {
 
         this.canScroll = can(Capability.insert_line, Capability.parm_insert_line)
                             && can(Capability.delete_line, Capability.parm_delete_line);
-        this.noWrapAtEol = terminal.getBooleanCapability(Capability.auto_right_margin)
-                            && terminal.getBooleanCapability(Capability.eat_newline_glitch);
+        this.noWrapAtEol = ! (terminal.getBooleanCapability(Capability.auto_right_margin)
+                              && terminal.getBooleanCapability(Capability.eat_newline_glitch));
         this.cursorDownIsNewLine = "\n".equals(tput(Capability.cursor_down));
     }
 
