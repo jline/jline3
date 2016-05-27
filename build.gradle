@@ -40,6 +40,10 @@ dependencies {
     compile 'jline:jline:2.12'
 }
 
+javadoc {
+    options.encoding = 'UTF-8'
+}
+
 task javadocJar(type: Jar) {
     classifier = 'javadoc'
     from javadoc
