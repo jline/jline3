@@ -83,6 +83,9 @@ public class ConsoleReaderImpl implements ReaderIF {
       }
     } catch (IOException e) {
       e.printStackTrace();
+    } finally {
+    	System.out.println("!!!!!!!!!!!!!! UPDTED");
+    	console.shutdown();
     }
     return null;
   }
