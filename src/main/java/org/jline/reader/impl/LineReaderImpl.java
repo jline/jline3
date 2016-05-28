@@ -104,6 +104,7 @@ public class LineReaderImpl implements LineReader, Flushable
     public static final int    DEFAULT_ERRORS = 2;
     public static final long   DEFAULT_BLINK_MATCHING_PAREN = 500l;
     public static final long   DEFAULT_AMBIGUOUS_BINDING = 1000l;
+    public static final String DEFAULT_SECONDARY_PROMPT_PATTERN = "%M> ";
 
     /**
      * Possible states in which the current readline operation may be in.
@@ -173,11 +174,6 @@ public class LineReaderImpl implements LineReader, Flushable
 
     protected AttributedString prompt;
     protected AttributedString rightPrompt;
-
-    private static final String SECONDARY_PROMPT = "> ";
-    protected String secondaryPromptPattern = "%M" + SECONDARY_PROMPT;
-
-    protected int lineNumber;
 
     protected Character mask;
 
@@ -370,10 +366,6 @@ public class LineReaderImpl implements LineReader, Flushable
     public void setExpander(Expander expander) {
         this.expander = expander;
     }
-
-    public int getLineNumber() { return lineNumber; }
-    
-    public void setLineNumber(int line) { this.lineNumber = line; }
 
     //
     // Line Reading
@@ -861,10 +853,6 @@ public class LineReaderImpl implements LineReader, Flushable
             };
         }
         return w;
-    }
-
-    public void setSecondaryPromptPattern(String prompt) {
-        this.secondaryPromptPattern = prompt;
     }
 
     //
@@ -3271,35 +3259,58 @@ public class LineReaderImpl implements LineReader, Flushable
         for (int i = 0; i < plen; ) {
             char ch = pattern.charAt(i++);
             if (ch == '%' && i < plen) {
-                ch = pattern.charAt(i++);
-                int count = -1;
-                switch (ch) {
-                case '%':
-                    sb.append(ch);
-                    break;
-                case 'N':
-                    sb.append(getLineNumber() + line);
-                    break;
-                case 'M':
-                    if (message != null)
-                        sb.append(message);
-                    break;
-                case 'P':
-                    if (count >= 0)
-                        padToWidth = count;
-                    if (i < plen) {
-                        padChar = pattern.charAt(i++);
-                        // FIXME check surrogate
+                Integer count = null;
+                decode: while (true) {
+                    ch = pattern.charAt(i++);
+                    switch (ch) {
+                        case '%':
+                            sb.append(ch);
+                            break decode;
+                        case 'N':
+                            sb.append(getInt(LINE_OFFSET, 0) + line);
+                            break decode;
+                        case 'M':
+                            if (message != null)
+                                sb.append(message);
+                            break decode;
+                        case 'P':
+                            if (count != null && count >= 0)
+                                padToWidth = count;
+                            if (i < plen) {
+                                padChar = pattern.charAt(i++);
+                                // FIXME check surrogate
+                            }
+                            padPos = sb.length();
+                            break decode;
+                        case '-':
+                        case '0':
+                        case '1':
+                        case '2':
+                        case '3':
+                        case '4':
+                        case '5':
+                        case '6':
+                        case '7':
+                        case '8':
+                        case '9':
+                            boolean neg = false;
+                            if (ch == '-') {
+                                neg = true;
+                                ch = pattern.charAt(i++);
+                            }
+                            count = 0;
+                            while (ch >= '0' && ch <= '9') {
+                                count = (count < 0 ? 0 : 10 * count) + (ch - '0');
+                                ch = pattern.charAt(i++);
+                            }
+                            if (neg) {
+                                count = -count;
+                            }
+                            i--;
+                            break;
+                        default:
+                            break decode;
                     }
-                    padPos = sb.length();
-                    break;
-                default:
-                    while (ch >= '0' && ch <= '9') {
-                        count = (count < 0 ? 0 : 10 * count)
-                            + (ch - '0');
-                        ch = pattern.charAt(i++);
-                    }
-                    i--;
                 }
             } else
                 sb.append(ch);
@@ -3324,13 +3335,36 @@ public class LineReaderImpl implements LineReader, Flushable
         Objects.requireNonNull(prompts);
         List<AttributedString> lines = strAtt.columnSplitLength(Integer.MAX_VALUE);
         AttributedStringBuilder sb = new AttributedStringBuilder();
+        String secondaryPromptPattern = getString(SECONDARY_PROMPT_PATTERN, DEFAULT_SECONDARY_PROMPT_PATTERN);
         int line = 0;
         if (computePrompts || prompts.size() < 2) {
-            boolean needsMessage = secondaryPromptPattern.indexOf("%M") >= 0;
+            boolean needsMessage = secondaryPromptPattern.contains("%M");
             AttributedStringBuilder buf = new AttributedStringBuilder();
             int width = 0;
-            if (secondaryPromptPattern.indexOf("%P") >= 0) {
+            if (secondaryPromptPattern.contains("%P")) {
                 width = prompt.columnLength();
+                for (int l = 0; l < lines.size() - 1; l++) {
+                    AttributedString prompt;
+                    buf.append(lines.get(l)).append("\n");
+                    if (computePrompts) {
+                        String missing = "";
+                        if (needsMessage) {
+                            try {
+                                parser.parse(buf.toString(), buf.length());
+                            } catch (EOFError e) {
+                                missing = e.getMissing();
+                            } catch (SyntaxError e) {
+                                // Ignore
+                            }
+                        }
+                        prompt = expandPromptPattern(secondaryPromptPattern,
+                                0, missing, l+1);
+                    } else {
+                        prompt = prompts.get(l);
+                    }
+                    width = Math.max(width, prompt.columnLength());
+                }
+                buf.setLength(0);
             }
             while (line < lines.size() - 1) {
                 sb.append(lines.get(line)).append("\n");

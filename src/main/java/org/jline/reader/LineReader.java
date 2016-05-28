@@ -220,6 +220,38 @@ public interface LineReader {
     String REMOVE_SUFFIX_CHARS = "REMOVE_SUFFIX_CHARS";
     String SEARCH_TERMINATORS = "search-terminators";
     String ERRORS = "errors";
+    /**
+     * Set the pattern for prompts for secondary (continuation) lines.
+     * The pattern may include ANSI escapes.
+     * It may include these template markers:
+     * <dl>
+     * <dt>{@code %N}</code></dt>
+     * <dd>A line number. This is the sum of {@code getLineNumber()}
+     *   and a counter starting with 1 for the first continuation line.
+     * <dt>{@code %M}</dt>
+     * <dd>A short word explaining what is "missing". This is supplied from
+     * the {@link EOFError#getMissing()} method, if provided.
+     * Defaults to an empty string.
+     * </dd>
+     * <dt>{@code %}<var>n</var>{@code P}<var>c</var></dt>
+     * <dd>Insert padding at this possion, repeating the following
+     *   character <var>c</var> as needed to bring the total prompt
+     *   column width as specified by the digits <var>n</var>.
+     * </dd>
+     * <dt>{@code %P}<var>c</var></dt>
+     * <dd>As before, but use width from the initial prompt.
+     * </dd>
+     * <dt>{@code %%}</dt>
+     * <dd>A literal {@code '%'}.
+     * </dd>
+     * </dl>
+     */
+    String SECONDARY_PROMPT_PATTERN = "secondary-prompt-pattern";
+    /**
+     * When in multiline edit mode, this variable can be used
+     * to offset the line number displayed.
+     */
+    String LINE_OFFSET = "line-offset";
 
     /**
      * Timeout for ambiguous key sequences.
@@ -363,37 +395,6 @@ public interface LineReader {
     Highlighter getHighlighter();
 
     Expander getExpander();
-
-    /** Set the pattern for prompts for secondary (continuation) lines.
-     * The pattern may include ANSI escapes.
-     * It may include these template markers:
-     * <dl>
-     * <dt>{@code %N}</code></dt>
-     * <dd>A line number. This is the sum of {@code getLineNumber()}
-     *   and a counter starting with 1 for the first continuation line.
-     * <dt>{@code %M}</dt>
-     * <dd>A short word explaining what is "missing". This is supplied from
-     * the {@link EOFError#getMissing()} method, if provided.
-     * Defaults to an empty string.
-     * </dd>  
-     * <dt>{@code %}<var>n</var>{@code P}<var>c</var></dt>
-     * <dd>Insert padding at this possion, repeating the following
-     *   character <var>c</var> as needed to bring the total prompt
-     *   column width as specified by the digits <var>n</var>.
-     * </dd>
-     * <dt>{@code %P}<var>c</var></dt>
-     * <dd>As before, but use width from the initial prompt.
-     * </dd>
-     * <dt>{@code %%}</dt>
-     * <dd>A literal {@code '%'}.
-     * </dd>
-     * </dl>
-     */
-    void setSecondaryPromptPattern(String prompt);
-
-    int getLineNumber();
-    
-    void setLineNumber(int line);
 
     Map<String, KeyMap<Binding>> getKeyMaps();
 
