@@ -280,6 +280,8 @@ public interface LineReader {
         LIST_ROWS_FIRST,
         GLOB_COMPLETE,
         MENU_COMPLETE,
+        /** if set and not at start of line before prompt, move to new line */
+        AUTO_FRESH_LINE,
         AUTO_PARAM_SLASH(true),
         AUTO_REMOVE_SLASH(true);
 
