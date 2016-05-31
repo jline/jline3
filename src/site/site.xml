@@ -14,7 +14,7 @@
 
     <bannerLeft>
         <name>jline</name>
-        <src>http://jline.github.com/jline2/images/jline.jpg</src>
+        <src>http://jline.github.com/jline3/images/jline.jpg</src>
         <href>http://jline.github.com</href>
     </bannerLeft>
 
@@ -32,7 +32,7 @@
             <topBarEnabled>false</topBarEnabled>
             <sideBarEnabled>true</sideBarEnabled>
             <gitHub>
-                <projectId>jline/jline2</projectId>
+                <projectId>jline/jline3</projectId>
                 <ribbonOrientation>right</ribbonOrientation>
                 <ribbonColor>darkblue</ribbonColor>
             </gitHub>

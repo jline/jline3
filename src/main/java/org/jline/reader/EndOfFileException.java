@@ -11,7 +11,7 @@ package org.jline.reader;
 import org.jline.terminal.Terminal;
 
 /**
- * This exception is thrown by {@link Terminal#readLine} when
+ * This exception is thrown by {@link LineReader#readLine} when
  * user the user types ctrl-D).
  */
 public class EndOfFileException extends RuntimeException {
