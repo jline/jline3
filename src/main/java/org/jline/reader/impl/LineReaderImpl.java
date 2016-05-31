@@ -475,18 +475,8 @@ public class LineReaderImpl implements LineReader, Flushable
 
             // Move into application mode
             terminal.puts(Capability.keypad_xmit);
-            // Make sure we position the cursor on column 0
-            AttributedStringBuilder sb = new AttributedStringBuilder();
-            sb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.BLACK + AttributedStyle.BRIGHT));
-            sb.append("~");
-            sb.style(AttributedStyle.DEFAULT);
-            for (int i = 0; i < size.getColumns() - 1; i++) {
-                sb.append(" ");
-            }
-            sb.append(KeyMap.key(terminal, Capability.carriage_return));
-            sb.append(" ");
-            sb.append(KeyMap.key(terminal, Capability.carriage_return));
-            print(sb.toAnsi(terminal));
+            if (isSet(Option.AUTO_FRESH_LINE))
+                freshLine();
 
             setPrompt(prompt);
             setRightPrompt(rightPrompt);
@@ -584,6 +574,21 @@ public class LineReaderImpl implements LineReader, Flushable
                 terminal.handle(Signal.CONT, previousContHandler);
             }
         }
+    }
+
+    /** Make sure we position the cursor on column 0 */
+    void freshLine() {
+        AttributedStringBuilder sb = new AttributedStringBuilder();
+        sb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.BLACK + AttributedStyle.BRIGHT));
+        sb.append("~");
+        sb.style(AttributedStyle.DEFAULT);
+        for (int i = 0; i < size.getColumns() - 1; i++) {
+            sb.append(" ");
+        }
+        sb.append(KeyMap.key(terminal, Capability.carriage_return));
+        sb.append(" ");
+        sb.append(KeyMap.key(terminal, Capability.carriage_return));
+        print(sb.toAnsi(terminal));
     }
 
     @Override
