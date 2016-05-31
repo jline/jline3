@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (c) 2002-2015, the original author or authors.
+    Copyright (c) 2002-2016, the original author or authors.
 
     This software is distributable under the BSD license. See the terms of the
     BSD license in the documentation provided with this software.
@@ -51,10 +51,6 @@
             <subscribe>https://groups.google.com/group/jline-users</subscribe>
             <archive>https://groups.google.com/group/jline-users</archive>
         </mailingList>
-        <!--<mailingList>-->
-            <!--<name>jline-dev</name>-->
-            <!--<archive>https://groups.google.com/group/jline-dev</archive>-->
-        <!--</mailingList>-->
     </mailingLists>
 
     <distributionManagement>
@@ -66,15 +62,6 @@
 
     <developers>
         <developer>
-            <id>jdillon</id>
-            <name>Jason Dillon</name>
-            <email>jason@planet57.com</email>
-            <roles>
-                <role>Build Master</role>
-                <role>Developer</role>
-            </roles>
-        </developer>
-        <developer>
             <id>gnodet</id>
             <name>Guillaume Nodet</name>
             <email>gnodet@gmail.com</email>
@@ -82,30 +69,7 @@
                 <role>Developer</role>
             </roles>
         </developer>
-        <developer>
-            <id>mprudhom</id>
-            <name>Marc Prud'hommeaux</name>
-            <email>mprudhom@gmail.com</email>
-            <roles>
-                <role>Original Author Jline 1.x</role>
-                <role>Developer Emeritus</role>
-            </roles>
-        </developer>
     </developers>
-
-    <contributors>
-        <contributor>
-            <!--<id>scgray</id>-->
-            <name>Scott Gray</name>
-            <email>scottgray1@gmail.com</email>
-        </contributor>
-
-        <contributor>
-            <!--<id>chirino</id>-->
-            <name>Hiram Chirino</name>
-            <email>hiram@hiramchirino.com</email>
-        </contributor>
-    </contributors>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -258,12 +222,12 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-javadoc-plugin</artifactId>
                     <version>2.10.3</version>
-					<configuration>
-	                    <additionalparam>
-							-Xdoclint:none
-	                    </additionalparam>
-						<failOnError>false</failOnError>
-					</configuration>
+                    <configuration>
+                        <additionalparam>
+                            -Xdoclint:none
+                        </additionalparam>
+                        <failOnError>false</failOnError>
+                    </configuration>
                 </plugin>
 
                 <plugin>
@@ -402,19 +366,19 @@
                     </execution>
                 </executions>
             </plugin>
-			
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-javadoc-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>javadoc</id>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>javadoc</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
 
             <!--
             mvn license:format -N
@@ -519,8 +483,8 @@
                     <bootclasspath>${sun.boot.class.path}</bootclasspath>
                     <additionalparam>
                         -quiet
-                        -federate JDK http://download.oracle.com/javase/6/docs/api/index.html?
-                        -federationxml JDK http://doclava.googlecode.com/svn/static/api/openjdk-6.xml
+                        -federate JDK http://download.oracle.com/javase/8/docs/api/index.html?
+                        -federationxml JDK http://doclava.googlecode.com/svn/static/api/openjdk-8.xml
                         -hdf project.name "${project.name}"
                         -d ${project.build.directory}/site/apidocs
                     </additionalparam>

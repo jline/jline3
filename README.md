@@ -1,6 +1,6 @@
 <!--
 
-    Copyright (c) 2002-2015, the original author or authors.
+    Copyright (c) 2002-2016, the original author or authors.
 
     This software is distributable under the BSD license. See the terms of the
     BSD license in the documentation provided with this software.
@@ -11,9 +11,9 @@
 Description
 -----------
 
-JLine is a Java library for handling console input. It is similar in functionality to [BSD editline](http://www.thrysoee.dk/editline/) and [GNU readline](http://www.gnu.org/s/readline/). People familiar with the readline/editline capabilities for modern shells (such as bash and tcsh) will find most of the command editing features of JLine to be familiar.
+JLine is a Java library for handling console input. It is similar in functionality to [BSD editline](http://www.thrysoee.dk/editline/) and [GNU readline](http://www.gnu.org/s/readline/) but with additional features that bring it in par with [ZSH line editor](http://zsh.sourceforge.net/Doc/Release/Zsh-Line-Editor.html). People familiar with the readline/editline capabilities for modern shells (such as bash and tcsh) will find most of the command editing features of JLine to be familiar.
 
-JLine 2.x is an evolution of [JLine 1.x](https://github.com/jline/jline) which was previously maintained at [SourceForge](http://jline.sourceforge.net/).
+JLine 3.x is an evolution of [JLine 2.x](https://github.com/jline/jline2).
 
 License
 -------
@@ -39,7 +39,7 @@ Use the following definition to use JLine in your maven project:
     <dependency>
       <groupId>jline</groupId>
       <artifactId>jline</artifactId>
-      <version>2.12</version>
+      <version>3.0.0.M1</version>
     </dependency>
 
 Building
@@ -47,12 +47,12 @@ Building
 
 ### Requirements
 
-* Maven 2+
-* Java 5+
+* Maven 3.3+
+* Java 8+
 
 Check out and build:
 
-    git clone git://github.com/jline/jline2.git
-    cd jline2
+    git clone git://github.com/jline/jline3.git
+    cd jline3
     mvn install
 
