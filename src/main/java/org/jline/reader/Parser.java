@@ -12,4 +12,8 @@ public interface Parser {
 
     ParsedLine parse(String line, int cursor) throws SyntaxError;
 
+    default ParsedLine parseForComplete(String line, int cursor)
+        throws SyntaxError {
+        return parse(line, cursor);
+    }
 }

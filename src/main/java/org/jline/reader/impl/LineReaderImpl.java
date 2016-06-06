@@ -3526,7 +3526,7 @@ public class LineReaderImpl implements LineReader, Flushable
         List<Candidate> candidates = new ArrayList<>();
         ParsedLine line;
         try {
-            line = parser.parse(buf.toString(), buf.cursor());
+            line = parser.parseForComplete(buf.toString(), buf.cursor());
             if (completer != null) {
                 completer.complete(this, line, candidates);
             }
