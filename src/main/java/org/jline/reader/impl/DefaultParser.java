@@ -15,6 +15,7 @@ import java.util.Objects;
 
 import org.jline.reader.ParsedLine;
 import org.jline.reader.Parser;
+import org.jline.reader.Parser.ParseContext;
 
 public class DefaultParser implements Parser {
 
@@ -38,7 +39,8 @@ public class DefaultParser implements Parser {
         return this.escapeChars;
     }
 
-    public ParsedLine parse(final String line, final int cursor) {
+    public ParsedLine parse(final String line, final int cursor,
+                            ParseContext context) {
         List<String> words = new LinkedList<>();
         StringBuilder current = new StringBuilder();
         int wordCursor = -1;

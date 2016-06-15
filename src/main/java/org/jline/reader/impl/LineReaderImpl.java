@@ -52,6 +52,7 @@ import org.jline.reader.History;
 import org.jline.reader.Macro;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.Parser;
+import org.jline.reader.Parser.ParseContext;
 import org.jline.reader.Reference;
 import org.jline.reader.SyntaxError;
 import org.jline.reader.UserInterruptException;
@@ -2472,7 +2473,8 @@ public class LineReaderImpl implements LineReader, Flushable
             }
         }
         try {
-            parsedLine = parser.parse(str, str.length());
+            parsedLine = parser.parse(str, str.length(),
+                                      ParseContext.ACCEPT_LINE);
         } catch (EOFError e) {
             buf.write("\n");
             return true;
@@ -3355,7 +3357,7 @@ public class LineReaderImpl implements LineReader, Flushable
                         String missing = "";
                         if (needsMessage) {
                             try {
-                                parser.parse(buf.toString(), buf.length());
+                                parser.parse(buf.toString(), buf.length(),ParseContext.SECONDARY_PROMPT);
                             } catch (EOFError e) {
                                 missing = e.getMissing();
                             } catch (SyntaxError e) {
@@ -3379,7 +3381,8 @@ public class LineReaderImpl implements LineReader, Flushable
                     String missing = "";
                     if (needsMessage) {
                         try {
-                            parser.parse(buf.toString(), buf.length());
+                            parser.parse(buf.toString(), buf.length(),
+                                         ParseContext.SECONDARY_PROMPT);
                         } catch (EOFError e) {
                             missing = e.getMissing();
                         } catch (SyntaxError e) {
@@ -3526,7 +3529,8 @@ public class LineReaderImpl implements LineReader, Flushable
         List<Candidate> candidates = new ArrayList<>();
         ParsedLine line;
         try {
-            line = parser.parse(buf.toString(), buf.cursor());
+            line = parser.parse(buf.toString(), buf.cursor(),
+                                ParseContext.COMPLETE);
             if (completer != null) {
                 completer.complete(this, line, candidates);
             }
