@@ -39,8 +39,7 @@ public class DefaultParser implements Parser {
         return this.escapeChars;
     }
 
-    public ParsedLine parse(final String line, final int cursor,
-                            ParseContext context) {
+    public ParsedLine parse(final String line, final int cursor, ParseContext context) {
         List<String> words = new LinkedList<>();
         StringBuilder current = new StringBuilder();
         int wordCursor = -1;

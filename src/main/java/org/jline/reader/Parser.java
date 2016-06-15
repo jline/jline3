@@ -10,11 +10,9 @@ package org.jline.reader;
 
 public interface Parser {
 
-    ParsedLine parse(String line, int cursor, ParseContext context)
-        throws SyntaxError;
+    ParsedLine parse(String line, int cursor, ParseContext context) throws SyntaxError;
 
-    default ParsedLine parse(String line, int cursor)
-        throws SyntaxError {
+    default ParsedLine parse(String line, int cursor) throws SyntaxError {
         return parse(line, cursor, ParseContext.UNSPECIFIED);
     }
 

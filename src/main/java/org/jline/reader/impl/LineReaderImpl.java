@@ -2473,8 +2473,7 @@ public class LineReaderImpl implements LineReader, Flushable
             }
         }
         try {
-            parsedLine = parser.parse(str, str.length(),
-                                      ParseContext.ACCEPT_LINE);
+            parsedLine = parser.parse(str, str.length(), ParseContext.ACCEPT_LINE);
         } catch (EOFError e) {
             buf.write("\n");
             return true;
@@ -3381,8 +3380,7 @@ public class LineReaderImpl implements LineReader, Flushable
                     String missing = "";
                     if (needsMessage) {
                         try {
-                            parser.parse(buf.toString(), buf.length(),
-                                         ParseContext.SECONDARY_PROMPT);
+                            parser.parse(buf.toString(), buf.length(), ParseContext.SECONDARY_PROMPT);
                         } catch (EOFError e) {
                             missing = e.getMissing();
                         } catch (SyntaxError e) {
@@ -3529,8 +3527,7 @@ public class LineReaderImpl implements LineReader, Flushable
         List<Candidate> candidates = new ArrayList<>();
         ParsedLine line;
         try {
-            line = parser.parse(buf.toString(), buf.cursor(),
-                                ParseContext.COMPLETE);
+            line = parser.parse(buf.toString(), buf.cursor(), ParseContext.COMPLETE);
             if (completer != null) {
                 completer.complete(this, line, candidates);
             }
