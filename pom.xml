@@ -19,7 +19,7 @@
         <version>9</version>
     </parent>
 
-    <groupId>jline</groupId>
+    <groupId>org.jline</groupId>
     <artifactId>jline</artifactId>
     <name>JLine</name>
     <version>3.0.0-SNAPSHOT</version>
