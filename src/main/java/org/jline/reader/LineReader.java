@@ -15,6 +15,61 @@ import org.jline.keymap.KeyMap;
 import org.jline.reader.impl.BufferImpl;
 import org.jline.terminal.Terminal;
 
+/** Read lines from the console, with input editing.
+ *
+ * <h3>Prompt strings</h3>
+ * <p>
+ * It is traditional for an interactive console-based program
+ * to print a short prompt string to signal that the user is expected
+ * to type a command.  JLine supports 3 kinds of prompt string:
+ * <ul>
+ * <li> The normal prompt at the start (left) of the initial line of a command.
+ * <li> An optional right prompt at the right border of the initial line.
+ * <li> A start (left) prompt for continuation lines.  I.e. the lines
+ * after the first line of a multi-line command.
+ * </ul>
+ * <p>
+ * All of these are specified with prompt templates,
+ * which are similar to {@code printf} format strings,
+ * using the character {@code '%'} to indicate special functionality.
+ * <p>
+ * The pattern may include ANSI escapes.
+ * It may include these template markers:
+ * <dl>
+ * <dt>{@code %N}</dt>
+ * <dd>A line number. This is the sum of {@code getLineNumber()}
+ *   and a counter starting with 1 for the first continuation line.
+ * <dt>{@code %M}</dt>
+ * <dd>A short word explaining what is "missing". This is supplied from
+ * the {@link EOFError#getMissing()} method, if provided.
+ * Defaults to an empty string.
+ * </dd>
+ * <dt>{@code %}<var>n</var>{@code P}<var>c</var></dt>
+ * <dd>Insert padding at this possion, repeating the following
+ *   character <var>c</var> as needed to bring the total prompt
+ *   column width as specified by the digits <var>n</var>.
+ * </dd>
+ * <dt>{@code %P}<var>c</var></dt>
+ * <dd>As before, but use width from the initial prompt.
+ * </dd>
+ * <dt>{@code %%}</dt>
+ * <dd>A literal {@code '%'}.
+ * </dd>
+ * <dt><code>%{</code></dt>
+ * <dt><code>%}</code></dt>
+ * Text between a <code>%{</code>...<code>%}</code> pair is printed as
+ * part of a prompt, but not interpreted by JLine
+ * (except that {@code '%'}-escapes are processed).  The text is assumed
+ * to take zero columns (not move the cursor).  If it changes the style,
+ * you're responsible for changing it back.  Standard ANSI escape sequences
+ * do not need to be within a <code>%{</code>...<code>%}</code> pair
+ * (though can be) since JLine knows how to deal with them.  However,
+ * these delimiters are needed for unusual non-standard escape sequences.
+ * <dd>
+ * </dd>
+ * </dl>
+ */
+
 public interface LineReader {
 
     //
@@ -221,30 +276,8 @@ public interface LineReader {
     String SEARCH_TERMINATORS = "search-terminators";
     String ERRORS = "errors";
     /**
-     * Set the pattern for prompts for secondary (continuation) lines.
-     * The pattern may include ANSI escapes.
-     * It may include these template markers:
-     * <dl>
-     * <dt>{@code %N}</code></dt>
-     * <dd>A line number. This is the sum of {@code getLineNumber()}
-     *   and a counter starting with 1 for the first continuation line.
-     * <dt>{@code %M}</dt>
-     * <dd>A short word explaining what is "missing". This is supplied from
-     * the {@link EOFError#getMissing()} method, if provided.
-     * Defaults to an empty string.
-     * </dd>
-     * <dt>{@code %}<var>n</var>{@code P}<var>c</var></dt>
-     * <dd>Insert padding at this possion, repeating the following
-     *   character <var>c</var> as needed to bring the total prompt
-     *   column width as specified by the digits <var>n</var>.
-     * </dd>
-     * <dt>{@code %P}<var>c</var></dt>
-     * <dd>As before, but use width from the initial prompt.
-     * </dd>
-     * <dt>{@code %%}</dt>
-     * <dd>A literal {@code '%'}.
-     * </dd>
-     * </dl>
+     * Set the template for prompts for secondary (continuation) lines.
+     * This is a prompt template as described in the class header.
      */
     String SECONDARY_PROMPT_PATTERN = "secondary-prompt-pattern";
     /**
@@ -342,6 +375,8 @@ public interface LineReader {
      * (without any trailing newlines).
      *
      * @param prompt    The prompt to issue to the terminal, may be null.
+     *   This is a template, with optional {@code '%'} escapes, as
+     *   described in the class header.
      * @param mask      The character mask, may be null.
      * @param buffer    The default value presented to the user to edit, may be null.
      * @return          A line that is read from the terminal, can never be null.
@@ -355,7 +390,11 @@ public interface LineReader {
      * (without any trailing newlines).
      *
      * @param prompt      The prompt to issue to the terminal, may be null.
+     *   This is a template, with optional {@code '%'} escapes, as
+     *   described in the class header.
      * @param rightPrompt The right prompt
+     *   This is a template, with optional {@code '%'} escapes, as
+     *   described in the class header.
      * @param mask        The character mask, may be null.
      * @param buffer      The default value presented to the user to edit, may be null.
      * @return            A line that is read from the terminal, can never be null.

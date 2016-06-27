@@ -15,12 +15,6 @@ package org.jline.utils;
  */
 public class AttributedStyle {
 
-    public static final AttributedStyle DEFAULT = new AttributedStyle();
-    public static final AttributedStyle BOLD = DEFAULT.bold();
-    public static final AttributedStyle BOLD_OFF = DEFAULT.boldOff();
-    public static final AttributedStyle INVERSE = DEFAULT.inverse();
-    public static final AttributedStyle INVERSE_OFF = DEFAULT.inverseOff();
-
     public static final int BLACK =     0;
     public static final int RED =       1;
     public static final int GREEN =     2;
@@ -42,14 +36,22 @@ public class AttributedStyle {
     static final int F_CROSSED_OUT  = 0x00000080;
     static final int F_FOREGROUND   = 0x00000100;
     static final int F_BACKGROUND   = 0x00000200;
+    static final int F_GENERIC_ESCAPE  = 0x00400;
 
-    static final int MASK           = 0x000003FF;
+    static final int MASK           = 0x000007FF;
 
     static final int FG_COLOR_EXP    = 16;
     static final int BG_COLOR_EXP    = 24;
     static final int FG_COLOR        = 0xFF << FG_COLOR_EXP;
     static final int BG_COLOR        = 0xFF << BG_COLOR_EXP;
 
+    public static final AttributedStyle DEFAULT = new AttributedStyle();
+    public static final AttributedStyle BOLD = DEFAULT.bold();
+    public static final AttributedStyle BOLD_OFF = DEFAULT.boldOff();
+    public static final AttributedStyle INVERSE = DEFAULT.inverse();
+    public static final AttributedStyle INVERSE_OFF = DEFAULT.inverseOff();
+    public static final AttributedStyle GENERIC_ESCAPE =
+        new AttributedStyle(F_GENERIC_ESCAPE, F_GENERIC_ESCAPE);
 
     final int style;
     final int mask;

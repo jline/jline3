@@ -866,11 +866,13 @@ public class LineReaderImpl implements LineReader, Flushable
     //
 
     protected void setPrompt(final String prompt) {
-        this.prompt = AttributedString.fromAnsi(prompt != null ? prompt : "");
+        this.prompt = (prompt == null ? AttributedString.EMPTY
+                       : expandPromptPattern(prompt, 0, "", 0));
     }
 
     protected void setRightPrompt(final String rightPrompt) {
-        this.rightPrompt = AttributedString.fromAnsi(rightPrompt != null ? rightPrompt : "");
+        this.rightPrompt = (rightPrompt == null ? AttributedString.EMPTY
+                            : expandPromptPattern(rightPrompt, 0, "", 0));
     }
 
     protected void setBuffer(BufferImpl buffer) {
@@ -3258,17 +3260,45 @@ public class LineReaderImpl implements LineReader, Flushable
 
     private AttributedString expandPromptPattern(String pattern, int padToWidth,
                                                  String message, int line) {
+        ArrayList<AttributedString> parts = new ArrayList<AttributedString>();
+        boolean inGenericEscape = false;
+        int padPartIndex = -1;
+        StringBuilder padPartString = null;
         StringBuilder sb = new StringBuilder();
+        // Add "%{" to avoid special case for end of string.
+        pattern = pattern + "%{";
         int plen = pattern.length();
         int padChar = -1;
         int padPos = -1;
+        int cols = 0;
         for (int i = 0; i < plen; ) {
             char ch = pattern.charAt(i++);
             if (ch == '%' && i < plen) {
-                Integer count = null;
+                int count = 0;
+                boolean countSeen = false;
                 decode: while (true) {
                     ch = pattern.charAt(i++);
                     switch (ch) {
+                       case '{':
+                       case '}':
+                           String str = sb.toString();
+                           AttributedString astr;
+                           if (! inGenericEscape) {
+                               astr = AttributedString.fromAnsi(str);
+                               cols += astr.columnLength();
+                           } else {
+                               astr = new AttributedString(str,
+                                       AttributedStyle.GENERIC_ESCAPE);
+                           }
+                           if (padPartIndex == parts.size()) {
+                               padPartString = sb;
+                               if (i < plen)
+                                   sb = new StringBuilder();
+                           } else
+                               sb.setLength(0);
+                           parts.add(astr);
+                           inGenericEscape = ch == '{';
+                            break decode;
                         case '%':
                             sb.append(ch);
                             break decode;
@@ -3280,13 +3310,14 @@ public class LineReaderImpl implements LineReader, Flushable
                                 sb.append(message);
                             break decode;
                         case 'P':
-                            if (count != null && count >= 0)
+                            if (countSeen && count >= 0)
                                 padToWidth = count;
                             if (i < plen) {
                                 padChar = pattern.charAt(i++);
                                 // FIXME check surrogate
                             }
                             padPos = sb.length();
+                            padPartIndex = parts.size();
                             break decode;
                         case '-':
                         case '0':
@@ -3304,6 +3335,7 @@ public class LineReaderImpl implements LineReader, Flushable
                                 neg = true;
                                 ch = pattern.charAt(i++);
                             }
+                            countSeen = true;
                             count = 0;
                             while (ch >= '0' && ch <= '9') {
                                 count = (count < 0 ? 0 : 10 * count) + (ch - '0');
@@ -3321,16 +3353,15 @@ public class LineReaderImpl implements LineReader, Flushable
             } else
                 sb.append(ch);
         }
-        AttributedString astr = AttributedString.fromAnsi(sb.toString());
-        int cols = astr.columnLength();
         if (padToWidth > cols) {
             int padCharCols = WCWidth.wcwidth(padChar);
             int padCount = (padToWidth - cols) / padCharCols;
+            sb = padPartString;
             while (--padCount >= 0)
                 sb.insert(padPos, (char) padChar); // FIXME if wide
-            astr = AttributedString.fromAnsi(sb.toString());
+            parts.set(padPartIndex, AttributedString.fromAnsi(sb.toString()));
         }
-        return astr;
+        return AttributedString.join(null, parts);
     }
 
     private AttributedString insertSecondaryPrompts(AttributedString str, List<AttributedString> prompts) {

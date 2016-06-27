@@ -28,6 +28,7 @@ import static org.jline.utils.AttributedStyle.F_FOREGROUND;
 import static org.jline.utils.AttributedStyle.F_INVERSE;
 import static org.jline.utils.AttributedStyle.F_ITALIC;
 import static org.jline.utils.AttributedStyle.F_UNDERLINE;
+import static org.jline.utils.AttributedStyle.F_GENERIC_ESCAPE;
 import static org.jline.utils.AttributedStyle.MASK;
 
 public abstract class AttributedCharSequence implements CharSequence {
@@ -42,9 +43,9 @@ public abstract class AttributedCharSequence implements CharSequence {
         boolean color256 = (terminal != null && terminal.getNumericCapability(Capability.max_colors) >= 256);
         for (int i = 0; i < length(); i++) {
             char c = charAt(i);
-            int  s = styleAt(i).getStyle();
+            int  s = styleCodeAt(i);
             int  d = (style ^ s) & MASK;
-            if (d != 0) {
+            if (d != 0 && (s & F_GENERIC_ESCAPE) == 0) {
                 if (s == 0) {
                     sb.append("\033[0m");
                 } else {
@@ -121,6 +122,13 @@ public abstract class AttributedCharSequence implements CharSequence {
 
     public abstract AttributedStyle styleAt(int index);
 
+    public int styleCodeAt(int index) {
+        return styleAt(index).getStyle();
+    }
+    public boolean isGenericEscapeAt(int index) {
+        return (styleCodeAt(index) & F_GENERIC_ESCAPE) != 0;
+    }
+
     public int runStart(int index) {
         AttributedStyle style = styleAt(index);
         while (index > 0 && styleAt(index - 1).equals(style)) {
@@ -175,7 +183,15 @@ public abstract class AttributedCharSequence implements CharSequence {
     }
 
     public int columnLength() {
-        return codePoints().map(WCWidth::wcwidth).sum();
+        int cols = 0;
+        int len = length();
+        for (int cur = 0; cur < len; ) {
+            int cp = codePointAt(cur);
+            if (! isGenericEscapeAt(cur))
+                cols += WCWidth.wcwidth(cp);
+            cur += Character.charCount(cp);
+        }
+        return cols;
     }
 
     public AttributedString columnSubSequence(int start, int stop) {
@@ -183,7 +199,7 @@ public abstract class AttributedCharSequence implements CharSequence {
         int col = 0;
         while (begin < this.length()) {
             int cp = codePointAt(begin);
-            int w = WCWidth.wcwidth(cp);
+            int w = isGenericEscapeAt(begin) ? 0 : WCWidth.wcwidth(cp);
             if (col + w > start) {
                 break;
             }
@@ -193,7 +209,7 @@ public abstract class AttributedCharSequence implements CharSequence {
         int end = begin;
         while (end < this.length()) {
             int cp = codePointAt(end);
-            int w = WCWidth.wcwidth(cp);
+            int w = isGenericEscapeAt(end) ? 0 : WCWidth.wcwidth(cp);
             if (col + w > stop) {
                 break;
             }
@@ -210,7 +226,7 @@ public abstract class AttributedCharSequence implements CharSequence {
         int col = 0;
         while (cur < length()) {
             int cp = codePointAt(cur);
-            int w = WCWidth.wcwidth(cp);
+            int w = isGenericEscapeAt(cur) ? 0 : WCWidth.wcwidth(cp);
             if (cp == '\n') {
                 strings.add(subSequence(beg, cur));
                 beg = cur + 1;
