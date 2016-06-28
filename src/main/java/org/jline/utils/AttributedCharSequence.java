@@ -122,7 +122,7 @@ public abstract class AttributedCharSequence implements CharSequence {
 
     public abstract AttributedStyle styleAt(int index);
 
-    public int styleCodeAt(int index) {
+    int styleCodeAt(int index) {
         return styleAt(index).getStyle();
     }
     public boolean isGenericEscapeAt(int index) {

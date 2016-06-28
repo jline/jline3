@@ -131,7 +131,7 @@ public class AttributedString extends AttributedCharSequence {
     }
 
     @Override
-    public int styleCodeAt(int index) {
+    int styleCodeAt(int index) {
         return style[start + index];
     }
 

@@ -59,7 +59,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
     }
 
     @Override
-    public int styleCodeAt(int index) {
+    int styleCodeAt(int index) {
         return style[index];
     }
 
