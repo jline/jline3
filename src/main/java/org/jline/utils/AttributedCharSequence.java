@@ -231,11 +231,11 @@ public abstract class AttributedCharSequence implements CharSequence {
                 strings.add(subSequence(beg, cur));
                 beg = cur + 1;
                 col = 0;
-            } else if (col + w >= columns) {
+            } else if ((col += w) > columns) {
                 strings.add(subSequence(beg, cur));
                 beg = cur;
-                col = 0;
-            }
+                col = w;
+            };
             cur += Character.charCount(cp);
         }
         strings.add(subSequence(beg, cur));
