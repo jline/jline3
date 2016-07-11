@@ -3261,7 +3261,7 @@ public class LineReaderImpl implements LineReader, Flushable
     private AttributedString expandPromptPattern(String pattern, int padToWidth,
                                                  String message, int line) {
         ArrayList<AttributedString> parts = new ArrayList<AttributedString>();
-        boolean inGenericEscape = false;
+        boolean isHidden = false;
         int padPartIndex = -1;
         StringBuilder padPartString = null;
         StringBuilder sb = new StringBuilder();
@@ -3283,21 +3283,22 @@ public class LineReaderImpl implements LineReader, Flushable
                        case '}':
                            String str = sb.toString();
                            AttributedString astr;
-                           if (! inGenericEscape) {
+                           if (!isHidden) {
                                astr = AttributedString.fromAnsi(str);
                                cols += astr.columnLength();
                            } else {
-                               astr = new AttributedString(str,
-                                       AttributedStyle.GENERIC_ESCAPE);
+                               astr = new AttributedString(str, AttributedStyle.HIDDEN);
                            }
                            if (padPartIndex == parts.size()) {
                                padPartString = sb;
-                               if (i < plen)
+                               if (i < plen) {
                                    sb = new StringBuilder();
-                           } else
+                               }
+                           } else {
                                sb.setLength(0);
+                           }
                            parts.add(astr);
-                           inGenericEscape = ch == '{';
+                           isHidden = ch == '{';
                             break decode;
                         case '%':
                             sb.append(ch);
