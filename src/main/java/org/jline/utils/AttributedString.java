@@ -27,6 +27,7 @@ public class AttributedString extends AttributedCharSequence {
     final int[] style;
     final int start;
     final int end;
+    public static final AttributedString EMPTY = new AttributedString("");
 
     public AttributedString(CharSequence str) {
         this(str, 0, str.length(), null);
@@ -124,8 +125,14 @@ public class AttributedString extends AttributedCharSequence {
         return end - start;
     }
 
+    @Override
     public AttributedStyle styleAt(int index) {
         return new AttributedStyle(style[start + index], style[start + index]);
+    }
+
+    @Override
+    int styleCodeAt(int index) {
+        return style[start + index];
     }
 
     @Override
@@ -177,12 +184,11 @@ public class AttributedString extends AttributedCharSequence {
     }
 
     public static AttributedString join(AttributedString delimiter, Iterable<AttributedString> elements) {
-        Objects.requireNonNull(delimiter);
         Objects.requireNonNull(elements);
         AttributedStringBuilder sb = new AttributedStringBuilder();
         int i = 0;
         for (AttributedString str : elements) {
-            if (i++ > 0) {
+            if (i++ > 0 && delimiter != null) {
                 sb.append(delimiter);
             }
             sb.append(str);

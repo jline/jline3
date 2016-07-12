@@ -15,12 +15,6 @@ package org.jline.utils;
  */
 public class AttributedStyle {
 
-    public static final AttributedStyle DEFAULT = new AttributedStyle();
-    public static final AttributedStyle BOLD = DEFAULT.bold();
-    public static final AttributedStyle BOLD_OFF = DEFAULT.boldOff();
-    public static final AttributedStyle INVERSE = DEFAULT.inverse();
-    public static final AttributedStyle INVERSE_OFF = DEFAULT.inverseOff();
-
     public static final int BLACK =     0;
     public static final int RED =       1;
     public static final int GREEN =     2;
@@ -42,14 +36,22 @@ public class AttributedStyle {
     static final int F_CROSSED_OUT  = 0x00000080;
     static final int F_FOREGROUND   = 0x00000100;
     static final int F_BACKGROUND   = 0x00000200;
+    static final int F_HIDDEN       = 0x00000400;
 
-    static final int MASK           = 0x000003FF;
+    static final int MASK           = 0x000007FF;
 
     static final int FG_COLOR_EXP    = 16;
     static final int BG_COLOR_EXP    = 24;
     static final int FG_COLOR        = 0xFF << FG_COLOR_EXP;
     static final int BG_COLOR        = 0xFF << BG_COLOR_EXP;
 
+    public static final AttributedStyle DEFAULT = new AttributedStyle();
+    public static final AttributedStyle BOLD = DEFAULT.bold();
+    public static final AttributedStyle BOLD_OFF = DEFAULT.boldOff();
+    public static final AttributedStyle INVERSE = DEFAULT.inverse();
+    public static final AttributedStyle INVERSE_OFF = DEFAULT.inverseOff();
+    public static final AttributedStyle HIDDEN = DEFAULT.hidden();
+    public static final AttributedStyle HIDDEN_OFF = DEFAULT.hiddenOff();
 
     final int style;
     final int mask;
@@ -187,6 +189,23 @@ public class AttributedStyle {
 
     public AttributedStyle backgroundDefault() {
         return new AttributedStyle(style & ~BG_COLOR & ~F_BACKGROUND, mask & ~(F_BACKGROUND | BG_COLOR));
+    }
+
+    /**
+     * The hidden flag can be used to embed custom escape sequences.
+     * The characters are considered being 0-column long and will be printed as-is.
+     * The user is responsible for ensuring that those sequences do not move the cursor.
+     */
+    public AttributedStyle hidden() {
+        return new AttributedStyle(style | F_HIDDEN, mask | F_HIDDEN);
+    }
+
+    public AttributedStyle hiddenOff() {
+        return new AttributedStyle(style & ~F_HIDDEN, mask | F_HIDDEN);
+    }
+
+    public AttributedStyle hiddenDefault() {
+        return new AttributedStyle(style & ~F_HIDDEN, mask & ~F_HIDDEN);
     }
 
     int getStyle() {

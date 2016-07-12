@@ -39,6 +39,19 @@ public class AttributedStringTest {
 
         assertEquals("echo \033[1mfoo \033[43mblue\033[49m \033[0m", sb.toAnsi());
 
+        sb.setLength(0);
+        sb.style(AttributedStyle.DEFAULT);
+        sb.append("plain");
+        sb.style(sb.style().hidden());
+        sb.append("\033[38;5;120m");
+        sb.style(sb.style().hiddenOff());
+        sb.append("green");
+        sb.style(sb.style().hidden());
+        sb.append("\033[39m");
+        sb.style(sb.style().hiddenOff());
+        sb.append("plain");
+        assertEquals("plain\033[38;5;120mgreen\033[39mplain", sb.toAnsi());
+        assertEquals("plaingreenplain".length(), sb.toAttributedString().columnLength());
     }
 
     @Test

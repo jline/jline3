@@ -53,8 +53,14 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
         return buffer[index];
     }
 
+    @Override
     public AttributedStyle styleAt(int index) {
         return new AttributedStyle(style[index], style[index]);
+    }
+
+    @Override
+    int styleCodeAt(int index) {
+        return style[index];
     }
 
     @Override
@@ -109,7 +115,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
         ensureCapacity(length + l);
         for (int i = 0; i < l; i++) {
             char c = str.charAt(i);
-            int s = str.styleAt(i).getStyle() & ~current.getMask() | current.getStyle();
+            int s = str.styleCodeAt(i) & ~current.getMask() | current.getStyle();
             if (tabs > 0 && c == '\t') {
                 insertTab(new AttributedStyle(s, 0));
             } else {
