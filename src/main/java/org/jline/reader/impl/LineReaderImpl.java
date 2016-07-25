@@ -4863,6 +4863,7 @@ public class LineReaderImpl implements LineReader, Flushable
         bind(emacs, BACKWARD_WORD,                          alt('b'));
         bind(emacs, CAPITALIZE_WORD,                        alt('c'));
         bind(emacs, KILL_WORD,                              alt('d'));
+        bind(emacs, KILL_WORD,                              translate("^[[3;5~")); // ctrl-delete
         bind(emacs, FORWARD_WORD,                           alt('f'));
         bind(emacs, DOWN_CASE_WORD,                         alt('l'));
         bind(emacs, HISTORY_SEARCH_FORWARD,                 alt('n'));
@@ -4872,6 +4873,8 @@ public class LineReaderImpl implements LineReader, Flushable
         bind(emacs, YANK_POP,                               alt('y'));
         bind(emacs, BACKWARD_KILL_WORD,                     alt(del()));
         bindArrowKeys(emacs);
+        bind(emacs, FORWARD_WORD,                           translate("^[[1;5C")); // ctrl-left
+        bind(emacs, BACKWARD_WORD,                          translate("^[[1;5D")); // ctrl-right
         bind(emacs, FORWARD_WORD,                           alt(key(Capability.key_right)));
         bind(emacs, BACKWARD_WORD,                          alt(key(Capability.key_left)));
         bind(emacs, FORWARD_WORD,                           alt(translate("^[[C")));
