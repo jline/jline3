@@ -17,7 +17,7 @@ import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.jna.JnaNativePty;
 
-import static org.jline.terminal.impl.jna.linux.CLibrary.TCSANOW;
+import static org.jline.terminal.impl.jna.linux.CLibrary.TCSADRAIN;
 import static org.jline.terminal.impl.jna.linux.CLibrary.TIOCGWINSZ;
 import static org.jline.terminal.impl.jna.linux.CLibrary.TIOCSWINSZ;
 import static org.jline.terminal.impl.jna.linux.CLibrary.termios;
@@ -68,7 +68,7 @@ public class LinuxNativePty extends JnaNativePty {
     @Override
     public void setAttr(Attributes attr) throws IOException {
         termios termios = new termios(attr);
-        C_LIBRARY.tcsetattr(getSlave(), TCSANOW, termios);
+        C_LIBRARY.tcsetattr(getSlave(), TCSADRAIN, termios);
     }
 
     @Override
