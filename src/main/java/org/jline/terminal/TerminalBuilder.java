@@ -46,6 +46,7 @@ public final class TerminalBuilder {
     private String type;
     private String encoding;
     private Boolean system;
+    private Boolean jna;
     private Attributes attributes;
     private Size size;
     private boolean nativeSignals = true;
@@ -66,6 +67,11 @@ public final class TerminalBuilder {
 
     public TerminalBuilder system(boolean system) {
         this.system = system;
+        return this;
+    }
+
+    public TerminalBuilder jna(boolean jna) {
+        this.jna = jna;
         return this;
     }
 
@@ -120,18 +126,23 @@ public final class TerminalBuilder {
                 return new PosixSysTerminal(name, type, pty, encoding, nativeSignals);
             }
             else if (OSUtils.IS_WINDOWS) {
-                try {
-                    return new JnaWinSysTerminal(name, nativeSignals);
-                } catch (Throwable t) {
-                    return new JansiWinSysTerminal(name, nativeSignals);
+                if (useJna()) {
+                    try {
+                        return new JnaWinSysTerminal(name, nativeSignals);
+                    } catch (Throwable t) {
+                        Log.debug("Error creating JNA based pty", t.getMessage());
+                    }
                 }
+                return new JansiWinSysTerminal(name, nativeSignals);
             } else {
                 Pty pty = null;
-                try {
-                    pty = JnaNativePty.current();
-                } catch (Throwable t) {
-                    // ignore
-                    Log.debug("Error creating JNA based pty", t.getMessage());
+                if (useJna()) {
+                    try {
+                        pty = JnaNativePty.current();
+                    } catch (Throwable t) {
+                        // ignore
+                        Log.debug("Error creating JNA based pty", t.getMessage());
+                    }
                 }
                 if (pty == null) {
                     try {
@@ -151,13 +162,19 @@ public final class TerminalBuilder {
                 }
             }
         } else {
-            try {
-                Pty pty = JnaNativePty.open(attributes, size);
-                return new PosixPtyTerminal(name, type, pty, in, out, encoding);
-            } catch (Throwable t) {
-                Log.debug("Error creating JNA based pty", t.getMessage());
-                return new ExternalTerminal(name, type, in, out, encoding);
+            if (useJna()) {
+                try {
+                    Pty pty = JnaNativePty.open(attributes, size);
+                    return new PosixPtyTerminal(name, type, pty, in, out, encoding);
+                } catch (Throwable t) {
+                    Log.debug("Error creating JNA based pty", t.getMessage());
+                }
             }
+            return new ExternalTerminal(name, type, in, out, encoding);
         }
+    }
+
+    private boolean useJna() {
+        return jna == null || jna;
     }
 }

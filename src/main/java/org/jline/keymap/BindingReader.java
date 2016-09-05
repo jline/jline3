@@ -13,6 +13,8 @@ import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
+import org.jline.reader.EndOfFileException;
+import org.jline.utils.ClosedException;
 import org.jline.utils.NonBlockingReader;
 
 /**
@@ -129,6 +131,8 @@ public class BindingReader {
                 }
             }
             return s != 0 ? Character.toCodePoint((char) s, (char) c) : c;
+        } catch (ClosedException e) {
+            throw new EndOfFileException(e);
         } catch (IOException e) {
             throw new IOError(e);
         }

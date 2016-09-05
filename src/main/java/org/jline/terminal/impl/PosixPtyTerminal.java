@@ -14,14 +14,17 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.jline.utils.ClosedException;
 import org.jline.utils.InputStreamReader;
 import org.jline.utils.NonBlockingReader;
 
 public class PosixPtyTerminal extends AbstractPosixTerminal {
 
-    protected final InputStream input;
+    protected final InputStreamWrapper input;
     protected final OutputStream output;
+    private final InputStreamReader innerReader;
     private final NonBlockingReader reader;
     private final PrintWriter writer;
     private final Thread inputPumpThread;
@@ -31,9 +34,10 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
         super(name, type, pty);
         Objects.requireNonNull(in);
         Objects.requireNonNull(out);
-        this.input = pty.getSlaveInput();
+        this.input = new InputStreamWrapper(pty.getSlaveInput());
         this.output = pty.getSlaveOutput();
-        this.reader = new NonBlockingReader(name, new InputStreamReader(input, encoding));
+        this.innerReader = new InputStreamReader(input, encoding);
+        this.reader = new NonBlockingReader(name, innerReader);
         this.writer = new PrintWriter(new OutputStreamWriter(output, encoding));
         this.inputPumpThread = new PumpThread(in, getPty().getMasterOutput());
         this.outputPumpThread = new PumpThread(getPty().getMasterInput(), out);
@@ -58,6 +62,29 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
         return writer;
     }
 
+    private class InputStreamWrapper extends InputStream {
+
+        private final InputStream in;
+        private final AtomicBoolean closed = new AtomicBoolean();
+
+        protected InputStreamWrapper(InputStream in) {
+            this.in = in;
+        }
+
+        @Override
+        public int read() throws IOException {
+            if (closed.get()) {
+                throw new ClosedException();
+            }
+            return in.read();
+        }
+
+        @Override
+        public void close() throws IOException {
+            closed.set(true);
+        }
+    }
+
     private class PumpThread extends Thread {
         private final InputStream in;
         private final OutputStream out;
@@ -73,6 +100,7 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
                 while (true) {
                     int b = in.read();
                     if (b < 0) {
+                        input.close();
                         break;
                     }
                     out.write(b);

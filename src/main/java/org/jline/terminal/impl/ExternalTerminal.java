@@ -57,11 +57,12 @@ public class ExternalTerminal extends LineDisciplineTerminal {
                 processInputByte((char) c);
             }
         } catch (IOException e) {
-            try {
-                close();
-            } catch (Throwable t) {
-                // Ignore
-            }
+            // Ignore
+        }
+        try {
+            close();
+        } catch (Throwable t) {
+            // Ignore
         }
     }
 

@@ -188,7 +188,7 @@ public class InputStreamReader extends Reader {
     public int read() throws IOException {
         synchronized (lock) {
             if (!isOpen()) {
-                throw new IOException("InputStreamReader is closed.");
+                throw new ClosedException("InputStreamReader is closed.");
             }
 
             if (pending != (char) -1) {
