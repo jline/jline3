@@ -46,7 +46,7 @@ public final class TerminalBuilder {
     private String type;
     private String encoding;
     private Boolean system;
-    private Boolean jna;
+    private boolean jna = true;
     private Attributes attributes;
     private Size size;
     private boolean nativeSignals = true;
@@ -92,6 +92,11 @@ public final class TerminalBuilder {
 
     public TerminalBuilder size(Size size) {
         this.size = size;
+        return this;
+    }
+
+    public TerminalBuilder nativeSignals(boolean nativeSignals) {
+        this.nativeSignals = nativeSignals;
         return this;
     }
 
@@ -175,6 +180,6 @@ public final class TerminalBuilder {
     }
 
     private boolean useJna() {
-        return jna == null || jna;
+        return jna;
     }
 }

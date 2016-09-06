@@ -42,10 +42,7 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
         parseInfoCmp();
         if (nativeSignals) {
             for (final Signal signal : Signal.values()) {
-                String signame = signal.name();
-                Object old = Signals.registerDefault(signame);
-                Signals.unregister(signame, old);
-                nativeHandlers.put(signal, old);
+                nativeHandlers.put(signal, Signals.register(signal.name(), () -> raise(signal)));
             }
         }
         closer = PosixSysTerminal.this::close;
