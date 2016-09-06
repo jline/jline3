@@ -577,7 +577,7 @@ public class Less {
         if (buffer.length() > 0) {
             msg.append(" ").append(buffer);
         } else if (bindingReader.getCurrentBuffer().length() > 0
-                && terminal.reader().peek(1) != NonBlockingReader.READ_EXPIRED) {
+                && terminal.reader().peek(1) == NonBlockingReader.READ_EXPIRED) {
             msg.append(" ").append(printable(bindingReader.getCurrentBuffer()));
         } else if (message != null) {
             msg.style(AttributedStyle.INVERSE);
