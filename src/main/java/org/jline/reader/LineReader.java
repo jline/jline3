@@ -316,7 +316,8 @@ public interface LineReader {
         /** if set and not at start of line before prompt, move to new line */
         AUTO_FRESH_LINE,
         AUTO_PARAM_SLASH(true),
-        AUTO_REMOVE_SLASH(true);
+        AUTO_REMOVE_SLASH(true),
+        INSERT_TAB(true);
 
         private final boolean def;
 

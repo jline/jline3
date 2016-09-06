@@ -3454,7 +3454,9 @@ public class LineReaderImpl implements LineReader, Flushable
     //
 
     protected boolean insertTab() {
-        return getLastBinding().equals("\t") && buf.toString().matches("(^|[\\s\\S]*\n)[\r\n\t ]*");
+        return isSet(Option.INSERT_TAB)
+                    && getLastBinding().equals("\t")
+                    && buf.toString().matches("(^|[\\s\\S]*\n)[\r\n\t ]*");
     }
 
     protected boolean expandHistory() {
