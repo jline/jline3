@@ -49,6 +49,20 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
         ShutdownHooks.add(closer);
     }
 
+    @Override
+    protected void handleDefaultSignal(Signal signal) {
+        Object handler = nativeHandlers.get(signal);
+        if (handler != null) {
+            try {
+                Signals.invokeHandler(signal.name(), handler);
+            } catch (RuntimeException ex) {
+                throw ex;
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+    }
+
     public NonBlockingReader reader() {
         return reader;
     }

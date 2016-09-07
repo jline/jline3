@@ -87,6 +87,15 @@ public final class Signals {
         }
     }
 
+    public static void invokeHandler(String name, Object handler)
+            throws Exception {
+        Class<?> signalClass = Class.forName("sun.misc.Signal");
+        Class<?> signalHandlerClass = Class.forName("sun.misc.SignalHandler");
+        Object signal = signalClass.getConstructor(String.class).newInstance(name);
+        signalHandlerClass.getMethod("handle", signalClass)
+            .invoke(handler, signal);
+    }
+
     private static Object doRegister(String name, Object handler) throws Exception {
         Class<?> signalClass = Class.forName("sun.misc.Signal");
         Class<?> signalHandlerClass = Class.forName("sun.misc.SignalHandler");
