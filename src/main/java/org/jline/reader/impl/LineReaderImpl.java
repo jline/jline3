@@ -3791,8 +3791,7 @@ public class LineReaderImpl implements LineReader, Flushable
                      Map<String, List<Candidate>>> typoMatcher(String word, int errors) {
         return m -> {
             Map<String, List<Candidate>> map = m.entrySet().stream()
-                    .filter(e -> Levenshtein.distance(
-                                    word, e.getKey().substring(0, Math.min(e.getKey().length(), word.length()))) < errors)
+                    .filter(e -> distance(word, e.getKey()) < errors)
                     .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
             if (map.size() > 1) {
                 map.computeIfAbsent(word, w -> new ArrayList<>())
@@ -3802,6 +3801,15 @@ public class LineReaderImpl implements LineReader, Flushable
         };
     }
 
+    private int distance(String word, String cand) {
+        if (word.length() < cand.length()) {
+            int d1 = Levenshtein.distance(word, cand.substring(0, Math.min(cand.length(), word.length())));
+            int d2 = Levenshtein.distance(word, cand);
+            return Math.min(d1, d2);
+        } else {
+            return Levenshtein.distance(word, cand);
+        }
+    }
 
     protected boolean nextBindingIsComplete() {
         redisplay();
