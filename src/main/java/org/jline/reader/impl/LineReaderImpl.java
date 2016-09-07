@@ -4079,9 +4079,14 @@ public class LineReaderImpl implements LineReader, Flushable
         StringBuilder sb = new StringBuilder();
         while (true) {
             String current = completed + sb.toString();
-            List<Candidate> cands = possible.stream()
-                    .filter(c -> c.value().startsWith(current))
-                    .collect(Collectors.toList());
+            List<Candidate> cands;
+            if (sb.length() > 0) {
+                cands = possible.stream()
+                        .filter(c -> c.value().startsWith(current))
+                        .collect(Collectors.toList());
+            } else {
+                cands = possible;
+            }
             post = () -> {
                 AttributedString t = insertSecondaryPrompts(AttributedStringBuilder.append(prompt, buf.toString()), new ArrayList<>());
                 int pl = t.columnSplitLength(size.getColumns()).size();
