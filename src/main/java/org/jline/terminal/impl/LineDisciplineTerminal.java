@@ -76,7 +76,15 @@ public class LineDisciplineTerminal extends AbstractTerminal {
                                   String type,
                                   OutputStream masterOutput,
                                   String encoding) throws IOException {
-        super(name, type);
+        this(name, type, masterOutput, encoding, SignalHandler.SIG_DFL);
+    }
+
+    public LineDisciplineTerminal(String name,
+                                  String type,
+                                  OutputStream masterOutput,
+                                  String encoding,
+                                  SignalHandler signalHandler) throws IOException {
+        super(name, type, signalHandler);
         PipedInputStream input = new PipedInputStream(PIPE_SIZE);
         this.slaveInputPipe = new PipedOutputStream(input);
         // This is a hack to fix a problem in gogo where closure closes

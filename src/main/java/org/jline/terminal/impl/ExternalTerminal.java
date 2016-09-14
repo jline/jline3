@@ -34,7 +34,15 @@ public class ExternalTerminal extends LineDisciplineTerminal {
                             InputStream masterInput,
                             OutputStream masterOutput,
                             String encoding) throws IOException {
-        super(name, type, masterOutput, encoding);
+        this(name, type, masterInput, masterOutput, encoding, SignalHandler.SIG_DFL);
+    }
+
+    public ExternalTerminal(String name, String type,
+                            InputStream masterInput,
+                            OutputStream masterOutput,
+                            String encoding,
+                            SignalHandler signalHandler) throws IOException {
+        super(name, type, masterOutput, encoding, signalHandler);
         this.masterInput = masterInput;
         this.pumpThread = new Thread(this::pump, toString() + " input pump thread");
         this.pumpThread.start();

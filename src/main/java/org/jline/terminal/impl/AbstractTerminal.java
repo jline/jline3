@@ -37,10 +37,14 @@ public abstract class AbstractTerminal implements Terminal {
     protected final Map<Capability, String> strings = new HashMap<>();
 
     public AbstractTerminal(String name, String type) throws IOException {
+        this(name, type, SignalHandler.SIG_DFL);
+    }
+
+    public AbstractTerminal(String name, String type, SignalHandler signalHandler) throws IOException {
         this.name = name;
         this.type = type;
         for (Signal signal : Signal.values()) {
-            handlers.put(signal, SignalHandler.SIG_DFL);
+            handlers.put(signal, signalHandler);
         }
     }
 

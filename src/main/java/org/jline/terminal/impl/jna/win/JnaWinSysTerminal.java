@@ -48,7 +48,11 @@ public class JnaWinSysTerminal extends AbstractTerminal {
     private static final Pointer console = Kernel32.INSTANCE.GetStdHandle(Kernel32.STD_OUTPUT_HANDLE);
 
     public JnaWinSysTerminal(String name, boolean nativeSignals) throws IOException {
-        super(name, "windows");
+        this(name, nativeSignals, SignalHandler.SIG_DFL);
+    }
+
+    public JnaWinSysTerminal(String name, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
+        super(name, "windows", signalHandler);
         input = new DirectInputStream();
         output = new WindowsAnsiOutputStream(new FileOutputStream(FileDescriptor.out));
         String encoding = getConsoleEncoding();
@@ -66,6 +70,14 @@ public class JnaWinSysTerminal extends AbstractTerminal {
         }
         closer = this::close;
         ShutdownHooks.add(closer);
+    }
+
+    @Override
+    protected void handleDefaultSignal(Signal signal) {
+        Object handler = nativeHandlers.get(signal);
+        if (handler != null) {
+            Signals.invokeHandler(signal.name(), handler);
+        }
     }
 
     @SuppressWarnings("InjectedReferences")

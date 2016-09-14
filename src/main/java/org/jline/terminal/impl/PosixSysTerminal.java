@@ -32,7 +32,8 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
     protected final Map<Signal, Object> nativeHandlers = new HashMap<>();
     protected final Task closer;
 
-    public PosixSysTerminal(String name, String type, Pty pty, String encoding, boolean nativeSignals) throws IOException {
+    public PosixSysTerminal(String name, String type, Pty pty, String encoding,
+                            boolean nativeSignals, SignalHandler nativeSignalHandler) throws IOException {
         super(name, type, pty);
         Objects.requireNonNull(encoding);
         this.input = pty.getSlaveInput();
@@ -47,6 +48,14 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
         }
         closer = PosixSysTerminal.this::close;
         ShutdownHooks.add(closer);
+    }
+
+    @Override
+    protected void handleDefaultSignal(Signal signal) {
+        Object handler = nativeHandlers.get(signal);
+        if (handler != null) {
+            Signals.invokeHandler(signal.name(), handler);
+        }
     }
 
     public NonBlockingReader reader() {

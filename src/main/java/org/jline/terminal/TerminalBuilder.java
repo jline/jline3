@@ -49,7 +49,8 @@ public final class TerminalBuilder {
     private boolean jna = true;
     private Attributes attributes;
     private Size size;
-    private boolean nativeSignals = true;
+    private boolean nativeSignals = false;
+    private Terminal.SignalHandler signalHandler = Terminal.SignalHandler.SIG_DFL;
 
     private TerminalBuilder() {
     }
@@ -100,6 +101,11 @@ public final class TerminalBuilder {
         return this;
     }
 
+    public TerminalBuilder signalHandler(Terminal.SignalHandler signalHandler) {
+        this.signalHandler = signalHandler;
+        return this;
+    }
+
     public Terminal build() throws IOException {
         Terminal terminal = doBuild();
         Log.debug("Using terminal " + terminal.getClass().getSimpleName());
@@ -128,17 +134,17 @@ public final class TerminalBuilder {
             //
             if (OSUtils.IS_CYGWIN) {
                 Pty pty = CygwinPty.current();
-                return new PosixSysTerminal(name, type, pty, encoding, nativeSignals);
+                return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
             }
             else if (OSUtils.IS_WINDOWS) {
                 if (useJna()) {
                     try {
-                        return new JnaWinSysTerminal(name, nativeSignals);
+                        return new JnaWinSysTerminal(name, nativeSignals, signalHandler);
                     } catch (Throwable t) {
                         Log.debug("Error creating JNA based pty", t.getMessage());
                     }
                 }
-                return new JansiWinSysTerminal(name, nativeSignals);
+                return new JansiWinSysTerminal(name, nativeSignals, signalHandler);
             } else {
                 Pty pty = null;
                 if (useJna()) {
@@ -158,24 +164,24 @@ public final class TerminalBuilder {
                     }
                 }
                 if (pty != null) {
-                    return new PosixSysTerminal(name, type, pty, encoding, nativeSignals);
+                    return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
                 } else {
                     return new DumbTerminal(name, type,
                                             new FileInputStream(FileDescriptor.in),
                                             new FileOutputStream(FileDescriptor.out),
-                                            encoding);
+                                            encoding, signalHandler);
                 }
             }
         } else {
             if (useJna()) {
                 try {
                     Pty pty = JnaNativePty.open(attributes, size);
-                    return new PosixPtyTerminal(name, type, pty, in, out, encoding);
+                    return new PosixPtyTerminal(name, type, pty, in, out, encoding, signalHandler);
                 } catch (Throwable t) {
                     Log.debug("Error creating JNA based pty", t.getMessage());
                 }
             }
-            return new ExternalTerminal(name, type, in, out, encoding);
+            return new ExternalTerminal(name, type, in, out, encoding, signalHandler);
         }
     }
 

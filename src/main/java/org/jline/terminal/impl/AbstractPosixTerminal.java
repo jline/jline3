@@ -13,7 +13,11 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
     protected final Attributes originalAttributes;
 
     public AbstractPosixTerminal(String name, String type, Pty pty) throws IOException {
-        super(name, type);
+        this(name, type, pty, SignalHandler.SIG_DFL);
+    }
+
+    public AbstractPosixTerminal(String name, String type, Pty pty, SignalHandler signalHandler) throws IOException {
+        super(name, type, signalHandler);
         Objects.requireNonNull(pty);
         this.pty = pty;
         this.originalAttributes = this.pty.getAttr();

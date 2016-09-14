@@ -37,7 +37,11 @@ public class DumbTerminal extends AbstractTerminal {
     }
 
     public DumbTerminal(String name, String type, InputStream in, OutputStream out, String encoding) throws IOException {
-        super(name, type);
+        this(name, type, in, out, encoding, SignalHandler.SIG_DFL);
+    }
+
+    public DumbTerminal(String name, String type, InputStream in, OutputStream out, String encoding, SignalHandler signalHandler) throws IOException {
+        super(name, type, signalHandler);
         this.input = in;
         this.output = out;
         this.reader = new NonBlockingReader(getName(), new InputStreamReader(in, encoding));

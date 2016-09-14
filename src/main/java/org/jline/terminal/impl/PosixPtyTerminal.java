@@ -31,7 +31,11 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
     private final Thread outputPumpThread;
 
     public PosixPtyTerminal(String name, String type, Pty pty, InputStream in, OutputStream out, String encoding) throws IOException {
-        super(name, type, pty);
+        this(name, type, pty, in, out, encoding, SignalHandler.SIG_DFL);
+    }
+
+    public PosixPtyTerminal(String name, String type, Pty pty, InputStream in, OutputStream out, String encoding, SignalHandler signalHandler) throws IOException {
+        super(name, type, pty, signalHandler);
         Objects.requireNonNull(in);
         Objects.requireNonNull(out);
         this.input = new InputStreamWrapper(pty.getSlaveInput());
