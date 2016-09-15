@@ -89,14 +89,10 @@ public class FileHistory extends MemoryHistory
             }
         }
 
-        PrintStream out = new PrintStream(new BufferedOutputStream(new FileOutputStream(file)));
-        try {
+        try (PrintStream out = new PrintStream(new BufferedOutputStream(new FileOutputStream(file)))) {
             for (Entry entry : this) {
                 out.println(entry.value());
             }
-        }
-        finally {
-            out.close();
         }
     }
 
