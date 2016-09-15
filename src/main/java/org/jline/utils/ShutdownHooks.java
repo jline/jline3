@@ -20,7 +20,7 @@ import java.util.Objects;
  */
 public final class ShutdownHooks
 {
-    private static final List<Task> tasks = new ArrayList<Task>();
+    private static final List<Task> tasks = new ArrayList<>();
 
     private static Thread hook;
 

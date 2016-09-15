@@ -43,7 +43,7 @@ public final class Curses {
         int length = str.length();
         int ifte = IFTE_NONE;
         boolean exec = true;
-        Stack<Object> stack = new Stack<Object>();
+        Stack<Object> stack = new Stack<>();
         while (index < length) {
             char ch = str.charAt(index++);
             switch (ch) {

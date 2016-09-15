@@ -134,7 +134,7 @@ public final class WindowsAnsiOutputStream extends FilterOutputStream {
     private byte buffer[] = new byte[MAX_ESCAPE_SEQUENCE_LENGTH];
     private int pos = 0;
     private int startOfValue;
-    private final ArrayList<Object> options = new ArrayList<Object>();
+    private final ArrayList<Object> options = new ArrayList<>();
 
     int state = LOOKING_FOR_FIRST_ESC_CHAR;
 

@@ -3260,7 +3260,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
     private AttributedString expandPromptPattern(String pattern, int padToWidth,
                                                  String message, int line) {
-        ArrayList<AttributedString> parts = new ArrayList<AttributedString>();
+        ArrayList<AttributedString> parts = new ArrayList<>();
         boolean isHidden = false;
         int padPartIndex = -1;
         StringBuilder padPartString = null;

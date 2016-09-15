@@ -26,9 +26,9 @@ public class InfoCmpTest {
 
     @Test
     public void testInfoCmp() {
-        Set<Capability> bools = new HashSet<Capability>();
-        Map<Capability, Integer> ints = new HashMap<Capability, Integer>();
-        Map<Capability, String> strings = new HashMap<Capability, String>();
+        Set<Capability> bools = new HashSet<>();
+        Map<Capability, Integer> ints = new HashMap<>();
+        Map<Capability, String> strings = new HashMap<>();
 
         String infocmp = InfoCmp.ANSI_CAPS;
         InfoCmp.parseInfoCmp(infocmp, bools, ints, strings);

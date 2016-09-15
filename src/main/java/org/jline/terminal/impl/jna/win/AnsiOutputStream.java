@@ -40,7 +40,7 @@ public class AnsiOutputStream extends FilterOutputStream {
     private byte buffer[] = new byte[MAX_ESCAPE_SEQUENCE_LENGTH];
     private int pos = 0;
     private int startOfValue;
-    private final ArrayList<Object> options = new ArrayList<Object>();
+    private final ArrayList<Object> options = new ArrayList<>();
 
     private static final int LOOKING_FOR_FIRST_ESC_CHAR = 0;
     private static final int LOOKING_FOR_SECOND_ESC_CHAR = 1;
