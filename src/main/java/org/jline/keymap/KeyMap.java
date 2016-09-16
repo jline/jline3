@@ -35,7 +35,7 @@ public class KeyMap<T> {
     private T anotherKey = null;
     private T unicode;
     private T nomatch;
-    private long ambigousTimeout = DEFAULT_AMBIGUOUS_TIMEOUT;
+    private long ambiguousTimeout = DEFAULT_AMBIGUOUS_TIMEOUT;
 
     public static String display(String key) {
         StringBuilder sb = new StringBuilder();
@@ -291,12 +291,12 @@ public class KeyMap<T> {
         this.nomatch = nomatch;
     }
 
-    public long getAmbigousTimeout() {
-        return ambigousTimeout;
+    public long getAmbiguousTimeout() {
+        return ambiguousTimeout;
     }
 
-    public void setAmbigousTimeout(long ambigousTimeout) {
-        this.ambigousTimeout = ambigousTimeout;
+    public void setAmbiguousTimeout(long ambiguousTimeout) {
+        this.ambiguousTimeout = ambiguousTimeout;
     }
 
     public T getAnotherKey() {

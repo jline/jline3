@@ -269,8 +269,8 @@ public interface CLibrary extends com.sun.jna.Library {
 
     // CONSTANTS
 
-    long TIOCGWINSZ = 0x00005413l;
-    long TIOCSWINSZ = 0x00005414l;
+    long TIOCGWINSZ = 0x00005413L;
+    long TIOCSWINSZ = 0x00005414L;
 
     int VINTR       = 0;
     int VQUIT       = 1;

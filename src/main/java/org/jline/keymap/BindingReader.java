@@ -41,8 +41,8 @@ public class BindingReader {
      * binding can be found.  Characters that can't possibly be matched to
      * any binding will be send with the {@link KeyMap#getNomatch()} binding.
      * Unicode (&gt;= 128) characters will be matched to {@link KeyMap#getUnicode()}.
-     * If the current key sequence is ambigous, i.e. the sequence is bound but
-     * it's also a prefix to other sequences, then the {@link KeyMap#getAmbigousTimeout()}
+     * If the current key sequence is ambiguous, i.e. the sequence is bound but
+     * it's also a prefix to other sequences, then the {@link KeyMap#getAmbiguousTimeout()}
      * timeout will be used to wait for another incoming character.
      * If a character comes, the disambiguation will be done.  If the timeout elapses
      * and no character came in, or if the timeout is &lt;= 0, the current bound operation
@@ -84,7 +84,7 @@ public class BindingReader {
                     opBuffer.setLength(opBuffer.length() - remaining[0]);
                 }
                 else {
-                    long ambiguousTimeout = keys.getAmbigousTimeout();
+                    long ambiguousTimeout = keys.getAmbiguousTimeout();
                     if (ambiguousTimeout > 0 && peekCharacter(ambiguousTimeout) != NonBlockingReader.READ_EXPIRED) {
                         o = null;
                     }

@@ -103,8 +103,8 @@ public class LineReaderImpl implements LineReader, Flushable
     public static final String DEFAULT_BELL_STYLE = "";
     public static final int    DEFAULT_LIST_MAX = 100;
     public static final int    DEFAULT_ERRORS = 2;
-    public static final long   DEFAULT_BLINK_MATCHING_PAREN = 500l;
-    public static final long   DEFAULT_AMBIGUOUS_BINDING = 1000l;
+    public static final long   DEFAULT_BLINK_MATCHING_PAREN = 500L;
+    public static final long   DEFAULT_AMBIGUOUS_BINDING = 1000L;
     public static final String DEFAULT_SECONDARY_PROMPT_PATTERN = "%M> ";
 
     /**
@@ -3662,12 +3662,12 @@ public class LineReaderImpl implements LineReader, Flushable
         Candidate completion = null;
         // If there's a single possible completion
         if (matching.size() == 1) {
-            completion = matching.values().stream().<Candidate>flatMap(Collection::stream)
+            completion = matching.values().stream().flatMap(Collection::stream)
                     .findFirst().orElse(null);
         }
         // Or if RECOGNIZE_EXACT is set, try to find an exact match
         else if (isSet(Option.RECOGNIZE_EXACT)) {
-            completion = matching.values().stream().<Candidate>flatMap(Collection::stream)
+            completion = matching.values().stream().flatMap(Collection::stream)
                     .filter(Candidate::complete)
                     .filter(c -> exact.test(c.value()))
                     .findFirst().orElse(null);
@@ -4813,7 +4813,7 @@ public class LineReaderImpl implements LineReader, Flushable
         // Put default
         for (KeyMap<Binding> keyMap : keyMaps.values()) {
             keyMap.setUnicode(new Reference(SELF_INSERT));
-            keyMap.setAmbigousTimeout(getLong(AMBIGUOUS_BINDING, DEFAULT_AMBIGUOUS_BINDING));
+            keyMap.setAmbiguousTimeout(getLong(AMBIGUOUS_BINDING, DEFAULT_AMBIGUOUS_BINDING));
         }
         // By default, link main to emacs
         keyMaps.put(MAIN, keyMaps.get(EMACS));

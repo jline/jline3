@@ -21,7 +21,7 @@ interface Kernel32 extends StdCallLibrary {
 
     Kernel32 INSTANCE = (Kernel32) Native.loadLibrary("kernel32", Kernel32.class, W32APIOptions.UNICODE_OPTIONS);
 
-    Pointer INVALID_HANDLE_VALUE = Pointer.createConstant(-1l);
+    Pointer INVALID_HANDLE_VALUE = Pointer.createConstant(-1L);
 
     int STD_INPUT_HANDLE =  -10;
     int STD_OUTPUT_HANDLE = -11;

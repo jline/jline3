@@ -58,7 +58,7 @@ public class Example
             + "the actual password character");
         System.out.println("  color - colored prompt and feedback");
         System.out.println("\n  E.g - java Example simple su '*'\n"
-            + "will use the simple compleator with 'su' triggering\n"
+            + "will use the simple completor with 'su' triggering\n"
             + "the use of '*' as a password mask.");
     }
 

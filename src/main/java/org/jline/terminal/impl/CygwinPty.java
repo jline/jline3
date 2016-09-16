@@ -273,7 +273,7 @@ public class CygwinPty implements Pty {
             String result = ExecHelper.waitAndCapture(p);
             Log.trace("Result: ", result);
             if (p.exitValue() != 0) {
-                throw new IOException("Error executing '" + String.join(" ", cmd) + "': " + result);
+                throw new IOException("Error executing '" + String.join(" ", (CharSequence[]) cmd) + "': " + result);
             }
             return result;
         } catch (InterruptedException e) {

@@ -294,7 +294,7 @@ public interface LineReader {
      * time.  If the timeout elapses, the matched sequence will be
      * used.
      */
-    String AMBIGUOUS_BINDING = "ambigous-binding";
+    String AMBIGUOUS_BINDING = "ambiguous-binding";
 
     Map<String, KeyMap<Binding>> defaultKeyMaps();
 

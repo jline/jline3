@@ -352,7 +352,7 @@ public class MemoryHistory
     public String toString() {
         StringBuilder sb = new StringBuilder();
         for (Entry e : this) {
-            sb.append(e.toString() + "\n");
+            sb.append(e.toString()).append("\n");
         }
         return sb.toString();
     }

@@ -485,89 +485,101 @@ public class ScreenTerminal {
             // 1 : GATM: Guarded area transfer
             // 2 : KAM: Keyboard action
             // 3 : CRM: Control representation
-            if ("4".equals(m)) {
-                // Insertion replacement mode
-                vt100_mode_insert = state;
-                // 5 : SRTM: Status reporting transfer
-                // 7 : VEM: Vertical editing
-                // 10 : HEM: Horizontal editing
-                // 11 : PUM: Positioning nit
-                // 12 : SRM: Send/receive
-                // 13 : FEAM: Format effector action
-                // 14 : FETM: Format effector transfer
-                // 15 : MATM: Multiple area transfer
-                // 16 : TTM: Transfer termination
-                // 17 : SATM: Selected area transfer
-                // 18 : TSM: Tabulation stop
-                // 19 : EBM: Editing boundary
-            } else if ("20".equals(m)) {
-                // LNM: Line feed/new line
-                vt100_mode_lfnewline = state;
-            } else if ("?1".equals(m)) {
-                // DECCKM: Cursor keys
-                vt100_mode_cursorkey = state;
-                // ?2 : DECANM: ANSI
-            } else if ("?3".equals(m)) {
-                // DECCOLM: Column
-                if (vt100_mode_column_switch) {
-                    if (state) {
-                        width = 132;
-                    } else {
-                        width = 80;
+            switch (m) {
+                case "4":
+                    // Insertion replacement mode
+                    vt100_mode_insert = state;
+                    // 5 : SRTM: Status reporting transfer
+                    // 7 : VEM: Vertical editing
+                    // 10 : HEM: Horizontal editing
+                    // 11 : PUM: Positioning nit
+                    // 12 : SRM: Send/receive
+                    // 13 : FEAM: Format effector action
+                    // 14 : FETM: Format effector transfer
+                    // 15 : MATM: Multiple area transfer
+                    // 16 : TTM: Transfer termination
+                    // 17 : SATM: Selected area transfer
+                    // 18 : TSM: Tabulation stop
+                    // 19 : EBM: Editing boundary
+                    break;
+                case "20":
+                    // LNM: Line feed/new line
+                    vt100_mode_lfnewline = state;
+                    break;
+                case "?1":
+                    // DECCKM: Cursor keys
+                    vt100_mode_cursorkey = state;
+                    // ?2 : DECANM: ANSI
+                    break;
+                case "?3":
+                    // DECCOLM: Column
+                    if (vt100_mode_column_switch) {
+                        if (state) {
+                            width = 132;
+                        } else {
+                            width = 80;
+                        }
+                        reset_screen();
                     }
-                    reset_screen();
-                }
-                // ?4 : DECSCLM: Scrolling
-            } else if ("?5".equals(m)) {
-                // DECSCNM: Screen
-                vt100_mode_inverse = state;
-            } else if ("?6".equals(m)) {
-                // DECOM: Origin
-                vt100_mode_origin = state;
-                if (state) {
-                    cursor_set(scroll_area_y0, 0);
-                } else {
-                    cursor_set(0, 0);
-                }
-            } else if ("?7".equals(m)) {
-                // DECAWM: Autowrap
-                vt100_mode_autowrap = state;
-                // ?8 : DECARM: Autorepeat
-                // ?9 : Interlacing
-                // ?18 : DECPFF: Print form feed
-                // ?19 : DECPEX: Printer extent
-            } else if ("?25".equals(m)) {
-                // DECTCEM: Text cursor enable
-                vt100_mode_cursor = state;
-                // ?34 : DECRLM: Cursor direction, right to left
-                // ?35 : DECHEBM: Hebrew keyboard mapping
-                // ?36 : DECHEM: Hebrew encoding mode
-            } else if ("?40".equals(m)) {
-                // Column switch control
-                vt100_mode_column_switch = state;
-                // ?42 : DECNRCM: National replacement character set
-            } else if ("?1049".equals(m)) {
-                // Alternate screen mode
-                if ((state && !vt100_mode_alt_screen) || (!state && vt100_mode_alt_screen)) {
-                    int[] s = screen;
-                    screen = screen2;
-                    screen2 = s;
-                    Map<String, Object> map = vt100_saved;
-                    vt100_saved = vt100_saved2;
-                    vt100_saved2 = map;
-                    int c;
-                    c = vt100_alternate_saved_cx;
-                    vt100_alternate_saved_cx = cx;
-                    cx = Math.min(c, width - 1);
-                    c = vt100_alternate_saved_cy;
-                    vt100_alternate_saved_cy = cy;
-                    cy = Math.min(c, height - 1);
-                }
-                vt100_mode_alt_screen = state;
-                // ?57 : DECNAKB: Greek keyboard mapping
-            } else if ("?67".equals(m)) {
-                // DECBKM: Backarrow key
-                vt100_mode_backspace = state;
+                    // ?4 : DECSCLM: Scrolling
+                    break;
+                case "?5":
+                    // DECSCNM: Screen
+                    vt100_mode_inverse = state;
+                    break;
+                case "?6":
+                    // DECOM: Origin
+                    vt100_mode_origin = state;
+                    if (state) {
+                        cursor_set(scroll_area_y0, 0);
+                    } else {
+                        cursor_set(0, 0);
+                    }
+                    break;
+                case "?7":
+                    // DECAWM: Autowrap
+                    vt100_mode_autowrap = state;
+                    // ?8 : DECARM: Autorepeat
+                    // ?9 : Interlacing
+                    // ?18 : DECPFF: Print form feed
+                    // ?19 : DECPEX: Printer extent
+                    break;
+                case "?25":
+                    // DECTCEM: Text cursor enable
+                    vt100_mode_cursor = state;
+                    // ?34 : DECRLM: Cursor direction, right to left
+                    // ?35 : DECHEBM: Hebrew keyboard mapping
+                    // ?36 : DECHEM: Hebrew encoding mode
+                    break;
+                case "?40":
+                    // Column switch control
+                    vt100_mode_column_switch = state;
+                    // ?42 : DECNRCM: National replacement character set
+                    break;
+                case "?1049":
+                    // Alternate screen mode
+                    if ((state && !vt100_mode_alt_screen) || (!state && vt100_mode_alt_screen)) {
+                        int[] s = screen;
+                        screen = screen2;
+                        screen2 = s;
+                        Map<String, Object> map = vt100_saved;
+                        vt100_saved = vt100_saved2;
+                        vt100_saved2 = map;
+                        int c;
+                        c = vt100_alternate_saved_cx;
+                        vt100_alternate_saved_cx = cx;
+                        cx = Math.min(c, width - 1);
+                        c = vt100_alternate_saved_cy;
+                        vt100_alternate_saved_cy = cy;
+                        cy = Math.min(c, height - 1);
+                    }
+                    vt100_mode_alt_screen = state;
+                    // ?57 : DECNAKB: Greek keyboard mapping
+                    break;
+                case "?67":
+                    // DECBKM: Backarrow key
+                    vt100_mode_backspace = state;
+                    break;
             }
             // ?98 : DECARSM: auto-resize
             // ?101 : DECCANSM: Conceal answerback message
