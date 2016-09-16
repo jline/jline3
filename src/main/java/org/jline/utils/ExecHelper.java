@@ -12,25 +12,39 @@ import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InterruptedIOException;
 import java.io.OutputStream;
+import java.util.Objects;
 
 /**
- * Provides access to terminal line settings via <tt>stty</tt>.
- *
- * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
- * @author <a href="mailto:dwkemp@gmail.com">Dale Kemp</a>
- * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
- * @author <a href="mailto:jbonofre@apache.org">Jean-Baptiste Onofré</a>
- * @author <a href="mailto:gnodet@gmail.com">Guillaume Nodet</a>
- * @since 2.0
+ * Helper methods for running unix commands.
  */
-public final class ExecHelper
-{
+public final class ExecHelper {
 
     private ExecHelper() {
     }
 
-     public static String waitAndCapture(Process p) throws IOException, InterruptedException {
+    public static String exec(boolean redirectInput, final String... cmd) throws IOException {
+        Objects.requireNonNull(cmd);
+        try {
+            Log.trace("Running: ", cmd);
+            ProcessBuilder pb = new ProcessBuilder(cmd);
+            if (redirectInput) {
+                pb.redirectInput(ProcessBuilder.Redirect.INHERIT);
+            }
+            Process p = pb.start();
+            String result = waitAndCapture(p);
+            Log.trace("Result: ", result);
+            if (p.exitValue() != 0) {
+                throw new IOException("Error executing '" + String.join(" ", (CharSequence[]) cmd) + "': " + result);
+            }
+            return result;
+        } catch (InterruptedException e) {
+            throw (IOException) new InterruptedIOException("Command interrupted").initCause(e);
+        }
+    }
+
+    public static String waitAndCapture(Process p) throws IOException, InterruptedException {
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
         InputStream in = null;
         InputStream err = null;
@@ -47,8 +61,7 @@ public final class ExecHelper
             }
             out = p.getOutputStream();
             p.waitFor();
-        }
-        finally {
+        } finally {
             close(in, out, err);
         }
 

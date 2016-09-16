@@ -17,7 +17,6 @@ import java.io.OutputStream;
 import java.nio.charset.Charset;
 
 import org.jline.terminal.impl.AbstractPosixTerminal;
-import org.jline.terminal.impl.CygwinPty;
 import org.jline.terminal.impl.DumbTerminal;
 import org.jline.terminal.impl.ExecPty;
 import org.jline.terminal.impl.ExternalTerminal;
@@ -133,7 +132,7 @@ public final class TerminalBuilder {
             // Cygwin support
             //
             if (OSUtils.IS_CYGWIN) {
-                Pty pty = CygwinPty.current();
+                Pty pty = ExecPty.current();
                 return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
             }
             else if (OSUtils.IS_WINDOWS) {

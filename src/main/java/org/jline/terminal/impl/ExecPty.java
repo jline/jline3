@@ -12,12 +12,10 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InterruptedIOException;
+import java.io.FileDescriptor;
 import java.io.OutputStream;
-import java.lang.ProcessBuilder.Redirect;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,31 +26,27 @@ import org.jline.terminal.Attributes.InputFlag;
 import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Attributes.OutputFlag;
 import org.jline.terminal.Size;
-import org.jline.utils.ExecHelper;
-import org.jline.utils.Log;
 import org.jline.utils.OSUtils;
+
+import static org.jline.utils.ExecHelper.exec;
 
 public class ExecPty implements Pty {
 
     private final String name;
+    private final boolean system;
 
     public static Pty current() throws IOException {
         try {
-            Process p = new ProcessBuilder(OSUtils.TTY_COMMAND)
-                    .redirectInput(Redirect.INHERIT)
-                    .start();
-            String result = ExecHelper.waitAndCapture(p).trim();
-            if (p.exitValue() != 0) {
-                throw new IOException("Not a tty");
-            }
-            return new ExecPty(result);
-        } catch (InterruptedException e) {
-            throw (IOException) new InterruptedIOException("Command interrupted").initCause(e);
+            String result = exec(true, OSUtils.TTY_COMMAND);
+            return new ExecPty(result, true);
+        } catch (IOException e) {
+            throw new IOException("Not a tty", e);
         }
     }
 
-    protected ExecPty(String name) {
+    protected ExecPty(String name, boolean system) {
         this.name = name;
+        this.system = system;
     }
 
     @Override
@@ -75,12 +69,16 @@ public class ExecPty implements Pty {
 
     @Override
     public InputStream getSlaveInput() throws IOException {
-        return new FileInputStream(getName());
+        return system
+                ? new FileInputStream(FileDescriptor.in)
+                : new FileInputStream(getName());
     }
 
     @Override
     public OutputStream getSlaveOutput() throws IOException {
-        return new FileOutputStream(getName());
+        return system
+                ? new FileOutputStream(FileDescriptor.out)
+                : new FileOutputStream(getName());
     }
 
     @Override
@@ -141,9 +139,11 @@ public class ExecPty implements Pty {
         }
         if (!commands.isEmpty()) {
             commands.add(0, OSUtils.STTY_COMMAND);
-            commands.add(1, OSUtils.STTY_F_OPTION);
-            commands.add(2, getName());
-            exec(commands.toArray(new String[commands.size()]));
+            if (!system) {
+                commands.add(1, OSUtils.STTY_F_OPTION);
+                commands.add(2, getName());
+            }
+            exec(system, commands.toArray(new String[commands.size()]));
         }
     }
 
@@ -154,7 +154,9 @@ public class ExecPty implements Pty {
     }
 
     protected String doGetConfig() throws IOException {
-        return exec(OSUtils.STTY_COMMAND, OSUtils.STTY_F_OPTION, getName(), "-a");
+        return system
+                ? exec(true,  OSUtils.STTY_COMMAND, "-a")
+                : exec(false, OSUtils.STTY_COMMAND, OSUtils.STTY_F_OPTION, getName(), "-a");
     }
 
     static Attributes doGetAttr(String cfg) throws IOException {
@@ -261,25 +263,17 @@ public class ExecPty implements Pty {
 
     @Override
     public void setSize(Size size) throws IOException {
-        exec(OSUtils.STTY_COMMAND,
-             OSUtils.STTY_F_OPTION, getName(),
-             "columns", Integer.toString(size.getColumns()),
-             "rows", Integer.toString(size.getRows()));
-    }
-
-    private static String exec(final String... cmd) throws IOException {
-        Objects.requireNonNull(cmd);
-        try {
-            Log.trace("Running: ", cmd);
-            Process p = new ProcessBuilder(cmd).start();
-            String result = ExecHelper.waitAndCapture(p);
-            Log.trace("Result: ", result);
-            if (p.exitValue() != 0) {
-                throw new IOException("Error executing '" + String.join(" ", (CharSequence[]) cmd) + "': " + result);
-            }
-            return result;
-        } catch (InterruptedException e) {
-            throw (IOException) new InterruptedIOException("Command interrupted").initCause(e);
+        if (system) {
+            exec(true,
+                 OSUtils.STTY_COMMAND,
+                 "columns", Integer.toString(size.getColumns()),
+                 "rows", Integer.toString(size.getRows()));
+        } else {
+            exec(false,
+                 OSUtils.STTY_COMMAND,
+                 OSUtils.STTY_F_OPTION, getName(),
+                 "columns", Integer.toString(size.getColumns()),
+                 "rows", Integer.toString(size.getRows()));
         }
     }
 
