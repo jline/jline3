@@ -9,7 +9,7 @@
 package org.jline.reader.completer;
 
 import org.jline.reader.impl.ReaderTestSupport;
-import org.jline.reader.impl.completer.completer.NullCompleter;
+import org.jline.reader.impl.completer.NullCompleter;
 import org.junit.Test;
 
 /**

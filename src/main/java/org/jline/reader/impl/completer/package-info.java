@@ -11,4 +11,4 @@
  *
  * @since 3.0
  */
-package org.jline.reader.impl.completer.completer;
+package org.jline.reader.impl.completer;

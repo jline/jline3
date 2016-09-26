@@ -21,7 +21,7 @@ import java.util.UUID;
 import org.jline.reader.Candidate;
 import org.jline.reader.LineReader;
 import org.jline.reader.ParsedLine;
-import org.jline.reader.impl.completer.completer.FileNameCompleter;
+import org.jline.reader.impl.completer.FileNameCompleter;
 
 public class Completers {
 

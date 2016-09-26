@@ -6,7 +6,7 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.reader.impl.completer.completer;
+package org.jline.reader.impl.completer;
 
 import java.util.Objects;
 
