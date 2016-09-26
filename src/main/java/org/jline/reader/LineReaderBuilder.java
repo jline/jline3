@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.jline.reader.impl.LineReaderImpl;
-import org.jline.reader.impl.history.history.MemoryHistory;
+import org.jline.reader.impl.history.MemoryHistory;
 import org.jline.terminal.Terminal;
 
 public final class LineReaderBuilder {

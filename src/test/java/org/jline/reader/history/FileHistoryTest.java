@@ -11,7 +11,7 @@ package org.jline.reader.history;
 import java.io.File;
 import java.io.IOException;
 
-import org.jline.reader.impl.history.history.FileHistory;
+import org.jline.reader.impl.history.FileHistory;
 import org.junit.Test;
 
 /**

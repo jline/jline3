@@ -2,7 +2,7 @@ package org.jline.reader.impl;
 
 import java.io.ByteArrayInputStream;
 
-import org.jline.reader.impl.history.history.MemoryHistory;
+import org.jline.reader.impl.history.MemoryHistory;
 import org.junit.Test;
 
 import static org.jline.keymap.KeyMap.translate;
