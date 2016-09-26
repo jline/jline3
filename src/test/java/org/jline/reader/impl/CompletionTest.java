@@ -13,10 +13,10 @@ import java.io.IOException;
 import org.jline.reader.Completer;
 import org.jline.reader.LineReader.Option;
 import org.jline.reader.Reference;
-import org.jline.reader.impl.completer.completer.AggregateCompleter;
-import org.jline.reader.impl.completer.completer.ArgumentCompleter;
-import org.jline.reader.impl.completer.completer.NullCompleter;
-import org.jline.reader.impl.completer.completer.StringsCompleter;
+import org.jline.reader.impl.completer.AggregateCompleter;
+import org.jline.reader.impl.completer.ArgumentCompleter;
+import org.jline.reader.impl.completer.NullCompleter;
+import org.jline.reader.impl.completer.StringsCompleter;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
