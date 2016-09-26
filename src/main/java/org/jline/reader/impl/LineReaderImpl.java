@@ -57,7 +57,7 @@ import org.jline.reader.Reference;
 import org.jline.reader.SyntaxError;
 import org.jline.reader.UserInterruptException;
 import org.jline.reader.Widget;
-import org.jline.reader.impl.history.history.MemoryHistory;
+import org.jline.reader.impl.history.MemoryHistory;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Attributes.ControlChar;
 import org.jline.terminal.Size;

@@ -19,7 +19,7 @@ import org.jline.reader.LineReader.Option;
 import org.jline.reader.History;
 import org.jline.reader.Reference;
 import org.jline.reader.Widget;
-import org.jline.reader.impl.history.history.MemoryHistory;
+import org.jline.reader.impl.history.MemoryHistory;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp.Capability;
 import org.junit.Before;

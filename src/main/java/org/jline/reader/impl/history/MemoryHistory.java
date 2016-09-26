@@ -6,7 +6,7 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.reader.impl.history.history;
+package org.jline.reader.impl.history;
 
 import java.io.IOException;
 import java.util.Iterator;
