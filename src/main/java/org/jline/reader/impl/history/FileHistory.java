@@ -18,6 +18,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.Reader;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Objects;
 
 import org.jline.reader.History;
@@ -35,10 +37,19 @@ import org.jline.utils.Log;
 public class FileHistory extends MemoryHistory
 {
     private final File file;
+    private final boolean append;
+    private final List<String> itemsToAppend;
 
     public FileHistory(File file) throws IOException {
+        this(file, false);
+    }
+
+    public FileHistory(File file, boolean append) throws IOException {
         this.file = Objects.requireNonNull(file).getAbsoluteFile();
         load(file);
+
+        this.append = append;
+        this.itemsToAppend = new LinkedList<>();
     }
 
     public File getFile() {
@@ -76,6 +87,14 @@ public class FileHistory extends MemoryHistory
         }
     }
 
+    @Override
+    public void add(String item) {
+        super.add(item);
+        if (append) {
+            itemsToAppend.add(item);
+        }
+    }
+
     public void flush() throws IOException {
         Log.trace("Flushing history");
 
@@ -89,9 +108,14 @@ public class FileHistory extends MemoryHistory
             }
         }
 
-        try (PrintStream out = new PrintStream(new BufferedOutputStream(new FileOutputStream(file)))) {
-            for (Entry entry : this) {
-                out.println(entry.value());
+        try (PrintStream out = new PrintStream(new BufferedOutputStream(new FileOutputStream(file, append)))) {
+            if (append) {
+                itemsToAppend.stream().forEach(out::println);
+                itemsToAppend.clear();
+            } else {
+                for (Entry entry : this) {
+                    out.println(entry.value());
+                }
             }
         }
     }
@@ -100,6 +124,9 @@ public class FileHistory extends MemoryHistory
         Log.trace("Purging history");
 
         super.clear();
+        if (append) {
+            itemsToAppend.clear();
+        }
 
         if (!file.delete()) {
             Log.warn("Failed to delete history file: ", file);
