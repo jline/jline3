@@ -15,6 +15,7 @@ import java.io.IOError;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -57,7 +58,7 @@ import org.jline.reader.Reference;
 import org.jline.reader.SyntaxError;
 import org.jline.reader.UserInterruptException;
 import org.jline.reader.Widget;
-import org.jline.reader.impl.history.MemoryHistory;
+import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Attributes.ControlChar;
 import org.jline.terminal.Size;
@@ -157,7 +158,7 @@ public class LineReaderImpl implements LineReader, Flushable
     // Configuration
     //
     protected final Map<String, Object> variables;
-    protected History history = new MemoryHistory();
+    protected History history = new DefaultHistory();
     protected Completer completer = null;
     protected Highlighter highlighter = new DefaultHighlighter();
     protected Parser parser = new DefaultParser();
@@ -333,6 +334,7 @@ public class LineReaderImpl implements LineReader, Flushable
     public void setHistory(final History history) {
         Objects.requireNonNull(history);
         this.history = history;
+        this.history.attach(this);
     }
 
     public History getHistory() {
@@ -808,10 +810,8 @@ public class LineReaderImpl implements LineReader, Flushable
         // we only add it to the history if the buffer is not empty
         // and if mask is null, since having a mask typically means
         // the string was a password. We clear the mask after this call
-        if (str.length() > 0) {
-            if (mask == null && !getBoolean(DISABLE_HISTORY, false)) {
-                history.add(historyLine);
-            }
+        if (str.length() > 0 && mask == null) {
+            history.add(Instant.now(), historyLine);
         }
         return str;
     }
@@ -2385,15 +2385,15 @@ public class LineReaderImpl implements LineReader, Flushable
 
 
     public int searchBackwards(String searchTerm, int startIndex, boolean startsWith) {
-        ListIterator<History.Entry> it = history.entries(startIndex);
+        ListIterator<History.Entry> it = history.iterator(startIndex);
         while (it.hasPrevious()) {
             History.Entry e = it.previous();
             if (startsWith) {
-                if (e.value().startsWith(searchTerm)) {
+                if (e.line().startsWith(searchTerm)) {
                     return e.index();
                 }
             } else {
-                if (e.value().contains(searchTerm)) {
+                if (e.line().contains(searchTerm)) {
                     return e.index();
                 }
             }
@@ -2405,18 +2405,18 @@ public class LineReaderImpl implements LineReader, Flushable
         if (startIndex >= history.size()) {
             startIndex = history.size() - 1;
         }
-        ListIterator<History.Entry> it = history.entries(startIndex);
+        ListIterator<History.Entry> it = history.iterator(startIndex);
         if (searchIndex != -1 && it.hasNext()) {
             it.next();
         }
         while (it.hasNext()) {
             History.Entry e = it.next();
             if (startsWith) {
-                if (e.value().startsWith(searchTerm)) {
+                if (e.line().startsWith(searchTerm)) {
                     return e.index();
                 }
             } else {
-                if (e.value().contains(searchTerm)) {
+                if (e.line().contains(searchTerm)) {
                     return e.index();
                 }
             }
@@ -4747,52 +4747,19 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     String getString(String name, String def) {
-        Object v = getVariable(name);
-        return v != null ? v.toString() : def;
+        return ReaderUtils.getString(this, name, def);
     }
 
     boolean getBoolean(String name, boolean def) {
-        Object v = getVariable(name);
-        if (v instanceof Boolean) {
-            return (Boolean) v;
-        } else if (v != null) {
-            String s = v.toString();
-            return s.isEmpty() || s.equalsIgnoreCase("on")
-                    || s.equalsIgnoreCase("1") || s.equalsIgnoreCase("true");
-        }
-        return def;
+        return ReaderUtils.getBoolean(this, name, def);
     }
 
     int getInt(String name, int def) {
-        int nb = def;
-        Object v = getVariable(name);
-        if (v instanceof Number) {
-            return ((Number) v).intValue();
-        } else if (v != null) {
-            nb = 0;
-            try {
-                nb = Integer.parseInt(v.toString());
-            } catch (NumberFormatException e) {
-                // Ignore
-            }
-        }
-        return nb;
+        return ReaderUtils.getInt(this, name, def);
     }
 
     long getLong(String name, long def) {
-        long nb = def;
-        Object v = getVariable(name);
-        if (v instanceof Number) {
-            return ((Number) v).longValue();
-        } else if (v != null) {
-            nb = 0;
-            try {
-                nb = Long.parseLong(v.toString());
-            } catch (NumberFormatException e) {
-                // Ignore
-            }
-        }
-        return nb;
+        return ReaderUtils.getLong(this, name, def);
     }
 
     @Override

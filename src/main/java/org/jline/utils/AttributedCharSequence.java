@@ -236,7 +236,7 @@ public abstract class AttributedCharSequence implements CharSequence {
                 strings.add(subSequence(beg, cur));
                 beg = cur;
                 col = w;
-            };
+            }
             cur += Character.charCount(cp);
         }
         strings.add(subSequence(beg, cur));

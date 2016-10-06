@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.jline.reader.impl.LineReaderImpl;
-import org.jline.reader.impl.history.MemoryHistory;
+import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.terminal.Terminal;
 
 public final class LineReaderBuilder {
@@ -92,7 +92,7 @@ public final class LineReaderBuilder {
             reader.setHistory(history);
         } else {
             if (memoryHistory == null) {
-                memoryHistory = new MemoryHistory();
+                memoryHistory = new DefaultHistory();
             }
             reader.setHistory(memoryHistory);
         }

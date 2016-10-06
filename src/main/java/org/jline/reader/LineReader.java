@@ -296,13 +296,38 @@ public interface LineReader {
      */
     String AMBIGUOUS_BINDING = "ambiguous-binding";
 
+    /**
+     * Columns separated list of patterns that will not be saved in history.
+     */
+    String HISTORY_IGNORE = "history-ignore";
+
+    /**
+     * File system history path.
+     */
+    String HISTORY_FILE = "history-file";
+
+    /**
+     * Number of history items to keep in memory.
+     */
+    String HISTORY_SIZE = "history-size";
+
+    /**
+     * Number of history items to keep in the history file.
+     */
+    String HISTORY_FILE_SIZE = "history-file-size";
+
     Map<String, KeyMap<Binding>> defaultKeyMaps();
 
     enum Option {
         COMPLETE_IN_WORD,
         DISABLE_EVENT_EXPANSION,
         HISTORY_VERIFY,
+        HISTORY_IGNORE_SPACE(true),
+        HISTORY_IGNORE_DUPS(true),
+        HISTORY_REDUCE_BLANKS(true),
         HISTORY_BEEP(true),
+        HISTORY_APPEND(true),
+        HISTORY_INCREMENTAL(true),
         AUTO_MENU(true),
         AUTO_LIST(true),
         RECOGNIZE_EXACT,

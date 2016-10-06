@@ -2,7 +2,8 @@ package org.jline.reader.impl;
 
 import java.io.ByteArrayInputStream;
 
-import org.jline.reader.impl.history.MemoryHistory;
+import org.jline.reader.LineReader;
+import org.jline.reader.impl.history.DefaultHistory;
 import org.junit.Test;
 
 import static org.jline.keymap.KeyMap.translate;
@@ -12,19 +13,19 @@ import static org.junit.Assert.assertTrue;
 
 public class HistorySearchTest extends ReaderTestSupport {
 
-    private MemoryHistory setupHistory() {
-        MemoryHistory history = new MemoryHistory();
-        history.setMaxSize(10);
+    private DefaultHistory setupHistory() {
+        DefaultHistory history = new DefaultHistory();
+        reader.setVariable(LineReader.HISTORY_SIZE, 10);
+        reader.setHistory(history);
         history.add("foo");
         history.add("fiddle");
         history.add("faddle");
-        reader.setHistory(history);
         return history;
     }
 
     @Test
     public void testReverseHistorySearch() throws Exception {
-        MemoryHistory history = setupHistory();
+        DefaultHistory history = setupHistory();
 
         // TODO: use assertBuffer
         String readLineResult;
@@ -46,7 +47,7 @@ public class HistorySearchTest extends ReaderTestSupport {
 
     @Test
     public void testForwardHistorySearch() throws Exception {
-        MemoryHistory history = setupHistory();
+        DefaultHistory history = setupHistory();
 
         String readLineResult;
         in.setIn(new ByteArrayInputStream(translate("^Rf^R^R^S\n").getBytes()));
@@ -67,7 +68,7 @@ public class HistorySearchTest extends ReaderTestSupport {
 
     @Test
     public void testSearchHistoryAfterHittingEnd() throws Exception {
-        MemoryHistory history = setupHistory();
+        DefaultHistory history = setupHistory();
 
         String readLineResult;
         in.setIn(new ByteArrayInputStream(translate("^Rf^R^R^R^S\n").getBytes()));
@@ -78,7 +79,7 @@ public class HistorySearchTest extends ReaderTestSupport {
 
     @Test
     public void testSearchHistoryWithNoMatches() throws Exception {
-        MemoryHistory history = setupHistory();
+        DefaultHistory history = setupHistory();
 
         String readLineResult;
         in.setIn(new ByteArrayInputStream(translate("x^S^S\n").getBytes()));
@@ -89,7 +90,7 @@ public class HistorySearchTest extends ReaderTestSupport {
 
     @Test
     public void testAbortingSearchRetainsCurrentBufferAndPrintsDetails() throws Exception {
-        MemoryHistory history = setupHistory();
+        DefaultHistory history = setupHistory();
 
         String readLineResult;
         in.setIn(new ByteArrayInputStream(translate("f^Rf^G").getBytes()));
@@ -103,7 +104,7 @@ public class HistorySearchTest extends ReaderTestSupport {
 
     @Test
     public void testAbortingAfterSearchingPreviousLinesGivesBlank() throws Exception {
-        MemoryHistory history = setupHistory();
+        DefaultHistory history = setupHistory();
 
         String readLineResult;
         in.setIn(new ByteArrayInputStream(translate("f^Rf\nfoo^G").getBytes()));

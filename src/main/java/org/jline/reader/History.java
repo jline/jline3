@@ -8,8 +8,7 @@
  */
 package org.jline.reader;
 
-import java.io.Flushable;
-import java.util.Iterator;
+import java.time.Instant;
 import java.util.ListIterator;
 
 /**
@@ -19,12 +18,35 @@ import java.util.ListIterator;
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  * @since 2.3
  */
-public interface History
-    extends Iterable<History.Entry>, Flushable
+public interface History extends Iterable<History.Entry>
 {
+
+    /**
+     * Initialize the history for the given reader.
+     */
+    void attach(LineReader reader);
+
+    /**
+     * Load history.
+     */
+    void load();
+
+    /**
+     * Save history.
+     */
+    void save();
+
+    /**
+     * Purge history.
+     */
+    void purge();
+
+
     int size();
 
-    boolean isEmpty();
+    default boolean isEmpty() {
+        return size() == 0;
+    }
 
     int index();
 
@@ -32,50 +54,13 @@ public interface History
 
     int last();
 
-    /**
-     * Purge storage
-     */
-    void clear();
-
     String get(int index);
 
-    void add(String line);
+    default void add(String line) {
+        add(Instant.now(), line);
+    }
 
-    /**
-     * Set the history item at the given index to the given CharSequence.
-     *
-     * @param index the index of the history offset
-     * @param item the new item
-     * @since 2.7
-     */
-    void set(int index, String item);
-
-    /**
-     * Remove the history element at the given index.
-     *
-     * @param i the index of the element to remove
-     * @return the removed element
-     * @since 2.7
-     */
-    String remove(int i);
-
-    /**
-     * Remove the first element from history.
-     *
-     * @return the removed element
-     * @since 2.7
-     */
-    String removeFirst();
-
-    /**
-     * Remove the last element from history
-     *
-     * @return the removed element
-     * @since 2.7
-     */
-    String removeLast();
-
-    void replace(String item);
+    void add(Instant time, String line);
 
     //
     // Entries
@@ -85,30 +70,65 @@ public interface History
     {
         int index();
 
-        String value();
+        Instant time();
+
+        String line();
     }
 
-    ListIterator<Entry> entries(int index);
+    ListIterator<Entry> iterator(int index);
 
-    ListIterator<Entry> entries();
-
-    Iterator<Entry> iterator();
+    default ListIterator<Entry> iterator() {
+        return iterator(first());
+    }
 
     //
     // Navigation
     //
 
+    /**
+     * Return the content of the current buffer.
+     */
     String current();
 
+    /**
+     * Move the pointer to the previous element in the buffer.
+     *
+     * @return true if we successfully went to the previous element
+     */
     boolean previous();
 
+    /**
+     * Move the pointer to the next element in the buffer.
+     *
+     * @return true if we successfully went to the next element
+     */
     boolean next();
 
+    /**
+     * Moves the history index to the first entry.
+     *
+     * @return Return false if there are no iterator in the history or if the
+     * history is already at the beginning.
+     */
     boolean moveToFirst();
 
+    /**
+     * This moves the history to the last entry. This entry is one position
+     * before the moveToEnd() position.
+     *
+     * @return Returns false if there were no history iterator or the history
+     * index was already at the last entry.
+     */
     boolean moveToLast();
 
+    /**
+     * Move to the specified index in the history
+     */
     boolean moveTo(int index);
 
+    /**
+     * Move to the end of the history buffer. This will be a blank entry, after
+     * all of the other iterator.
+     */
     void moveToEnd();
 }

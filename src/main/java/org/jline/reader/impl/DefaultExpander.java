@@ -189,15 +189,15 @@ public class DefaultExpander implements Expander {
     }
 
     protected int searchBackwards(History history, String searchTerm, int startIndex, boolean startsWith) {
-        ListIterator<Entry> it = history.entries(startIndex);
+        ListIterator<Entry> it = history.iterator(startIndex);
         while (it.hasPrevious()) {
             History.Entry e = it.previous();
             if (startsWith) {
-                if (e.value().startsWith(searchTerm)) {
+                if (e.line().startsWith(searchTerm)) {
                     return e.index();
                 }
             } else {
-                if (e.value().contains(searchTerm)) {
+                if (e.line().contains(searchTerm)) {
                     return e.index();
                 }
             }

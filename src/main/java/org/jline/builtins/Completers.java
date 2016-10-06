@@ -195,14 +195,11 @@ public class Completers {
                 return false;
             if (result instanceof Boolean)
                 return (Boolean) result;
-            if (result instanceof Number) {
-                if (0 == ((Number) result).intValue())
-                    return false;
-            }
-            if ("".equals(result) || "0".equals(result))
+            if (result instanceof Number && 0 == ((Number) result).intValue()) {
                 return false;
+            }
+            return !("".equals(result) || "0".equals(result));
 
-            return true;
         }
 
     }

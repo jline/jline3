@@ -276,7 +276,7 @@ public class ViMoveModeTest
             .enter();
         assertLine("line1", b, false);
         
-        reader.getHistory ().clear ();
+        reader.getHistory ().purge();
         b = (new TestBuffer("line1")).enter()
             .append("line2").enter()
             .append("li")
@@ -291,7 +291,7 @@ public class ViMoveModeTest
          * One last test. Make sure that when we move through history
          * that the cursor is moved to the front of the line.
          */
-        reader.getHistory ().clear();
+        reader.getHistory ().purge();
         b = (new TestBuffer("aline")).enter()
             .append("bline").enter()
             .append("cli")
@@ -573,7 +573,7 @@ public class ViMoveModeTest
          * Tests the "/" forward search
          */
         History history = reader.getHistory();
-        history.clear();
+        history.purge();
         history.add("aaadef");
         history.add("bbbdef");
         history.add("cccdef");
@@ -634,7 +634,7 @@ public class ViMoveModeTest
         /*
          * The previous test messed with history.
          */
-        history.clear();
+        history.purge();
         history.add("aaadef");
         history.add("bbbdef");
         history.add("cccdef");

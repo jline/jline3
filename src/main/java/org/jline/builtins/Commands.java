@@ -174,22 +174,22 @@ public class Commands {
 
         History history = reader.getHistory();
         if (opt.isSet("clear")) {
-            history.clear();
+            history.purge();
         }
         if (opt.isSet("save")) {
-            history.flush();
+            history.save();
         }
         if (opt.isSet("clear") || opt.isSet("save")) {
             return;
         }
-        for (int index = history.first(); index <= history.last(); index++) {
+        for (History.Entry entry : history) {
             AttributedStringBuilder sb = new AttributedStringBuilder();
             sb.append("  ");
             sb.style(AttributedStyle.BOLD);
-            sb.append(String.format("%3d", index));
+            sb.append(String.format("%3d", entry.index()));
             sb.style(AttributedStyle.DEFAULT);
             sb.append("  ");
-            sb.append(history.get(index));
+            sb.append(entry.line());
             out.println(sb.toAnsi(reader.getTerminal()));
         }
     }
@@ -278,7 +278,7 @@ public class Commands {
                 + (opt.isSet("l") ? 1 : 0)
                 + (opt.isSet("A") ? 1 : 0);
         if (actions > 1) {
-            err.println("keymap: incompatible operation selection options");
+            err.println("widget: incompatible operation selection options");
             return;
         }
         if (opt.isSet("l")) {

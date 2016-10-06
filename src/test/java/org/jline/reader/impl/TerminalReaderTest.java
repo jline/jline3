@@ -19,7 +19,7 @@ import org.jline.reader.LineReader.Option;
 import org.jline.reader.History;
 import org.jline.reader.Reference;
 import org.jline.reader.Widget;
-import org.jline.reader.impl.history.MemoryHistory;
+import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp.Capability;
 import org.junit.Before;
@@ -62,8 +62,9 @@ public class TerminalReaderTest extends ReaderTestSupport
 
     @Test
     public void testExpansion() throws Exception {
-        MemoryHistory history = new MemoryHistory();
-        history.setMaxSize(3);
+        DefaultHistory history = new DefaultHistory(reader);
+        reader.setVariable(LineReader.HISTORY_SIZE, 3);
+
         history.add("foo");
         history.add("dir");
         history.add("cd c:\\");
@@ -114,10 +115,10 @@ public class TerminalReaderTest extends ReaderTestSupport
 
     @Test
     public void testNumericExpansions() throws Exception {
-        MemoryHistory history = new MemoryHistory();
-        history.setMaxSize(3);
+        DefaultHistory history = new DefaultHistory(reader);
+        reader.setVariable(LineReader.HISTORY_SIZE, 3);
 
-        // Seed history with three entries:
+        // Seed history with three iterator:
         // 1 history1
         // 2 history2
         // 3 history3
@@ -144,7 +145,7 @@ public class TerminalReaderTest extends ReaderTestSupport
         // Validate !!
         assertEquals("history3", expander.expandHistory(history, "!!"));
 
-        // Add two new entries. Because maxSize=3, history is:
+        // Add two new iterator. Because maxSize=3, history is:
         // 3 history3
         // 4 history4
         // 5 history5
@@ -173,8 +174,8 @@ public class TerminalReaderTest extends ReaderTestSupport
 
     @Test
     public void testArgsExpansion() throws Exception {
-        MemoryHistory history = new MemoryHistory();
-        history.setMaxSize(3);
+        DefaultHistory history = new DefaultHistory(reader);
+        reader.setVariable(LineReader.HISTORY_SIZE, 3);
 
         Expander expander = new DefaultExpander();
         
@@ -205,7 +206,7 @@ public class TerminalReaderTest extends ReaderTestSupport
 
     @Test
     public void testIllegalExpansionDoesntCrashReadLine() throws Exception {
-        MemoryHistory history = new MemoryHistory();
+        DefaultHistory history = new DefaultHistory();
         reader.setHistory(history);
         reader.setVariable(LineReader.BELL_STYLE, "audible");
 
@@ -215,7 +216,7 @@ public class TerminalReaderTest extends ReaderTestSupport
 
     @Test
     public void testStoringHistory() throws Exception {
-        MemoryHistory history = new MemoryHistory();
+        DefaultHistory history = new DefaultHistory();
         reader.setHistory(history);
 
         assertLine("foo ! bar", new TestBuffer("foo ! bar\n"));
@@ -223,7 +224,7 @@ public class TerminalReaderTest extends ReaderTestSupport
         history.previous();
         assertEquals("foo ! bar", history.current());
 
-        history = new MemoryHistory();
+        history = new DefaultHistory();
         reader.setHistory(history);
         assertLine("cd c:\\docs", new TestBuffer("cd c:\\\\docs\n"));
 
@@ -362,7 +363,7 @@ public class TerminalReaderTest extends ReaderTestSupport
     }
 
     private History createSeededHistory() {
-        History history = new MemoryHistory();
+        History history = new DefaultHistory();
         history.add("dir");
         history.add("cd c:\\");
         history.add("mkdir monkey");
@@ -370,13 +371,13 @@ public class TerminalReaderTest extends ReaderTestSupport
     }
 
     private void assertLineAndHistory(String expectedLine, String expectedHistory, TestBuffer input, boolean expandEvents, String... historyItems) {
-        MemoryHistory history = new MemoryHistory();
+        DefaultHistory history = new DefaultHistory();
+        reader.setHistory(history);
         if (historyItems != null) {
             for (String historyItem : historyItems) {
                 history.add(historyItem);
             }
         }
-        reader.setHistory(history);
         if (expandEvents) {
             reader.unsetOpt(Option.DISABLE_EVENT_EXPANSION);
         } else {

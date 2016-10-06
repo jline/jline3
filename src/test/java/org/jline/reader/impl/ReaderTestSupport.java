@@ -93,7 +93,7 @@ public abstract class ReaderTestSupport
     protected void assertBuffer(final String expected, final TestBuffer buffer, final boolean clear) throws IOException {
         // clear current buffer, if any
         if (clear) {
-            reader.getHistory().clear();
+            reader.getHistory().purge();
         }
         reader.list = false;
         reader.menu = false;
@@ -128,7 +128,7 @@ public abstract class ReaderTestSupport
             final boolean clear) {
         // clear current buffer, if any
         if (clear) {
-            reader.getHistory().clear();
+            reader.getHistory().purge();
         }
 
         in.setIn(new ByteArrayInputStream(buffer.getBytes()));

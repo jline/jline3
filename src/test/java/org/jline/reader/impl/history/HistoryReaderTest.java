@@ -6,7 +6,7 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.reader.history;
+package org.jline.reader.impl.history;
 
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
@@ -27,8 +27,7 @@ import static org.jline.reader.LineReader.UP_HISTORY;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class HistoryTest
-    extends ReaderTestSupport
+public class HistoryReaderTest extends ReaderTestSupport
 {
     @Test
     public void testSingleHistory() throws Exception {

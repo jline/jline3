@@ -6,28 +6,34 @@
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.reader.history;
+package org.jline.reader.impl.history;
 
 import org.jline.reader.History;
-import org.jline.reader.impl.history.MemoryHistory;
+import org.jline.reader.LineReader;
+import org.jline.reader.impl.ReaderTestSupport;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.junit.Assert.assertEquals;
 
 /**
- * Tests for {@link MemoryHistory}.
+ * Tests for {@link DefaultHistory}.
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class MemoryHistoryTest
+public class HistoryTest extends ReaderTestSupport
 {
-    private MemoryHistory history;
+    private DefaultHistory history;
 
     @Before
-    public void setUp() {
-        history = new MemoryHistory();
+    public void setUp() throws Exception {
+        super.setUp();
+        history = new DefaultHistory(reader);
     }
 
     @After
@@ -51,13 +57,13 @@ public class MemoryHistoryTest
         int i=0;
         for (History.Entry entry : history) {
             assertEquals(offset + i, entry.index());
-            assertEquals(items[i++], entry.value());
+            assertEquals(items[i++], entry.line());
         }
     }
 
     @Test
     public void testOffset() {
-        history.setMaxSize(5);
+        reader.setVariable(LineReader.HISTORY_SIZE, 5);
 
         assertEquals(0, history.size());
         assertEquals(0, history.index());
@@ -82,57 +88,27 @@ public class MemoryHistoryTest
     }
 
     @Test
-    public void testReplace() {
-        assertEquals(0, history.size());
+    public void testTrim() {
+        List<History.Entry> entries = new ArrayList<>();
+        entries.add(new DefaultHistory.EntryImpl(0, Instant.now(), "a"));
+        entries.add(new DefaultHistory.EntryImpl(1, Instant.now(), "b"));
+        entries.add(new DefaultHistory.EntryImpl(2, Instant.now(), "c"));
+        entries.add(new DefaultHistory.EntryImpl(3, Instant.now(), "d"));
+        entries.add(new DefaultHistory.EntryImpl(4, Instant.now(), "e"));
+        entries.add(new DefaultHistory.EntryImpl(5, Instant.now(), "d"));
+        entries.add(new DefaultHistory.EntryImpl(6, Instant.now(), "c"));
+        entries.add(new DefaultHistory.EntryImpl(7, Instant.now(), "b"));
+        entries.add(new DefaultHistory.EntryImpl(8, Instant.now(), "a"));
 
-        history.add("a");
-        history.add("b");
-        history.replace("c");
+        List<History.Entry> trimmed = new ArrayList<>(entries);
+        DefaultHistory.doTrimHistory(trimmed, 6);
+        assertEquals(5, trimmed.size());
 
-        assertHistoryContains(0, "a", "c");
+        DefaultHistory.doTrimHistory(trimmed, 3);
+        assertEquals(3, trimmed.size());
+        assertEquals("c", trimmed.get(0).line());
+        assertEquals("b", trimmed.get(1).line());
+        assertEquals("a", trimmed.get(2).line());
     }
 
-    @Test
-    public void testSet() {
-        history.add("a");
-        history.add("b");
-        history.add("c");
-
-        history.set(1, "d");
-
-        assertHistoryContains(0, "a", "d", "c");
-    }
-
-    @Test
-    public void testRemove() {
-        history.add("a");
-        history.add("b");
-        history.add("c");
-
-        history.remove(1);
-
-        assertHistoryContains(0, "a", "c");
-    }
-
-    @Test
-    public void testRemoveFirst() {
-        history.add("a");
-        history.add("b");
-        history.add("c");
-
-        history.removeFirst();
-
-        assertHistoryContains(0, "b", "c");
-    }
-
-    @Test
-    public void testRemoveLast() {
-        history.add("a");
-        history.add("b");
-        history.add("c");
-
-        history.removeLast();
-
-        assertHistoryContains(0, "a", "b");
-    }
 }
