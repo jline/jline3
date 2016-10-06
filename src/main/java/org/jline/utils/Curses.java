@@ -325,7 +325,24 @@ public final class Curses {
                 case '$':
                     if (str.charAt(index) == '<') {
                         // We don't honour delays, just skip
-                        while (str.charAt(index++) != '>');
+                        int nb = 0;
+                        while ((ch = str.charAt(++index)) != '>') {
+                            if (ch >= '0' && ch <= '9') {
+                                nb = nb * 10 + (ch - '0');
+                            } else if (ch == '*') {
+                                // ignore
+                            } else if (ch == '/') {
+                                // ignore
+                            } else {
+                                // illegal, but ...
+                            }
+                        }
+                        index++;
+                        try {
+                            out.flush();
+                            Thread.sleep(nb);
+                        } catch (InterruptedException e) {
+                        }
                     } else {
                         if (exec) {
                             out.write(ch);
