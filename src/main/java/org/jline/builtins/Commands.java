@@ -11,6 +11,10 @@ package org.jline.builtins;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -159,7 +163,8 @@ public class Commands {
                 "Usage: history [OPTIONS]",
                 "  -? --help                       Displays command help",
                 "     --clear                      Clear history",
-                "     --save                       Save history"};
+                "     --save                       Save history",
+                "  -d                              Print timestamps for each event"};
 
         Options opt = Options.compile(usage).parse(argv);
 
@@ -188,6 +193,12 @@ public class Commands {
             sb.style(AttributedStyle.BOLD);
             sb.append(String.format("%3d", entry.index()));
             sb.style(AttributedStyle.DEFAULT);
+            if (opt.isSet("d")) {
+                sb.append("  ");
+                LocalTime lt = LocalTime.from(entry.time().atZone(ZoneId.systemDefault()))
+                        .truncatedTo(ChronoUnit.SECONDS);
+                DateTimeFormatter.ISO_LOCAL_TIME.formatTo(lt, sb);
+            }
             sb.append("  ");
             sb.append(entry.line());
             out.println(sb.toAnsi(reader.getTerminal()));
