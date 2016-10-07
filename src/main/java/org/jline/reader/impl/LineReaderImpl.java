@@ -334,7 +334,6 @@ public class LineReaderImpl implements LineReader, Flushable
     public void setHistory(final History history) {
         Objects.requireNonNull(history);
         this.history = history;
-        this.history.attach(this);
     }
 
     public History getHistory() {
@@ -440,6 +439,10 @@ public class LineReaderImpl implements LineReader, Flushable
                 throw new IllegalStateException();
             }
             reading = true;
+
+            if (history != null) {
+                history.attach(this);
+            }
 
             previousIntrHandler = terminal.handle(Signal.INT, signal -> readLineThread.interrupt());
             previousWinchHandler = terminal.handle(Signal.WINCH, this::handleSignal);

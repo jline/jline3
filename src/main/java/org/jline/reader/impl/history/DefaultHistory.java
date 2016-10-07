@@ -61,31 +61,32 @@ public class DefaultHistory implements History {
 
     @Override
     public void attach(LineReader reader) {
-        this.reader = reader;
-        load();
+        if (this.reader != reader) {
+            this.reader = reader;
+            load();
+        }
     }
 
     public void load() {
-        offset = 0;
-        index = 0;
-        loaded = 0;
-        items.clear();
-
         Path path = getPath();
         if (path != null) {
             try {
                 if (Files.exists(path)) {
                     Log.trace("Loading history from: ", path);
                     try (BufferedReader reader = Files.newBufferedReader(path)) {
+                        offset = 0;
+                        index = 0;
+                        loaded = 0;
+                        items.clear();
                         reader.lines().forEach(l -> {
                             int idx = l.indexOf(':');
                             Instant time = Instant.ofEpochMilli(Long.parseLong(l.substring(0, idx)));
                             String line = unescape(l.substring(idx + 1));
                             internalAdd(time, line);
                         });
+                        loaded = items.size();
                     }
                 }
-                loaded = items.size();
             } catch (IOException e) {
                 Log.info("Error reloading history file: ", path, e);
             }
