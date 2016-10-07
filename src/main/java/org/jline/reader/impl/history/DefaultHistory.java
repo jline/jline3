@@ -74,10 +74,7 @@ public class DefaultHistory implements History {
                 if (Files.exists(path)) {
                     Log.trace("Loading history from: ", path);
                     try (BufferedReader reader = Files.newBufferedReader(path)) {
-                        offset = 0;
-                        index = 0;
-                        loaded = 0;
-                        items.clear();
+                        internalClear();
                         reader.lines().forEach(l -> {
                             int idx = l.indexOf(':');
                             Instant time = Instant.ofEpochMilli(Long.parseLong(l.substring(0, idx)));
@@ -85,6 +82,7 @@ public class DefaultHistory implements History {
                             internalAdd(time, line);
                         });
                         loaded = items.size();
+                        maybeResize();
                     }
                 }
             } catch (IOException e) {
@@ -94,11 +92,7 @@ public class DefaultHistory implements History {
     }
 
     public void purge() {
-        offset = 0;
-        index = 0;
-        loaded = 0;
-        items.clear();
-
+        internalClear();
         Path path = getPath();
         if (path != null) {
             try {
@@ -126,7 +120,7 @@ public class DefaultHistory implements History {
                 // If we are over 25% max size, trim history file
                 int max = getInt(reader, LineReader.HISTORY_FILE_SIZE, DEFAULT_HISTORY_FILE_SIZE);
                 if (last() > max + max / 4) {
-                    new Thread(() -> trimHistory(path, max), "HistoryTrimmer").start();
+                    trimHistory(path, max);
                 }
             } catch (IOException e) {
                 Log.debug("Error saving history file: ", path, e);
@@ -158,9 +152,21 @@ public class DefaultHistory implements History {
                 }
             }
             Files.move(temp, path, StandardCopyOption.REPLACE_EXISTING);
+            // Keep items in memory
+            internalClear();
+            items.addAll(allItems);
+            loaded = items.size();
+            maybeResize();
         } catch (IOException e) {
             Log.debug("Error trimming history file: ", path, e);
         }
+    }
+
+    private void internalClear() {
+        offset = 0;
+        index = 0;
+        loaded = 0;
+        items.clear();
     }
 
     static void doTrimHistory(List<Entry> allItems, int max) {
