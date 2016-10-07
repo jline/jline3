@@ -151,7 +151,7 @@ public abstract class ReaderTestSupport
             case KILL_WORD:            return "\u001Bd";
             case BACKWARD_KILL_WORD:   return "\u0017";
             case ACCEPT_LINE:          return "\n";
-            case UP_HISTORY:     return "\033[A";
+            case UP_HISTORY:           return "\033[A";
             case DOWN_HISTORY:         return "\033[B";
             case BACKWARD_CHAR:        return "\u0002";
             case COMPLETE_WORD:        return "\011";

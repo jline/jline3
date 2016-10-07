@@ -18,9 +18,11 @@ import static org.jline.reader.LineReader.ACCEPT_LINE;
 import static org.jline.reader.LineReader.BACKWARD_CHAR;
 import static org.jline.reader.LineReader.BEGINNING_OF_LINE;
 import static org.jline.reader.LineReader.DOWN_HISTORY;
+import static org.jline.reader.LineReader.DOWN_LINE_OR_HISTORY;
 import static org.jline.reader.LineReader.HISTORY_SEARCH_BACKWARD;
 import static org.jline.reader.LineReader.HISTORY_SEARCH_FORWARD;
 import static org.jline.reader.LineReader.UP_HISTORY;
+import static org.jline.reader.LineReader.UP_LINE_OR_HISTORY;
 
 /**
  * Tests command history.
@@ -31,6 +33,13 @@ public class HistoryReaderTest extends ReaderTestSupport
 {
     @Test
     public void testSingleHistory() throws Exception {
+        KeyMap<Binding> map = reader.getKeys();
+
+        // Map in HISTORY_SEARCH_BACKWARD.
+        map.bind(new Reference(UP_LINE_OR_HISTORY), "\033[A");
+        map.bind(new Reference(DOWN_LINE_OR_HISTORY), "\033[B");
+
+
         TestBuffer b = new TestBuffer().
             append("test line 1").op(ACCEPT_LINE).
             append("test line 2").op(ACCEPT_LINE).

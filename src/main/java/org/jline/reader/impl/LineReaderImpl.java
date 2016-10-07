@@ -5063,8 +5063,8 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     private void bindArrowKeys(KeyMap<Binding> map) {
-        bind(map, UP_LINE_OR_HISTORY,   key(Capability.key_up));
-        bind(map, DOWN_LINE_OR_HISTORY, key(Capability.key_down));
+        bind(map, UP_LINE_OR_SEARCH,    key(Capability.key_up));
+        bind(map, DOWN_LINE_OR_SEARCH,  key(Capability.key_down));
         bind(map, BACKWARD_CHAR,        key(Capability.key_left));
         bind(map, FORWARD_CHAR,         key(Capability.key_right));
         bind(map, BEGINNING_OF_LINE,    key(Capability.key_home));
