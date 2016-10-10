@@ -391,7 +391,7 @@ interface Kernel32 extends StdCallLibrary {
         public static class EventUnion extends Union {
             public KEY_EVENT_RECORD KeyEvent;
             public MOUSE_EVENT_RECORD MouseEvent;
-            // WINDOW_BUFFER_SIZE_RECORD WindowBufferSizeEvent;
+             public WINDOW_BUFFER_SIZE_RECORD WindowBufferSizeEvent;
             // MENU_EVENT_RECORD MenuEvent;
             // FOCUS_EVENT_RECORD FocusEvent;
         }
@@ -405,6 +405,9 @@ interface Kernel32 extends StdCallLibrary {
                     break;
                 case MOUSE_EVENT:
                     Event.setType(MOUSE_EVENT_RECORD.class);
+                    break;
+                case WINDOW_BUFFER_SIZE_EVENT:
+                    Event.setType(WINDOW_BUFFER_SIZE_RECORD.class);
                     break;
             }
             super.read();
@@ -445,6 +448,12 @@ interface Kernel32 extends StdCallLibrary {
         }
     }
 
+    // typedef struct _MOUSE_EVENT_RECORD {
+    //   COORD dwMousePosition;
+    //   DWORD dwButtonState;
+    //   DWORD dwControlKeyState;
+    //   DWORD dwEventFlags;
+    // } MOUSE_EVENT_RECORD;
     class MOUSE_EVENT_RECORD extends Structure {
         public COORD dwMousePosition;
         public int dwButtonState;
@@ -452,6 +461,20 @@ interface Kernel32 extends StdCallLibrary {
         public int dwEventFlags;
 
         private static String[] fieldOrder = { "dwMousePosition", "dwButtonState", "dwControlKeyState", "dwEventFlags"};
+
+        @Override
+        protected java.util.List<String> getFieldOrder() {
+            return java.util.Arrays.asList(fieldOrder);
+        }
+    }
+
+    // typedef struct _WINDOW_BUFFER_SIZE_RECORD {
+    //   COORD dwSize;
+    // } WINDOW_BUFFER_SIZE_RECORD;
+    class WINDOW_BUFFER_SIZE_RECORD extends Structure {
+        public COORD dwSize;
+
+        private static String[] fieldOrder = {"dwSize"};
 
         @Override
         protected java.util.List<String> getFieldOrder() {
