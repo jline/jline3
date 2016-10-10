@@ -48,8 +48,8 @@ public class Display {
 
         this.canScroll = can(Capability.insert_line, Capability.parm_insert_line)
                             && can(Capability.delete_line, Capability.parm_delete_line);
-        this.noWrapAtEol = ! (terminal.getBooleanCapability(Capability.auto_right_margin)
-                              && terminal.getBooleanCapability(Capability.eat_newline_glitch));
+        this.noWrapAtEol = terminal.getBooleanCapability(Capability.auto_right_margin)
+                              && terminal.getBooleanCapability(Capability.eat_newline_glitch);
         this.cursorDownIsNewLine = "\n".equals(tput(Capability.cursor_down));
     }
 
@@ -229,7 +229,7 @@ public class Display {
                 }
             }
             lineIndex++;
-            if (!cursorOk && noWrapAtEol && cursorPos == curCol + columns) {
+            if (!cursorOk && noWrapAtEol && (cursorPos - curCol) % columns == 0) {
                 terminal.puts(Capability.carriage_return); // CR / not newline.
                 cursorPos = curCol;
                 cursorOk = true;
@@ -256,7 +256,7 @@ public class Display {
                 cursorPos += newLines.get(lineIndex).columnLength();
                 cursorOk = false;
             }
-            if (!cursorOk && noWrapAtEol && cursorPos == currentPos + columns) {
+            if (!cursorOk && noWrapAtEol && (cursorPos - currentPos) % columns == 0) {
                 terminal.puts(Capability.carriage_return); // CR / not newline.
                 cursorPos = currentPos;
                 cursorOk = true;
