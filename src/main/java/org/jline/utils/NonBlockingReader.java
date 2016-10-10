@@ -285,6 +285,8 @@ public class NonBlockingReader
                     notify();
                 }
             }
+        } catch (Throwable t) {
+            Log.warn("Error in NonBlockingReader thread", t);
         } finally {
             Log.debug("NonBlockingReader shutdown");
             synchronized (this) {
