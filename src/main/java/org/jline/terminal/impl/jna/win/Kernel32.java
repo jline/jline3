@@ -40,6 +40,7 @@ interface Kernel32 extends StdCallLibrary {
     int LEFT_ALT_PRESSED =      0x0002;
     int RIGHT_CTRL_PRESSED =    0x0004;
     int LEFT_CTRL_PRESSED =     0x0008;
+    int SHIFT_PRESSED =         0x0010;
 
     int FOREGROUND_BLUE =       0x0001;
     int FOREGROUND_GREEN =      0x0002;

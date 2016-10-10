@@ -12,15 +12,19 @@ import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp;
+import org.jline.utils.Log;
 import org.jline.utils.NonBlockingReader;
 import org.jline.utils.ShutdownHooks;
 import org.jline.utils.Signals;
 
+import java.io.FilterInputStream;
 import java.io.InputStream;
 import java.io.IOError;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.charset.Charset;
@@ -28,6 +32,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public abstract class AbstractWindowsTerminal extends AbstractTerminal {
+
+    private static final int PIPE_SIZE = 1024;
 
     protected static final int ENABLE_PROCESSED_INPUT = 0x0001;
     protected static final int ENABLE_LINE_INPUT      = 0x0002;
@@ -37,16 +43,23 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     protected static final int ENABLE_INSERT_MODE     = 0x0020;
     protected static final int ENABLE_QUICK_EDIT_MODE = 0x0040;
 
+    protected final OutputStream slaveInputPipe;
     protected final InputStream input;
     protected final OutputStream output;
     protected final NonBlockingReader reader;
     protected final PrintWriter writer;
     protected final Map<Signal, Object> nativeHandlers = new HashMap<>();
     protected final ShutdownHooks.Task closer;
+    protected final Attributes attributes = new Attributes();
+    protected final Thread pump;
+
+    private volatile boolean closing;
 
     public AbstractWindowsTerminal(OutputStream output, String name, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
         super(name, "windows", signalHandler);
-        input = new DirectInputStream();
+        PipedInputStream input = new PipedInputStream(PIPE_SIZE);
+        this.slaveInputPipe = new PipedOutputStream(input);
+        this.input = new FilterInputStream(input) {};
         this.output = output;
         String encoding = getConsoleEncoding();
         if (encoding == null) {
@@ -55,12 +68,19 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         this.reader = new NonBlockingReader(getName(), new org.jline.utils.InputStreamReader(input, encoding));
         this.writer = new PrintWriter(new OutputStreamWriter(output, encoding));
         parseInfoCmp();
+        // Attributes
+        attributes.setLocalFlag(Attributes.LocalFlag.ISIG, true);
+        attributes.setControlChar(Attributes.ControlChar.VINTR, ctrl('C'));
+        attributes.setControlChar(Attributes.ControlChar.VEOF,  ctrl('D'));
+        attributes.setControlChar(Attributes.ControlChar.VSUSP, ctrl('Z'));
         // Handle signals
         if (nativeSignals) {
             for (final Signal signal : Signal.values()) {
                 nativeHandlers.put(signal, Signals.register(signal.name(), () -> raise(signal)));
             }
         }
+        pump = new Thread(this::pump, "WindowsStreamPump");
+        pump.start();
         closer = this::close;
         ShutdownHooks.add(closer);
     }
@@ -109,20 +129,17 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
 
     public Attributes getAttributes() {
         int mode = getConsoleMode();
-        Attributes attributes = new Attributes();
         if ((mode & ENABLE_ECHO_INPUT) != 0) {
             attributes.setLocalFlag(Attributes.LocalFlag.ECHO, true);
         }
         if ((mode & ENABLE_LINE_INPUT) != 0) {
             attributes.setLocalFlag(Attributes.LocalFlag.ICANON, true);
         }
-        attributes.setControlChar(Attributes.ControlChar.VINTR, ctrl('C'));
-        attributes.setControlChar(Attributes.ControlChar.VEOF,  ctrl('D'));
-        attributes.setControlChar(Attributes.ControlChar.VSUSP, ctrl('Z'));
-        return attributes;
+        return new Attributes(attributes);
     }
 
     public void setAttributes(Attributes attr) {
+        attributes.copy(attr);
         int mode = 0;
         if (attr.getLocalFlag(Attributes.LocalFlag.ECHO)) {
             mode |= ENABLE_ECHO_INPUT;
@@ -146,45 +163,14 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     }
 
     public void close() throws IOException {
+        closing = true;
+        pump.interrupt();
         ShutdownHooks.remove(closer);
         for (Map.Entry<Signal, Object> entry : nativeHandlers.entrySet()) {
             Signals.unregister(entry.getKey().name(), entry.getValue());
         }
         reader.close();
         writer.close();
-    }
-
-    private class DirectInputStream extends InputStream {
-        private byte[] buf = null;
-        int bufIdx = 0;
-
-        @Override
-        public int read() throws IOException {
-            while (buf == null || bufIdx == buf.length) {
-                buf = readConsoleInput();
-                bufIdx = 0;
-            }
-            int c = buf[bufIdx] & 0xFF;
-            bufIdx++;
-            return c;
-        }
-
-        public int read(byte b[], int off, int len) throws IOException {
-            if (b == null) {
-                throw new NullPointerException();
-            } else if (off < 0 || len < 0 || len > b.length - off) {
-                throw new IndexOutOfBoundsException();
-            } else if (len == 0) {
-                return 0;
-            }
-
-            int c = read();
-            if (c == -1) {
-                return -1;
-            }
-            b[off] = (byte)c;
-            return 1;
-        }
     }
 
     protected abstract byte[] readConsoleInput();
@@ -267,7 +253,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         return escapeSequence;
     }
 
-    private String getSequence(InfoCmp.Capability cap) {
+    protected String getSequence(InfoCmp.Capability cap) {
         String str = strings.get(cap);
         if (str != null) {
             StringWriter sw = new StringWriter();
@@ -281,5 +267,52 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         return null;
     }
 
+    protected void pump() {
+        try {
+            while (!closing) {
+                byte[] buf = readConsoleInput();
+                for (byte b : buf) {
+                    processInputByte(b);
+                }
+            }
+        } catch (IOException e) {
+            if (!closing) {
+                Log.warn("Error in WindowsStreamPump", e);
+            }
+        }
+    }
+
+    public void processInputByte(int c) throws IOException {
+        if (attributes.getLocalFlag(Attributes.LocalFlag.ISIG)) {
+            if (c == attributes.getControlChar(Attributes.ControlChar.VINTR)) {
+                raise(Signal.INT);
+                return;
+            } else if (c == attributes.getControlChar(Attributes.ControlChar.VQUIT)) {
+                raise(Signal.QUIT);
+                return;
+            } else if (c == attributes.getControlChar(Attributes.ControlChar.VSUSP)) {
+                raise(Signal.TSTP);
+                return;
+            } else if (c == attributes.getControlChar(Attributes.ControlChar.VSTATUS)) {
+                raise(Signal.INFO);
+            }
+        }
+        if (c == '\r') {
+            if (attributes.getInputFlag(Attributes.InputFlag.IGNCR)) {
+                return;
+            }
+            if (attributes.getInputFlag(Attributes.InputFlag.ICRNL)) {
+                c = '\n';
+            }
+        } else if (c == '\n' && attributes.getInputFlag(Attributes.InputFlag.INLCR)) {
+            c = '\r';
+        }
+//        if (attributes.getLocalFlag(Attributes.LocalFlag.ECHO)) {
+//            processOutputByte(c);
+//            masterOutput.flush();
+//        }
+        slaveInputPipe.write(c);
+        slaveInputPipe.flush();
+    }
 }
 

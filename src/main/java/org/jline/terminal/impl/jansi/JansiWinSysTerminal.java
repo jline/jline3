@@ -19,6 +19,7 @@ import org.fusesource.jansi.internal.Kernel32.KEY_EVENT_RECORD;
 import org.fusesource.jansi.internal.WindowsSupport;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
+import org.jline.utils.InfoCmp;
 import org.jline.utils.Log;
 
 public class JansiWinSysTerminal extends AbstractWindowsTerminal {
@@ -79,10 +80,15 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
             //Log.trace(keyEvent.keyDown? "KEY_DOWN" : "KEY_UP", "key code:", keyEvent.keyCode, "char:", (long)keyEvent.uchar);
             if (keyEvent.keyDown) {
                 if (keyEvent.uchar > 0) {
-                    if (isAlt) {
-                        sb.append('\033');
+                    boolean shiftPressed = (keyEvent.controlKeyState & KEY_EVENT_RECORD.SHIFT_PRESSED) != 0;
+                    if (keyEvent.uchar == '\t' && shiftPressed) {
+                        sb.append(getSequence(InfoCmp.Capability.key_btab));
+                    } else {
+                        if (isAlt) {
+                            sb.append('\033');
+                        }
+                        sb.append(keyEvent.uchar);
                     }
-                    sb.append(keyEvent.uchar);
                 }
                 else {
                     // virtual keycodes: http://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx

@@ -122,7 +122,7 @@ public final class WindowsAnsiOutputStream extends FilterOutputStream {
     protected static final int CYAN = 6;
     protected static final int WHITE = 7;
 
-    private final Pointer console = Kernel32.INSTANCE.GetStdHandle(Kernel32.STD_OUTPUT_HANDLE);
+    private final Pointer console;
 
     private final Kernel32.CONSOLE_SCREEN_BUFFER_INFO info = new Kernel32.CONSOLE_SCREEN_BUFFER_INFO();
     private final short originalColors;
@@ -476,8 +476,9 @@ public final class WindowsAnsiOutputStream extends FilterOutputStream {
     }
 
 
-    public WindowsAnsiOutputStream(OutputStream os) throws IOException {
+    public WindowsAnsiOutputStream(OutputStream os, Pointer console) throws IOException {
         super(os);
+        this.console = console;
         getConsoleInfo();
         originalColors = info.wAttributes;
     }
