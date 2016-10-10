@@ -216,7 +216,7 @@ public class Display {
                         }
                         int oldLen = oldLine.columnLength();
                         int newLen = newLine.columnLength();
-                        int nb = Math.max(oldLen, newLen) - currentPos;
+                        int nb = Math.max(oldLen, newLen) - (currentPos - curCol);
                         moveVisualCursorTo(currentPos);
                         if (!terminal.puts(Capability.clr_eol)) {
                             rawPrint(' ', nb);

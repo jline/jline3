@@ -4101,7 +4101,10 @@ public class LineReaderImpl implements LineReader, Flushable
                     redisplay(false);
                     buf.cursor(oldCursor);
                     println();
-                    println(postResult.post.toAnsi(terminal));
+                    List<AttributedString> ls = postResult.post.columnSplitLength(size.getColumns());
+                    Display d = new Display(terminal, false);
+                    d.resize(size.getRows(), size.getColumns());
+                    d.update(ls, -1);
                     redrawLine();
                     return new AttributedString("");
                 }
