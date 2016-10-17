@@ -68,7 +68,12 @@ public class LinuxNativePty extends JnaNativePty {
     @Override
     public void setAttr(Attributes attr) throws IOException {
         termios termios = new termios(attr);
-        C_LIBRARY.tcsetattr(getSlave(), TCSADRAIN, termios);
+        termios org = new termios();
+        C_LIBRARY.tcgetattr(getSlave(), org);
+        org.c_iflag = termios.c_iflag;
+        org.c_oflag = termios.c_oflag;
+        org.c_lflag = termios.c_lflag;
+        C_LIBRARY.tcsetattr(getSlave(), TCSADRAIN, org);
     }
 
     @Override
