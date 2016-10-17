@@ -74,7 +74,7 @@ public abstract class AttributedCharSequence implements CharSequence {
                     }
                     if ((d & F_FOREGROUND) != 0) {
                         if ((s & F_FOREGROUND) != 0) {
-                            int col = (s & FG_COLOR) >> FG_COLOR_EXP;
+                            int col = (s & FG_COLOR) >>> FG_COLOR_EXP;
                             if (col < 8 || !color256) {
                                 first = attr(sb, Integer.toString(30 + roundTo8Color(col)), first);
                             } else {
@@ -86,7 +86,7 @@ public abstract class AttributedCharSequence implements CharSequence {
                     }
                     if ((d & F_BACKGROUND) != 0) {
                         if ((s & F_BACKGROUND) != 0) {
-                            int col = (s & BG_COLOR) >> BG_COLOR_EXP;
+                            int col = (s & BG_COLOR) >>> BG_COLOR_EXP;
                             if (col < 8 || !color256) {
                                 first = attr(sb, Integer.toString(40 + roundTo8Color(col)), first);
                             } else {
