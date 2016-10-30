@@ -40,7 +40,9 @@ public abstract class AttributedCharSequence implements CharSequence {
     public String toAnsi(Terminal terminal) {
         StringBuilder sb = new StringBuilder();
         int style = 0;
-        boolean color256 = (terminal != null && terminal.getNumericCapability(Capability.max_colors) >= 256);
+        Integer max_colors = terminal == null ? null
+            : terminal.getNumericCapability(Capability.max_colors);
+        boolean color256 = max_colors != null && max_colors >= 256;
         for (int i = 0; i < length(); i++) {
             char c = charAt(i);
             int  s = styleCodeAt(i) & ~F_HIDDEN; // The hidden flag does not change the ansi styles
