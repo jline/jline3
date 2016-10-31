@@ -339,6 +339,11 @@ public interface LineReader {
         MENU_COMPLETE,
         /** if set and not at start of line before prompt, move to new line */
         AUTO_FRESH_LINE,
+
+        /** After writing into the rightmost column, do we immediately
+         * move to the next line (the default)? Or do we wait until
+         * the next character. */
+        DELAY_LINE_WRAP,
         AUTO_PARAM_SLASH(true),
         AUTO_REMOVE_SLASH(true),
         INSERT_TAB(true);

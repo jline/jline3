@@ -1761,10 +1761,10 @@ public class Nano {
         int cursor;
         if (editMessage != null) {
             cursor = editMessage.length() + editBuffer.length();
-            cursor += (size.getRows() - footer.size()) * size.getColumns();
+            cursor = size.cursorPos(size.getRows() - footer.size(), cursor);
         } else {
-            cursor = buffer.getDisplayedCursor();
-            cursor += header.size() * size.getColumns();
+            cursor = size.cursorPos(header.size(),
+                                    buffer.getDisplayedCursor());
         }
         display.update(newLines, cursor);
         flush();

@@ -38,6 +38,14 @@ public class Size {
         this.rows = (short) rows;
     }
 
+    /** A cursor position combines a row number with a column position.
+     * Note each row has {@code col+1} different column positions,
+     * including the right margin.
+     */
+    public int cursorPos(int row, int col) {
+        return row * (cols+1) + col;
+    }
+
     public void copy(Size size) {
         setColumns(size.getColumns());
         setRows(size.getRows());

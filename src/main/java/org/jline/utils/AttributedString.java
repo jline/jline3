@@ -28,6 +28,7 @@ public class AttributedString extends AttributedCharSequence {
     final int start;
     final int end;
     public static final AttributedString EMPTY = new AttributedString("");
+    public static final AttributedString NEWLINE = new AttributedString("\n");
 
     public AttributedString(CharSequence str) {
         this(str, 0, str.length(), null);

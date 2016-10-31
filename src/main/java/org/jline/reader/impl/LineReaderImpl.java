@@ -478,6 +478,8 @@ public class LineReaderImpl implements LineReader, Flushable
             } else {
                 display.resize(size.getRows(), size.getColumns());
             }
+            if (isSet(Option.DELAY_LINE_WRAP))
+                display.setDelayLineWrap(true);
 
             // Move into application mode
             terminal.puts(Capability.keypad_xmit);
@@ -3223,7 +3225,7 @@ public class LineReaderImpl implements LineReader, Flushable
             newLines = new ArrayList<>();
             newLines.add(full.toAttributedString());
         } else {
-            newLines = full.toAttributedString().columnSplitLength(size.getColumns());
+            newLines = full.toAttributedString().columnSplitLength(size.getColumns(), true);
         }
 
         List<AttributedString> rightPromptLines;
@@ -3249,8 +3251,8 @@ public class LineReaderImpl implements LineReader, Flushable
             sb.append(insertSecondaryPrompts(new AttributedString(buf.upToCursor()), secondaryPrompts));
             List<AttributedString> promptLines = sb.columnSplitLength(size.getColumns());
             if (!promptLines.isEmpty()) {
-                cursorPos = (promptLines.size() - 1) * size.getColumns()
-                        + promptLines.get(promptLines.size() - 1).columnLength();
+                cursorPos = size.cursorPos(promptLines.size() - 1,
+                                           promptLines.get(promptLines.size() - 1).columnLength());
             }
         }
 
@@ -3955,7 +3957,7 @@ public class LineReaderImpl implements LineReader, Flushable
                         topLine = pr.selectedLine - displayed + 1;
                     }
                 }
-                List<AttributedString> lines = pr.post.columnSplitLength(size.getColumns());
+                List<AttributedString> lines = pr.post.columnSplitLength(size.getColumns(), true);
                 List<AttributedString> sub = new ArrayList<>(lines.subList(topLine, topLine + displayed));
                 sub.add(new AttributedStringBuilder()
                         .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.CYAN))
@@ -3965,8 +3967,9 @@ public class LineReaderImpl implements LineReader, Flushable
                         .append(Integer.toString(topLine + displayed))
                         .append(" of ")
                         .append(Integer.toString(lines.size()))
+                        .append("\n")
                         .style(AttributedStyle.DEFAULT).toAttributedString());
-                computed = AttributedString.join(new AttributedString("\n"), sub);
+                computed = AttributedString.join(AttributedString.EMPTY, sub);
             } else {
                 computed = pr.post;
             }
@@ -4101,7 +4104,7 @@ public class LineReaderImpl implements LineReader, Flushable
                     redisplay(false);
                     buf.cursor(oldCursor);
                     println();
-                    List<AttributedString> ls = postResult.post.columnSplitLength(size.getColumns());
+                    List<AttributedString> ls = postResult.post.columnSplitLength(size.getColumns(), false);
                     Display d = new Display(terminal, false);
                     d.resize(size.getRows(), size.getColumns());
                     d.update(ls, -1);

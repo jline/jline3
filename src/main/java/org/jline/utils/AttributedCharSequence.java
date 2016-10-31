@@ -223,6 +223,9 @@ public abstract class AttributedCharSequence implements CharSequence {
     }
 
     public List<AttributedString> columnSplitLength(int columns) {
+        return columnSplitLength(columns, false);
+    }
+    public List<AttributedString> columnSplitLength(int columns, boolean includeNewlines) {
         List<AttributedString> strings = new ArrayList<>();
         int cur = 0;
         int beg = cur;
@@ -231,7 +234,7 @@ public abstract class AttributedCharSequence implements CharSequence {
             int cp = codePointAt(cur);
             int w = isHidden(cur) ? 0 : WCWidth.wcwidth(cp);
             if (cp == '\n') {
-                strings.add(subSequence(beg, cur));
+                strings.add(subSequence(beg, includeNewlines ? cur+1 : cur));
                 beg = cur + 1;
                 col = 0;
             } else if ((col += w) > columns) {
