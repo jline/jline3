@@ -85,11 +85,31 @@ public final class TerminalBuilder {
         return this;
     }
 
+    /**
+     * Attributes to use when creating a non system terminal,
+     * i.e. when the builder has been given the input and
+     * outut streams using the {@link #streams(InputStream, OutputStream)} method
+     * or when {@link #system(boolean)} has been explicitely called with
+     * <code>false</code>.
+     *
+     * @see #size(Size)
+     * @see #system(boolean)
+     */
     public TerminalBuilder attributes(Attributes attributes) {
         this.attributes = attributes;
         return this;
     }
 
+    /**
+     * Initial size to use when creating a non system terminal,
+     * i.e. when the builder has been given the input and
+     * outut streams using the {@link #streams(InputStream, OutputStream)} method
+     * or when {@link #system(boolean)} has been explicitely called with
+     * <code>false</code>.
+     *
+     * @see #attributes(Attributes)
+     * @see #system(boolean)
+     */
     public TerminalBuilder size(Size size) {
         this.size = size;
         return this;
@@ -180,7 +200,14 @@ public final class TerminalBuilder {
                     Log.debug("Error creating JNA based pty", t.getMessage());
                 }
             }
-            return new ExternalTerminal(name, type, in, out, encoding, signalHandler);
+            Terminal terminal = new ExternalTerminal(name, type, in, out, encoding, signalHandler);
+            if (attributes != null) {
+                terminal.setAttributes(attributes);
+            }
+            if (size != null) {
+                terminal.setSize(size);
+            }
+            return terminal;
         }
     }
 
