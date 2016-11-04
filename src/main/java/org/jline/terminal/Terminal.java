@@ -18,6 +18,12 @@ import org.jline.terminal.impl.NativeSignalHandler;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.NonBlockingReader;
 
+/**
+ * A terminal representing a virtual terminal on the computer.
+ *
+ * Terminals should be closed by calling the {@link #close()} method
+ * in order to restore their original state.
+ */
 public interface Terminal extends Closeable, Flushable {
 
     String getName();

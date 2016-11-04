@@ -29,12 +29,26 @@ import org.jline.terminal.impl.jna.win.JnaWinSysTerminal;
 import org.jline.utils.Log;
 import org.jline.utils.OSUtils;
 
+/**
+ * Builder class to create terminals.
+ */
 public final class TerminalBuilder {
 
+    /**
+     * Returns the default system terminal.
+     * Terminals should be closed properly using the {@link Terminal#close()}
+     * method in order to restore the original terminal state.
+     *
+     * This call is equivalent to:
+     * <code>builder().build()</code>
+     */
     public static Terminal terminal() throws IOException {
         return builder().build();
     }
 
+    /**
+     * Creates a new terminal builder instance.
+     */
     public static TerminalBuilder builder() {
         return new TerminalBuilder();
     }
