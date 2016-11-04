@@ -52,7 +52,7 @@ public final class Log
      * Helper to support rendering messages.
      */
     static void render(final PrintStream out, final Object message) {
-        if (message.getClass().isArray()) {
+        if (message != null && message.getClass().isArray()) {
             Object[] array = (Object[]) message;
 
             out.print("[");
