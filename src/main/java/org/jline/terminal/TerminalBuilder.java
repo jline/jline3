@@ -60,6 +60,7 @@ public final class TerminalBuilder {
     private String encoding;
     private Boolean system;
     private boolean jna = true;
+    private Boolean dumb;
     private Attributes attributes;
     private Size size;
     private boolean nativeSignals = false;
@@ -86,6 +87,11 @@ public final class TerminalBuilder {
 
     public TerminalBuilder jna(boolean jna) {
         this.jna = jna;
+        return this;
+    }
+
+    public TerminalBuilder dumb(boolean dumb) {
+        this.dumb = dumb;
         return this;
     }
 
@@ -165,26 +171,34 @@ public final class TerminalBuilder {
             if (attributes != null || size != null) {
                 Log.warn("Attributes and size fields are ignored when creating a system terminal");
             }
+            IllegalStateException exception = new IllegalStateException("Unable to create a system terminal");
             //
             // Cygwin support
             //
             if (OSUtils.IS_CYGWIN) {
-                Pty pty = ExecPty.current();
-                return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
+                try {
+                    Pty pty = ExecPty.current();
+                    return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
+                } catch (IOException e) {
+                    // Ignore if not a tty
+                    Log.debug("Error creating exec based pty: ", e.getMessage(), e);
+                    exception.addSuppressed(e);
+                }
             }
             else if (OSUtils.IS_WINDOWS) {
                 if (useJna()) {
                     try {
                         return new JnaWinSysTerminal(name, nativeSignals, signalHandler);
                     } catch (Throwable t) {
-                        Log.debug("Error creating JNA based pty: ", t.getMessage(), t);
+                        Log.debug("Error creating JNA based terminal: ", t.getMessage(), t);
+                        exception.addSuppressed(t);
                     }
                 }
                 try {
                     return new JansiWinSysTerminal(name, nativeSignals, signalHandler);
-                } catch (NoClassDefFoundError e) {
-                    throw new IllegalStateException("Unable to create a Windows based terminal " +
-                            "because of missing dependencies. Add either JNA or JANSI to your classpath.", e);
+                } catch (Throwable t) {
+                    Log.debug("Error creating JANSI based terminal: ", t.getMessage(), t);
+                    exception.addSuppressed(t);
                 }
             } else {
                 Pty pty = null;
@@ -194,24 +208,32 @@ public final class TerminalBuilder {
                     } catch (Throwable t) {
                         // ignore
                         Log.debug("Error creating JNA based pty: ", t.getMessage(), t);
+                        exception.addSuppressed(t);
                     }
                 }
                 if (pty == null) {
                     try {
                         pty = ExecPty.current();
-                    } catch (IOException e) {
+                    } catch (Throwable t) {
                         // Ignore if not a tty
-                        Log.debug("Error creating exec based pty: ", e.getMessage(), e);
+                        Log.debug("Error creating exec based pty: ", t.getMessage(), t);
+                        exception.addSuppressed(t);
                     }
                 }
                 if (pty != null) {
                     return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
-                } else {
-                    return new DumbTerminal(name, type,
-                                            new FileInputStream(FileDescriptor.in),
-                                            new FileOutputStream(FileDescriptor.out),
-                                            encoding, signalHandler);
                 }
+            }
+            if (dumb == null || dumb) {
+                if (dumb == null) {
+                    Log.warn("Creating a dumb terminal", exception);
+                }
+                return new DumbTerminal(name, type,
+                                        new FileInputStream(FileDescriptor.in),
+                                        new FileOutputStream(FileDescriptor.out),
+                                        encoding, signalHandler);
+            } else {
+                throw exception;
             }
         } else {
             if (useJna()) {
