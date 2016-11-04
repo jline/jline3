@@ -148,6 +148,9 @@ public final class TerminalBuilder {
             type = System.getenv("TERM");
         }
         if ((system != null && system) || (system == null && in == null && out == null)) {
+            if (attributes != null || size != null) {
+                Log.warn("Attributes and size fields are ignored when creating a system terminal");
+            }
             //
             // Cygwin support
             //
