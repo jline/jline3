@@ -166,7 +166,12 @@ public final class TerminalBuilder {
                         Log.debug("Error creating JNA based pty: ", t.getMessage(), t);
                     }
                 }
-                return new JansiWinSysTerminal(name, nativeSignals, signalHandler);
+                try {
+                    return new JansiWinSysTerminal(name, nativeSignals, signalHandler);
+                } catch (NoClassDefFoundError e) {
+                    throw new IllegalStateException("Unable to create a Windows based terminal " +
+                            "because of missing dependencies. Add either JNA or JANSI to your classpath.", e);
+                }
             } else {
                 Pty pty = null;
                 if (useJna()) {
