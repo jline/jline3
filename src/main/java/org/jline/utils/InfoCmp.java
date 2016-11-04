@@ -731,6 +731,7 @@ public final class InfoCmp {
             "\tu8=\\E[?1;2c, u9=\\E[c, vpa=\\E[%i%p1%dd,";
 
     static {
+        setDefaultInfoCmp("dumb", ANSI_CAPS);
         setDefaultInfoCmp("ansi", ANSI_CAPS);
         setDefaultInfoCmp("xterm", XTERM_CAPS);
         setDefaultInfoCmp("xterm-256color", XTERM_256COLOR_CAPS);
