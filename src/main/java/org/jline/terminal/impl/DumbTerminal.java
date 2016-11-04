@@ -33,7 +33,7 @@ public class DumbTerminal extends AbstractTerminal {
     private final Size size;
 
     public DumbTerminal(InputStream in, OutputStream out) throws IOException {
-        this("dumb", "ansi", in, out, Charset.defaultCharset().name());
+        this(TYPE_DUMB, "ansi", in, out, Charset.defaultCharset().name());
     }
 
     public DumbTerminal(String name, String type, InputStream in, OutputStream out, String encoding) throws IOException {

@@ -26,6 +26,11 @@ import org.jline.utils.NonBlockingReader;
  */
 public interface Terminal extends Closeable, Flushable {
 
+    /**
+     * Type used for dumb terminals.
+     */
+    String TYPE_DUMB = "dumb";
+
     String getName();
 
     //
