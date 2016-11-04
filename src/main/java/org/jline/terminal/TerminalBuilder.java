@@ -127,9 +127,9 @@ public final class TerminalBuilder {
 
     public Terminal build() throws IOException {
         Terminal terminal = doBuild();
-        Log.debug("Using terminal " + terminal.getClass().getSimpleName());
+        Log.debug(() -> "Using terminal " + terminal.getClass().getSimpleName());
         if (terminal instanceof AbstractPosixTerminal) {
-            Log.debug("Using pty " + ((AbstractPosixTerminal) terminal).getPty().getClass().getSimpleName());
+            Log.debug(() -> "Using pty " + ((AbstractPosixTerminal) terminal).getPty().getClass().getSimpleName());
         }
         return terminal;
     }
@@ -160,7 +160,7 @@ public final class TerminalBuilder {
                     try {
                         return new JnaWinSysTerminal(name, nativeSignals, signalHandler);
                     } catch (Throwable t) {
-                        Log.debug("Error creating JNA based pty", t.getMessage());
+                        Log.debug("Error creating JNA based pty: ", t.getMessage(), t);
                     }
                 }
                 return new JansiWinSysTerminal(name, nativeSignals, signalHandler);
@@ -171,7 +171,7 @@ public final class TerminalBuilder {
                         pty = JnaNativePty.current();
                     } catch (Throwable t) {
                         // ignore
-                        Log.debug("Error creating JNA based pty", t.getMessage());
+                        Log.debug("Error creating JNA based pty: ", t.getMessage(), t);
                     }
                 }
                 if (pty == null) {
@@ -179,7 +179,7 @@ public final class TerminalBuilder {
                         pty = ExecPty.current();
                     } catch (IOException e) {
                         // Ignore if not a tty
-                        Log.debug("Error creating exec based pty", e.getMessage());
+                        Log.debug("Error creating exec based pty: ", e.getMessage(), e);
                     }
                 }
                 if (pty != null) {
@@ -197,7 +197,7 @@ public final class TerminalBuilder {
                     Pty pty = JnaNativePty.open(attributes, size);
                     return new PosixPtyTerminal(name, type, pty, in, out, encoding, signalHandler);
                 } catch (Throwable t) {
-                    Log.debug("Error creating JNA based pty", t.getMessage());
+                    Log.debug("Error creating JNA based pty: ", t.getMessage(), t);
                 }
             }
             Terminal terminal = new ExternalTerminal(name, type, in, out, encoding, signalHandler);

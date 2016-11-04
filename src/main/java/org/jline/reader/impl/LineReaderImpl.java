@@ -613,7 +613,7 @@ public class LineReaderImpl implements LineReader, Flushable
                 w.apply();
             }
         } catch (Throwable t) {
-            Log.debug("Error executing widget '" + name + "'", t);
+            Log.debug("Error executing widget '", name, "'", t);
         }
     }
 

@@ -10,6 +10,7 @@ package org.jline.utils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
@@ -25,6 +26,10 @@ public final class Log
 {
     public static void trace(final Object... messages) {
         log(Level.FINEST, messages);
+    }
+
+    public static void debug(Supplier<String> supplier) {
+        log(Level.FINE, supplier);
     }
 
     public static void debug(final Object... messages) {
@@ -64,8 +69,7 @@ public final class Log
         }
     }
 
-    static void log(final Level level, final Object... messages) {
-        Logger logger = Logger.getLogger("org.jline");
+    static LogRecord createRecord(final Level level, final Object... messages) {
         Throwable cause = null;
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);
@@ -81,7 +85,26 @@ public final class Log
         ps.close();
         LogRecord r = new LogRecord(level, baos.toString());
         r.setThrown(cause);
-        logger.log(r);
+        return r;
+    }
+
+    static LogRecord createRecord(final Level level, final Supplier<String> message) {
+        return new LogRecord(level, message.get());
+    }
+
+    static void log(final Level level, final Supplier<String> message) {
+        logr(level, () -> createRecord(level, message));
+    }
+
+    static void log(final Level level, final Object... messages) {
+        logr(level, () -> createRecord(level, messages));
+    }
+
+    static void logr(final Level level, final Supplier<LogRecord> record) {
+        Logger logger = Logger.getLogger("org.jline");
+        if (logger.isLoggable(level)) {
+            logger.log(record.get());
+        }
     }
 
 }
