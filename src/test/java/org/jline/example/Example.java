@@ -17,6 +17,7 @@ import java.util.*;
 
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
+import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.LineReaderImpl;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.FileNameCompleter;
@@ -71,6 +72,7 @@ public class Example
             }
 
             Completer completer = null;
+            Parser parser = null;
 
             int index = 0;
             label:
@@ -109,6 +111,11 @@ public class Example
                         break label;
                     case "simple":
                         completer = new StringsCompleter("foo", "bar", "baz");
+                        break label;
+                    case "quotes":
+                        DefaultParser p = new DefaultParser();
+                        p.setEofOnUnclosedQuote(true);
+                        parser = p;
                         break label;
                     case "foo":
                         completer = new ArgumentCompleter(
@@ -177,6 +184,7 @@ public class Example
             LineReader reader = LineReaderBuilder.builder()
                     .terminal(terminal)
                     .completer(completer)
+                    .parser(parser)
                     .build();
 
             while (true) {

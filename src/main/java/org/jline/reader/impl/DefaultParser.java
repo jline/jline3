@@ -13,6 +13,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
+import org.jline.reader.EOFError;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.Parser;
 import org.jline.reader.Parser.ParseContext;
@@ -22,6 +23,8 @@ public class DefaultParser implements Parser {
     private char[] quoteChars = {'\'', '"'};
 
     private char[] escapeChars = {'\\'};
+
+    private boolean eofOnUnclosedQuote;
 
     public void setQuoteChars(final char[] chars) {
         this.quoteChars = chars;
@@ -37,6 +40,14 @@ public class DefaultParser implements Parser {
 
     public char[] getEscapeChars() {
         return this.escapeChars;
+    }
+
+    public void setEofOnUnclosedQuote(boolean eofOnUnclosedQuote) {
+        this.eofOnUnclosedQuote = eofOnUnclosedQuote;
+    }
+
+    public boolean isEofOnUnclosedQuote() {
+        return eofOnUnclosedQuote;
     }
 
     public ParsedLine parse(final String line, final int cursor, ParseContext context) {
@@ -92,10 +103,11 @@ public class DefaultParser implements Parser {
             wordCursor = words.get(words.size() - 1).length();
         }
 
-//        if (quoteStart >= 0) {
-//            throw new EOFError(-1, -1, "Missing closing quote", line.charAt(quoteStart) == '\''
-//                    ? "quote" : "dquote");
-//        }
+        if (eofOnUnclosedQuote && quoteStart >= 0) {
+            throw new EOFError(-1, -1, "Missing closing quote", line.charAt(quoteStart) == '\''
+                    ? "quote" : "dquote");
+        }
+
         return new ArgumentList(line, words, wordIndex, wordCursor, cursor);
     }
 
