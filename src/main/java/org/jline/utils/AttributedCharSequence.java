@@ -128,7 +128,7 @@ public abstract class AttributedCharSequence implements CharSequence {
         return styleAt(index).getStyle();
     }
 
-    boolean isHidden(int index) {
+    public boolean isHidden(int index) {
         return (styleCodeAt(index) & F_HIDDEN) != 0;
     }
 
@@ -212,6 +212,8 @@ public abstract class AttributedCharSequence implements CharSequence {
         int end = begin;
         while (end < this.length()) {
             int cp = codePointAt(end);
+            if (cp == '\n')
+                break;
             int w = isHidden(end) ? 0 : WCWidth.wcwidth(cp);
             if (col + w > stop) {
                 break;
