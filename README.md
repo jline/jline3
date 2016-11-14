@@ -23,7 +23,7 @@ JLine is distributed under the [BSD License](http://www.opensource.org/licenses/
 Documentation
 -------------
 
-* [wiki](https://github.com/jline/jline2/wiki)
+* [wiki](https://github.com/jline/jline3/wiki)
 
 Forums
 ------
