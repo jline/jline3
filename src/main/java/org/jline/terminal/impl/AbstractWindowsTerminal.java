@@ -53,6 +53,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     protected final Attributes attributes = new Attributes();
     protected final Thread pump;
 
+    protected MouseTracking tracking = MouseTracking.Off;
     private volatile boolean closing;
 
     public AbstractWindowsTerminal(OutputStream output, String name, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
@@ -140,12 +141,19 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
 
     public void setAttributes(Attributes attr) {
         attributes.copy(attr);
-        int mode = 0;
-        if (attr.getLocalFlag(Attributes.LocalFlag.ECHO)) {
+        updateConsoleMode();
+    }
+
+    protected void updateConsoleMode() {
+        int mode = ENABLE_WINDOW_INPUT;
+        if (attributes.getLocalFlag(Attributes.LocalFlag.ECHO)) {
             mode |= ENABLE_ECHO_INPUT;
         }
-        if (attr.getLocalFlag(Attributes.LocalFlag.ICANON)) {
+        if (attributes.getLocalFlag(Attributes.LocalFlag.ICANON)) {
             mode |= ENABLE_LINE_INPUT;
+        }
+        if (tracking != MouseTracking.Off) {
+            mode |= ENABLE_MOUSE_INPUT;
         }
         setConsoleMode(mode);
     }
@@ -176,6 +184,8 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     protected abstract byte[] readConsoleInput();
 
     protected String getEscapeSequence(short keyCode) {
+        // virtual keycodes: http://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
+        // TODO: numpad keys, modifiers
         String escapeSequence = null;
         switch (keyCode) {
             case 0x08: // VK_BACK BackSpace
@@ -314,5 +324,13 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         slaveInputPipe.write(c);
         slaveInputPipe.flush();
     }
+
+    @Override
+    public boolean trackMouse(MouseTracking tracking) {
+        this.tracking = tracking;
+        updateConsoleMode();
+        return true;
+    }
+
 }
 

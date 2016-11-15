@@ -28,6 +28,7 @@ import org.jline.keymap.KeyMap;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.terminal.Attributes;
+import org.jline.terminal.MouseEvent;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.Terminal.Signal;
@@ -67,10 +68,12 @@ public class Tmux {
     private final AtomicInteger paneId = new AtomicInteger();
 
     private final Map<String, String> serverOptions = new HashMap<>();
-    private final KeyMap<Object> keyMap = new KeyMap<>();
 
-    private static final Object UNMAPPED = new Object();
+    private KeyMap<Object> keyMap;
 
+    enum Binding {
+        Discard, SelfInsert, Mouse
+    }
 
     public Tmux(Terminal terminal, PrintStream err, Consumer<Terminal> runner) throws IOException {
         InfoCmp.setDefaultInfoCmp("screen", SCREEN_CAPS);
@@ -84,16 +87,25 @@ public class Tmux {
         term = (colors != null && colors >= 256) ? "screen-256color" : "screen";
         // Setup defaults bindings
         serverOptions.put(OPT_PREFIX, "`");
-        keyMap.setUnicode(UNMAPPED);
-        keyMap.bind(UNMAPPED, KeyMap.range("^@-^?"));
-        keyMap.bind(CMD_SEND_PREFIX, serverOptions.get(OPT_PREFIX));
-        keyMap.bind(CMD_SEND_PREFIX, serverOptions.get(OPT_PREFIX));
-        keyMap.bind(CMD_SPLIT_WINDOW, "\"");
-        keyMap.bind(CMD_SPLIT_WINDOW + " -h", "%");
-        keyMap.bind(CMD_SELECT_PANE + " -U", KeyMap.key(terminal, Capability.key_up));
-        keyMap.bind(CMD_SELECT_PANE + " -L", KeyMap.key(terminal, Capability.key_left));
-        keyMap.bind(CMD_SELECT_PANE + " -R", KeyMap.key(terminal, Capability.key_right));
-        keyMap.bind(CMD_SELECT_PANE + " -D", KeyMap.key(terminal, Capability.key_down));
+        keyMap = createKeyMap(serverOptions.get(OPT_PREFIX));
+    }
+
+    protected KeyMap<Object> createKeyMap(String prefix) {
+        KeyMap<Object> keyMap = new KeyMap<>();
+        keyMap.setUnicode(Binding.SelfInsert);
+        keyMap.setNomatch(Binding.SelfInsert);
+        for (int i = 0; i < 255; i++) {
+            keyMap.bind(Binding.Discard, prefix + (char)(i));
+        }
+        keyMap.bind(Binding.Mouse, KeyMap.key(terminal, Capability.key_mouse));
+        keyMap.bind(CMD_SEND_PREFIX, prefix + prefix);
+        keyMap.bind(CMD_SPLIT_WINDOW, prefix + "\"");
+        keyMap.bind(CMD_SPLIT_WINDOW + " -h", prefix + "%");
+        keyMap.bind(CMD_SELECT_PANE + " -U", prefix + KeyMap.key(terminal, Capability.key_up));
+        keyMap.bind(CMD_SELECT_PANE + " -L", prefix + KeyMap.key(terminal, Capability.key_left));
+        keyMap.bind(CMD_SELECT_PANE + " -R", prefix + KeyMap.key(terminal, Capability.key_right));
+        keyMap.bind(CMD_SELECT_PANE + " -D", prefix + KeyMap.key(terminal, Capability.key_down));
+        return keyMap;
     }
 
     public void run() throws IOException {
@@ -103,6 +115,7 @@ public class Tmux {
         Attributes attributes = terminal.enterRawMode();
         terminal.puts(Capability.enter_ca_mode);
         terminal.puts(Capability.keypad_xmit);
+        terminal.trackMouse(Terminal.MouseTracking.Any);
         terminal.flush();
         try {
             // Create first pane
@@ -116,6 +129,7 @@ public class Tmux {
             // Redraw loop
             redrawLoop();
         } finally {
+            terminal.trackMouse(Terminal.MouseTracking.Off);
             terminal.puts(Capability.keypad_local);
             terminal.puts(Capability.exit_ca_mode);
             terminal.flush();
@@ -153,26 +167,24 @@ public class Tmux {
 
     private void inputLoop() {
         try {
-            int c;
-            while ((c = terminal.reader().read()) >= 0) {
-                String pfx = serverOptions.get(OPT_PREFIX);
-                if (pfx != null && c == pfx.charAt(0)) {
-                    // escape sequences
-                    Object b = new BindingReader(terminal.reader()).readBinding(keyMap);
-                    if (b instanceof String) {
-                        ByteArrayOutputStream out = new ByteArrayOutputStream();
-                        ByteArrayOutputStream err = new ByteArrayOutputStream();
-                        try (PrintStream pout = new PrintStream(out);
-                             PrintStream perr = new PrintStream(err)) {
-                            execute(pout, perr, (String) b);
-                        } catch (Exception e) {
-                            // TODO: log
-                        }
-                    }
-                } else {
-                    String s = new String(Character.toChars(c));
-                    active.getMasterInputOutput().write(s.getBytes());
+            BindingReader reader = new BindingReader(terminal.reader());
+            while (running.get()) {
+                Object b = reader.readBinding(keyMap);
+                if (b == Binding.SelfInsert) {
+                    active.getMasterInputOutput().write(reader.getLastBinding().getBytes());
                     active.getMasterInputOutput().flush();
+                } else if (b == Binding.Mouse) {
+                    MouseEvent event = terminal.readMouseEvent();
+                    //System.err.println(event.toString());
+                } else if (b instanceof String) {
+                    ByteArrayOutputStream out = new ByteArrayOutputStream();
+                    ByteArrayOutputStream err = new ByteArrayOutputStream();
+                    try (PrintStream pout = new PrintStream(out);
+                         PrintStream perr = new PrintStream(err)) {
+                        execute(pout, perr, (String) b);
+                    } catch (Exception e) {
+                        // TODO: log
+                    }
                 }
             }
         } catch (IOException e) {

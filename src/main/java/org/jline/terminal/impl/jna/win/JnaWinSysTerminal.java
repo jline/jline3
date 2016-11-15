@@ -26,6 +26,8 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
     private static final Pointer consoleIn = Kernel32.INSTANCE.GetStdHandle(Kernel32.STD_INPUT_HANDLE);
     private static final Pointer consoleOut = Kernel32.INSTANCE.GetStdHandle(Kernel32.STD_OUTPUT_HANDLE);
 
+    private int prevButtonState;
+
     public JnaWinSysTerminal(String name, boolean nativeSignals) throws IOException {
         this(name, nativeSignals, SignalHandler.SIG_DFL);
     }
@@ -56,6 +58,8 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
         Kernel32.INSTANCE.GetConsoleScreenBufferInfo(consoleOut, info);
         return new Size(info.windowWidth(), info.windowHeight());
     }
+
+    private char[] mouse = new char[] { '\033', '[', 'M', ' ', ' ', ' ' };
 
     protected byte[] readConsoleInput() {
         // XXX does how many events to read in one call matter?
@@ -94,8 +98,6 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
                             sb.append(keyEvent.uChar.UnicodeChar);
                         }
                     } else {
-                        // virtual keycodes: http://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
-                        // TODO: numpad keys, modifiers
                         String escapeSequence = getEscapeSequence(keyEvent.wVirtualKeyCode);
                         if (escapeSequence != null) {
                             for (int k = 0; k < keyEvent.wRepeatCount; k++) {
@@ -115,6 +117,40 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
                 }
             } else if (event.EventType == Kernel32.INPUT_RECORD.WINDOW_BUFFER_SIZE_EVENT) {
                 raise(Signal.WINCH);
+            } else if (event.EventType == Kernel32.INPUT_RECORD.MOUSE_EVENT) {
+                Kernel32.MOUSE_EVENT_RECORD mouseEvent = event.Event.MouseEvent;
+                int dwEventFlags = mouseEvent.dwEventFlags;
+                int dwButtonState = mouseEvent.dwButtonState;
+                if (tracking == MouseTracking.Off
+                        || tracking == MouseTracking.Normal && dwEventFlags == Kernel32.MOUSE_MOVED
+                        || tracking == MouseTracking.Button && dwEventFlags == Kernel32.MOUSE_MOVED && dwButtonState == 0) {
+                    continue;
+                }
+                int cb = 0;
+                dwEventFlags &= ~ Kernel32.DOUBLE_CLICK; // Treat double-clicks as normal
+                if (dwEventFlags == Kernel32.MOUSE_WHEELED) {
+                    cb |= 64;
+                    if ((dwButtonState >> 16) < 0) {
+                        cb |= 1;
+                    }
+                } else if (dwEventFlags == Kernel32.MOUSE_HWHEELED) {
+                    continue;
+                } else if ((dwButtonState & Kernel32.FROM_LEFT_1ST_BUTTON_PRESSED) != 0) {
+                    cb |= 0x00;
+                } else if ((dwButtonState & Kernel32.RIGHTMOST_BUTTON_PRESSED) != 0) {
+                    cb |= 0x01;
+                } else if ((dwButtonState & Kernel32.FROM_LEFT_2ND_BUTTON_PRESSED) != 0) {
+                    cb |= 0x02;
+                } else {
+                    cb |= 0x03;
+                }
+                int cx = mouseEvent.dwMousePosition.X;
+                int cy = mouseEvent.dwMousePosition.Y;
+                mouse[3] = (char) (' ' + cb);
+                mouse[4] = (char) (' ' + cx + 1);
+                mouse[5] = (char) (' ' + cy + 1);
+                sb.append(mouse);
+                prevButtonState = dwButtonState;
             }
         }
         return sb.toString().getBytes();
@@ -128,6 +164,7 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
             switch (ir[i].EventType) {
                 case Kernel32.INPUT_RECORD.KEY_EVENT:
                 case Kernel32.INPUT_RECORD.WINDOW_BUFFER_SIZE_EVENT:
+                case Kernel32.INPUT_RECORD.MOUSE_EVENT:
                     return ir;
             }
         }

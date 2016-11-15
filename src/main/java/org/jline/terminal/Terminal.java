@@ -131,4 +131,18 @@ public interface Terminal extends Closeable, Flushable {
      */
     Cursor getCursorPosition(IntConsumer discarded);
 
+    //
+    // Mouse support
+    //
+
+    enum MouseTracking {
+        Off, Normal, Button, Any
+    }
+
+    boolean hasMouseSupport();
+
+    boolean trackMouse(MouseTracking tracking);
+
+    MouseEvent readMouseEvent();
+
 }

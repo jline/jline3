@@ -123,8 +123,8 @@ public class ExternalTerminalTest {
         StringBuilder sb = new StringBuilder();
         Cursor cursor = console.getCursorPosition(c -> sb.append((char) c));
         assertNotNull(cursor);
-        assertEquals(1, cursor.getX());
-        assertEquals(2, cursor.getY());
+        assertEquals(2, cursor.getX());
+        assertEquals(1, cursor.getY());
         assertEquals("a\033b", sb.toString());
         assertEquals('f', console.reader().read());
     }

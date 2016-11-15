@@ -59,10 +59,8 @@ import org.jline.reader.SyntaxError;
 import org.jline.reader.UserInterruptException;
 import org.jline.reader.Widget;
 import org.jline.reader.impl.history.DefaultHistory;
-import org.jline.terminal.Attributes;
+import org.jline.terminal.*;
 import org.jline.terminal.Attributes.ControlChar;
-import org.jline.terminal.Size;
-import org.jline.terminal.Terminal;
 import org.jline.terminal.Terminal.Signal;
 import org.jline.terminal.Terminal.SignalHandler;
 import org.jline.utils.AttributedString;
@@ -483,6 +481,8 @@ public class LineReaderImpl implements LineReader, Flushable
             terminal.puts(Capability.keypad_xmit);
             if (isSet(Option.AUTO_FRESH_LINE))
                 freshLine();
+            if (isSet(Option.MOUSE))
+                terminal.trackMouse(Terminal.MouseTracking.Normal);
 
             setPrompt(prompt);
             setRightPrompt(rightPrompt);
@@ -2175,6 +2175,7 @@ public class LineReaderImpl implements LineReader, Flushable
             redisplay(false);
             println();
             terminal.puts(Capability.keypad_local);
+            terminal.trackMouse(Terminal.MouseTracking.Off);
             flush();
         }
         history.moveToEnd();
@@ -3174,6 +3175,7 @@ public class LineReaderImpl implements LineReader, Flushable
         widgets.put(WHAT_CURSOR_POSITION, this::whatCursorPosition);
         widgets.put(YANK, this::yank);
         widgets.put(YANK_POP, this::yankPop);
+        widgets.put(MOUSE, this::mouse);
         return widgets;
     }
 
@@ -3188,42 +3190,15 @@ public class LineReaderImpl implements LineReader, Flushable
             return;
         }
         // TODO: support TERM_SHORT, terminal lines < 3
-        String buffer = buf.toString();
-        AttributedString attBuf;
-        if (mask != null) {
-            if (mask == NULL_MASK) {
-                buffer = "";
-            } else {
-                StringBuilder sb = new StringBuilder();
-                for (int i = buffer.length(); i-- > 0;) {
-                    sb.append((char) mask);
-                }
-                buffer = sb.toString();
-            }
-            attBuf = new AttributedString(buffer);
-        } else if (highlighter != null) {
-            attBuf = highlighter.highlight(this, buffer);
-        } else {
-            attBuf = new AttributedString(buffer);
-        }
-
         List<AttributedString> secondaryPrompts = new ArrayList<>();
-        AttributedString tNewBuf = insertSecondaryPrompts(attBuf, secondaryPrompts);
-        AttributedStringBuilder full = new AttributedStringBuilder().tabs(TAB_WIDTH);
-        full.append(prompt);
-        full.append(tNewBuf);
-        if (post != null) {
-            full.append("\n");
-            full.append(post.get());
-        }
-
+        AttributedString full = getDisplayedBufferWithPrompts(secondaryPrompts);
 
         List<AttributedString> newLines;
         if (size.getColumns() <= 0) {
             newLines = new ArrayList<>();
-            newLines.add(full.toAttributedString());
+            newLines.add(full);
         } else {
-            newLines = full.toAttributedString().columnSplitLength(size.getColumns());
+            newLines = full.columnSplitLength(size.getColumns());
         }
 
         List<AttributedString> rightPromptLines;
@@ -3246,7 +3221,7 @@ public class LineReaderImpl implements LineReader, Flushable
             // TODO: in case of wide chars
             AttributedStringBuilder sb = new AttributedStringBuilder().tabs(TAB_WIDTH);
             sb.append(prompt);
-            sb.append(insertSecondaryPrompts(new AttributedString(buf.upToCursor()), secondaryPrompts));
+            sb.append(insertSecondaryPrompts(new AttributedString(buf.upToCursor()), secondaryPrompts, false));
             List<AttributedString> promptLines = sb.columnSplitLength(size.getColumns());
             if (!promptLines.isEmpty()) {
                 cursorPos = (promptLines.size() - 1) * size.getColumns()
@@ -3259,6 +3234,37 @@ public class LineReaderImpl implements LineReader, Flushable
         if (flush) {
             flush();
         }
+    }
+
+    private AttributedString getDisplayedBufferWithPrompts(List<AttributedString> secondaryPrompts) {
+        AttributedString attBuf;
+        String buffer = buf.toString();
+        if (mask != null) {
+            if (mask == NULL_MASK) {
+                buffer = "";
+            } else {
+                StringBuilder sb = new StringBuilder();
+                for (int i = buffer.length(); i-- > 0;) {
+                    sb.append((char) mask);
+                }
+                buffer = sb.toString();
+            }
+            attBuf = new AttributedString(buffer);
+        } else if (highlighter != null) {
+            attBuf = highlighter.highlight(this, buffer);
+        } else {
+            attBuf = new AttributedString(buffer);
+        }
+
+        AttributedString tNewBuf = insertSecondaryPrompts(attBuf, secondaryPrompts);
+        AttributedStringBuilder full = new AttributedStringBuilder().tabs(TAB_WIDTH);
+        full.append(prompt);
+        full.append(tNewBuf);
+        if (post != null) {
+            full.append("\n");
+            full.append(post.get());
+        }
+        return full.toAttributedString();
     }
 
     private AttributedString expandPromptPattern(String pattern, int padToWidth,
@@ -3377,43 +3383,40 @@ public class LineReaderImpl implements LineReader, Flushable
         List<AttributedString> lines = strAtt.columnSplitLength(Integer.MAX_VALUE);
         AttributedStringBuilder sb = new AttributedStringBuilder();
         String secondaryPromptPattern = getString(SECONDARY_PROMPT_PATTERN, DEFAULT_SECONDARY_PROMPT_PATTERN);
-        int line = 0;
-        if (computePrompts || prompts.size() < 2) {
-            boolean needsMessage = secondaryPromptPattern.contains("%M");
-            AttributedStringBuilder buf = new AttributedStringBuilder();
-            int width = 0;
-            if (secondaryPromptPattern.contains("%P")) {
-                width = prompt.columnLength();
-                for (int l = 0; l < lines.size() - 1; l++) {
-                    AttributedString prompt;
-                    buf.append(lines.get(l)).append("\n");
-                    if (computePrompts) {
-                        String missing = "";
-                        if (needsMessage) {
-                            try {
-                                parser.parse(buf.toString(), buf.length(),ParseContext.SECONDARY_PROMPT);
-                            } catch (EOFError e) {
-                                missing = e.getMissing();
-                            } catch (SyntaxError e) {
-                                // Ignore
-                            }
-                        }
-                        prompt = expandPromptPattern(secondaryPromptPattern,
-                                0, missing, l+1);
-                    } else {
-                        prompt = prompts.get(l);
-                    }
-                    width = Math.max(width, prompt.columnLength());
-                }
-                buf.setLength(0);
-            }
-            while (line < lines.size() - 1) {
-                sb.append(lines.get(line)).append("\n");
-                buf.append(lines.get(line)).append("\n");
+        boolean needsMessage = secondaryPromptPattern.contains("%M");
+        AttributedStringBuilder buf = new AttributedStringBuilder();
+        int width = 0;
+        List<String> missings = new ArrayList<>();
+        if (computePrompts && secondaryPromptPattern.contains("%P")) {
+            width = prompt.columnLength();
+            for (int line = 0; line < lines.size() - 1; line++) {
                 AttributedString prompt;
-                if (computePrompts) {
-                    String missing = "";
-                    if (needsMessage) {
+                buf.append(lines.get(line)).append("\n");
+                String missing = "";
+                if (needsMessage) {
+                    try {
+                        parser.parse(buf.toString(), buf.length(), ParseContext.SECONDARY_PROMPT);
+                    } catch (EOFError e) {
+                        missing = e.getMissing();
+                    } catch (SyntaxError e) {
+                        // Ignore
+                    }
+                }
+                missings.add(missing);
+                prompt = expandPromptPattern(secondaryPromptPattern, 0, missing, line + 1);
+                width = Math.max(width, prompt.columnLength());
+            }
+            buf.setLength(0);
+        }
+        int line = 0;
+        while (line < lines.size() - 1) {
+            sb.append(lines.get(line)).append("\n");
+            buf.append(lines.get(line)).append("\n");
+            AttributedString prompt;
+            if (computePrompts) {
+                String missing = "";
+                if (needsMessage) {
+                    if (missings.isEmpty()) {
                         try {
                             parser.parse(buf.toString(), buf.length(), ParseContext.SECONDARY_PROMPT);
                         } catch (EOFError e) {
@@ -3421,19 +3424,20 @@ public class LineReaderImpl implements LineReader, Flushable
                         } catch (SyntaxError e) {
                             // Ignore
                         }
+                    } else {
+                        missing = missings.get(line);
                     }
-                    prompt = expandPromptPattern(secondaryPromptPattern,
-                                                 width, missing, line+1);
-                } else {
-                    prompt = prompts.get(line);
                 }
-                prompts.add(prompt);
-                sb.append(prompt);
-                line++;
+                prompt = expandPromptPattern(secondaryPromptPattern, width, missing, line + 1);
+            } else {
+                prompt = prompts.get(line);
             }
-            sb.append(lines.get(line));
-            buf.append(lines.get(line));
+            prompts.add(prompt);
+            sb.append(prompt);
+            line++;
         }
+        sb.append(lines.get(line));
+        buf.append(lines.get(line));
         return sb.toAttributedString();
     }
 
@@ -4644,6 +4648,32 @@ public class LineReaderImpl implements LineReader, Flushable
         return true;
     }
 
+    public boolean mouse() {
+        MouseEvent event = terminal.readMouseEvent();
+        if (event.getType() == MouseEvent.Type.Released
+                && event.getButton() == MouseEvent.Button.Button1) {
+            StringBuilder tsb = new StringBuilder();
+            Cursor cursor = terminal.getCursorPosition(c -> tsb.append((char) c));
+            bindingReader.runMacro(tsb.toString());
+
+            List<AttributedString> secondaryPrompts = new ArrayList<>();
+            getDisplayedBufferWithPrompts(secondaryPrompts);
+
+            AttributedStringBuilder sb = new AttributedStringBuilder().tabs(TAB_WIDTH);
+            sb.append(prompt);
+            sb.append(insertSecondaryPrompts(new AttributedString(buf.upToCursor()), secondaryPrompts, false));
+            List<AttributedString> promptLines = sb.columnSplitLength(size.getColumns());
+
+            int currentLine = promptLines.size() - 1;
+            int wantedLine = Math.max(0, Math.min(currentLine + event.getY() - cursor.getY(), secondaryPrompts.size()));
+            int pl0 = currentLine == 0 ? prompt.columnLength() : secondaryPrompts.get(currentLine - 1).columnLength();
+            int pl1 = wantedLine == 0 ? prompt.columnLength() : secondaryPrompts.get(wantedLine - 1).columnLength();
+            int adjust = pl1 - pl0;
+            buf.moveXY(event.getX() - cursor.getX() - adjust, event.getY() - cursor.getY());
+        }
+        return true;
+    }
+
     /**
      * Clear the screen by issuing the ANSI "clear screen" code.
      */
@@ -5078,6 +5108,7 @@ public class LineReaderImpl implements LineReader, Flushable
         bind(map, DELETE_CHAR,          key(Capability.key_dc));
         bind(map, KILL_WHOLE_LINE,      key(Capability.key_dl));
         bind(map, OVERWRITE_MODE,       key(Capability.key_ic));
+        bind(map, MOUSE,                key(Capability.key_mouse));
     }
 
     /**

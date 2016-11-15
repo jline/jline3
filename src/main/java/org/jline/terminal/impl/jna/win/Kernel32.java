@@ -51,6 +51,18 @@ interface Kernel32 extends StdCallLibrary {
     int BACKGROUND_RED =        0x0040;
     int BACKGROUND_INTENSITY =  0x0080;
 
+    // Button state
+    int FROM_LEFT_1ST_BUTTON_PRESSED = 0x0001;
+    int RIGHTMOST_BUTTON_PRESSED     = 0x0002;
+    int FROM_LEFT_2ND_BUTTON_PRESSED = 0x0004;
+    int FROM_LEFT_3RD_BUTTON_PRESSED = 0x0008;
+    int FROM_LEFT_4TH_BUTTON_PRESSED = 0x0010;
+
+    // Event flags
+    int MOUSE_MOVED                  = 0x0001;
+    int DOUBLE_CLICK                 = 0x0002;
+    int MOUSE_WHEELED                = 0x0004;
+    int MOUSE_HWHEELED               = 0x0008;
 
     // HANDLE WINAPI GetStdHandle(
     // __in DWORD nStdHandle
@@ -378,7 +390,7 @@ interface Kernel32 extends StdCallLibrary {
 
         public static class EventUnion extends Union {
             public KEY_EVENT_RECORD KeyEvent;
-            // MOUSE_EVENT_RECORD MouseEvent;
+            public MOUSE_EVENT_RECORD MouseEvent;
             // WINDOW_BUFFER_SIZE_RECORD WindowBufferSizeEvent;
             // MENU_EVENT_RECORD MenuEvent;
             // FOCUS_EVENT_RECORD FocusEvent;
@@ -390,6 +402,9 @@ interface Kernel32 extends StdCallLibrary {
             switch (EventType) {
                 case KEY_EVENT:
                     Event.setType(KEY_EVENT_RECORD.class);
+                    break;
+                case MOUSE_EVENT:
+                    Event.setType(MOUSE_EVENT_RECORD.class);
                     break;
             }
             super.read();
@@ -423,6 +438,20 @@ interface Kernel32 extends StdCallLibrary {
         public int dwControlKeyState;
 
         private static String[] fieldOrder = {"bKeyDown", "wRepeatCount", "wVirtualKeyCode", "wVirtualScanCode", "uChar", "dwControlKeyState"};
+
+        @Override
+        protected java.util.List<String> getFieldOrder() {
+            return java.util.Arrays.asList(fieldOrder);
+        }
+    }
+
+    class MOUSE_EVENT_RECORD extends Structure {
+        public COORD dwMousePosition;
+        public int dwButtonState;
+        public int dwControlKeyState;
+        public int dwEventFlags;
+
+        private static String[] fieldOrder = { "dwMousePosition", "dwButtonState", "dwControlKeyState", "dwEventFlags"};
 
         @Override
         protected java.util.List<String> getFieldOrder() {
