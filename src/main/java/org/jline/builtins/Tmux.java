@@ -28,6 +28,7 @@ import org.jline.keymap.KeyMap;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.terminal.Attributes;
+import org.jline.terminal.MouseSupport;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.Terminal.Signal;
@@ -50,6 +51,7 @@ public class Tmux {
     public static final String CMD_SEND_PREFIX = "send-prefix";
     public static final String CMD_SPLIT_WINDOW = "split-window";
     public static final String CMD_SELECT_PANE = "select-pane";
+    public static final String CMD_SET_OPTION = "set-option";
 
 
 
@@ -57,6 +59,7 @@ public class Tmux {
     private final AtomicBoolean resized = new AtomicBoolean(true);
     private final Terminal terminal;
     private final Display display;
+    private final MouseSupport mouse;
     private final PrintStream err;
     private final String term;
     private final Consumer<Terminal> runner;
@@ -79,6 +82,7 @@ public class Tmux {
         this.err = err;
         this.runner = runner;
         display = new Display(terminal, true);
+        mouse = new MouseSupport(terminal, MouseSupport.Tracking.Any);
         // Find terminal to use
         Integer colors = terminal.getNumericCapability(Capability.max_colors);
         term = (colors != null && colors >= 256) ? "screen-256color" : "screen";
@@ -103,6 +107,7 @@ public class Tmux {
         Attributes attributes = terminal.enterRawMode();
         terminal.puts(Capability.enter_ca_mode);
         terminal.puts(Capability.keypad_xmit);
+        mouse.enable(true);
         terminal.flush();
         try {
             // Create first pane
@@ -116,6 +121,7 @@ public class Tmux {
             // Redraw loop
             redrawLoop();
         } finally {
+            mouse.enable(false);
             terminal.puts(Capability.keypad_local);
             terminal.puts(Capability.exit_ca_mode);
             terminal.flush();
@@ -153,26 +159,33 @@ public class Tmux {
 
     private void inputLoop() {
         try {
-            int c;
-            while ((c = terminal.reader().read()) >= 0) {
-                String pfx = serverOptions.get(OPT_PREFIX);
-                if (pfx != null && c == pfx.charAt(0)) {
-                    // escape sequences
-                    Object b = new BindingReader(terminal.reader()).readBinding(keyMap);
-                    if (b instanceof String) {
-                        ByteArrayOutputStream out = new ByteArrayOutputStream();
-                        ByteArrayOutputStream err = new ByteArrayOutputStream();
-                        try (PrintStream pout = new PrintStream(out);
-                             PrintStream perr = new PrintStream(err)) {
-                            execute(pout, perr, (String) b);
-                        } catch (Exception e) {
-                            // TODO: log
+            while (true) {
+                int c = mouse.readCodepoint();
+                if (c == MouseSupport.READ_MOUSE_EVENT) {
+                    MouseSupport.Event event = mouse.getEvent();
+                    System.err.println(event.toString());
+                } else if (c >= 0) {
+                    String pfx = serverOptions.get(OPT_PREFIX);
+                    if (pfx != null && c == pfx.charAt(0)) {
+                        // escape sequences
+                        Object b = new BindingReader(terminal.reader()).readBinding(keyMap);
+                        if (b instanceof String) {
+                            ByteArrayOutputStream out = new ByteArrayOutputStream();
+                            ByteArrayOutputStream err = new ByteArrayOutputStream();
+                            try (PrintStream pout = new PrintStream(out);
+                                 PrintStream perr = new PrintStream(err)) {
+                                execute(pout, perr, (String) b);
+                            } catch (Exception e) {
+                                // TODO: log
+                            }
                         }
+                    } else {
+                        String s = new String(Character.toChars(c));
+                        active.getMasterInputOutput().write(s.getBytes());
+                        active.getMasterInputOutput().flush();
                     }
                 } else {
-                    String s = new String(Character.toChars(c));
-                    active.getMasterInputOutput().write(s.getBytes());
-                    active.getMasterInputOutput().flush();
+                    break;
                 }
             }
         } catch (IOException e) {

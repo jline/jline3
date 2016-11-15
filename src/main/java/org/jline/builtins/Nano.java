@@ -44,6 +44,7 @@ import org.jline.terminal.Attributes;
 import org.jline.terminal.Attributes.ControlChar;
 import org.jline.terminal.Attributes.InputFlag;
 import org.jline.terminal.Attributes.LocalFlag;
+import org.jline.terminal.MouseSupport;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.Terminal.Signal;
@@ -66,6 +67,7 @@ public class Nano {
     // Final fields
     protected final Terminal terminal;
     protected final Display display;
+    protected final MouseSupport mouse;
     protected final BindingReader bindingReader;
     protected final Size size;
     protected final Path root;
@@ -78,6 +80,7 @@ public class Nano {
     public boolean printLineNumbers = true;
     public boolean wrapping;
     public boolean smoothScrolling = true;
+    public boolean mouseSupport = false;
     public boolean oneMoreLine = true;
     public boolean constantCursor;
     public int tabs = 4;
@@ -366,7 +369,7 @@ public class Nano {
             return ret;
         }
 
-        void moveDown(int lines) throws IOException {
+        void moveDown(int lines) {
             cursorDown(lines);
             ensureCursorVisible();
         }
@@ -696,6 +699,16 @@ public class Nano {
             return newLines;
         }
 
+        public void moveTo(int x, int y) {
+            if (printLineNumbers) {
+                x = Math.max(x - 8, 0);
+            }
+            line = firstLineToDisplay;
+            offsetInLine = offsetInLineToDisplay;
+            wantedColumn = x;
+            cursorDown(y);
+        }
+
         public int getDisplayedCursor() {
             int rwidth = size.getColumns();
             int cursor = (printLineNumbers ? 8 : 0);
@@ -928,6 +941,7 @@ public class Nano {
     public Nano(Terminal terminal, Path root) {
         this.terminal = terminal;
         this.root = root;
+        this.mouse = new MouseSupport(terminal, MouseSupport.Tracking.Normal);
         this.display = new Display(terminal, true);
         this.bindingReader = new BindingReader(terminal.reader());
         this.size = new Size();
@@ -965,6 +979,9 @@ public class Nano {
         display.clear();
         display.reset();
         display.resize(size.getRows(), size.getColumns());
+        if (mouseSupport) {
+            mouse.enable(mouseSupport);
+        }
 
         this.shortcuts = standardShortcuts();
 
@@ -1019,6 +1036,9 @@ public class Nano {
                         break;
                     case SMOOTH_SCROLLING:
                         smoothScrolling();
+                        break;
+                    case MOUSE_SUPPORT:
+                        mouseSupport();
                         break;
                     case ONE_MORE_LINE:
                         oneMoreLine();
@@ -1082,6 +1102,9 @@ public class Nano {
                         break;
                     case MATCHING:
                         buffer.matching();
+                        break;
+                    case MOUSE_EVENT:
+                        mouseEvent();
                         break;
                     default:
                         setMessage("Unsupported " + op.name().toLowerCase().replace('_', '-'));
@@ -1709,6 +1732,12 @@ public class Nano {
         setMessage("Smooth scrolling " + (smoothScrolling ? "enabled" : "disabled"));
     }
 
+    void mouseSupport() throws IOException {
+        mouseSupport = !mouseSupport;
+        setMessage("Mouse support " + (mouseSupport ? "enabled" : "disabled"));
+        mouse.enable(mouseSupport);
+    }
+
     void constantCursor() {
         constantCursor = !constantCursor;
         setMessage("Constant cursor position display " + (constantCursor ? "enabled" : "disabled"));
@@ -1727,6 +1756,31 @@ public class Nano {
 
     void clearScreen() {
         resetDisplay();
+    }
+
+    void mouseEvent() {
+        MouseSupport.Event event = mouse.readEvent();
+        if (event.getModifiers().isEmpty() && event.getType() == MouseSupport.Type.Released
+                && event.getButton() == MouseSupport.Button.Button1) {
+            int x = event.getX();
+            int y = event.getY();
+            int hdr = buffer.computeHeader().size();
+            int ftr = computeFooter().size();
+            if (y < hdr) {
+                // nothing
+            } else if (y < size.getRows() - computeFooter().size()) {
+                buffer.moveTo(x, y - hdr);
+            } else {
+                // check commands
+            }
+        }
+        else if (event.getType() == MouseSupport.Type.Wheel) {
+            if (event.getButton() == MouseSupport.Button.WheelUp) {
+                buffer.moveDown(1);
+            } else if (event.getButton() == MouseSupport.Button.WheelDown) {
+                buffer.moveUp(1);
+            }
+        }
     }
 
     public String getTitle() {
@@ -1914,6 +1968,7 @@ public class Nano {
         keys.bind(Operation.CONSTANT_CURSOR, alt('c'));
         keys.bind(Operation.ONE_MORE_LINE, alt('o'));
         keys.bind(Operation.SMOOTH_SCROLLING, alt('s'));
+        keys.bind(Operation.MOUSE_SUPPORT, alt('m'));
         keys.bind(Operation.WHITESPACE, alt('p'));
         keys.bind(Operation.HIGHLIGHT, alt('y'));
 
@@ -1932,6 +1987,8 @@ public class Nano {
         keys.bind(Operation.DOWN, key(terminal, Capability.key_down));
         keys.bind(Operation.RIGHT, key(terminal, Capability.key_right));
         keys.bind(Operation.LEFT, key(terminal, Capability.key_left));
+
+        keys.bind(Operation.MOUSE_EVENT, mouse.getKeyMouse());
     }
 
     enum Operation {
@@ -1946,6 +2003,7 @@ public class Nano {
         WRAP,
         NUMBERS,
         SMOOTH_SCROLLING,
+        MOUSE_SUPPORT,
         ONE_MORE_LINE,
         CLEAR_SCREEN,
 
@@ -2015,7 +2073,9 @@ public class Nano {
         AUTO_INDENT,
         CUT_TO_END_TOGGLE,
         TABS_TO_SPACE,
-        UNCUT
+        UNCUT,
+
+        MOUSE_EVENT
     }
 
 }
