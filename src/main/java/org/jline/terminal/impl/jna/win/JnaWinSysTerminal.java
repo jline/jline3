@@ -57,6 +57,8 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
         return new Size(info.windowWidth(), info.windowHeight());
     }
 
+    private char[] mouse = new char[] { '\033', '[', 'M', ' ', ' ', ' ' };
+
     protected byte[] readConsoleInput() {
         // XXX does how many events to read in one call matter?
         Kernel32.INPUT_RECORD[] events = null;
@@ -94,8 +96,6 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
                             sb.append(keyEvent.uChar.UnicodeChar);
                         }
                     } else {
-                        // virtual keycodes: http://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
-                        // TODO: numpad keys, modifiers
                         String escapeSequence = getEscapeSequence(keyEvent.wVirtualKeyCode);
                         if (escapeSequence != null) {
                             for (int k = 0; k < keyEvent.wRepeatCount; k++) {
@@ -115,6 +115,14 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
                 }
             } else if (event.EventType == Kernel32.INPUT_RECORD.WINDOW_BUFFER_SIZE_EVENT) {
                 raise(Signal.WINCH);
+            } else if (event.EventType == Kernel32.INPUT_RECORD.MOUSE_EVENT) {
+                int cb = 0;
+                int cx = event.Event.MouseEvent.dwMousePosition.X;
+                int cy = event.Event.MouseEvent.dwMousePosition.Y;
+                mouse[3] = (char) (' ' + cb);
+                mouse[4] = (char) (' ' + cx + 1);
+                mouse[5] = (char) (' ' + cy + 1);
+                sb.append(mouse);
             }
         }
         return sb.toString().getBytes();
@@ -128,6 +136,7 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
             switch (ir[i].EventType) {
                 case Kernel32.INPUT_RECORD.KEY_EVENT:
                 case Kernel32.INPUT_RECORD.WINDOW_BUFFER_SIZE_EVENT:
+                case Kernel32.INPUT_RECORD.MOUSE_EVENT:
                     return ir;
             }
         }

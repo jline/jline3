@@ -176,6 +176,8 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     protected abstract byte[] readConsoleInput();
 
     protected String getEscapeSequence(short keyCode) {
+        // virtual keycodes: http://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
+        // TODO: numpad keys, modifiers
         String escapeSequence = null;
         switch (keyCode) {
             case 0x08: // VK_BACK BackSpace

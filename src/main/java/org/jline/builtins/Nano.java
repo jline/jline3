@@ -44,6 +44,7 @@ import org.jline.terminal.Attributes;
 import org.jline.terminal.Attributes.ControlChar;
 import org.jline.terminal.Attributes.InputFlag;
 import org.jline.terminal.Attributes.LocalFlag;
+import org.jline.terminal.MouseEvent;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.Terminal.Signal;
@@ -78,6 +79,7 @@ public class Nano {
     public boolean printLineNumbers = true;
     public boolean wrapping;
     public boolean smoothScrolling = true;
+    public boolean mouseSupport = false;
     public boolean oneMoreLine = true;
     public boolean constantCursor;
     public int tabs = 4;
@@ -366,7 +368,7 @@ public class Nano {
             return ret;
         }
 
-        void moveDown(int lines) throws IOException {
+        void moveDown(int lines) {
             cursorDown(lines);
             ensureCursorVisible();
         }
@@ -696,6 +698,16 @@ public class Nano {
             return newLines;
         }
 
+        public void moveTo(int x, int y) {
+            if (printLineNumbers) {
+                x = Math.max(x - 8, 0);
+            }
+            line = firstLineToDisplay;
+            offsetInLine = offsetInLineToDisplay;
+            wantedColumn = x;
+            cursorDown(y);
+        }
+
         public int getDisplayedCursor() {
             int rwidth = size.getColumns();
             int cursor = (printLineNumbers ? 8 : 0);
@@ -965,6 +977,9 @@ public class Nano {
         display.clear();
         display.reset();
         display.resize(size.getRows(), size.getColumns());
+        if (mouseSupport) {
+            terminal.trackMouse(Terminal.MouseTracking.Normal);
+        }
 
         this.shortcuts = standardShortcuts();
 
@@ -1019,6 +1034,9 @@ public class Nano {
                         break;
                     case SMOOTH_SCROLLING:
                         smoothScrolling();
+                        break;
+                    case MOUSE_SUPPORT:
+                        mouseSupport();
                         break;
                     case ONE_MORE_LINE:
                         oneMoreLine();
@@ -1083,6 +1101,9 @@ public class Nano {
                     case MATCHING:
                         buffer.matching();
                         break;
+                    case MOUSE_EVENT:
+                        mouseEvent();
+                        break;
                     default:
                         setMessage("Unsupported " + op.name().toLowerCase().replace('_', '-'));
                         break;
@@ -1090,6 +1111,9 @@ public class Nano {
                 display();
             }
         } finally {
+            if (mouseSupport) {
+                terminal.trackMouse(Terminal.MouseTracking.Off);
+            }
             terminal.puts(Capability.exit_ca_mode);
             terminal.puts(Capability.keypad_local);
             terminal.flush();
@@ -1117,6 +1141,7 @@ public class Nano {
         writeKeyMap.bind(Operation.ACCEPT, "\r");
         writeKeyMap.bind(Operation.CANCEL, ctrl('C'));
         writeKeyMap.bind(Operation.HELP, ctrl('G'), key(terminal, Capability.key_f1));
+        writeKeyMap.bind(Operation.MOUSE_EVENT, key(terminal, Capability.key_mouse));
 
         editMessage = getWriteMessage();
         editBuffer.setLength(0);
@@ -1161,6 +1186,9 @@ public class Nano {
                     break;
                 case BACKUP:
                     writeBackup = !writeBackup;
+                    break;
+                case MOUSE_EVENT:
+                    mouseEvent();
                     break;
             }
             editMessage = getWriteMessage();
@@ -1298,6 +1326,9 @@ public class Nano {
         for (char i = 32; i < 256; i++) {
             readKeyMap.bind(Operation.INSERT, Character.toString(i));
         }
+        for (char i = 'A'; i <= 'Z'; i++) {
+            readKeyMap.bind(Operation.DO_LOWER_CASE, alt(i));
+        }
         readKeyMap.bind(Operation.BACKSPACE, del());
         readKeyMap.bind(Operation.NEW_BUFFER, alt('f'));
         readKeyMap.bind(Operation.TO_FILES, ctrl('T'));
@@ -1305,6 +1336,7 @@ public class Nano {
         readKeyMap.bind(Operation.ACCEPT, "\r");
         readKeyMap.bind(Operation.CANCEL, ctrl('C'));
         readKeyMap.bind(Operation.HELP, ctrl('G'), key(terminal, Capability.key_f1));
+        readKeyMap.bind(Operation.MOUSE_EVENT, key(terminal, Capability.key_mouse));
 
         editMessage = getReadMessage();
         editBuffer.setLength(0);
@@ -1357,6 +1389,9 @@ public class Nano {
                     break;
                 case NEW_BUFFER:
                     readNewBuffer = !readNewBuffer;
+                    break;
+                case MOUSE_EVENT:
+                    mouseEvent();
                     break;
             }
             editMessage = getReadMessage();
@@ -1492,6 +1527,9 @@ public class Nano {
                     case CLEAR_SCREEN:
                         clearScreen();
                         break;
+                    case MOUSE_EVENT:
+                        mouseEvent();
+                        break;
                 }
                 display();
             }
@@ -1508,6 +1546,9 @@ public class Nano {
     void search() throws IOException {
         KeyMap<Operation> searchKeyMap = new KeyMap<>();
         searchKeyMap.setUnicode(Operation.INSERT);
+        for (char i = 'A'; i <= 'Z'; i++) {
+            searchKeyMap.bind(Operation.DO_LOWER_CASE, alt(i));
+        }
         searchKeyMap.bind(Operation.CASE_SENSITIVE, alt('c'));
         searchKeyMap.bind(Operation.BACKWARDS, alt('b'));
         searchKeyMap.bind(Operation.REGEXP, alt('r'));
@@ -1515,6 +1556,7 @@ public class Nano {
         searchKeyMap.bind(Operation.CANCEL, ctrl('C'));
         searchKeyMap.bind(Operation.FIRST_LINE, ctrl('Y'));
         searchKeyMap.bind(Operation.LAST_LINE, ctrl('V'));
+        searchKeyMap.bind(Operation.MOUSE_EVENT, key(terminal, Capability.key_mouse));
 
         editMessage = getSearchMessage();
         editBuffer.setLength(0);
@@ -1561,6 +1603,9 @@ public class Nano {
                     case LAST_LINE:
                         buffer.lastLine();
                         return;
+                    case MOUSE_EVENT:
+                        mouseEvent();
+                        break;
                 }
                 editMessage = getSearchMessage();
                 display();
@@ -1709,6 +1754,12 @@ public class Nano {
         setMessage("Smooth scrolling " + (smoothScrolling ? "enabled" : "disabled"));
     }
 
+    void mouseSupport() throws IOException {
+        mouseSupport = !mouseSupport;
+        setMessage("Mouse support " + (mouseSupport ? "enabled" : "disabled"));
+        terminal.trackMouse(mouseSupport ? Terminal.MouseTracking.Normal : Terminal.MouseTracking.Off);
+    }
+
     void constantCursor() {
         constantCursor = !constantCursor;
         setMessage("Constant cursor position display " + (constantCursor ? "enabled" : "disabled"));
@@ -1727,6 +1778,42 @@ public class Nano {
 
     void clearScreen() {
         resetDisplay();
+    }
+
+    void mouseEvent() {
+        MouseEvent event = terminal.readMouseEvent();
+        if (event.getModifiers().isEmpty() && event.getType() == MouseEvent.Type.Released
+                && event.getButton() == MouseEvent.Button.Button1) {
+            int x = event.getX();
+            int y = event.getY();
+            int hdr = buffer.computeHeader().size();
+            int ftr = computeFooter().size();
+            if (y < hdr) {
+                // nothing
+            } else if (y < size.getRows() - ftr) {
+                buffer.moveTo(x, y - hdr);
+            } else {
+                int cols = (shortcuts.size() + 1) / 2;
+                int cw = size.getColumns() / cols;
+                int l = y - (size.getRows() - ftr) - 1;
+                int si = l * cols +  x / cw;
+                String shortcut = null;
+                Iterator<String> it = shortcuts.keySet().iterator();
+                while (si-- >= 0 && it.hasNext()) { shortcut = it.next(); }
+                if (shortcut != null) {
+                    shortcut = shortcut.replaceAll("M-", "\\\\E");
+                    String seq = KeyMap.translate(shortcut);
+                    bindingReader.runMacro(seq);
+                }
+            }
+        }
+        else if (event.getType() == MouseEvent.Type.Wheel) {
+            if (event.getButton() == MouseEvent.Button.WheelDown) {
+                buffer.moveDown(1);
+            } else if (event.getButton() == MouseEvent.Button.WheelUp) {
+                buffer.moveUp(1);
+            }
+        }
     }
 
     public String getTitle() {
@@ -1914,6 +2001,7 @@ public class Nano {
         keys.bind(Operation.CONSTANT_CURSOR, alt('c'));
         keys.bind(Operation.ONE_MORE_LINE, alt('o'));
         keys.bind(Operation.SMOOTH_SCROLLING, alt('s'));
+        keys.bind(Operation.MOUSE_SUPPORT, alt('m'));
         keys.bind(Operation.WHITESPACE, alt('p'));
         keys.bind(Operation.HIGHLIGHT, alt('y'));
 
@@ -1932,6 +2020,8 @@ public class Nano {
         keys.bind(Operation.DOWN, key(terminal, Capability.key_down));
         keys.bind(Operation.RIGHT, key(terminal, Capability.key_right));
         keys.bind(Operation.LEFT, key(terminal, Capability.key_left));
+
+        keys.bind(Operation.MOUSE_EVENT, key(terminal, Capability.key_mouse));
     }
 
     enum Operation {
@@ -1946,6 +2036,7 @@ public class Nano {
         WRAP,
         NUMBERS,
         SMOOTH_SCROLLING,
+        MOUSE_SUPPORT,
         ONE_MORE_LINE,
         CLEAR_SCREEN,
 
@@ -2015,7 +2106,9 @@ public class Nano {
         AUTO_INDENT,
         CUT_TO_END_TOGGLE,
         TABS_TO_SPACE,
-        UNCUT
+        UNCUT,
+
+        MOUSE_EVENT
     }
 
 }

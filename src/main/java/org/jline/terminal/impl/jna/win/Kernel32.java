@@ -378,7 +378,7 @@ interface Kernel32 extends StdCallLibrary {
 
         public static class EventUnion extends Union {
             public KEY_EVENT_RECORD KeyEvent;
-            // MOUSE_EVENT_RECORD MouseEvent;
+            public MOUSE_EVENT_RECORD MouseEvent;
             // WINDOW_BUFFER_SIZE_RECORD WindowBufferSizeEvent;
             // MENU_EVENT_RECORD MenuEvent;
             // FOCUS_EVENT_RECORD FocusEvent;
@@ -423,6 +423,20 @@ interface Kernel32 extends StdCallLibrary {
         public int dwControlKeyState;
 
         private static String[] fieldOrder = {"bKeyDown", "wRepeatCount", "wVirtualKeyCode", "wVirtualScanCode", "uChar", "dwControlKeyState"};
+
+        @Override
+        protected java.util.List<String> getFieldOrder() {
+            return java.util.Arrays.asList(fieldOrder);
+        }
+    }
+
+    class MOUSE_EVENT_RECORD extends Structure {
+        public COORD dwMousePosition;
+        public int dwButtonState;
+        public int dwControlKeyState;
+        public int dwEventFlags;
+
+        private static String[] fieldOrder = { "dwMousePosition", "dwButtonState", "dwControlKeyState", "dwEventFlags"};
 
         @Override
         protected java.util.List<String> getFieldOrder() {
