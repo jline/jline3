@@ -11,9 +11,11 @@ package org.jline.terminal.impl.jna.win;
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.function.IntConsumer;
 
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
+import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
 import org.jline.utils.InfoCmp;
@@ -130,6 +132,13 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
             }
         }
         return null;
+    }
+
+    @Override
+    public Cursor getCursorPosition(IntConsumer discarded) {
+        Kernel32.CONSOLE_SCREEN_BUFFER_INFO info = new Kernel32.CONSOLE_SCREEN_BUFFER_INFO();
+        Kernel32.INSTANCE.GetConsoleScreenBufferInfo(consoleOut, info);
+        return new Cursor(info.dwCursorPosition.X, info.dwCursorPosition.Y);
     }
 
 }

@@ -22,6 +22,7 @@ import org.jline.terminal.Attributes.ControlChar;
 import org.jline.terminal.Attributes.InputFlag;
 import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Attributes.OutputFlag;
+import org.jline.terminal.Cursor;
 import org.jline.terminal.Terminal;
 import org.junit.Test;
 
@@ -109,5 +110,23 @@ public class ExternalTerminalTest {
         th.join();
     }
 
+    @Test
+    public void testCursorPosition() throws IOException  {
+        PipedInputStream in = new PipedInputStream();
+        final PipedOutputStream outIn = new PipedOutputStream(in);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ExternalTerminal console = new ExternalTerminal("foo", "ansi", in, out, "UTF-8");
+
+        outIn.write(new byte[] { 'a', '\033', 'b', '\033', '[', '2', ';', '3', 'R', 'f'});
+        outIn.flush();
+
+        StringBuilder sb = new StringBuilder();
+        Cursor cursor = console.getCursorPosition(c -> sb.append((char) c));
+        assertNotNull(cursor);
+        assertEquals(1, cursor.getX());
+        assertEquals(2, cursor.getY());
+        assertEquals("a\033b", sb.toString());
+        assertEquals('f', console.reader().read());
+    }
 
 }

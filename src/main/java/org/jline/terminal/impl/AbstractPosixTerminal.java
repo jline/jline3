@@ -1,10 +1,20 @@
+/*
+ * Copyright (c) 2002-2016, the original author or authors.
+ *
+ * This software is distributable under the BSD license. See the terms of the
+ * BSD license in the documentation provided with this software.
+ *
+ * http://www.opensource.org/licenses/bsd-license.php
+ */
 package org.jline.terminal.impl;
 
 import java.io.IOError;
 import java.io.IOException;
 import java.util.Objects;
+import java.util.function.IntConsumer;
 
 import org.jline.terminal.Attributes;
+import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
 
 public abstract class AbstractPosixTerminal extends AbstractTerminal {
@@ -63,4 +73,10 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
         pty.setAttr(originalAttributes);
         pty.close();
     }
+
+    @Override
+    public Cursor getCursorPosition(IntConsumer discarded) {
+        return CursorSupport.getCursorPosition(this, discarded);
+    }
+
 }

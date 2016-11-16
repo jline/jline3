@@ -10,17 +10,25 @@ package org.jline.terminal.impl.jansi;
 
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
+import java.io.IOError;
 import java.io.IOException;
+import java.util.function.IntConsumer;
 
 import org.fusesource.jansi.WindowsAnsiOutputStream;
 import org.fusesource.jansi.internal.Kernel32;
+import org.fusesource.jansi.internal.Kernel32.CONSOLE_SCREEN_BUFFER_INFO;
 import org.fusesource.jansi.internal.Kernel32.INPUT_RECORD;
 import org.fusesource.jansi.internal.Kernel32.KEY_EVENT_RECORD;
 import org.fusesource.jansi.internal.WindowsSupport;
+import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.Log;
+
+import static org.fusesource.jansi.internal.Kernel32.GetConsoleScreenBufferInfo;
+import static org.fusesource.jansi.internal.Kernel32.GetStdHandle;
+import static org.fusesource.jansi.internal.Kernel32.STD_OUTPUT_HANDLE;
 
 public class JansiWinSysTerminal extends AbstractWindowsTerminal {
 
@@ -112,6 +120,16 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
             }
         }
         return sb.toString().getBytes();
+    }
+
+    @Override
+    public Cursor getCursorPosition(IntConsumer discarded) {
+        CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO();
+        long console = GetStdHandle(STD_OUTPUT_HANDLE);
+        if (GetConsoleScreenBufferInfo(console, info) == 0) {
+            throw new IOError(new IOException("Could not get the cursor position: " + WindowsSupport.getLastErrorMessage()));
+        }
+        return new Cursor(info.cursorPosition.x, info.cursorPosition.y);
     }
 
 }
