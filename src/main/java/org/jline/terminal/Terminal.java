@@ -13,6 +13,7 @@ import java.io.Flushable;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.util.function.IntConsumer;
 
 import org.jline.terminal.impl.NativeSignalHandler;
 import org.jline.utils.InfoCmp.Capability;
@@ -111,5 +112,23 @@ public interface Terminal extends Closeable, Flushable {
     Integer getNumericCapability(Capability capability);
 
     String getStringCapability(Capability capability);
+
+    //
+    // Cursor support
+    //
+
+    /**
+     * Query the terminal to report the cursor position.
+     *
+     * As the response is read from the input stream, some
+     * characters may be read before the cursor position is actually
+     * read. Those characters can be given back using
+     * {@link org.jline.keymap.BindingReader#runMacro(String)}.
+     *
+     * @param discarded a consumer receiving discarded characters
+     * @return <code>null</code> if cursor position reporting
+     *                  is not supported or a valid cursor position
+     */
+    Cursor getCursorPosition(IntConsumer discarded);
 
 }

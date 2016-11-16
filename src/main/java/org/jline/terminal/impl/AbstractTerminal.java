@@ -16,11 +16,13 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.IntConsumer;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Attributes.ControlChar;
 import org.jline.terminal.Attributes.InputFlag;
 import org.jline.terminal.Attributes.LocalFlag;
+import org.jline.terminal.Cursor;
 import org.jline.terminal.Terminal;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp;
@@ -163,6 +165,11 @@ public abstract class AbstractTerminal implements Terminal {
             capabilities = InfoCmp.ANSI_CAPS;
         }
         InfoCmp.parseInfoCmp(capabilities, bools, ints, strings);
+    }
+
+    @Override
+    public Cursor getCursorPosition(IntConsumer discarded) {
+        return null;
     }
 
 }
