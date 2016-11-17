@@ -16,7 +16,8 @@ public class OSUtils {
 
     public static final boolean IS_CYGWIN = IS_WINDOWS
             && System.getenv("PWD") != null
-            && System.getenv("PWD").startsWith("/");
+            && System.getenv("PWD").startsWith("/")
+            && !"cygwin".equals(System.getenv("TERM"));
 
     public static final boolean IS_OSX = System.getProperty("os.name").toLowerCase().contains("mac");
 
