@@ -599,7 +599,8 @@ public final class InfoCmp {
             "\tsmul=\\E[4m,\n" +
             "\tkdch1=\\E[3~, kich1=\\E[2~, kend=\\E[4~, knp=\\E[6~, kpp=\\E[5~,\n" +
             "\tkf1=\\EOP, kf2=\\EOQ, kf3=\\EOR, kf4=\\EOS, kf5=\\E[15~, kf6=\\E[17~,\n" +
-            "\tkf7=\\E[18~, kf8=\\E[19~, kf9=\\E[20~, kf10=\\E[21~, kf11=\\E[23~, kf12=\\E[24~,\n";
+            "\tkf7=\\E[18~, kf8=\\E[19~, kf9=\\E[20~, kf10=\\E[21~, kf11=\\E[23~, kf12=\\E[24~,\n" +
+            "\tkmous=\\E[M,";
 
     public static final String ANSI_CAPS =
             "ansi|ansi/pc-term compatible with color,\n" +
@@ -731,6 +732,7 @@ public final class InfoCmp {
             "\tu8=\\E[?1;2c, u9=\\E[c, vpa=\\E[%i%p1%dd,";
 
     static {
+        setDefaultInfoCmp("dumb", ANSI_CAPS);
         setDefaultInfoCmp("ansi", ANSI_CAPS);
         setDefaultInfoCmp("xterm", XTERM_CAPS);
         setDefaultInfoCmp("xterm-256color", XTERM_256COLOR_CAPS);

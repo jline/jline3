@@ -36,6 +36,9 @@ public final class ExecHelper {
             String result = waitAndCapture(p);
             Log.trace("Result: ", result);
             if (p.exitValue() != 0) {
+                if (result.endsWith("\n")) {
+                    result = result.substring(0, result.length() - 1);
+                }
                 throw new IOException("Error executing '" + String.join(" ", (CharSequence[]) cmd) + "': " + result);
             }
             return result;

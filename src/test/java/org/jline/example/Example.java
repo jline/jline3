@@ -13,19 +13,12 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
-import java.util.Map;
+import java.util.*;
 
 import org.jline.keymap.KeyMap;
-import org.jline.reader.Binding;
-import org.jline.reader.Completer;
-import org.jline.reader.LineReader;
-import org.jline.reader.LineReaderBuilder;
-import org.jline.reader.EndOfFileException;
-import org.jline.reader.ParsedLine;
-import org.jline.reader.Reference;
-import org.jline.reader.UserInterruptException;
+import org.jline.reader.*;
+import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.LineReaderImpl;
-import org.jline.reader.Macro;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.FileNameCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
@@ -79,6 +72,7 @@ public class Example
             }
 
             Completer completer = null;
+            Parser parser = null;
 
             int index = 0;
             label:
@@ -118,10 +112,37 @@ public class Example
                     case "simple":
                         completer = new StringsCompleter("foo", "bar", "baz");
                         break label;
+                    case "quotes":
+                        DefaultParser p = new DefaultParser();
+                        p.setEofOnUnclosedQuote(true);
+                        parser = p;
+                        break label;
                     case "foo":
                         completer = new ArgumentCompleter(
                                 new StringsCompleter("foo11", "foo12", "foo13"),
                                 new StringsCompleter("foo21", "foo22", "foo23"));
+                        break label;
+                    case "param":
+                        completer = (reader, line, candidates) -> {
+                            if (line.wordIndex() == 0) {
+                                candidates.add(new Candidate("Command1"));
+                            } else if (line.words().get(0).equals("Command1")) {
+                                if (line.words().get(line.wordIndex() - 1).equals("Option1")) {
+                                    candidates.add(new Candidate("Param1"));
+                                    candidates.add(new Candidate("Param2"));
+                                } else {
+                                    if (line.wordIndex() == 1) {
+                                        candidates.add(new Candidate("Option1"));
+                                    }
+                                    if (!line.words().contains("Option2")) {
+                                        candidates.add(new Candidate("Option2"));
+                                    }
+                                    if (!line.words().contains("Option3")) {
+                                        candidates.add(new Candidate("Option3"));
+                                    }
+                                }
+                            }
+                        };
                         break label;
                     case "color":
                         color = true;
@@ -163,6 +184,7 @@ public class Example
             LineReader reader = LineReaderBuilder.builder()
                     .terminal(terminal)
                     .completer(completer)
+                    .parser(parser)
                     .build();
 
             while (true) {
@@ -265,4 +287,5 @@ public class Example
             t.printStackTrace();
         }
     }
+
 }

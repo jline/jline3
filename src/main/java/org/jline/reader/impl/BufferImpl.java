@@ -262,6 +262,30 @@ public class BufferImpl implements Buffer
         return true;
     }
 
+    public boolean moveXY(int dx, int dy) {
+        int col = 0;
+        while (prevChar() != '\n' && move(-1) == -1) {
+            col++;
+        }
+        cursorCol = 0;
+        while (dy < 0) {
+            up();
+            dy++;
+        }
+        while (dy > 0) {
+            down();
+            dy--;
+        }
+        col = Math.max(col + dx, 0);
+        for (int i = 0; i < col; i++) {
+            if (move(1) != 1 || currChar() == '\n') {
+                break;
+            }
+        }
+        cursorCol = col;
+        return true;
+    }
+
     private int getCursorCol() {
         if (cursorCol < 0) {
             cursorCol = 0;

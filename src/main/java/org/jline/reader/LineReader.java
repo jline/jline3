@@ -243,6 +243,7 @@ public interface LineReader {
     String WHAT_CURSOR_POSITION = "what-cursor-position";
     String YANK = "yank";
     String YANK_POP = "yank-pop";
+    String MOUSE = "mouse";
 
     //
     // KeyMap names
@@ -346,7 +347,8 @@ public interface LineReader {
         DELAY_LINE_WRAP,
         AUTO_PARAM_SLASH(true),
         AUTO_REMOVE_SLASH(true),
-        INSERT_TAB(true);
+        INSERT_TAB(true),
+        MOUSE;
 
         private final boolean def;
 

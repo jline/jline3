@@ -29,12 +29,26 @@ import org.jline.terminal.impl.jna.win.JnaWinSysTerminal;
 import org.jline.utils.Log;
 import org.jline.utils.OSUtils;
 
+/**
+ * Builder class to create terminals.
+ */
 public final class TerminalBuilder {
 
+    /**
+     * Returns the default system terminal.
+     * Terminals should be closed properly using the {@link Terminal#close()}
+     * method in order to restore the original terminal state.
+     *
+     * This call is equivalent to:
+     * <code>builder().build()</code>
+     */
     public static Terminal terminal() throws IOException {
         return builder().build();
     }
 
+    /**
+     * Creates a new terminal builder instance.
+     */
     public static TerminalBuilder builder() {
         return new TerminalBuilder();
     }
@@ -46,6 +60,7 @@ public final class TerminalBuilder {
     private String encoding;
     private Boolean system;
     private boolean jna = true;
+    private Boolean dumb;
     private Attributes attributes;
     private Size size;
     private boolean nativeSignals = false;
@@ -75,6 +90,11 @@ public final class TerminalBuilder {
         return this;
     }
 
+    public TerminalBuilder dumb(boolean dumb) {
+        this.dumb = dumb;
+        return this;
+    }
+
     public TerminalBuilder type(String type) {
         this.type = type;
         return this;
@@ -85,11 +105,31 @@ public final class TerminalBuilder {
         return this;
     }
 
+    /**
+     * Attributes to use when creating a non system terminal,
+     * i.e. when the builder has been given the input and
+     * outut streams using the {@link #streams(InputStream, OutputStream)} method
+     * or when {@link #system(boolean)} has been explicitely called with
+     * <code>false</code>.
+     *
+     * @see #size(Size)
+     * @see #system(boolean)
+     */
     public TerminalBuilder attributes(Attributes attributes) {
         this.attributes = attributes;
         return this;
     }
 
+    /**
+     * Initial size to use when creating a non system terminal,
+     * i.e. when the builder has been given the input and
+     * outut streams using the {@link #streams(InputStream, OutputStream)} method
+     * or when {@link #system(boolean)} has been explicitely called with
+     * <code>false</code>.
+     *
+     * @see #attributes(Attributes)
+     * @see #system(boolean)
+     */
     public TerminalBuilder size(Size size) {
         this.size = size;
         return this;
@@ -107,9 +147,9 @@ public final class TerminalBuilder {
 
     public Terminal build() throws IOException {
         Terminal terminal = doBuild();
-        Log.debug("Using terminal " + terminal.getClass().getSimpleName());
+        Log.debug(() -> "Using terminal " + terminal.getClass().getSimpleName());
         if (terminal instanceof AbstractPosixTerminal) {
-            Log.debug("Using pty " + ((AbstractPosixTerminal) terminal).getPty().getClass().getSimpleName());
+            Log.debug(() -> "Using pty " + ((AbstractPosixTerminal) terminal).getPty().getClass().getSimpleName());
         }
         return terminal;
     }
@@ -128,22 +168,38 @@ public final class TerminalBuilder {
             type = System.getenv("TERM");
         }
         if ((system != null && system) || (system == null && in == null && out == null)) {
+            if (attributes != null || size != null) {
+                Log.warn("Attributes and size fields are ignored when creating a system terminal");
+            }
+            IllegalStateException exception = new IllegalStateException("Unable to create a system terminal");
             //
             // Cygwin support
             //
             if (OSUtils.IS_CYGWIN) {
-                Pty pty = ExecPty.current();
-                return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
+                try {
+                    Pty pty = ExecPty.current();
+                    return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
+                } catch (IOException e) {
+                    // Ignore if not a tty
+                    Log.debug("Error creating exec based pty: ", e.getMessage(), e);
+                    exception.addSuppressed(e);
+                }
             }
             else if (OSUtils.IS_WINDOWS) {
                 if (useJna()) {
                     try {
                         return new JnaWinSysTerminal(name, nativeSignals, signalHandler);
                     } catch (Throwable t) {
-                        Log.debug("Error creating JNA based pty", t.getMessage());
+                        Log.debug("Error creating JNA based terminal: ", t.getMessage(), t);
+                        exception.addSuppressed(t);
                     }
                 }
-                return new JansiWinSysTerminal(name, nativeSignals, signalHandler);
+                try {
+                    return new JansiWinSysTerminal(name, nativeSignals, signalHandler);
+                } catch (Throwable t) {
+                    Log.debug("Error creating JANSI based terminal: ", t.getMessage(), t);
+                    exception.addSuppressed(t);
+                }
             } else {
                 Pty pty = null;
                 if (useJna()) {
@@ -151,25 +207,33 @@ public final class TerminalBuilder {
                         pty = JnaNativePty.current();
                     } catch (Throwable t) {
                         // ignore
-                        Log.debug("Error creating JNA based pty", t.getMessage());
+                        Log.debug("Error creating JNA based pty: ", t.getMessage(), t);
+                        exception.addSuppressed(t);
                     }
                 }
                 if (pty == null) {
                     try {
                         pty = ExecPty.current();
-                    } catch (IOException e) {
+                    } catch (Throwable t) {
                         // Ignore if not a tty
-                        Log.debug("Error creating exec based pty", e.getMessage());
+                        Log.debug("Error creating exec based pty: ", t.getMessage(), t);
+                        exception.addSuppressed(t);
                     }
                 }
                 if (pty != null) {
                     return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
-                } else {
-                    return new DumbTerminal(name, type,
-                                            new FileInputStream(FileDescriptor.in),
-                                            new FileOutputStream(FileDescriptor.out),
-                                            encoding, signalHandler);
                 }
+            }
+            if (dumb == null || dumb) {
+                if (dumb == null) {
+                    Log.warn("Creating a dumb terminal", exception);
+                }
+                return new DumbTerminal(name, type,
+                                        new FileInputStream(FileDescriptor.in),
+                                        new FileOutputStream(FileDescriptor.out),
+                                        encoding, signalHandler);
+            } else {
+                throw exception;
             }
         } else {
             if (useJna()) {
@@ -177,10 +241,17 @@ public final class TerminalBuilder {
                     Pty pty = JnaNativePty.open(attributes, size);
                     return new PosixPtyTerminal(name, type, pty, in, out, encoding, signalHandler);
                 } catch (Throwable t) {
-                    Log.debug("Error creating JNA based pty", t.getMessage());
+                    Log.debug("Error creating JNA based pty: ", t.getMessage(), t);
                 }
             }
-            return new ExternalTerminal(name, type, in, out, encoding, signalHandler);
+            Terminal terminal = new ExternalTerminal(name, type, in, out, encoding, signalHandler);
+            if (attributes != null) {
+                terminal.setAttributes(attributes);
+            }
+            if (size != null) {
+                terminal.setSize(size);
+            }
+            return terminal;
         }
     }
 

@@ -8,10 +8,13 @@
  */
 package org.jline.terminal.impl;
 
+import org.jline.terminal.Cursor;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.IntConsumer;
 
 /**
  * Console implementation with embedded line disciplined.
@@ -72,6 +75,11 @@ public class ExternalTerminal extends LineDisciplineTerminal {
         } catch (Throwable t) {
             // Ignore
         }
+    }
+
+    @Override
+    public Cursor getCursorPosition(IntConsumer discarded) {
+        return CursorSupport.getCursorPosition(this, discarded);
     }
 
 }

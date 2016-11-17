@@ -16,11 +16,14 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.IntConsumer;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Attributes.ControlChar;
 import org.jline.terminal.Attributes.InputFlag;
 import org.jline.terminal.Attributes.LocalFlag;
+import org.jline.terminal.Cursor;
+import org.jline.terminal.MouseEvent;
 import org.jline.terminal.Terminal;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp;
@@ -165,4 +168,27 @@ public abstract class AbstractTerminal implements Terminal {
         InfoCmp.parseInfoCmp(capabilities, bools, ints, strings);
     }
 
+    @Override
+    public Cursor getCursorPosition(IntConsumer discarded) {
+        return null;
+    }
+
+    private MouseEvent lastMouseEvent = new MouseEvent(
+                MouseEvent.Type.Moved, MouseEvent.Button.NoButton,
+                EnumSet.noneOf(MouseEvent.Modifier.class), 0, 0);
+
+    @Override
+    public boolean hasMouseSupport() {
+        return MouseSupport.hasMouseSupport(this);
+    }
+
+    @Override
+    public boolean trackMouse(MouseTracking tracking) {
+        return MouseSupport.trackMouse(this, tracking);
+    }
+
+    @Override
+    public MouseEvent readMouseEvent() {
+        return lastMouseEvent = MouseSupport.readMouse(this, lastMouseEvent);
+    }
 }

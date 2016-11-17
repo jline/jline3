@@ -23,7 +23,7 @@ JLine is distributed under the [BSD License](http://www.opensource.org/licenses/
 Documentation
 -------------
 
-* [wiki](https://github.com/jline/jline2/wiki)
+* [wiki](https://github.com/jline/jline3/wiki)
 
 Forums
 ------
@@ -39,7 +39,7 @@ Use the following definition to use JLine in your maven project:
     <dependency>
       <groupId>org.jline</groupId>
       <artifactId>jline</artifactId>
-      <version>3.0.0.M2</version>
+      <version>3.0.1</version>
     </dependency>
 
 Building
