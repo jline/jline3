@@ -711,7 +711,7 @@ public class Nano {
         }
 
         public int getDisplayedCursor() {
-            int rwidth = size.getColumns();
+            int rwidth = size.getColumns() + 1;
             int cursor = (printLineNumbers ? 8 : 0);
             int cur = firstLineToDisplay;
             int off = offsetInLineToDisplay;
