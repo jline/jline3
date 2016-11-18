@@ -85,8 +85,9 @@ public class DefaultHistory implements History {
                         maybeResize();
                     }
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 Log.info("Error reloading history file: ", path, e);
+                internalClear();
             }
         }
     }
