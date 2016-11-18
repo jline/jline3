@@ -222,7 +222,7 @@ public class Less {
                     // Command reading
                     //
                     else {
-                        Object obj = bindingReader.readBinding(keys, null, false);
+                        Operation obj = bindingReader.readBinding(keys, null, false);
                         if (obj == Operation.CHAR) {
                             char c = bindingReader.getLastBinding().charAt(0);
                             // Enter option mode or pattern edit mode
@@ -230,8 +230,8 @@ public class Less {
                                 buffer.setLength(0);
                             }
                             buffer.append(c);
-                        } else if (obj instanceof Operation) {
-                            op = (Operation) obj;
+                        } else {
+                            op = obj;
                         }
                     }
                     if (op != null) {
