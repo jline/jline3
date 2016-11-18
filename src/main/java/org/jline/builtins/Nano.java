@@ -472,8 +472,10 @@ public class Nano {
                     } else {
                         line++;
                         offsetInLine = 0;
+                        txt = getLine(line);
                     }
-                    int next = nextLineOffset(line, offsetInLine).orElseGet(txt::length);
+                    String curLine = txt;
+                    int next = nextLineOffset(line, offsetInLine).orElseGet(curLine::length);
                     column = Math.min(wantedColumn, next - offsetInLine);
                 }
             }
