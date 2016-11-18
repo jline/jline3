@@ -73,7 +73,7 @@ opts=""
 while [ "${1}" != "" ]; do
     case ${1} in
         'debug')
-            opts="-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
+            opts="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
             shift
             ;;
         'jansi')
