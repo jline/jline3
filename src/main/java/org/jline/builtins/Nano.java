@@ -1227,6 +1227,7 @@ public class Nano {
             }
             Files.move(t, newPath, StandardCopyOption.REPLACE_EXISTING);
             buffer.file = name;
+            buffer.dirty = false;
             setMessage("Wrote " + buffer.lines.size() + " lines");
             return true;
         } catch (IOException e) {
