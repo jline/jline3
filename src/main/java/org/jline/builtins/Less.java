@@ -98,6 +98,7 @@ public class Less {
     public void handle(Signal signal) {
         size.copy(terminal.getSize());
         try {
+            display.clear();
             display();
         } catch (IOException e) {
             e.printStackTrace();
