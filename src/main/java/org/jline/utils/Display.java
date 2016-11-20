@@ -57,7 +57,9 @@ public class Display {
         this.cursorDownIsNewLine = "\n".equals(tput(Capability.cursor_down));
     }
 
-    /** If cursor is at right margin, don't wrap immediately. */
+    /** If cursor is at right margin, don't wrap immediately.
+     * See {@link LineReader.Option#DELAY_LINE_WRAP}.
+     */
     public boolean delayLineWrap() {
         return delayLineWrap;
     }
@@ -68,7 +70,7 @@ public class Display {
             this.rows = rows;
             this.columns = columns;
             this.columns1 = columns + 1;
-            oldLines = AttributedString.join(AttributedString.EMPTY, oldLines).columnSplitLength(columns, true);
+            oldLines = AttributedString.join(AttributedString.EMPTY, oldLines).columnSplitLength(columns, true, delayLineWrap());
         }
     }
 
@@ -100,13 +102,6 @@ public class Display {
             oldLines.clear();
             cursorPos = 0;
             reset = false;
-        }
-        if (! delayLineWrap()
-            && newLines.get(newLines.size()-1).columnLength() == columns) {
-            List<AttributedString> tmpLines = new ArrayList<AttributedString>();
-            tmpLines.addAll(newLines);
-            tmpLines.add(AttributedString.EMPTY);
-            newLines = tmpLines;
         }
 
         // Detect scrolling
@@ -285,7 +280,8 @@ public class Display {
             }
             lineIndex++;
             boolean newWrap = ! newNL && lineIndex < newLines.size();
-            if (targetCursorPos + 1 == lineIndex * columns1 && newWrap)
+            if (targetCursorPos + 1 == lineIndex * columns1
+                && (newWrap || ! delayLineWrap))
                 targetCursorPos++;
             boolean atRight = (cursorPos - curCol) % columns1 == columns;
             wrapNeeded = false;
