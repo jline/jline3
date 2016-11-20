@@ -3448,11 +3448,15 @@ public class LineReaderImpl implements LineReader, Flushable
         int nb = size.getColumns() - width - line.columnLength() - 3;
         if (nb >= 0) {
             AttributedStringBuilder sb = new AttributedStringBuilder(size.getColumns());
-            sb.append(line);
+            boolean endsWithNl = line.charAt(line.length() - 1) == '\n';
+            sb.append(line, 0, endsWithNl ? line.length() - 1 : line.length());
             for (int j = 0; j < nb + 2; j++) {
                 sb.append(' ');
             }
             sb.append(prompt);
+            if (endsWithNl) {
+                sb.append('\n');
+            }
             line = sb.toAttributedString();
         }
         return line;

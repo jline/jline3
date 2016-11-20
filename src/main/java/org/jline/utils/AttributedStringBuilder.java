@@ -111,9 +111,12 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
     }
 
     public AttributedStringBuilder append(AttributedString str) {
-        int l = str.length();
-        ensureCapacity(length + l);
-        for (int i = 0; i < l; i++) {
+        return append(str, 0, str.length());
+    }
+
+    public AttributedStringBuilder append(AttributedString str, int start, int end) {
+        ensureCapacity(length + end - start);
+        for (int i = start; i < end; i++) {
             char c = str.charAt(i);
             int s = str.styleCodeAt(i) & ~current.getMask() | current.getStyle();
             if (tabs > 0 && c == '\t') {
