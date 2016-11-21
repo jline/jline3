@@ -151,7 +151,6 @@ public interface LineReader {
     String MENU_COMPLETE = "menu-complete";
     String MENU_SELECT = "menu-select";
     String NEG_ARGUMENT = "neg-argument";
-    //    String PASTE_FROM_CLIPBOARD = "paste-from-clipboard";
     String OVERWRITE_MODE = "overwrite-mode";
     String PUT_REPLACE_SELECTION = "put-replace-selection";
     String QUOTED_INSERT = "quoted-insert";

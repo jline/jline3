@@ -8,8 +8,6 @@
  */
 package org.jline.reader.impl;
 
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.DataFlavor;
 import java.io.Flushable;
 import java.io.IOError;
 import java.io.IOException;
@@ -3106,7 +3104,6 @@ public class LineReaderImpl implements LineReader, Flushable
         widgets.put(MENU_EXPAND_OR_COMPLETE, this::menuExpandOrComplete);
         widgets.put(NEG_ARGUMENT, this::negArgument);
         widgets.put(OVERWRITE_MODE, this::overwriteMode);
-//        widgets.put(PASTE_FROM_CLIPBOARD, this::pasteFromClipboard);
 //        widgets.put(QUIT, this::quit);
         widgets.put(QUOTED_INSERT, this::quotedInsert);
         widgets.put(REDISPLAY, this::redisplay);
@@ -4728,26 +4725,6 @@ public class LineReaderImpl implements LineReader, Flushable
             }
         }
         return true;
-    }
-
-    /**
-     * Paste the contents of the clipboard into the terminal buffer
-     *
-     * @return true if clipboard contents pasted
-     */
-    public boolean pasteFromClipboard() {
-        try {
-            Clipboard clipboard = java.awt.Toolkit.getDefaultToolkit().getSystemClipboard();
-            String result = (String) clipboard.getData(DataFlavor.stringFlavor);
-            if (result != null) {
-                putString(result);
-                return true;
-            }
-        }
-        catch (Exception e) {
-            Log.error("Paste failed: ", e);
-        }
-        return false;
     }
 
     //
