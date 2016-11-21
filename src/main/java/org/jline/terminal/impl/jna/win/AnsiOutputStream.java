@@ -95,9 +95,9 @@ public class AnsiOutputStream extends FilterOutputStream {
                 } else if (';' == data) {
                     options.add(null);
                 } else if ('?' == data) {
-                    options.add(new Character('?'));
+                    options.add('?');
                 } else if ('=' == data) {
-                    options.add(new Character('='));
+                    options.add('=');
                 } else {
                     reset(processEscapeCommand(options, data));
                 }
@@ -107,7 +107,7 @@ public class AnsiOutputStream extends FilterOutputStream {
                 buffer[pos++] = (byte) data;
                 if (!('0' <= data && data <= '9')) {
                     String strValue = new String(buffer, startOfValue, (pos - 1) - startOfValue, "UTF-8");
-                    Integer value = new Integer(strValue);
+                    Integer value = Integer.parseInt(strValue);
                     options.add(value);
                     if (data == ';') {
                         state = LOOKING_FOR_NEXT_ARG;
@@ -144,7 +144,7 @@ public class AnsiOutputStream extends FilterOutputStream {
                 buffer[pos++] = (byte) data;
                 if (';' == data) {
                     String strValue = new String(buffer, startOfValue, (pos - 1) - startOfValue, "UTF-8");
-                    Integer value = new Integer(strValue);
+                    Integer value = Integer.parseInt(strValue);
                     options.add(value);
                     startOfValue = pos;
                     state = LOOKING_FOR_OSC_PARAM;

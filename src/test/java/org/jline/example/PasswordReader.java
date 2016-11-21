@@ -29,8 +29,8 @@ public class PasswordReader
                 .terminal(terminal).build();
 
         Character mask = (args.length == 0)
-            ? new Character((char) 0)
-            : new Character(args[0].charAt(0));
+            ? (char) 0
+            : args[0].charAt(0);
 
         String line;
         do {
