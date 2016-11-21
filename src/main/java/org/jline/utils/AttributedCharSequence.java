@@ -40,7 +40,7 @@ public abstract class AttributedCharSequence implements CharSequence {
     public String toAnsi(Terminal terminal) {
         StringBuilder sb = new StringBuilder();
         int style = 0;
-        Integer max_colors = terminal == null ? null
+        Integer max_colors = terminal == null ? Integer.valueOf(8)
             : terminal.getNumericCapability(Capability.max_colors);
         boolean color8 = max_colors != null && max_colors >= 8;
         boolean color256 = max_colors != null && max_colors >= 256;

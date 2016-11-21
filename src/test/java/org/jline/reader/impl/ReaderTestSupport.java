@@ -13,6 +13,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.ConsoleHandler;
@@ -67,7 +68,7 @@ public abstract class ReaderTestSupport
 
         in = new EofPipedInputStream();
         out = new ByteArrayOutputStream();
-        terminal = new DumbTerminal(in, out);
+        terminal = new DumbTerminal("terminal", "ansi", in, out, Charset.defaultCharset().name());
         terminal.setSize(new Size(160, 80));
         reader = new TestLineReader(terminal, "JLine", null);
         reader.setKeyMap(LineReaderImpl.EMACS);
