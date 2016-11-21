@@ -165,6 +165,9 @@ public final class TerminalBuilder {
         }
         String type = this.type;
         if (type == null) {
+            type = System.getProperty("org.jline.terminal.type");
+        }
+        if (type == null) {
             type = System.getenv("TERM");
         }
         if ((system != null && system) || (system == null && in == null && out == null)) {
@@ -228,7 +231,7 @@ public final class TerminalBuilder {
                 if (dumb == null) {
                     Log.warn("Creating a dumb terminal", exception);
                 }
-                return new DumbTerminal(name, type,
+                return new DumbTerminal(name, type != null ? type : Terminal.TYPE_DUMB,
                                         new FileInputStream(FileDescriptor.in),
                                         new FileOutputStream(FileDescriptor.out),
                                         encoding, signalHandler);

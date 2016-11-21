@@ -42,12 +42,13 @@ public abstract class AttributedCharSequence implements CharSequence {
         int style = 0;
         Integer max_colors = terminal == null ? null
             : terminal.getNumericCapability(Capability.max_colors);
+        boolean color8 = max_colors != null && max_colors >= 8;
         boolean color256 = max_colors != null && max_colors >= 256;
         for (int i = 0; i < length(); i++) {
             char c = charAt(i);
             int  s = styleCodeAt(i) & ~F_HIDDEN; // The hidden flag does not change the ansi styles
             int  d = (style ^ s) & MASK;
-            if (d != 0) {
+            if (d != 0 && (color8 || color256)) {
                 if (s == 0) {
                     sb.append("\033[0m");
                 } else {

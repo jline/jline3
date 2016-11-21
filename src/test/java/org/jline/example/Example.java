@@ -24,6 +24,7 @@ import org.jline.reader.impl.completer.FileNameCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 import org.jline.utils.InfoCmp.Capability;
@@ -201,8 +202,11 @@ public class Example
                 }
 
                 line = line.trim();
-                if (color){
-                    terminal.writer().println("\u001B[33m======>\u001B[0m\"" + line + "\"");
+
+                if (color) {
+                    terminal.writer().println(
+                            AttributedString.fromAnsi("\u001B[33m======>\u001B[0m\"" + line + "\"")
+                                .toAnsi(terminal));
 
                 } else {
                     terminal.writer().println("======>\"" + line + "\"");
