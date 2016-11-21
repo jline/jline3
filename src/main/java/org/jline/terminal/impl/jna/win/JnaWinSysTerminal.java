@@ -35,6 +35,7 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
     public JnaWinSysTerminal(String name, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
         super(new WindowsAnsiOutputStream(new FileOutputStream(FileDescriptor.out), consoleOut),
               name, nativeSignals, signalHandler);
+        strings.put(InfoCmp.Capability.key_mouse, "\\E[M");
     }
 
     protected int getConsoleOutputCP() {
