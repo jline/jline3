@@ -3445,12 +3445,15 @@ public class LineReaderImpl implements LineReader, Flushable
 
     private AttributedString addRightPrompt(AttributedString prompt, AttributedString line) {
         int width = prompt.columnLength();
-        int nb = size.getColumns() - width - line.columnLength() - 3;
-        if (nb >= 0) {
+        boolean endsWithNl = line.length() > 0
+            && line.charAt(line.length() - 1) == '\n';
+        // columnLength counts -1 for the final newline; adjust for that
+        int nb = size.getColumns() - width
+            - (line.columnLength() + (endsWithNl ? 1 : 0));
+        if (nb >= 3) {
             AttributedStringBuilder sb = new AttributedStringBuilder(size.getColumns());
-            boolean endsWithNl = line.charAt(line.length() - 1) == '\n';
             sb.append(line, 0, endsWithNl ? line.length() - 1 : line.length());
-            for (int j = 0; j < nb + 2; j++) {
+            for (int j = 0; j < nb; j++) {
                 sb.append(' ');
             }
             sb.append(prompt);
