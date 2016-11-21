@@ -476,6 +476,8 @@ public class LineReaderImpl implements LineReader, Flushable
             } else {
                 display.resize(size.getRows(), size.getColumns());
             }
+            if (isSet(Option.DELAY_LINE_WRAP))
+                display.setDelayLineWrap(true);
 
             // Move into application mode
             terminal.puts(Capability.keypad_xmit);
@@ -3198,7 +3200,7 @@ public class LineReaderImpl implements LineReader, Flushable
             newLines = new ArrayList<>();
             newLines.add(full);
         } else {
-            newLines = full.columnSplitLength(size.getColumns());
+            newLines = full.columnSplitLength(size.getColumns(), true, display.delayLineWrap());
         }
 
         List<AttributedString> rightPromptLines;
@@ -3222,10 +3224,10 @@ public class LineReaderImpl implements LineReader, Flushable
             AttributedStringBuilder sb = new AttributedStringBuilder().tabs(TAB_WIDTH);
             sb.append(prompt);
             sb.append(insertSecondaryPrompts(new AttributedString(buf.upToCursor()), secondaryPrompts, false));
-            List<AttributedString> promptLines = sb.columnSplitLength(size.getColumns());
+            List<AttributedString> promptLines = sb.columnSplitLength(size.getColumns(), false, display.delayLineWrap());
             if (!promptLines.isEmpty()) {
-                cursorPos = (promptLines.size() - 1) * size.getColumns()
-                        + promptLines.get(promptLines.size() - 1).columnLength();
+                cursorPos = size.cursorPos(promptLines.size() - 1,
+                                           promptLines.get(promptLines.size() - 1).columnLength());
             }
         }
 
@@ -3443,14 +3445,21 @@ public class LineReaderImpl implements LineReader, Flushable
 
     private AttributedString addRightPrompt(AttributedString prompt, AttributedString line) {
         int width = prompt.columnLength();
-        int nb = size.getColumns() - width - line.columnLength() - 3;
-        if (nb >= 0) {
+        boolean endsWithNl = line.length() > 0
+            && line.charAt(line.length() - 1) == '\n';
+        // columnLength counts -1 for the final newline; adjust for that
+        int nb = size.getColumns() - width
+            - (line.columnLength() + (endsWithNl ? 1 : 0));
+        if (nb >= 3) {
             AttributedStringBuilder sb = new AttributedStringBuilder(size.getColumns());
-            sb.append(line);
-            for (int j = 0; j < nb + 2; j++) {
+            sb.append(line, 0, endsWithNl ? line.length() - 1 : line.length());
+            for (int j = 0; j < nb; j++) {
                 sb.append(' ');
             }
             sb.append(prompt);
+            if (endsWithNl) {
+                sb.append('\n');
+            }
             line = sb.toAttributedString();
         }
         return line;
@@ -3949,7 +3958,7 @@ public class LineReaderImpl implements LineReader, Flushable
             // Compute displayed prompt
             PostResult pr = computePost(possible, completion(), null, completed);
             AttributedString text = insertSecondaryPrompts(AttributedStringBuilder.append(prompt, buf.toString()), new ArrayList<>());
-            int promptLines = text.columnSplitLength(size.getColumns()).size();
+            int promptLines = text.columnSplitLength(size.getColumns(), false, display.delayLineWrap()).size();
             if (pr.lines >= size.getRows() - promptLines) {
                 int displayed = size.getRows() - promptLines - 1;
                 if (pr.selectedLine >= 0) {
@@ -3959,7 +3968,7 @@ public class LineReaderImpl implements LineReader, Flushable
                         topLine = pr.selectedLine - displayed + 1;
                     }
                 }
-                List<AttributedString> lines = pr.post.columnSplitLength(size.getColumns());
+                List<AttributedString> lines = pr.post.columnSplitLength(size.getColumns(), true, display.delayLineWrap());
                 List<AttributedString> sub = new ArrayList<>(lines.subList(topLine, topLine + displayed));
                 sub.add(new AttributedStringBuilder()
                         .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.CYAN))
@@ -3969,8 +3978,9 @@ public class LineReaderImpl implements LineReader, Flushable
                         .append(Integer.toString(topLine + displayed))
                         .append(" of ")
                         .append(Integer.toString(lines.size()))
+                        .append("\n")
                         .style(AttributedStyle.DEFAULT).toAttributedString());
-                computed = AttributedString.join(new AttributedString("\n"), sub);
+                computed = AttributedString.join(AttributedString.EMPTY, sub);
             } else {
                 computed = pr.post;
             }
@@ -4061,7 +4071,7 @@ public class LineReaderImpl implements LineReader, Flushable
         // and redraw the line at the bottom
         mergeCandidates(possible);
         AttributedString text = insertSecondaryPrompts(AttributedStringBuilder.append(prompt, buf.toString()), new ArrayList<>());
-        int promptLines = text.columnSplitLength(size.getColumns()).size();
+        int promptLines = text.columnSplitLength(size.getColumns(), false, display.delayLineWrap()).size();
         PostResult postResult = computePost(possible, null, null, completed);
         int lines = postResult.lines;
         int listMax = getInt(LIST_MAX, DEFAULT_LIST_MAX);
@@ -4096,7 +4106,7 @@ public class LineReaderImpl implements LineReader, Flushable
             }
             post = () -> {
                 AttributedString t = insertSecondaryPrompts(AttributedStringBuilder.append(prompt, buf.toString()), new ArrayList<>());
-                int pl = t.columnSplitLength(size.getColumns()).size();
+                int pl = t.columnSplitLength(size.getColumns(), false, display.delayLineWrap()).size();
                 PostResult pr = computePost(cands, null, null, current);
                 if (pr.lines >= size.getRows() - pl) {
                     post = null;
@@ -4105,7 +4115,7 @@ public class LineReaderImpl implements LineReader, Flushable
                     redisplay(false);
                     buf.cursor(oldCursor);
                     println();
-                    List<AttributedString> ls = postResult.post.columnSplitLength(size.getColumns());
+                    List<AttributedString> ls = postResult.post.columnSplitLength(size.getColumns(), false, display.delayLineWrap());
                     Display d = new Display(terminal, false);
                     d.resize(size.getRows(), size.getColumns());
                     d.update(ls, -1);
@@ -4662,7 +4672,7 @@ public class LineReaderImpl implements LineReader, Flushable
             AttributedStringBuilder sb = new AttributedStringBuilder().tabs(TAB_WIDTH);
             sb.append(prompt);
             sb.append(insertSecondaryPrompts(new AttributedString(buf.upToCursor()), secondaryPrompts, false));
-            List<AttributedString> promptLines = sb.columnSplitLength(size.getColumns());
+            List<AttributedString> promptLines = sb.columnSplitLength(size.getColumns(), false, display.delayLineWrap());
 
             int currentLine = promptLines.size() - 1;
             int wantedLine = Math.max(0, Math.min(currentLine + event.getY() - cursor.getY(), secondaryPrompts.size()));

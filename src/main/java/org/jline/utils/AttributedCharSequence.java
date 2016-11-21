@@ -129,7 +129,7 @@ public abstract class AttributedCharSequence implements CharSequence {
         return styleAt(index).getStyle();
     }
 
-    boolean isHidden(int index) {
+    public boolean isHidden(int index) {
         return (styleCodeAt(index) & F_HIDDEN) != 0;
     }
 
@@ -213,6 +213,8 @@ public abstract class AttributedCharSequence implements CharSequence {
         int end = begin;
         while (end < this.length()) {
             int cp = codePointAt(end);
+            if (cp == '\n')
+                break;
             int w = isHidden(end) ? 0 : WCWidth.wcwidth(cp);
             if (col + w > stop) {
                 break;
@@ -224,6 +226,9 @@ public abstract class AttributedCharSequence implements CharSequence {
     }
 
     public List<AttributedString> columnSplitLength(int columns) {
+        return columnSplitLength(columns, false, true);
+    }
+    public List<AttributedString> columnSplitLength(int columns, boolean includeNewlines, boolean delayLineWrap) {
         List<AttributedString> strings = new ArrayList<>();
         int cur = 0;
         int beg = cur;
@@ -232,7 +237,13 @@ public abstract class AttributedCharSequence implements CharSequence {
             int cp = codePointAt(cur);
             int w = isHidden(cur) ? 0 : WCWidth.wcwidth(cp);
             if (cp == '\n') {
-                strings.add(subSequence(beg, cur));
+                if (! delayLineWrap && col == columns) {
+                    strings.add(subSequence(beg, cur));
+                    strings.add(includeNewlines ? AttributedString.NEWLINE
+                                : AttributedString.EMPTY);
+                }
+                else
+                    strings.add(subSequence(beg, includeNewlines ? cur+1 : cur));
                 beg = cur + 1;
                 col = 0;
             } else if ((col += w) > columns) {

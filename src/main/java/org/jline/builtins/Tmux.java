@@ -451,7 +451,7 @@ public class Tmux {
             lines.add(sb.toAttributedString());
         }
         display.resize(size.getRows(), size.getColumns());
-        display.update(lines, cursor[1] * size.getColumns() + cursor[0]);
+        display.update(lines, size.cursorPos(cursor[1], cursor[0]));
         terminal.flush();
     }
 

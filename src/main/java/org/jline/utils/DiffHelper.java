@@ -69,8 +69,8 @@ public class DiffHelper {
      * The computation is done on characters and their attributes expressed
      * as ansi sequences.
      *
-     * @param text1 the first line
-     * @param text2 the second line
+     * @param text1 the old line
+     * @param text2 the new line
      * @return a list of Diff
      */
     public static List<Diff> diff(AttributedString text1, AttributedString text2) {
@@ -78,18 +78,39 @@ public class DiffHelper {
         int l2 = text2.length();
         int n = Math.min(l1, l2);
         int commonStart = 0;
+        // Given a run of contiguous "hidden" characters (which are
+        // sequences of uninterrupted escape sequences) we always want to
+        // print either the entire run or none of it - never a part of it.
+        int startHiddenRange = -1;
         while (commonStart < n
                 && text1.charAt(commonStart) == text2.charAt(commonStart)
                 && text1.styleAt(commonStart).equals(text2.styleAt(commonStart))) {
+            if (text1.isHidden(commonStart)) {
+                if (startHiddenRange < 0)
+                    startHiddenRange = commonStart;
+            } else
+                startHiddenRange = -1;
             commonStart++;
         }
+        if (startHiddenRange >= 0
+            && (commonStart == l1 || ! text1.isHidden(commonStart))
+            && (commonStart == l2 || ! text2.isHidden(commonStart)))
+            commonStart = startHiddenRange;
+
+        startHiddenRange = -1;
         int commonEnd = 0;
         while (commonEnd < n - commonStart
                 && text1.charAt(l1 - commonEnd - 1) == text2.charAt(l2 - commonEnd - 1)
                 && text1.styleAt(l1 - commonEnd - 1).equals(text2.styleAt(l2 - commonEnd - 1))) {
+            if (text1.isHidden(l1 - commonEnd - 1)) {
+                if (startHiddenRange < 0)
+                    startHiddenRange = commonEnd;
+            } else
+                startHiddenRange = -1;
             commonEnd++;
         }
-
+        if (startHiddenRange >= 0)
+            commonEnd = startHiddenRange;
         LinkedList<Diff> diffs = new LinkedList<>();
         if (commonStart > 0) {
             diffs.add(new Diff(DiffHelper.Operation.EQUAL,
@@ -109,6 +130,5 @@ public class DiffHelper {
         }
         return diffs;
     }
-
 
 }

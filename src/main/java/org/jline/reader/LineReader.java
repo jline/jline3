@@ -340,6 +340,20 @@ public interface LineReader {
         MENU_COMPLETE,
         /** if set and not at start of line before prompt, move to new line */
         AUTO_FRESH_LINE,
+
+        /** After writing into the rightmost column, do we immediately
+         * move to the next line (the default)? Or do we wait until
+         * the next character.
+         * If set, an input line that is exactly {@code N*columns} wide will
+         * use {@code N} screen lines; otherwise it will use {@code N+1} lines.
+         * When the cursor position is the right margin of the last line
+         * (i.e. after {@code N*columns} normal characters), if this option
+         * it set, the cursor will be remain on the last line (line {@code N-1},
+         * zero-origin); if unset the cursor will be on the empty next line.
+         * Regardless, for all except the last screen line if the cursor is at
+         * the right margin, it will be shown at the start of the next line.
+         */
+        DELAY_LINE_WRAP,
         AUTO_PARAM_SLASH(true),
         AUTO_REMOVE_SLASH(true),
         INSERT_TAB(true),
