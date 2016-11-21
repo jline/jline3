@@ -27,8 +27,8 @@ public class MultiByteCharTest extends ReaderTestSupport {
 
         PipedOutputStream pos = new PipedOutputStream();
         PipedInputStream pis = new PipedInputStream(pos);
-        pos.write(str.getBytes(Charset.defaultCharset()));
-        Reader r = new InputStreamReader(pis, Charset.defaultCharset());
+        pos.write(str.getBytes(Charset.forName("UTF-8")));
+        Reader r = new InputStreamReader(pis, Charset.forName("UTF-8"));
         int c0 = r.read();
         int c1 = r.read();
         int c2 = r.read();

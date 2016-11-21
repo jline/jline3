@@ -8,11 +8,7 @@
  */
 package org.jline.reader.impl;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringWriter;
+import java.io.*;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
@@ -68,7 +64,7 @@ public abstract class ReaderTestSupport
 
         in = new EofPipedInputStream();
         out = new ByteArrayOutputStream();
-        terminal = new DumbTerminal("terminal", "ansi", in, out, Charset.defaultCharset().name());
+        terminal = new DumbTerminal("terminal", "ansi", in, out, "UTF-8");
         terminal.setSize(new Size(160, 80));
         reader = new TestLineReader(terminal, "JLine", null);
         reader.setKeyMap(LineReaderImpl.EMACS);
@@ -182,7 +178,11 @@ public abstract class ReaderTestSupport
 
         @Override
         public String toString() {
-            return out.toString();
+            try {
+                return out.toString("UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         public byte[] getBytes() {
@@ -271,7 +271,7 @@ public abstract class ReaderTestSupport
         }
 
         public TestBuffer append(final String str) {
-            for (byte b : str.getBytes()) {
+            for (byte b : str.getBytes(Charset.forName("UTF-8"))) {
                 append(b);
             }
             return this;
