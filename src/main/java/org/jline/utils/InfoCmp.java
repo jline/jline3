@@ -575,6 +575,13 @@ public final class InfoCmp {
         }
     }
 
+    public static final String DUMB_CAPS =
+            "#\tReconstructed via infocmp from file: /usr/share/terminfo/64/dumb\n" +
+            "dumb|80-column dumb tty,\n" +
+            "\tam,\n" +
+            "\tcols#80,\n" +
+            "\tbel=^G, cr=^M, cud1=^J, ind=^J,\n";
+
     public static final String WINDOWS_CAPS =
             "windows|windows terminal compatibility,\n" +
             "\tam, mc5i, mir, msgr,\n" +
@@ -732,7 +739,7 @@ public final class InfoCmp {
             "\tu8=\\E[?1;2c, u9=\\E[c, vpa=\\E[%i%p1%dd,";
 
     static {
-        setDefaultInfoCmp("dumb", ANSI_CAPS);
+        setDefaultInfoCmp("dumb", DUMB_CAPS);
         setDefaultInfoCmp("ansi", ANSI_CAPS);
         setDefaultInfoCmp("xterm", XTERM_CAPS);
         setDefaultInfoCmp("xterm-256color", XTERM_256COLOR_CAPS);

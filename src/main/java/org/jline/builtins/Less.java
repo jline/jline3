@@ -9,15 +9,11 @@
 package org.jline.builtins;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -98,6 +94,7 @@ public class Less {
     public void handle(Signal signal) {
         size.copy(terminal.getSize());
         try {
+            display.clear();
             display();
         } catch (IOException e) {
             e.printStackTrace();
@@ -221,7 +218,7 @@ public class Less {
                     // Command reading
                     //
                     else {
-                        Object obj = bindingReader.readBinding(keys, null, false);
+                        Operation obj = bindingReader.readBinding(keys, null, false);
                         if (obj == Operation.CHAR) {
                             char c = bindingReader.getLastBinding().charAt(0);
                             // Enter option mode or pattern edit mode
@@ -229,8 +226,8 @@ public class Less {
                                 buffer.setLength(0);
                             }
                             buffer.append(c);
-                        } else if (obj instanceof Operation) {
-                            op = (Operation) obj;
+                        } else {
+                            op = obj;
                         }
                     }
                     if (op != null) {

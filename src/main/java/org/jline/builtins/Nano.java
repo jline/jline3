@@ -1255,6 +1255,7 @@ public class Nano {
             }
             Files.move(t, newPath, StandardCopyOption.REPLACE_EXISTING);
             buffer.file = name;
+            buffer.dirty = false;
             setMessage("Wrote " + buffer.lines.size() + " lines");
             return true;
         } catch (IOException e) {
@@ -1890,8 +1891,8 @@ public class Nano {
 
         Iterator<Entry<String, String>> sit = shortcuts.entrySet().iterator();
         int cols = (shortcuts.size() + 1) / 2;
-        int cw = size.getColumns() / cols;
-        int rem = size.getColumns() % cols;
+        int cw = (size.getColumns() - 1) / cols;
+        int rem = (size.getColumns() - 1) % cols;
         for (int l = 0; l < 2; l++) {
             AttributedStringBuilder sb = new AttributedStringBuilder();
             for (int c = 0; c < cols; c++) {
