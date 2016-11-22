@@ -638,11 +638,11 @@ public class Nano {
                 pos++;
             }
             sb.append(right);
-            sb.append("  ");
+            sb.append("  \n");
             if (oneMoreLine) {
                 return Collections.singletonList(sb.toAttributedString());
             } else {
-                return Arrays.asList(sb.toAttributedString(), new AttributedString(""));
+                return Arrays.asList(sb.toAttributedString(), new AttributedString("\n"));
             }
         }
 
@@ -695,6 +695,7 @@ public class Nano {
                         curOffset = 0;
                     }
                 }
+                line.append('\n');
                 newLines.add(line.toAttributedString());
             }
             return newLines;
@@ -1875,6 +1876,7 @@ public class Nano {
             for (int i = editMessage.length() + editBuffer.length(); i < size.getColumns(); i++) {
                 sb.append(' ');
             }
+            sb.append('\n');
             footer.add(sb.toAttributedString());
         } else if (message != null || constantCursor) {
             int rwidth = size.getColumns();
@@ -1886,9 +1888,10 @@ public class Nano {
             }
             sb.style(AttributedStyle.INVERSE);
             sb.append(text);
+            sb.append('\n');
             footer.add(sb.toAttributedString());
         } else {
-            footer.add(new AttributedString(""));
+            footer.add(new AttributedString("\n"));
         }
 
         Iterator<Entry<String, String>> sit = shortcuts.entrySet().iterator();
@@ -1917,6 +1920,7 @@ public class Nano {
                     }
                 }
             }
+            sb.append('\n');
             footer.add(sb.toAttributedString());
         }
 
