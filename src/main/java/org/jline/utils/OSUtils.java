@@ -19,6 +19,10 @@ public class OSUtils {
             && System.getenv("PWD").startsWith("/")
             && !"cygwin".equals(System.getenv("TERM"));
 
+    public static final boolean IS_MINGW = IS_WINDOWS
+            && System.getenv("MSYSTEM") != null
+            && System.getenv("MSYSTEM").startsWith("MINGW");
+
     public static final boolean IS_OSX = System.getProperty("os.name").toLowerCase().contains("mac");
 
     public static String TTY_COMMAND;
@@ -31,7 +35,7 @@ public class OSUtils {
         String stty;
         String sttyfopt;
         String infocmp;
-        if (OSUtils.IS_CYGWIN) {
+        if (OSUtils.IS_CYGWIN || OSUtils.IS_MINGW) {
             tty = "tty.exe";
             stty = "stty.exe";
             sttyfopt = null;

@@ -88,9 +88,13 @@ while [ "${1}" != "" ]; do
 done
 
 cygwin=false
+mingw=false
 case "$(uname)" in
     CYGWIN*)
         cygwin=true
+        ;;
+    MINGW*)
+        mingw=true
         ;;
 esac
 if ${cygwin}; then
@@ -102,3 +106,4 @@ echo "Classpath: $cp"
 echo "Launching Gogo JLine..."
 set mouse=a
 java -cp $cp $opts org.apache.felix.gogo.jline.Main
+

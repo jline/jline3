@@ -178,7 +178,7 @@ public final class TerminalBuilder {
             //
             // Cygwin support
             //
-            if (OSUtils.IS_CYGWIN) {
+            if (OSUtils.IS_CYGWIN || OSUtils.IS_MINGW) {
                 try {
                     Pty pty = ExecPty.current();
                     return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
