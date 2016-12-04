@@ -620,8 +620,9 @@ public class LineReaderImpl implements LineReader, Flushable
     /**
      * Clear the line and redraw it.
      */
-    public void redrawLine() {
+    public boolean redrawLine() {
         display.reset();
+        return true;
     }
 
     /**
@@ -3107,6 +3108,7 @@ public class LineReaderImpl implements LineReader, Flushable
 //        widgets.put(QUIT, this::quit);
         widgets.put(QUOTED_INSERT, this::quotedInsert);
         widgets.put(REDISPLAY, this::redisplay);
+        widgets.put(REDRAW_LINE, this::redrawLine);
         widgets.put(REDO, this::redo);
         widgets.put(SELF_INSERT, this::selfInsert);
         widgets.put(SELF_INSERT_UNMETA, this::selfInsertUnmeta);

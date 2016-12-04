@@ -157,6 +157,7 @@ public interface LineReader {
     String READ_COMMAND = "read-command";
     String RECURSIVE_EDIT = "recursive-edit";
     String REDISPLAY = "redisplay";
+    String REDRAW_LINE = "redraw-line";
     String REDO = "redo";
     String REVERSE_MENU_COMPLETE = "reverse-menu-complete";
     String SELF_INSERT = "self-insert";
