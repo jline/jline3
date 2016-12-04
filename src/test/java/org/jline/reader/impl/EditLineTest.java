@@ -200,4 +200,15 @@ public class EditLineTest
         assertConsoleOutputContains("\n");
         assertBeeped();
     }
+
+    @Test
+    public void testEscapeNewLine() throws Exception {
+        boolean prev = ((DefaultParser) reader.getParser()).isEofOnEscapedNewLine();
+        ((DefaultParser) reader.getParser()).setEofOnEscapedNewLine(true);
+        try {
+            assertLine("echo foobar", new TestBuffer("echo foo\\").enter().append("bar").enter());
+        } finally {
+            ((DefaultParser) reader.getParser()).setEofOnEscapedNewLine(prev);
+        }
+    }
 }

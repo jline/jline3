@@ -800,7 +800,9 @@ public class LineReaderImpl implements LineReader, Flushable
                 char ch = str.charAt(i);
                 if (escaped) {
                     escaped = false;
-                    sb.append(ch);
+                    if (ch != '\n') {
+                        sb.append(ch);
+                    }
                 } else if (ch == '\\') {
                     escaped = true;
                 } else {

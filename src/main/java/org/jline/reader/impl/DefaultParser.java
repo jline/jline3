@@ -26,6 +26,8 @@ public class DefaultParser implements Parser {
 
     private boolean eofOnUnclosedQuote;
 
+    private boolean eofOnEscapedNewLine;
+
     public void setQuoteChars(final char[] chars) {
         this.quoteChars = chars;
     }
@@ -48,6 +50,14 @@ public class DefaultParser implements Parser {
 
     public boolean isEofOnUnclosedQuote() {
         return eofOnUnclosedQuote;
+    }
+
+    public void setEofOnEscapedNewLine(boolean eofOnEscapedNewLine) {
+        this.eofOnEscapedNewLine = eofOnEscapedNewLine;
+    }
+
+    public boolean isEofOnEscapedNewLine() {
+        return eofOnEscapedNewLine;
     }
 
     public ParsedLine parse(final String line, final int cursor, ParseContext context) {
@@ -103,6 +113,9 @@ public class DefaultParser implements Parser {
             wordCursor = words.get(words.size() - 1).length();
         }
 
+        if (eofOnEscapedNewLine && isEscapeChar(line, line.length() - 1)) {
+            throw new EOFError(-1, -1, "Escaped new line", "newline");
+        }
         if (eofOnUnclosedQuote && quoteStart >= 0) {
             throw new EOFError(-1, -1, "Missing closing quote", line.charAt(quoteStart) == '\''
                     ? "quote" : "dquote");
