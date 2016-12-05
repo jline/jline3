@@ -55,14 +55,8 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
         return new Size(info.windowWidth(), info.windowHeight());
     }
 
-    protected byte[] readConsoleInput() {
-        // XXX does how many events to read in one call matter?
-        Kernel32.INPUT_RECORD[] events = null;
-        try {
-            events = doReadConsoleInput();
-        } catch (IOException e) {
-            Log.debug("read Windows terminal input error: ", e);
-        }
+    protected byte[] readConsoleInput() throws IOException {
+        Kernel32.INPUT_RECORD[] events = doReadConsoleInput();
         if (events == null) {
             return new byte[0];
         }

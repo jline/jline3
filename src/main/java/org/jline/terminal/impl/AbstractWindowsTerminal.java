@@ -173,7 +173,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         writer.close();
     }
 
-    protected abstract byte[] readConsoleInput();
+    protected abstract byte[] readConsoleInput() throws IOException;
 
     protected String getEscapeSequence(short keyCode) {
         String escapeSequence = null;

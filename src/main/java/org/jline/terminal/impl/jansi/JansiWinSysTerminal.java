@@ -54,14 +54,8 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
         return size;
     }
 
-    protected byte[] readConsoleInput() {
-        // XXX does how many events to read in one call matter?
-        INPUT_RECORD[] events = null;
-        try {
-            events = WindowsSupport.readConsoleInput(1);
-        } catch (IOException e) {
-            Log.debug("read Windows terminal input error: ", e);
-        }
+    protected byte[] readConsoleInput() throws IOException {
+        INPUT_RECORD[] events = WindowsSupport.readConsoleInput(1);
         if (events == null) {
             return new byte[0];
         }
