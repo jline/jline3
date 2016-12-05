@@ -22,7 +22,7 @@
     <groupId>org.jline</groupId>
     <artifactId>jline</artifactId>
     <name>JLine</name>
-    <version>3.1.1-SNAPSHOT</version>
+    <version>3.1.1</version>
 
     <licenses>
         <license>
