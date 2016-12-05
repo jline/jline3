@@ -181,7 +181,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         writer.close();
     }
 
-    protected abstract byte[] readConsoleInput();
+    protected abstract byte[] readConsoleInput() throws IOException;
 
     protected String getEscapeSequence(short keyCode) {
         // virtual keycodes: http://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
