@@ -33,8 +33,8 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
     protected final Task closer;
 
     public PosixSysTerminal(String name, String type, Pty pty, String encoding,
-                            boolean nativeSignals, SignalHandler nativeSignalHandler) throws IOException {
-        super(name, type, pty);
+                            boolean nativeSignals, SignalHandler signalHandler) throws IOException {
+        super(name, type, pty, signalHandler);
         Objects.requireNonNull(encoding);
         this.input = pty.getSlaveInput();
         this.output = pty.getSlaveOutput();
@@ -42,12 +42,37 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
         this.writer = new PrintWriter(new OutputStreamWriter(output, encoding));
         parseInfoCmp();
         if (nativeSignals) {
-            for (final Signal signal : Signal.values()) {
-                nativeHandlers.put(signal, Signals.register(signal.name(), () -> raise(signal)));
+            if (signalHandler == SignalHandler.SIG_DFL) {
+                for (final Signal signal : Signal.values()) {
+                    Signals.registerDefault(signal.name());
+                }
+            } else if (signalHandler == SignalHandler.SIG_IGN) {
+                for (final Signal signal : Signal.values()) {
+                    Signals.registerIgnore(signal.name());
+                }
+            } else {
+                for (final Signal signal : Signal.values()) {
+                    nativeHandlers.put(signal, Signals.register(signal.name(), () -> raise(signal)));
+                }
             }
         }
         closer = PosixSysTerminal.this::close;
         ShutdownHooks.add(closer);
+    }
+
+    @Override
+    public SignalHandler handle(Signal signal, SignalHandler handler) {
+        SignalHandler prev = super.handle(signal, handler);
+        if (handler == SignalHandler.SIG_DFL) {
+            Signals.registerDefault(signal.name());
+            nativeHandlers.remove(signal);
+        } else if (handler == SignalHandler.SIG_IGN) {
+            Signals.registerIgnore(signal.name());
+            nativeHandlers.remove(signal);
+        } else {
+            nativeHandlers.put(signal, Signals.register(signal.name(), () -> raise(signal)));
+        }
+        return prev;
     }
 
     @Override
