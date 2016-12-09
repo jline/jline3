@@ -116,4 +116,15 @@ public class HistorySearchTest extends ReaderTestSupport {
         assertEquals("", reader.getBuffer().toString());
         assertEquals(3, history.size());
     }
+
+    @Test
+    public void testSearchOnEmptyHistory() throws Exception {
+        DefaultHistory history = setupHistory();
+        history.purge();
+
+        String readLineResult;
+        in.setIn(new ByteArrayInputStream(translate("^Sa").getBytes()));
+        readLineResult = reader.readLine();
+        assertEquals(null, readLineResult);
+    }
 }

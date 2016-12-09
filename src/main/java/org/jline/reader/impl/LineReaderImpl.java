@@ -2191,6 +2191,10 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     protected boolean doSearchHistory(boolean backward) {
+        if (history.isEmpty()) {
+            return false;
+        }
+
         BufferImpl originalBuffer = buf.copy();
         String previousSearchTerm = (searchTerm != null) ? searchTerm.toString() : "";
         searchTerm = new StringBuffer(buf.toString());
