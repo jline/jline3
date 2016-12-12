@@ -104,6 +104,13 @@ public class Display {
             reset = false;
         }
 
+        // If dumb display, get rid of ansi sequences now
+        Integer cols = terminal.getNumericCapability(Capability.max_colors);
+        if (cols == null || cols < 8) {
+            newLines = newLines.stream().map(s -> new AttributedString(s.toString()))
+                    .collect(Collectors.toList());
+        }
+
         // Detect scrolling
         if (fullScreen && newLines.size() == oldLines.size() && canScroll) {
             int nbHeaders = 0;

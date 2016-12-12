@@ -48,6 +48,10 @@ public final class Log
         log(Level.SEVERE, messages);
     }
 
+    public static boolean isDebugEnabled() {
+        return isEnabled(Level.FINE);
+    }
+
     /**
      * Helper to support rendering messages.
      */
@@ -105,6 +109,11 @@ public final class Log
         if (logger.isLoggable(level)) {
             logger.log(record.get());
         }
+    }
+
+    static boolean isEnabled(Level level) {
+        Logger logger = Logger.getLogger("org.jline");
+        return logger.isLoggable(level);
     }
 
 }

@@ -170,6 +170,13 @@ public final class TerminalBuilder {
         if (type == null) {
             type = System.getenv("TERM");
         }
+        Boolean dumb = this.dumb;
+        if (dumb == null) {
+            String str = System.getProperty("org.jline.terminal.dumb");
+            if (str != null) {
+                dumb = Boolean.parseBoolean(str);
+            }
+        }
         if ((system != null && system) || (system == null && in == null && out == null)) {
             if (attributes != null || size != null) {
                 Log.warn("Attributes and size fields are ignored when creating a system terminal");
@@ -229,7 +236,11 @@ public final class TerminalBuilder {
             }
             if (dumb == null || dumb) {
                 if (dumb == null) {
-                    Log.warn("Creating a dumb terminal", exception);
+                    if (Log.isDebugEnabled()) {
+                        Log.warn("Creating a dumb terminal", exception);
+                    } else {
+                        Log.warn("Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)");
+                    }
                 }
                 return new DumbTerminal(name, type != null ? type : Terminal.TYPE_DUMB,
                                         new FileInputStream(FileDescriptor.in),
