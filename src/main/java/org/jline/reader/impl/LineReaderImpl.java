@@ -434,20 +434,12 @@ public class LineReaderImpl implements LineReader, Flushable
         SignalHandler previousWinchHandler = null;
         SignalHandler previousContHandler = null;
         Attributes originalAttributes = null;
+        boolean dumb = Terminal.TYPE_DUMB.equals(terminal.getType());
         try {
             if (reading) {
                 throw new IllegalStateException();
             }
             reading = true;
-
-            if (history != null) {
-                history.attach(this);
-            }
-
-            previousIntrHandler = terminal.handle(Signal.INT, signal -> readLineThread.interrupt());
-            previousWinchHandler = terminal.handle(Signal.WINCH, this::handleSignal);
-            previousContHandler = terminal.handle(Signal.CONT, this::handleSignal);
-            originalAttributes = terminal.enterRawMode();
 
             this.mask = mask;
 
@@ -465,25 +457,6 @@ public class LineReaderImpl implements LineReader, Flushable
 
             modifiedHistory.clear();
 
-            // Cache terminal size for the duration of the call to readLine()
-            // It will eventually be updated with WINCH signals
-            size.copy(terminal.getSize());
-//            if (size.getColumns() == 0 || size.getRows() == 0) {
-//                throw new IllegalStateException("Invalid terminal size: " + size);
-//            }
-
-            display = new Display(terminal, false);
-            if (size.getRows() == 0 || size.getColumns() == 0) {
-               display.resize(1, Integer.MAX_VALUE);
-            } else {
-                display.resize(size.getRows(), size.getColumns());
-            }
-
-            // Move into application mode
-            terminal.puts(Capability.keypad_xmit);
-            if (isSet(Option.AUTO_FRESH_LINE))
-                freshLine();
-
             setPrompt(prompt);
             setRightPrompt(rightPrompt);
             buf.clear();
@@ -493,6 +466,33 @@ public class LineReaderImpl implements LineReader, Flushable
             undo.clear();
             parsedLine = null;
             keyMap = MAIN;
+
+            if (history != null) {
+                history.attach(this);
+            }
+
+            previousIntrHandler = terminal.handle(Signal.INT, signal -> readLineThread.interrupt());
+            previousWinchHandler = terminal.handle(Signal.WINCH, this::handleSignal);
+            previousContHandler = terminal.handle(Signal.CONT, this::handleSignal);
+            originalAttributes = terminal.enterRawMode();
+
+            // Cache terminal size for the duration of the call to readLine()
+            // It will eventually be updated with WINCH signals
+            size.copy(terminal.getSize());
+
+            display = new Display(terminal, false);
+            if (size.getRows() == 0 || size.getColumns() == 0) {
+               display.resize(1, Integer.MAX_VALUE);
+            } else {
+                display.resize(size.getRows(), size.getColumns());
+            }
+
+            if (!dumb) {
+                // Move into application mode
+                terminal.puts(Capability.keypad_xmit);
+                if (isSet(Option.AUTO_FRESH_LINE))
+                    freshLine();
+            }
 
             callWidget(CALLBACK_INIT);
 
@@ -555,7 +555,9 @@ public class LineReaderImpl implements LineReader, Flushable
                     mult = 1;
                 }
 
-                redisplay();
+                if (!dumb) {
+                    redisplay();
+                }
             }
         } catch (IOError e) {
             if (e.getCause() instanceof InterruptedIOException) {
