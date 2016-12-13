@@ -79,6 +79,8 @@
         <jna.version>4.2.2</jna.version>
         <jansi.version>1.14</jansi.version>
         <juniversalchardet.version>1.0.3</juniversalchardet.version>
+
+        <surefire.argLine/>
     </properties>
 
     <prerequisites>
@@ -233,7 +235,7 @@
                     <redirectTestOutputToFile>${maven.test.redirectTestOutputToFile}</redirectTestOutputToFile>
                     <!-- force use of property -->
                     <forkMode>once</forkMode>
-                    <argLine>-ea</argLine>
+                    <argLine>${surefire.argLine}</argLine>
                     <failIfNoTests>false</failIfNoTests>
                     <workingDirectory>${project.build.directory}</workingDirectory>
                     <excludes>
@@ -371,5 +373,18 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>java9</id>
+            <properties>
+                <surefire.argLine>--add-opens java.base/java.io=ALL-UNNAMED</surefire.argLine>
+            </properties>
+            <activation>
+                <jdk>9</jdk>
+            </activation>
+        </profile>
+    </profiles>
+
 
 </project>
