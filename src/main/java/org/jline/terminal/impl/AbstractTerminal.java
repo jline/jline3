@@ -67,6 +67,7 @@ public abstract class AbstractTerminal implements Terminal {
         }
     }
 
+    @Deprecated
     protected void handleDefaultSignal(Signal signal) {
     }
 

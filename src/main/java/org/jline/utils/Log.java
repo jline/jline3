@@ -28,6 +28,10 @@ public final class Log
         log(Level.FINEST, messages);
     }
 
+    public static void trace(Supplier<String> supplier) {
+        log(Level.FINEST, supplier);
+    }
+
     public static void debug(Supplier<String> supplier) {
         log(Level.FINE, supplier);
     }

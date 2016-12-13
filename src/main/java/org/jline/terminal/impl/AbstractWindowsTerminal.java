@@ -76,16 +76,10 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         attributes.setControlChar(Attributes.ControlChar.VSUSP, ctrl('Z'));
         // Handle signals
         if (nativeSignals) {
-            if (signalHandler == SignalHandler.SIG_DFL) {
-                for (final Signal signal : Signal.values()) {
-                    Signals.registerDefault(signal.name());
-                }
-            } else if (signalHandler == SignalHandler.SIG_IGN) {
-                for (final Signal signal : Signal.values()) {
-                    Signals.registerIgnore(signal.name());
-                }
-            } else {
-                for (final Signal signal : Signal.values()) {
+            for (final Signal signal : Signal.values()) {
+                if (signalHandler == SignalHandler.SIG_DFL) {
+                    nativeHandlers.put(signal, Signals.registerDefault(signal.name()));
+                } else {
                     nativeHandlers.put(signal, Signals.register(signal.name(), () -> raise(signal)));
                 }
             }
@@ -99,24 +93,14 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     @Override
     public SignalHandler handle(Signal signal, SignalHandler handler) {
         SignalHandler prev = super.handle(signal, handler);
-        if (handler == SignalHandler.SIG_DFL) {
-            Signals.registerDefault(signal.name());
-            nativeHandlers.remove(signal);
-        } else if (handler == SignalHandler.SIG_IGN) {
-            Signals.registerIgnore(signal.name());
-            nativeHandlers.remove(signal);
-        } else {
-            nativeHandlers.put(signal, Signals.register(signal.name(), () -> raise(signal)));
+        if (prev != handler) {
+            if (handler == SignalHandler.SIG_DFL) {
+                Signals.registerDefault(signal.name());
+            } else {
+                Signals.register(signal.name(), () -> raise(signal));
+            }
         }
         return prev;
-    }
-
-    @Override
-    protected void handleDefaultSignal(Signal signal) {
-        Object handler = nativeHandlers.get(signal);
-        if (handler != null) {
-            Signals.invokeHandler(signal.name(), handler);
-        }
     }
 
     protected String getConsoleEncoding() {

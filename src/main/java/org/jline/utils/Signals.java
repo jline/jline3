@@ -8,8 +8,6 @@
  */
 package org.jline.utils;
 
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Objects;
 
@@ -44,12 +42,20 @@ public final class Signals {
             Object signalHandler = Proxy.newProxyInstance(loader,
                     new Class<?>[]{signalHandlerClass}, (proxy, method, args) -> {
                         // only method we are proxying is handle()
-                        handler.run();
+                        if (method.getDeclaringClass() == Object.class) {
+                            if ("toString".equals(method.getName())) {
+                                return handler.toString();
+                            }
+                        } else if (method.getDeclaringClass() == signalHandlerClass) {
+                            Log.trace(() -> "Calling handler " + toString(handler) + " for signal " + name);
+                            handler.run();
+                        }
                         return null;
                     });
             return doRegister(name, signalHandler);
         } catch (Exception e) {
             // Ignore this one too, if the above failed, the signal API is incompatible with what we're expecting
+            Log.debug("Error registering handler for signal ", name, e);
             return null;
         }
     }
@@ -60,16 +66,19 @@ public final class Signals {
             return doRegister(name, signalHandlerClass.getField("SIG_DFL").get(null));
         } catch (Exception e) {
             // Ignore this one too, if the above failed, the signal API is incompatible with what we're expecting
+            Log.debug("Error registering default handler for signal ", name, e);
             return null;
         }
     }
 
+    @Deprecated
     public static Object registerIgnore(String name) {
         try {
             Class<?> signalHandlerClass = Class.forName("sun.misc.SignalHandler");
             return doRegister(name, signalHandlerClass.getField("SIG_IGN").get(null));
         } catch (Exception e) {
             // Ignore this one too, if the above failed, the signal API is incompatible with what we're expecting
+            Log.debug("Error registering ignored handler for signal ", name, e);
             return null;
         }
     }
@@ -82,9 +91,11 @@ public final class Signals {
             }
         } catch (Exception e) {
             // Ignore
+            Log.debug("Error unregistering handler for signal ", name, e);
         }
     }
 
+    @Deprecated
     public static void invokeHandler(String name, Object handler) {
         try {
             Class<?> signalClass = Class.forName("sun.misc.Signal");
@@ -93,15 +104,37 @@ public final class Signals {
             signalHandlerClass.getMethod("handle", signalClass).invoke(handler, signal);
         } catch (Exception e) {
             // Ignore
+            Log.debug("Error invoking handler for signal ", name, e);
         }
     }
 
     private static Object doRegister(String name, Object handler) throws Exception {
+        Log.trace(() -> "Registering signal " + name + " with handler " + toString(handler));
+        if ("QUIT".equals(name) || "INFO".equals(name) && "9".equals(System.getProperty("java.specification.version"))) {
+            Log.trace(() -> "Ignoring unsupported signal " + name);
+            return null;
+        }
         Class<?> signalClass = Class.forName("sun.misc.Signal");
         Class<?> signalHandlerClass = Class.forName("sun.misc.SignalHandler");
         Object signal = signalClass.getConstructor(String.class).newInstance(name);
         return signalClass.getMethod("handle", signalClass, signalHandlerClass)
                 .invoke(null, signal, handler);
+    }
+
+    @SuppressWarnings("")
+    private static String toString(Object handler) {
+        try {
+            Class<?> signalHandlerClass = Class.forName("sun.misc.SignalHandler");
+            if (handler == signalHandlerClass.getField("SIG_DFL").get(null)) {
+                return "SIG_DFL";
+            }
+            if (handler == signalHandlerClass.getField("SIG_IGN").get(null)) {
+                return "SIG_IGN";
+            }
+        } catch (Throwable t) {
+            // ignore
+        }
+        return handler != null ? handler.toString() : "null";
     }
 
 }
