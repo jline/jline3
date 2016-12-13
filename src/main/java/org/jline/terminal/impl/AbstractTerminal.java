@@ -60,15 +60,9 @@ public abstract class AbstractTerminal implements Terminal {
     public void raise(Signal signal) {
         Objects.requireNonNull(signal);
         SignalHandler handler = handlers.get(signal);
-        if (handler == SignalHandler.SIG_DFL) {
-            handleDefaultSignal(signal);
-        } else if (handler != SignalHandler.SIG_IGN) {
+        if (handler != SignalHandler.SIG_DFL && handler != SignalHandler.SIG_IGN) {
             handler.handle(signal);
         }
-    }
-
-    @Deprecated
-    protected void handleDefaultSignal(Signal signal) {
     }
 
     protected void echoSignal(Signal signal) {

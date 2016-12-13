@@ -71,18 +71,6 @@ public final class Signals {
         }
     }
 
-    @Deprecated
-    public static Object registerIgnore(String name) {
-        try {
-            Class<?> signalHandlerClass = Class.forName("sun.misc.SignalHandler");
-            return doRegister(name, signalHandlerClass.getField("SIG_IGN").get(null));
-        } catch (Exception e) {
-            // Ignore this one too, if the above failed, the signal API is incompatible with what we're expecting
-            Log.debug("Error registering ignored handler for signal ", name, e);
-            return null;
-        }
-    }
-
     public static void unregister(String name, Object previous) {
         try {
             // We should make sure the current signal is the one we registered
@@ -92,19 +80,6 @@ public final class Signals {
         } catch (Exception e) {
             // Ignore
             Log.debug("Error unregistering handler for signal ", name, e);
-        }
-    }
-
-    @Deprecated
-    public static void invokeHandler(String name, Object handler) {
-        try {
-            Class<?> signalClass = Class.forName("sun.misc.Signal");
-            Class<?> signalHandlerClass = Class.forName("sun.misc.SignalHandler");
-            Object signal = signalClass.getConstructor(String.class).newInstance(name);
-            signalHandlerClass.getMethod("handle", signalClass).invoke(handler, signal);
-        } catch (Exception e) {
-            // Ignore
-            Log.debug("Error invoking handler for signal ", name, e);
         }
     }
 
