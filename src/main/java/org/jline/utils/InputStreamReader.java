@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
@@ -50,7 +51,7 @@ public class InputStreamReader extends Reader {
 
     CharsetDecoder decoder;
 
-    ByteBuffer bytes = ByteBuffer.allocate(BUFFER_SIZE);
+    Buffer bytes = ByteBuffer.allocate(BUFFER_SIZE);
 
     char pending = (char) -1;
 
@@ -267,7 +268,7 @@ public class InputStreamReader extends Reader {
                     }
 
                     int off = bytes.arrayOffset() + bytes.limit();
-                    int was_red = in.read(bytes.array(), off, 1);
+                    int was_red = in.read(((ByteBuffer) bytes).array(), off, 1);
 
                     if (was_red == -1) {
                         endOfInput = true;
@@ -279,12 +280,12 @@ public class InputStreamReader extends Reader {
                 }
 
                 // decode bytes
-                result = decoder.decode(bytes, out, false);
+                result = decoder.decode((ByteBuffer) bytes, out, false);
 
                 if (result.isUnderflow()) {
                     // compact the buffer if no space left
                     if (bytes.limit() == bytes.capacity()) {
-                        bytes.compact();
+                        ((ByteBuffer) bytes).compact();
                         bytes.limit(bytes.position());
                         bytes.position(0);
                     }
@@ -295,7 +296,7 @@ public class InputStreamReader extends Reader {
             }
 
             if (result == CoderResult.UNDERFLOW && endOfInput) {
-                result = decoder.decode(bytes, out, true);
+                result = decoder.decode((ByteBuffer) bytes, out, true);
                 decoder.flush(out);
                 decoder.reset();
             }
