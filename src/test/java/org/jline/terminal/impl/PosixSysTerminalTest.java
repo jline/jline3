@@ -33,7 +33,7 @@ public class PosixSysTerminalTest {
                 "name", "ansi", pty,
                 Charset.defaultCharset().name(), true,
                 SignalHandler.SIG_DFL)) {
-            assertEquals(0, terminal.nativeHandlers.size());
+            assertEquals(Signal.values().length, terminal.nativeHandlers.size());
         }
     }
 
@@ -48,7 +48,7 @@ public class PosixSysTerminalTest {
                 "name", "ansi", pty,
                 Charset.defaultCharset().name(), true,
                 SignalHandler.SIG_IGN)) {
-            assertEquals(0, terminal.nativeHandlers.size());
+            assertEquals(Signal.values().length, terminal.nativeHandlers.size());
         }
     }
 
@@ -63,11 +63,11 @@ public class PosixSysTerminalTest {
                 "name", "ansi", pty,
                 Charset.defaultCharset().name(), true,
                 SignalHandler.SIG_DFL)) {
-            assertEquals(0, terminal.nativeHandlers.size());
+            assertEquals(Signal.values().length, terminal.nativeHandlers.size());
             SignalHandler prev = terminal.handle(Signal.INT, s -> {});
-            assertEquals(1, terminal.nativeHandlers.size());
+            assertEquals(Signal.values().length, terminal.nativeHandlers.size());
             terminal.handle(Signal.INT, prev);
-            assertEquals(0, terminal.nativeHandlers.size());
+            assertEquals(Signal.values().length, terminal.nativeHandlers.size());
         }
     }
 }
