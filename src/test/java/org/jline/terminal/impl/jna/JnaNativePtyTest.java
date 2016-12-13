@@ -11,11 +11,13 @@ package org.jline.terminal.impl.jna;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assume.assumeTrue;
 
 public class JnaNativePtyTest {
 
     @Test
     public void testDescriptor() {
+        assumeTrue(!System.getProperty( "os.name" ).startsWith( "Windows"));
         assertNotNull(JnaNativePty.newDescriptor(4));
     }
 }
