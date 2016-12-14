@@ -34,11 +34,7 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.Terminal.Signal;
 import org.jline.terminal.Terminal.SignalHandler;
 import org.jline.terminal.impl.LineDisciplineTerminal;
-import org.jline.utils.AttributedString;
-import org.jline.utils.AttributedStringBuilder;
-import org.jline.utils.AttributedStyle;
-import org.jline.utils.Display;
-import org.jline.utils.InfoCmp;
+import org.jline.utils.*;
 import org.jline.utils.InfoCmp.Capability;
 
 /**
@@ -188,7 +184,9 @@ public class Tmux {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            if (running.get()) {
+                Log.info("Error in tmux input loop", e);
+            }
         } finally {
             running.set(false);
             setDirty();
@@ -573,7 +571,13 @@ public class Tmux {
                     name,
                     type,
                     masterOutput,
-                    Charset.defaultCharset().name());
+                    Charset.defaultCharset().name()) {
+                @Override
+                public void close() throws IOException {
+                    super.close();
+                    closer.accept(VirtualConsole.this);
+                }
+            };
             this.console.setSize(new Size(columns, rows));
         }
 
@@ -616,7 +620,6 @@ public class Tmux {
         @Override
         public void close() throws IOException {
             console.close();
-            closer.accept(this);
         }
 
         private class MasterOutputStream extends OutputStream {
