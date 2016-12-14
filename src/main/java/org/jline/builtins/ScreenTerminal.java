@@ -919,7 +919,8 @@ public class ScreenTerminal {
 
     private void csi_SGR(String p) {
         int[] ps = vt100_parse_params(p, new int[]{0});
-        for (int m : ps) {
+        for (int i = 0; i < ps.length; i++) {
+            int m = ps[i];
             if (m == 0) {
                 attr = 0x00ff0000;
             } else if (m == 1) {
@@ -940,10 +941,36 @@ public class ScreenTerminal {
                 attr &= 0xfbff0000; // conceal off
             } else if (m >= 30 && m <= 37) {
                 attr = (attr & 0xef0f0000) | ((m - 30) << 20); // foreground
+            } else if (m == 38) {
+                m = ++i < ps.length ? ps[i] : 0;
+                if (m == 5) {
+                    m = ++i < ps.length ? ps[i] : 0;
+                    if (m < 8) {
+                        attr = (attr & 0xef0f0000) | (m << 20); // foreground
+                    } else if (m < 16) {
+                        attr = (attr & 0xef0f0000) | ((m - 8) << 20) | 0x10000000; // foreground bright
+                    } else {
+                        m = m % 8; // TODO: better rounding
+                        attr = (attr & 0xef0f0000) | (m << 20); // foreground
+                    }
+                }
             } else if (m == 39) {
                 attr = (attr & 0xef0f0000) | 0x00f00000; // foreground default
             } else if (m >= 40 && m <= 47) {
                 attr = (attr & 0xdff00000) | ((m - 40) << 16); // background
+            } else if (m == 48) {
+                m = ++i < ps.length ? ps[i] : 0;
+                if (m == 5) {
+                    m = ++i < ps.length ? ps[i] : 0;
+                    if (m < 8) {
+                        attr = (attr & 0xdff00000) | (m << 16); // background
+                    } else if (m < 16) {
+                        attr = (attr & 0xdff00000) | ((m - 8) << 16) | 0x20000000; // background bright
+                    } else {
+                        m = m % 8; // TODO: better rounding
+                        attr = (attr & 0xdff00000) | (m << 16); // foreground
+                    }
+                }
             } else if (m == 49) {
                 attr = (attr & 0xdff00000) | 0x000f0000; // background default
             } else if (m >= 90 && m <= 97) {
