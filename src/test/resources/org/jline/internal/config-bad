@@ -1,7 +1,0 @@
-# Don't bomb on unsupported operations
-"\C-fake": some-fake-operation
-
-"\C-bad: nothing
-
-"\C-xq": "\eb\"\ef\""
-
