@@ -72,8 +72,6 @@ public class Tmux {
     }
 
     public Tmux(Terminal terminal, PrintStream err, Consumer<Terminal> runner) throws IOException {
-        InfoCmp.setDefaultInfoCmp("screen", SCREEN_CAPS);
-        InfoCmp.setDefaultInfoCmp("screen-256color", SCREEN_256COLOR_CAPS);
         this.terminal = terminal;
         this.err = err;
         this.runner = runner;
@@ -482,63 +480,6 @@ public class Tmux {
     private String getNewPaneName() {
         return String.format("tmux%02d", paneId.incrementAndGet());
     }
-
-    private static final String SCREEN_CAPS =
-                    "#\tReconstructed via infocmp from file: /usr/share/terminfo/73/screen\n" +
-                    "screen|VT 100/ANSI X3.64 virtual terminal,\n" +
-                    "\tam, km, mir, msgr, xenl,\n" +
-                    "\tcolors#8, cols#80, it#8, lines#24, ncv#3, pairs#64,\n" +
-                    "\tacsc=++\\,\\,--..00``aaffgghhiijjkkllmmnnooppqqrrssttuuvvwwxxyyzz{{||}}~~,\n" +
-                    "\tbel=^G, blink=\\E[5m, bold=\\E[1m, cbt=\\E[Z, civis=\\E[?25l,\n" +
-                    "\tclear=\\E[H\\E[J, cnorm=\\E[34h\\E[?25h, cr=^M,\n" +
-                    "\tcsr=\\E[%i%p1%d;%p2%dr, cub=\\E[%p1%dD, cub1=^H,\n" +
-                    "\tcud=\\E[%p1%dB, cud1=^J, cuf=\\E[%p1%dC, cuf1=\\E[C,\n" +
-                    "\tcup=\\E[%i%p1%d;%p2%dH, cuu=\\E[%p1%dA, cuu1=\\EM,\n" +
-                    "\tcvvis=\\E[34l, dch=\\E[%p1%dP, dch1=\\E[P, dl=\\E[%p1%dM,\n" +
-                    "\tdl1=\\E[M, ed=\\E[J, el=\\E[K, el1=\\E[1K, enacs=\\E(B\\E)0,\n" +
-                    "\tflash=\\Eg, home=\\E[H, ht=^I, hts=\\EH, ich=\\E[%p1%d@,\n" +
-                    "\til=\\E[%p1%dL, il1=\\E[L, ind=^J, is2=\\E)0, kbs=^H, kcbt=\\E[Z,\n" +
-                    "\tkcub1=\\EOD, kcud1=\\EOB, kcuf1=\\EOC, kcuu1=\\EOA,\n" +
-                    "\tkdch1=\\E[3~, kend=\\E[4~, kf1=\\EOP, kf10=\\E[21~,\n" +
-                    "\tkf11=\\E[23~, kf12=\\E[24~, kf2=\\EOQ, kf3=\\EOR, kf4=\\EOS,\n" +
-                    "\tkf5=\\E[15~, kf6=\\E[17~, kf7=\\E[18~, kf8=\\E[19~, kf9=\\E[20~,\n" +
-                    "\tkhome=\\E[1~, kich1=\\E[2~, kmous=\\E[M, knp=\\E[6~, kpp=\\E[5~,\n" +
-                    "\tnel=\\EE, op=\\E[39;49m, rc=\\E8, rev=\\E[7m, ri=\\EM, rmacs=^O,\n" +
-                    "\trmcup=\\E[?1049l, rmir=\\E[4l, rmkx=\\E[?1l\\E>, rmso=\\E[23m,\n" +
-                    "\trmul=\\E[24m, rs2=\\Ec\\E[?1000l\\E[?25h, sc=\\E7,\n" +
-                    "\tsetab=\\E[4%p1%dm, setaf=\\E[3%p1%dm,\n" +
-                    "\tsgr=\\E[0%?%p6%t;1%;%?%p1%t;3%;%?%p2%t;4%;%?%p3%t;7%;%?%p4%t;5%;m%?%p9%t\\016%e\\017%;,\n" +
-                    "\tsgr0=\\E[m\\017, smacs=^N, smcup=\\E[?1049h, smir=\\E[4h,\n" +
-                    "\tsmkx=\\E[?1h\\E=, smso=\\E[3m, smul=\\E[4m, tbc=\\E[3g,\n";
-
-    private static final String SCREEN_256COLOR_CAPS =
-                    "#\tReconstructed via infocmp from file: /usr/share/terminfo/73/screen-256color\n" +
-                    "screen-256color|GNU Screen with 256 colors,\n" +
-                    "\tam, km, mir, msgr, xenl,\n" +
-                    "\tcolors#256, cols#80, it#8, lines#24, ncv#3, pairs#32767,\n" +
-                    "\tacsc=++\\,\\,--..00``aaffgghhiijjkkllmmnnooppqqrrssttuuvvwwxxyyzz{{||}}~~,\n" +
-                    "\tbel=^G, blink=\\E[5m, bold=\\E[1m, cbt=\\E[Z, civis=\\E[?25l,\n" +
-                    "\tclear=\\E[H\\E[J, cnorm=\\E[34h\\E[?25h, cr=^M,\n" +
-                    "\tcsr=\\E[%i%p1%d;%p2%dr, cub=\\E[%p1%dD, cub1=^H,\n" +
-                    "\tcud=\\E[%p1%dB, cud1=^J, cuf=\\E[%p1%dC, cuf1=\\E[C,\n" +
-                    "\tcup=\\E[%i%p1%d;%p2%dH, cuu=\\E[%p1%dA, cuu1=\\EM,\n" +
-                    "\tcvvis=\\E[34l, dch=\\E[%p1%dP, dch1=\\E[P, dl=\\E[%p1%dM,\n" +
-                    "\tdl1=\\E[M, ed=\\E[J, el=\\E[K, el1=\\E[1K, enacs=\\E(B\\E)0,\n" +
-                    "\tflash=\\Eg, home=\\E[H, ht=^I, hts=\\EH, ich=\\E[%p1%d@,\n" +
-                    "\til=\\E[%p1%dL, il1=\\E[L, ind=^J, initc@, is2=\\E)0, kbs=^H,\n" +
-                    "\tkcbt=\\E[Z, kcub1=\\EOD, kcud1=\\EOB, kcuf1=\\EOC, kcuu1=\\EOA,\n" +
-                    "\tkdch1=\\E[3~, kend=\\E[4~, kf1=\\EOP, kf10=\\E[21~,\n" +
-                    "\tkf11=\\E[23~, kf12=\\E[24~, kf2=\\EOQ, kf3=\\EOR, kf4=\\EOS,\n" +
-                    "\tkf5=\\E[15~, kf6=\\E[17~, kf7=\\E[18~, kf8=\\E[19~, kf9=\\E[20~,\n" +
-                    "\tkhome=\\E[1~, kich1=\\E[2~, kmous=\\E[M, knp=\\E[6~, kpp=\\E[5~,\n" +
-                    "\tnel=\\EE, op=\\E[39;49m, rc=\\E8, rev=\\E[7m, ri=\\EM, rmacs=^O,\n" +
-                    "\trmcup=\\E[?1049l, rmir=\\E[4l, rmkx=\\E[?1l\\E>, rmso=\\E[23m,\n" +
-                    "\trmul=\\E[24m, rs2=\\Ec\\E[?1000l\\E[?25h, sc=\\E7,\n" +
-                    "\tsetab=\\E[%?%p1%{8}%<%t4%p1%d%e%p1%{16}%<%t10%p1%{8}%-%d%e48;5;%p1%d%;m,\n" +
-                    "\tsetaf=\\E[%?%p1%{8}%<%t3%p1%d%e%p1%{16}%<%t9%p1%{8}%-%d%e38;5;%p1%d%;m,\n" +
-                    "\tsgr=\\E[0%?%p6%t;1%;%?%p1%t;3%;%?%p2%t;4%;%?%p3%t;7%;%?%p4%t;5%;m%?%p9%t\\016%e\\017%;,\n" +
-                    "\tsgr0=\\E[m\\017, smacs=^N, smcup=\\E[?1049h, smir=\\E[4h,\n" +
-                    "\tsmkx=\\E[?1h\\E=, smso=\\E[3m, smul=\\E[4m, tbc=\\E[3g,\n";
 
     private static class VirtualConsole implements Closeable {
         private final ScreenTerminal terminal;

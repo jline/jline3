@@ -158,7 +158,7 @@ public abstract class AbstractTerminal implements Terminal {
             }
         }
         if (capabilities == null) {
-            capabilities = InfoCmp.ANSI_CAPS;
+            capabilities = InfoCmp.getLoadedInfoCmp("ansi");
         }
         InfoCmp.parseInfoCmp(capabilities, bools, ints, strings);
     }

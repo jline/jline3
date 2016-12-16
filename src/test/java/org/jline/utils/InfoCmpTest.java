@@ -30,7 +30,7 @@ public class InfoCmpTest {
         Map<Capability, Integer> ints = new HashMap<>();
         Map<Capability, String> strings = new HashMap<>();
 
-        String infocmp = InfoCmp.ANSI_CAPS;
+        String infocmp = InfoCmp.getLoadedInfoCmp("ansi");
         InfoCmp.parseInfoCmp(infocmp, bools, ints, strings);
         assertEquals(4, bools.size());
         assertTrue(strings.containsKey(Capability.byName("acsc")));
