@@ -1,8 +1,6 @@
-*.iml
-*.ipr
-*.iws
-/target
-/.classpath
-/.project
-/.settings/
+*.i??
+target
+.classpath
+.project
+.settings/
 .idea
