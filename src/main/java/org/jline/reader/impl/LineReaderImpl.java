@@ -489,7 +489,7 @@ public class LineReaderImpl implements LineReader, Flushable
             if (!dumb) {
                 terminal.puts(Capability.keypad_xmit);
                 if (isSet(Option.AUTO_FRESH_LINE))
-                    freshLine();
+                    callWidget(FRESH_LINE);
                 if (isSet(Option.MOUSE))
                     terminal.trackMouse(Terminal.MouseTracking.Normal);
             }
@@ -585,7 +585,7 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     /** Make sure we position the cursor on column 0 */
-    void freshLine() {
+    protected boolean freshLine() {
         AttributedStringBuilder sb = new AttributedStringBuilder();
         sb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.BLACK + AttributedStyle.BRIGHT));
         sb.append("~");
@@ -597,6 +597,7 @@ public class LineReaderImpl implements LineReader, Flushable
         sb.append(" ");
         sb.append(KeyMap.key(terminal, Capability.carriage_return));
         print(sb.toAnsi(terminal));
+        return true;
     }
 
     @Override
@@ -3093,6 +3094,7 @@ public class LineReaderImpl implements LineReader, Flushable
         widgets.put(EXPAND_OR_COMPLETE, this::expandOrComplete);
         widgets.put(EXPAND_OR_COMPLETE_PREFIX, this::expandOrCompletePrefix);
         widgets.put(EXPAND_WORD, this::expandWord);
+        widgets.put(FRESH_LINE, this::freshLine);
         widgets.put(FORWARD_CHAR, this::forwardChar);
         widgets.put(FORWARD_WORD, this::forwardWord);
         widgets.put(HISTORY_INCREMENTAL_SEARCH_BACKWARD, this::historyIncrementalSearchBackward);

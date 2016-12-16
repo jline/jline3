@@ -123,6 +123,7 @@ public interface LineReader {
     String EXPAND_OR_COMPLETE = "expand-or-complete";
     String EXPAND_OR_COMPLETE_PREFIX = "expand-or-complete-prefix";
     String EXPAND_WORD = "expand-word";
+    String FRESH_LINE = "fresh-line";
     String FORWARD_CHAR = "forward-char";
     String FORWARD_WORD = "forward-word";
     String HISTORY_BEGINNING_SEARCH_BACKWARD = "history-beginning-search-backward";
