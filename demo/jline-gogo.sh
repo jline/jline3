@@ -30,8 +30,8 @@ fi;
 JLINE_VERSION=$(ls ${TARGETDIR}/jline-*-SNAPSHOT.jar  | sed -e 's#.*/jline-## ; s#SNAPSHOT.*#SNAPSHOT#')
 JANSI_VERSION=$(cat ${ROOTDIR}/pom.xml| grep jansi.version\> | sed -e 's#^.*<jansi.version>## ; s#</jansi.*##')
 JNA_VERSION=$(cat ${ROOTDIR}/pom.xml| grep jna.version\> | sed -e 's#^.*<jna.version>## ; s#</jna.*##')
-GOGO_RUNTIME_VERSION=1.0.0
-GOGO_JLINE_VERSION=1.0.0
+GOGO_RUNTIME_VERSION=1.0.2
+GOGO_JLINE_VERSION=1.0.2
 
 # JLINE
 cp=${TARGETDIR}/jline-${JLINE_VERSION}.jar
