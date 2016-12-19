@@ -6,8 +6,8 @@ set TARGETDIR=%ROOTDIR%\target
 
 set JANSI_VERSION=1.14
 set JNA_VERSION=4.2.2
-set GOGO_RUNTIME_VERSION=1.0.0
-set GOGO_JLINE_VERSION=1.0.0
+set GOGO_RUNTIME_VERSION=1.0.2
+set GOGO_JLINE_VERSION=1.0.2
 
 rem initialization
 if not exist %TARGETDIR%\lib (
