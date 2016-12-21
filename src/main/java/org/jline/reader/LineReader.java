@@ -95,6 +95,7 @@ public interface LineReader {
     String CAPITALIZE_WORD = "capitalize-word";
     String CHARACTER_SEARCH = "character-search";
     String CHARACTER_SEARCH_BACKWARD = "character-search-backward";
+    String CLEAR = "clear";
     String CLEAR_SCREEN = "clear-screen";
     String COMPLETE_PREFIX = "complete-prefix";
     String COMPLETE_WORD = "complete-word";

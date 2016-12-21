@@ -198,7 +198,7 @@ public class Example
             if (timer) {
                 Executors.newScheduledThreadPool(1)
                         .scheduleAtFixedRate(() -> {
-                            reader.getTerminal().puts(Capability.carriage_return);
+                            reader.callWidget(LineReader.CLEAR);
                             reader.getTerminal().writer().println("Hello world!");
                             reader.callWidget(LineReader.REDRAW_LINE);
                             reader.callWidget(LineReader.REDISPLAY);

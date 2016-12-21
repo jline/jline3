@@ -3067,6 +3067,7 @@ public class LineReaderImpl implements LineReader, Flushable
         widgets.put(BEGINNING_OF_LINE, this::beginningOfLine);
         widgets.put(BEGINNING_OF_LINE_HIST, this::beginningOfLineHist);
         widgets.put(CAPITALIZE_WORD, this::capitalizeWord);
+        widgets.put(CLEAR, this::clear);
         widgets.put(CLEAR_SCREEN, this::clearScreen);
         widgets.put(COMPLETE_PREFIX, this::completePrefix);
         widgets.put(COMPLETE_WORD, this::completeWord);
@@ -4690,6 +4691,14 @@ public class LineReaderImpl implements LineReader, Flushable
             int adjust = pl1 - pl0;
             buf.moveXY(event.getX() - cursor.getX() - adjust, event.getY() - cursor.getY());
         }
+        return true;
+    }
+
+    /**
+     * Clean the used display
+     */
+    public boolean clear() {
+        display.update(Collections.emptyList(), 0);
         return true;
     }
 
