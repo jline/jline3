@@ -14,6 +14,8 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
@@ -63,6 +65,7 @@ public class Example
             Character mask = null;
             String trigger = null;
             boolean color = false;
+            boolean timer = false;
 
             TerminalBuilder builder = TerminalBuilder.builder();
 
@@ -97,6 +100,10 @@ public class Example
                         index++;
                         break;
                     */
+                    case "timer":
+                        timer = true;
+                        index++;
+                        break;
                     case "-system":
                         builder.system(false);
                         index++;
@@ -187,6 +194,17 @@ public class Example
                     .completer(completer)
                     .parser(parser)
                     .build();
+
+            if (timer) {
+                Executors.newScheduledThreadPool(1)
+                        .scheduleAtFixedRate(() -> {
+                            reader.getTerminal().puts(Capability.carriage_return);
+                            reader.getTerminal().writer().println("Hello world!");
+                            reader.callWidget(LineReader.REDRAW_LINE);
+                            reader.callWidget(LineReader.REDISPLAY);
+                            reader.getTerminal().writer().flush();
+                        }, 1, 1, TimeUnit.SECONDS);
+            }
 
             while (true) {
                 String line = null;
