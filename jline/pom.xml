@@ -24,18 +24,33 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.fusesource.jansi</groupId>
-            <artifactId>jansi</artifactId>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-terminal-jansi</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-terminal-jna</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-builtins</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jline.deps</groupId>
+            <artifactId>jansi-${jansi.version}</artifactId>
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>net.java.dev.jna</groupId>
-            <artifactId>jna</artifactId>
+            <groupId>org.jline.deps</groupId>
+            <artifactId>jna-${jna.version}</artifactId>
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>com.googlecode.juniversalchardet</groupId>
-            <artifactId>juniversalchardet</artifactId>
+            <groupId>org.jline.deps</groupId>
+            <artifactId>juniversalchardet-${juniversalchardet.version}</artifactId>
             <optional>true</optional>
         </dependency>
     </dependencies>
@@ -60,6 +75,7 @@
                                     <type>jar</type>
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                                    <excludes>module-info.java</excludes>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
@@ -68,6 +84,7 @@
                                     <type>jar</type>
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                                    <excludes>module-info.java</excludes>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
@@ -76,6 +93,7 @@
                                     <type>jar</type>
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                                    <excludes>module-info.java</excludes>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
@@ -84,6 +102,7 @@
                                     <type>jar</type>
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                                    <excludes>module-info.java</excludes>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
@@ -92,6 +111,7 @@
                                     <type>jar</type>
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                                    <excludes>module-info.java</excludes>
                                 </artifactItem>
 
                                 <!-- resources -->
@@ -184,9 +204,13 @@
                     <execution>
                         <id>default-compile</id>
                         <configuration>
+                            <!-- compile everything to ensure module-info contains right entries -->
                             <excludes>
                                 <exclude>**/TTop.java</exclude>
                             </excludes>
+                            <release>9</release>
+                            <source>9</source>
+                            <target>9</target>
                             <compilerArgs>
                                 <arg>-Xlint:all,-options</arg>
                                 <arg>-Werror</arg>
@@ -196,7 +220,28 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>noncompact</id>
+                        <id>base-compile</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <excludes>
+                                <exclude>module-info.java</exclude>
+                                <exclude>**/TTop.java</exclude>
+                            </excludes>
+                            <release>8</release>
+                            <source>8</source>
+                            <target>8</target>
+                            <compilerArgs>
+                                <arg>-Xlint:all,-options</arg>
+                                <arg>-Werror</arg>
+                                <arg>-profile</arg>
+                                <arg>compact1</arg>
+                            </compilerArgs>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>base-compile2</id>
                         <goals>
                             <goal>compile</goal>
                         </goals>
@@ -204,6 +249,9 @@
                             <includes>
                                 <include>**/TTop.java</include>
                             </includes>
+                            <release>8</release>
+                            <source>8</source>
+                            <target>8</target>
                             <compilerArgs>
                                 <arg>-Xlint:all,-options</arg>
                                 <arg>-Werror</arg>

@@ -17,54 +17,26 @@ REALNAME=$(realpath "$0")
 DIRNAME=$(dirname "${REALNAME}")
 PROGNAME=$(basename "${REALNAME}")
 ROOTDIR=${DIRNAME}/..
-TARGETDIR=${DIRNAME}/target
 
 if [ ! -e ${ROOTDIR}/jline/target ] ; then
   echo "Build jline with maven before running the demo"
   exit
 fi;
-if [ ! -e ${TARGETDIR} ] ; then
-  mkdir ${TARGETDIR}
-fi;
-if [ ! -e ${TARGETDIR}/lib ] ; then
-  mkdir ${TARGETDIR}/lib
-fi;
 
 JLINE_VERSION=$(ls ${ROOTDIR}/jline/target/jline-*-SNAPSHOT.jar  | sed -e 's#.*/jline-## ; s#SNAPSHOT.*#SNAPSHOT#')
 JANSI_VERSION=$(cat ${ROOTDIR}/pom.xml| grep jansi.version\> | sed -e 's#^.*<jansi.version>## ; s#</jansi.*##')
 JNA_VERSION=$(cat ${ROOTDIR}/pom.xml| grep jna.version\> | sed -e 's#^.*<jna.version>## ; s#</jna.*##')
-GOGO_RUNTIME_VERSION=1.0.2
-GOGO_JLINE_VERSION=1.0.2
+GOGO_RUNTIME_VERSION=$(cat ${ROOTDIR}/pom.xml| grep gogo.runtime.version\> | sed -e 's#^.*<gogo.runtime.version>## ; s#</gogo.*##')
+GOGO_JLINE_VERSION=$(cat ${ROOTDIR}/pom.xml| grep gogo.jline.version\> | sed -e 's#^.*<gogo.jline.version>## ; s#</gogo.*##')
 
 # JLINE
 cp=${ROOTDIR}/jline/target/jline-${JLINE_VERSION}.jar
-
 # Gogo Runtime
-if [ ! -f ${TARGETDIR}/lib/org.apache.felix.gogo.runtime-${GOGO_RUNTIME_VERSION}.jar ] ; then
-  echo "Downloading Gogo Runtime ${GOGO_RUNTIME_VERSION}..."
-  wget -O ${TARGETDIR}/lib/org.apache.felix.gogo.runtime-${GOGO_RUNTIME_VERSION}.jar http://repo1.maven.org/maven2/org/apache/felix/org.apache.felix.gogo.runtime/${GOGO_RUNTIME_VERSION}/org.apache.felix.gogo.runtime-${GOGO_RUNTIME_VERSION}.jar
-fi
-cp=$cp:${TARGETDIR}/lib/org.apache.felix.gogo.runtime-${GOGO_RUNTIME_VERSION}.jar
-
+cp=$cp:${ROOTDIR}/deps/gogo-runtime/target/gogo-runtime-${GOGO_RUNTIME_VERSION}-${JLINE_VERSION}.jar
 # Gogo JLine
-if [ ! -f ${TARGETDIR}/lib/org.apache.felix.gogo.jline-${GOGO_JLINE_VERSION}.jar ] ; then
-  echo "Downloading Gogo JLine ${GOGO_JLINE_VERSION}..."
-  wget -O ${TARGETDIR}/lib/org.apache.felix.gogo.jline-${GOGO_JLINE_VERSION}.jar http://repo1.maven.org/maven2/org/apache/felix/org.apache.felix.gogo.jline/${GOGO_JLINE_VERSION}/org.apache.felix.gogo.jline-${GOGO_JLINE_VERSION}.jar
-fi
-cp=$cp:${TARGETDIR}/lib/org.apache.felix.gogo.jline-${GOGO_JLINE_VERSION}.jar
+cp=$cp:${ROOTDIR}/deps/gogo-jline/target/gogo-jline-${GOGO_JLINE_VERSION}-${JLINE_VERSION}.jar
 
-# Jansi
-if [ ! -f ${TARGETDIR}/lib/jansi-${JANSI_VERSION}.jar ] ; then
-  echo "Downloading Jansi ${JANSI_VERSION}..."
-  wget -O ${TARGETDIR}/lib/jansi-${JANSI_VERSION}.jar http://repo1.maven.org/maven2/org/fusesource/jansi/jansi/${JANSI_VERSION}/jansi-${JANSI_VERSION}.jar
-fi
-
-# JNA
-if [ ! -f ${TARGETDIR}/lib/jna-${JNA_VERSION}.jar ] ; then
-  echo "Downloading JNA ${JNA_VERSION}..."
-  wget -O ${TARGETDIR}/lib/jna-${JNA_VERSION}.jar http://repo1.maven.org/maven2/net/java/dev/jna/jna/${JNA_VERSION}/jna-${JNA_VERSION}.jar
-fi
-
+usejars=false
 opts=""
 while [ "${1}" != "" ]; do
     case ${1} in
@@ -77,11 +49,15 @@ while [ "${1}" != "" ]; do
             shift
             ;;
         'jansi')
-            cp=$cp:${TARGETDIR}/lib/jansi-${JANSI_VERSION}.jar
+            cp=$cp:${ROOTDIR}/deps/jansi/target/jansi-${JANSI_VERSION}-${JLINE_VERSION}.jar
             shift
             ;;
         'jna')
-            cp=$cp:${TARGETDIR}/lib/jna-${JNA_VERSION}.jar
+            cp=$cp:${ROOTDIR}/deps/jna/target/jna-${JNA_VERSION}-${JLINE_VERSION}.jar
+            shift
+            ;;
+        'jars')
+            usejars=true
             shift
             ;;
     esac
@@ -105,5 +81,8 @@ fi
 echo "Classpath: $cp"
 echo "Launching Gogo JLine..."
 set mouse=a
-java -cp $cp $opts "-Dgosh.home=${DIRNAME}" org.apache.felix.gogo.jline.Main
-
+if ${usejars}; then
+    java -cp $cp $opts "-Dgosh.home=${DIRNAME}" org.apache.felix.gogo.jline.Main
+else
+    java --module-path $cp $opts "-Dgosh.home=${DIRNAME}" --module org.apache.felix.gogo.jline/org.apache.felix.gogo.jline.Main
+fi

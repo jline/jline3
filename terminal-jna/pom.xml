@@ -24,8 +24,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>net.java.dev.jna</groupId>
-            <artifactId>jna</artifactId>
+            <groupId>org.jline.deps</groupId>
+            <artifactId>jna-${jna.version}</artifactId>
         </dependency>
 
         <dependency>
