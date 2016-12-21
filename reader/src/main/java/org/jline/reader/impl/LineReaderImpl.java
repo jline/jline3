@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2017, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -39,23 +39,8 @@ import java.util.stream.Collectors;
 
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
-import org.jline.reader.Binding;
-import org.jline.reader.Candidate;
-import org.jline.reader.Completer;
-import org.jline.reader.Expander;
-import org.jline.reader.LineReader;
-import org.jline.reader.EOFError;
-import org.jline.reader.EndOfFileException;
-import org.jline.reader.Highlighter;
-import org.jline.reader.History;
-import org.jline.reader.Macro;
-import org.jline.reader.ParsedLine;
-import org.jline.reader.Parser;
+import org.jline.reader.*;
 import org.jline.reader.Parser.ParseContext;
-import org.jline.reader.Reference;
-import org.jline.reader.SyntaxError;
-import org.jline.reader.UserInterruptException;
-import org.jline.reader.Widget;
 import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.terminal.*;
 import org.jline.terminal.Attributes.ControlChar;
@@ -166,7 +151,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
     protected final Map<Option, Boolean> options = new HashMap<>();
 
-    protected final BufferImpl buf = new BufferImpl();
+    protected final Buffer buf = new BufferImpl();
 
     protected final Size size = new Size();
 
@@ -176,7 +161,7 @@ public class LineReaderImpl implements LineReader, Flushable
     protected Character mask;
 
     protected Map<Integer, String> modifiedHistory = new HashMap<>();
-    protected BufferImpl historyBuffer = null;
+    protected Buffer historyBuffer = null;
     protected CharSequence searchBuffer;
     protected StringBuffer searchTerm = null;
     protected int searchIndex = -1;
@@ -216,7 +201,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
     protected KillRing killRing = new KillRing();
 
-    protected UndoTree<BufferImpl> undo = new UndoTree<>(this::setBuffer);
+    protected UndoTree<Buffer> undo = new UndoTree<>(this::setBuffer);
     protected boolean isUndo;
 
     /*
@@ -300,7 +285,7 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     @Override
-    public BufferImpl getBuffer() {
+    public Buffer getBuffer() {
         return buf;
     }
 
@@ -528,7 +513,7 @@ public class LineReaderImpl implements LineReader, Flushable
                 isUndo = false;
 
                 // Get executable widget
-                BufferImpl copy = buf.copy();
+                Buffer copy = buf.copy();
                 Widget w = getWidget(o);
                 if (!w.apply()) {
                     beep();
@@ -884,7 +869,7 @@ public class LineReaderImpl implements LineReader, Flushable
                             : expandPromptPattern(rightPrompt, 0, "", 0));
     }
 
-    protected void setBuffer(BufferImpl buffer) {
+    protected void setBuffer(Buffer buffer) {
         setBuffer(buffer.toString());
         buf.cursor(buffer.cursor());
     }
@@ -1772,7 +1757,7 @@ public class LineReaderImpl implements LineReader, Flushable
             return false;
         }
         String searchPrompt = searchDir < 0 ? "?" : "/";
-        BufferImpl searchBuffer = new BufferImpl();
+        Buffer searchBuffer = new BufferImpl();
 
         KeyMap<Binding> keyMap = keyMaps.get(MAIN);
         if (keyMap == null) {
@@ -2217,7 +2202,7 @@ public class LineReaderImpl implements LineReader, Flushable
             return false;
         }
 
-        BufferImpl originalBuffer = buf.copy();
+        Buffer originalBuffer = buf.copy();
         String previousSearchTerm = (searchTerm != null) ? searchTerm.toString() : "";
         searchTerm = new StringBuffer(buf.toString());
         if (searchTerm.length() > 0) {
@@ -2244,7 +2229,7 @@ public class LineReaderImpl implements LineReader, Flushable
             while (true) {
                 Binding o = readBinding(getKeys(), terminators);
                 if (new Reference(SEND_BREAK).equals(o)) {
-                    buf.setBuffer(originalBuffer);
+                    buf.copyFrom(originalBuffer);
                     return true;
                 } else if (new Reference(HISTORY_INCREMENTAL_SEARCH_BACKWARD).equals(o)) {
                     backward = true;
@@ -3565,7 +3550,7 @@ public class LineReaderImpl implements LineReader, Flushable
         }
     }
 
-    enum CompletionType {
+    protected enum CompletionType {
         Expand,
         ExpandComplete,
         Complete,
@@ -4247,7 +4232,7 @@ public class LineReaderImpl implements LineReader, Flushable
         }
     }
 
-    private static class PostResult {
+    protected static class PostResult {
         final AttributedString post;
         final int lines;
         final int selectedLine;

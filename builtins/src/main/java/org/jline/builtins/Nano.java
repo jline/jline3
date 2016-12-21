@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2017, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -111,19 +111,19 @@ public class Nano {
 
     protected boolean readNewBuffer = true;
 
-    enum WriteMode {
+    protected enum WriteMode {
         WRITE,
         APPEND,
         PREPEND
     }
 
-    enum WriteFormat {
+    protected enum WriteFormat {
         UNIX,
         DOS,
         MAC
     }
 
-    private class Buffer {
+    protected class Buffer {
         String file;
         Charset charset;
         WriteFormat format = WriteFormat.UNIX;
@@ -2031,7 +2031,7 @@ public class Nano {
         keys.bind(Operation.MOUSE_EVENT, key(terminal, Capability.key_mouse));
     }
 
-    enum Operation {
+    protected enum Operation {
         DO_LOWER_CASE,
 
         QUIT,

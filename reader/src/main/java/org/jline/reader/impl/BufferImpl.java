@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2017, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -39,7 +39,7 @@ public class BufferImpl implements Buffer
 
     public BufferImpl copy () {
         BufferImpl that = new BufferImpl();
-        that.setBuffer(this);
+        that.copyFrom(this);
         return that;
     }
 
@@ -338,7 +338,11 @@ public class BufferImpl implements Buffer
         return substring(0, length());
     }
 
-    public void setBuffer(BufferImpl that) {
+    public void copyFrom(Buffer buf) {
+        if (!(buf instanceof BufferImpl)) {
+            throw new IllegalStateException();
+        }
+        BufferImpl that = (BufferImpl) buf;
         this.g0 = that.g0;
         this.g1 = that.g1;
         this.buffer = that.buffer.clone();
