@@ -41,27 +41,27 @@ cp=${ROOTDIR}/jline/target/jline-${JLINE_VERSION}.jar
 
 # Gogo Runtime
 if [ ! -f ${TARGETDIR}/lib/org.apache.felix.gogo.runtime-${GOGO_RUNTIME_VERSION}.jar ] ; then
-  echo "Downloading Gogo Runtime..."
+  echo "Downloading Gogo Runtime ${GOGO_RUNTIME_VERSION}..."
   wget -O ${TARGETDIR}/lib/org.apache.felix.gogo.runtime-${GOGO_RUNTIME_VERSION}.jar http://repo1.maven.org/maven2/org/apache/felix/org.apache.felix.gogo.runtime/${GOGO_RUNTIME_VERSION}/org.apache.felix.gogo.runtime-${GOGO_RUNTIME_VERSION}.jar
 fi
 cp=$cp:${TARGETDIR}/lib/org.apache.felix.gogo.runtime-${GOGO_RUNTIME_VERSION}.jar
 
 # Gogo JLine
 if [ ! -f ${TARGETDIR}/lib/org.apache.felix.gogo.jline-${GOGO_JLINE_VERSION}.jar ] ; then
-  echo "Downloading Gogo JLine..."
+  echo "Downloading Gogo JLine ${GOGO_JLINE_VERSION}..."
   wget -O ${TARGETDIR}/lib/org.apache.felix.gogo.jline-${GOGO_JLINE_VERSION}.jar http://repo1.maven.org/maven2/org/apache/felix/org.apache.felix.gogo.jline/${GOGO_JLINE_VERSION}/org.apache.felix.gogo.jline-${GOGO_JLINE_VERSION}.jar
 fi
 cp=$cp:${TARGETDIR}/lib/org.apache.felix.gogo.jline-${GOGO_JLINE_VERSION}.jar
 
 # Jansi
 if [ ! -f ${TARGETDIR}/lib/jansi-${JANSI_VERSION}.jar ] ; then
-  echo "Downloading Jansi..."
+  echo "Downloading Jansi ${JANSI_VERSION}..."
   wget -O ${TARGETDIR}/lib/jansi-${JANSI_VERSION}.jar http://repo1.maven.org/maven2/org/fusesource/jansi/jansi/${JANSI_VERSION}/jansi-${JANSI_VERSION}.jar
 fi
 
 # JNA
 if [ ! -f ${TARGETDIR}/lib/jna-${JNA_VERSION}.jar ] ; then
-  echo "Downloading JNA..."
+  echo "Downloading JNA ${JNA_VERSION}..."
   wget -O ${TARGETDIR}/lib/jna-${JNA_VERSION}.jar http://repo1.maven.org/maven2/net/java/dev/jna/jna/${JNA_VERSION}/jna-${JNA_VERSION}.jar
 fi
 
@@ -70,6 +70,10 @@ while [ "${1}" != "" ]; do
     case ${1} in
         'debug')
             opts="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
+            shift
+            ;;
+        'debugs')
+            opts="-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
             shift
             ;;
         'jansi')
@@ -101,5 +105,5 @@ fi
 echo "Classpath: $cp"
 echo "Launching Gogo JLine..."
 set mouse=a
-java -cp $cp $opts org.apache.felix.gogo.jline.Main
+java -cp $cp $opts "-Dgosh.home=${DIRNAME}" org.apache.felix.gogo.jline.Main
 

@@ -1,0 +1,21 @@
+# Load base profile
+source ((($.reader parser) class) getResource "/gosh_profile")
+
+__load_class_from = {
+	(($1 class) classLoader) loadClass $2
+}
+__get_static_field = {
+	((__load_class_from $.session $1) getField $2) get null
+}
+
+__ttop = {
+	_cl = (__load_class_from $.reader "org.jline.builtins.TTop")
+	$_cl "ttop" $.terminal (__get_static_field "java.lang.System" out) (__get_static_field "java.lang.System" err) ${argv[@]}
+}
+$.processor addcommand "gogo" $__ttop "ttop" 0
+
+complete -c gogo:ttop -e
+complete -c gogo:ttop -d "Display and update sorted information about threads"
+complete -c gogo:ttop -s o -l order --description "Comma separated list of sorting keys"
+complete -c gogo:ttop -s t -l stats --description "Comma separated list of stats to display"
+
