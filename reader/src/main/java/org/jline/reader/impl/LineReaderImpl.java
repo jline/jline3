@@ -2960,6 +2960,19 @@ public class LineReaderImpl implements LineReader, Flushable
         return true;
     }
 
+    protected boolean viPutBefore() {
+        if (yankBuffer.length () != 0) {
+            if (buf.cursor() > 0) {
+                buf.move(-1);
+            }
+            for (int i = 0; i < count; i++) {
+                putString(yankBuffer);
+            }
+            buf.move(-1);
+        }
+        return true;
+    }
+
     protected boolean doLowercaseVersion() {
         bindingReader.runMacro(getLastBinding().toLowerCase());
         return true;
@@ -3201,6 +3214,7 @@ public class LineReaderImpl implements LineReader, Flushable
         widgets.put(VI_OPEN_LINE_ABOVE, this::viOpenLineAbove);
         widgets.put(VI_OPEN_LINE_BELOW, this::viOpenLineBelow);
         widgets.put(VI_PUT_AFTER, this::viPutAfter);
+        widgets.put(VI_PUT_BEFORE, this::viPutBefore);
         widgets.put(VI_REPEAT_FIND, this::viRepeatFind);
         widgets.put(VI_REPEAT_SEARCH, this::viRepeatSearch);
         widgets.put(VI_REPLACE_CHARS, this::viReplaceChars);
@@ -5041,7 +5055,7 @@ public class LineReaderImpl implements LineReader, Flushable
         bind(vicmd, VI_JOIN,                                "J");
         bind(vicmd, VI_REV_REPEAT_SEARCH,                   "N");
         bind(vicmd, VI_OPEN_LINE_ABOVE,                     "O");
-        bind(vicmd, VI_PUT_AFTER,                           "P");
+        bind(vicmd, VI_PUT_BEFORE,                          "P");
         bind(vicmd, VI_REPLACE,                             "R");
         bind(vicmd, VI_KILL_LINE,                           "S");
         bind(vicmd, VI_FIND_PREV_CHAR_SKIP,                 "T");

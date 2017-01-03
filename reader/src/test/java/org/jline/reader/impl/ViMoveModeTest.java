@@ -749,11 +749,20 @@ public class ViMoveModeTest
          * Yank word right
          */
         b = (new TestBuffer("big brown pickles"))
-            .escape()
-            .append("02yw$p")
-            .enter();
-        assertLine("big brown picklesbig brown ", b, false);
+                .escape()
+                .append("02yw$piz")
+                .enter();
+        assertLine("big brown picklesbig brownz ", b, false);
         
+        /*
+         * Put before
+         */
+        b = (new TestBuffer("big brown pickles"))
+                .escape()
+                .append("02yw$Piz")
+                .enter();
+        assertLine("big brown picklebig brownz s", b, false);
+
         /*
          * Change word right
          */
