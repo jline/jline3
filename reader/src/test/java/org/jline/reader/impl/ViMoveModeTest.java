@@ -469,6 +469,20 @@ public class ViMoveModeTest
     }
 
     @Test
+    public void testJ() throws Exception {
+        // J joins the current line with the following one
+        TestBuffer b = (new TestBuffer("bar"))
+                .escape()
+                .append("ofoo")
+                .escape()
+                .up()
+                .append("J")
+                .append("ii")
+                .enter();
+        assertLine("bari foo", b, false);
+    }
+
+    @Test
     public void testEndOfLine() throws Exception {
         /*
          * The $ key causes the cursor to move to the end of the line

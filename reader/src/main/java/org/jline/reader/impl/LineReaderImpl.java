@@ -2708,6 +2708,17 @@ public class LineReaderImpl implements LineReader, Flushable
         return true;
     }
 
+    protected boolean viJoin() {
+        if (buf.down()) {
+            while (buf.move(-1) == -1 && buf.prevChar() != '\n') ;
+            buf.backspace();
+            buf.write(' ');
+            buf.move(-1);
+            return true;
+        }
+        return false;
+    }
+
     protected boolean viKillWholeLine() {
         return killWholeLine() && setKeyMap(VIINS);
     }
@@ -3184,6 +3195,7 @@ public class LineReaderImpl implements LineReader, Flushable
         widgets.put(VI_INSERT, this::viInsert);
         widgets.put(VI_INSERT_BOL, this::viInsertBol);
         widgets.put(VI_INSERT_COMMENT, this::viInsertComment);
+        widgets.put(VI_JOIN, this::viJoin);
         widgets.put(VI_KILL_LINE, this::viKillWholeLine);
         widgets.put(VI_MATCH_BRACKET, this::viMatchBracket);
         widgets.put(VI_OPEN_LINE_ABOVE, this::viOpenLineAbove);
@@ -4879,6 +4891,7 @@ public class LineReaderImpl implements LineReader, Flushable
         bind(emacs, BACKWARD_DELETE_CHAR,                   del());
         bind(emacs, VI_MATCH_BRACKET,                       translate("^X^B"));
         bind(emacs, SEND_BREAK,                             translate("^X^G"));
+        bind(emacs, VI_JOIN,                                translate("^X^J"));
         bind(emacs, OVERWRITE_MODE,                         translate("^X^O"));
         bind(emacs, REDO,                                   translate("^X^R"));
         bind(emacs, UNDO,                                   translate("^X^U"));
@@ -5025,6 +5038,7 @@ public class LineReaderImpl implements LineReader, Flushable
         bind(vicmd, VI_FIND_PREV_CHAR,                      "F");
         bind(vicmd, VI_FETCH_HISTORY,                       "G");
         bind(vicmd, VI_INSERT_BOL,                          "I");
+        bind(vicmd, VI_JOIN,                                "J");
         bind(vicmd, VI_REV_REPEAT_SEARCH,                   "N");
         bind(vicmd, VI_OPEN_LINE_ABOVE,                     "O");
         bind(vicmd, VI_PUT_AFTER,                           "P");
