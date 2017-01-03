@@ -2919,6 +2919,19 @@ public class LineReaderImpl implements LineReader, Flushable
         return true;
     }
 
+    protected boolean viOpenLineAbove() {
+        while (buf.move(-1) == -1 && buf.prevChar() != '\n') ;
+        buf.write('\n');
+        buf.move(-1);
+        return setKeyMap(VIINS);
+    }
+
+    protected boolean viOpenLineBelow() {
+        while (buf.move(1) == 1 && buf.currChar() != '\n') ;
+        buf.write('\n');
+        return setKeyMap(VIINS);
+    }
+
     /**
      * Pasts the yank buffer to the right of the current cursor position
      * and moves the cursor to the end of the pasted region.
@@ -3173,6 +3186,8 @@ public class LineReaderImpl implements LineReader, Flushable
         widgets.put(VI_INSERT_COMMENT, this::viInsertComment);
         widgets.put(VI_KILL_LINE, this::viKillWholeLine);
         widgets.put(VI_MATCH_BRACKET, this::viMatchBracket);
+        widgets.put(VI_OPEN_LINE_ABOVE, this::viOpenLineAbove);
+        widgets.put(VI_OPEN_LINE_BELOW, this::viOpenLineBelow);
         widgets.put(VI_PUT_AFTER, this::viPutAfter);
         widgets.put(VI_REPEAT_FIND, this::viRepeatFind);
         widgets.put(VI_REPEAT_SEARCH, this::viRepeatSearch);
@@ -5011,6 +5026,7 @@ public class LineReaderImpl implements LineReader, Flushable
         bind(vicmd, VI_FETCH_HISTORY,                       "G");
         bind(vicmd, VI_INSERT_BOL,                          "I");
         bind(vicmd, VI_REV_REPEAT_SEARCH,                   "N");
+        bind(vicmd, VI_OPEN_LINE_ABOVE,                     "O");
         bind(vicmd, VI_PUT_AFTER,                           "P");
         bind(vicmd, VI_REPLACE,                             "R");
         bind(vicmd, VI_KILL_LINE,                           "S");
@@ -5036,6 +5052,7 @@ public class LineReaderImpl implements LineReader, Flushable
         bind(vicmd, UP_LINE_OR_HISTORY,                     "k");
         bind(vicmd, VI_FORWARD_CHAR,                        "l");
         bind(vicmd, VI_REPEAT_SEARCH,                       "n");
+        bind(vicmd, VI_OPEN_LINE_BELOW,                     "o");
         bind(vicmd, VI_PUT_AFTER,                           "p");
         bind(vicmd, VI_REPLACE_CHARS,                       "r");
         bind(vicmd, VI_SUBSTITUTE,                          "s");

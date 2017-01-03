@@ -445,7 +445,29 @@ public class ViMoveModeTest
             .enter();
         assertLine("dogfishhead", b, false);
     }
-    
+
+    @Test
+    public void testO() throws Exception {
+        // O insert a line
+        TestBuffer b = (new TestBuffer("great lakes brewery"))
+                .escape()
+                .left(6)
+                .append("Odog ")
+                .enter();
+        assertLine("dog \ngreat lakes brewery", b, false);
+    }
+
+    @Test
+    public void testo() throws Exception {
+        // O insert a line
+        TestBuffer b = (new TestBuffer("great lakes brewery"))
+                .escape()
+                .left(6)
+                .append("odog ")
+                .enter();
+        assertLine("great lakes brewery\ndog ", b, false);
+    }
+
     @Test
     public void testEndOfLine() throws Exception {
         /*
