@@ -4905,7 +4905,10 @@ public class LineReaderImpl implements LineReader, Flushable
         bind(emacs, BACKWARD_DELETE_CHAR,                   del());
         bind(emacs, VI_MATCH_BRACKET,                       translate("^X^B"));
         bind(emacs, SEND_BREAK,                             translate("^X^G"));
+        bind(emacs, VI_FIND_NEXT_CHAR,                      translate("^X^F"));
         bind(emacs, VI_JOIN,                                translate("^X^J"));
+        bind(emacs, KILL_BUFFER,                            translate("^X^K"));
+        bind(emacs, INFER_NEXT_HISTORY,                     translate("^X^N"));
         bind(emacs, OVERWRITE_MODE,                         translate("^X^O"));
         bind(emacs, REDO,                                   translate("^X^R"));
         bind(emacs, UNDO,                                   translate("^X^U"));
