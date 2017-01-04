@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2017, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -212,6 +212,9 @@ public abstract class ReaderTestSupport
             return append(KeyMap.ctrl(let));
         }
 
+        public TestBuffer alt(char let) {
+            return append(KeyMap.alt(let));
+        }
         public TestBuffer enter() {
             return ctrl('J');
         }
