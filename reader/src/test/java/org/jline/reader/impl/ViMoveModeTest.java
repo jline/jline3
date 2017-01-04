@@ -523,6 +523,41 @@ public class ViMoveModeTest
     }
 
     @Test
+    public void testYankLines() {
+        /*
+         * Yank whole line and put after
+         */
+        TestBuffer b = (new TestBuffer("chicken"))
+                .escape()
+                .append("o")
+                .append("sushi")
+                .escape()
+                .append("o")
+                .append("pork")
+                .escape()
+                .up()
+                .append("2Ypiz")
+                .enter();
+        assertLine("chicken\nsushi\nzsushi\npork\npork", b, false);
+
+        /*
+         * Yank whole line and put before
+         */
+        b = (new TestBuffer("chicken"))
+                .escape()
+                .append("o")
+                .append("sushi")
+                .escape()
+                .append("o")
+                .append("pork")
+                .escape()
+                .up()
+                .append("2YPiz")
+                .enter();
+        assertLine("chicken\nzsushi\npork\nsushi\npork", b, false);
+    }
+
+    @Test
     public void firstPrintable() throws Exception {
       TestBuffer b = (new TestBuffer(" foo bar"))
         .escape()

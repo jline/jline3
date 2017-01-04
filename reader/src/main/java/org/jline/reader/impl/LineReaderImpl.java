@@ -2112,6 +2112,23 @@ public class LineReaderImpl implements LineReader, Flushable
         }
     }
 
+    protected boolean viYankWholeLine() {
+        int s, e;
+        int p = buf.cursor();
+        while (buf.move(-1) == -1 && buf.prevChar() != '\n') ;
+        s = buf.cursor();
+        for (int i = 0; i < repeatCount; i++) {
+            while (buf.move(1) == 1 && buf.prevChar() != '\n') ;
+        }
+        e = buf.cursor();
+        yankBuffer = buf.substring(s, e);
+        if (!yankBuffer.endsWith("\n")) {
+            yankBuffer += "\n";
+        }
+        buf.cursor(p);
+        return true;
+    }
+
     protected boolean viChange() {
         int cursorStart = buf.cursor();
         Binding o = readBinding(getKeys());
@@ -2948,7 +2965,12 @@ public class LineReaderImpl implements LineReader, Flushable
      * and moves the cursor to the end of the pasted region.
      */
     protected boolean viPutAfter() {
-        if (yankBuffer.length () != 0) {
+        if (yankBuffer.indexOf('\n') >= 0) {
+            while (buf.move(1) == 1 && buf.currChar() != '\n');
+            buf.move(1);
+            putString(yankBuffer);
+            buf.move(- yankBuffer.length());
+        } else if (yankBuffer.length () != 0) {
             if (buf.cursor() < buf.length()) {
                 buf.move(1);
             }
@@ -2961,7 +2983,11 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     protected boolean viPutBefore() {
-        if (yankBuffer.length () != 0) {
+        if (yankBuffer.indexOf('\n') >= 0) {
+            while (buf.move(-1) == -1 && buf.prevChar() != '\n');
+            putString(yankBuffer);
+            buf.move(- yankBuffer.length());
+        } else if (yankBuffer.length () != 0) {
             if (buf.cursor() > 0) {
                 buf.move(-1);
             }
@@ -3223,6 +3249,7 @@ public class LineReaderImpl implements LineReader, Flushable
         widgets.put(VI_SWAP_CASE, this::viSwapCase);
         widgets.put(VI_UP_LINE_OR_HISTORY, this::viUpLineOrHistory);
         widgets.put(VI_YANK, this::viYankTo);
+        widgets.put(VI_YANK_WHOLE_LINE, this::viYankWholeLine);
         widgets.put(VISUAL_LINE_MODE, this::visualLineMode);
         widgets.put(VISUAL_MODE, this::visualMode);
         widgets.put(WHAT_CURSOR_POSITION, this::whatCursorPosition);
@@ -5066,7 +5093,7 @@ public class LineReaderImpl implements LineReader, Flushable
         bind(vicmd, VISUAL_LINE_MODE,                       "V");
         bind(vicmd, VI_FORWARD_BLANK_WORD,                  "W");
         bind(vicmd, VI_BACKWARD_DELETE_CHAR,                "X");
-        bind(vicmd, VI_YANK,                                "Y");
+        bind(vicmd, VI_YANK_WHOLE_LINE,                     "Y");
         bind(vicmd, VI_FIRST_NON_BLANK,                     "^");
         bind(vicmd, VI_ADD_NEXT,                            "a");
         bind(vicmd, VI_BACKWARD_WORD,                       "b");
