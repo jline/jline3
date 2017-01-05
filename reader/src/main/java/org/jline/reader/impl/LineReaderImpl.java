@@ -2474,12 +2474,11 @@ public class LineReaderImpl implements LineReader, Flushable
 
     protected boolean acceptLine() {
         parsedLine = null;
-        String str = buf.toString();
         if (!isSet(Option.DISABLE_EVENT_EXPANSION)) {
             try {
+                String str = buf.toString();
                 String exp = expander.expandHistory(history, str);
                 if (!exp.equals(str)) {
-                    str = exp;
                     buf.clear();
                     buf.write(exp);
                     if (isSet(Option.HISTORY_VERIFY)) {
@@ -2491,7 +2490,7 @@ public class LineReaderImpl implements LineReader, Flushable
             }
         }
         try {
-            parsedLine = parser.parse(str, str.length(), ParseContext.ACCEPT_LINE);
+            parsedLine = parser.parse(buf.toString(), buf.cursor(), ParseContext.ACCEPT_LINE);
         } catch (EOFError e) {
             buf.write("\n");
             return true;
