@@ -3751,7 +3751,7 @@ public class LineReaderImpl implements LineReader, Flushable
                     .findFirst().orElse(null);
         }
         // Complete and exit
-        if (completion != null) {
+        if (completion != null && !completion.value().isEmpty()) {
             if (prefix) {
                 buf.backspace(line.wordCursor());
             } else {

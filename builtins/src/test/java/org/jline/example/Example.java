@@ -128,7 +128,13 @@ public class Example
                     case "foo":
                         completer = new ArgumentCompleter(
                                 new StringsCompleter("foo11", "foo12", "foo13"),
-                                new StringsCompleter("foo21", "foo22", "foo23"));
+                                new StringsCompleter("foo21", "foo22", "foo23"),
+                                new Completer() {
+                                    @Override
+                                    public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
+                                        candidates.add(new Candidate("", "", null, "frequency in MHz", null, null, false));
+                                    }
+                                });
                         break label;
                     case "param":
                         completer = (reader, line, candidates) -> {
