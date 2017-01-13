@@ -12,7 +12,6 @@ import java.io.InputStream;
 import java.util.Map;
 
 import org.jline.keymap.KeyMap;
-import org.jline.reader.impl.BufferImpl;
 import org.jline.terminal.Terminal;
 
 /** Read lines from the console, with input editing.
