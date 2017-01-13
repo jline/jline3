@@ -463,7 +463,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
             display = new Display(terminal, false);
             if (size.getRows() == 0 || size.getColumns() == 0) {
-               display.resize(1, Integer.MAX_VALUE);
+                display.resize(1, Integer.MAX_VALUE);
             } else {
                 display.resize(size.getRows(), size.getColumns());
             }
