@@ -14,11 +14,16 @@ import java.lang.reflect.Array;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 
 import org.jline.reader.Candidate;
 import org.jline.reader.LineReader;
@@ -354,5 +359,150 @@ public class Completers {
             return name;
         }
 
+    }
+
+    public static class TreeCompleter implements org.jline.reader.Completer {
+
+        final Map<String, org.jline.reader.Completer> completers = new HashMap<>();
+        final RegexCompleter completer;
+
+        public TreeCompleter(Node... nodes) {
+            this(Arrays.asList(nodes));
+        }
+
+        public TreeCompleter(List<Node> nodes) {
+            StringBuilder sb = new StringBuilder();
+            addRoots(sb, nodes);
+            completer = new RegexCompleter(sb.toString(), completers::get);
+        }
+
+        public static Node node(Object... objs) {
+            org.jline.reader.Completer comp = null;
+            List<Candidate> cands = new ArrayList<>();
+            List<Node> nodes = new ArrayList<>();
+            for (Object obj : objs) {
+                if (obj instanceof String) {
+                    cands.add(new Candidate((String) obj));
+                } else if (obj instanceof Candidate) {
+                    cands.add((Candidate) obj);
+                } else if (obj instanceof Node) {
+                    nodes.add((Node) obj);
+                } else if (obj instanceof Completer) {
+                    comp = (org.jline.reader.Completer) obj;
+                } else {
+                    throw new IllegalArgumentException();
+                }
+            }
+            if (comp != null) {
+                if (!cands.isEmpty()) {
+                    throw new IllegalArgumentException();
+                }
+                return new Node(comp, nodes);
+            } else if (!cands.isEmpty()) {
+                return new Node((r, l, c) -> c.addAll(cands), nodes);
+            } else {
+                throw new IllegalArgumentException();
+            }
+        }
+
+        void addRoots(StringBuilder sb, List<Node> nodes) {
+            if (!nodes.isEmpty()) {
+                sb.append(" ( ");
+                boolean first = true;
+                for (Node n : nodes) {
+                    if (first) {
+                        first = false;
+                    } else {
+                        sb.append(" | ");
+                    }
+                    String name = "c" + completers.size();
+                    completers.put(name, n.completer);
+                    sb.append(name);
+                    addRoots(sb, n.nodes);
+                }
+                sb.append(" ) ");
+            }
+        }
+
+        @Override
+        public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
+            completer.complete(reader, line, candidates);
+        }
+
+        public static class Node {
+            final org.jline.reader.Completer completer;
+            final List<Node> nodes;
+
+            public Node(org.jline.reader.Completer completer, List<Node> nodes) {
+                this.completer = completer;
+                this.nodes = nodes;
+            }
+        }
+    }
+
+    public static class RegexCompleter implements org.jline.reader.Completer {
+
+        private final NfaMatcher<String> matcher;
+        private final Function<String, org.jline.reader.Completer> completers;
+
+        public RegexCompleter(String syntax, Function<String, org.jline.reader.Completer> completers) {
+            this.matcher = new NfaMatcher<>(syntax, this::doMatch);
+            this.completers = completers;
+        }
+
+        @Override
+        public synchronized void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
+            List<String> words = line.words().subList(0, line.wordIndex());
+            Set<String> next = matcher.matchPartial(words);
+            for (String n : next) {
+                completers.apply(n).complete(reader, new ArgumentLine(n, n.length()), candidates);
+            }
+        }
+
+        private boolean doMatch(String arg, String name) {
+            List<Candidate> candidates = new ArrayList<>();
+            completers.apply(name).complete(null, new ArgumentLine(arg, arg.length()), candidates);
+            return candidates.stream().anyMatch(c -> c.value().equals(arg));
+        }
+
+        public static class ArgumentLine implements ParsedLine {
+            private final String word;
+            private final int cursor;
+
+            public ArgumentLine(String word, int cursor) {
+                this.word = word;
+                this.cursor = cursor;
+            }
+
+            @Override
+            public String word() {
+                return word;
+            }
+
+            @Override
+            public int wordCursor() {
+                return cursor;
+            }
+
+            @Override
+            public int wordIndex() {
+                return 0;
+            }
+
+            @Override
+            public List<String> words() {
+                return Collections.singletonList(word);
+            }
+
+            @Override
+            public String line() {
+                return word;
+            }
+
+            @Override
+            public int cursor() {
+                return cursor;
+            }
+        }
     }
 }

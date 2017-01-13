@@ -18,6 +18,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.jline.builtins.Completers;
+import org.jline.builtins.Completers.TreeCompleter;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.impl.DefaultParser;
@@ -33,6 +34,7 @@ import org.jline.utils.InfoCmp.Capability;
 
 import static java.time.temporal.ChronoField.HOUR_OF_DAY;
 import static java.time.temporal.ChronoField.MINUTE_OF_HOUR;
+import static org.jline.builtins.Completers.TreeCompleter.node;
 
 
 public class Example
@@ -157,6 +159,24 @@ public class Example
                                 }
                             }
                         };
+                        break label;
+                    case "tree":
+                        completer = new TreeCompleter(
+                           node("Command1",
+                                   node("Option1",
+                                        node("Param1", "Param2")),
+                                   node("Option2"),
+                                   node("Option3")));
+                        break label;
+                    case "regexp":
+                        Map<String, Completer> comp = new HashMap<>();
+                        comp.put("C1", new StringsCompleter("cmd1"));
+                        comp.put("C11", new StringsCompleter("--opt11", "--opt12"));
+                        comp.put("C12", new StringsCompleter("arg11", "arg12", "arg13"));
+                        comp.put("C2", new StringsCompleter("cmd2"));
+                        comp.put("C21", new StringsCompleter("--opt21", "--opt22"));
+                        comp.put("C22", new StringsCompleter("arg21", "arg22", "arg23"));
+                        completer = new Completers.RegexCompleter("C1 C11* C12+ | C2 C21* C22+", comp::get);
                         break label;
                     case "color":
                         color = true;
