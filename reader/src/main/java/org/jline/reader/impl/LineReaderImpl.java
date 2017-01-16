@@ -294,6 +294,11 @@ public class LineReaderImpl implements LineReader, Flushable
         bindingReader.runMacro(macro);
     }
 
+    @Override
+    public MouseEvent readMouseEvent() {
+        return terminal.readMouseEvent(bindingReader::readCharacter);
+    }
+
     /**
      * Set the completer.
      */
@@ -4721,7 +4726,7 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     public boolean mouse() {
-        MouseEvent event = terminal.readMouseEvent();
+        MouseEvent event = readMouseEvent();
         if (event.getType() == MouseEvent.Type.Released
                 && event.getButton() == MouseEvent.Button.Button1) {
             StringBuilder tsb = new StringBuilder();

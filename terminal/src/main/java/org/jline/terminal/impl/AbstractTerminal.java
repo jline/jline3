@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.IntConsumer;
+import java.util.function.IntSupplier;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Attributes.ControlChar;
@@ -185,5 +186,10 @@ public abstract class AbstractTerminal implements Terminal {
     @Override
     public MouseEvent readMouseEvent() {
         return lastMouseEvent = MouseSupport.readMouse(this, lastMouseEvent);
+    }
+
+    @Override
+    public MouseEvent readMouseEvent(IntSupplier reader) {
+        return lastMouseEvent = MouseSupport.readMouse(reader, lastMouseEvent);
     }
 }

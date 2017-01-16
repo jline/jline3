@@ -10,8 +10,10 @@ package org.jline.reader;
 
 import java.io.InputStream;
 import java.util.Map;
+import java.util.function.IntConsumer;
 
 import org.jline.keymap.KeyMap;
+import org.jline.terminal.MouseEvent;
 import org.jline.terminal.Terminal;
 
 /** Read lines from the console, with input editing.
@@ -469,7 +471,28 @@ public interface LineReader {
 
     Buffer getBuffer();
 
+    /**
+     * Push back a key sequence that will be later consumed by the line reader.
+     * This method can be used after reading the cursor position using
+     * {@link Terminal#getCursorPosition(IntConsumer)}.
+     *
+     * @param macro the key sequence to push back
+     * @see Terminal#getCursorPosition(IntConsumer)
+     * @see #readMouseEvent()
+     */
     void runMacro(String macro);
+
+    /**
+     * Read a mouse event when the {@link org.jline.utils.InfoCmp.Capability#key_mouse} sequence
+     * has just been read on the input stream.
+     * Compared to {@link Terminal#readMouseEvent()}, this method takes into account keys
+     * that have been pushed back using {@link #runMacro(String)}.
+     *
+     * @return the mouse event
+     * @see #runMacro(String)
+     * @see Terminal#getCursorPosition(IntConsumer)
+     */
+    MouseEvent readMouseEvent();
 
     History getHistory();
 

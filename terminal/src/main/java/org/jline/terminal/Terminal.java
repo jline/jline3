@@ -14,6 +14,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.function.IntConsumer;
+import java.util.function.IntSupplier;
 
 import org.jline.terminal.impl.NativeSignalHandler;
 import org.jline.utils.InfoCmp.Capability;
@@ -136,13 +137,60 @@ public interface Terminal extends Closeable, Flushable {
     //
 
     enum MouseTracking {
-        Off, Normal, Button, Any
+        /**
+         * Disable mouse tracking
+         */
+        Off,
+        /**
+         * Track button press and release.
+         */
+        Normal,
+        /**
+         * Also report button-motion events.  Mouse movements are reported if the mouse pointer
+         * has moved to a different character cell.
+         */
+        Button,
+        /**
+         * Report all motions events, even if no mouse button is down.
+         */
+        Any
     }
 
+    /**
+     * Returns <code>true</code> if the terminal has support for mouse.
+     * @return whether mouse is supported by the terminal
+     * @see #trackMouse(MouseTracking)
+     */
     boolean hasMouseSupport();
 
+    /**
+     * Change the mouse tracking mouse.
+     * To start mouse tracking, this method must be called with a valid mouse tracking mode.
+     * Mouse events will be reported by writing the {@link Capability#key_mouse} to the input stream.
+     * When this character sequence is detected, the {@link #readMouseEvent()} method can be
+     * called to actually read the corresponding mouse event.
+     *
+     * @param tracking the mouse tracking mode
+     * @return <code>true</code> if mouse tracking is supported
+     */
     boolean trackMouse(MouseTracking tracking);
 
+    /**
+     * Read a MouseEvent from the terminal input stream.
+     * Such an event must have been detected by scanning the terminal's {@link Capability#key_mouse}
+     * in the stream immediately before reading the event.
+     *
+     * @return the decoded mouse event.
+     * @see #trackMouse(MouseTracking)
+     */
     MouseEvent readMouseEvent();
+
+    /**
+     * Read a MouseEvent from the given input stream.
+     *
+     * @param reader the input supplier
+     * @return the decoded mouse event
+     */
+    MouseEvent readMouseEvent(IntSupplier reader);
 
 }

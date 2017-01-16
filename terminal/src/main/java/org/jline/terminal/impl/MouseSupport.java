@@ -16,6 +16,7 @@ import java.io.EOFException;
 import java.io.IOError;
 import java.io.IOException;
 import java.util.EnumSet;
+import java.util.function.IntSupplier;
 
 public class MouseSupport {
 
@@ -47,9 +48,13 @@ public class MouseSupport {
     }
 
     public static MouseEvent readMouse(Terminal terminal, MouseEvent last) {
-        int cb = readExt(terminal) - ' ';
-        int cx = readExt(terminal) - ' ' - 1;
-        int cy = readExt(terminal) - ' ' - 1;
+        return readMouse(() -> readExt(terminal), last);
+    }
+
+    public static MouseEvent readMouse(IntSupplier reader, MouseEvent last) {
+        int cb = reader.getAsInt() - ' ';
+        int cx = reader.getAsInt() - ' ' - 1;
+        int cy = reader.getAsInt() - ' ' - 1;
         MouseEvent.Type type;
         MouseEvent.Button button;
         EnumSet<MouseEvent.Modifier> modifiers = EnumSet.noneOf(MouseEvent.Modifier.class);

@@ -25,6 +25,8 @@ import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.LineReaderImpl;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
+import org.jline.terminal.Cursor;
+import org.jline.terminal.MouseEvent;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.AttributedString;
@@ -77,6 +79,7 @@ public class Example
                 return;
             }
 
+            int mouse = 0;
             Completer completer = null;
             Parser parser = null;
 
@@ -202,6 +205,12 @@ public class Example
                                 .toAnsi();
                         completer = new StringsCompleter("\u001B[1mfoo\u001B[0m", "bar", "\u001B[32mbaz\u001B[0m", "foobar");
                         break label;
+                    case "mouse":
+                        mouse = 1;
+                        break label;
+                    case "mousetrack":
+                        mouse = 2;
+                        break label;
                     default:
                         usage();
                         return;
@@ -230,6 +239,28 @@ public class Example
                             reader.callWidget(LineReader.REDISPLAY);
                             reader.getTerminal().writer().flush();
                         }, 1, 1, TimeUnit.SECONDS);
+            }
+            if (mouse != 0) {
+                reader.setOpt(LineReader.Option.MOUSE);
+                if (mouse == 2) {
+                    reader.getWidgets().put(LineReader.CALLBACK_INIT, () -> {
+                        terminal.trackMouse(Terminal.MouseTracking.Any);
+                        return true;
+                    });
+                    reader.getWidgets().put(LineReader.MOUSE, () -> {
+                        MouseEvent event = reader.readMouseEvent();
+                        StringBuilder tsb = new StringBuilder();
+                        Cursor cursor = terminal.getCursorPosition(c -> tsb.append((char) c));
+                        reader.runMacro(tsb.toString());
+                        String msg = "          " + event.toString();
+                        int w = terminal.getWidth();
+                        terminal.puts(Capability.cursor_address, 0, Math.max(0, w - msg.length()));
+                        terminal.writer().append(msg);
+                        terminal.puts(Capability.cursor_address, cursor.getY(), cursor.getX());
+                        terminal.flush();
+                        return true;
+                    });
+                }
             }
 
             while (true) {
