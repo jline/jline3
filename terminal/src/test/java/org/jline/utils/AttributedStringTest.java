@@ -105,4 +105,18 @@ public class AttributedStringTest {
         assertEquals("\u2329", sb.columnSubSequence(1, 3).toString());
         assertEquals("\u2329\u2329\u2329", sb.columnSubSequence(3, 8).toString());
     }
+
+    @Test
+    public void testColors() {
+        String ansiStr = new AttributedStringBuilder()
+                .append("This i")
+                .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE))
+                .append("s")
+                .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW))
+                .append(" a")
+                .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.RED))
+                .append(" Test.")
+                .toAnsi();
+        assertEquals("This i\u001B[34ms\u001B[33m a\u001B[31m Test.\u001B[0m", ansiStr);
+    }
 }

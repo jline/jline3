@@ -40,15 +40,18 @@ public abstract class AttributedCharSequence implements CharSequence {
     public String toAnsi(Terminal terminal) {
         StringBuilder sb = new StringBuilder();
         int style = 0;
+        int foreground = -1;
+        int background = -1;
         Integer max_colors = terminal == null ? Integer.valueOf(8)
             : terminal.getNumericCapability(Capability.max_colors);
-        boolean color8 = max_colors != null && max_colors >= 8;
         boolean color256 = max_colors != null && max_colors >= 256;
         for (int i = 0; i < length(); i++) {
             char c = charAt(i);
             int  s = styleCodeAt(i) & ~F_HIDDEN; // The hidden flag does not change the ansi styles
-            int  d = (style ^ s) & MASK;
-            if (d != 0 && (color8 || color256)) {
+            if (style != s) {
+                int  d = (style ^ s) & MASK;
+                int fg = (s & F_FOREGROUND) != 0 ? (s & FG_COLOR) >>> FG_COLOR_EXP : -1;
+                int bg = (s & F_BACKGROUND) != 0 ? (s & BG_COLOR) >>> BG_COLOR_EXP : -1;
                 if (s == 0) {
                     sb.append("\033[0m");
                 } else {
@@ -75,29 +78,29 @@ public abstract class AttributedCharSequence implements CharSequence {
                     if ((d & F_CROSSED_OUT) != 0) {
                         first = attr(sb, (s & F_CROSSED_OUT) != 0 ? "9" : "29", first);
                     }
-                    if ((d & F_FOREGROUND) != 0) {
-                        if ((s & F_FOREGROUND) != 0) {
-                            int col = (s & FG_COLOR) >>> FG_COLOR_EXP;
-                            if (col < 8 || !color256) {
-                                first = attr(sb, Integer.toString(30 + roundTo8Color(col)), first);
+                    if (foreground != fg) {
+                        if (fg >= 0) {
+                            if (fg < 8 || !color256) {
+                                first = attr(sb, Integer.toString(30 + roundTo8Color(fg)), first);
                             } else {
-                                first = attr(sb, "38;5;" + Integer.toString(col), first);
+                                first = attr(sb, "38;5;" + Integer.toString(fg), first);
                             }
                         } else {
                             first = attr(sb, "39", first);
                         }
+                        foreground = fg;
                     }
-                    if ((d & F_BACKGROUND) != 0) {
-                        if ((s & F_BACKGROUND) != 0) {
-                            int col = (s & BG_COLOR) >>> BG_COLOR_EXP;
-                            if (col < 8 || !color256) {
-                                first = attr(sb, Integer.toString(40 + roundTo8Color(col)), first);
+                    if (background != bg) {
+                        if (bg >= 0) {
+                            if (bg < 8 || !color256) {
+                                first = attr(sb, Integer.toString(40 + roundTo8Color(bg)), first);
                             } else {
-                                first = attr(sb, "48;5;" + Integer.toString(col), first);
+                                first = attr(sb, "48;5;" + Integer.toString(bg), first);
                             }
                         } else {
                             first = attr(sb, "49", first);
                         }
+                        background = bg;
                     }
                     sb.append("m");
                 }
