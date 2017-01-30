@@ -2318,7 +2318,7 @@ public class LineReaderImpl implements LineReader, Flushable
         }
         int index = history.index() + 1;
 
-        if (index < history.size()) {
+        if (index < history.last() + 1) {
             int searchIndex = searchForwards(searchBuffer.toString(), index, true);
             if (searchIndex == -1) {
                 history.moveToEnd();
@@ -2423,8 +2423,8 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     public int searchForwards(String searchTerm, int startIndex, boolean startsWith) {
-        if (startIndex >= history.size()) {
-            startIndex = history.size() - 1;
+        if (startIndex > history.last()) {
+            startIndex = history.last();
         }
         ListIterator<History.Entry> it = history.iterator(startIndex);
         if (searchIndex != -1 && it.hasNext()) {
