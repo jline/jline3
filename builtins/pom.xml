@@ -39,6 +39,12 @@
             <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-terminal-jna</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
