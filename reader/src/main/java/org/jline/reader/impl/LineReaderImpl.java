@@ -4263,7 +4263,7 @@ public class LineReaderImpl implements LineReader, Flushable
                 if (group.isEmpty() && sorted.size() > 1) {
                     group = "others";
                 }
-                if (!group.isEmpty()) {
+                if (!group.isEmpty() && isSet(Option.AUTO_GROUP)) {
                     strings.add(group);
                 }
                 strings.add(new ArrayList<>(entry.getValue().values()));
@@ -4281,8 +4281,10 @@ public class LineReaderImpl implements LineReader, Flushable
                 }
                 sorted.put(cand.value(), cand);
             }
-            for (String group : groups) {
-                strings.add(group);
+            if (isSet(Option.AUTO_GROUP)) {
+                for (String group : groups) {
+                    strings.add(group);
+                }
             }
             strings.add(new ArrayList<>(sorted.values()));
             if (ordered != null) {

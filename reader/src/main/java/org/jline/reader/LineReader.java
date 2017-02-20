@@ -331,6 +331,7 @@ public interface LineReader {
         HISTORY_REDUCE_BLANKS(true),
         HISTORY_BEEP(true),
         HISTORY_INCREMENTAL(true),
+        AUTO_GROUP(true),
         AUTO_MENU(true),
         AUTO_LIST(true),
         RECOGNIZE_EXACT,
