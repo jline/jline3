@@ -90,7 +90,30 @@ public class ExecPty implements Pty {
 
     @Override
     public void setAttr(Attributes attr) throws IOException {
-        Attributes current = getAttr();
+        List<String> commands = getFlagsToSet(attr, getAttr());
+        if (!commands.isEmpty()) {
+            commands.add(0, OSUtils.STTY_COMMAND);
+            if (!system) {
+                commands.add(1, OSUtils.STTY_F_OPTION);
+                commands.add(2, getName());
+            }
+            try {
+                exec(system, commands.toArray(new String[commands.size()]));
+            } catch (IOException e) {
+                // Handle partial failures with GNU stty, see #97
+                if (e.toString().contains("unable to perform all requested operations")) {
+                    commands = getFlagsToSet(attr, getAttr());
+                    if (!commands.isEmpty()) {
+                        throw new IOException("Could not set the following flags: " + String.join(", ", commands), e);
+                    }
+                } else {
+                    throw e;
+                }
+            }
+        }
+    }
+
+    protected List<String> getFlagsToSet(Attributes attr, Attributes current) {
         List<String> commands = new ArrayList<>();
         for (InputFlag flag : InputFlag.values()) {
             if (attr.getInputFlag(flag) != current.getInputFlag(flag)) {
@@ -138,14 +161,7 @@ public class ExecPty implements Pty {
                 }
             }
         }
-        if (!commands.isEmpty()) {
-            commands.add(0, OSUtils.STTY_COMMAND);
-            if (!system) {
-                commands.add(1, OSUtils.STTY_F_OPTION);
-                commands.add(2, getName());
-            }
-            exec(system, commands.toArray(new String[commands.size()]));
-        }
+        return commands;
     }
 
     @Override
