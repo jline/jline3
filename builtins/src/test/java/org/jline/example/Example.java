@@ -22,7 +22,6 @@ import org.jline.builtins.Completers.TreeCompleter;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.impl.DefaultParser;
-import org.jline.reader.impl.LineReaderImpl;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.terminal.Cursor;
@@ -315,7 +314,7 @@ public class Example
                 else if ("bindkey".equals(pl.word())) {
                     if (pl.words().size() == 1) {
                         StringBuilder sb = new StringBuilder();
-                        Map<String, Binding> bound = ((LineReaderImpl) reader).getKeys().getBoundKeys();
+                        Map<String, Binding> bound = reader.getKeys().getBoundKeys();
                         for (Map.Entry<String, Binding> entry : bound.entrySet()) {
                             sb.append("\"");
                             entry.getKey().chars().forEachOrdered(c -> {
@@ -348,7 +347,7 @@ public class Example
                         terminal.writer().print(sb.toString());
                         terminal.flush();
                     } else if (pl.words().size() == 3) {
-                        ((LineReaderImpl) reader).getKeys().bind(
+                        reader.getKeys().bind(
                                 new Reference(pl.words().get(2)), KeyMap.translate(pl.words().get(1))
                         );
                     }
