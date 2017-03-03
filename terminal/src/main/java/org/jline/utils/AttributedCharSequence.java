@@ -54,6 +54,7 @@ public abstract class AttributedCharSequence implements CharSequence {
                 int bg = (s & F_BACKGROUND) != 0 ? (s & BG_COLOR) >>> BG_COLOR_EXP : -1;
                 if (s == 0) {
                     sb.append("\033[0m");
+                    foreground = background = -1;
                 } else {
                     sb.append("\033[");
                     boolean first = true;
