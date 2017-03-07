@@ -75,8 +75,12 @@
         <jna.version>4.2.2</jna.version>
         <jansi.version>1.14</jansi.version>
         <juniversalchardet.version>1.0.3</juniversalchardet.version>
+        <sshd.version>1.4.0</sshd.version>
         <easymock.version>3.3.1</easymock.version>
         <junit.version>4.12</junit.version>
+        <gogo.runtime.version>1.0.2</gogo.runtime.version>
+        <gogo.jline.version>1.0.2</gogo.jline.version>
+        <slf4j.version>1.7.21</slf4j.version>
 
         <surefire.argLine/>
     </properties>
@@ -118,6 +122,24 @@
             </dependency>
 
             <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-remote-ssh</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-remote-telnet</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>org.fusesource.jansi</groupId>
                 <artifactId>jansi</artifactId>
                 <version>${jansi.version}</version>
@@ -133,6 +155,36 @@
                 <groupId>com.googlecode.juniversalchardet</groupId>
                 <artifactId>juniversalchardet</artifactId>
                 <version>${juniversalchardet.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.sshd</groupId>
+                <artifactId>sshd-core</artifactId>
+                <version>${sshd.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>org.apache.felix.gogo.runtime</artifactId>
+                <version>${gogo.runtime.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>org.apache.felix.gogo.jline</artifactId>
+                <version>${gogo.jline.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-jdk14</artifactId>
+                <version>${slf4j.version}</version>
             </dependency>
 
             <dependency>
@@ -275,7 +327,10 @@
         <module>terminal-jansi</module>
         <module>reader</module>
         <module>builtins</module>
+        <module>remote-ssh</module>
+        <module>remote-telnet</module>
         <module>jline</module>
+        <module>demo</module>
     </modules>
 
 </project>

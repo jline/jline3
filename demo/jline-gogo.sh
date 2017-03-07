@@ -33,11 +33,30 @@ fi;
 JLINE_VERSION=$(ls ${ROOTDIR}/jline/target/jline-*-SNAPSHOT.jar  | sed -e 's#.*/jline-## ; s#SNAPSHOT.*#SNAPSHOT#')
 JANSI_VERSION=$(cat ${ROOTDIR}/pom.xml| grep jansi.version\> | sed -e 's#^.*<jansi.version>## ; s#</jansi.*##')
 JNA_VERSION=$(cat ${ROOTDIR}/pom.xml| grep jna.version\> | sed -e 's#^.*<jna.version>## ; s#</jna.*##')
-GOGO_RUNTIME_VERSION=1.0.2
-GOGO_JLINE_VERSION=1.0.2
+SSHD_VERSION=$(cat ${ROOTDIR}/pom.xml| grep sshd.version\> | sed -e 's#^.*<sshd.version>## ; s#</sshd.*##')
+GOGO_RUNTIME_VERSION=$(cat ${ROOTDIR}/pom.xml| grep gogo.runtime.version\> | sed -e 's#^.*<gogo.runtime.version>## ; s#</gogo.*##')
+GOGO_JLINE_VERSION=$(cat ${ROOTDIR}/pom.xml| grep gogo.jline.version\> | sed -e 's#^.*<gogo.jline.version>## ; s#</gogo.*##')
+SLF4J_VERSION=$(cat ${ROOTDIR}/pom.xml| grep slf4j.version\> | sed -e 's#^.*<slf4j.version>## ; s#</slf4j.*##')
 
 # JLINE
-cp=${ROOTDIR}/jline/target/jline-${JLINE_VERSION}.jar
+cp=${ROOTDIR}/jline/target/jline-${JLINE_VERSION}.jar:${TARGETDIR}/classes
+
+# SSHD
+if [ ! -f ${TARGETDIR}/lib/sshd-core-${SSHD_VERSION}.jar ] ; then
+  echo "Downloading SSHD ${SSHD_VERSION}..."
+  wget -O ${TARGETDIR}/lib/sshd-core-${SSHD_VERSION}.jar http://repo1.maven.org/maven2/org/apache/sshd/sshd-core/${SSHD_VERSION}/sshd-core-${SSHD_VERSION}.jar
+fi
+
+# slf4j-api
+if [ ! -f ${TARGETDIR}/lib/slf4j-api-${SLF4J_VERSION}.jar ] ; then
+  echo "Downloading slf4j-api ${SLF4J_VERSION}..."
+  wget -O ${TARGETDIR}/lib/slf4j-api-${SLF4J_VERSION}.jar http://repo1.maven.org/maven2/org/slf4j/slf4j-api/${SLF4J_VERSION}/slf4j-api-${SLF4J_VERSION}.jar
+fi
+# slf4j-jdk14
+if [ ! -f ${TARGETDIR}/lib/slf4j-jdk14-${SLF4J_VERSION}.jar ] ; then
+  echo "Downloading slf4j-jdk14 ${SLF4J_VERSION}..."
+  wget -O ${TARGETDIR}/lib/slf4j-jdk14-${SLF4J_VERSION}.jar http://repo1.maven.org/maven2/org/slf4j/slf4j-jdk14/${SLF4J_VERSION}/slf4j-jdk14-${SLF4J_VERSION}.jar
+fi
 
 # Gogo Runtime
 if [ ! -f ${TARGETDIR}/lib/org.apache.felix.gogo.runtime-${GOGO_RUNTIME_VERSION}.jar ] ; then
@@ -69,11 +88,11 @@ opts=""
 while [ "${1}" != "" ]; do
     case ${1} in
         'debug')
-            opts="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
+            opts="${opts} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
             shift
             ;;
         'debugs')
-            opts="-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
+            opts="${opts} -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
             shift
             ;;
         'jansi')
@@ -82,6 +101,10 @@ while [ "${1}" != "" ]; do
             ;;
         'jna')
             cp=$cp:${TARGETDIR}/lib/jna-${JNA_VERSION}.jar
+            shift
+            ;;
+        'ssh' | 'telnet' | 'remote')
+            cp=$cp:${TARGETDIR}/lib/sshd-core-${SSHD_VERSION}.jar:${TARGETDIR}/lib/slf4j-api-${SLF4J_VERSION}.jar:${TARGETDIR}/lib/slf4j-jdk14-${SLF4J_VERSION}.jar
             shift
             ;;
     esac
@@ -105,5 +128,9 @@ fi
 echo "Classpath: $cp"
 echo "Launching Gogo JLine..."
 set mouse=a
-java -cp $cp $opts "-Dgosh.home=${DIRNAME}" org.apache.felix.gogo.jline.Main
+java -cp $cp \
+    $opts \
+    -Dgosh.home="${DIRNAME}" \
+    -Djava.util.logging.config.file="${DIRNAME}/etc/java.util.logging.properties" \
+    org.apache.felix.gogo.jline.Main
 
