@@ -3286,11 +3286,21 @@ public class LineReaderImpl implements LineReader, Flushable
 
         int cursorPos = -1;
         if (size.getColumns() > 0) {
-            // TODO: buf.upToCursor() does not take into account the mask which could modify the display length
-            // TODO: in case of wide chars
             AttributedStringBuilder sb = new AttributedStringBuilder().tabs(TAB_WIDTH);
             sb.append(prompt);
-            sb.append(insertSecondaryPrompts(new AttributedString(buf.upToCursor()), secondaryPrompts, false));
+            String buffer = buf.upToCursor();
+            if (mask != null) {
+                if (mask == NULL_MASK) {
+                    buffer = "";
+                } else {
+                    StringBuilder nsb = new StringBuilder();
+                    for (int i = buffer.length(); i-- > 0; ) {
+                        nsb.append((char) mask);
+                    }
+                    buffer = nsb.toString();
+                }
+            }
+            sb.append(insertSecondaryPrompts(new AttributedString(buffer), secondaryPrompts, false));
             List<AttributedString> promptLines = sb.columnSplitLength(size.getColumns(), false, display.delayLineWrap());
             if (!promptLines.isEmpty()) {
                 cursorPos = size.cursorPos(promptLines.size() - 1,
