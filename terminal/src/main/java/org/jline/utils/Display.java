@@ -11,7 +11,6 @@ package org.jline.utils;
 import java.io.IOError;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -58,7 +57,7 @@ public class Display {
     }
 
     /** If cursor is at right margin, don't wrap immediately.
-     * See {@link LineReader.Option#DELAY_LINE_WRAP}.
+     * See {@link org.jline.reader.LineReader.Option#DELAY_LINE_WRAP}.
      */
     public boolean delayLineWrap() {
         return delayLineWrap;

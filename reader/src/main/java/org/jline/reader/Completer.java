@@ -15,6 +15,7 @@ import java.util.List;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
+ * @author <a href="mailto:gnodet@gmail.com">Guillaume Nodet</a>
  * @since 2.3
  */
 public interface Completer
@@ -22,8 +23,12 @@ public interface Completer
     /**
      * Populates <i>candidates</i> with a list of possible completions for the <i>buffer</i>.
      *
-     * The <i>candidates</i> list will not be sorted before being displayed to the user: thus, the
-     * complete method should sort the {@link List} before returning.
+     * The list of candidates will be sorted and filtered by the LineReader, so that
+     * the list of candidates displayed to the user will usually be smaller than
+     * the list given by the completer.  Thus it is not necessary for the completer
+     * to do any matching based on the current buffer.  On the contrary, in order
+     * for the typo matcher to work, all possible candidates for the word being
+     * completed should be returned.
      *
      * @param line          The parsed command line
      * @param candidates    The {@link List} of candidates to populate
