@@ -330,6 +330,7 @@
         <module>remote-ssh</module>
         <module>remote-telnet</module>
         <module>jline</module>
+        <module>jline-jdk7</module>
         <module>demo</module>
     </modules>
 
