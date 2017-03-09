@@ -3409,7 +3409,7 @@ public class LineReaderImpl implements LineReader, Flushable
     private AttributedString getHighlightedBuffer(String buffer) {
         if (mask != null) {
             return getMaskedBuffer(buffer);
-        } else if (highlighter != null) {
+        } else if (highlighter != null && !isSet(Option.DISABLE_HIGHLIGHTER)) {
             return highlighter.highlight(this, buffer);
         } else {
             return new AttributedString(buffer);

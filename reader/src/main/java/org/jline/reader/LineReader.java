@@ -361,7 +361,8 @@ public interface LineReader {
         AUTO_PARAM_SLASH(true),
         AUTO_REMOVE_SLASH(true),
         INSERT_TAB(true),
-        MOUSE;
+        MOUSE,
+        DISABLE_HIGHLIGHTER;
 
         private final boolean def;
 
