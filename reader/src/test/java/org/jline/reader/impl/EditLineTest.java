@@ -17,6 +17,7 @@ import static org.jline.reader.LineReader.BACKWARD_KILL_LINE;
 import static org.jline.reader.LineReader.BACKWARD_KILL_WORD;
 import static org.jline.reader.LineReader.BACKWARD_WORD;
 import static org.jline.reader.LineReader.END_OF_LINE;
+import static org.jline.reader.LineReader.FORWARD_WORD;
 import static org.jline.reader.LineReader.KILL_WORD;
 
 /**
@@ -27,6 +28,20 @@ import static org.jline.reader.LineReader.KILL_WORD;
 public class EditLineTest
     extends ReaderTestSupport
 {
+    @Test
+    public void testIssue101() throws Exception {
+        TestBuffer b = new TestBuffer("config:property-set --pid org.ops4j.pax.url.mvn org.ops4j.pax.url.mvn.globalChecksumPolicy crash")
+                .op(BACKWARD_WORD)
+                .op(BACKWARD_WORD)
+                .append("odsa odsa ")
+                .op(BACKWARD_WORD)
+                .op(BACKWARD_KILL_WORD)
+                .op(FORWARD_WORD)
+                .op(FORWARD_WORD)
+                .op(BACKWARD_KILL_WORD);
+        assertBuffer("", b);
+    }
+
     @Test
     public void testDeletePreviousWord() throws Exception {
         TestBuffer b = new TestBuffer("This is a test");
