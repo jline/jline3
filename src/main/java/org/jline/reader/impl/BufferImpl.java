@@ -176,7 +176,7 @@ public class BufferImpl implements Buffer
         if (end <= g0) {
             return new String(buffer, start, end - start);
         } else if (start > g0) {
-            return new String(buffer, g1 - g0 + start, g1 - g0 + end - start);
+            return new String(buffer, g1 - g0 + start, end - start);
         } else {
             int[] b = buffer.clone();
             System.arraycopy(b, g1, b, g0, b.length - g1);

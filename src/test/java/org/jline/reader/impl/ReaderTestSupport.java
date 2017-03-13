@@ -35,6 +35,7 @@ import static org.jline.reader.LineReader.BEGINNING_OF_LINE;
 import static org.jline.reader.LineReader.COMPLETE_WORD;
 import static org.jline.reader.LineReader.DOWN_HISTORY;
 import static org.jline.reader.LineReader.END_OF_LINE;
+import static org.jline.reader.LineReader.FORWARD_WORD;
 import static org.jline.reader.LineReader.KILL_WORD;
 import static org.jline.reader.LineReader.UP_HISTORY;
 import static org.jline.reader.LineReader.YANK;
@@ -143,6 +144,7 @@ public abstract class ReaderTestSupport
     private String getKeyForAction(final String key) {
         switch (key) {
             case BACKWARD_WORD:        return "\u001Bb";
+            case FORWARD_WORD:         return "\u001Bf";
             case BEGINNING_OF_LINE:    return "\033[H";
             case END_OF_LINE:          return "\u0005";
             case KILL_WORD:            return "\u001Bd";
