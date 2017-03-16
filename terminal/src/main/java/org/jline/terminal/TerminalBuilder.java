@@ -223,6 +223,14 @@ public final class TerminalBuilder {
                 }
                 if (pty == null) {
                     try {
+                        pty = load(JansiSupport.class).current();
+                    } catch (Throwable t) {
+                        Log.debug("Error creating JANSI based terminal: ", t.getMessage(), t);
+                        exception.addSuppressed(t);
+                    }
+                }
+                if (pty == null) {
+                    try {
                         pty = ExecPty.current();
                     } catch (Throwable t) {
                         // Ignore if not a tty

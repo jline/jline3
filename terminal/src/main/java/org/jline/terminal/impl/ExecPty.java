@@ -39,7 +39,7 @@ public class ExecPty implements Pty {
     public static Pty current() throws IOException {
         try {
             String result = exec(true, OSUtils.TTY_COMMAND);
-            return new ExecPty(result, true);
+            return new ExecPty(result.trim(), true);
         } catch (IOException e) {
             throw new IOException("Not a tty", e);
         }
