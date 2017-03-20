@@ -39,7 +39,7 @@ public class EditLineTest
                 .op(FORWARD_WORD)
                 .op(FORWARD_WORD)
                 .op(BACKWARD_KILL_WORD);
-        assertBuffer("", b);
+        assertBuffer("config:property-set --pid org.ops4j.pax.url.mvn odsa crash", b);
     }
 
     @Test
