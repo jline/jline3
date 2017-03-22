@@ -360,9 +360,9 @@ public class Tmux {
     }
 
     protected synchronized void redraw() {
-        int[] screen = new int[size.getRows() * size.getColumns()];
+        long[] screen = new long[size.getRows() * size.getColumns()];
         // Fill
-        Arrays.fill(screen, 0x00ff0020);
+        Arrays.fill(screen, 0x00000020);
         int[] cursor = new int[2];
         for (VirtualConsole terminal : panes) {
             // Dump terminal
@@ -375,71 +375,76 @@ public class Tmux {
         // Draw status
         Arrays.fill(screen, (size.getRows() - 1) * size.getColumns(), size.getRows() * size.getColumns(), 0x00f20020);
 
-        // Attribute mask: 0xYXFB0000
+        // Attribute mask: 0xYXFFFBBB00000000L
         //	X:	Bit 0 - Underlined
         //		Bit 1 - Negative
         //		Bit 2 - Concealed
-        //		Bit 3 - Bold
-        //  Y:  Bit 0 - Foreground bright
-        //      Bit 1 - Background bright
-        //	F:	Foreground
-        //	B:	Background
+        //      Bit 3 - Bold
+        //  Y:  Bit 0 - Foreground set
+        //      Bit 1 - Background set
+        //	F:	Foreground r-g-b
+        //	B:	Background r-g-b
 
         List<AttributedString> lines = new ArrayList<>();
-        int prevBg = 15;
-        int prevFg = 15;
+        int prevBg = 0;
+        int prevFg = 0;
         boolean prevInv = false;
         boolean prevUl = false;
         boolean prevBold = false;
         boolean prevConceal = false;
-        boolean prevFgBright = false;
-        boolean prevBgBright = false;
+        boolean prevHasFg = false;
+        boolean prevHasBg = false;
         for (int y = 0; y < size.getRows(); y++) {
             AttributedStringBuilder sb = new AttributedStringBuilder(size.getColumns());
             for (int x = 0; x < size.getColumns(); x++) {
-                int d = screen[y * size.getColumns() + x];
-                int c = d & 0xffff;
-                int a = d >> 16;
-                int bg = a & 0x000f;
-                int fg = (a & 0x00f0) >> 4;
-                boolean inv = ((a & 0x0200) != 0);
-                boolean ul = ((a & 0x0100) != 0);
-                boolean bold = ((a & 0x0800) != 0);
-                boolean conceal = ((a & 0x0400) != 0);
-                boolean fgBright = ((a & 0x1000) != 0);
-                boolean bgBright = ((a & 0x2000) != 0);
-                if (bg != prevBg || prevBgBright != bgBright) {
-                    if (bg == 0x000f) {
+                long d = screen[y * size.getColumns() + x];
+                int c = (int) (d & 0xffffffffL);
+                int a = (int) (d >> 32);
+                int bg = a & 0x000fff;
+                int fg = (a & 0xfff000) >> 12;
+                boolean ul =      ((a & 0x01000000) != 0);
+                boolean inv =     ((a & 0x02000000) != 0);
+                boolean conceal = ((a & 0x04000000) != 0);
+                boolean bold =    ((a & 0x08000000) != 0);
+                boolean hasFg =   ((a & 0x10000000) != 0);
+                boolean hasBg =   ((a & 0x20000000) != 0);
+
+                if ((hasBg && prevHasBg && bg != prevBg) || prevHasBg != hasBg) {
+                    if (!hasBg) {
                         sb.style(sb.style().backgroundDefault());
                     } else {
-                        sb.style(sb.style().background(bg + (bgBright ? AttributedStyle.BRIGHT : 0)));
+                        int col = bg;
+                        col = AttributedCharSequence.roundRgbColor((col & 0xF00) >> 4, (col & 0x0F0), (col & 0x00F) << 4, 256);
+                        sb.style(sb.style().background(col));
                     }
                     prevBg = bg;
-                    prevBgBright = bgBright;
+                    prevHasBg = hasBg;
                 }
-                if (fg != prevFg || fgBright != prevFgBright) {
-                    if (fg == 0x000f) {
+                if ((hasFg && prevHasFg && fg != prevFg) || prevHasFg != hasFg) {
+                    if (!hasFg) {
                         sb.style(sb.style().foregroundDefault());
                     } else {
-                        sb.style(sb.style().foreground(fg + (fgBright ? AttributedStyle.BRIGHT : 0)));
+                        int col = fg;
+                        col = AttributedCharSequence.roundRgbColor((col & 0xF00) >> 4, (col & 0x0F0), (col & 0x00F) << 4, 256);
+                        sb.style(sb.style().foreground(col));
                     }
                     prevFg = fg;
-                    prevFgBright = fgBright;
+                    prevHasFg = hasFg;
                 }
                 if (conceal != prevConceal) {
                     sb.style(conceal ? sb.style().conceal() : sb.style().concealOff());
                     prevConceal = conceal;
                 }
                 if (inv != prevInv) {
-                    sb.style(conceal ? sb.style().inverse() : sb.style().inverseOff());
+                    sb.style(inv ? sb.style().inverse() : sb.style().inverseOff());
                     prevInv = inv;
                 }
                 if (ul != prevUl) {
-                    sb.style(conceal ? sb.style().underline() : sb.style().underlineOff());
+                    sb.style(ul ? sb.style().underline() : sb.style().underlineOff());
                     prevUl = ul;
                 }
                 if (bold != prevBold) {
-                    sb.style(conceal ? sb.style().bold() : sb.style().boldOff());
+                    sb.style(bold ? sb.style().bold() : sb.style().boldOff());
                     prevBold = bold;
                 }
                 sb.append((char) c);
@@ -451,7 +456,7 @@ public class Tmux {
         terminal.flush();
     }
 
-    private void drawBorder(int[] screen, Size size, VirtualConsole terminal, int attr) {
+    private void drawBorder(long[] screen, Size size, VirtualConsole terminal, long attr) {
         for (int i = terminal.getLeft(); i < terminal.getLeft() + terminal.getWidth(); i++) {
             int y0 = terminal.getTop() - 1;
             int y1 = terminal.getTop() + terminal.getHeight();
@@ -471,7 +476,7 @@ public class Tmux {
         drawBorderChar(screen, size, terminal.getLeft() + terminal.getWidth(), terminal.getTop() + terminal.getHeight(), attr, '┼');
     }
 
-    private void drawBorderChar(int[] screen, Size size, int x, int y, int attr, int c) {
+    private void drawBorderChar(long[] screen, Size size, int x, int y, long attr, int c) {
         if (x >= 0 && x < size.getColumns() && y >= 0 && y < size.getRows() - 1) {
             screen[y * size.getColumns() + x] = attr | c;
         }
@@ -554,7 +559,7 @@ public class Tmux {
             console.raise(Signal.WINCH);
         }
 
-        public void dump(int[] fullscreen, int ftop, int fleft, int fheight, int fwidth, int[] cursor) {
+        public void dump(long[] fullscreen, int ftop, int fleft, int fheight, int fwidth, int[] cursor) {
             terminal.dump(fullscreen, ftop, fleft, fheight, fwidth, cursor);
         }
 

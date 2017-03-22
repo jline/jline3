@@ -23,6 +23,27 @@ __call_static_method_no_arg = {
 
 if { $.terminal } {
     try {
+        #
+        # TTop command
+        #
+        __ttop = {
+            _cl = (__load_class_from $.reader "org.jline.builtins.TTop")
+            $_cl "ttop" $.terminal (__get_static_field "java.lang.System" out) (__get_static_field "java.lang.System" err) ${argv[@]}
+        }
+        $.processor addcommand "gogo" $__ttop "ttop" 0
+
+        complete -c gogo:ttop -e
+        complete -c gogo:ttop -d "Display and update sorted information about threads"
+        complete -c gogo:ttop -s o -l order --description "Comma separated list of sorting keys"
+        complete -c gogo:ttop -s t -l stats --description "Comma separated list of stats to display"
+
+        max_colors = ($.terminal getNumericCapability "max_colors")
+        if { %(max_colors >= 256) } {
+            HIGHLIGHTER_COLORS = "rs=35:st=32:nu=32:co=32:va=36:vn=36:fu=1;38;5;69:bf=1;38;5;197:re=90"
+        } {
+            HIGHLIGHTER_COLORS = "rs=35:st=32:nu=32:co=32:va=36:vn=36:fu=94:bf=91:re=90"
+        }
+
         __gogo = (new "org.jline.demo.Gogo" $.processor)
         __remote_ssh_support = (new org.jline.builtins.ssh.Ssh \
             ($__gogo shell) \
@@ -75,19 +96,5 @@ if { $.terminal } {
             $exception printStackTrace
         }
     }
-
-    #
-    # TTop command
-    #
-    __ttop = {
-        _cl = (__load_class_from $.reader "org.jline.builtins.TTop")
-        $_cl "ttop" $.terminal (__get_static_field "java.lang.System" out) (__get_static_field "java.lang.System" err) ${argv[@]}
-    }
-    $.processor addcommand "gogo" $__ttop "ttop" 0
-
-    complete -c gogo:ttop -e
-    complete -c gogo:ttop -d "Display and update sorted information about threads"
-    complete -c gogo:ttop -s o -l order --description "Comma separated list of sorting keys"
-    complete -c gogo:ttop -s t -l stats --description "Comma separated list of stats to display"
 
 }

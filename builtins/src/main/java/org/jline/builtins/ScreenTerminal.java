@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.jline.utils.AttributedCharSequence;
 import org.jline.utils.WCWidth;
 
 /**
@@ -61,12 +62,12 @@ public class ScreenTerminal {
 
     private int width;
     private int height;
-    private int attr;
+    private long attr;
     private boolean eol;
     private int cx;
     private int cy;
-    private int[] screen;
-    private int[] screen2;
+    private long[] screen;
+    private long[] screen2;
     private State vt100_parse_state = State.None;
     private int vt100_parse_len;
     private int vt100_lastchar;
@@ -123,16 +124,16 @@ public class ScreenTerminal {
     }
 
     private void reset_hard() {
-        // Attribute mask: 0xYXFB0000
+        // Attribute mask: 0xYXFFFBBB00000000L
         //	X:	Bit 0 - Underlined
         //		Bit 1 - Negative
         //		Bit 2 - Concealed
         //      Bit 3 - Bold
-        //  Y:  Bit 0 - Foreground bright
-        //      Bit 1 - Background bright
-        //	F:	Foreground
-        //	B:	Background
-        attr = 0x00ff0000;
+        //  Y:  Bit 0 - Foreground set
+        //      Bit 1 - Background set
+        //	F:	Foreground r-g-b
+        //	B:	Background r-g-b
+        attr = 0x0000000000000000L;
         // Key filter
         vt100_keyfilter_escape = false;
         // Last char
@@ -150,16 +151,16 @@ public class ScreenTerminal {
     }
 
     private void reset_soft() {
-        // Attribute mask: 0xYXFB0000
+        // Attribute mask: 0xYXFFFBBB00000000L
         //	X:	Bit 0 - Underlined
         //		Bit 1 - Negative
         //		Bit 2 - Concealed
         //      Bit 3 - Bold
-        //  Y:  Bit 0 - Foreground bright
-        //      Bit 1 - Background bright
-        //	F:	Foreground
-        //	B:	Background
-        attr = 0x00ff0000;
+        //  Y:  Bit 0 - Foreground set
+        //      Bit 1 - Background set
+        //	F:	Foreground r-g-b
+        //	B:	Background r-g-b
+        attr = 0x0000000000000000L;
         // Scroll parameters
         scroll_area_y0 = 0;
         scroll_area_y1 = height;
@@ -187,10 +188,10 @@ public class ScreenTerminal {
 
     private void reset_screen() {
         // Screen
-        screen = new int[width * height];
-        Arrays.fill(screen, attr | 0x0020);
-        screen2 = new int[width * height];
-        Arrays.fill(screen2, attr | 0x0020);
+        screen = new long[width * height];
+        Arrays.fill(screen, attr | 0x00000020);
+        screen2 = new long[width * height];
+        Arrays.fill(screen2, attr | 0x00000020);
         // Scroll parameters
         scroll_area_y0 = 0;
         scroll_area_y1 = height;
@@ -216,24 +217,24 @@ public class ScreenTerminal {
     // Low-level terminal functions
     //
 
-    private int[] peek(int y0, int x0, int y1, int x1) {
+    private long[] peek(int y0, int x0, int y1, int x1) {
         int from = width * y0 + x0;
         int to = width * (y1 - 1) + x1;
         int newLength = to - from;
         if (newLength < 0)
             throw new IllegalArgumentException(from + " > " + to);
-        int[] copy = new int[newLength];
+        long[] copy = new long[newLength];
         System.arraycopy(screen, from, copy, 0,
                 Math.min(screen.length - from, newLength));
         return copy;
     }
 
-    private void poke(int y, int x, int[] s) {
+    private void poke(int y, int x, long[] s) {
         System.arraycopy(s, 0, screen, width * y + x, s.length);
         setDirty();
     }
 
-    private void fill(int y0, int x0, int y1, int x1, int c) {
+    private void fill(int y0, int x0, int y1, int x1, long c) {
         int d0 = width * y0 + x0;
         int d1 = width * (y1 - 1) + x1;
         if (d0 <= d1) {
@@ -243,7 +244,7 @@ public class ScreenTerminal {
     }
 
     private void clear(int y0, int x0, int y1, int x1) {
-        fill(y0, x0, y1, x1, attr | 0x20);
+        fill(y0, x0, y1, x1, attr | 0x00000020);
     }
 
     //
@@ -311,7 +312,7 @@ public class ScreenTerminal {
         int wx = utf8_charwidth(next_char);
         int lx = 0;
         for (int x = 0; x < Math.min(cx, width); x++) {
-            int c = peek(cy, x, cy + 1, x + 1)[0] & 0xffff;
+            int c = (int) (peek(cy, x, cy + 1, x + 1)[0] & 0x00000000ffffffffL);
             wx += utf8_charwidth(c);
             lx += 1;
         }
@@ -454,7 +455,7 @@ public class ScreenTerminal {
         } else if (vt100_charset_is_graphical && ((c & 0xffe0) == 0x0060)) {
             c = vt100_charset_graph[c - 0x60];
         }
-        poke(cy, cx, new int[]{attr | c});
+        poke(cy, cx, new long[]{attr | c});
         cursor_right();
     }
 
@@ -559,7 +560,7 @@ public class ScreenTerminal {
                 case "?1049":
                     // Alternate screen mode
                     if ((state && !vt100_mode_alt_screen) || (!state && vt100_mode_alt_screen)) {
-                        int[] s = screen;
+                        long[] s = screen;
                         screen = screen2;
                         screen2 = s;
                         Map<String, Object> map = vt100_saved;
@@ -657,7 +658,7 @@ public class ScreenTerminal {
     private void esc_DECRC() {
         cx = (Integer) vt100_saved.get("cx");
         cy = (Integer) vt100_saved.get("cy");
-        attr = (Integer) vt100_saved.get("attr");
+        attr = (Long) vt100_saved.get("attr");
         vt100_charset_g_sel = (Integer) vt100_saved.get("vt100_charset_g_sel");
         vt100_charset_g = (int[]) vt100_saved.get("vt100_charset_g");
         vt100_charset_update();
@@ -918,67 +919,70 @@ public class ScreenTerminal {
     }
 
     private void csi_SGR(String p) {
+        // Attribute mask: 0xYXFFFBBB00000000L
+        //	X:	Bit 0 - Underlined
+        //		Bit 1 - Negative
+        //		Bit 2 - Concealed
+        //      Bit 3 - Bold
+        //  Y:  Bit 0 - Foreground set
+        //      Bit 1 - Background set
+        //	F:	Foreground r-g-b
+        //	B:	Background r-g-b
         int[] ps = vt100_parse_params(p, new int[]{0});
         for (int i = 0; i < ps.length; i++) {
             int m = ps[i];
             if (m == 0) {
-                attr = 0x00ff0000;
+                attr = 0x00000000L << 32;
             } else if (m == 1) {
-                attr |= 0x08000000; // bold
+                attr |= 0x08000000L << 32; // bold
             } else if (m == 4) {
-                attr |= 0x01000000; // underline
+                attr |= 0x01000000L << 32; // underline
             } else if (m == 7) {
-                attr |= 0x02000000; // negative
+                attr |= 0x02000000L << 32; // negative
             } else if (m == 8) {
-                attr |= 0x04000000; // conceal
+                attr |= 0x04000000L << 32; // conceal
             } else if (m == 21) {
-                attr &= 0xf7ff0000; // bold off
+                attr &= 0xf7ffffffL << 32; // bold off
             } else if (m == 24) {
-                attr &= 0xfeff0000; // underline off
+                attr &= 0xfeffffffL << 32; // underline off
             } else if (m == 27) {
-                attr &= 0xfdff0000; // negative off
+                attr &= 0xfdffffffL << 32; // negative off
             } else if (m == 28) {
-                attr &= 0xfbff0000; // conceal off
+                attr &= 0xfbffffffL << 32; // conceal off
             } else if (m >= 30 && m <= 37) {
-                attr = (attr & 0xef0f0000) | ((m - 30) << 20); // foreground
+                attr = (attr & (0xef000fffL << 32)) | (0x10000000L << 32) | (col24(m - 30) << 44); // foreground
             } else if (m == 38) {
                 m = ++i < ps.length ? ps[i] : 0;
                 if (m == 5) {
                     m = ++i < ps.length ? ps[i] : 0;
-                    if (m < 8) {
-                        attr = (attr & 0xef0f0000) | (m << 20); // foreground
-                    } else if (m < 16) {
-                        attr = (attr & 0xef0f0000) | ((m - 8) << 20) | 0x10000000; // foreground bright
-                    } else {
-                        m = m % 8; // TODO: better rounding
-                        attr = (attr & 0xef0f0000) | (m << 20); // foreground
-                    }
+                    attr = (attr & (0xef000fffL << 32)) | (0x10000000L << 32) | (col24(m) << 44); // foreground
                 }
             } else if (m == 39) {
-                attr = (attr & 0xef0f0000) | 0x00f00000; // foreground default
+                attr &= 0xef000fffL << 32;
             } else if (m >= 40 && m <= 47) {
-                attr = (attr & 0xdff00000) | ((m - 40) << 16); // background
+                attr = (attr & (0xdffff000L << 32)) | (0x20000000L << 32) | (col24(m - 40) << 32); // background
             } else if (m == 48) {
                 m = ++i < ps.length ? ps[i] : 0;
                 if (m == 5) {
                     m = ++i < ps.length ? ps[i] : 0;
-                    if (m < 8) {
-                        attr = (attr & 0xdff00000) | (m << 16); // background
-                    } else if (m < 16) {
-                        attr = (attr & 0xdff00000) | ((m - 8) << 16) | 0x20000000; // background bright
-                    } else {
-                        m = m % 8; // TODO: better rounding
-                        attr = (attr & 0xdff00000) | (m << 16); // foreground
-                    }
+                    attr = (attr & (0xdffff000L << 32)) | (0x20000000L << 32) | (col24(m) << 32); // background
                 }
             } else if (m == 49) {
-                attr = (attr & 0xdff00000) | 0x000f0000; // background default
+                attr &= 0xdf000fffL << 32;
             } else if (m >= 90 && m <= 97) {
-                attr = (attr & 0xef0f0000) | ((m - 90) << 20) | 0x10000000; // foreground bright
+                attr = (attr & (0xef000fffL << 32)) | (0x10000000L << 32) | (col24(m - 90 + 8) << 44); // foreground
             } else if (m >= 100 && m <= 107) {
-                attr = (attr & 0xdf0f0000) | ((m - 100) << 16) | 0x20000000; // background bright
+                attr = (attr & (0xdffff000L << 32)) | (0x20000000L << 32) | (col24(m - 100 + 8) << 32); // background
             }
         }
+    }
+
+    private long col24(int col) {
+        int c = AttributedCharSequence.rgbColor(col);
+        int r = (c >> 16) & 0xFF;
+        int g = (c >> 8) & 0xFF;
+        int b = (c >> 0) & 0xFF;
+        return ((r >> 4) << 8) | ((g >> 4) << 4) | ((b >> 4) << 0);
     }
 
     private void csi_DSR(String p) {
@@ -1579,16 +1583,16 @@ public class ScreenTerminal {
         }
         int ow = width;
         int oh = height;
-        int[] old = screen;
-        int[] old2 = screen2;
+        long[] old = screen;
+        long[] old2 = screen2;
         this.width = w;
         this.height = h;
 
         // Screen
-        screen = new int[width * height];
-        Arrays.fill(screen, attr | 0x0020);
-        screen2 = new int[width * height];
-        Arrays.fill(screen2, attr | 0x0020);
+        screen = new long[width * height];
+        Arrays.fill(screen, attr | 0x00000020);
+        screen2 = new long[width * height];
+        Arrays.fill(screen2, attr | 0x00000020);
         // Scroll parameters
         scroll_area_y0 = Math.min(height, scroll_area_y0);
         scroll_area_y1 = Math.min(height, scroll_area_y1);
@@ -1789,7 +1793,7 @@ public class ScreenTerminal {
         return true;
     }
 
-    public synchronized void dump(int[] fullscreen, int ftop, int fleft, int fheight, int fwidth, int[] cursor) {
+    public synchronized void dump(long[] fullscreen, int ftop, int fleft, int fheight, int fwidth, int[] cursor) {
         int cx = Math.min(this.cx, width - 1);
         int cy = this.cy;
         for (int y = 0; y < height; y++) {
@@ -1814,9 +1818,9 @@ public class ScreenTerminal {
             for (int y = 0; y < height; y++) {
                 int wx = 0;
                 for (int x = 0; x < width; x++) {
-                    int d = screen[y * width + x];
-                    int c = d & 0xffff;
-                    int a = d >> 16;
+                    long d = screen[y * width + x];
+                    int c = (int) (d & 0xffffffff);
+                    int a = (int) (d >> 32);
                     if (cy == y && cx == x && vt100_mode_cursor) {
                         a = a & 0xfff0 | 0x000c;
                     }
@@ -1824,26 +1828,26 @@ public class ScreenTerminal {
                         if (prev_attr != -1) {
                             sb.append("</span>");
                         }
-                        int bg = a & 0x000f;
-                        int fg = (a & 0x00f0) >> 4;
-                        boolean inv = (a & 0x0200) != 0;
+                        int bg = a & 0x000000ff;
+                        int fg = (a & 0x0000ff00) >> 8;
+                        boolean inv = (a & 0x00020000) != 0;
                         boolean inv2 = vt100_mode_inverse;
                         if (inv && !inv2 || inv2 && !inv) {
                             int i = fg;
                             fg = bg;
                             bg = i;
                         }
-                        if ((a & 0x0400) != 0) {
+                        if ((a & 0x00040000) != 0) {
                             fg = 0x0c;
                         }
                         String ul;
-                        if ((a & 0x0100) != 0) {
+                        if ((a & 0x00010000) != 0) {
                             ul = " ul";
                         } else {
                             ul = "";
                         }
                         String b;
-                        if ((a & 0x0800) != 0) {
+                        if ((a & 0x00080000) != 0) {
                             b = " b";
                         } else {
                             b = "";
@@ -1881,7 +1885,7 @@ public class ScreenTerminal {
         StringBuilder sb = new StringBuilder();
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                sb.append((char) (screen[y * width + x] & 0xffff));
+                sb.appendCodePoint((int) (screen[y * width + x] & 0xffffffffL));
             }
             sb.append("\n");
         }
