@@ -378,18 +378,19 @@ public class Tmux {
     protected synchronized void redraw() {
         long[] screen = new long[size.getRows() * size.getColumns()];
         // Fill
-        Arrays.fill(screen, 0x00000020);
+        Arrays.fill(screen, 0x00000020L);
         int[] cursor = new int[2];
         for (VirtualConsole terminal : panes) {
             // Dump terminal
             terminal.dump(screen, terminal.getTop(), terminal.getLeft(), size.getRows(), size.getColumns(),
                     terminal == active ? cursor : null);
             // Draw border
-            drawBorder(screen, size, terminal, 0x00ff0000);
+            drawBorder(screen, size, terminal, 0x0L);
         }
-        drawBorder(screen, size, active, 0x002f0000);
+        drawBorder(screen, size, active, 0x010080000L << 32);
         // Draw status
-        Arrays.fill(screen, (size.getRows() - 1) * size.getColumns(), size.getRows() * size.getColumns(), 0x00f20020);
+        Arrays.fill(screen, (size.getRows() - 1) * size.getColumns(), size.getRows() * size.getColumns(),
+                0x20000080L << 32 | 0x0020L);
 
         // Attribute mask: 0xYXFFFBBB00000000L
         //	X:	Bit 0 - Underlined
@@ -485,16 +486,110 @@ public class Tmux {
             drawBorderChar(screen, size, x0, i, attr, '│');
             drawBorderChar(screen, size, x1, i, attr, '│');
         }
-        // TODO: fix that to have clean crosses
-        drawBorderChar(screen, size, terminal.getLeft() - 1, terminal.getTop() - 1, attr, '┼');
-        drawBorderChar(screen, size, terminal.getLeft() + terminal.getWidth(), terminal.getTop() - 1, attr, '┼');
-        drawBorderChar(screen, size, terminal.getLeft() - 1, terminal.getTop() + terminal.getHeight(), attr, '┼');
-        drawBorderChar(screen, size, terminal.getLeft() + terminal.getWidth(), terminal.getTop() + terminal.getHeight(), attr, '┼');
+        drawBorderChar(screen, size, terminal.getLeft() - 1, terminal.getTop() - 1, attr, '┌');
+        drawBorderChar(screen, size, terminal.getLeft() + terminal.getWidth(), terminal.getTop() - 1, attr, '┐');
+        drawBorderChar(screen, size, terminal.getLeft() - 1, terminal.getTop() + terminal.getHeight(), attr, '└');
+        drawBorderChar(screen, size, terminal.getLeft() + terminal.getWidth(), terminal.getTop() + terminal.getHeight(), attr, '┘');
     }
 
     private void drawBorderChar(long[] screen, Size size, int x, int y, long attr, int c) {
         if (x >= 0 && x < size.getColumns() && y >= 0 && y < size.getRows() - 1) {
+            int oldc = (int)(screen[y * size.getColumns() + x] & 0xFFFFFFFFL);
+            c = addBorder(c, oldc);
             screen[y * size.getColumns() + x] = attr | c;
+        }
+    }
+
+    private int addBorder(int c, int oldc) {
+        if (oldc == ' ') {
+            return c;
+        }
+        if (oldc == '┼') {
+            return '┼';
+        }
+        switch (c) {
+            case '│':
+                return addBorder('╷', addBorder('╵', oldc));
+            case '─':
+                return addBorder('╴', addBorder('╶', oldc));
+            case '┌':
+                return addBorder('╶', addBorder('╷', oldc));
+            case '┐':
+                return addBorder('╴', addBorder('╷', oldc));
+            case '└':
+                return addBorder('╶', addBorder('╵', oldc));
+            case '┘':
+                return addBorder('╴', addBorder('╵', oldc));
+            case '├':
+                return addBorder('╶', addBorder('│', oldc));
+            case '┤':
+                return addBorder('╴', addBorder('│', oldc));
+            case '┬':
+                return addBorder('╷', addBorder('─', oldc));
+            case '┴':
+                return addBorder('╵', addBorder('─', oldc));
+            case '╴':
+                switch (oldc) {
+                    case '│': return '┤';
+                    case '─': return '─';
+                    case '┌': return '┬';
+                    case '┐': return '┐';
+                    case '└': return '┴';
+                    case '┘': return '┘';
+                    case '├': return '┼';
+                    case '┤': return '┤';
+                    case '┬': return '┬';
+                    case '┴': return '┴';
+                    default:
+                        throw new IllegalArgumentException();
+                }
+            case '╵':
+                switch (oldc) {
+                    case '│': return '│';
+                    case '─': return '┴';
+                    case '┌': return '├';
+                    case '┐': return '┤';
+                    case '└': return '└';
+                    case '┘': return '┘';
+                    case '├': return '├';
+                    case '┤': return '┤';
+                    case '┬': return '┼';
+                    case '┴': return '┴';
+                    default:
+                        throw new IllegalArgumentException();
+                }
+            case '╶':
+                switch (oldc) {
+                    case '│': return '├';
+                    case '─': return '─';
+                    case '┌': return '┌';
+                    case '┐': return '┬';
+                    case '└': return '└';
+                    case '┘': return '┴';
+                    case '├': return '├';
+                    case '┤': return '┼';
+                    case '┬': return '┬';
+                    case '┴': return '┴';
+                    default:
+                        throw new IllegalArgumentException();
+                }
+            case '╷':
+                switch (oldc) {
+                    case '│': return '│';
+                    case '─': return '┬';
+                    case '┌': return '┌';
+                    case '┐': return '┐';
+                    case '└': return '├';
+                    case '┘': return '┤';
+                    case '├': return '├';
+                    case '┤': return '┤';
+                    case '┬': return '┬';
+                    case '┴': return '┼';
+                    default:
+                        throw new IllegalArgumentException();
+                }
+            default:
+                throw new IllegalArgumentException();
         }
     }
 
