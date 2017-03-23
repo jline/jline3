@@ -162,22 +162,38 @@ public class Tmux {
     private void inputLoop() {
         try {
             BindingReader reader = new BindingReader(terminal.reader());
+            boolean first = true;
             while (running.get()) {
-                Object b = reader.readBinding(keyMap);
+                Object b;
+                if (first) {
+                    b = reader.readBinding(keyMap);
+                } else if (reader.peekCharacter(100) >= 0) {
+                    b = reader.readBinding(keyMap, null, false);
+                } else {
+                    b = null;
+                }
                 if (b == Binding.SelfInsert) {
                     active.getMasterInputOutput().write(reader.getLastBinding().getBytes());
-                    active.getMasterInputOutput().flush();
-                } else if (b == Binding.Mouse) {
-                    MouseEvent event = terminal.readMouseEvent();
-                    //System.err.println(event.toString());
-                } else if (b instanceof String) {
-                    ByteArrayOutputStream out = new ByteArrayOutputStream();
-                    ByteArrayOutputStream err = new ByteArrayOutputStream();
-                    try (PrintStream pout = new PrintStream(out);
-                         PrintStream perr = new PrintStream(err)) {
-                        execute(pout, perr, (String) b);
-                    } catch (Exception e) {
-                        // TODO: log
+                    first = false;
+                } else {
+                    if (first) {
+                        first = false;
+                    } else {
+                        active.getMasterInputOutput().flush();
+                        first = true;
+                    }
+                    if (b == Binding.Mouse) {
+                        MouseEvent event = terminal.readMouseEvent();
+                        //System.err.println(event.toString());
+                    } else if (b instanceof String) {
+                        ByteArrayOutputStream out = new ByteArrayOutputStream();
+                        ByteArrayOutputStream err = new ByteArrayOutputStream();
+                        try (PrintStream pout = new PrintStream(out);
+                             PrintStream perr = new PrintStream(err)) {
+                            execute(pout, perr, (String) b);
+                        } catch (Exception e) {
+                            // TODO: log
+                        }
                     }
                 }
             }
