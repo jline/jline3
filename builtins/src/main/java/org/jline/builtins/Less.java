@@ -603,7 +603,7 @@ public class Less {
         while (line >= lines.size()) {
             String str = reader.readLine();
             if (str != null) {
-                lines.add(AttributedString.fromAnsi(str));
+                lines.add(AttributedString.fromAnsi(str, tabs));
             } else {
                 break;
             }

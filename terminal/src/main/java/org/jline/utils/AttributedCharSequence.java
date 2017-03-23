@@ -317,6 +317,7 @@ public abstract class AttributedCharSequence implements CharSequence {
     public List<AttributedString> columnSplitLength(int columns) {
         return columnSplitLength(columns, false, true);
     }
+
     public List<AttributedString> columnSplitLength(int columns, boolean includeNewlines, boolean delayLineWrap) {
         List<AttributedString> strings = new ArrayList<>();
         int cur = 0;

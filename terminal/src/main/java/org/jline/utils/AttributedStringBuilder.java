@@ -294,6 +294,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
             } else if (c == '\t' && tabs > 0) {
                 insertTab(current);
             } else {
+                ensureCapacity(length + 1);
                 buffer[length] = c;
                 style[length] = this.current.getStyle();
                 length++;

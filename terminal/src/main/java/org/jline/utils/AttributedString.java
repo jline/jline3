@@ -94,10 +94,15 @@ public class AttributedString extends AttributedCharSequence {
     }
 
     public static AttributedString fromAnsi(String ansi) {
+        return fromAnsi(ansi, 0);
+    }
+
+    public static AttributedString fromAnsi(String ansi, int tabs) {
         if (ansi == null) {
             return null;
         }
         AttributedStringBuilder sb = new AttributedStringBuilder(ansi.length());
+        sb.tabs(tabs);
         sb.appendAnsi(ansi);
         return sb.toAttributedString();
     }
