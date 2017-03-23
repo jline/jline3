@@ -124,4 +124,10 @@ public abstract class JnaNativePty implements Pty {
             throw new RuntimeException("Unable to create FileDescriptor", e);
         }
     }
+
+    @Override
+    public String toString() {
+        return "JnaNativePty[" + getName() + "]";
+    }
+
 }

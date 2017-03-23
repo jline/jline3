@@ -167,5 +167,9 @@ public abstract class JansiNativePty implements Pty {
 
     protected abstract Attributes toAttributes(CLibrary.Termios tios);
 
+    @Override
+    public String toString() {
+        return "JansiNativePty[" + getName() + "]";
+    }
 
 }

@@ -120,6 +120,10 @@ public abstract class AbstractTerminal implements Terminal {
         return type;
     }
 
+    public String getKind() {
+        return getClass().getSimpleName();
+    }
+
     public void flush() {
         writer().flush();
     }

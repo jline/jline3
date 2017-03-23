@@ -294,4 +294,9 @@ public class ExecPty implements Pty {
         }
     }
 
+    @Override
+    public String toString() {
+        return "ExecPty[" + getName() + (system ? ", system]" : "]");
+    }
+
 }

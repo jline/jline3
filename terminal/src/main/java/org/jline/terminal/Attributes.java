@@ -10,6 +10,8 @@ package org.jline.terminal;
 
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class Attributes {
 
@@ -304,4 +306,43 @@ public class Attributes {
         setOutputFlags(attributes.getOutputFlags());
         setControlChars(attributes.getControlChars());
     }
+
+    @Override
+    public String toString() {
+        return "Attributes[" +
+                "lflags: " + append(lflag) + ", " +
+                "iflags: " + append(iflag) + ", " +
+                "oflags: " + append(oflag) + ", " +
+                "cflags: " + append(cflag) + ", " +
+                "cchars: " + append(EnumSet.allOf(ControlChar.class), this::display) +
+                "]";
+    }
+
+    private String display(ControlChar c) {
+        String value;
+        int ch = getControlChar(c);
+        if (c == ControlChar.VMIN || c == ControlChar.VTIME) {
+            value = Integer.toString(ch);
+        } else if (ch < 0) {
+            value = "<undef>";
+        } else if (ch < 32) {
+            value = "^" + (char) (ch + 'A' - 1);
+        } else if (ch == 127) {
+            value = "^?";
+        } else if (ch >= 128) {
+            value = String.format("\\u%04x", ch);
+        } else {
+            value = String.valueOf((char) ch);
+        }
+        return c.name().toLowerCase().substring(1) + "=" + value;
+    }
+
+    private <T extends Enum<T>> String append(EnumSet<T> set) {
+        return append(set, e -> e.name().toLowerCase());
+    }
+
+    private <T extends Enum<T>> String append(EnumSet<T> set, Function<T, String> toString) {
+        return set.stream().map(toString).collect(Collectors.joining(" "));
+    }
+
 }
