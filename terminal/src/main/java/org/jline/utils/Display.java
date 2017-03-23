@@ -437,15 +437,8 @@ public class Display {
         int l1 = i1 / width;
         int c1 = i1 % width;
         if (c0 == columns) { // at right margin
-            if (c1 == 0) {
-                terminal.puts(Capability.carriage_return);
-                c0 = 0;
-            } else {
-                // If we're at the right margin, a cursor_left moves
-                // *two* column positions.  But now we know where we are ...
-                terminal.puts(Capability.cursor_left);
-                c0 = c0 - 2;
-            }
+            terminal.puts(Capability.carriage_return);
+            c0 = 0;
         }
         if (l0 > l1) {
             perform(Capability.cursor_up, Capability.parm_up_cursor, l0 - l1);
