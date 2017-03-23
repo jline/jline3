@@ -64,13 +64,8 @@ public class BindingReader {
         lastBinding = null;
         T o = null;
         int[] remaining = new int[1];
-        do {
-            int c = readCharacter();
-            if (c == -1) {
-                return null;
-            }
-            opBuffer.appendCodePoint(c);
-
+        boolean hasRead = false;
+        for (;;) {
             if (local != null) {
                 o = local.getBound(opBuffer, remaining);
             }
@@ -107,7 +102,17 @@ public class BindingReader {
                     return o;
                 }
             }
-        } while (block);
+
+            if (!block && hasRead) {
+                break;
+            }
+            int c = readCharacter();
+            if (c == -1) {
+                return null;
+            }
+            opBuffer.appendCodePoint(c);
+            hasRead = true;
+        }
         return null;
     }
 
