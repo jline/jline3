@@ -220,7 +220,7 @@ public class Ssh {
                         channel.setOut(new NoCloseOutputStream(stdout));
                         channel.setErr(new NoCloseOutputStream(stderr));
                         channel.open().verify();
-                        Terminal.SignalHandler prevHandler = terminal.handle(Terminal.Signal.WINCH, signal -> {
+                        Terminal.SignalHandler prevWinchHandler = terminal.handle(Terminal.Signal.WINCH, signal -> {
                             try {
                                 Size size = terminal.getSize();
                                 channel.sendWindowChange(size.getColumns(), size.getRows());
@@ -228,10 +228,37 @@ public class Ssh {
                                 // Ignore
                             }
                         });
+                        Terminal.SignalHandler prevQuitHandler = terminal.handle(Terminal.Signal.QUIT, signal -> {
+                            try {
+                                channel.getInvertedIn().write(attributes.getControlChar(Attributes.ControlChar.VQUIT));
+                                channel.getInvertedIn().flush();
+                            } catch (IOException e) {
+                                // Ignore
+                            }
+                        });
+                        Terminal.SignalHandler prevIntHandler = terminal.handle(Terminal.Signal.INT, signal -> {
+                            try {
+                                channel.getInvertedIn().write(attributes.getControlChar(Attributes.ControlChar.VINTR));
+                                channel.getInvertedIn().flush();
+                            } catch (IOException e) {
+                                // Ignore
+                            }
+                        });
+                        Terminal.SignalHandler prevStopHandler = terminal.handle(Terminal.Signal.TSTP, signal -> {
+                            try {
+                                channel.getInvertedIn().write(attributes.getControlChar(Attributes.ControlChar.VDSUSP));
+                                channel.getInvertedIn().flush();
+                            } catch (IOException e) {
+                                // Ignore
+                            }
+                        });
                         try {
                             channel.waitFor(EnumSet.of(ClientChannelEvent.CLOSED), 0);
                         } finally {
-                            terminal.handle(Terminal.Signal.WINCH, prevHandler);
+                            terminal.handle(Terminal.Signal.WINCH, prevWinchHandler);
+                            terminal.handle(Terminal.Signal.INT, prevIntHandler);
+                            terminal.handle(Terminal.Signal.TSTP, prevStopHandler);
+                            terminal.handle(Terminal.Signal.QUIT, prevQuitHandler);
                         }
                     } finally {
                         terminal.setAttributes(attributes);
