@@ -13,7 +13,12 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CoderResult;
+import java.nio.charset.CodingErrorAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -681,6 +686,9 @@ public class Tmux {
 
         private class MasterOutputStream extends OutputStream {
             private final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+            private final CharsetDecoder decoder = Charset.defaultCharset().newDecoder()
+                    .onMalformedInput(CodingErrorAction.REPLACE)
+                    .onUnmappableCharacter(CodingErrorAction.REPLACE);
 
             @Override
             public synchronized void write(int b) {
@@ -688,10 +696,33 @@ public class Tmux {
             }
 
             @Override
+            public void write(byte[] b, int off, int len) throws IOException {
+                buffer.write(b, off, len);
+            }
+
+            @Override
             public synchronized void flush() throws IOException {
-                terminal.write(buffer.toString());
-                masterInputOutput.write(terminal.read().getBytes());
-                buffer.reset();
+                int size = buffer.size();
+                if (size > 0) {
+                    CharBuffer out;
+                    for (; ; ) {
+                        out = CharBuffer.allocate(size);
+                        ByteBuffer in = ByteBuffer.wrap(buffer.toByteArray());
+                        CoderResult result = decoder.decode(in, out, false);
+                        if (result.isOverflow()) {
+                            size *= 2;
+                        } else {
+                            buffer.reset();
+                            buffer.write(in.array(), in.arrayOffset(), in.remaining());
+                            break;
+                        }
+                    }
+                    if (out.position() > 0) {
+                        out.flip();
+                        terminal.write(out);
+                        masterInputOutput.write(terminal.read().getBytes());
+                    }
+                }
             }
 
             @Override
