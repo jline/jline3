@@ -35,6 +35,7 @@
  */
 package org.jline.builtins;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -66,8 +67,8 @@ public class ScreenTerminal {
     private boolean eol;
     private int cx;
     private int cy;
-    private long[] screen;
-    private long[] screen2;
+    private long[][] screen;
+    private long[][] screen2;
     private State vt100_parse_state = State.None;
     private int vt100_parse_len;
     private int vt100_lastchar;
@@ -110,6 +111,8 @@ public class ScreenTerminal {
     private int scroll_area_y1;
 
     private List<Integer> tab_stops;
+
+    private final List<long[]> history = new ArrayList<>();
 
     private AtomicBoolean dirty = new AtomicBoolean(true);
 
@@ -188,10 +191,12 @@ public class ScreenTerminal {
 
     private void reset_screen() {
         // Screen
-        screen = new long[width * height];
-        Arrays.fill(screen, attr | 0x00000020);
-        screen2 = new long[width * height];
-        Arrays.fill(screen2, attr | 0x00000020);
+        screen = (long[][]) Array.newInstance(long.class, height, width);
+        screen2 = (long[][]) Array.newInstance(long.class, height, width);
+        for (int i = 0; i < height; i++) {
+            Arrays.fill(screen[i], attr | 0x00000020);
+            Arrays.fill(screen2[i], attr | 0x00000020);
+        }
         // Scroll parameters
         scroll_area_y0 = 0;
         scroll_area_y1 = height;
@@ -224,21 +229,41 @@ public class ScreenTerminal {
         if (newLength < 0)
             throw new IllegalArgumentException(from + " > " + to);
         long[] copy = new long[newLength];
-        System.arraycopy(screen, from, copy, 0,
-                Math.min(screen.length - from, newLength));
+        int cur = from;
+        while (cur < to) {
+            int y = cur / width;
+            int x = cur % width;
+            int nb = Math.min(width - x, to - cur);
+            System.arraycopy(screen[y], x, copy, cur - from, nb);
+            cur += nb;
+        }
         return copy;
     }
 
     private void poke(int y, int x, long[] s) {
-        System.arraycopy(s, 0, screen, width * y + x, s.length);
+        int cur = 0;
+        int max = s.length;
+        while (cur < max) {
+            int nb = Math.min(width - x, max - cur);
+            System.arraycopy(s, 0, screen[y++], x, nb);
+            x = 0;
+            cur += nb;
+        }
         setDirty();
     }
 
     private void fill(int y0, int x0, int y1, int x1, long c) {
-        int d0 = width * y0 + x0;
-        int d1 = width * (y1 - 1) + x1;
-        if (d0 <= d1) {
-            Arrays.fill(screen, width * y0 + x0, width * (y1 - 1) + x1, c);
+        if (y0 == y1 - 1) {
+            if (x0 < x1 - 1) {
+                Arrays.fill(screen[y0], x0, x1, c);
+                setDirty();
+            }
+        } else if (y0 < y1 - 1) {
+            Arrays.fill(screen[y0], x0, width, c);
+            for (int i = y0; i < y1 - 1; i++) {
+                Arrays.fill(screen[i], c);
+            }
+            Arrays.fill(screen[y1 - 1], 0, x1, c);
             setDirty();
         }
     }
@@ -257,8 +282,19 @@ public class ScreenTerminal {
 
     private void scroll_area_up(int y0, int y1, int n) {
         n = Math.min(y1 - y0, n);
-        poke(y0, 0, peek(y0 + n, 0, y1, width));
-        clear(y1 - n, 0, y1, width);
+        if (y0 == 0 && y1 == height) {
+            for (int i = 0; i < n; i++) {
+                history.add(screen[i]);
+            }
+            System.arraycopy(screen, n, screen, 0, height - n);
+            for (int i = 1; i <= n; i++) {
+                screen[y1 - i] = new long[width];
+                Arrays.fill(screen[y1 - 1], attr | 0x0020);
+            }
+        } else {
+            poke(y0, 0, peek(y0 + n, 0, y1, width));
+            clear(y1 - n, 0, y1, width);
+        }
     }
 
     private void scroll_area_down(int y0, int y1) {
@@ -560,7 +596,7 @@ public class ScreenTerminal {
                 case "?1049":
                     // Alternate screen mode
                     if ((state && !vt100_mode_alt_screen) || (!state && vt100_mode_alt_screen)) {
-                        long[] s = screen;
+                        long[][] s = screen;
                         screen = screen2;
                         screen2 = s;
                         Map<String, Object> map = vt100_saved;
@@ -1581,30 +1617,75 @@ public class ScreenTerminal {
         if (w < 2 || w > 256 || h < 2 || h > 256) {
             return false;
         }
-        int ow = width;
-        int oh = height;
-        long[] old = screen;
-        long[] old2 = screen2;
-        this.width = w;
-        this.height = h;
 
-        // Screen
-        screen = new long[width * height];
-        Arrays.fill(screen, attr | 0x00000020);
-        screen2 = new long[width * height];
-        Arrays.fill(screen2, attr | 0x00000020);
-        // Scroll parameters
-        scroll_area_y0 = Math.min(height, scroll_area_y0);
-        scroll_area_y1 = Math.min(height, scroll_area_y1);
-        // Cursor position
-        cx = Math.min(width - 1, cx);
-        cy = Math.min(height - 1, cy);
-
-        for (int j = 0; j < Math.min(h, oh); j++) {
-            int l = j + Math.max(0, oh - h);
-            System.arraycopy(old, l * ow, screen, j * w, Math.min(w, ow));
-            System.arraycopy(old2, l * ow, screen2, j * w, Math.min(w, ow));
+        // Set width
+        for (int i = 0; i < height; i++) {
+            if (screen[i].length < w) {
+                screen[i] = Arrays.copyOf(screen[i], w);
+            }
+            if (screen2[i].length < w) {
+                screen2[i] = Arrays.copyOf(screen2[i], w);
+            }
         }
+        if (cx >= w) {
+            cx = w - 1;
+        }
+
+        // Set height
+        if (h < height) {
+            int needed = height - h;
+            // Delete as many lines as possible from the bottom
+            int avail = height - 1 - cy;
+            if (avail > 0) {
+                if (avail > needed) {
+                    avail = needed;
+                }
+                screen = Arrays.copyOfRange(screen, 0, height - avail);
+            }
+            needed -= avail;
+            // Move lines to history
+            for (int i = 0; i < needed; i++) {
+                history.add(screen[i]);
+            }
+            screen = Arrays.copyOfRange(screen, needed, screen.length);
+            cy -= needed;
+        }
+        else if (h > height) {
+            int needed = h - height;
+            // Pull lines from history
+            int avail = history.size();
+            if (avail > needed) {
+                avail = needed;
+            }
+            long[][] sc = new long[h][];
+            if (avail > 0) {
+                for (int i = 0; i < avail; i++) {
+                    sc[i] = history.remove(history.size() - avail + i);
+                }
+                cy += avail;
+            }
+            System.arraycopy(screen, 0, sc, avail, screen.length);
+            for (int i = avail + screen.length; i < sc.length; i++) {
+                sc[i] = new long[w];
+                Arrays.fill(sc[i], attr | 0x00000020);
+            }
+            screen = sc;
+        }
+
+        screen2 = (long[][]) Array.newInstance(long.class, h, w);
+        for (int i = 0; i < h; i++) {
+            Arrays.fill(screen2[i], attr | 0x00000020);
+        }
+
+        // Scroll parameters
+        scroll_area_y0 = Math.min(h, scroll_area_y0);
+        scroll_area_y1 = scroll_area_y1 == height ? h : Math.min(h, scroll_area_y1);
+        // Cursor position
+        cx = Math.min(w - 1, cx);
+        cy = Math.min(h - 1, cy);
+
+        width = w;
+        height = h;
 
         setDirty();
         return true;
@@ -1796,8 +1877,8 @@ public class ScreenTerminal {
     public synchronized void dump(long[] fullscreen, int ftop, int fleft, int fheight, int fwidth, int[] cursor) {
         int cx = Math.min(this.cx, width - 1);
         int cy = this.cy;
-        for (int y = 0; y < height; y++) {
-            System.arraycopy(screen, y * width, fullscreen, (y + ftop) * fwidth + fleft, width);
+        for (int y = 0; y < Math.min(height, fheight - ftop); y++) {
+            System.arraycopy(screen[y], 0, fullscreen, (y + ftop) * fwidth + fleft, width);
         }
         if (cursor != null) {
             cursor[0] = cx + fleft;
@@ -1818,7 +1899,7 @@ public class ScreenTerminal {
             for (int y = 0; y < height; y++) {
                 int wx = 0;
                 for (int x = 0; x < width; x++) {
-                    long d = screen[y * width + x];
+                    long d = screen[y][x];
                     int c = (int) (d & 0xffffffff);
                     int a = (int) (d >> 32);
                     if (cy == y && cx == x && vt100_mode_cursor) {
@@ -1885,7 +1966,7 @@ public class ScreenTerminal {
         StringBuilder sb = new StringBuilder();
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                sb.appendCodePoint((int) (screen[y * width + x] & 0xffffffffL));
+                sb.appendCodePoint((int) (screen[y][x] & 0xffffffffL));
             }
             sb.append("\n");
         }
