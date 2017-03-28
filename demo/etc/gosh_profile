@@ -17,6 +17,14 @@ __call_static_method_no_arg = {
 \#.process = {
     __call_static_method_no_arg "org.apache.felix.service.command.Process\$Utils" "current"
 }
+# Define the $.job variable
+\#.job = {
+    __call_static_method_no_arg "org.apache.felix.service.command.Job\$Utils" "current"
+}
+
+__process_stream = {
+  (($.job processes) get 0) $1
+}
 
 # with gogo-jline-1.0.4, should not be needed at all, see FELIX-5463 and FELIX-5462
 (($.processor class) getMethod "addConverter" (__load_class_from $.processor "org.apache.felix.service.command.Converter")) invoke $.processor (new org.jline.demo.FunctionConverter)
@@ -28,7 +36,7 @@ if { $.terminal } {
         #
         __ttop = {
             _cl = (__load_class_from $.reader "org.jline.builtins.TTop")
-            $_cl "ttop" $.terminal (__get_static_field "java.lang.System" out) (__get_static_field "java.lang.System" err) ${argv[@]}
+            $_cl "ttop" $.terminal (__process_stream "out") (__process_stream "err") ${argv[@]}
         }
         $.processor addcommand "gogo" $__ttop "ttop" 0
 
@@ -55,14 +63,14 @@ if { $.terminal } {
             # a = [ "sshd" ${argv[@]} ]
             a = [ "sshd" ]
             each $argv { $a add $it }
-            $__remote_ssh_support sshd (__get_static_field "java.lang.System" "out") (__get_static_field "java.lang.System" "err") ${a[@]}
+            $__remote_ssh_support sshd (__process_stream "out") (__process_stream "err") ${a[@]}
         }
         __remote_ssh = {
             # See FELIX-5465, should be:
             # a = [ "ssh" ${argv[@]} ]
             a = [ "ssh" ]
             each $argv { $a add $it }
-            $__remote_ssh_support ssh $.terminal $.reader $USER (__get_static_field "java.lang.System" "in") (__get_static_field "java.lang.System" "out") (__get_static_field "java.lang.System" "err") ${a[@]}
+            $__remote_ssh_support ssh $.terminal $.reader $USER (__process_stream "in") (__process_stream "out") (__process_stream "err") ${a[@]}
         }
         $.processor addcommand "remote" $__remote_sshd "sshd" 0
         $.processor addcommand "remote" $__remote_ssh "ssh" 0
