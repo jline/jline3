@@ -19,14 +19,25 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
+import java.text.DateFormat;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
@@ -42,6 +53,10 @@ import org.jline.terminal.impl.LineDisciplineTerminal;
 import org.jline.utils.*;
 import org.jline.utils.InfoCmp.Capability;
 
+import static org.jline.builtins.Tmux.Layout.Type.LeftRight;
+import static org.jline.builtins.Tmux.Layout.Type.TopBottom;
+import static org.jline.builtins.Tmux.Layout.Type.WindowPane;
+
 /**
  * Terminal multiplexer
  */
@@ -52,7 +67,82 @@ public class Tmux {
     public static final String CMD_SEND_PREFIX = "send-prefix";
     public static final String CMD_SPLIT_WINDOW = "split-window";
     public static final String CMD_SELECT_PANE = "select-pane";
+    public static final String CMD_RESIZE_PANE = "resize-pane";
+    public static final String CMD_DISPLAY_PANES = "display-panes";
+    public static final String CMD_CLOCK_MODE = "clock-mode";
 
+    private static final int[][][] WINDOW_CLOCK_TABLE = {
+          { { 1,1,1,1,1 }, /* 0 */
+            { 1,0,0,0,1 },
+            { 1,0,0,0,1 },
+            { 1,0,0,0,1 },
+            { 1,1,1,1,1 } },
+          { { 0,0,0,0,1 }, /* 1 */
+            { 0,0,0,0,1 },
+            { 0,0,0,0,1 },
+            { 0,0,0,0,1 },
+            { 0,0,0,0,1 } },
+          { { 1,1,1,1,1 }, /* 2 */
+            { 0,0,0,0,1 },
+            { 1,1,1,1,1 },
+            { 1,0,0,0,0 },
+            { 1,1,1,1,1 } },
+          { { 1,1,1,1,1 }, /* 3 */
+            { 0,0,0,0,1 },
+            { 1,1,1,1,1 },
+            { 0,0,0,0,1 },
+            { 1,1,1,1,1 } },
+          { { 1,0,0,0,1 }, /* 4 */
+            { 1,0,0,0,1 },
+            { 1,1,1,1,1 },
+            { 0,0,0,0,1 },
+            { 0,0,0,0,1 } },
+          { { 1,1,1,1,1 }, /* 5 */
+            { 1,0,0,0,0 },
+            { 1,1,1,1,1 },
+            { 0,0,0,0,1 },
+            { 1,1,1,1,1 } },
+          { { 1,1,1,1,1 }, /* 6 */
+            { 1,0,0,0,0 },
+            { 1,1,1,1,1 },
+            { 1,0,0,0,1 },
+            { 1,1,1,1,1 } },
+          { { 1,1,1,1,1 }, /* 7 */
+            { 0,0,0,0,1 },
+            { 0,0,0,0,1 },
+            { 0,0,0,0,1 },
+            { 0,0,0,0,1 } },
+          { { 1,1,1,1,1 }, /* 8 */
+            { 1,0,0,0,1 },
+            { 1,1,1,1,1 },
+            { 1,0,0,0,1 },
+            { 1,1,1,1,1 } },
+          { { 1,1,1,1,1 }, /* 9 */
+            { 1,0,0,0,1 },
+            { 1,1,1,1,1 },
+            { 0,0,0,0,1 },
+            { 1,1,1,1,1 } },
+          { { 0,0,0,0,0 }, /* : */
+            { 0,0,1,0,0 },
+            { 0,0,0,0,0 },
+            { 0,0,1,0,0 },
+            { 0,0,0,0,0 } },
+          { { 1,1,1,1,1 }, /* A */
+            { 1,0,0,0,1 },
+            { 1,1,1,1,1 },
+            { 1,0,0,0,1 },
+            { 1,0,0,0,1 } },
+          { { 1,1,1,1,1 }, /* P */
+            { 1,0,0,0,1 },
+            { 1,1,1,1,1 },
+            { 1,0,0,0,0 },
+            { 1,0,0,0,0 } },
+          { { 1,0,0,0,1 }, /* M */
+            { 1,1,0,1,1 },
+            { 1,0,1,0,1 },
+            { 1,0,0,0,1 },
+            { 1,0,0,0,1 } },
+    };
 
 
     private final AtomicBoolean dirty = new AtomicBoolean(true);
@@ -64,9 +154,15 @@ public class Tmux {
     private final Consumer<Terminal> runner;
     private List<VirtualConsole> panes = new ArrayList<>();
     private VirtualConsole active;
+    private int lastActive;
     private final AtomicBoolean running = new AtomicBoolean(true);
     private final Size size = new Size();
     private final AtomicInteger paneId = new AtomicInteger();
+    private Layout layout;
+    private boolean identify;
+    private ScheduledExecutorService executor;
+
+    private ScheduledFuture<?> clockFuture;
 
     private final Map<String, String> serverOptions = new HashMap<>();
 
@@ -98,12 +194,14 @@ public class Tmux {
         }
         keyMap.bind(Binding.Mouse, KeyMap.key(terminal, Capability.key_mouse));
         keyMap.bind(CMD_SEND_PREFIX, prefix + prefix);
-        keyMap.bind(CMD_SPLIT_WINDOW, prefix + "\"");
+        keyMap.bind(CMD_SPLIT_WINDOW + " -v", prefix + "\"");
         keyMap.bind(CMD_SPLIT_WINDOW + " -h", prefix + "%");
         keyMap.bind(CMD_SELECT_PANE + " -U", prefix + KeyMap.key(terminal, Capability.key_up));
         keyMap.bind(CMD_SELECT_PANE + " -L", prefix + KeyMap.key(terminal, Capability.key_left));
         keyMap.bind(CMD_SELECT_PANE + " -R", prefix + KeyMap.key(terminal, Capability.key_right));
         keyMap.bind(CMD_SELECT_PANE + " -D", prefix + KeyMap.key(terminal, Capability.key_down));
+        keyMap.bind(CMD_DISPLAY_PANES, prefix + "q");
+        keyMap.bind(CMD_CLOCK_MODE, prefix + "t");
         return keyMap;
     }
 
@@ -116,10 +214,16 @@ public class Tmux {
         terminal.puts(Capability.keypad_xmit);
         terminal.trackMouse(Terminal.MouseTracking.Any);
         terminal.flush();
+        executor = Executors.newSingleThreadScheduledExecutor();
         try {
             // Create first pane
             size.copy(terminal.getSize());
-            active = new VirtualConsole(getNewPaneName(), term, 0, 0, size.getColumns(), size.getRows() - 1, this::setDirty, this::close);
+            layout = new Layout();
+            layout.sx = size.getColumns();
+            layout.sy = size.getRows();
+            layout.type = WindowPane;
+            active = new VirtualConsole(paneId.incrementAndGet(), term, 0, 0, size.getColumns(), size.getRows() - 1, this::setDirty, this::close, layout);
+            active.active = lastActive++;
             active.getConsole().setAttributes(terminal.getAttributes());
             panes.add(active);
             runner.accept(active.getConsole());
@@ -127,7 +231,10 @@ public class Tmux {
             new Thread(this::inputLoop, "Mux input loop").start();
             // Redraw loop
             redrawLoop();
+        } catch (RuntimeException e) {
+            throw e;
         } finally {
+            executor.shutdown();
             terminal.trackMouse(Terminal.MouseTracking.Off);
             terminal.puts(Capability.keypad_local);
             terminal.puts(Capability.exit_ca_mode);
@@ -178,8 +285,17 @@ public class Tmux {
                     b = null;
                 }
                 if (b == Binding.SelfInsert) {
-                    active.getMasterInputOutput().write(reader.getLastBinding().getBytes());
-                    first = false;
+                    if (active.clock) {
+                        active.clock = false;
+                        if (clockFuture != null && panes.stream().noneMatch(vc -> vc.clock)) {
+                            clockFuture.cancel(false);
+                            clockFuture = null;
+                        }
+                        setDirty();
+                    } else {
+                        active.getMasterInputOutput().write(reader.getLastBinding().getBytes());
+                        first = false;
+                    }
                 } else {
                     if (first) {
                         first = false;
@@ -220,9 +336,18 @@ public class Tmux {
                 running.set(false);
                 setDirty();
             } else {
+                terminal.layout.remove();
                 if (active == terminal) {
-                    active = panes.get(Math.max(0, idx - 1));
+                    active = panes.stream()
+                                .sorted(Comparator.<VirtualConsole>comparingInt(p -> p.active).reversed())
+                                .findFirst().get();
                 }
+                layout = active.layout;
+                while (layout.parent != null) {
+                    layout = layout.parent;
+                }
+                layout.fixOffsets();
+                layout.fixPanes(size.getColumns(), size.getRows());
                 resize(Signal.WINCH);
             }
         }
@@ -243,29 +368,14 @@ public class Tmux {
 
     private void handleResize() {
         // Re-compute the layout
-        // TODO: implement this correctly
-        // TODO: for now, force a tiled-layout
         size.copy(terminal.getSize());
-        int nbPanes = panes.size();
-        int nbRows = 1;
-        while (nbRows * nbRows < nbPanes) {
-            nbRows++;
-        }
-        int nbCols = (nbPanes + nbRows - 1) / nbRows;
-        int width = size.getColumns();
-        int height = size.getRows() - 1;
-        int colWidth = (width - nbCols + 1) / nbCols;
-        int rowHeight = (height - nbRows + 1) / nbRows;
-        for (int pane = 0; pane < nbPanes; pane++) {
-            VirtualConsole terminal = panes.get(pane);
-            int i = pane % nbCols;
-            int j = pane / nbCols;
-            int l = i * colWidth + i;
-            int w = (i == nbCols - 1 || pane == nbPanes - 1) ? width - l : colWidth;
-            int t = j * rowHeight + j;
-            int h = (j == nbRows - 1 || pane == nbPanes - 1) ? height - t : rowHeight;
-            terminal.resize(l, t, w, h);
-        }
+        layout.resize(size.getColumns(), size.getRows() - 1);
+        panes.forEach(vc -> {
+            if (vc.width() != vc.layout.sx || vc.height() != vc.layout.sy
+                    || vc.left() != vc.layout.xoff || vc.top() != vc.layout.yoff) {
+                vc.resize(vc.layout.xoff, vc.layout.yoff, vc.layout.sx, vc.layout.sy);
+            }
+        });
         display.clear();
     }
 
@@ -287,6 +397,98 @@ public class Tmux {
             case CMD_SELECT_PANE:
                 selectPane(out, err, args);
                 break;
+            case CMD_RESIZE_PANE:
+                resizePane(out, err, args);
+                break;
+            case CMD_DISPLAY_PANES:
+                displayPanes(out, err, args);
+                break;
+            case CMD_CLOCK_MODE:
+                clockMode(out, err, args);
+                break;
+        }
+    }
+
+    protected void clockMode(PrintStream out, PrintStream err, List<String> args) throws IOException {
+        final String[] usage = {
+                "clock-mode - ",
+                "Usage: clock-mode",
+                "  -? --help                    Show help"
+        };
+        Options opt = Options.compile(usage).parse(args);
+        if (opt.isSet("help")) {
+            opt.usage(err);
+            return;
+        }
+        active.clock = true;
+
+        if (clockFuture == null) {
+            long initial = Instant.now().until(Instant.now().truncatedTo(ChronoUnit.MINUTES).plusSeconds(60), ChronoUnit.MILLIS);
+            long delay = TimeUnit.MILLISECONDS.convert(1, TimeUnit.SECONDS);
+            clockFuture = executor.scheduleWithFixedDelay(this::setDirty, initial, delay, TimeUnit.MILLISECONDS);
+        }
+        setDirty();
+    }
+
+    protected void displayPanes(PrintStream out, PrintStream err, List<String> args) throws IOException {
+        final String[] usage = {
+                "display-panes - ",
+                "Usage: display-panes",
+                "  -? --help                    Show help"
+        };
+        Options opt = Options.compile(usage).parse(args);
+        if (opt.isSet("help")) {
+            opt.usage(err);
+            return;
+        }
+        identify = true;
+        setDirty();
+        executor.schedule(() -> {
+            identify = false;
+            setDirty();
+        }, 1, TimeUnit.SECONDS);
+    }
+
+    protected void resizePane(PrintStream out, PrintStream err, List<String> args) throws IOException {
+        final String[] usage = {
+                "resize-pane - ",
+                "Usage: resize-pane [-UDLR] [-x width] [-y height] [-t target-pane] [adjustment]",
+                "  -? --help                    Show help",
+                "  -U                           Select pane up",
+                "  -D                           Select pane down",
+                "  -L                           Select pane left",
+                "  -R                           Select pane right",
+        };
+        Options opt = Options.compile(usage).parse(args);
+        if (opt.isSet("help")) {
+            opt.usage(err);
+            return;
+        }
+        int adjust;
+        if (opt.args().size() == 0) {
+            adjust = 1;
+        } else if (opt.args().size() == 1) {
+            adjust = Integer.parseInt(opt.args().get(0));
+        } else {
+            opt.usage(err);
+            return;
+        }
+        if (opt.isSet("x")) {
+            int x = opt.getNumber("x");
+            active.layout().resizeTo(LeftRight, x);
+        }
+        if (opt.isSet("y")) {
+            int y = opt.getNumber("y");
+            active.layout().resizeTo(Layout.Type.TopBottom, y);
+        }
+        if (opt.isSet("L")) {
+            active.layout().resize(LeftRight, -adjust, true);
+        } else if (opt.isSet("R")) {
+            active.layout().resize(LeftRight, adjust, true);
+        } else if (opt.isSet("U")) {
+            active.layout().resize(TopBottom, -adjust, true);
+        } else if (opt.isSet("D")) {
+            active.layout().resize(TopBottom, adjust, true);
         }
     }
 
@@ -307,17 +509,42 @@ public class Tmux {
         }
         VirtualConsole prevActive = active;
         if (opt.isSet("L")) {
-            // TODO: this is a wrong implementation
-            int idx = panes.indexOf(active);
-            active = panes.get((idx + panes.size() - 1) % panes.size());
+            active = panes.stream()
+                    .filter(c -> c.bottom() > active.top() && c.top() < active.bottom())
+                    .filter(c -> c != active)
+                    .sorted(Comparator
+                            .<VirtualConsole>comparingInt(c -> c.left() > active.left() ? c.left() : c.left() + size.getColumns()).reversed()
+                            .<VirtualConsole>thenComparingInt(c -> - c.active))
+                    .findFirst().orElse(active);
         }
         else if (opt.isSet("R")) {
-            // TODO: this is a wrong implementation
-            int idx = panes.indexOf(active);
-            active = panes.get((idx + 1) % panes.size());
+            active = panes.stream()
+                    .filter(c -> c.bottom() > active.top() && c.top() < active.bottom())
+                    .filter(c -> c != active)
+                    .sorted(Comparator
+                            .<VirtualConsole>comparingInt(c -> c.left() > active.left() ? c.left() : c.left() + size.getColumns())
+                            .<VirtualConsole>thenComparingInt(c -> - c.active))
+                    .findFirst().orElse(active);
+        } else if (opt.isSet("U")) {
+            active = panes.stream()
+                    .filter(c -> c.right() > active.left() && c.left() < active.right())
+                    .filter(c -> c != active)
+                    .sorted(Comparator
+                            .<VirtualConsole>comparingInt(c -> c.top() > active.top() ? c.top() : c.top() + size.getRows()).reversed()
+                            .<VirtualConsole>thenComparingInt(c -> - c.active))
+                    .findFirst().orElse(active);
+        } else if (opt.isSet("D")) {
+            active = panes.stream()
+                    .filter(c -> c.right() > active.left() && c.left() < active.right())
+                    .filter(c -> c != active)
+                    .sorted(Comparator
+                            .<VirtualConsole>comparingInt(c -> c.top() > active.top() ? c.top() : c.top() + size.getRows())
+                            .<VirtualConsole>thenComparingInt(c -> - c.active))
+                    .findFirst().orElse(active);
         }
         if (prevActive != active) {
             setDirty();
+            active.active = lastActive++;
         }
     }
 
@@ -338,47 +565,80 @@ public class Tmux {
     protected void splitWindow(PrintStream out, PrintStream err, List<String> args) throws IOException {
         final String[] usage = {
                 "split-window - ",
-                "Usage: split-window [-bdhvP] [-c start-directory] [-F format] [-p percentage|-l size] [-t target-pane] [command]",
+                "Usage: split-window [-bdfhvP] [-c start-directory] [-F format] [-p percentage|-l size] [-t target-pane] [command]",
                 "  -? --help                    Show help",
                 "  -h                           Horizontal split",
-                "  -v                           Vertical split"
+                "  -v                           Vertical split",
+                "  -l size                      Size",
+                "  -p percentage                Percentage",
+                "  -b                           Insert the new pane before the active one",
+                "  -f                           Split the full window instead of the active pane",
+                "  -d                           Do not make the new pane the active one"
         };
         Options opt = Options.compile(usage).parse(args);
         if (opt.isSet("help")) {
             opt.usage(err);
             return;
         }
-        VirtualConsole target = active;
-        if (opt.isSet("h")) {
-            int l0 = target.getLeft();
-            int t0 = target.getTop();
-            int w0 = target.getWidth();
-            int h0 = target.getHeight();
-            int l1 = l0;
-            int w1 = (w0 - 1) / 2;
-            int l2 = l1 + w1 + 1;
-            int w2 = l0 + w0 - l2;
-            target.resize(l1, t0, w1, h0);
-            active = new VirtualConsole(getNewPaneName(), term, l2, t0, w2, h0, this::setDirty, this::close);
-            active.getConsole().setAttributes(terminal.getAttributes());
-            panes.add(panes.indexOf(target) + 1, active);
-            runner.accept(active.getConsole());
-        } else {
-            int l0 = target.getLeft();
-            int t0 = target.getTop();
-            int w0 = target.getWidth();
-            int h0 = target.getHeight();
-            int t1 = t0;
-            int h1 = (h0 - 1) / 2;
-            int t2 = t1 + h1 + 1;
-            int h2 = t0 + h0 - t2;
-            target.resize(l0, t1, w0, h1);
-            active = new VirtualConsole(getNewPaneName(), term, l0, t2, w0, h2, this::setDirty, this::close);
-            active.getConsole().setAttributes(terminal.getAttributes());
-            panes.add(panes.indexOf(target) + 1, active);
-            runner.accept(active.getConsole());
+        Layout.Type type = opt.isSet("h") ? LeftRight : TopBottom;
+        // If we're splitting the main pane, create a parent
+        if (layout.type == WindowPane) {
+            Layout p = new Layout();
+            p.sx = layout.sx;
+            p.sy = layout.sy;
+            p.type = type;
+            p.cells.add(layout);
+            layout.parent = p;
+            layout = p;
         }
+        Layout cell = active.layout();
+        if (opt.isSet("f")) {
+            while (cell.parent != layout) {
+                cell = cell.parent;
+            }
+        }
+        int size = -1;
+        if (opt.isSet("l")) {
+            size = opt.getNumber("l");
+        } else if (opt.isSet("p")) {
+            int p = opt.getNumber("p");
+            if (type == Layout.Type.TopBottom) {
+                size = (cell.sy * p) / 100;
+            } else {
+                size = (cell.sx * p) / 100;
+            }
+        }
+        // Split now
+        Layout newCell = cell.split(type, size, opt.isSet("b"));
+        if (newCell == null) {
+            err.println("create pane failed: pane too small");
+            return;
+        }
+
+        panes.forEach(vc -> {
+            if (vc.width() != vc.layout.sx || vc.height() != vc.layout.sy
+                    || vc.left() != vc.layout.xoff || vc.top() != vc.layout.yoff) {
+                vc.resize(vc.layout.xoff, vc.layout.yoff, vc.layout.sx, vc.layout.sy);
+            }
+        });
+
+        VirtualConsole newConsole = new VirtualConsole(paneId.incrementAndGet(), term, newCell.xoff, newCell.yoff, newCell.sx, newCell.sy, this::setDirty, this::close, newCell);
+        panes.add(newConsole);
+        newConsole.getConsole().setAttributes(terminal.getAttributes());
+        if (!opt.isSet("d")) {
+            active = newConsole;
+            active.active = lastActive++;
+        }
+        runner.accept(newConsole.getConsole());
     }
+
+    protected void layoutResize() {
+        // See layout_resize
+    }
+
+    int ACTIVE_COLOR = 0xF44;
+    int INACTIVE_COLOR = 0x44F;
+    int CLOCK_COLOR = 0x44F;
 
     protected synchronized void redraw() {
         long[] screen = new long[size.getRows() * size.getColumns()];
@@ -386,9 +646,19 @@ public class Tmux {
         Arrays.fill(screen, 0x00000020L);
         int[] cursor = new int[2];
         for (VirtualConsole terminal : panes) {
-            // Dump terminal
-            terminal.dump(screen, terminal.getTop(), terminal.getLeft(), size.getRows(), size.getColumns(),
-                    terminal == active ? cursor : null);
+            if (terminal.clock) {
+                String str = DateFormat.getTimeInstance(DateFormat.SHORT).format(new Date());
+                print(screen, terminal, str, CLOCK_COLOR);
+            } else {
+                // Dump terminal
+                terminal.dump(screen, terminal.top(), terminal.left(), size.getRows(), size.getColumns(),
+                        terminal == active ? cursor : null);
+            }
+
+            if (identify) {
+                String id = Integer.toString(terminal.id);
+                print(screen, terminal, id, terminal == active ? ACTIVE_COLOR : INACTIVE_COLOR);
+            }
             // Draw border
             drawBorder(screen, size, terminal, 0x0L);
         }
@@ -478,23 +748,71 @@ public class Tmux {
         terminal.flush();
     }
 
+    private void print(long[] screen, VirtualConsole terminal, String id, int color) {
+        if (terminal.height() > 5) {
+            long attr = ((long) color << 32) | 0x02000000000000000L;
+            int yoff = (terminal.height() - 5) / 2;
+            int xoff = (terminal.width() - id.length() * 6) / 2;
+            for (int i = 0; i < id.length(); i++) {
+                char ch = id.charAt(i);
+                int idx;
+                switch (ch) {
+                case '0':
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7':
+                case '8':
+                case '9': idx = ch - '0'; break;
+                case ':': idx = 10; break;
+                case 'A': idx = 11; break;
+                case 'P': idx = 12; break;
+                case 'M': idx = 13; break;
+                default:  idx = -1; break;
+                }
+                if (idx >= 0) {
+                    int[][] data = WINDOW_CLOCK_TABLE[idx];
+                    for (int y = 0; y < data.length; y++) {
+                        for (int x = 0; x < data[y].length; x++) {
+                            if (data[y][x] != 0) {
+                                int off = (terminal.top + yoff + y) * size.getColumns() + terminal.left() + xoff + x + 6 * i;
+                                screen[off] = attr | ' ';
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            long attr = ((long) color << 44) | 0x01000000000000000L;
+            int yoff = (terminal.height() + 1) / 2;
+            int xoff = (terminal.width() - id.length()) / 2;
+            int off = (terminal.top + yoff) * size.getColumns() + terminal.left() + xoff;
+            for (int i = 0; i < id.length(); i++) {
+                screen[off + i] = attr | id.charAt(i);
+            }
+        }
+    }
+
     private void drawBorder(long[] screen, Size size, VirtualConsole terminal, long attr) {
-        for (int i = terminal.getLeft(); i < terminal.getLeft() + terminal.getWidth(); i++) {
-            int y0 = terminal.getTop() - 1;
-            int y1 = terminal.getTop() + terminal.getHeight();
+        for (int i = terminal.left(); i < terminal.right(); i++) {
+            int y0 = terminal.top() - 1;
+            int y1 = terminal.bottom();
             drawBorderChar(screen, size, i, y0, attr, '─');
             drawBorderChar(screen, size, i, y1, attr, '─');
         }
-        for (int i = terminal.getTop(); i < terminal.getTop() + terminal.getHeight(); i++) {
-            int x0 = terminal.getLeft() - 1;
-            int x1 = terminal.getLeft() + terminal.getWidth();
+        for (int i = terminal.top(); i < terminal.bottom(); i++) {
+            int x0 = terminal.left() - 1;
+            int x1 = terminal.right();
             drawBorderChar(screen, size, x0, i, attr, '│');
             drawBorderChar(screen, size, x1, i, attr, '│');
         }
-        drawBorderChar(screen, size, terminal.getLeft() - 1, terminal.getTop() - 1, attr, '┌');
-        drawBorderChar(screen, size, terminal.getLeft() + terminal.getWidth(), terminal.getTop() - 1, attr, '┐');
-        drawBorderChar(screen, size, terminal.getLeft() - 1, terminal.getTop() + terminal.getHeight(), attr, '└');
-        drawBorderChar(screen, size, terminal.getLeft() + terminal.getWidth(), terminal.getTop() + terminal.getHeight(), attr, '┘');
+        drawBorderChar(screen, size, terminal.left() - 1, terminal.top() - 1, attr, '┌');
+        drawBorderChar(screen, size, terminal.right(), terminal.top() - 1, attr, '┐');
+        drawBorderChar(screen, size, terminal.left() - 1, terminal.bottom(), attr, '└');
+        drawBorderChar(screen, size, terminal.right(), terminal.bottom(), attr, '┘');
     }
 
     private void drawBorderChar(long[] screen, Size size, int x, int y, long attr, int c) {
@@ -598,20 +916,419 @@ public class Tmux {
         }
     }
 
-    private String getNewPaneName() {
-        return String.format("tmux%02d", paneId.incrementAndGet());
+    static class Layout {
+
+        static final Pattern PATTERN = Pattern.compile("([0-9]+)x([0-9]+),([0-9]+),([0-9]+)([^0-9]\\S*)?");
+        private static final int PANE_MINIMUM = 3;
+
+        enum Type { LeftRight, TopBottom, WindowPane }
+
+        Type type;
+        Layout parent;
+        int sx;
+        int sy;
+        int xoff;
+        int yoff;
+        List<Layout> cells = new ArrayList<>();
+
+        public static Layout parse(String layout) {
+            if (layout.length() < 6) {
+                throw new IllegalArgumentException("Bad syntax");
+            }
+            String chk = layout.substring(0, 4);
+            if (layout.charAt(4) != ',') {
+                throw new IllegalArgumentException("Bad syntax");
+            }
+            layout = layout.substring(5);
+            if (Integer.parseInt(chk, 16) != checksum(layout)) {
+                throw new IllegalArgumentException("Bad checksum");
+            }
+            return parseCell(null, layout);
+        }
+
+        public String dump() {
+            StringBuilder sb = new StringBuilder(64);
+            sb.append("0000,");
+            doDump(sb);
+            int chk = checksum(sb, 5);
+            sb.setCharAt(0, toHexChar((chk >> 12) & 0x000F));
+            sb.setCharAt(1, toHexChar((chk >> 8) & 0x000F));
+            sb.setCharAt(2, toHexChar((chk >> 4) & 0x000F));
+            sb.setCharAt(3, toHexChar(chk & 0x000F));
+            return sb.toString();
+        }
+
+        private static char toHexChar(int i) {
+            return (i < 10) ? (char)(i + '0') : (char)(i - 10 + 'a');
+        }
+
+        private void doDump(StringBuilder sb) {
+            sb.append(sx).append('x').append(sy).append(',').append(xoff).append(',').append(yoff);
+            switch (type) {
+                case WindowPane:
+                    sb.append(',').append('0');
+                    break;
+                case TopBottom:
+                case LeftRight:
+                    sb.append(type == Type.TopBottom ? '[' : '{');
+                    boolean first = true;
+                    for (Layout c : cells) {
+                        if (first) {
+                            first = false;
+                        } else {
+                            sb.append(',');
+                        }
+                        c.doDump(sb);
+                    }
+                    sb.append(type == Type.TopBottom ? ']' : '}');
+                    break;
+            }
+        }
+
+        public void resize(Type type, int adjust, boolean opposite) {
+            // TODO
+        }
+
+        public void resizeTo(Type type, int change) {
+            // TODO
+        }
+
+        public void resize(int sx, int sy) {
+            // Horizontal
+            int xchange = sx - this.sx;
+            int xlimit = resizeCheck(LeftRight);
+            if (xchange < 0 && xchange < -xlimit) {
+                xchange = -xlimit;
+            }
+            if (xlimit == 0) {
+                if (sx <= this.sx) {
+                    xchange = 0;
+                } else {
+                    xchange = sx - this.sx;
+                }
+            }
+            if (xchange != 0) {
+                resizeAdjust(LeftRight, xchange);
+            }
+
+            // Horizontal
+            int ychange = sy - this.sy;
+            int ylimit = resizeCheck(Type.TopBottom);
+            if (ychange < 0 && ychange < -ylimit) {
+                ychange = -ylimit;
+            }
+            if (ylimit == 0) {
+                if (sy <= this.sy) {
+                    ychange = 0;
+                } else {
+                    ychange = sy - this.sy;
+                }
+            }
+            if (ychange != 0) {
+                resizeAdjust(Type.TopBottom, ychange);
+            }
+
+            // Fix offsets
+            fixOffsets();
+            fixPanes(sx, sy);
+        }
+
+        public void remove() {
+            if (parent == null) {
+                throw new IllegalStateException();
+            }
+            int idx = parent.cells.indexOf(this);
+            Layout other = parent.cells.get(idx == 0 ? 1 : idx - 1);
+            other.resizeAdjust(parent.type, parent.type == LeftRight ? (sx + 1) : (sy + 1));
+            parent.cells.remove(this);
+            if (other.parent.cells.size() == 1) {
+                if (other.parent.parent == null) {
+                    other.parent = null;
+                } else {
+                    other.parent.parent.cells.set(other.parent.parent.cells.indexOf(other.parent), other);
+                    other.parent = other.parent.parent;
+                }
+            }
+        }
+
+        private int resizeCheck(Type type) {
+            if (this.type == Type.WindowPane) {
+                int min = PANE_MINIMUM;
+                int avail;
+                if (type == LeftRight) {
+                    avail = this.sx;
+                } else {
+                    avail = this.sy;
+                    min += 1; // TODO: need status
+                }
+                if (avail > min) {
+                    avail -= min;
+                } else {
+                    avail = 0;
+                }
+                return avail;
+            } else if (this.type == type) {
+                return this.cells.stream()
+                        .mapToInt(c -> c.resizeCheck(type))
+                        .sum();
+            } else {
+                return this.cells.stream()
+                        .mapToInt(c -> c.resizeCheck(type))
+                        .min()
+                        .orElse(Integer.MAX_VALUE);
+            }
+        }
+
+        private void resizeAdjust(Type type, int change) {
+            if (type == LeftRight) {
+                this.sx += change;
+            } else {
+                this.sy += change;
+            }
+            if (this.type == Type.WindowPane) {
+                return;
+            }
+            if (this.type != type) {
+                for (Layout c : cells) {
+                    c.resizeAdjust(type, change);
+                }
+                return;
+            }
+            while (change != 0) {
+                for (Layout c : cells) {
+                    if (change == 0) {
+                        break;
+                    }
+                    if (change > 0) {
+                        c.resizeAdjust(type, 1);
+                        change--;
+                        continue;
+                    }
+                    if (c.resizeCheck(type) > 0) {
+                        c.resizeAdjust(type, -1);
+                        change++;
+                    }
+                };
+            }
+        }
+
+        public void fixOffsets() {
+            if (type == LeftRight) {
+                int xoff = this.xoff;
+                for (Layout cell : cells) {
+                    cell.xoff = xoff;
+                    cell.yoff = this.yoff;
+                    cell.fixOffsets();
+                    xoff += cell.sx + 1;
+                }
+            } else if (type == TopBottom) {
+                int yoff = this.yoff;
+                for (Layout cell : cells) {
+                    cell.xoff = this.xoff;
+                    cell.yoff = yoff;
+                    cell.fixOffsets();
+                    yoff += cell.sy + 1;
+                }
+            }
+        }
+
+        public void fixPanes() {
+
+        }
+
+        public void fixPanes(int sx, int sy) {
+
+        }
+
+        public int countCells() {
+            switch (type) {
+                case LeftRight:
+                case TopBottom:
+                    return cells.stream().mapToInt(Layout::countCells).sum();
+                default:
+                    return 1;
+            }
+        }
+
+        public Layout split(Type type, int size, boolean insertBefore) {
+            if (type == WindowPane) {
+                throw new IllegalStateException();
+            }
+            if ((type == LeftRight ? sx : sy) < PANE_MINIMUM * 2 + 1) {
+                return null;
+            }
+            if (parent == null) {
+                throw new IllegalStateException();
+            }
+
+            int saved_size = type == LeftRight ? sx : sy;
+            int size2 = size < 0 ? ((saved_size + 1) / 2) - 1 : insertBefore ? saved_size - size - 1 : size;
+            if (size2 < PANE_MINIMUM) {
+                size2 = PANE_MINIMUM;
+            } else if (size2 > saved_size - 2) {
+                size2 = saved_size - 2;
+            }
+            int size1 = saved_size - 1 - size2;
+
+            if (parent.type != type) {
+                Layout p = new Layout();
+                p.type = type;
+                p.parent = parent;
+                p.sx = sx;
+                p.sy = sy;
+                p.xoff = xoff;
+                p.yoff = yoff;
+                parent.cells.set(parent.cells.indexOf(this), p);
+                p.cells.add(this);
+                parent = p;
+            }
+            Layout cell = new Layout();
+            cell.type = WindowPane;
+            cell.parent = parent;
+            parent.cells.add(parent.cells.indexOf(this) + (insertBefore ? 0 : 1), cell);
+
+            int sx = this.sx;
+            int sy = this.sy;
+            int xoff = this.xoff;
+            int yoff = this.yoff;
+            Layout cell1, cell2;
+            if (insertBefore) {
+                cell1 = cell;
+                cell2 = this;
+            } else {
+                cell1 = this;
+                cell2 = cell;
+            }
+            if (type == LeftRight) {
+                cell1.setSize(size1, sy, xoff, yoff);
+                cell2.setSize(size2, sy, xoff + size1 + 1, yoff);
+            } else {
+                cell1.setSize(sx, size1, xoff, yoff);
+                cell2.setSize(sx, size2, xoff, yoff + size1 + 1);
+            }
+            return cell;
+        }
+
+        private void setSize(int sx, int sy, int xoff, int yoff) {
+            this.sx = sx;
+            this.sy = sy;
+            this.xoff = xoff;
+            this.yoff = yoff;
+        }
+
+        private static int checksum(CharSequence layout) {
+            return checksum(layout, 0);
+        }
+
+        private static int checksum(CharSequence layout, int start) {
+            int csum = 0;
+            for (int i = start; i < layout.length(); i++) {
+                csum = (csum >> 1) + ((csum & 1) << 15);
+                csum += layout.charAt(i);
+            }
+            return csum;
+        }
+
+        private static Layout parseCell(Layout parent, String layout) {
+            Matcher matcher = PATTERN.matcher(layout);
+            if (matcher.matches()) {
+                Layout cell = new Layout();
+                cell.type = Type.WindowPane;
+                cell.parent = parent;
+                cell.sx = Integer.parseInt(matcher.group(1));
+                cell.sy = Integer.parseInt(matcher.group(2));
+                cell.xoff = Integer.parseInt(matcher.group(3));
+                cell.yoff = Integer.parseInt(matcher.group(4));
+                if (parent != null) {
+                    parent.cells.add(cell);
+                }
+                layout = matcher.group(5);
+                if (layout == null || layout.isEmpty()) {
+                    return cell;
+                }
+                if (layout.charAt(0) == ',') {
+                    int i = 1;
+                    while (i < layout.length() && Character.isDigit(layout.charAt(i))) {
+                        i++;
+                    }
+                    if (i == layout.length()) {
+                        return cell;
+                    }
+                    if (layout.charAt(i) == ',') {
+                        layout = layout.substring(i);
+                    }
+                }
+                int i;
+                switch (layout.charAt(0)) {
+                    case '{':
+                        cell.type = LeftRight;
+                        i = findMatch(layout, '{', '}');
+                        parseCell(cell, layout.substring(1, i));
+                        layout = layout.substring(i + 1);
+                        if (!layout.isEmpty() && layout.charAt(0) == ',') {
+                            parseCell(parent, layout.substring(1));
+                        }
+                        return cell;
+                    case '[':
+                        cell.type = Type.TopBottom;
+                        i = findMatch(layout, '[', ']');
+                        parseCell(cell, layout.substring(1, i));
+                        layout = layout.substring(i + 1);
+                        if (!layout.isEmpty() && layout.charAt(0) == ',') {
+                            parseCell(parent, layout.substring(1));
+                        }
+                        return cell;
+                    case ',':
+                        parseCell(parent, layout.substring(1));
+                        return cell;
+                    default:
+                        throw new IllegalArgumentException("Unexpected '" + layout.charAt(0) + "'");
+                }
+            } else {
+                throw new IllegalArgumentException("Bad syntax");
+            }
+        }
+    }
+
+    private static int findMatch(String layout, char c0, char c1) {
+        if (layout.charAt(0) != c0) {
+            throw new IllegalArgumentException();
+        }
+        int nb = 0;
+        int i = 0;
+        while (i < layout.length()) {
+            char c = layout.charAt(i);
+            if (c == c0) {
+                nb++;
+            } else if (c == c1) {
+                if (--nb == 0) {
+                    return i;
+                }
+            }
+            i++;
+        }
+        if (nb > 0) {
+            throw new IllegalArgumentException("No matching '" + c1 + "'");
+        }
+        return i;
     }
 
     private static class VirtualConsole implements Closeable {
         private final ScreenTerminal terminal;
         private final Consumer<VirtualConsole> closer;
+        private final int id;
         private int left;
         private int top;
+        private final Layout layout;
+        private int active;
+        private boolean clock;
         private final OutputStream masterOutput;
         private final OutputStream masterInputOutput;
         private final LineDisciplineTerminal console;
 
-        public VirtualConsole(String name, String type, int left, int top, int columns, int rows, Runnable dirty, Consumer<VirtualConsole> closer) throws IOException {
+        public VirtualConsole(int id, String type, int left, int top, int columns, int rows, Runnable dirty, Consumer<VirtualConsole> closer, Layout layout) throws IOException {
+            String name = String.format("tmux%02d", id);
+            this.id = id;
             this.left = left;
             this.top = top;
             this.closer = closer;
@@ -641,21 +1358,34 @@ public class Tmux {
                 }
             };
             this.console.setSize(new Size(columns, rows));
+            this.layout = layout;
         }
 
-        public int getLeft() {
+        Layout layout() {
+            return layout;
+        }
+
+        public int left() {
             return left;
         }
 
-        public int getTop() {
+        public int top() {
             return top;
         }
 
-        public int getWidth() {
+        public int right() {
+            return left() + width();
+        }
+
+        public int bottom() {
+            return top() + height();
+        }
+
+        public int width() {
             return console.getWidth();
         }
 
-        public int getHeight() {
+        public int height() {
             return console.getHeight();
         }
 
