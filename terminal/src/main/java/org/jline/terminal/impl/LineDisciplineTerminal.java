@@ -238,6 +238,23 @@ public class LineDisciplineTerminal extends AbstractTerminal {
         @Override
         public void write(int b) throws IOException {
             processOutputByte(b);
+            flush();
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException {
+            if (b == null) {
+                throw new NullPointerException();
+            } else if ((off < 0) || (off > b.length) || (len < 0) ||
+                    ((off + len) > b.length) || ((off + len) < 0)) {
+                throw new IndexOutOfBoundsException();
+            } else if (len == 0) {
+                return;
+            }
+            for (int i = 0 ; i < len ; i++) {
+                processOutputByte(b[off + i]);
+            }
+            flush();
         }
 
         @Override
