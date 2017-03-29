@@ -56,6 +56,7 @@ import org.jline.utils.InfoCmp.Capability;
 import static org.jline.builtins.Tmux.Layout.Type.LeftRight;
 import static org.jline.builtins.Tmux.Layout.Type.TopBottom;
 import static org.jline.builtins.Tmux.Layout.Type.WindowPane;
+import static org.jline.keymap.KeyMap.*;
 
 /**
  * Terminal multiplexer
@@ -192,14 +193,22 @@ public class Tmux {
         for (int i = 0; i < 255; i++) {
             keyMap.bind(Binding.Discard, prefix + (char)(i));
         }
-        keyMap.bind(Binding.Mouse, KeyMap.key(terminal, Capability.key_mouse));
+        keyMap.bind(Binding.Mouse, key(terminal, Capability.key_mouse));
         keyMap.bind(CMD_SEND_PREFIX, prefix + prefix);
         keyMap.bind(CMD_SPLIT_WINDOW + " -v", prefix + "\"");
         keyMap.bind(CMD_SPLIT_WINDOW + " -h", prefix + "%");
-        keyMap.bind(CMD_SELECT_PANE + " -U", prefix + KeyMap.key(terminal, Capability.key_up));
-        keyMap.bind(CMD_SELECT_PANE + " -L", prefix + KeyMap.key(terminal, Capability.key_left));
-        keyMap.bind(CMD_SELECT_PANE + " -R", prefix + KeyMap.key(terminal, Capability.key_right));
-        keyMap.bind(CMD_SELECT_PANE + " -D", prefix + KeyMap.key(terminal, Capability.key_down));
+        keyMap.bind(CMD_SELECT_PANE + " -U", prefix + key(terminal, Capability.key_up));
+        keyMap.bind(CMD_SELECT_PANE + " -D", prefix + key(terminal, Capability.key_down));
+        keyMap.bind(CMD_SELECT_PANE + " -L", prefix + key(terminal, Capability.key_left));
+        keyMap.bind(CMD_SELECT_PANE + " -R", prefix + key(terminal, Capability.key_right));
+        keyMap.bind(CMD_RESIZE_PANE + " -U 5", prefix + esc() + key(terminal, Capability.key_up));
+        keyMap.bind(CMD_RESIZE_PANE + " -D 5", prefix + esc() + key(terminal, Capability.key_down));
+        keyMap.bind(CMD_RESIZE_PANE + " -L 5", prefix + esc() + key(terminal, Capability.key_left));
+        keyMap.bind(CMD_RESIZE_PANE + " -R 5", prefix + esc() + key(terminal, Capability.key_right));
+        keyMap.bind(CMD_RESIZE_PANE + " -U", prefix + translate("^[[1;5A"), prefix + alt(translate("^[[A"))); // ctrl-up
+        keyMap.bind(CMD_RESIZE_PANE + " -D", prefix + translate("^[[1;5B"), prefix + alt(translate("^[[B"))); // ctrl-down
+        keyMap.bind(CMD_RESIZE_PANE + " -L", prefix + translate("^[[1;5C"), prefix + alt(translate("^[[C"))); // ctrl-left
+        keyMap.bind(CMD_RESIZE_PANE + " -R", prefix + translate("^[[1;5D"), prefix + alt(translate("^[[D"))); // ctrl-right
         keyMap.bind(CMD_DISPLAY_PANES, prefix + "q");
         keyMap.bind(CMD_CLOCK_MODE, prefix + "t");
         return keyMap;
@@ -257,9 +266,7 @@ public class Tmux {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            if (resized.compareAndSet(true, false)) {
-                handleResize();
-            }
+            handleResize();
             redraw();
         }
     }
@@ -368,15 +375,17 @@ public class Tmux {
 
     private void handleResize() {
         // Re-compute the layout
-        size.copy(terminal.getSize());
+        if (resized.compareAndSet(true, false)) {
+            size.copy(terminal.getSize());
+        }
         layout.resize(size.getColumns(), size.getRows() - 1);
         panes.forEach(vc -> {
             if (vc.width() != vc.layout.sx || vc.height() != vc.layout.sy
                     || vc.left() != vc.layout.xoff || vc.top() != vc.layout.yoff) {
                 vc.resize(vc.layout.xoff, vc.layout.yoff, vc.layout.sx, vc.layout.sy);
+                display.clear();
             }
         });
-        display.clear();
     }
 
     public void execute(PrintStream out, PrintStream err, String command) throws Exception {
@@ -454,10 +463,12 @@ public class Tmux {
                 "resize-pane - ",
                 "Usage: resize-pane [-UDLR] [-x width] [-y height] [-t target-pane] [adjustment]",
                 "  -? --help                    Show help",
-                "  -U                           Select pane up",
-                "  -D                           Select pane down",
-                "  -L                           Select pane left",
-                "  -R                           Select pane right",
+                "  -U                           Resize pane upward",
+                "  -D                           Select pane downward",
+                "  -L                           Select pane to the left",
+                "  -R                           Select pane to the right",
+                "  -x --width=width             Set the width of the pane",
+                "  -y --height=height           Set the height of the pane"
         };
         Options opt = Options.compile(usage).parse(args);
         if (opt.isSet("help")) {
@@ -473,13 +484,13 @@ public class Tmux {
             opt.usage(err);
             return;
         }
-        if (opt.isSet("x")) {
-            int x = opt.getNumber("x");
+        if (opt.isSet("width")) {
+            int x = opt.getNumber("width");
             active.layout().resizeTo(LeftRight, x);
         }
-        if (opt.isSet("y")) {
-            int y = opt.getNumber("y");
-            active.layout().resizeTo(Layout.Type.TopBottom, y);
+        if (opt.isSet("height")) {
+            int y = opt.getNumber("height");
+            active.layout().resizeTo(TopBottom, y);
         }
         if (opt.isSet("L")) {
             active.layout().resize(LeftRight, -adjust, true);
@@ -490,6 +501,7 @@ public class Tmux {
         } else if (opt.isSet("D")) {
             active.layout().resize(TopBottom, adjust, true);
         }
+        setDirty();
     }
 
     protected void selectPane(PrintStream out, PrintStream err, List<String> args) throws IOException {
@@ -567,11 +579,11 @@ public class Tmux {
                 "split-window - ",
                 "Usage: split-window [-bdfhvP] [-c start-directory] [-F format] [-p percentage|-l size] [-t target-pane] [command]",
                 "  -? --help                    Show help",
-                "  -h                           Horizontal split",
-                "  -v                           Vertical split",
-                "  -l size                      Size",
-                "  -p percentage                Percentage",
-                "  -b                           Insert the new pane before the active one",
+                "  -h --horizontal              Horizontal split",
+                "  -v --vertical                Vertical split",
+                "  -l --size=size               Size",
+                "  -p --perc=percentage         Percentage",
+                "  -b --before                  Insert the new pane before the active one",
                 "  -f                           Split the full window instead of the active pane",
                 "  -d                           Do not make the new pane the active one"
         };
@@ -580,7 +592,7 @@ public class Tmux {
             opt.usage(err);
             return;
         }
-        Layout.Type type = opt.isSet("h") ? LeftRight : TopBottom;
+        Layout.Type type = opt.isSet("horizontal") ? LeftRight : TopBottom;
         // If we're splitting the main pane, create a parent
         if (layout.type == WindowPane) {
             Layout p = new Layout();
@@ -598,29 +610,22 @@ public class Tmux {
             }
         }
         int size = -1;
-        if (opt.isSet("l")) {
-            size = opt.getNumber("l");
-        } else if (opt.isSet("p")) {
-            int p = opt.getNumber("p");
-            if (type == Layout.Type.TopBottom) {
+        if (opt.isSet("size")) {
+            size = opt.getNumber("size");
+        } else if (opt.isSet("perc")) {
+            int p = opt.getNumber("perc");
+            if (type == TopBottom) {
                 size = (cell.sy * p) / 100;
             } else {
                 size = (cell.sx * p) / 100;
             }
         }
         // Split now
-        Layout newCell = cell.split(type, size, opt.isSet("b"));
+        Layout newCell = cell.split(type, size, opt.isSet("before"));
         if (newCell == null) {
             err.println("create pane failed: pane too small");
             return;
         }
-
-        panes.forEach(vc -> {
-            if (vc.width() != vc.layout.sx || vc.height() != vc.layout.sy
-                    || vc.left() != vc.layout.xoff || vc.top() != vc.layout.yoff) {
-                vc.resize(vc.layout.xoff, vc.layout.yoff, vc.layout.sx, vc.layout.sy);
-            }
-        });
 
         VirtualConsole newConsole = new VirtualConsole(paneId.incrementAndGet(), term, newCell.xoff, newCell.yoff, newCell.sx, newCell.sy, this::setDirty, this::close, newCell);
         panes.add(newConsole);
@@ -630,6 +635,7 @@ public class Tmux {
             active.active = lastActive++;
         }
         runner.accept(newConsole.getConsole());
+        setDirty();
     }
 
     protected void layoutResize() {
@@ -985,12 +991,139 @@ public class Tmux {
             }
         }
 
-        public void resize(Type type, int adjust, boolean opposite) {
-            // TODO
+        public void resize(Type type, int change, boolean opposite) {
+            /* Find next parent of the same type. */
+            Layout lc = this;
+            Layout lcparent = lc.parent;
+            while (lcparent != null && lcparent.type != type) {
+                lc = lcparent;
+                lcparent = lc.parent;
+            }
+            if (lcparent == null) {
+                return;
+            }
+            /* If this is the last cell, move back one. */
+            if (lc.nextSibling() == null) {
+                lc = lc.prevSibling();
+            }
+            /* Grow or shrink the cell. */
+            int size;
+            int needed = change;
+            while (needed != 0) {
+                if (change > 0) {
+                    size = lc.resizePaneGrow(type, needed, opposite);
+                    needed -= size;
+                } else {
+                    size = lc.resizePaneShrink(type, needed);
+                    needed += size;
+                }
+                if (size == 0) {
+                    /* no more change possible */
+                    break;
+                }
+            }
+            fixOffsets();
+            fixPanes();
         }
 
-        public void resizeTo(Type type, int change) {
-            // TODO
+        int resizePaneGrow(Type type, int needed, boolean opposite) {
+            int size = 0;
+            /* Growing. Always add to the current cell. */
+            Layout lcadd  = this;
+            /* Look towards the tail for a suitable cell for reduction. */
+            Layout lcremove = this.nextSibling();
+            while (lcremove != null) {
+                size = lcremove.resizeCheck(type);
+                if (size > 0) {
+                    break;
+                }
+                lcremove = lcremove.nextSibling();
+            }
+            /* If none found, look towards the head. */
+            if (opposite && lcremove == null) {
+                lcremove = this.prevSibling();
+                while (lcremove != null) {
+                    size = lcremove.resizeCheck(type);
+                    if (size > 0) {
+                        break;
+                    }
+                    lcremove = lcremove.prevSibling();
+                }
+            }
+            if (lcremove == null) {
+                return 0;
+            }
+            /* Change the cells. */
+            if (size > needed) {
+                size = needed;
+            }
+            lcadd.resizeAdjust(type, size);
+            lcremove.resizeAdjust(type, -size);
+            return size;
+        }
+
+        int resizePaneShrink(Type type, int needed) {
+            int size = 0;
+            /* Shrinking. Find cell to remove from by walking towards head. */
+            Layout lcremove = this;
+            do {
+                size = lcremove.resizeCheck(type);
+                if (size > 0) {
+                    break;
+                }
+                lcremove = lcremove.prevSibling();
+            } while (lcremove != null);
+            if (lcremove == null) {
+                return 0;
+            }
+            /* And add onto the next cell (from the original cell). */
+            Layout lcadd = this.nextSibling();
+            if (lcadd == null) {
+                return 0;
+            }
+            /* Change the cells. */
+            if (size > -needed) {
+                size = -needed;
+            }
+            lcadd.resizeAdjust(type, size);
+            lcremove.resizeAdjust(type, -size);
+            return size;
+        }
+
+        Layout prevSibling() {
+            int idx = parent.cells.indexOf(this);
+            if (idx > 0) {
+                return parent.cells.get(idx - 1);
+            } else {
+                return null;
+            }
+        }
+
+        Layout nextSibling() {
+            int idx = parent.cells.indexOf(this);
+            if (idx < parent.cells.size() - 1) {
+                return parent.cells.get(idx + 1);
+            } else {
+                return null;
+            }
+        }
+
+        public void resizeTo(Type type, int new_size) {
+            /* Find next parent of the same type. */
+            Layout lc = this;
+            Layout lcparent = lc.parent;
+            while (lcparent != null && lcparent.type != type) {
+                lc = lcparent;
+                lcparent = lc.parent;
+            }
+            if (lcparent == null) {
+                return;
+            }
+            /* Work out the size adjustment. */
+            int size = type == LeftRight ? lc.sx : lc.sy;
+            int change = lc.nextSibling() == null ? size - new_size : new_size - size;
+            /* Resize the pane. */
+            lc.resize(type, change, true);
         }
 
         public void resize(int sx, int sy) {
