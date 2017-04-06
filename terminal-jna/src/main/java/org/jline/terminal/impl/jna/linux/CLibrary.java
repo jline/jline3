@@ -29,7 +29,7 @@ public interface CLibrary extends com.sun.jna.Library {
 
     void tcsetattr(int fd, int cmd, termios termios) throws LastErrorException;
 
-    void ioctl(int fd, long cmd, winsize data) throws LastErrorException;
+    void ioctl(int fd, int cmd, winsize data) throws LastErrorException;
 
 //    int isatty(int fd);
 
@@ -265,8 +265,8 @@ public interface CLibrary extends com.sun.jna.Library {
 
     // CONSTANTS
 
-    long TIOCGWINSZ = 0x00005413L;
-    long TIOCSWINSZ = 0x00005414L;
+    int TIOCGWINSZ = 0x00005413;
+    int TIOCSWINSZ = 0x00005414;
 
     int VINTR       = 0;
     int VQUIT       = 1;
