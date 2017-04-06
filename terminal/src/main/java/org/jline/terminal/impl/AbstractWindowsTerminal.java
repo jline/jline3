@@ -85,6 +85,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
             }
         }
         pump = new Thread(this::pump, "WindowsStreamPump");
+        pump.setDaemon(true);
         pump.start();
         closer = this::close;
         ShutdownHooks.add(closer);
