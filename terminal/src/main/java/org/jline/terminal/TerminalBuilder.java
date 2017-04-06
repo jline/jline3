@@ -34,6 +34,16 @@ import org.jline.utils.OSUtils;
  */
 public final class TerminalBuilder {
 
+    //
+    // System properties
+    //
+
+    public static final String PROP_ENCODING = "org.jline.terminal.encoding";
+    public static final String PROP_TYPE = "org.jline.terminal.type";
+    public static final String PROP_JNA = "org.jline.terminal.jna";
+    public static final String PROP_JANSI = "org.jline.terminal.jansi";
+    public static final String PROP_DUMB = "org.jline.terminal.dumb";
+
     /**
      * Returns the default system terminal.
      * Terminals should be closed properly using the {@link Terminal#close()}
@@ -59,7 +69,8 @@ public final class TerminalBuilder {
     private String type;
     private String encoding;
     private Boolean system;
-    private boolean jna = true;
+    private Boolean jna;
+    private Boolean jansi;
     private Boolean dumb;
     private Attributes attributes;
     private Size size;
@@ -87,6 +98,11 @@ public final class TerminalBuilder {
 
     public TerminalBuilder jna(boolean jna) {
         this.jna = jna;
+        return this;
+    }
+
+    public TerminalBuilder jansi(boolean jansi) {
+        this.jansi = jansi;
         return this;
     }
 
@@ -161,21 +177,29 @@ public final class TerminalBuilder {
         }
         String encoding = this.encoding;
         if (encoding == null) {
+            encoding = System.getProperty(PROP_ENCODING);
+        }
+        if (encoding == null) {
             encoding = Charset.defaultCharset().name();
         }
         String type = this.type;
         if (type == null) {
-            type = System.getProperty("org.jline.terminal.type");
+            type = System.getProperty(PROP_TYPE);
         }
         if (type == null) {
             type = System.getenv("TERM");
         }
+        Boolean jna = this.jna;
+        if (jna == null) {
+            jna = getBoolean(PROP_JNA, true);
+        }
+        Boolean jansi = this.jansi;
+        if (jansi == null) {
+            jansi = getBoolean(PROP_JANSI, true);
+        }
         Boolean dumb = this.dumb;
         if (dumb == null) {
-            String str = System.getProperty("org.jline.terminal.dumb");
-            if (str != null) {
-                dumb = Boolean.parseBoolean(str);
-            }
+            dumb = getBoolean(PROP_DUMB, null);
         }
         if ((system != null && system) || (system == null && in == null && out == null)) {
             if (attributes != null || size != null) {
@@ -196,7 +220,7 @@ public final class TerminalBuilder {
                 }
             }
             else if (OSUtils.IS_WINDOWS) {
-                if (useJna()) {
+                if (jna) {
                     try {
                         return load(JnaSupport.class).winSysTerminal(name, nativeSignals, signalHandler);
                     } catch (Throwable t) {
@@ -204,15 +228,17 @@ public final class TerminalBuilder {
                         exception.addSuppressed(t);
                     }
                 }
-                try {
-                    return load(JansiSupport.class).winSysTerminal(name, nativeSignals, signalHandler);
-                } catch (Throwable t) {
-                    Log.debug("Error creating JANSI based terminal: ", t.getMessage(), t);
-                    exception.addSuppressed(t);
+                if (jansi) {
+                    try {
+                        return load(JansiSupport.class).winSysTerminal(name, nativeSignals, signalHandler);
+                    } catch (Throwable t) {
+                        Log.debug("Error creating JANSI based terminal: ", t.getMessage(), t);
+                        exception.addSuppressed(t);
+                    }
                 }
             } else {
                 Pty pty = null;
-                if (useJna()) {
+                if (jna) {
                     try {
                         pty = load(JnaSupport.class).current();
                     } catch (Throwable t) {
@@ -221,7 +247,7 @@ public final class TerminalBuilder {
                         exception.addSuppressed(t);
                     }
                 }
-                if (pty == null) {
+                if (jansi && pty == null) {
                     try {
                         pty = load(JansiSupport.class).current();
                     } catch (Throwable t) {
@@ -258,7 +284,7 @@ public final class TerminalBuilder {
                 throw exception;
             }
         } else {
-            if (useJna()) {
+            if (jna) {
                 try {
                     Pty pty = load(JnaSupport.class).open(attributes, size);
                     return new PosixPtyTerminal(name, type, pty, in, out, encoding, signalHandler);
@@ -277,8 +303,15 @@ public final class TerminalBuilder {
         }
     }
 
-    private boolean useJna() {
-        return jna;
+    private static Boolean getBoolean(String name, Boolean def) {
+        try {
+            String str = System.getProperty(name);
+            if (str != null) {
+                return Boolean.parseBoolean(str);
+            }
+        } catch (IllegalArgumentException | NullPointerException e) {
+        }
+        return def;
     }
 
     private <S> S load(Class<S> clazz) {
