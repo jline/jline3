@@ -8,12 +8,15 @@
  */
 package org.jline.reader;
 
+import java.io.IOError;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.jline.reader.impl.LineReaderImpl;
 import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 
 public final class LineReaderBuilder {
 
@@ -87,6 +90,14 @@ public final class LineReaderBuilder {
     }
 
     public LineReader build() {
+        Terminal terminal = this.terminal;
+        if (terminal == null) {
+            try {
+                terminal = TerminalBuilder.terminal();
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+        }
         LineReaderImpl reader = new LineReaderImpl(terminal, appName, variables);
         if (history != null) {
             reader.setHistory(history);

@@ -245,7 +245,7 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     public LineReaderImpl(Terminal terminal, String appName, Map<String, Object> variables) {
-        Objects.requireNonNull(terminal);
+        Objects.requireNonNull(terminal, "terminal can not be null");
         this.terminal = terminal;
         if (appName == null) {
             appName = "JLine";
