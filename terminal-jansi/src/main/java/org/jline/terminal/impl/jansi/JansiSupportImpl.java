@@ -25,16 +25,20 @@ public class JansiSupportImpl implements JansiSupport {
     public Pty current() throws IOException {
         String osName = System.getProperty("os.name");
         if (osName.startsWith("Linux")) {
-            return LinuxNativePty.current();
+            // This leads to java.lang.UnsatisfiedLinkError: org.fusesource.jansi.internal.CLibrary.ioctl(IJLorg/fusesource/jansi/internal/CLibrary$WinSize;)I
+            // so disable it until jansi is fixed, see #112
+            // return LinuxNativePty.current();
         }
         else if (osName.startsWith("Mac") || osName.startsWith("Darwin")) {
             return OsXNativePty.current();
         }
         else if (osName.startsWith("Solaris") || osName.startsWith("SunOS")) {
-            return SolarisNativePty.current();
+            // Solaris is not supported by jansi
+            // return SolarisNativePty.current();
         }
         else if (osName.startsWith("FreeBSD")) {
-            return FreeBsdNativePty.current();
+            // FreeBSD is not supported by jansi
+            // return FreeBsdNativePty.current();
         }
         throw new UnsupportedOperationException();
     }
