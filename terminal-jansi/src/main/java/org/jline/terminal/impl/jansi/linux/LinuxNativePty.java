@@ -41,20 +41,18 @@ public class LinuxNativePty extends JansiNativePty {
     private static final int VERASE      = 2;
     private static final int VKILL       = 3;
     private static final int VEOF        = 4;
-    private static final int VEOL        = 5;
-    private static final int VEOL2       = 6;
     private static final int VTIME       = 5;
+    private static final int VMIN        = 6;
     private static final int VSWTC       = 7;
     private static final int VSTART      = 8;
     private static final int VSTOP       = 9;
     private static final int VSUSP       = 10;
-    private static final int VDSUSP      = 11;
+    private static final int VEOL        = 11;
     private static final int VREPRINT    = 12;
     private static final int VDISCARD    = 13;
     private static final int VWERASE     = 14;
     private static final int VLNEXT      = 15;
-    private static final int VMIN        = VEOF;
-    private static final int VMAX        = VEOL;
+    private static final int VEOL2       = 16;
 
     private static final int IGNBRK =   0x0000001;
     private static final int BRKINT =   0x0000002;
@@ -230,7 +228,6 @@ public class LinuxNativePty extends JansiNativePty {
         tio.c_cc[VINTR] = (byte) t.getControlChar(Attributes.ControlChar.VINTR);
         tio.c_cc[VQUIT] = (byte) t.getControlChar(Attributes.ControlChar.VQUIT);
         tio.c_cc[VSUSP] = (byte) t.getControlChar(Attributes.ControlChar.VSUSP);
-        tio.c_cc[VDSUSP] = (byte) t.getControlChar(Attributes.ControlChar.VDSUSP);
         tio.c_cc[VSTART] = (byte) t.getControlChar(Attributes.ControlChar.VSTART);
         tio.c_cc[VSTOP] = (byte) t.getControlChar(Attributes.ControlChar.VSTOP);
         tio.c_cc[VLNEXT] = (byte) t.getControlChar(Attributes.ControlChar.VLNEXT);
@@ -325,7 +322,6 @@ public class LinuxNativePty extends JansiNativePty {
         cc.put(Attributes.ControlChar.VINTR, (int) tio.c_cc[VINTR]);
         cc.put(Attributes.ControlChar.VQUIT, (int) tio.c_cc[VQUIT]);
         cc.put(Attributes.ControlChar.VSUSP, (int) tio.c_cc[VSUSP]);
-        cc.put(Attributes.ControlChar.VDSUSP, (int) tio.c_cc[VDSUSP]);
         cc.put(Attributes.ControlChar.VSTART, (int) tio.c_cc[VSTART]);
         cc.put(Attributes.ControlChar.VSTOP, (int) tio.c_cc[VSTOP]);
         cc.put(Attributes.ControlChar.VLNEXT, (int) tio.c_cc[VLNEXT]);

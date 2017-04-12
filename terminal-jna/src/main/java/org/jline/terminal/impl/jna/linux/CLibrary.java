@@ -273,20 +273,18 @@ public interface CLibrary extends com.sun.jna.Library {
     int VERASE      = 2;
     int VKILL       = 3;
     int VEOF        = 4;
-    int VEOL        = 5;
-    int VEOL2       = 6;
     int VTIME       = 5;
+    int VMIN        = 6;
     int VSWTC       = 7;
     int VSTART      = 8;
     int VSTOP       = 9;
     int VSUSP       = 10;
-    int VDSUSP      = 11;
+    int VEOL        = 11;
     int VREPRINT    = 12;
     int VDISCARD    = 13;
     int VWERASE     = 14;
     int VLNEXT      = 15;
-    int VMIN        = VEOF;
-    int VMAX        = VEOL;
+    int VEOL2       = 16;
 
     int IGNBRK =   0x0000001;
     int BRKINT =   0x0000002;

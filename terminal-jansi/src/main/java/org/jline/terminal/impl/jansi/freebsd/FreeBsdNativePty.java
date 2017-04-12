@@ -36,23 +36,25 @@ public class FreeBsdNativePty extends JansiNativePty {
 
     // CONSTANTS
 
-    private static final int VINTR       = 0;
-    private static final int VQUIT       = 1;
-    private static final int VERASE      = 2;
-    private static final int VKILL       = 3;
-    private static final int VEOF        = 4;
-    private static final int VTIME       = 5;
-    private static final int VMIN        = 6;
-    private static final int VSWTC       = 7;
-    private static final int VSTART      = 8;
-    private static final int VSTOP       = 9;
+    private static final int VEOF        = 0;
+    private static final int VEOL        = 1;
+    private static final int VEOL2       = 2;
+    private static final int VERASE      = 3;
+    private static final int VWERASE     = 4;
+    private static final int VKILL       = 5;
+    private static final int VREPRINT    = 6;
+    private static final int VERASE2     = 7;
+    private static final int VINTR       = 8;
+    private static final int VQUIT       = 9;
     private static final int VSUSP       = 10;
-    private static final int VEOL        = 11;
-    private static final int VREPRINT    = 12;
-    private static final int VDISCARD    = 13;
-    private static final int VWERASE     = 14;
-    private static final int VLNEXT      = 15;
-    private static final int VEOL2       = 16;
+    private static final int VDSUSP      = 11;
+    private static final int VSTART      = 12;
+    private static final int VSTOP       = 13;
+    private static final int VLNEXT      = 14;
+    private static final int VDISCARD    = 15;
+    private static final int VMIN        = 16;
+    private static final int VTIME       = 17;
+    private static final int VSTATUS     = 18;
 
     private static final int IGNBRK =   0x0000001;
     private static final int BRKINT =   0x0000002;
