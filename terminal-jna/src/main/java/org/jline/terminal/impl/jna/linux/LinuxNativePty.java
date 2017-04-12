@@ -73,6 +73,7 @@ public class LinuxNativePty extends JnaNativePty {
         org.c_iflag = termios.c_iflag;
         org.c_oflag = termios.c_oflag;
         org.c_lflag = termios.c_lflag;
+        System.arraycopy(termios.c_cc, 0, org.c_cc, 0, termios.c_cc.length);
         C_LIBRARY.tcsetattr(getSlave(), TCSADRAIN, org);
     }
 
