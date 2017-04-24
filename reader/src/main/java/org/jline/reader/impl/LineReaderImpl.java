@@ -13,6 +13,7 @@ import java.io.IOError;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
+import java.io.StringWriter;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,6 +50,7 @@ import org.jline.terminal.Terminal.SignalHandler;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
+import org.jline.utils.Curses;
 import org.jline.utils.Display;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.Levenshtein;
@@ -489,6 +491,11 @@ public class LineReaderImpl implements LineReader, Flushable
                     callWidget(FRESH_LINE);
                 if (isSet(Option.MOUSE))
                     terminal.trackMouse(Terminal.MouseTracking.Normal);
+            } else {
+                // For dumb terminals, we need to make sure that CR are ignored
+                Attributes attr = new Attributes(originalAttributes);
+                attr.setInputFlag(Attributes.InputFlag.IGNCR, true);
+                terminal.setAttributes(attr);
             }
 
             callWidget(CALLBACK_INIT);
@@ -583,16 +590,42 @@ public class LineReaderImpl implements LineReader, Flushable
 
     /** Make sure we position the cursor on column 0 */
     protected boolean freshLine() {
+        boolean wrapAtEol = terminal.getBooleanCapability(Capability.auto_right_margin);
+        boolean delayedWrapAtEol = wrapAtEol && terminal.getBooleanCapability(Capability.eat_newline_glitch);
         AttributedStringBuilder sb = new AttributedStringBuilder();
         sb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.BLACK + AttributedStyle.BRIGHT));
         sb.append("~");
         sb.style(AttributedStyle.DEFAULT);
-        for (int i = 0; i < size.getColumns() - 1; i++) {
+        if (!wrapAtEol || delayedWrapAtEol) {
+            for (int i = 0; i < size.getColumns() - 1; i++) {
+                sb.append(" ");
+            }
+            sb.append(KeyMap.key(terminal, Capability.carriage_return));
             sb.append(" ");
+            sb.append(KeyMap.key(terminal, Capability.carriage_return));
+        } else {
+            // Given the terminal will wrap automatically,
+            // we need to print one less than needed.
+            // This means that the last character will not
+            // be overwritten, and that's why we're using
+            // a clr_eol first if possible.
+            String el = terminal.getStringCapability(Capability.clr_eol);
+            if (el != null) {
+                StringWriter sw = new StringWriter();
+                try {
+                    Curses.tputs(sw, el);
+                } catch (IOException e) {
+                    // nothing
+                }
+                sb.append(sw.toString());
+            }
+            for (int i = 0; i < size.getColumns() - 2; i++) {
+                sb.append(" ");
+            }
+            sb.append(KeyMap.key(terminal, Capability.carriage_return));
+            sb.append(" ");
+            sb.append(KeyMap.key(terminal, Capability.carriage_return));
         }
-        sb.append(KeyMap.key(terminal, Capability.carriage_return));
-        sb.append(" ");
-        sb.append(KeyMap.key(terminal, Capability.carriage_return));
         print(sb.toAnsi(terminal));
         return true;
     }

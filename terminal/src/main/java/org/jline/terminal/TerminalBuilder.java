@@ -212,6 +212,11 @@ public final class TerminalBuilder {
             if (OSUtils.IS_CYGWIN || OSUtils.IS_MINGW) {
                 try {
                     Pty pty = ExecPty.current();
+                    // Cygwin defaults to XTERM, but actually supports 256 colors,
+                    // so if the value comes from the environment, change it to xterm-256color
+                    if ("xterm".equals(type) && this.type == null && System.getProperty(PROP_TYPE) == null) {
+                        type = "xterm-256color";
+                    }
                     return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
                 } catch (IOException e) {
                     // Ignore if not a tty

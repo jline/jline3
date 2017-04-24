@@ -1,14 +1,14 @@
-package org.jline.terminal.impl;
-
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2017, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
+package org.jline.terminal.impl;
 
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -20,7 +20,6 @@ import java.nio.charset.Charset;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Attributes.ControlChar;
 import org.jline.terminal.Size;
-import org.jline.terminal.impl.AbstractTerminal;
 import org.jline.utils.NonBlockingReader;
 
 public class DumbTerminal extends AbstractTerminal {
@@ -42,10 +41,58 @@ public class DumbTerminal extends AbstractTerminal {
 
     public DumbTerminal(String name, String type, InputStream in, OutputStream out, String encoding, SignalHandler signalHandler) throws IOException {
         super(name, type, signalHandler);
-        this.input = in;
+        this.input = new InputStream() {
+            @Override
+            public int read() throws IOException {
+                for (;;) {
+                    int c = in.read();
+                    if (attributes.getLocalFlag(Attributes.LocalFlag.ISIG)) {
+                        if (c == attributes.getControlChar(ControlChar.VINTR)) {
+                            raise(Signal.INT);
+                            continue;
+                        } else if (c == attributes.getControlChar(ControlChar.VQUIT)) {
+                            raise(Signal.QUIT);
+                            continue;
+                        } else if (c == attributes.getControlChar(ControlChar.VSUSP)) {
+                            raise(Signal.TSTP);
+                            continue;
+                        } else if (c == attributes.getControlChar(ControlChar.VSTATUS)) {
+                            raise(Signal.INFO);
+                            continue;
+                        }
+                    }
+                    if (c == '\r') {
+                        if (attributes.getInputFlag(Attributes.InputFlag.IGNCR)) {
+                            continue;
+                        }
+                        if (attributes.getInputFlag(Attributes.InputFlag.ICRNL)) {
+                            c = '\n';
+                        }
+                    } else if (c == '\n' && attributes.getInputFlag(Attributes.InputFlag.INLCR)) {
+                        c = '\r';
+                    }
+                    return c;
+                }
+            }
+            public int read(byte b[], int off, int len) throws IOException {
+                if (b == null) {
+                    throw new NullPointerException();
+                } else if (off < 0 || len < 0 || len > b.length - off) {
+                    throw new IndexOutOfBoundsException();
+                } else if (len == 0) {
+                    return 0;
+                }
+                int c = read();
+                if (c == -1) {
+                    return -1;
+                }
+                b[off] = (byte)c;
+                return 1;
+            }
+        };
         this.output = out;
-        this.reader = new NonBlockingReader(getName(), new InputStreamReader(in, encoding));
-        this.writer = new PrintWriter(new OutputStreamWriter(out, encoding));
+        this.reader = new NonBlockingReader(getName(), new InputStreamReader(input, encoding));
+        this.writer = new PrintWriter(new OutputStreamWriter(output, encoding));
         this.attributes = new Attributes();
         this.attributes.setControlChar(ControlChar.VERASE,  (char) 127);
         this.attributes.setControlChar(ControlChar.VWERASE, (char) 23);

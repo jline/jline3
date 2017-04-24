@@ -38,6 +38,9 @@ public abstract class AttributedCharSequence implements CharSequence {
     }
 
     public String toAnsi(Terminal terminal) {
+        if (terminal != null && Terminal.TYPE_DUMB.equals(terminal.getType())) {
+            return toString();
+        }
         StringBuilder sb = new StringBuilder();
         int style = 0;
         int foreground = -1;

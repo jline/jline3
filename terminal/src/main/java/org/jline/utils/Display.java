@@ -455,7 +455,6 @@ public class Display {
                 }
             } else {
                 rawPrint('\n', l1 - l0);
-                c0 = 0;
             }
         }
         if (c0 != 0 && c1 == 0) {
