@@ -111,7 +111,10 @@ public final class Log
     static void logr(final Level level, final Supplier<LogRecord> record) {
         Logger logger = Logger.getLogger("org.jline");
         if (logger.isLoggable(level)) {
-            logger.log(record.get());
+            // inform record of the logger-name
+            LogRecord tmp = record.get();
+            tmp.setLoggerName(logger.getName());
+            logger.log(tmp);
         }
     }
 
