@@ -3716,19 +3716,28 @@ public class LineReaderImpl implements LineReader, Flushable
             if (expandHistory()) {
                 return true;
             }
-        } catch (IllegalArgumentException e) {
+        } catch (Exception e) {
+            Log.info("Error while expanding history", e);
             return false;
         }
 
-        // Parse the command line and find completion candidates
-        List<Candidate> candidates = new ArrayList<>();
+        // Parse the command line
         ParsedLine line;
         try {
             line = parser.parse(buf.toString(), buf.cursor(), ParseContext.COMPLETE);
+        } catch (Exception e) {
+            Log.info("Error while parsing line", e);
+            return false;
+        }
+
+        // Find completion candidates
+        List<Candidate> candidates = new ArrayList<>();
+        try {
             if (completer != null) {
                 completer.complete(this, line, candidates);
             }
         } catch (Exception e) {
+            Log.info("Error while finding completion candidates", e);
             return false;
         }
 
