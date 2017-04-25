@@ -51,12 +51,12 @@ case "$command" in
 
     # check license headers
     license-check)
-        mvn -Plicense-check -N
+        mvn -Plicense-check -N $*
         ;;
 
     # format license headers
     license-format)
-        mvn -Plicense-format -N
+        mvn -Plicense-format -N $*
         ;;
 
     # prepare CI build
