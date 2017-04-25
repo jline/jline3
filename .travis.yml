@@ -1,0 +1,18 @@
+language: java
+
+env:
+  global:
+    - secure: 'CHANGEME' # need to rebuild for jline3 project
+    - MAVEN_SETTINGS='.travis/settings.xml'
+    - MAVEN_OPTIONS="-V -B -s $MAVEN_SETTINGS"
+
+branches:
+  except:
+    - /^release-.*$/
+
+jdk:
+  - oraclejdk8
+
+install: ./build ci-prepare $MAVEN_OPTIONS
+
+script: ./build ci-build $MAVEN_OPTIONS

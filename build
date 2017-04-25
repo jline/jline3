@@ -1,0 +1,109 @@
+#!/bin/bash -e
+basename=`basename $0`
+dirname=`dirname $0`
+dirname=`cd "$dirname" && pwd`
+cd "$dirname"
+
+source build.config
+
+# load optional config
+if [ -f ./build.rc ]; then
+  source ./build.rc
+fi
+
+# show message and exit
+function die {
+    echo "$1"
+    exit 1
+}
+
+# show usage and exit
+function usage {
+    echo "usage: $basename $*"
+    exit 2
+}
+
+# run self
+function self {
+    $0 $*
+}
+
+# run maven
+function mvn {
+    ./mvnw $*
+}
+
+command="$1"; shift
+case "$command" in
+    # change the version of the project
+    change-version)
+        newVersion="$1"
+        if [ -z "$newVersion" ]; then
+            usage "$command <version>"
+        fi
+
+        mvn org.eclipse.tycho:tycho-versions-plugin:0.25.0:set-version \
+            -Dtycho.mode=maven \
+            -Dartifacts=${project} \
+            -Dproperties=${project}.version \
+            -DnewVersion="$newVersion"
+        ;;
+
+    # check license headers
+    license-check)
+        mvn -Plicense-check -N
+        ;;
+
+    # format license headers
+    license-format)
+        mvn -Plicense-format -N
+        ;;
+
+    # prepare CI build
+    ci-prepare)
+        self license-check $*
+        ;;
+
+    # build for CI
+    ci-build)
+        if [ "$TRAVIS_PULL_REQUEST" != 'false' ]; then
+          goal=install
+        else
+          goal=deploy
+        fi
+        mvn clean ${goal} $*
+        ;;
+
+    # release automation
+    release)
+        version="$1"
+        nextVersion="$2"
+        if [ -z "$version" -o -z "$nextVersion" ]; then
+            usage "$command <version> <next-version>"
+        fi
+        releaseTag="release-$version"
+
+        # update version and tag
+        self change-version "$version"
+        git commit -a -m "update version: $version"
+        git tag $releaseTag
+
+        # deploy release
+        mvn -Pbuildsupport-release clean deploy
+
+        # update to next version
+        self change-version "$nextVersion"
+        git commit -a -m "update version: $nextVersion"
+        ;;
+
+    *)
+        # attempt to lookup command function
+        fn="command_$command"
+        if [ `type -t $fn` = 'function' ]; then
+          $fn $*
+        else
+          # give up and complain
+          usage "<command> [options]"
+        fi
+        ;;
+esac
