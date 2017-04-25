@@ -3,13 +3,13 @@
   <servers>
     <server>
       <id>sonatype-nexus-snapshots</id>
-      <username>jdillon</username>
+      <username>${env.SONATYPE_USERNAME}</username>
       <password>${env.SONATYPE_PASSWORD}</password>
     </server>
 
     <server>
       <id>sonatype-nexus-staging</id>
-      <username>jdillon</username>
+      <username>${env.SONATYPE_USERNAME}</username>
       <password>${env.SONATYPE_PASSWORD}</password>
     </server>
   </servers>
