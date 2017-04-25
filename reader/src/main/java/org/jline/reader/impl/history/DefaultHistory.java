@@ -86,7 +86,7 @@ public class DefaultHistory implements History {
                     }
                 }
             } catch (Exception e) {
-                Log.info("Error reloading history file: ", path, e);
+                Log.warn("Error reloading history file: ", path, e);
                 internalClear();
             }
         }
@@ -124,7 +124,7 @@ public class DefaultHistory implements History {
                     trimHistory(path, max);
                 }
             } catch (IOException e) {
-                Log.debug("Error saving history file: ", path, e);
+                Log.warn("Error saving history file: ", path, e);
             }
         }
         loaded = items.size();
@@ -159,7 +159,7 @@ public class DefaultHistory implements History {
             loaded = items.size();
             maybeResize();
         } catch (IOException e) {
-            Log.debug("Error trimming history file: ", path, e);
+            Log.warn("Error trimming history file: ", path, e);
         }
     }
 
