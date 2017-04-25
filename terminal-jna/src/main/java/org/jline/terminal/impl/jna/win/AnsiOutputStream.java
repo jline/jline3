@@ -62,9 +62,22 @@ public class AnsiOutputStream extends FilterOutputStream {
     private static final int BEL = 7;
     private static final int SECOND_ST_CHAR = '\\';
 
-    // TODO: implement to get perf boost: public void write(byte[] b, int off, int len)
+    @Override
+    public synchronized void write(byte[] b, int off, int len) throws IOException {
+        if ((off | len | (b.length - (len + off)) | (off + len)) < 0) {
+            throw new IndexOutOfBoundsException();
+        }
+        for (int i = 0 ; i < len ; i++) {
+            doWrite(b[off + i]);
+        }
+    }
 
-    public void write(int data) throws IOException {
+    @Override
+    public synchronized void write(int data) throws IOException {
+        doWrite(data);
+    }
+
+    private void doWrite(int data) throws IOException {
         switch (state) {
             case LOOKING_FOR_FIRST_ESC_CHAR:
                 if (data == FIRST_ESC_CHAR) {
