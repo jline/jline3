@@ -8,8 +8,8 @@ env:
     - MAVEN_OPTIONS="-V -B -s $MAVEN_SETTINGS"
 
 branches:
-  except:
-    - /^release-.*$/
+  only:
+    - master
 
 jdk:
   - oraclejdk8
