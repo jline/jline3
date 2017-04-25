@@ -87,7 +87,9 @@
         <gogo.jline.version>1.0.4</gogo.jline.version>
         <slf4j.version>1.7.21</slf4j.version>
 
-        <surefire.argLine />
+        <surefire.argLine/>
+
+        <deployAtEnd>true</deployAtEnd>
     </properties>
 
     <prerequisites>
