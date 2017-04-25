@@ -15,6 +15,8 @@ JLine is a Java library for handling console input. It is similar in functionali
 
 JLine 3.x is an evolution of [JLine 2.x](https://github.com/jline/jline2).
 
+[![Build Status](https://travis-ci.org/jline/jline3.svg?branch=master)](https://travis-ci.org/jline/jline3)
+
 License
 -------
 

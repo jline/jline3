@@ -45,6 +45,11 @@
         <url>https://github.com/jline/jline3/issues</url>
     </issueManagement>
 
+    <ciManagement>
+        <system>travis</system>
+        <url>https://travis-ci.org/jline/jline3</url>
+    </ciManagement>
+
     <mailingLists>
         <mailingList>
             <name>jline-users</name>
