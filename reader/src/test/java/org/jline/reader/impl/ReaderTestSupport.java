@@ -126,7 +126,12 @@ public abstract class ReaderTestSupport
             final boolean clear) {
         // clear current buffer, if any
         if (clear) {
-            reader.getHistory().purge();
+            try {
+                reader.getHistory().purge();
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         in.setIn(new ByteArrayInputStream(buffer.getBytes()));

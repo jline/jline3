@@ -63,7 +63,12 @@ public class HistoryPersistenceTest extends ReaderTestSupport {
         // written to the file incrementally and that we're not rewriting the
         // whole file
         synchronized (reader) {
-            history.save();
+            try {
+                history.save();
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
