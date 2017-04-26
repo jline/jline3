@@ -8,6 +8,7 @@
  */
 package org.jline.reader;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.ListIterator;
 
@@ -29,17 +30,17 @@ public interface History extends Iterable<History.Entry>
     /**
      * Load history.
      */
-    void load();
+    void load() throws IOException;
 
     /**
      * Save history.
      */
-    void save();
+    void save() throws IOException;
 
     /**
      * Purge history.
      */
-    void purge();
+    void purge() throws IOException;
 
 
     int size();
