@@ -8,6 +8,7 @@
  */
 package org.jline.terminal.impl.jansi;
 
+import org.fusesource.jansi.internal.CLibrary;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.jansi.freebsd.FreeBsdNativePty;
 import org.jline.terminal.impl.jansi.linux.LinuxNativePty;
@@ -18,16 +19,38 @@ import org.jline.terminal.spi.JansiSupport;
 import org.jline.terminal.spi.Pty;
 
 import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class JansiSupportImpl implements JansiSupport {
+
+    static final int JANSI_MAJOR_VERSION;
+    static final int JANSI_MINOR_VERSION;
+    static {
+        int major = 0, minor = 0;
+        try {
+            String v = CLibrary.class.getPackage().getImplementationVersion();
+            if (v != null) {
+                Matcher m = Pattern.compile("([0-9]+)\\.([0-9]+)([\\.-]\\S+)?").matcher(v);
+                if (m.matches()) {
+                    major = Integer.parseInt(m.group(1));
+                    minor = Integer.parseInt(m.group(2));
+                }
+            }
+        } catch (Throwable t) {
+            // Ignore
+        }
+        JANSI_MAJOR_VERSION = major;
+        JANSI_MINOR_VERSION = minor;
+    }
 
     @Override
     public Pty current() throws IOException {
         String osName = System.getProperty("os.name");
         if (osName.startsWith("Linux")) {
-            // This leads to java.lang.UnsatisfiedLinkError: org.fusesource.jansi.internal.CLibrary.ioctl(IJLorg/fusesource/jansi/internal/CLibrary$WinSize;)I
-            // so disable it until jansi is fixed, see #112
-            // return LinuxNativePty.current();
+            if (JANSI_MAJOR_VERSION > 1 || JANSI_MAJOR_VERSION == 1 && JANSI_MINOR_VERSION >= 16) {
+                return LinuxNativePty.current();
+            }
         }
         else if (osName.startsWith("Mac") || osName.startsWith("Darwin")) {
             return OsXNativePty.current();
@@ -37,15 +60,16 @@ public class JansiSupportImpl implements JansiSupport {
             // return SolarisNativePty.current();
         }
         else if (osName.startsWith("FreeBSD")) {
-            // FreeBSD is not supported by jansi
-            // return FreeBsdNativePty.current();
+            if (JANSI_MAJOR_VERSION > 1 || JANSI_MAJOR_VERSION == 1 && JANSI_MINOR_VERSION >= 16) {
+                return FreeBsdNativePty.current();
+            }
         }
         throw new UnsupportedOperationException();
     }
 
     @Override
     public Terminal winSysTerminal(String name, boolean nativeSignals, Terminal.SignalHandler signalHandler) throws IOException {
-            return new JansiWinSysTerminal(name, nativeSignals, signalHandler);
+        return new JansiWinSysTerminal(name, nativeSignals, signalHandler);
     }
 
 }
