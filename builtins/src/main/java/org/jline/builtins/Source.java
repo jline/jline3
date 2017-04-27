@@ -15,6 +15,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Objects;
 
 public interface Source {
 
@@ -27,7 +28,7 @@ public interface Source {
         final String name;
 
         public URLSource(URL url, String name) {
-            this.url = url;
+            this.url = Objects.requireNonNull(url);
             this.name = name;
         }
 
@@ -48,12 +49,11 @@ public interface Source {
         final String name;
 
         public PathSource(File file, String name) {
-            this.path = file.toPath();
-            this.name = name;
+            this(Objects.requireNonNull(file).toPath(), name);
         }
 
         public PathSource(Path path, String name) {
-            this.path = path;
+            this.path = Objects.requireNonNull(path);
             this.name = name;
         }
 
@@ -69,19 +69,39 @@ public interface Source {
 
     }
 
-    class StdInSource implements Source {
+    class InputStreamSource implements Source {
+        final InputStream in;
+        final String name;
+
+        public InputStreamSource(InputStream in, boolean close, String name) {
+            Objects.requireNonNull(in);
+            if (close) {
+                this.in = in;
+            } else {
+                this.in = new FilterInputStream(in) {
+                    @Override
+                    public void close() throws IOException {
+                    }
+                };
+            }
+            this.name = name;
+        }
+
         @Override
         public String getName() {
-            return null;
+            return name;
         }
 
         @Override
         public InputStream read() throws IOException {
-            return new FilterInputStream(System.in) {
-                @Override
-                public void close() throws IOException {
-                }
-            };
+            return in;
+        }
+    }
+
+    class StdInSource extends InputStreamSource {
+
+        public StdInSource() {
+            super(System.in, false, null);
         }
 
     }

@@ -20,12 +20,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URL;
-import java.util.Properties;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static org.fusesource.jansi.internal.CLibrary.TCSANOW;
+import static org.jline.terminal.impl.jansi.JansiSupportImpl.JANSI_MAJOR_VERSION;
+import static org.jline.terminal.impl.jansi.JansiSupportImpl.JANSI_MINOR_VERSION;
 import static org.jline.utils.ExecHelper.exec;
 
 public abstract class JansiNativePty implements Pty {
@@ -44,50 +42,15 @@ public abstract class JansiNativePty implements Pty {
         this.slaveFD = slaveFD;
     }
 
-    static final boolean useTtyName;
-    static {
-        boolean doUseTtyName = false;
-        try {
-            URL url = CLibrary.class.getClassLoader().getResource("META-INF/maven/org.fusesource.jansi/jansi-native/pom.properties");
-            if (url != null) {
-                Properties props = new Properties();
-                try (InputStream is = url.openStream()) {
-                    props.load(is);
-                }
-                String v = props.getProperty("version");
-                if (v != null) {
-                    Matcher m =  Pattern.compile("([0-9]+)\\.([0-9]+)([\\.-]\\S+)?").matcher(v);
-                    if (m.matches()) {
-                        int major = Integer.parseInt(m.group(1));
-                        int minor = Integer.parseInt(m.group(2));
-                        doUseTtyName = major > 1 || major == 1 && minor > 6;
-                    }
-                }
-            }
-        } catch (Exception e) {
-            // Ignore
-        }
-        useTtyName = doUseTtyName;
-    }
-
     protected static String ttyname() throws IOException {
-        if (useTtyName) {
-            String name = CLibrary.ttyname(0);
-            if (name != null) {
-                name = name.trim();
-            }
-            if (name == null || name.isEmpty()) {
-                throw new IOException("Not a tty");
-            }
-            return name;
-        } else {
-            try {
-                String name = exec(true, OSUtils.TTY_COMMAND);
-                return name.trim();
-            } catch (IOException e) {
-                throw new IOException("Not a tty", e);
-            }
+        String name = CLibrary.ttyname(0);
+        if (name != null) {
+            name = name.trim();
         }
+        if (name == null || name.isEmpty()) {
+            throw new IOException("Not a tty");
+        }
+        return name;
     }
 
     @Override

@@ -42,6 +42,7 @@ public final class TerminalBuilder {
     public static final String PROP_TYPE = "org.jline.terminal.type";
     public static final String PROP_JNA = "org.jline.terminal.jna";
     public static final String PROP_JANSI = "org.jline.terminal.jansi";
+    public static final String PROP_EXEC = "org.jline.terminal.exec";
     public static final String PROP_DUMB = "org.jline.terminal.dumb";
 
     /**
@@ -71,6 +72,7 @@ public final class TerminalBuilder {
     private Boolean system;
     private Boolean jna;
     private Boolean jansi;
+    private Boolean exec;
     private Boolean dumb;
     private Attributes attributes;
     private Size size;
@@ -103,6 +105,11 @@ public final class TerminalBuilder {
 
     public TerminalBuilder jansi(boolean jansi) {
         this.jansi = jansi;
+        return this;
+    }
+
+    public TerminalBuilder exec(boolean exec) {
+        this.exec = exec;
         return this;
     }
 
@@ -197,6 +204,10 @@ public final class TerminalBuilder {
         if (jansi == null) {
             jansi = getBoolean(PROP_JANSI, true);
         }
+        Boolean exec = this.exec;
+        if (exec == null) {
+            exec = getBoolean(PROP_EXEC, true);
+        }
         Boolean dumb = this.dumb;
         if (dumb == null) {
             dumb = getBoolean(PROP_DUMB, null);
@@ -210,18 +221,20 @@ public final class TerminalBuilder {
             // Cygwin support
             //
             if (OSUtils.IS_CYGWIN || OSUtils.IS_MINGW) {
-                try {
-                    Pty pty = ExecPty.current();
-                    // Cygwin defaults to XTERM, but actually supports 256 colors,
-                    // so if the value comes from the environment, change it to xterm-256color
-                    if ("xterm".equals(type) && this.type == null && System.getProperty(PROP_TYPE) == null) {
-                        type = "xterm-256color";
+                if (exec) {
+                    try {
+                        Pty pty = ExecPty.current();
+                        // Cygwin defaults to XTERM, but actually supports 256 colors,
+                        // so if the value comes from the environment, change it to xterm-256color
+                        if ("xterm".equals(type) && this.type == null && System.getProperty(PROP_TYPE) == null) {
+                            type = "xterm-256color";
+                        }
+                        return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
+                    } catch (IOException e) {
+                        // Ignore if not a tty
+                        Log.debug("Error creating exec based pty: ", e.getMessage(), e);
+                        exception.addSuppressed(e);
                     }
-                    return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
-                } catch (IOException e) {
-                    // Ignore if not a tty
-                    Log.debug("Error creating exec based pty: ", e.getMessage(), e);
-                    exception.addSuppressed(e);
                 }
             }
             else if (OSUtils.IS_WINDOWS) {
@@ -260,7 +273,7 @@ public final class TerminalBuilder {
                         exception.addSuppressed(t);
                     }
                 }
-                if (pty == null) {
+                if (exec && pty == null) {
                     try {
                         pty = ExecPty.current();
                     } catch (Throwable t) {

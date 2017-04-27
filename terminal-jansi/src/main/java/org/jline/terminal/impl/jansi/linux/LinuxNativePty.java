@@ -17,8 +17,6 @@ import java.io.IOException;
 import java.util.EnumMap;
 import java.util.EnumSet;
 
-import static org.jline.utils.ExecHelper.exec;
-
 public class LinuxNativePty extends JansiNativePty {
 
     public static LinuxNativePty current() throws IOException {

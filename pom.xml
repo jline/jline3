@@ -78,13 +78,13 @@
         <maven.compiler.target>1.8</maven.compiler.target>
 
         <jna.version>4.2.2</jna.version>
-        <jansi.version>1.15</jansi.version>
+        <jansi.version>1.16-SNAPSHOT</jansi.version>
         <juniversalchardet.version>1.0.3</juniversalchardet.version>
         <sshd.version>1.4.0</sshd.version>
         <easymock.version>3.3.1</easymock.version>
         <junit.version>4.12</junit.version>
-        <gogo.runtime.version>1.0.4</gogo.runtime.version>
-        <gogo.jline.version>1.0.4</gogo.jline.version>
+        <gogo.runtime.version>1.0.5-SNAPSHOT</gogo.runtime.version>
+        <gogo.jline.version>1.0.5-SNAPSHOT</gogo.jline.version>
         <slf4j.version>1.7.21</slf4j.version>
 
         <surefire.argLine/>
@@ -93,6 +93,20 @@
     <prerequisites>
         <maven>2.2.1</maven>
     </prerequisites>
+
+    <repositories>
+        <repository>
+            <id>apache-snapshots</id>
+            <name>Apache Snapshots</name>
+            <url>https://repository.apache.org/content/groups/snapshots</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
     <dependencyManagement>
         <dependencies>
