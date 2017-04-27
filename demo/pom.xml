@@ -37,6 +37,30 @@
             <groupId>org.apache.felix</groupId>
             <artifactId>org.apache.felix.gogo.jline</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.fusesource.jansi</groupId>
+            <artifactId>jansi</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.sshd</groupId>
+            <artifactId>sshd-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-jdk14</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
@@ -57,43 +81,5 @@
             </plugin>
         </plugins>
     </build>
-
-    <profiles>
-        <profile>
-            <id>jna</id>
-            <dependencies>
-                <dependency>
-                    <groupId>net.java.dev.jna</groupId>
-                    <artifactId>jna</artifactId>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
-            <id>jansi</id>
-            <dependencies>
-                <dependency>
-                    <groupId>org.fusesource.jansi</groupId>
-                    <artifactId>jansi</artifactId>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
-            <id>ssh</id>
-            <dependencies>
-                <dependency>
-                    <groupId>org.apache.sshd</groupId>
-                    <artifactId>sshd-core</artifactId>
-                </dependency>
-                <dependency>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-api</artifactId>
-                </dependency>
-                <dependency>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-jdk14</artifactId>
-                </dependency>
-            </dependencies>
-        </profile>
-    </profiles>
 
 </project>
