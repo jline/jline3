@@ -4,3 +4,4 @@ target
 .project
 .settings/
 .idea
+build.rc
