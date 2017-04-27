@@ -84,7 +84,7 @@ if [ ! -f ${TARGETDIR}/lib/jna-${JNA_VERSION}.jar ] ; then
   wget -O ${TARGETDIR}/lib/jna-${JNA_VERSION}.jar http://repo1.maven.org/maven2/net/java/dev/jna/jna/${JNA_VERSION}/jna-${JNA_VERSION}.jar
 fi
 
-opts=""
+opts="${JLINE_OPTS}"
 while [ "${1}" != "" ]; do
     case ${1} in
         'debug')
@@ -107,6 +107,10 @@ while [ "${1}" != "" ]; do
             cp=$cp:${TARGETDIR}/lib/sshd-core-${SSHD_VERSION}.jar:${TARGETDIR}/lib/slf4j-api-${SLF4J_VERSION}.jar:${TARGETDIR}/lib/slf4j-jdk14-${SLF4J_VERSION}.jar
             shift
             ;;
+         *)
+             opts="${opts} ${1}"
+             shift
+             ;;
     esac
 done
 
