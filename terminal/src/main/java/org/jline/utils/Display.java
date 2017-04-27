@@ -454,7 +454,9 @@ public class Display {
                     }
                 }
             } else {
+                terminal.puts(Capability.carriage_return);
                 rawPrint('\n', l1 - l0);
+                c0 = 0;
             }
         }
         if (c0 != 0 && c1 == 0) {
