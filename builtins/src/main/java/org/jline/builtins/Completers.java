@@ -66,7 +66,7 @@ public class Completers {
 
         public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
             if (line.wordIndex() == 0) {
-                completeCommand(candidates);
+                completeCommand(reader, candidates);
             } else {
                 tryCompleteArguments(reader, line, candidates);
             }
@@ -162,7 +162,9 @@ public class Completers {
         }
 
         @SuppressWarnings("unchecked")
-        protected void completeCommand(List<Candidate> candidates) {
+        protected void completeCommand(LineReader reader, List<Candidate> candidates) {
+            Object v = reader.getVariable("HIDE_SCOPES");
+            boolean hideScope = v != null && Boolean.parseBoolean(v.toString());
             Set<String> commands = environment.getCommands();
             for (String command : commands) {
                 String name = environment.commandName(command);
@@ -185,12 +187,16 @@ public class Completers {
                     }
                     String key = UUID.randomUUID().toString();
                     if (desc != null) {
-                        candidates.add(new Candidate(command, command, null, desc, null, key, true));
+                        if (!hideScope) {
+                            candidates.add(new Candidate(command, command, null, desc, null, key, true));
+                        }
                         if (resolved) {
                             candidates.add(new Candidate(name, name, null, desc, null, key, true));
                         }
                     } else {
-                        candidates.add(new Candidate(command, command, null, null, null, key, true));
+                        if (!hideScope) {
+                            candidates.add(new Candidate(command, command, null, null, null, key, true));
+                        }
                         if (resolved) {
                             candidates.add(new Candidate(name, name, null, null, null, key, true));
                         }
