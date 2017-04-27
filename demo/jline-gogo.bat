@@ -64,7 +64,8 @@ set opts=
     if "%1" == "jansi" goto :EXECUTE_JANSI
     if "%1" == "jna" goto :EXECUTE_JNA
     if "%1" == "debug" goto :EXECUTE_DEBUG
-    goto :EXECUTE
+    if "%1" == "debugs" goto :EXECUTE_DEBUGS
+	goto :EXECUTE
 
 :EXECUTE_JANSI
     set cp=%cp%;%TARGETDIR%/lib/jansi-%JANSI_VERSION%.jar
@@ -78,6 +79,11 @@ set opts=
 
 :EXECUTE_DEBUG
     set opts=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005
+    shift
+    goto :RUN_LOOP
+
+:EXECUTE_DEBUGS
+    set opts=-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005
     shift
     goto :RUN_LOOP
 
