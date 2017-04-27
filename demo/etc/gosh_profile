@@ -100,7 +100,7 @@ if { $.terminal } {
         complete -c remote:telnetd -a '[start stop status]'
 
     } {
-        if { not { (($exception cause) toString) equals "java.lang.NoClassDefFoundError: org/apache/sshd/common/Factory" } } {
+        if { not { (($exception cause) toString) startsWith "java.lang.NoClassDefFoundError: org/apache/sshd/" } } {
             $exception printStackTrace
         }
     }
