@@ -8,12 +8,11 @@
  */
 package org.jline.terminal.impl.jansi;
 
-import org.fusesource.jansi.internal.CLibrary;
+import org.fusesource.jansi.Ansi;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.jansi.freebsd.FreeBsdNativePty;
 import org.jline.terminal.impl.jansi.linux.LinuxNativePty;
 import org.jline.terminal.impl.jansi.osx.OsXNativePty;
-import org.jline.terminal.impl.jansi.solaris.SolarisNativePty;
 import org.jline.terminal.impl.jansi.win.JansiWinSysTerminal;
 import org.jline.terminal.spi.JansiSupport;
 import org.jline.terminal.spi.Pty;
@@ -29,7 +28,7 @@ public class JansiSupportImpl implements JansiSupport {
     static {
         int major = 0, minor = 0;
         try {
-            String v = CLibrary.class.getPackage().getImplementationVersion();
+            String v = Ansi.class.getPackage().getImplementationVersion();
             if (v != null) {
                 Matcher m = Pattern.compile("([0-9]+)\\.([0-9]+)([\\.-]\\S+)?").matcher(v);
                 if (m.matches()) {
@@ -53,7 +52,9 @@ public class JansiSupportImpl implements JansiSupport {
             }
         }
         else if (osName.startsWith("Mac") || osName.startsWith("Darwin")) {
-            return OsXNativePty.current();
+            if (JANSI_MAJOR_VERSION > 0) {
+                return OsXNativePty.current();
+            }
         }
         else if (osName.startsWith("Solaris") || osName.startsWith("SunOS")) {
             // Solaris is not supported by jansi
