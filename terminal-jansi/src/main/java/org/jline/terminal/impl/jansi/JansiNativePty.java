@@ -43,7 +43,16 @@ public abstract class JansiNativePty implements Pty {
     }
 
     protected static String ttyname() throws IOException {
-        String name = CLibrary.ttyname(0);
+        String name;
+        if (JANSI_MAJOR_VERSION > 1 || JANSI_MAJOR_VERSION == 1 && JANSI_MINOR_VERSION >= 16) {
+            name = CLibrary.ttyname(0);
+        } else {
+            try {
+                name = exec(true, OSUtils.TTY_COMMAND);
+            } catch (IOException e) {
+                throw new IOException("Not a tty", e);
+            }
+        }
         if (name != null) {
             name = name.trim();
         }

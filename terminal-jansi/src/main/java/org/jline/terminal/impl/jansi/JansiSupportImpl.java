@@ -52,7 +52,7 @@ public class JansiSupportImpl implements JansiSupport {
             }
         }
         else if (osName.startsWith("Mac") || osName.startsWith("Darwin")) {
-            if (JANSI_MAJOR_VERSION > 0) {
+            if (JANSI_MAJOR_VERSION > 1 || JANSI_MAJOR_VERSION == 1 && JANSI_MINOR_VERSION >= 12) {
                 return OsXNativePty.current();
             }
         }
@@ -70,7 +70,10 @@ public class JansiSupportImpl implements JansiSupport {
 
     @Override
     public Terminal winSysTerminal(String name, boolean nativeSignals, Terminal.SignalHandler signalHandler) throws IOException {
-        return new JansiWinSysTerminal(name, nativeSignals, signalHandler);
+        if (JANSI_MAJOR_VERSION > 1 || JANSI_MAJOR_VERSION == 1 && JANSI_MINOR_VERSION >= 12) {
+            return new JansiWinSysTerminal(name, nativeSignals, signalHandler);
+        }
+        throw new UnsupportedOperationException();
     }
 
 }

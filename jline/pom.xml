@@ -251,6 +251,22 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <configuration>
+                    <instructions>
+                        <Export-Package>*;-noimport:=true</Export-Package>
+                        <Import-Package>
+                            com.sun.jna*,
+                            org.apache.sshd*,
+                            org.fusesource.jansi;version="[1.12,2)",
+                            org.fusesource.jansi.internal;version="[1.6,2)",
+                            *
+                        </Import-Package>
+                    </instructions>
+                </configuration>
+            </plugin>
        </plugins>
     </build>
 
