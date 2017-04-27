@@ -4267,17 +4267,12 @@ public class LineReaderImpl implements LineReader, Flushable
         if (listMax > 0 && possible.size() >= listMax
                 || lines >= size.getRows() - promptLines) {
             // prompt
-            post = null;
-            int oldCursor = buf.cursor();
-            buf.cursor(buf.length());
-            redisplay(true);
-            buf.cursor(oldCursor);
-            println();
-            print(getAppName() + ": do you wish to see to see all " + possible.size()
+            post = () -> new AttributedString(getAppName() + ": do you wish to see to see all " + possible.size()
                     + " possibilities (" + lines + " lines)?");
-            flush();
+            redisplay(true);
             int c = readCharacter();
             if (c != 'y' && c != 'Y' && c != '\t') {
+                post = null;
                 return false;
             }
         }
