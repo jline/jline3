@@ -77,7 +77,7 @@ public class Nano {
     // Configuration
     public String title = "JLine Nano 3.0.0";
     public boolean printLineNumbers = true;
-    public boolean wrapping;
+    public boolean wrapping = true;
     public boolean smoothScrolling = true;
     public boolean mouseSupport = false;
     public boolean oneMoreLine = true;
@@ -141,7 +141,7 @@ public class Nano {
 
         boolean dirty;
 
-        Buffer(String file) {
+        protected Buffer(String file) {
             this.file = file;
         }
 
@@ -2015,7 +2015,8 @@ public class Nano {
         keys.bind(Operation.SMART_HOME_KEY, alt('h'));
         keys.bind(Operation.AUTO_INDENT, alt('i'));
         keys.bind(Operation.CUT_TO_END_TOGGLE, alt('k'));
-        keys.bind(Operation.WRAP, alt('l'));
+        // TODO: reenable wrapping after fixing #120
+        // keys.bind(Operation.WRAP, alt('l'));
         keys.bind(Operation.TABS_TO_SPACE, alt('q'));
 
         keys.bind(Operation.BACKUP, alt('b'));
