@@ -232,7 +232,7 @@ public final class TerminalBuilder {
                         return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
                     } catch (IOException e) {
                         // Ignore if not a tty
-                        Log.debug("Error creating exec based pty: ", e.getMessage(), e);
+                        Log.debug("Error creating EXEC based terminal: ", e.getMessage(), e);
                         exception.addSuppressed(e);
                     }
                 }
@@ -261,7 +261,7 @@ public final class TerminalBuilder {
                         pty = load(JnaSupport.class).current();
                     } catch (Throwable t) {
                         // ignore
-                        Log.debug("Error creating JNA based pty: ", t.getMessage(), t);
+                        Log.debug("Error creating JNA based terminal: ", t.getMessage(), t);
                         exception.addSuppressed(t);
                     }
                 }
@@ -278,7 +278,7 @@ public final class TerminalBuilder {
                         pty = ExecPty.current();
                     } catch (Throwable t) {
                         // Ignore if not a tty
-                        Log.debug("Error creating exec based pty: ", t.getMessage(), t);
+                        Log.debug("Error creating EXEC based terminal: ", t.getMessage(), t);
                         exception.addSuppressed(t);
                     }
                 }
@@ -307,7 +307,15 @@ public final class TerminalBuilder {
                     Pty pty = load(JnaSupport.class).open(attributes, size);
                     return new PosixPtyTerminal(name, type, pty, in, out, encoding, signalHandler);
                 } catch (Throwable t) {
-                    Log.debug("Error creating JNA based pty: ", t.getMessage(), t);
+                    Log.debug("Error creating JNA based terminal: ", t.getMessage(), t);
+                }
+            }
+            if (jansi) {
+                try {
+                    Pty pty = load(JansiSupport.class).open(attributes, size);
+                    return new PosixPtyTerminal(name, type, pty, in, out, encoding, signalHandler);
+                } catch (Throwable t) {
+                    Log.debug("Error creating JANSI based terminal: ", t.getMessage(), t);
                 }
             }
             Terminal terminal = new ExternalTerminal(name, type, in, out, encoding, signalHandler);

@@ -9,6 +9,8 @@
 package org.jline.terminal.impl.jansi;
 
 import org.fusesource.jansi.Ansi;
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.jansi.freebsd.FreeBsdNativePty;
 import org.jline.terminal.impl.jansi.linux.LinuxNativePty;
@@ -63,6 +65,27 @@ public class JansiSupportImpl implements JansiSupport {
         else if (osName.startsWith("FreeBSD")) {
             if (JANSI_MAJOR_VERSION > 1 || JANSI_MAJOR_VERSION == 1 && JANSI_MINOR_VERSION >= 16) {
                 return FreeBsdNativePty.current();
+            }
+        }
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Pty open(Attributes attributes, Size size) throws IOException {
+        if (JANSI_MAJOR_VERSION > 1 || JANSI_MAJOR_VERSION == 1 && JANSI_MINOR_VERSION >= 16) {
+            String osName = System.getProperty("os.name");
+            if (osName.startsWith("Linux")) {
+                return LinuxNativePty.open(attributes, size);
+            }
+            else if (osName.startsWith("Mac") || osName.startsWith("Darwin")) {
+                return OsXNativePty.open(attributes, size);
+            }
+            else if (osName.startsWith("Solaris") || osName.startsWith("SunOS")) {
+                // Solaris is not supported by jansi
+                // return SolarisNativePty.current();
+            }
+            else if (osName.startsWith("FreeBSD")) {
+                return FreeBsdNativePty.open(attributes, size);
             }
         }
         throw new UnsupportedOperationException();
