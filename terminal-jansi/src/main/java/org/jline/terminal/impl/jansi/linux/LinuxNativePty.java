@@ -30,7 +30,7 @@ public class LinuxNativePty extends JansiNativePty {
         }
     }
 
-    public static OsXNativePty open(Attributes attr, Size size) throws IOException {
+    public static LinuxNativePty open(Attributes attr, Size size) throws IOException {
         int[] master = new int[1];
         int[] slave = new int[1];
         byte[] buf = new byte[64];
@@ -42,7 +42,7 @@ public class LinuxNativePty extends JansiNativePty {
             len++;
         }
         String name = new String(buf, 0, len);
-        return new OsXNativePty(master[0], newDescriptor(master[0]), slave[0], newDescriptor(slave[0]), name);
+        return new LinuxNativePty(master[0], newDescriptor(master[0]), slave[0], newDescriptor(slave[0]), name);
     }
 
     public LinuxNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, String name) {
