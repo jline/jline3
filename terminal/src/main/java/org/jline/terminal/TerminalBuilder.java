@@ -255,35 +255,34 @@ public final class TerminalBuilder {
                     }
                 }
             } else {
-                Pty pty = null;
                 if (jna) {
                     try {
-                        pty = load(JnaSupport.class).current();
+                        Pty pty = load(JnaSupport.class).current();
+                        return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
                     } catch (Throwable t) {
                         // ignore
                         Log.debug("Error creating JNA based terminal: ", t.getMessage(), t);
                         exception.addSuppressed(t);
                     }
                 }
-                if (jansi && pty == null) {
+                if (jansi) {
                     try {
-                        pty = load(JansiSupport.class).current();
+                        Pty pty = load(JansiSupport.class).current();
+                        return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
                     } catch (Throwable t) {
                         Log.debug("Error creating JANSI based terminal: ", t.getMessage(), t);
                         exception.addSuppressed(t);
                     }
                 }
-                if (exec && pty == null) {
+                if (exec) {
                     try {
-                        pty = ExecPty.current();
+                        Pty pty = ExecPty.current();
+                        return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
                     } catch (Throwable t) {
                         // Ignore if not a tty
                         Log.debug("Error creating EXEC based terminal: ", t.getMessage(), t);
                         exception.addSuppressed(t);
                     }
-                }
-                if (pty != null) {
-                    return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
                 }
             }
             if (dumb == null || dumb) {
