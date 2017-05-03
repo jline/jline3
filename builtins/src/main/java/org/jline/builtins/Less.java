@@ -46,12 +46,15 @@ public class Less {
 
     public boolean quitAtSecondEof;
     public boolean quitAtFirstEof;
+    public boolean quitIfOneScreen;
     public boolean printLineNumbers;
     public boolean quiet;
     public boolean veryQuiet;
     public boolean chopLongLines;
     public boolean ignoreCaseCond;
     public boolean ignoreCaseAlways;
+    public boolean noKeypad;
+    public boolean noInit;
     public int tabs = 4;
 
     protected final Terminal terminal;
@@ -95,7 +98,7 @@ public class Less {
         size.copy(terminal.getSize());
         try {
             display.clear();
-            display();
+            display(false);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -116,6 +119,13 @@ public class Less {
 
         try {
             size.copy(terminal.getSize());
+
+            if (quitIfOneScreen && sources.size() == 1) {
+                if (display(true)) {
+                    return;
+                }
+            }
+
             SignalHandler prevHandler = terminal.handle(Signal.WINCH, this::handle);
             Attributes attr = terminal.enterRawMode();
             try {
@@ -125,11 +135,15 @@ public class Less {
                 bindKeys(keys);
 
                 // Use alternate buffer
-                terminal.puts(Capability.enter_ca_mode);
-                terminal.puts(Capability.keypad_xmit);
+                if (!noInit) {
+                    terminal.puts(Capability.enter_ca_mode);
+                }
+                if (!noKeypad) {
+                    terminal.puts(Capability.keypad_xmit);
+                }
                 terminal.writer().flush();
 
-                display();
+                display(false);
                 checkInterrupted();
 
                 options.put("-e", Operation.OPT_QUIT_AT_SECOND_EOF);
@@ -351,7 +365,7 @@ public class Less {
                             op = Operation.EXIT;
                         }
                     }
-                    display();
+                    display(false);
                 } while (op != Operation.EXIT);
             } catch (InterruptedException ie) {
                 // Do nothing
@@ -361,8 +375,12 @@ public class Less {
                     terminal.handle(Terminal.Signal.WINCH, prevHandler);
                 }
                 // Use main buffer
-                terminal.puts(Capability.exit_ca_mode);
-                terminal.puts(Capability.keypad_local);
+                if (!noInit) {
+                    terminal.puts(Capability.exit_ca_mode);
+                }
+                if (!noKeypad) {
+                    terminal.puts(Capability.keypad_local);
+                }
                 terminal.writer().flush();
             }
         } finally {
@@ -526,17 +544,22 @@ public class Less {
         }
     }
 
-    void display() throws IOException {
+    boolean display(boolean oneScreen) throws IOException {
         List<AttributedString> newLines = new ArrayList<>();
         int width = size.getColumns() - (printLineNumbers ? 8 : 0);
         int height = size.getRows();
         int inputLine = firstLineToDisplay;
         AttributedString curLine = null;
         Pattern compiled = getPattern();
+        boolean fitOnOneScreen = false;
         for (int terminalLine = 0; terminalLine < height - 1; terminalLine++) {
             if (curLine == null) {
                 curLine = getLine(inputLine++);
                 if (curLine == null) {
+                    if (oneScreen) {
+                        fitOnOneScreen = true;
+                        break;
+                    }
                     curLine = new AttributedString("");
                 }
                 if (compiled != null) {
@@ -570,6 +593,12 @@ public class Less {
                 newLines.add(toDisplay);
             }
         }
+        if (oneScreen) {
+            if (fitOnOneScreen) {
+                newLines.forEach(l -> terminal.writer().println(l.toAnsi(terminal)));
+            }
+            return fitOnOneScreen;
+        }
         AttributedStringBuilder msg = new AttributedStringBuilder();
         if (buffer.length() > 0) {
             msg.append(" ").append(buffer);
@@ -588,6 +617,7 @@ public class Less {
         display.resize(size.getRows(), size.getColumns());
         display.update(newLines, -1);
         terminal.flush();
+        return false;
     }
 
     private Pattern getPattern() {
