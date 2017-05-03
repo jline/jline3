@@ -106,9 +106,9 @@ public final class WindowsAnsiOutputStream extends AnsiOutputStream {
     private short invertAttributeColors(short attributes) {
         // Swap the the Foreground and Background bits.
         int fg = 0x000F & attributes;
-        fg <<= 8;
-        int bg = 0X00F0 * attributes;
-        bg >>=8;
+        fg <<= 4;
+        int bg = 0X00F0 & attributes;
+        bg >>= 4;
         attributes = (short) ((attributes & 0xFF00) | fg | bg);
         return attributes;
     }
