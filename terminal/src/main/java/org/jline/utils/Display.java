@@ -111,7 +111,7 @@ public class Display {
         }
 
         // Detect scrolling
-        if (fullScreen && newLines.size() == oldLines.size() && canScroll) {
+        if ((fullScreen || newLines.size() >= rows) && newLines.size() == oldLines.size() && canScroll) {
             int nbHeaders = 0;
             int nbFooters = 0;
             // Find common headers and footers
