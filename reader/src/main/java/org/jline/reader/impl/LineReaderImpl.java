@@ -4157,7 +4157,12 @@ public class LineReaderImpl implements LineReader, Flushable
                         topLine = pr.selectedLine - displayed + 1;
                     }
                 }
-                List<AttributedString> lines = pr.post.columnSplitLength(size.getColumns(), true, display.delayLineWrap());
+                AttributedString post = pr.post;
+                if (post.length() > 0 && post.charAt(post.length() - 1) != '\n') {
+                    post = new AttributedStringBuilder(post.length() + 1)
+                            .append(post).append("\n").toAttributedString();
+                }
+                List<AttributedString> lines = post.columnSplitLength(size.getColumns(), true, display.delayLineWrap());
                 List<AttributedString> sub = new ArrayList<>(lines.subList(topLine, topLine + displayed));
                 sub.add(new AttributedStringBuilder()
                         .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.CYAN))
