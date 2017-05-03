@@ -294,6 +294,30 @@ public final class WindowsAnsiOutputStream extends AnsiOutputStream {
         }
     }
 
+    @Override
+    protected void processInsertLine(int optionInt) throws IOException {
+        getConsoleInfo();
+        Kernel32.SMALL_RECT scroll = new Kernel32.SMALL_RECT(info.srWindow);
+        scroll.Top = info.dwCursorPosition.Y;
+        Kernel32.COORD org = new Kernel32.COORD();
+        org.X = 0;
+        org.Y = (short)(info.dwCursorPosition.Y + optionInt);
+        Kernel32.CHAR_INFO info = new Kernel32.CHAR_INFO(' ', originalColors);
+        Kernel32.INSTANCE.ScrollConsoleScreenBuffer(console, scroll, scroll, org, info);
+    }
+
+    @Override
+    protected void processDeleteLine(int optionInt) throws IOException {
+        getConsoleInfo();
+        Kernel32.SMALL_RECT scroll = new Kernel32.SMALL_RECT(info.srWindow);
+        scroll.Top = info.dwCursorPosition.Y;
+        Kernel32.COORD org = new Kernel32.COORD();
+        org.X = 0;
+        org.Y = (short)(info.dwCursorPosition.Y - optionInt);
+        Kernel32.CHAR_INFO info = new Kernel32.CHAR_INFO(' ', originalColors);
+        Kernel32.INSTANCE.ScrollConsoleScreenBuffer(console, scroll, scroll, org, info);
+    }
+
     protected void processChangeWindowTitle(String label) {
         Kernel32.INSTANCE.SetConsoleTitle(label);
     }
