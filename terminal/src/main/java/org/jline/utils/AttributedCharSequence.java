@@ -330,13 +330,7 @@ public abstract class AttributedCharSequence implements CharSequence {
             int cp = codePointAt(cur);
             int w = isHidden(cur) ? 0 : WCWidth.wcwidth(cp);
             if (cp == '\n') {
-                if (! delayLineWrap && col == columns) {
-                    strings.add(subSequence(beg, cur));
-                    strings.add(includeNewlines ? AttributedString.NEWLINE
-                                : AttributedString.EMPTY);
-                }
-                else
-                    strings.add(subSequence(beg, includeNewlines ? cur+1 : cur));
+                strings.add(subSequence(beg, includeNewlines ? cur+1 : cur));
                 beg = cur + 1;
                 col = 0;
             } else if ((col += w) > columns) {
