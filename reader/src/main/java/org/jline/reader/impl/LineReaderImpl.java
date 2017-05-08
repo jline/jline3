@@ -4233,7 +4233,6 @@ public class LineReaderImpl implements LineReader, Flushable
                         String chars = getString(REMOVE_SUFFIX_CHARS, DEFAULT_REMOVE_SUFFIX_CHARS);
                         if (SELF_INSERT.equals(ref)
                                 && chars.indexOf(getLastBinding().charAt(0)) >= 0
-                                || ACCEPT_LINE.equals(ref)
                                 || BACKWARD_DELETE_CHAR.equals(ref)) {
                             buf.backspace(completion.suffix().length());
                         }
