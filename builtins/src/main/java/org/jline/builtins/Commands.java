@@ -191,7 +191,7 @@ public class Commands {
             AttributedStringBuilder sb = new AttributedStringBuilder();
             sb.append("  ");
             sb.style(AttributedStyle.BOLD);
-            sb.append(String.format("%3d", entry.index()));
+            sb.append(String.format("%3d", entry.index() + 1));
             sb.style(AttributedStyle.DEFAULT);
             if (opt.isSet("d")) {
                 sb.append("  ");
