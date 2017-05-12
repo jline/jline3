@@ -301,9 +301,10 @@ public class Display {
                         terminal.puts(Capability.clr_eol);
                 }
             } else if (atRight) {
-                if (this.wrapAtEol)
-                   cursorPos++;
-                else {
+                if (this.wrapAtEol) {
+                    terminal.writer().write(" \b");
+                    cursorPos++;
+                } else {
                     terminal.puts(Capability.carriage_return); // CR / not newline.
                     cursorPos = curCol;
                 }
