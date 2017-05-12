@@ -37,7 +37,7 @@ Use the following definition to use JLine in your maven project:
     <dependency>
       <groupId>org.jline</groupId>
       <artifactId>jline</artifactId>
-      <version>3.2.0</version>
+      <version>3.3.0</version>
     </dependency>
 
 JLine can also be used with more low-level jars:
@@ -45,12 +45,12 @@ JLine can also be used with more low-level jars:
     <dependency>
       <groupId>org.jline</groupId>
       <artifactId>jline-terminal</artifactId>
-      <version>3.2.0</version>
+      <version>3.3.0</version>
     </dependency>
     <dependency>
       <groupId>org.jline</groupId>
       <artifactId>jline-reader</artifactId>
-      <version>3.2.0</version>
+      <version>3.3.0</version>
     </dependency>
 
 # Building
