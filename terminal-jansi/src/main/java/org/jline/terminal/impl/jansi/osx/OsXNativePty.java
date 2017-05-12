@@ -10,6 +10,7 @@ package org.jline.terminal.impl.jansi.osx;
 
 import org.fusesource.jansi.internal.CLibrary;
 import org.jline.terminal.Attributes;
+import org.jline.terminal.Size;
 import org.jline.terminal.impl.jansi.JansiNativePty;
 
 import java.io.FileDescriptor;
@@ -26,6 +27,21 @@ public class OsXNativePty extends JansiNativePty {
         } catch (IOException e) {
             throw new IOException("Not a tty", e);
         }
+    }
+
+    public static OsXNativePty open(Attributes attr, Size size) throws IOException {
+        int[] master = new int[1];
+        int[] slave = new int[1];
+        byte[] buf = new byte[64];
+        CLibrary.openpty(master, slave, buf,
+                attr != null ? termios(attr) : null,
+                size != null ? new CLibrary.WinSize((short) size.getRows(), (short) size.getColumns()) : null);
+        int len = 0;
+        while (buf[len] != 0) {
+            len++;
+        }
+        String name = new String(buf, 0, len);
+        return new OsXNativePty(master[0], newDescriptor(master[0]), slave[0], newDescriptor(slave[0]), name);
     }
 
     public OsXNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, String name) {
@@ -120,6 +136,10 @@ public class OsXNativePty extends JansiNativePty {
     private static final int NOFLSH      = 0x80000000;
 
     protected CLibrary.Termios toTermios(Attributes t) {
+        return termios(t);
+    }
+
+    static CLibrary.Termios termios(Attributes t) {
         CLibrary.Termios tio = new CLibrary.Termios();
         tio.c_iflag = setFlag(t.getInputFlag(Attributes.InputFlag.IGNBRK), IGNBRK, tio.c_iflag);
         tio.c_iflag = setFlag(t.getInputFlag(Attributes.InputFlag.BRKINT), BRKINT, tio.c_iflag);

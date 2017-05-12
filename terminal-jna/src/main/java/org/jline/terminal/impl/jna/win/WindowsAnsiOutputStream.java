@@ -106,9 +106,9 @@ public final class WindowsAnsiOutputStream extends AnsiOutputStream {
     private short invertAttributeColors(short attributes) {
         // Swap the the Foreground and Background bits.
         int fg = 0x000F & attributes;
-        fg <<= 8;
-        int bg = 0X00F0 * attributes;
-        bg >>=8;
+        fg <<= 4;
+        int bg = 0X00F0 & attributes;
+        bg >>= 4;
         attributes = (short) ((attributes & 0xFF00) | fg | bg);
         return attributes;
     }
@@ -292,6 +292,30 @@ public final class WindowsAnsiOutputStream extends AnsiOutputStream {
             info.dwCursorPosition.Y = savedY;
             applyCursorPosition();
         }
+    }
+
+    @Override
+    protected void processInsertLine(int optionInt) throws IOException {
+        getConsoleInfo();
+        Kernel32.SMALL_RECT scroll = new Kernel32.SMALL_RECT(info.srWindow);
+        scroll.Top = info.dwCursorPosition.Y;
+        Kernel32.COORD org = new Kernel32.COORD();
+        org.X = 0;
+        org.Y = (short)(info.dwCursorPosition.Y + optionInt);
+        Kernel32.CHAR_INFO info = new Kernel32.CHAR_INFO(' ', originalColors);
+        Kernel32.INSTANCE.ScrollConsoleScreenBuffer(console, scroll, scroll, org, info);
+    }
+
+    @Override
+    protected void processDeleteLine(int optionInt) throws IOException {
+        getConsoleInfo();
+        Kernel32.SMALL_RECT scroll = new Kernel32.SMALL_RECT(info.srWindow);
+        scroll.Top = info.dwCursorPosition.Y;
+        Kernel32.COORD org = new Kernel32.COORD();
+        org.X = 0;
+        org.Y = (short)(info.dwCursorPosition.Y - optionInt);
+        Kernel32.CHAR_INFO info = new Kernel32.CHAR_INFO(' ', originalColors);
+        Kernel32.INSTANCE.ScrollConsoleScreenBuffer(console, scroll, scroll, org, info);
     }
 
     protected void processChangeWindowTitle(String label) {

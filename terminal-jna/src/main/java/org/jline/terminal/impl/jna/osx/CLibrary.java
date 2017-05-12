@@ -32,8 +32,6 @@ public interface CLibrary extends com.sun.jna.Library {
 
     void ioctl(int fd, NativeLong cmd, winsize data) throws LastErrorException;
 
-//    int isatty(int fd);
-
     void ttyname_r(int fd, byte[] buf, int len) throws LastErrorException;
 
     void openpty(int[] master, int[] slave, byte[] name, termios t, winsize s) throws LastErrorException;

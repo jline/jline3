@@ -56,7 +56,12 @@ if { $.terminal } {
         __remote_ssh_support = (new org.jline.builtins.ssh.Ssh \
             ($__gogo shell) \
             ($__gogo command) \
-            { (new org.apache.sshd.server.ServerBuilder) build } \
+            {
+              server = ((new org.apache.sshd.server.ServerBuilder) build)
+              $server setPasswordAuthenticator (__get_static_field org.apache.sshd.server.auth.password.AcceptAllPasswordAuthenticator INSTANCE)
+              $server setPublickeyAuthenticator (__get_static_field org.apache.sshd.server.auth.pubkey.AcceptAllPublickeyAuthenticator INSTANCE)
+              $server
+            } \
             { (new org.apache.sshd.client.ClientBuilder) build } )
         __remote_sshd = {
             # See FELIX-5465, should be:

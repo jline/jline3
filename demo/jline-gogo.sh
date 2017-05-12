@@ -84,6 +84,12 @@ if ${cygwin}; then
   DIRNAME=$(cygpath --path --windows "${DIRNAME}")
 fi
 
+nothing() {
+   # nothing to do here
+   a=a
+}
+trap 'nothing' TSTP
+
 # Launch gogo shell
 echo "Launching Gogo JLine..."
 echo "Classpath: $cp"

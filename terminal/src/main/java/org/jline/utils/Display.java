@@ -111,7 +111,7 @@ public class Display {
         }
 
         // Detect scrolling
-        if (fullScreen && newLines.size() == oldLines.size() && canScroll) {
+        if ((fullScreen || newLines.size() >= rows) && newLines.size() == oldLines.size() && canScroll) {
             int nbHeaders = 0;
             int nbFooters = 0;
             // Find common headers and footers
@@ -301,9 +301,10 @@ public class Display {
                         terminal.puts(Capability.clr_eol);
                 }
             } else if (atRight) {
-                if (this.wrapAtEol)
-                   cursorPos++;
-                else {
+                if (this.wrapAtEol) {
+                    terminal.writer().write(" \b");
+                    cursorPos++;
+                } else {
                     terminal.puts(Capability.carriage_return); // CR / not newline.
                     cursorPos = curCol;
                 }

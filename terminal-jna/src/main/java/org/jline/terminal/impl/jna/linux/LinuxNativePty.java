@@ -11,6 +11,7 @@ package org.jline.terminal.impl.jna.linux;
 import java.io.FileDescriptor;
 import java.io.IOException;
 
+import com.sun.jna.LastErrorException;
 import com.sun.jna.Native;
 import com.sun.jna.Platform;
 import org.jline.terminal.Attributes;
@@ -26,6 +27,13 @@ import static org.jline.terminal.impl.jna.linux.CLibrary.winsize;
 public class LinuxNativePty extends JnaNativePty {
 
     private static final CLibrary C_LIBRARY = (CLibrary) Native.loadLibrary(Platform.C_LIBRARY_NAME, CLibrary.class);
+
+    public interface UtilLibrary extends com.sun.jna.Library {
+
+        void openpty(int[] master, int[] slave, byte[] name, CLibrary.termios t, CLibrary.winsize s) throws LastErrorException;
+
+        UtilLibrary INSTANCE = (UtilLibrary) Native.loadLibrary("util", UtilLibrary.class);
+    }
 
     public static LinuxNativePty current() throws IOException {
         int slave = 0;
@@ -43,7 +51,7 @@ public class LinuxNativePty extends JnaNativePty {
         int[] master = new int[1];
         int[] slave = new int[1];
         byte[] buf = new byte[64];
-        C_LIBRARY.openpty(master, slave, buf,
+        UtilLibrary.INSTANCE.openpty(master, slave, buf,
                 attr != null ? new termios(attr) : null,
                 size != null ? new winsize(size) : null);
         int len = 0;

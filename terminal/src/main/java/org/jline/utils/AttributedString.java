@@ -167,11 +167,26 @@ public class AttributedString extends AttributedCharSequence {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         AttributedString that = (AttributedString) o;
-        if (start != that.start) return false;
-        if (end != that.end) return false;
-        if (!Arrays.equals(buffer, that.buffer)) return false;
-        return Arrays.equals(style, that.style);
+        return end - start == that.end - that.start
+                && arrEq(buffer, that.buffer, start, that.start, end - start)
+                && arrEq(style, that.style, start, that.start, end - start);
+    }
 
+    private boolean arrEq(char[] a1, char[] a2, int s1, int s2, int l) {
+        for (int i = 0; i < l; i++) {
+            if (a1[s1+i] != a2[s2+i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+    private boolean arrEq(int[] a1, int[] a2, int s1, int s2, int l) {
+        for (int i = 0; i < l; i++) {
+            if (a1[s1+i] != a2[s2+i]) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override

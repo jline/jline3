@@ -4157,7 +4157,12 @@ public class LineReaderImpl implements LineReader, Flushable
                         topLine = pr.selectedLine - displayed + 1;
                     }
                 }
-                List<AttributedString> lines = pr.post.columnSplitLength(size.getColumns(), true, display.delayLineWrap());
+                AttributedString post = pr.post;
+                if (post.length() > 0 && post.charAt(post.length() - 1) != '\n') {
+                    post = new AttributedStringBuilder(post.length() + 1)
+                            .append(post).append("\n").toAttributedString();
+                }
+                List<AttributedString> lines = post.columnSplitLength(size.getColumns(), true, display.delayLineWrap());
                 List<AttributedString> sub = new ArrayList<>(lines.subList(topLine, topLine + displayed));
                 sub.add(new AttributedStringBuilder()
                         .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.CYAN))
@@ -4228,7 +4233,6 @@ public class LineReaderImpl implements LineReader, Flushable
                         String chars = getString(REMOVE_SUFFIX_CHARS, DEFAULT_REMOVE_SUFFIX_CHARS);
                         if (SELF_INSERT.equals(ref)
                                 && chars.indexOf(getLastBinding().charAt(0)) >= 0
-                                || ACCEPT_LINE.equals(ref)
                                 || BACKWARD_DELETE_CHAR.equals(ref)) {
                             buf.backspace(completion.suffix().length());
                         }
@@ -4267,17 +4271,12 @@ public class LineReaderImpl implements LineReader, Flushable
         if (listMax > 0 && possible.size() >= listMax
                 || lines >= size.getRows() - promptLines) {
             // prompt
-            post = null;
-            int oldCursor = buf.cursor();
-            buf.cursor(buf.length());
-            redisplay(true);
-            buf.cursor(oldCursor);
-            println();
-            print(getAppName() + ": do you wish to see to see all " + possible.size()
+            post = () -> new AttributedString(getAppName() + ": do you wish to see to see all " + possible.size()
                     + " possibilities (" + lines + " lines)?");
-            flush();
+            redisplay(true);
             int c = readCharacter();
             if (c != 'y' && c != 'Y' && c != '\t') {
+                post = null;
                 return false;
             }
         }

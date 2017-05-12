@@ -32,6 +32,7 @@ set "logconf=%DIRNAME%etc\logging.properties"
 :RUN_LOOP
     if "%1" == "jansi" goto :EXECUTE_JANSI
     if "%1" == "jna" goto :EXECUTE_JNA
+    if "%1" == "ssh" goto :EXECUTE_SSH
     if "%1" == "debug" goto :EXECUTE_DEBUG
     if "%1" == "debugs" goto :EXECUTE_DEBUGS
     if "%1" == "verbose" goto :EXECUTE_VERBOSE
@@ -47,6 +48,13 @@ set "logconf=%DIRNAME%etc\logging.properties"
 
 :EXECUTE_JNA
     for %%G in (jna-*.jar) do call:APPEND_TO_CLASSPATH %%G
+    shift
+    goto :RUN_LOOP
+
+:EXECUTE_SSH
+    for %%G in (sshd-core-*.jar) do call:APPEND_TO_CLASSPATH %%G
+    for %%G in (slf4j-api-*.jar) do call:APPEND_TO_CLASSPATH %%G
+    for %%G in (slf4j-jdk14-*.jar) do call:APPEND_TO_CLASSPATH %%G
     shift
     goto :RUN_LOOP
 

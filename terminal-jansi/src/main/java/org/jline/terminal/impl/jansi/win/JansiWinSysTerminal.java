@@ -24,7 +24,6 @@ import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
 import org.jline.utils.InfoCmp;
-import org.jline.utils.Log;
 
 import static org.fusesource.jansi.internal.Kernel32.GetConsoleScreenBufferInfo;
 import static org.fusesource.jansi.internal.Kernel32.GetStdHandle;
@@ -126,4 +125,10 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
         return new Cursor(info.cursorPosition.x, info.cursorPosition.y);
     }
 
+    public void disableScrolling() {
+        strings.remove(InfoCmp.Capability.insert_line);
+        strings.remove(InfoCmp.Capability.parm_insert_line);
+        strings.remove(InfoCmp.Capability.delete_line);
+        strings.remove(InfoCmp.Capability.parm_delete_line);
+    }
 }

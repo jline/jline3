@@ -9,6 +9,8 @@
 package org.jline.terminal.impl.jansi;
 
 import org.fusesource.jansi.Ansi;
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.jansi.freebsd.FreeBsdNativePty;
 import org.jline.terminal.impl.jansi.linux.LinuxNativePty;
@@ -52,7 +54,7 @@ public class JansiSupportImpl implements JansiSupport {
             }
         }
         else if (osName.startsWith("Mac") || osName.startsWith("Darwin")) {
-            if (JANSI_MAJOR_VERSION > 0) {
+            if (JANSI_MAJOR_VERSION > 1 || JANSI_MAJOR_VERSION == 1 && JANSI_MINOR_VERSION >= 12) {
                 return OsXNativePty.current();
             }
         }
@@ -69,8 +71,36 @@ public class JansiSupportImpl implements JansiSupport {
     }
 
     @Override
+    public Pty open(Attributes attributes, Size size) throws IOException {
+        if (JANSI_MAJOR_VERSION > 1 || JANSI_MAJOR_VERSION == 1 && JANSI_MINOR_VERSION >= 16) {
+            String osName = System.getProperty("os.name");
+            if (osName.startsWith("Linux")) {
+                return LinuxNativePty.open(attributes, size);
+            }
+            else if (osName.startsWith("Mac") || osName.startsWith("Darwin")) {
+                return OsXNativePty.open(attributes, size);
+            }
+            else if (osName.startsWith("Solaris") || osName.startsWith("SunOS")) {
+                // Solaris is not supported by jansi
+                // return SolarisNativePty.current();
+            }
+            else if (osName.startsWith("FreeBSD")) {
+                return FreeBsdNativePty.open(attributes, size);
+            }
+        }
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public Terminal winSysTerminal(String name, boolean nativeSignals, Terminal.SignalHandler signalHandler) throws IOException {
-        return new JansiWinSysTerminal(name, nativeSignals, signalHandler);
+        if (JANSI_MAJOR_VERSION > 1 || JANSI_MAJOR_VERSION == 1 && JANSI_MINOR_VERSION >= 12) {
+            JansiWinSysTerminal terminal = new JansiWinSysTerminal(name, nativeSignals, signalHandler);
+            if (JANSI_MAJOR_VERSION == 1 && JANSI_MINOR_VERSION < 16) {
+                terminal.disableScrolling();
+            }
+            return terminal;
+        }
+        throw new UnsupportedOperationException();
     }
 
 }
