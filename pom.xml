@@ -83,8 +83,8 @@
         <sshd.version>1.4.0</sshd.version>
         <easymock.version>3.3.1</easymock.version>
         <junit.version>4.12</junit.version>
-        <gogo.runtime.version>1.0.5-SNAPSHOT</gogo.runtime.version>
-        <gogo.jline.version>1.0.5-SNAPSHOT</gogo.jline.version>
+        <gogo.runtime.version>1.0.6</gogo.runtime.version>
+        <gogo.jline.version>1.0.6</gogo.jline.version>
         <slf4j.version>1.7.21</slf4j.version>
 
         <surefire.argLine/>
