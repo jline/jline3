@@ -65,12 +65,27 @@ public class Tmux {
 
     public static final String OPT_PREFIX = "prefix";
 
+    public static final String CMD_COMMANDS = "commands";
     public static final String CMD_SEND_PREFIX = "send-prefix";
     public static final String CMD_SPLIT_WINDOW = "split-window";
+    public static final String CMD_SPLITW = "splitw";
     public static final String CMD_SELECT_PANE = "select-pane";
+    public static final String CMD_SELECTP = "selectp";
     public static final String CMD_RESIZE_PANE = "resize-pane";
+    public static final String CMD_RESIZEP = "resizep";
     public static final String CMD_DISPLAY_PANES = "display-panes";
+    public static final String CMD_DISPLAYP = "displayp";
     public static final String CMD_CLOCK_MODE = "clock-mode";
+    public static final String CMD_SET_OPTION = "set-option";
+    public static final String CMD_SET = "set";
+    public static final String CMD_LIST_KEYS = "list-keys";
+    public static final String CMD_LSK = "lsk";
+    public static final String CMD_SEND_KEYS = "send-keys";
+    public static final String CMD_SEND = "send";
+    public static final String CMD_BIND_KEY = "bind-key";
+    public static final String CMD_BIND = "bind";
+    public static final String CMD_UNBIND_KEY = "unbind-key";
+    public static final String CMD_UNBIND = "unbind";
 
     private static final int[][][] WINDOW_CLOCK_TABLE = {
           { { 1,1,1,1,1 }, /* 0 */
@@ -187,13 +202,7 @@ public class Tmux {
     }
 
     protected KeyMap<Object> createKeyMap(String prefix) {
-        KeyMap<Object> keyMap = new KeyMap<>();
-        keyMap.setUnicode(Binding.SelfInsert);
-        keyMap.setNomatch(Binding.SelfInsert);
-        for (int i = 0; i < 255; i++) {
-            keyMap.bind(Binding.Discard, prefix + (char)(i));
-        }
-        keyMap.bind(Binding.Mouse, key(terminal, Capability.key_mouse));
+        KeyMap<Object> keyMap = createEmptyKeyMap(prefix);
         keyMap.bind(CMD_SEND_PREFIX, prefix + prefix);
         keyMap.bind(CMD_SPLIT_WINDOW + " -v", prefix + "\"");
         keyMap.bind(CMD_SPLIT_WINDOW + " -h", prefix + "%");
@@ -211,6 +220,17 @@ public class Tmux {
         keyMap.bind(CMD_RESIZE_PANE + " -R", prefix + translate("^[[1;5D"), prefix + alt(translate("^[[D"))); // ctrl-right
         keyMap.bind(CMD_DISPLAY_PANES, prefix + "q");
         keyMap.bind(CMD_CLOCK_MODE, prefix + "t");
+        return keyMap;
+    }
+
+    protected KeyMap<Object> createEmptyKeyMap(String prefix) {
+        KeyMap<Object> keyMap = new KeyMap<>();
+        keyMap.setUnicode(Binding.SelfInsert);
+        keyMap.setNomatch(Binding.SelfInsert);
+        for (int i = 0; i < 255; i++) {
+            keyMap.bind(Binding.Discard, prefix + (char)(i));
+        }
+        keyMap.bind(Binding.Mouse, key(terminal, Capability.key_mouse));
         return keyMap;
     }
 
@@ -313,12 +333,16 @@ public class Tmux {
                     if (b == Binding.Mouse) {
                         MouseEvent event = terminal.readMouseEvent();
                         //System.err.println(event.toString());
-                    } else if (b instanceof String) {
+                    } else if (b instanceof String || b instanceof String[]) {
                         ByteArrayOutputStream out = new ByteArrayOutputStream();
                         ByteArrayOutputStream err = new ByteArrayOutputStream();
                         try (PrintStream pout = new PrintStream(out);
                              PrintStream perr = new PrintStream(err)) {
-                            execute(pout, perr, (String) b);
+                            if (b instanceof String) {
+                                execute(pout, perr, (String) b);
+                            } else {
+                                execute(pout, perr, Arrays.asList((String[]) b));
+                            }
                         } catch (Exception e) {
                             // TODO: log
                         }
@@ -401,20 +425,193 @@ public class Tmux {
                 sendPrefix(out, err, args);
                 break;
             case CMD_SPLIT_WINDOW:
+            case CMD_SPLITW:
                 splitWindow(out, err, args);
                 break;
             case CMD_SELECT_PANE:
+            case CMD_SELECTP:
                 selectPane(out, err, args);
                 break;
             case CMD_RESIZE_PANE:
+            case CMD_RESIZEP:
                 resizePane(out, err, args);
                 break;
             case CMD_DISPLAY_PANES:
+            case CMD_DISPLAYP:
                 displayPanes(out, err, args);
                 break;
             case CMD_CLOCK_MODE:
                 clockMode(out, err, args);
                 break;
+            case CMD_BIND_KEY:
+            case CMD_BIND:
+                bindKey(out, err, args);
+                break;
+            case CMD_UNBIND_KEY:
+            case CMD_UNBIND:
+                unbindKey(out, err, args);
+                break;
+            case CMD_LIST_KEYS:
+            case CMD_LSK:
+                listKeys(out, err, args);
+                break;
+            case CMD_SEND_KEYS:
+            case CMD_SEND:
+                sendKeys(out, err, args);
+                break;
+            case CMD_SET_OPTION:
+            case CMD_SET:
+                setOption(out, err, args);
+                break;
+        }
+    }
+
+    protected void setOption(PrintStream out, PrintStream err, List<String> args) throws IOException {
+        final String[] usage = {
+                "set-option - ",
+                "Usage: set-option [-agosquw] option [value]",
+                "  -? --help                    Show help",
+                "  -u --unset                   Unset the option"
+        };
+        Options opt = Options.compile(usage).parse(args);
+        if (opt.isSet("help")) {
+            opt.usage(err);
+            return;
+        }
+        int nbargs = opt.args().size();
+        if (nbargs < 1 || nbargs > 2) {
+            opt.usage(err);
+            return;
+        }
+        String name = opt.args().get(0);
+        String value = nbargs > 1 ? opt.args().get(1) : null;
+        if (name.startsWith("@")) {
+            // set user option
+        } else {
+            // set server option
+            switch (name) {
+                case OPT_PREFIX:
+                    if (value == null) {
+                        throw new IllegalArgumentException("Missing argument");
+                    }
+                    String prefix = translate(value);
+                    String oldPrefix = serverOptions.put(OPT_PREFIX, prefix);
+                    KeyMap<Object> newKeys = createEmptyKeyMap(prefix);
+                    for (Map.Entry<String, Object> e : keyMap.getBoundKeys().entrySet()) {
+                        if (e.getValue() instanceof String) {
+                            if (e.getKey().equals(oldPrefix + oldPrefix)) {
+                                newKeys.bind(e.getValue(), prefix + prefix);
+                            } else if (e.getKey().startsWith(oldPrefix)) {
+                                newKeys.bind(e.getValue(), prefix + e.getKey().substring(oldPrefix.length()));
+                            } else {
+                                newKeys.bind(e.getValue(), e.getKey());
+                            }
+                        }
+                    }
+                    keyMap = newKeys;
+                    break;
+            }
+        }
+    }
+
+    protected void bindKey(PrintStream out, PrintStream err, List<String> args) throws IOException {
+        final String[] usage = {
+                "bind-key - ",
+                "Usage: bind-key key command [arguments]", /* [-cnr] [-t mode-table] [-T key-table] */
+                "  -? --help                    Show help"
+        };
+        Options opt = Options.compile(usage).setOptionsFirst(true).parse(args);
+        if (opt.isSet("help")) {
+            opt.usage(err);
+            return;
+        }
+        List<String> vargs = opt.args();
+        if (vargs.size() < 2) {
+            opt.usage(err);
+            return;
+        }
+        String prefix = serverOptions.get(OPT_PREFIX);
+        String key = prefix + KeyMap.translate(vargs.remove(0));
+        keyMap.unbind(key.substring(0, 2));
+        keyMap.bind(vargs.toArray(new String[vargs.size()]), key);
+    }
+
+    protected void unbindKey(PrintStream out, PrintStream err, List<String> args) throws IOException {
+        final String[] usage = {
+                "unbind-key - ",
+                "Usage: unbind-key key", /* [-an] [-t mode-table] [-T key-table] */
+                "  -? --help                    Show help"
+        };
+        Options opt = Options.compile(usage).setOptionsFirst(true).parse(args);
+        if (opt.isSet("help")) {
+            opt.usage(err);
+            return;
+        }
+        List<String> vargs = opt.args();
+        if (vargs.size() != 1) {
+            opt.usage(err);
+            return;
+        }
+        String prefix = serverOptions.get(OPT_PREFIX);
+        String key = prefix + KeyMap.translate(vargs.remove(0));
+        keyMap.unbind(key);
+        keyMap.bind(Binding.Discard, key);
+    }
+
+    protected void listKeys(PrintStream out, PrintStream err, List<String> args) throws IOException {
+        final String[] usage = {
+                "list-keys - ",
+                "Usage: list-keys ", /* [-t mode-table] [-T key-table] */
+                "  -? --help                    Show help",
+        };
+        Options opt = Options.compile(usage).parse(args);
+        if (opt.isSet("help")) {
+            opt.usage(err);
+            return;
+        }
+        String prefix = serverOptions.get(OPT_PREFIX);
+        keyMap.getBoundKeys().entrySet().stream()
+                .filter(e -> e.getValue() instanceof String)
+                .map(e -> {
+                    String key = e.getKey();
+                    String val = (String) e.getValue();
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("bind-key -T ");
+                    if (key.startsWith(prefix)) {
+                        sb.append("prefix ");
+                        key = key.substring(prefix.length());
+                    } else {
+                        sb.append("root   ");
+                    }
+                    sb.append(display(key));
+                    while (sb.length() < 32) {
+                        sb.append(" ");
+                    }
+                    sb.append(val);
+                    return sb.toString();
+                })
+                .sorted()
+                .forEach(out::println);
+    }
+
+    protected void sendKeys(PrintStream out, PrintStream err, List<String> args) throws IOException {
+        final String[] usage = {
+                "send-keys - ",
+                "Usage: send-keys [-lXRM] [-N repeat-count] [-t target-pane] key...",
+                "  -? --help                    Show help",
+                "  -l --literal                Send key literally",
+                "  -N --number=repeat-count     Specifies a repeat count"
+        };
+        Options opt = Options.compile(usage).parse(args);
+        if (opt.isSet("help")) {
+            opt.usage(err);
+            return;
+        }
+        for (int i = 0, n = opt.getNumber("number"); i < n; i++) {
+            for (String arg : opt.args()) {
+                String s = opt.isSet("literal") ? arg : KeyMap.translate(arg);
+                active.getMasterInputOutput().write(s.getBytes());
+            }
         }
     }
 

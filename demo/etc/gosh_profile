@@ -12,6 +12,9 @@ __get_static_field = {
 __call_static_method_no_arg = {
 	((__load_class_from $.session $1) getMethod $2) invoke null
 }
+__new_candidate = {
+    new org.jline.reader.Candidate $1 $1 null $2 null null true
+}
 
 # Define the $.process variable
 \#.process = {
@@ -51,6 +54,24 @@ if { $.terminal } {
         } {
             HIGHLIGHTER_COLORS = "rs=35:st=32:nu=32:co=32:va=36:vn=36:fu=94:bf=91:re=90"
         }
+
+        __tmux_commands = [
+          (__new_candidate send-prefix "Send prefix")
+          (__new_candidate split-window "Split the current window")
+          (__new_candidate select-pane "Select pane")
+          (__new_candidate resize-pane "Resize pane")
+          (__new_candidate display-pane "Display panes")
+          (__new_candidate clock-mode "Clock mode")
+          (__new_candidate set-option "Set option")
+          (__new_candidate list-keys "List keys")
+          (__new_candidate send-keys "Send keys")
+          (__new_candidate bind-key "Bind key")
+          (__new_candidate unbind-key "Unbind key")
+        ]
+        complete -c gogo:tmux -e
+        complete -c gogo:tmux -d "Terminal multiplexer"
+        complete -c gogo:tmux -s h -l help --description "Display help and exit" -n '__option_not_present -h --help'
+        complete -c gogo:tmux -a 'wi = ($.commandLine wordIndex); if { %(wi==1) } { $__tmux_commands } { [ ] }'
 
         __gogo = (new "org.jline.demo.Gogo" $.processor)
         __remote_ssh_support = (new org.jline.builtins.ssh.Ssh \
