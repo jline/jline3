@@ -19,7 +19,7 @@ function die {
 
 # show usage and exit
 function usage {
-    echo "usage: $basename $*"
+    echo "usage: $basename <command> [options]"
     exit 2
 }
 
@@ -34,6 +34,12 @@ function mvn {
 }
 
 command="$1"; shift
+
+# complain if no command is given
+if [ -z "$command" ]; then
+    usage
+fi
+
 case "$command" in
     # change the version of the project
     change-version)
@@ -102,8 +108,9 @@ case "$command" in
         if [ "$(type -t $fn)" = 'function' ]; then
           $fn $*
         else
-          # give up and complain
-          usage "<command> [options]"
+          # complain about missing command function
+          echo "Unknown command: $command"
+          usage
         fi
         ;;
 esac
