@@ -9,6 +9,9 @@
 package org.jline.utils;
 
 import java.util.Arrays;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -103,6 +106,27 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
 
     public AttributedStringBuilder style(AttributedStyle style) {
         current = style;
+        return this;
+    }
+
+    public AttributedStringBuilder style(Function<AttributedStyle,AttributedStyle> style) {
+        current = style.apply(current);
+        return this;
+    }
+
+    public AttributedStringBuilder styled(Function<AttributedStyle,AttributedStyle> style, CharSequence cs) {
+        return styled(style, sb -> sb.append(cs));
+    }
+
+    public AttributedStringBuilder styled(AttributedStyle style, CharSequence cs) {
+        return styled(s -> style, sb -> sb.append(cs));
+    }
+
+    public AttributedStringBuilder styled(Function<AttributedStyle,AttributedStyle> style, Consumer<AttributedStringBuilder> consumer) {
+        AttributedStyle prev = current;
+        current = style.apply(prev);
+        consumer.accept(this);
+        current = prev;
         return this;
     }
 

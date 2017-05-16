@@ -190,9 +190,7 @@ public class Commands {
         for (History.Entry entry : history) {
             AttributedStringBuilder sb = new AttributedStringBuilder();
             sb.append("  ");
-            sb.style(AttributedStyle.BOLD);
-            sb.append(String.format("%3d", entry.index() + 1));
-            sb.style(AttributedStyle.DEFAULT);
+            sb.styled(AttributedStyle::bold, String.format("%3d", entry.index() + 1));
             if (opt.isSet("d")) {
                 sb.append("  ");
                 LocalTime lt = LocalTime.from(entry.time().atZone(ZoneId.systemDefault()))

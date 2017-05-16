@@ -113,16 +113,12 @@ public class FileNameCompleter implements Completer
         String name = p.getFileName().toString();
         if (Files.isDirectory(p)) {
             AttributedStringBuilder sb = new AttributedStringBuilder();
-            sb.style(AttributedStyle.BOLD.foreground(AttributedStyle.RED));
-            sb.append(name);
-            sb.style(AttributedStyle.DEFAULT);
+            sb.styled(AttributedStyle.BOLD.foreground(AttributedStyle.RED), name);
             sb.append("/");
             name = sb.toAnsi(terminal);
         } else if (Files.isSymbolicLink(p)) {
             AttributedStringBuilder sb = new AttributedStringBuilder();
-            sb.style(AttributedStyle.BOLD.foreground(AttributedStyle.RED));
-            sb.append(name);
-            sb.style(AttributedStyle.DEFAULT);
+            sb.styled(AttributedStyle.BOLD.foreground(AttributedStyle.RED), name);
             sb.append("@");
             name = sb.toAnsi(terminal);
         }

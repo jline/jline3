@@ -13,6 +13,7 @@ import org.jline.reader.LineReader.RegionType;
 import org.jline.reader.Highlighter;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.AttributedStyle;
 import org.jline.utils.WCWidth;
 
 public class DefaultHighlighter implements Highlighter {
@@ -51,19 +52,19 @@ public class DefaultHighlighter implements Highlighter {
         AttributedStringBuilder sb = new AttributedStringBuilder();
         for (int i = 0; i < buffer.length(); i++) {
             if (i == underlineStart) {
-                sb.style(sb.style().underline());
+                sb.style(AttributedStyle::underline);
             }
             if (i == negativeStart) {
-                sb.style(sb.style().inverse());
+                sb.style(AttributedStyle::inverse);
             }
             char c = buffer.charAt(i);
             if (c == '\t' || c == '\n') {
                 sb.append(c);
             } else if (c < 32) {
-                sb.style(sb.style().inverseNeg())
+                sb.style(AttributedStyle::inverseNeg)
                         .append('^')
                         .append((char) (c + '@'))
-                        .style(sb.style().inverseNeg());
+                        .style(AttributedStyle::inverseNeg);
             } else {
                 int w = WCWidth.wcwidth(c);
                 if (w > 0) {
@@ -71,10 +72,10 @@ public class DefaultHighlighter implements Highlighter {
                 }
             }
             if (i == underlineEnd) {
-                sb.style(sb.style().underlineOff());
+                sb.style(AttributedStyle::underlineOff);
             }
             if (i == negativeEnd) {
-                sb.style(sb.style().inverseOff());
+                sb.style(AttributedStyle::inverseOff);
             }
         }
         return sb.toAttributedString();
