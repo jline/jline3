@@ -66,7 +66,16 @@ public abstract class AttributedCharSequence implements CharSequence {
                     sb.append("\033[");
                     boolean first = true;
                     if ((d & (F_BOLD | F_FAINT)) != 0) {
-                        first = attr(sb, (s & F_BOLD) != 0 ? "1" : (s & F_FAINT) != 0 ? "2" : "22", first);
+                        if (    (d & F_BOLD)  != 0 && (s & F_BOLD)  == 0
+                             || (d & F_FAINT) != 0 && (s & F_FAINT) == 0) {
+                            first = attr(sb, "22", first);
+                        }
+                        if ((d & F_BOLD) != 0 && (s & F_BOLD) != 0) {
+                            first = attr(sb, "1", first);
+                        }
+                        if ((d & F_FAINT) != 0 && (s & F_FAINT) != 0) {
+                            first = attr(sb, "2", first);
+                        }
                     }
                     if ((d & F_ITALIC) != 0) {
                         first = attr(sb, (s & F_ITALIC) != 0 ? "3" : "23", first);
