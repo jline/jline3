@@ -948,7 +948,6 @@ public class Tmux {
         }
         display.resize(size.getRows(), size.getColumns());
         display.update(lines, size.cursorPos(cursor[1], cursor[0]));
-        terminal.flush();
     }
 
     private void print(long[] screen, VirtualConsole terminal, String id, int color) {

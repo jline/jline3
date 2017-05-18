@@ -478,7 +478,6 @@ public class TTop {
         }
 
         display.update(lines, 0);
-        terminal.flush();
     }
 
     private Comparator<Map<String, Comparable<?>>> buildComparator(List<String> sort) {

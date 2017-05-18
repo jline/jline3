@@ -616,7 +616,6 @@ public class Less {
 
         display.resize(size.getRows(), size.getColumns());
         display.update(newLines, -1);
-        terminal.flush();
         return false;
     }
 

@@ -1858,11 +1858,6 @@ public class Nano {
                                     buffer.getDisplayedCursor());
         }
         display.update(newLines, cursor);
-        flush();
-    }
-
-    protected void flush() {
-        terminal.flush();
     }
 
     protected List<AttributedString> computeFooter() {

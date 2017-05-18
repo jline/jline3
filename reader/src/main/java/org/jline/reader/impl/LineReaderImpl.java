@@ -670,7 +670,7 @@ public class LineReaderImpl implements LineReader, Flushable
      * keyboard) that we want the terminal to handle immediately.
      */
     public void flush() {
-        terminal.writer().flush();
+        terminal.flush();
     }
 
     public boolean isKeyMap(String name) {
@@ -3335,10 +3335,7 @@ public class LineReaderImpl implements LineReader, Flushable
                 full = sb.toAttributedString();
             }
 
-            display.update(Collections.singletonList(full), cursor - smallTerminalOffset);
-            if (flush) {
-                flush();
-            }
+            display.update(Collections.singletonList(full), cursor - smallTerminalOffset, flush);
             return;
         }
 
@@ -3391,11 +3388,7 @@ public class LineReaderImpl implements LineReader, Flushable
             }
         }
 
-        display.update(newLines, cursorPos);
-
-        if (flush) {
-            flush();
-        }
+        display.update(newLines, cursorPos, flush);
     }
 
     private void concat(List<AttributedString> lines, AttributedStringBuilder sb) {

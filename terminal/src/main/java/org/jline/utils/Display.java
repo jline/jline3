@@ -92,10 +92,19 @@ public class Display {
     }
 
     /**
-     * Update the display according to the new lines
+     * Update the display according to the new lines and flushes the output.
      * @param targetCursorPos desired cursor position - see Size.cursorPos.
      */
     public void update(List<AttributedString> newLines, int targetCursorPos) {
+        update(newLines, targetCursorPos, true);
+    }
+
+    /**
+     * Update the display according to the new lines.
+     * @param targetCursorPos desired cursor position - see Size.cursorPos.
+     * @param flush whether the output should be flushed or not
+     */
+    public void update(List<AttributedString> newLines, int targetCursorPos, boolean flush) {
         if (reset) {
             terminal.puts(Capability.clear_screen);
             oldLines.clear();
@@ -316,6 +325,10 @@ public class Display {
             moveVisualCursorTo(targetCursorPos < 0 ? currentPos : targetCursorPos, newLines);
         }
         oldLines = newLines;
+
+        if (flush) {
+            terminal.flush();
+        }
     }
 
     protected boolean deleteLines(int nb) {
