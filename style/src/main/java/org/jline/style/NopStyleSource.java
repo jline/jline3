@@ -18,7 +18,7 @@ import static java.util.Objects.requireNonNull;
 /**
  * {@link StyleSource} which always returns {@code null}.
  *
- * @since TBD
+ * @since 3.4
  */
 public class NopStyleSource
   implements StyleSource

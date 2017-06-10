@@ -17,7 +17,7 @@ import java.lang.annotation.Target;
 /**
  * Marker for proxy-based style bundles.
  *
- * @since TBD
+ * @since 3.4
  */
 public interface StyleBundle
 {

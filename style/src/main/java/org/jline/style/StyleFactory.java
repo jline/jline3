@@ -16,7 +16,7 @@ import static java.util.Objects.requireNonNull;
 /**
  * Factory to create styled strings.
  *
- * @since TBD
+ * @since 3.4
  */
 public class StyleFactory
 {

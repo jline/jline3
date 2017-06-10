@@ -18,7 +18,7 @@ import static java.util.Objects.requireNonNull;
 /**
  * Style facade.
  *
- * @since TBD
+ * @since 3.4
  * @see StyleBundle
  * @see StyleFactory
  * @see StyleSource

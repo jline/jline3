@@ -21,7 +21,7 @@ import static java.util.Objects.requireNonNull;
 /**
  * In-memory {@link StyleSource}.
  *
- * @since TBD
+ * @since 3.4
  */
 public class MemoryStyleSource
   implements StyleSource

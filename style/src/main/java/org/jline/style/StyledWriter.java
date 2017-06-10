@@ -23,7 +23,7 @@ import static java.util.Objects.requireNonNull;
 /**
  * Styled {@link PrintWriter} which is aware of {@link StyleExpression} syntax.
  *
- * @since TBD
+ * @since 3.4
  */
 public class StyledWriter
     extends PrintWriter

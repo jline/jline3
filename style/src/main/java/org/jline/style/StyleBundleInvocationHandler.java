@@ -27,7 +27,7 @@ import static java.util.Objects.requireNonNull;
 /**
  * {@link StyleBundle} proxy invocation-handler to convert method calls into string styling.
  *
- * @since TBD
+ * @since 3.4
  * @see StyleBundle
  */
 class StyleBundleInvocationHandler

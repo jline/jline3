@@ -20,7 +20,7 @@ import static java.util.Objects.requireNonNull;
 /**
  * Provides {@code @{style value}} expression evaluation.
  *
- * @since TBD
+ * @since 3.4
  */
 public class StyleExpression
 {

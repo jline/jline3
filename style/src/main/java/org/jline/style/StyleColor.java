@@ -11,7 +11,7 @@ package org.jline.style;
 /**
  * Style colors.
  *
- * @since TBD
+ * @since 3.4
  */
 public enum StyleColor
 {

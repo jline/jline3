@@ -15,7 +15,7 @@ import javax.annotation.Nullable;
 /**
  * Provides the source of style configuration.
  *
- * @since TBD
+ * @since 3.4
  */
 public interface StyleSource
 {

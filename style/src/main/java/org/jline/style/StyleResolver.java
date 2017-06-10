@@ -24,7 +24,7 @@ import static org.jline.utils.AttributedStyle.*;
 /**
  * Resolves named (or source-referenced) {@link AttributedStyle}.
  *
- * @since TBD
+ * @since 3.4
  */
 public class StyleResolver
 {
