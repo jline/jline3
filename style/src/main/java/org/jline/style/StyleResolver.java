@@ -12,9 +12,9 @@ import java.util.Locale;
 
 import javax.annotation.Nullable;
 
-import com.planet57.gossip.Log;
 import org.jline.utils.AttributedStyle;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
 import static org.jline.utils.AttributedStyle.*;
@@ -28,7 +28,7 @@ import static org.jline.utils.AttributedStyle.*;
  */
 public class StyleResolver
 {
-  private static final Logger log = Log.getLogger(StyleResolver.class);
+  private static final Logger log = LoggerFactory.getLogger(StyleResolver.class);
 
   private final StyleSource source;
 

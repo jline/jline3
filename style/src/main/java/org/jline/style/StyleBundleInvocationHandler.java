@@ -14,13 +14,13 @@ import java.lang.reflect.Proxy;
 
 import javax.annotation.Nullable;
 
-import com.planet57.gossip.Log;
 import org.jline.style.StyleBundle.DefaultStyle;
 import org.jline.style.StyleBundle.StyleGroup;
 import org.jline.style.StyleBundle.StyleName;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStyle;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
 
@@ -33,7 +33,7 @@ import static java.util.Objects.requireNonNull;
 class StyleBundleInvocationHandler
     implements InvocationHandler
 {
-  private static final Logger log = Log.getLogger(StyleBundleInvocationHandler.class);
+  private static final Logger log = LoggerFactory.getLogger(StyleBundleInvocationHandler.class);
 
   private final Class<? extends StyleBundle> type;
 

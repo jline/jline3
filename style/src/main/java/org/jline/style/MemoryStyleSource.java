@@ -14,8 +14,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nullable;
 
-import com.planet57.gossip.Log;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
 
@@ -27,7 +27,7 @@ import static java.util.Objects.requireNonNull;
 public class MemoryStyleSource
   implements StyleSource
 {
-  private static final Logger log = Log.getLogger(MemoryStyleSource.class);
+  private static final Logger log = LoggerFactory.getLogger(MemoryStyleSource.class);
 
   private final Map<String,Map<String,String>> backing = new ConcurrentHashMap<>();
 

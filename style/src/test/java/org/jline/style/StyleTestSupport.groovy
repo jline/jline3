@@ -10,9 +10,7 @@ package org.jline.style
 
 import org.sonatype.goodies.testsupport.TestSupport
 
-import com.planet57.gossip.Log
 import org.junit.Before
-import org.slf4j.LoggerFactory
 
 /**
  * Support for style tests.
@@ -24,9 +22,6 @@ class StyleTestSupport
 
   @Before
   void setUp() {
-    // force bootstrap gossip logger to adapt to runtime logger-factory
-    Log.configure(LoggerFactory.getILoggerFactory())
-
     this.source = new MemoryStyleSource()
   }
 }

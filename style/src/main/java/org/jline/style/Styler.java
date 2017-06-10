@@ -8,9 +8,9 @@
  */
 package org.jline.style;
 
-import com.planet57.gossip.Log;
 import org.jline.style.StyleBundle.StyleGroup;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
 
@@ -24,7 +24,7 @@ import static java.util.Objects.requireNonNull;
  */
 public class Styler
 {
-  private static final Logger log = Log.getLogger(Styler.class);
+  private static final Logger log = LoggerFactory.getLogger(Styler.class);
 
   private static volatile StyleSource source = new NopStyleSource();
 
