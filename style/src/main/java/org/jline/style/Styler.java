@@ -8,9 +8,10 @@
  */
 package org.jline.style;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.jline.style.StyleBundle.StyleGroup;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
 
@@ -24,7 +25,7 @@ import static java.util.Objects.requireNonNull;
  */
 public class Styler
 {
-  private static final Logger log = LoggerFactory.getLogger(Styler.class);
+  private static final Logger log = Logger.getLogger(Styler.class.getName());
 
   private static volatile StyleSource source = new NopStyleSource();
 
@@ -37,7 +38,10 @@ public class Styler
    */
   public static void setSource(final StyleSource source) {
     Styler.source = requireNonNull(source);
-    log.debug("Source: {}", source);
+
+    if (log.isLoggable(Level.FINE)) {
+      log.fine("Source: " + source);
+    }
   }
 
   /**

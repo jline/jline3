@@ -11,6 +11,8 @@ package org.jline.style;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.annotation.Nullable;
 
@@ -19,8 +21,6 @@ import org.jline.style.StyleBundle.StyleGroup;
 import org.jline.style.StyleBundle.StyleName;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStyle;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
 
@@ -33,7 +33,7 @@ import static java.util.Objects.requireNonNull;
 class StyleBundleInvocationHandler
     implements InvocationHandler
 {
-  private static final Logger log = LoggerFactory.getLogger(StyleBundleInvocationHandler.class);
+  private static final Logger log = Logger.getLogger(StyleBundleInvocationHandler.class.getName());
 
   private final Class<? extends StyleBundle> type;
 
@@ -59,7 +59,9 @@ class StyleBundleInvocationHandler
 
     // resolve the sourced-style, or use the default
     String style = resolver.getSource().get(resolver.getGroup(), styleName);
-    log.trace("Sourced-style: {} -> {}", styleName, style);
+    if (log.isLoggable(Level.FINEST)) {
+      log.finest(String.format("Sourced-style: %s -> %s", styleName, style));
+    }
 
     if (style == null) {
       style = getDefaultStyle(method);
@@ -71,7 +73,9 @@ class StyleBundleInvocationHandler
     }
 
     String value  = String.valueOf(args[0]);
-    log.trace("Applying style: {} -> {} to: {}", styleName, style, value);
+    if (log.isLoggable(Level.FINEST)) {
+      log.finest(String.format("Applying style: %s -> %s to: %s", styleName, style, value));
+    }
 
     AttributedStyle astyle = resolver.resolve(style);
     return new AttributedString(value, astyle);
@@ -153,7 +157,9 @@ class StyleBundleInvocationHandler
     requireNonNull(resolver);
     requireNonNull(type);
 
-    log.trace("Using style-group: {} for type: {}", resolver.getGroup(), type.getName());
+    if (log.isLoggable(Level.FINEST)) {
+      log.finest(String.format("Using style-group: %s for type: %s", resolver.getGroup(), type.getName()));
+    }
 
     StyleBundleInvocationHandler handler = new StyleBundleInvocationHandler(type, resolver);
     return (T) Proxy.newProxyInstance(type.getClassLoader(), new Class[]{type}, handler);

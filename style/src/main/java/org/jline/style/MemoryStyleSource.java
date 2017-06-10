@@ -11,11 +11,10 @@ package org.jline.style;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.annotation.Nullable;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
 
@@ -27,7 +26,7 @@ import static java.util.Objects.requireNonNull;
 public class MemoryStyleSource
   implements StyleSource
 {
-  private static final Logger log = LoggerFactory.getLogger(MemoryStyleSource.class);
+  private static final Logger log = Logger.getLogger(MemoryStyleSource.class.getName());
 
   private final Map<String,Map<String,String>> backing = new ConcurrentHashMap<>();
 
@@ -39,7 +38,11 @@ public class MemoryStyleSource
     if (styles != null) {
       style = styles.get(name);
     }
-    log.trace("Get: [{}] {} -> {}", group, name, style);
+
+    if (log.isLoggable(Level.FINEST)) {
+      log.finest(String.format("Get: [%s] %s -> %s", group, name, style));
+    }
+
     return style;
   }
 
@@ -49,14 +52,19 @@ public class MemoryStyleSource
     requireNonNull(name);
     requireNonNull(style);
     backing.computeIfAbsent(group, k -> new ConcurrentHashMap<>()).put(name, style);
-    log.trace("Set: [{}] {} -> {}", group, name, style);
+
+    if (log.isLoggable(Level.FINEST)) {
+      log.finest(String.format("Set: [%s] %s -> %s", group, name, style));
+    }
   }
 
   @Override
   public void remove(final String group) {
     requireNonNull(group);
     if (backing.remove(group) != null) {
-      log.trace("Removed: [{}]");
+      if (log.isLoggable(Level.FINEST)) {
+        log.finest(String.format("Removed: [%s]", group));
+      }
     }
   }
 
@@ -67,14 +75,17 @@ public class MemoryStyleSource
     Map<String,String> styles = backing.get(group);
     if (styles != null) {
       styles.remove(name);
-      log.trace("Removed: [{}] {}", group, name);
+
+      if (log.isLoggable(Level.FINEST)) {
+        log.finest(String.format("Removed: [%s] %s", group, name));
+      }
     }
   }
 
   @Override
   public void clear() {
     backing.clear();
-    log.trace("Cleared");
+    log.finest("Cleared");
   }
 
   @Override

@@ -9,12 +9,12 @@
 package org.jline.style;
 
 import java.util.Locale;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.annotation.Nullable;
 
 import org.jline.utils.AttributedStyle;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
 import static org.jline.utils.AttributedStyle.*;
@@ -28,7 +28,7 @@ import static org.jline.utils.AttributedStyle.*;
  */
 public class StyleResolver
 {
-  private static final Logger log = LoggerFactory.getLogger(StyleResolver.class);
+  private static final Logger log = Logger.getLogger(StyleResolver.class.getName());
 
   private final StyleSource source;
 
@@ -57,7 +57,9 @@ public class StyleResolver
   public AttributedStyle resolve(final String spec) {
     requireNonNull(spec);
 
-    log.trace("Resolve: {}", spec);
+    if (log.isLoggable(Level.FINEST)) {
+      log.finest("Resolve: " + spec);
+    }
 
     int i = spec.indexOf(":-");
     if (i != -1) {
@@ -76,7 +78,9 @@ public class StyleResolver
   public AttributedStyle resolve(final String spec, @Nullable final String defaultSpec) {
     requireNonNull(spec);
 
-    log.trace("Resolve: {}; default: {}", spec, defaultSpec);
+    if (log.isLoggable(Level.FINEST)) {
+      log.finest(String.format("Resolve: %s; default: %s", spec, defaultSpec));
+    }
 
     AttributedStyle style = apply(DEFAULT, spec);
     if (style == DEFAULT && defaultSpec != null) {
@@ -89,7 +93,9 @@ public class StyleResolver
    * Apply style specification.
    */
   private AttributedStyle apply(AttributedStyle style, final String spec) {
-    log.trace("Apply: {}", spec);
+    if (log.isLoggable(Level.FINEST)) {
+      log.finest("Apply: " + spec);
+    }
 
     for (String item : spec.split(",")) {
       item = item.trim();
@@ -115,10 +121,12 @@ public class StyleResolver
    * Apply source-referenced named style.
    */
   private AttributedStyle applyReference(final AttributedStyle style, final String spec) {
-    log.trace("Apply-reference: {}", spec);
+    if (log.isLoggable(Level.FINEST)) {
+      log.finest("Apply-reference: " + spec);
+    }
 
     if (spec.length() == 1) {
-      log.warn("Invalid style-reference; missing discriminator: {}", spec);
+      log.warning("Invalid style-reference; missing discriminator: " + spec);
     }
     else {
       String name = spec.substring(1, spec.length());
@@ -136,7 +144,9 @@ public class StyleResolver
    * Apply default named styles.
    */
   private AttributedStyle applyNamed(final AttributedStyle style, final String name) {
-    log.trace("Apply-named: {}", name);
+    if (log.isLoggable(Level.FINEST)) {
+      log.finest("Apply-named: " + name);
+    }
 
     // TODO: consider short aliases for named styles
 
@@ -177,7 +187,7 @@ public class StyleResolver
         return style.hidden();
 
       default:
-        log.warn("Unknown style: {}", name);
+        log.warning("Unknown style: " + name);
         return style;
     }
   }
@@ -188,7 +198,9 @@ public class StyleResolver
    * @param spec Color specification: {@code <color-mode>:<color-name>}
    */
   private AttributedStyle applyColor(final AttributedStyle style, final String spec) {
-    log.trace("Apply-color: {}", spec);
+    if (log.isLoggable(Level.FINEST)) {
+      log.finest("Apply-color: " + spec);
+    }
 
     // extract color-mode:color-name
     String[] parts = spec.split(":", 2);
@@ -198,7 +210,7 @@ public class StyleResolver
     // resolve the color-name
     Integer color = color(colorName);
     if (color == null) {
-      log.warn("Invalid color-name: {}", colorName);
+      log.warning("Invalid color-name: " + colorName);
     }
     else {
       // resolve and apply color-mode
@@ -214,7 +226,7 @@ public class StyleResolver
           return style.background(color);
 
         default:
-          log.warn("Invalid color-mode: {}", colorMode);
+          log.warning("Invalid color-mode: " +  colorMode);
       }
     }
     return style;
@@ -252,7 +264,7 @@ public class StyleResolver
         return color.code;
       }
       catch (IllegalArgumentException e) {
-        log.warn("Invalid style-color name: {}", name);
+        log.warning("Invalid style-color name: " + name);
         return null;
       }
     }
