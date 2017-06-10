@@ -104,7 +104,8 @@ class StyleBundleInvocationHandler
   // Helpers
   //
 
-  private static String emptyToNull(final String value) {
+  @Nullable
+  private static String emptyToNull(@Nullable final String value) {
     if (value == null || value.isEmpty()) {
       return null;
     }
