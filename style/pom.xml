@@ -36,9 +36,8 @@
         </dependency>
 
         <dependency>
-            <groupId>org.sonatype.goodies</groupId>
-            <artifactId>goodies-testsupport</artifactId>
-            <version>2.2.3</version>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
 
@@ -70,8 +69,13 @@
                 </dependencies>
                 <configuration>
                     <compilerId>groovy-eclipse-compiler</compilerId>
+                    <showWarnings>true</showWarnings>
                     <compilerArgs>
                         <arg>-Xlint:all,-options</arg>
+                        <!-- groovy-eclipse compiler does not support these options -->
+                        <!--<arg>-Werror</arg>-->
+                        <!--<arg>-profile</arg>-->
+                        <!--<arg>compact1</arg>-->
                     </compilerArgs>
                 </configuration>
             </plugin>

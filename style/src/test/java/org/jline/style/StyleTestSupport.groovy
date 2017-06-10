@@ -8,15 +8,12 @@
  */
 package org.jline.style
 
-import org.sonatype.goodies.testsupport.TestSupport
-
 import org.junit.Before
 
 /**
  * Support for style tests.
  */
-class StyleTestSupport
-  extends TestSupport
+abstract class StyleTestSupport
 {
   protected MemoryStyleSource source
 
