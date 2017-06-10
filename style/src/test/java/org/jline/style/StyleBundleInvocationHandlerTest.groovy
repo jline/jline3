@@ -17,6 +17,10 @@ import org.jline.style.StyleBundleInvocationHandler.StyleBundleMethodMissingDefa
 import org.jline.utils.AttributedString
 import org.junit.Test
 
+import static org.jline.utils.AttributedStyle.BOLD
+import static org.jline.utils.AttributedStyle.RED
+import static org.jline.utils.AttributedStyle.YELLOW
+
 /**
  * Tests for {@link StyleBundleInvocationHandler}.
  */
@@ -72,7 +76,7 @@ class StyleBundleInvocationHandlerTest
     def styles = StyleBundleInvocationHandler.create(source, Styles.class)
     def string = styles.boldRed('foo bar')
     println string.toAnsi()
-    assert string == new AttributedString('foo bar', org.jline.utils.AttributedStyle.BOLD.foreground(org.jline.utils.AttributedStyle.RED))
+    assert string == new AttributedString('foo bar', BOLD.foreground(RED))
   }
 
   @Test
@@ -93,7 +97,7 @@ class StyleBundleInvocationHandlerTest
     def styles = StyleBundleInvocationHandler.create(source, Styles.class)
     def string = styles.missingDefaultStyle('foo bar')
     println string.toAnsi()
-    assert string == new AttributedString('foo bar', org.jline.utils.AttributedStyle.BOLD)
+    assert string == new AttributedString('foo bar', BOLD)
   }
 
   @Test
@@ -101,7 +105,7 @@ class StyleBundleInvocationHandlerTest
     def styles = StyleBundleInvocationHandler.create(source, Styles.class)
     def string = styles.boldRedObjectWithStyleName('foo bar')
     println string.toAnsi()
-    assert string == new AttributedString('foo bar', org.jline.utils.AttributedStyle.BOLD.foreground(org.jline.utils.AttributedStyle.RED))
+    assert string == new AttributedString('foo bar', BOLD.foreground(RED))
   }
 
   @Test
@@ -110,7 +114,7 @@ class StyleBundleInvocationHandlerTest
     def styles = StyleBundleInvocationHandler.create(source, Styles.class)
     def string = styles.boldRed('foo bar')
     println string.toAnsi()
-    assert string == new AttributedString('foo bar', org.jline.utils.AttributedStyle.BOLD.foreground(org.jline.utils.AttributedStyle.YELLOW))
+    assert string == new AttributedString('foo bar', BOLD.foreground(YELLOW))
   }
 
   @Test
@@ -119,7 +123,7 @@ class StyleBundleInvocationHandlerTest
     def styles = StyleBundleInvocationHandler.create(new StyleResolver(source, 'test2'), Styles.class)
     def string = styles.boldRed('foo bar')
     println string.toAnsi()
-    assert string == new AttributedString('foo bar', org.jline.utils.AttributedStyle.BOLD.foreground(org.jline.utils.AttributedStyle.YELLOW))
+    assert string == new AttributedString('foo bar', BOLD.foreground(YELLOW))
   }
 
   @Test

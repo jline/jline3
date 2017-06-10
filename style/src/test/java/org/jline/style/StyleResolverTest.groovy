@@ -30,110 +30,110 @@ class StyleResolverTest
   @Test
   void 'resolve bold'() {
     def style = underTest.resolve('bold')
-    assert style == org.jline.utils.AttributedStyle.BOLD
+    assert style == BOLD
   }
 
   @Test
   void 'resolve fg:red'() {
     def style = underTest.resolve('fg:red')
-    assert style == org.jline.utils.AttributedStyle.DEFAULT.foreground(org.jline.utils.AttributedStyle.RED)
+    assert style == DEFAULT.foreground(RED)
   }
 
   @Test
   void 'resolve fg:red with whitespace'() {
     def style = underTest.resolve(' fg:  red ')
-    assert style == org.jline.utils.AttributedStyle.DEFAULT.foreground(org.jline.utils.AttributedStyle.RED)
+    assert style == DEFAULT.foreground(RED)
   }
 
   @Test
   void 'resolve bg:red'() {
     def style = underTest.resolve('bg:red')
-    assert style == org.jline.utils.AttributedStyle.DEFAULT.background(org.jline.utils.AttributedStyle.RED)
+    assert style == DEFAULT.background(RED)
   }
 
   @Test
   void 'resolve invalid color-mode'() {
     def style = underTest.resolve('invalid:red')
-    assert style == org.jline.utils.AttributedStyle.DEFAULT
+    assert style == DEFAULT
   }
 
   @Test
   void 'resolve invalid color-name'() {
     def style = underTest.resolve('fg:invalid')
-    assert style == org.jline.utils.AttributedStyle.DEFAULT
+    assert style == DEFAULT
   }
 
   @Test
   void 'resolve bold,fg:red'() {
     def style = underTest.resolve('bold,fg:red')
-    assert style == org.jline.utils.AttributedStyle.BOLD.foreground(org.jline.utils.AttributedStyle.RED)
+    assert style == BOLD.foreground(RED)
   }
 
   @Test
   void 'resolve with whitespace'() {
     def style = underTest.resolve('  bold ,   fg:red   ')
-    assert style == org.jline.utils.AttributedStyle.BOLD.foreground(org.jline.utils.AttributedStyle.RED)
+    assert style == BOLD.foreground(RED)
   }
 
   @Test
   void 'resolve with missing values'() {
     def style = underTest.resolve('bold,,,,,fg:red')
-    assert style == org.jline.utils.AttributedStyle.BOLD.foreground(org.jline.utils.AttributedStyle.RED)
+    assert style == BOLD.foreground(RED)
   }
 
   @Test
   void 'resolve referenced style'() {
     source.set('test', 'very-red', 'bold,fg:red')
     def style = underTest.resolve('.very-red')
-    assert style == org.jline.utils.AttributedStyle.BOLD.foreground(org.jline.utils.AttributedStyle.RED)
+    assert style == BOLD.foreground(RED)
   }
 
   @Test
   void 'resolve referenced style-missing with default direct'() {
     def style = underTest.resolve('.very-red:-bold,fg:red')
-    assert style == org.jline.utils.AttributedStyle.BOLD.foreground(org.jline.utils.AttributedStyle.RED)
+    assert style == BOLD.foreground(RED)
   }
 
   @Test
   void 'resolve referenced style-missing with default direct and whitespace'() {
     def style = underTest.resolve('.very-red   :-   bold,fg:red')
-    assert style == org.jline.utils.AttributedStyle.BOLD.foreground(org.jline.utils.AttributedStyle.RED)
+    assert style == BOLD.foreground(RED)
   }
 
   @Test
   void 'resolve referenced style-missing with default referenced'() {
     source.set('test', 'more-red', 'bold,fg:red')
     def style = underTest.resolve('.very-red:-.more-red')
-    assert style == org.jline.utils.AttributedStyle.BOLD.foreground(org.jline.utils.AttributedStyle.RED)
+    assert style == BOLD.foreground(RED)
   }
 
   @Test
   void 'resolve fg:bright-red'() {
     def style = underTest.resolve('fg:bright-red')
-    assert style == org.jline.utils.AttributedStyle.DEFAULT.foreground(org.jline.utils.AttributedStyle.BRIGHT + org.jline.utils.AttributedStyle.RED)
+    assert style == DEFAULT.foreground(BRIGHT + RED)
   }
 
   @Test
   void 'resolve fg:!red'() {
     def style = underTest.resolve('fg:!red')
-    assert style == org.jline.utils.AttributedStyle.DEFAULT.foreground(org.jline.utils.AttributedStyle.BRIGHT + org.jline.utils.AttributedStyle.RED)
+    assert style == DEFAULT.foreground(BRIGHT + RED)
   }
 
   @Test
   void 'resolve fg:~olive'() {
     def style = underTest.resolve('fg:~olive')
-    assert style == org.jline.utils.AttributedStyle.DEFAULT.foreground(StyleColor.olive.code)
+    assert style == DEFAULT.foreground(StyleColor.olive.code)
   }
 
   @Test
   void 'resolve invalid xterm256 syntax'() {
     def style = underTest.resolve('fg:~')
-    assert style == org.jline.utils.AttributedStyle.DEFAULT
+    assert style == DEFAULT
   }
 
   @Test
   void 'resolve invalid xterm256 color name'() {
     def style = underTest.resolve('fg:~foo')
-    assert style == org.jline.utils.AttributedStyle.DEFAULT
+    assert style == DEFAULT
   }
 }

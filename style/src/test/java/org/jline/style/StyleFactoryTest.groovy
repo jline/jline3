@@ -12,6 +12,10 @@ import org.jline.utils.AttributedString
 import org.junit.Before
 import org.junit.Test
 
+import static org.jline.utils.AttributedStyle.BOLD
+import static org.jline.utils.AttributedStyle.RED
+import static org.jline.utils.AttributedStyle.YELLOW
+
 /**
  * Tests for {@link StyleFactory}.
  */
@@ -30,7 +34,7 @@ class StyleFactoryTest
   void 'style direct'() {
     def string = underTest.style('bold,fg:red', 'foo bar')
     println string.toAnsi()
-    assert string == new AttributedString('foo bar', org.jline.utils.AttributedStyle.BOLD.foreground(org.jline.utils.AttributedStyle.RED))
+    assert string == new AttributedString('foo bar', BOLD.foreground(RED))
   }
 
   @Test
@@ -38,14 +42,14 @@ class StyleFactoryTest
     source.set('test', 'very-red', 'bold,fg:red')
     def string = underTest.style('.very-red', 'foo bar')
     println string.toAnsi()
-    assert string == new AttributedString('foo bar', org.jline.utils.AttributedStyle.BOLD.foreground(org.jline.utils.AttributedStyle.RED))
+    assert string == new AttributedString('foo bar', BOLD.foreground(RED))
   }
 
   @Test
   void 'missing referenced style with default'() {
     def string = underTest.style('.very-red:-bold,fg:red', 'foo bar')
     println string.toAnsi()
-    assert string == new AttributedString('foo bar', org.jline.utils.AttributedStyle.BOLD.foreground(org.jline.utils.AttributedStyle.RED))
+    assert string == new AttributedString('foo bar', BOLD.foreground(RED))
   }
 
   @Test
@@ -53,27 +57,27 @@ class StyleFactoryTest
     source.set('test', 'very-red', 'bold,fg:yellow')
     def string = underTest.style('.very-red:-bold,fg:red', 'foo bar')
     println string.toAnsi()
-    assert string == new AttributedString('foo bar', org.jline.utils.AttributedStyle.BOLD.foreground(org.jline.utils.AttributedStyle.YELLOW))
+    assert string == new AttributedString('foo bar', BOLD.foreground(YELLOW))
   }
 
   @Test
   void 'style format'() {
     def string = underTest.style('bold', '%s', 'foo')
     println string.toAnsi()
-    assert string == new AttributedString('foo', org.jline.utils.AttributedStyle.BOLD)
+    assert string == new AttributedString('foo', BOLD)
   }
 
   @Test
   void 'evaluate expression'() {
     def string = underTest.evaluate('@{bold foo}')
     println string.toAnsi()
-    assert string == new AttributedString('foo', org.jline.utils.AttributedStyle.BOLD)
+    assert string == new AttributedString('foo', BOLD)
   }
 
   @Test
   void 'evaluate expression with format'() {
     def string = underTest.evaluate('@{bold %s}', 'foo')
     println string.toAnsi()
-    assert string == new AttributedString('foo', org.jline.utils.AttributedStyle.BOLD)
+    assert string == new AttributedString('foo', BOLD)
   }
 }

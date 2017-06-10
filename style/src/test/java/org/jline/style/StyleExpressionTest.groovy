@@ -14,6 +14,11 @@ import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
 
+import static org.jline.utils.AttributedStyle.BOLD
+import static org.jline.utils.AttributedStyle.CYAN
+import static org.jline.utils.AttributedStyle.DEFAULT
+import static org.jline.utils.AttributedStyle.RED
+
 /**
  * Tests for {@link StyleExpression}.
  */
@@ -34,7 +39,7 @@ class StyleExpressionTest
     println result.toAnsi()
     assert result == new AttributedStringBuilder()
         .append('foo ')
-        .append('bar', org.jline.utils.AttributedStyle.BOLD)
+        .append('bar', BOLD)
         .append(' baz')
         .toAttributedString()
   }
@@ -45,7 +50,7 @@ class StyleExpressionTest
     println result.toAnsi()
     assert result == new AttributedStringBuilder()
         .append('foo ')
-        .append('bar', org.jline.utils.AttributedStyle.BOLD)
+        .append('bar', BOLD)
         .toAttributedString()
   }
 
@@ -54,7 +59,7 @@ class StyleExpressionTest
     def result = underTest.evaluate('@{bold foo} bar')
     println result.toAnsi()
     assert result == new AttributedStringBuilder()
-        .append('foo', org.jline.utils.AttributedStyle.BOLD)
+        .append('foo', BOLD)
         .append(' bar')
         .toAttributedString()
   }
@@ -63,14 +68,14 @@ class StyleExpressionTest
   void 'evaluate expression'() {
     def result = underTest.evaluate('@{bold foo}')
     println result.toAnsi()
-    assert result == new AttributedString('foo', org.jline.utils.AttributedStyle.BOLD)
+    assert result == new AttributedString('foo', BOLD)
   }
 
   @Test
   void 'evaluate expression with default'() {
     def result = underTest.evaluate('@{.foo:-bold foo}')
     println result.toAnsi()
-    assert result == new AttributedString('foo', org.jline.utils.AttributedStyle.BOLD)
+    assert result == new AttributedString('foo', BOLD)
   }
 
   @Test
@@ -78,11 +83,11 @@ class StyleExpressionTest
     def result = underTest.evaluate('@{bold foo} @{fg:red bar} @{underline baz}')
     println result.toAnsi()
     assert result == new AttributedStringBuilder()
-        .append('foo', org.jline.utils.AttributedStyle.BOLD)
+        .append('foo', BOLD)
         .append(' ')
-        .append('bar', org.jline.utils.AttributedStyle.DEFAULT.foreground(org.jline.utils.AttributedStyle.RED))
+        .append('bar', DEFAULT.foreground(RED))
         .append(' ')
-        .append('baz', org.jline.utils.AttributedStyle.DEFAULT.underline())
+        .append('baz', DEFAULT.underline())
         .toAttributedString()
   }
 
@@ -90,14 +95,14 @@ class StyleExpressionTest
   void 'evaluate expression missing value'() {
     def result = underTest.evaluate('@{bold}')
     println result.toAnsi()
-    assert result == new AttributedString('@{bold}', org.jline.utils.AttributedStyle.DEFAULT)
+    assert result == new AttributedString('@{bold}', DEFAULT)
   }
 
   @Test
   void 'evaluate expression missing tokens'() {
     def result = underTest.evaluate('foo')
     println result.toAnsi()
-    assert result == new AttributedString('foo', org.jline.utils.AttributedStyle.DEFAULT)
+    assert result == new AttributedString('foo', DEFAULT)
   }
 
   @Test
@@ -106,6 +111,6 @@ class StyleExpressionTest
     def result = underTest.evaluate('@{bold,fg:cyan ${foo}}')
     println result.toAnsi()
     // FIXME: this is not presently valid; will match value '${foo'
-    assert result == new AttributedString('${foo}', org.jline.utils.AttributedStyle.DEFAULT.foreground(org.jline.utils.AttributedStyle.CYAN))
+    assert result == new AttributedString('${foo}', DEFAULT.foreground(CYAN))
   }
 }
