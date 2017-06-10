@@ -13,10 +13,7 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * {@link StyleSource} which always returns {@code null}.
@@ -34,8 +31,8 @@ public class NopStyleSource
   @Nullable
   @Override
   public String get(final String group, final String name) {
-    checkNotNull(group);
-    checkNotNull(name);
+    requireNonNull(group);
+    requireNonNull(name);
     return null;
   }
 
@@ -44,9 +41,9 @@ public class NopStyleSource
    */
   @Override
   public void set(final String group, final String name, final String style) {
-    checkNotNull(group);
-    checkNotNull(name);
-    checkNotNull(style);
+    requireNonNull(group);
+    requireNonNull(name);
+    requireNonNull(style);
   }
 
   /**
@@ -54,7 +51,7 @@ public class NopStyleSource
    */
   @Override
   public void remove(final String group) {
-    checkNotNull(group);
+    requireNonNull(group);
   }
 
   /**
@@ -62,8 +59,8 @@ public class NopStyleSource
    */
   @Override
   public void remove(final String group, final String name) {
-    checkNotNull(group);
-    checkNotNull(name);
+    requireNonNull(group);
+    requireNonNull(name);
   }
 
   /**
@@ -79,7 +76,7 @@ public class NopStyleSource
    */
   @Override
   public Iterable<String> groups() {
-    return ImmutableList.copyOf(Collections.emptyList());
+    return Collections.unmodifiableList(Collections.emptyList());
   }
 
   /**
@@ -87,6 +84,6 @@ public class NopStyleSource
    */
   @Override
   public Map<String, String> styles(final String group) {
-    return ImmutableMap.copyOf(Collections.emptyMap());
+    return Collections.unmodifiableMap(Collections.emptyMap());
   }
 }

@@ -12,7 +12,7 @@ import com.planet57.gossip.Log;
 import org.jline.style.StyleBundle.StyleGroup;
 import org.slf4j.Logger;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Style facade.
@@ -36,7 +36,7 @@ public class Styler
    * Install global {@link StyleSource}.
    */
   public static void setSource(final StyleSource source) {
-    Styler.source = checkNotNull(source);
+    Styler.source = requireNonNull(source);
     log.debug("Source: {}", source);
   }
 

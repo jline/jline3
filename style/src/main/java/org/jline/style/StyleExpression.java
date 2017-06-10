@@ -15,7 +15,7 @@ import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Provides {@code @{style value}} expression evaluation.
@@ -32,15 +32,15 @@ public class StyleExpression
   private final StyleResolver resolver;
 
   public StyleExpression(final StyleResolver resolver) {
-    this.resolver = checkNotNull(resolver);
+    this.resolver = requireNonNull(resolver);
   }
 
   /**
    * Evaluate expression and append to buffer.
    */
   public void evaluate(final AttributedStringBuilder buff, final String expression) {
-    checkNotNull(buff);
-    checkNotNull(expression);
+    requireNonNull(buff);
+    requireNonNull(expression);
 
     String input = expression;
     Matcher matcher = PATTERN.matcher(input);

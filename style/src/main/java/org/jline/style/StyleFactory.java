@@ -11,7 +11,7 @@ package org.jline.style;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStyle;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Factory to create styled strings.
@@ -23,14 +23,14 @@ public class StyleFactory
   private final StyleResolver resolver;
 
   public StyleFactory(final StyleResolver resolver) {
-    this.resolver = checkNotNull(resolver);
+    this.resolver = requireNonNull(resolver);
   }
 
   /**
    * Encode string with style applying value.
    */
   public AttributedString style(final String style, final String value) {
-    checkNotNull(value);
+    requireNonNull(value);
     AttributedStyle astyle = resolver.resolve(style);
     return new AttributedString(value, astyle);
   }
@@ -41,8 +41,8 @@ public class StyleFactory
    * @see #style(String, String)
    */
   public AttributedString style(final String style, final String format, final Object... params) {
-    checkNotNull(format);
-    checkNotNull(params);
+    requireNonNull(format);
+    requireNonNull(params);
     // params may be empty
     return style(style, String.format(format, params));
   }
@@ -51,7 +51,7 @@ public class StyleFactory
    * Evaluate a style expression.
    */
   public AttributedString evaluate(final String expression) {
-    checkNotNull(expression);
+    requireNonNull(expression);
     return new StyleExpression(resolver).evaluate(expression);
   }
 
@@ -61,8 +61,8 @@ public class StyleFactory
    * @see #evaluate(String)
    */
   public AttributedString evaluate(final String format, final Object... params) {
-    checkNotNull(format);
-    checkNotNull(params);
+    requireNonNull(format);
+    requireNonNull(params);
     // params may be empty
     return evaluate(String.format(format, params));
   }

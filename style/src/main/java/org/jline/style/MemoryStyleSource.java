@@ -14,12 +14,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nullable;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.planet57.gossip.Log;
 import org.slf4j.Logger;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * In-memory {@link StyleSource}.
@@ -47,16 +45,16 @@ public class MemoryStyleSource
 
   @Override
   public void set(final String group, final String name, final String style) {
-    checkNotNull(group);
-    checkNotNull(name);
-    checkNotNull(style);
+    requireNonNull(group);
+    requireNonNull(name);
+    requireNonNull(style);
     backing.computeIfAbsent(group, k -> new ConcurrentHashMap<>()).put(name, style);
     log.trace("Set: [{}] {} -> {}", group, name, style);
   }
 
   @Override
   public void remove(final String group) {
-    checkNotNull(group);
+    requireNonNull(group);
     if (backing.remove(group) != null) {
       log.trace("Removed: [{}]");
     }
@@ -64,8 +62,8 @@ public class MemoryStyleSource
 
   @Override
   public void remove(final String group, final String name) {
-    checkNotNull(group);
-    checkNotNull(name);
+    requireNonNull(group);
+    requireNonNull(name);
     Map<String,String> styles = backing.get(group);
     if (styles != null) {
       styles.remove(name);
@@ -81,16 +79,16 @@ public class MemoryStyleSource
 
   @Override
   public Iterable<String> groups() {
-    return ImmutableSet.copyOf(backing.keySet());
+    return Collections.unmodifiableSet(backing.keySet());
   }
 
   @Override
   public Map<String,String> styles(final String group) {
-    checkNotNull(group);
+    requireNonNull(group);
     Map<String,String> result = backing.get(group);
     if (result == null) {
       result = Collections.emptyMap();
     }
-    return ImmutableMap.copyOf(result);
+    return Collections.unmodifiableMap(result);
   }
 }

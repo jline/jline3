@@ -14,8 +14,6 @@ import java.lang.reflect.Proxy;
 
 import javax.annotation.Nullable;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Strings;
 import com.planet57.gossip.Log;
 import org.jline.style.StyleBundle.DefaultStyle;
 import org.jline.style.StyleBundle.StyleGroup;
@@ -24,7 +22,7 @@ import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStyle;
 import org.slf4j.Logger;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * {@link StyleBundle} proxy invocation-handler to convert method calls into string styling.
@@ -42,8 +40,8 @@ class StyleBundleInvocationHandler
   private final StyleResolver resolver;
 
   public StyleBundleInvocationHandler(final Class<? extends StyleBundle> type, final StyleResolver resolver) {
-    this.type = checkNotNull(type);
-    this.resolver = checkNotNull(resolver);
+    this.type = requireNonNull(type);
+    this.resolver = requireNonNull(resolver);
   }
 
   @Override
@@ -106,13 +104,20 @@ class StyleBundleInvocationHandler
   // Helpers
   //
 
+  private static String emptyToNull(final String value) {
+    if (value == null || value.isEmpty()) {
+      return null;
+    }
+    return value;
+  }
+
   /**
    * Returns the style group-name for given type, or {@code null} if unable to determine.
    */
   @Nullable
   private static String getStyleGroup(final Class<?> type) {
     StyleGroup styleGroup = type.getAnnotation(StyleGroup.class);
-    return styleGroup != null ? Strings.emptyToNull(styleGroup.value().trim()) : null;
+    return styleGroup != null ? emptyToNull(styleGroup.value().trim()) : null;
   }
 
   /**
@@ -120,7 +125,7 @@ class StyleBundleInvocationHandler
    */
   private static String getStyleName(final Method method) {
     StyleName styleName = method.getAnnotation(StyleName.class);
-    return styleName != null ? Strings.emptyToNull(styleName.value().trim()) : method.getName();
+    return styleName != null ? emptyToNull(styleName.value().trim()) : method.getName();
   }
 
   /**
@@ -130,7 +135,7 @@ class StyleBundleInvocationHandler
   private static String getDefaultStyle(final Method method) {
     DefaultStyle defaultStyle = method.getAnnotation(DefaultStyle.class);
     // allow whitespace in default-style.value, but disallow empty-string
-    return defaultStyle != null ? Strings.emptyToNull(defaultStyle.value()) : null;
+    return defaultStyle != null ? emptyToNull(defaultStyle.value()) : null;
   }
 
   //
@@ -144,8 +149,8 @@ class StyleBundleInvocationHandler
    */
   @SuppressWarnings("unchecked")
   static <T extends StyleBundle> T create(final StyleResolver resolver, final Class<T> type) {
-    checkNotNull(resolver);
-    checkNotNull(type);
+    requireNonNull(resolver);
+    requireNonNull(type);
 
     log.trace("Using style-group: {} for type: {}", resolver.getGroup(), type.getName());
 
@@ -159,7 +164,7 @@ class StyleBundleInvocationHandler
    * @see Styler#bundle(String,Class)
    */
   static <T extends StyleBundle> T create(final StyleSource source, final Class<T> type) {
-    checkNotNull(type);
+    requireNonNull(type);
 
     String group = getStyleGroup(type);
     if (group == null) {
@@ -176,7 +181,7 @@ class StyleBundleInvocationHandler
   /**
    * Thrown when {@link StyleBundle} method has missing {@link DefaultStyle}.
    */
-  @VisibleForTesting
+  // @VisibleForTesting
   static class StyleBundleMethodMissingDefaultStyleException
       extends RuntimeException
   {
@@ -192,7 +197,7 @@ class StyleBundleInvocationHandler
   /**
    * Thrown when processing {@link StyleBundle} method is found to be invalid.
    */
-  @VisibleForTesting
+  // @VisibleForTesting
   static class InvalidStyleBundleMethodException
       extends RuntimeException
   {
@@ -204,7 +209,7 @@ class StyleBundleInvocationHandler
   /**
    * Thrown when looking up {@link StyleGroup} on a type found to be missing or invalid.
    */
-  @VisibleForTesting
+  // @VisibleForTesting
   static class InvalidStyleGroupException
       extends RuntimeException
   {

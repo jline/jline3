@@ -12,12 +12,11 @@ import java.util.Locale;
 
 import javax.annotation.Nullable;
 
-import com.google.common.base.Splitter;
 import com.planet57.gossip.Log;
 import org.jline.utils.AttributedStyle;
 import org.slf4j.Logger;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.jline.utils.AttributedStyle.*;
 
 // TODO: document style specification
@@ -36,8 +35,8 @@ public class StyleResolver
   private final String group;
 
   public StyleResolver(final StyleSource source, final String group) {
-    this.source = checkNotNull(source);
-    this.group = checkNotNull(group);
+    this.source = requireNonNull(source);
+    this.group = requireNonNull(group);
   }
 
   public StyleSource getSource() {
@@ -56,7 +55,7 @@ public class StyleResolver
    * If for some reason the specification is invalid, then {@link AttributedStyle#DEFAULT} will be used.
    */
   public AttributedStyle resolve(final String spec) {
-    checkNotNull(spec);
+    requireNonNull(spec);
 
     log.trace("Resolve: {}", spec);
 
@@ -75,7 +74,7 @@ public class StyleResolver
    * If this resolves to {@link AttributedStyle#DEFAULT} then given default specification is used if non-null.
    */
   public AttributedStyle resolve(final String spec, @Nullable final String defaultSpec) {
-    checkNotNull(spec);
+    requireNonNull(spec);
 
     log.trace("Resolve: {}; default: {}", spec, defaultSpec);
 
@@ -92,7 +91,12 @@ public class StyleResolver
   private AttributedStyle apply(AttributedStyle style, final String spec) {
     log.trace("Apply: {}", spec);
 
-    for (String item : Splitter.on(',').omitEmptyStrings().trimResults().split(spec)) {
+    for (String item : spec.split(",")) {
+      item = item.trim();
+      if (item.isEmpty()) {
+        continue;
+      }
+
       if (item.startsWith(".")) {
         style = applyReference(style, item);
       }

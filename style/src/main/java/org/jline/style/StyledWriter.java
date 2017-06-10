@@ -18,7 +18,7 @@ import javax.annotation.Nonnull;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Styled {@link PrintWriter} which is aware of {@link StyleExpression} syntax.
@@ -34,13 +34,13 @@ public class StyledWriter
 
   public StyledWriter(final Writer out, final Terminal terminal, final StyleResolver resolver, final boolean autoFlush) {
     super(out, autoFlush);
-    this.terminal = checkNotNull(terminal);
+    this.terminal = requireNonNull(terminal);
     this.expression = new StyleExpression(resolver);
   }
 
   public StyledWriter(final OutputStream out, final Terminal terminal, final StyleResolver resolver, final boolean autoFlush) {
     super(out, autoFlush);
-    this.terminal = checkNotNull(terminal);
+    this.terminal = requireNonNull(terminal);
     this.expression = new StyleExpression(resolver);
   }
 
