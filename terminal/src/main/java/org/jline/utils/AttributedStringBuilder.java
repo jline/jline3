@@ -26,6 +26,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
     private int[] style;
     private int length;
     private int tabs = 0;
+    private int lastLineLength = 0;
     private AttributedStyle current = AttributedStyle.DEFAULT;
 
     public static AttributedString append(CharSequence... strings) {
@@ -149,6 +150,11 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                 ensureCapacity(length + 1);
                 buffer[length] = c;
                 style[length] = s;
+                if (c == '\n') {
+                    lastLineLength = 0;
+                } else {
+                    lastLineLength++;
+                }
                 length++;
             }
         }
@@ -321,6 +327,11 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                 ensureCapacity(length + 1);
                 buffer[length] = c;
                 style[length] = this.current.getStyle();
+                if (c == '\n') {
+                    lastLineLength = 0;
+                } else {
+                    lastLineLength++;
+                }
                 length++;
             }
         }
@@ -328,21 +339,36 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
     }
 
     protected void insertTab(AttributedStyle s) {
-        int nb = tabs - length % tabs;
+        int nb = tabs - lastLineLength % tabs;
         ensureCapacity(length + nb);
         for (int i = 0; i < nb; i++) {
             buffer[length] = ' ';
             style[length] = s.getStyle();
             length++;
         }
+        lastLineLength += nb;
     }
 
     public void setLength(int l) {
         length = l;
     }
 
-    public AttributedStringBuilder tabs(int tabs) {
-        this.tabs = tabs;
+    /**
+     * Set the number of spaces a tab is expanded to. Tab size cannot be changed
+     * after text has been added to prevent inconsistent indentation.
+     *
+     * If tab size is set to 0, tabs are not expanded (the default).
+     * @param tabsize Spaces per tab or 0 for no tab expansion. Must be non-negative
+     * @return
+     */
+    public AttributedStringBuilder tabs(int tabsize) {
+        if (length > 0) {
+            throw new IllegalStateException("Cannot change tab size after appending text");
+        }
+        if (tabsize < 0) {
+            throw new IllegalArgumentException("Tab size must be non negative");
+        }
+        this.tabs = tabsize;
         return this;
     }
 
