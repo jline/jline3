@@ -134,11 +134,11 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
         return current;
     }
 
-    public AttributedStringBuilder append(AttributedString str) {
+    public AttributedStringBuilder append(AttributedCharSequence str) {
         return append(str, 0, str.length());
     }
 
-    public AttributedStringBuilder append(AttributedString str, int start, int end) {
+    public AttributedStringBuilder append(AttributedCharSequence str, int start, int end) {
         ensureCapacity(length + end - start);
         for (int i = start; i < end; i++) {
             char c = str.charAt(i);
