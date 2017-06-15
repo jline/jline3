@@ -19,40 +19,36 @@ import java.lang.annotation.Target;
  *
  * @since 3.4
  */
-public interface StyleBundle
-{
-  /**
-   * Provides the style group-name.
-   */
-  @Retention(RetentionPolicy.RUNTIME)
-  @Target(ElementType.TYPE)
-  @Documented
-  @interface StyleGroup
-  {
-    String value();
-  }
+public interface StyleBundle {
+    /**
+     * Provides the style group-name.
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.TYPE)
+    @Documented
+    @interface StyleGroup {
+        String value();
+    }
 
-  /**
-   * Allows overriding the style-name.
-   *
-   * Default style-name is determined from method-name.
-   */
-  @Retention(RetentionPolicy.RUNTIME)
-  @Target(ElementType.METHOD)
-  @Documented
-  @interface StyleName
-  {
-    String value();
-  }
+    /**
+     * Allows overriding the style-name.
+     * <p>
+     * Default style-name is determined from method-name.
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    @Documented
+    @interface StyleName {
+        String value();
+    }
 
-  /**
-   * Provide default style-specification.
-   */
-  @Retention(RetentionPolicy.RUNTIME)
-  @Target(ElementType.METHOD)
-  @Documented
-  @interface DefaultStyle
-  {
-    String value();
-  }
+    /**
+     * Provide default style-specification.
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    @Documented
+    @interface DefaultStyle {
+        String value();
+    }
 }

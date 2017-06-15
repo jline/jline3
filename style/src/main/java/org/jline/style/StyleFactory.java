@@ -18,52 +18,51 @@ import static java.util.Objects.requireNonNull;
  *
  * @since 3.4
  */
-public class StyleFactory
-{
-  private final StyleResolver resolver;
+public class StyleFactory {
+    private final StyleResolver resolver;
 
-  public StyleFactory(final StyleResolver resolver) {
-    this.resolver = requireNonNull(resolver);
-  }
+    public StyleFactory(final StyleResolver resolver) {
+        this.resolver = requireNonNull(resolver);
+    }
 
-  /**
-   * Encode string with style applying value.
-   */
-  public AttributedString style(final String style, final String value) {
-    requireNonNull(value);
-    AttributedStyle astyle = resolver.resolve(style);
-    return new AttributedString(value, astyle);
-  }
+    /**
+     * Encode string with style applying value.
+     */
+    public AttributedString style(final String style, final String value) {
+        requireNonNull(value);
+        AttributedStyle astyle = resolver.resolve(style);
+        return new AttributedString(value, astyle);
+    }
 
-  /**
-   * Encode string with style formatted value.
-   *
-   * @see #style(String, String)
-   */
-  public AttributedString style(final String style, final String format, final Object... params) {
-    requireNonNull(format);
-    requireNonNull(params);
-    // params may be empty
-    return style(style, String.format(format, params));
-  }
+    /**
+     * Encode string with style formatted value.
+     *
+     * @see #style(String, String)
+     */
+    public AttributedString style(final String style, final String format, final Object... params) {
+        requireNonNull(format);
+        requireNonNull(params);
+        // params may be empty
+        return style(style, String.format(format, params));
+    }
 
-  /**
-   * Evaluate a style expression.
-   */
-  public AttributedString evaluate(final String expression) {
-    requireNonNull(expression);
-    return new StyleExpression(resolver).evaluate(expression);
-  }
+    /**
+     * Evaluate a style expression.
+     */
+    public AttributedString evaluate(final String expression) {
+        requireNonNull(expression);
+        return new StyleExpression(resolver).evaluate(expression);
+    }
 
-  /**
-   * Evaluate a style expression with format.
-   *
-   * @see #evaluate(String)
-   */
-  public AttributedString evaluate(final String format, final Object... params) {
-    requireNonNull(format);
-    requireNonNull(params);
-    // params may be empty
-    return evaluate(String.format(format, params));
-  }
+    /**
+     * Evaluate a style expression with format.
+     *
+     * @see #evaluate(String)
+     */
+    public AttributedString evaluate(final String format, final Object... params) {
+        requireNonNull(format);
+        requireNonNull(params);
+        // params may be empty
+        return evaluate(String.format(format, params));
+    }
 }

@@ -13,12 +13,11 @@ import org.junit.Before
 /**
  * Support for style tests.
  */
-abstract class StyleTestSupport
-{
-  protected MemoryStyleSource source
+abstract class StyleTestSupport {
+    protected MemoryStyleSource source
 
-  @Before
-  void setUp() {
-    this.source = new MemoryStyleSource()
-  }
+    @Before
+    void setUp() {
+        this.source = new MemoryStyleSource()
+    }
 }

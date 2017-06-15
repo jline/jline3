@@ -8,15 +8,14 @@
  */
 package org.jline.style;
 
+import org.jline.terminal.Terminal;
+import org.jline.utils.AttributedString;
+
+import javax.annotation.Nonnull;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.util.Locale;
-
-import javax.annotation.Nonnull;
-
-import org.jline.terminal.Terminal;
-import org.jline.utils.AttributedString;
 
 import static java.util.Objects.requireNonNull;
 
@@ -26,41 +25,40 @@ import static java.util.Objects.requireNonNull;
  * @since 3.4
  */
 public class StyledWriter
-    extends PrintWriter
-{
-  private final Terminal terminal;
+        extends PrintWriter {
+    private final Terminal terminal;
 
-  private final StyleExpression expression;
+    private final StyleExpression expression;
 
-  public StyledWriter(final Writer out, final Terminal terminal, final StyleResolver resolver, final boolean autoFlush) {
-    super(out, autoFlush);
-    this.terminal = requireNonNull(terminal);
-    this.expression = new StyleExpression(resolver);
-  }
+    public StyledWriter(final Writer out, final Terminal terminal, final StyleResolver resolver, final boolean autoFlush) {
+        super(out, autoFlush);
+        this.terminal = requireNonNull(terminal);
+        this.expression = new StyleExpression(resolver);
+    }
 
-  public StyledWriter(final OutputStream out, final Terminal terminal, final StyleResolver resolver, final boolean autoFlush) {
-    super(out, autoFlush);
-    this.terminal = requireNonNull(terminal);
-    this.expression = new StyleExpression(resolver);
-  }
+    public StyledWriter(final OutputStream out, final Terminal terminal, final StyleResolver resolver, final boolean autoFlush) {
+        super(out, autoFlush);
+        this.terminal = requireNonNull(terminal);
+        this.expression = new StyleExpression(resolver);
+    }
 
-  @Override
-  public void write(@Nonnull final String value) {
-    AttributedString result = expression.evaluate(value);
-    super.write(result.toAnsi(terminal));
-  }
+    @Override
+    public void write(@Nonnull final String value) {
+        AttributedString result = expression.evaluate(value);
+        super.write(result.toAnsi(terminal));
+    }
 
-  // Prevent partial output from being written while formatting or we will get rendering exceptions
+    // Prevent partial output from being written while formatting or we will get rendering exceptions
 
-  @Override
-  public PrintWriter format(@Nonnull final String format, final Object... args) {
-    print(String.format(format, args));
-    return this;
-  }
+    @Override
+    public PrintWriter format(@Nonnull final String format, final Object... args) {
+        print(String.format(format, args));
+        return this;
+    }
 
-  @Override
-  public PrintWriter format(final Locale locale, @Nonnull final String format, final Object... args) {
-    print(String.format(locale, format, args));
-    return this;
-  }
+    @Override
+    public PrintWriter format(final Locale locale, @Nonnull final String format, final Object... args) {
+        print(String.format(locale, format, args));
+        return this;
+    }
 }

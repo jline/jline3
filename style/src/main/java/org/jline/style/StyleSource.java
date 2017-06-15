@@ -8,54 +8,52 @@
  */
 package org.jline.style;
 
-import java.util.Map;
-
 import javax.annotation.Nullable;
+import java.util.Map;
 
 /**
  * Provides the source of style configuration.
  *
  * @since 3.4
  */
-public interface StyleSource
-{
-  /**
-   * Returns the appropriate style for the given style-group and style-name, or {@code null} if missing.
-   */
-  @Nullable
-  String get(String group, String name);
+public interface StyleSource {
+    /**
+     * Returns the appropriate style for the given style-group and style-name, or {@code null} if missing.
+     */
+    @Nullable
+    String get(String group, String name);
 
-  /**
-   * Set a specific style in a style-group.
-   */
-  void set(String group, String name, String style);
+    /**
+     * Set a specific style in a style-group.
+     */
+    void set(String group, String name, String style);
 
-  /**
-   * Remove all styles for given style-group.
-   */
-  void remove(String group);
+    /**
+     * Remove all styles for given style-group.
+     */
+    void remove(String group);
 
-  /**
-   * Remove a specific style from style-group.
-   */
-  void remove(String group, String name);
+    /**
+     * Remove a specific style from style-group.
+     */
+    void remove(String group, String name);
 
-  /**
-   * Clear all styles.
-   */
-  void clear();
+    /**
+     * Clear all styles.
+     */
+    void clear();
 
-  /**
-   * Returns configured style-group names.
-   *
-   * @return Immutable collection.
-   */
-  Iterable<String> groups();
+    /**
+     * Returns configured style-group names.
+     *
+     * @return Immutable collection.
+     */
+    Iterable<String> groups();
 
-  /**
-   * Returns configured styles for given style-group.
-   *
-   * @return Immutable map.
-   */
-  Map<String,String> styles(String group);
+    /**
+     * Returns configured styles for given style-group.
+     *
+     * @return Immutable map.
+     */
+    Map<String, String> styles(String group);
 }
