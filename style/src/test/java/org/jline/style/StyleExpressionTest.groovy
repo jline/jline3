@@ -26,7 +26,7 @@ class StyleExpressionTest
     @Before
     void setUp() {
         super.setUp()
-        this.underTest = new StyleExpression(new StyleResolver(source, 'test'))
+        this.underTest = new StyleExpression()
     }
 
     @Test

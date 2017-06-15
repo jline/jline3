@@ -30,6 +30,10 @@ public class StyleExpression {
 
     private final StyleResolver resolver;
 
+    public StyleExpression() {
+        this(new StyleResolver(new NopStyleSource(), ""));
+    }
+
     public StyleExpression(final StyleResolver resolver) {
         this.resolver = requireNonNull(resolver);
     }
