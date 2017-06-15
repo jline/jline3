@@ -35,6 +35,8 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
 
     private static final int PIPE_SIZE = 1024;
 
+    private static final Charset INPUT_CHARSET = Charset.forName("UTF-8");
+
     protected static final int ENABLE_PROCESSED_INPUT = 0x0001;
     protected static final int ENABLE_LINE_INPUT      = 0x0002;
     protected static final int ENABLE_ECHO_INPUT      = 0x0004;
@@ -66,7 +68,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         if (encoding == null) {
             encoding = Charset.defaultCharset().name();
         }
-        this.reader = new NonBlockingReader(getName(), new org.jline.utils.InputStreamReader(input, encoding));
+        this.reader = new NonBlockingReader(getName(), new org.jline.utils.InputStreamReader(input, INPUT_CHARSET));
         this.writer = new PrintWriter(new OutputStreamWriter(output, encoding));
         parseInfoCmp();
         // Attributes
@@ -191,7 +193,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         writer.close();
     }
 
-    protected abstract byte[] readConsoleInput() throws IOException;
+    protected abstract String readConsoleInput() throws IOException;
 
     protected String getEscapeSequence(short keyCode) {
         // virtual keycodes: http://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
@@ -290,8 +292,8 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     protected void pump() {
         try {
             while (!closing) {
-                byte[] buf = readConsoleInput();
-                for (byte b : buf) {
+                String buf = readConsoleInput();
+                for (byte b : buf.getBytes(INPUT_CHARSET)) {
                     processInputByte(b);
                 }
             }

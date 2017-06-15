@@ -61,10 +61,10 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
         return size;
     }
 
-    protected byte[] readConsoleInput() throws IOException {
+    protected String readConsoleInput() throws IOException {
         INPUT_RECORD[] events = WindowsSupport.readConsoleInput(1);
         if (events == null) {
-            return new byte[0];
+            return "";
         }
         StringBuilder sb = new StringBuilder();
         for (INPUT_RECORD event : events) {
@@ -112,7 +112,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
                 }
             }
         }
-        return sb.toString().getBytes();
+        return sb.toString();
     }
 
     @Override

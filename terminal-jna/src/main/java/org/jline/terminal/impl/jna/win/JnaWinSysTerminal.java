@@ -62,10 +62,10 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
 
     private char[] mouse = new char[] { '\033', '[', 'M', ' ', ' ', ' ' };
 
-    protected byte[] readConsoleInput() throws IOException {
+    protected String readConsoleInput() throws IOException {
         Kernel32.INPUT_RECORD[] events = doReadConsoleInput();
         if (events == null) {
-            return new byte[0];
+            return "";
         }
         StringBuilder sb = new StringBuilder();
         for (Kernel32.INPUT_RECORD event : events) {
@@ -148,7 +148,7 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
                 prevButtonState = dwButtonState;
             }
         }
-        return sb.toString().getBytes();
+        return sb.toString();
     }
 
     private Kernel32.INPUT_RECORD[] doReadConsoleInput() throws IOException {
