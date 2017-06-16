@@ -17,6 +17,7 @@ import org.jline.utils.NonBlockingReader;
 import org.jline.utils.ShutdownHooks;
 import org.jline.utils.Signals;
 
+import java.io.BufferedWriter;
 import java.io.FilterInputStream;
 import java.io.InputStream;
 import java.io.IOError;
@@ -35,7 +36,8 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
 
     private static final int PIPE_SIZE = 1024;
 
-    private static final Charset INPUT_CHARSET = Charset.forName("UTF-8");
+    private static final Charset CHARSET = Charset.forName("UTF-8");
+    private static final int CODE_PAGE = 65001;
 
     protected static final int ENABLE_PROCESSED_INPUT = 0x0001;
     protected static final int ENABLE_LINE_INPUT      = 0x0002;
@@ -54,6 +56,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     protected final ShutdownHooks.Task closer;
     protected final Attributes attributes = new Attributes();
     protected final Thread pump;
+    protected final int consoleOutputCP;
 
     protected MouseTracking tracking = MouseTracking.Off;
     private volatile boolean closing;
@@ -64,12 +67,10 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         this.slaveInputPipe = new PipedOutputStream(input);
         this.input = new FilterInputStream(input) {};
         this.output = output;
-        String encoding = getConsoleEncoding();
-        if (encoding == null) {
-            encoding = Charset.defaultCharset().name();
-        }
-        this.reader = new NonBlockingReader(getName(), new org.jline.utils.InputStreamReader(input, INPUT_CHARSET));
-        this.writer = new PrintWriter(new OutputStreamWriter(output, encoding));
+        this.consoleOutputCP = getConsoleOutputCP();
+        setConsoleOutputCP(CODE_PAGE);
+        this.reader = new NonBlockingReader(getName(), new org.jline.utils.InputStreamReader(input, CHARSET));
+        this.writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(output, CHARSET)));
         parseInfoCmp();
         // Attributes
         attributes.setLocalFlag(Attributes.LocalFlag.ISIG, true);
@@ -105,22 +106,6 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         }
         return prev;
     }
-
-    protected String getConsoleEncoding() {
-        int codepage = getConsoleOutputCP();
-        //http://docs.oracle.com/javase/6/docs/technotes/guides/intl/encoding.doc.html
-        String charsetMS = "ms" + codepage;
-        if (java.nio.charset.Charset.isSupported(charsetMS)) {
-            return charsetMS;
-        }
-        String charsetCP = "cp" + codepage;
-        if (java.nio.charset.Charset.isSupported(charsetCP)) {
-            return charsetCP;
-        }
-        return null;
-    }
-
-    protected abstract int getConsoleOutputCP();
 
     public NonBlockingReader reader() {
         return reader;
@@ -174,10 +159,6 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         return (Character.toUpperCase(key) & 0x1f);
     }
 
-    protected abstract int getConsoleMode();
-
-    protected abstract void setConsoleMode(int mode);
-
     public void setSize(Size size) {
         throw new UnsupportedOperationException("Can not resize windows terminal");
     }
@@ -191,9 +172,8 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         }
         reader.close();
         writer.close();
+        setConsoleOutputCP(consoleOutputCP);
     }
-
-    protected abstract String readConsoleInput() throws IOException;
 
     protected String getEscapeSequence(short keyCode) {
         // virtual keycodes: http://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
@@ -293,7 +273,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         try {
             while (!closing) {
                 String buf = readConsoleInput();
-                for (byte b : buf.getBytes(INPUT_CHARSET)) {
+                for (byte b : buf.getBytes(CHARSET)) {
                     processInputByte(b);
                 }
             }
@@ -343,6 +323,16 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         updateConsoleMode();
         return true;
     }
+
+    protected abstract int getConsoleOutputCP();
+
+    protected abstract void setConsoleOutputCP(int cp);
+
+    protected abstract int getConsoleMode();
+
+    protected abstract void setConsoleMode(int mode);
+
+    protected abstract String readConsoleInput() throws IOException;
 
 }
 

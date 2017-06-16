@@ -38,8 +38,14 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
         strings.put(InfoCmp.Capability.key_mouse, "\\E[M");
     }
 
+    @Override
     protected int getConsoleOutputCP() {
         return Kernel32.INSTANCE.GetConsoleOutputCP();
+    }
+
+    @Override
+    protected void setConsoleOutputCP(int cp) {
+        Kernel32.INSTANCE.SetConsoleCP(cp);
     }
 
     @Override

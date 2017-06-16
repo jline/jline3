@@ -40,8 +40,14 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
               name, nativeSignals, signalHandler);
     }
 
+    @Override
     protected int getConsoleOutputCP() {
         return Kernel32.GetConsoleOutputCP();
+    }
+
+    @Override
+    protected void setConsoleOutputCP(int cp) {
+        Kernel32.SetConsoleOutputCP(cp);
     }
 
     @Override
