@@ -8,6 +8,7 @@
  */
 package org.jline.terminal.impl.jansi.win;
 
+import java.io.BufferedOutputStream;
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.IOError;
@@ -36,12 +37,18 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
     }
 
     public JansiWinSysTerminal(String name, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
-        super(new WindowsAnsiOutputStream(new FileOutputStream(FileDescriptor.out)),
+        super(new WindowsAnsiOutputStream(new BufferedOutputStream(new FileOutputStream(FileDescriptor.out))),
               name, nativeSignals, signalHandler);
     }
 
+    @Override
     protected int getConsoleOutputCP() {
         return Kernel32.GetConsoleOutputCP();
+    }
+
+    @Override
+    protected void setConsoleOutputCP(int cp) {
+        Kernel32.SetConsoleOutputCP(cp);
     }
 
     @Override
@@ -61,10 +68,10 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
         return size;
     }
 
-    protected byte[] readConsoleInput() throws IOException {
+    protected String readConsoleInput() throws IOException {
         INPUT_RECORD[] events = WindowsSupport.readConsoleInput(1);
         if (events == null) {
-            return new byte[0];
+            return "";
         }
         StringBuilder sb = new StringBuilder();
         for (INPUT_RECORD event : events) {
@@ -112,7 +119,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
                 }
             }
         }
-        return sb.toString().getBytes();
+        return sb.toString();
     }
 
     @Override

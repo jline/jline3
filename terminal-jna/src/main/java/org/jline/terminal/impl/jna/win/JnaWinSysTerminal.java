@@ -8,11 +8,13 @@
  */
 package org.jline.terminal.impl.jna.win;
 
+import java.io.BufferedOutputStream;
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.function.IntConsumer;
 
+import com.sun.jna.LastErrorException;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
 import org.jline.terminal.Cursor;
@@ -33,13 +35,24 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
     }
 
     public JnaWinSysTerminal(String name, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
-        super(new WindowsAnsiOutputStream(new FileOutputStream(FileDescriptor.out), consoleOut),
+        super(new WindowsAnsiOutputStream(new BufferedOutputStream(new FileOutputStream(FileDescriptor.out)), consoleOut),
               name, nativeSignals, signalHandler);
         strings.put(InfoCmp.Capability.key_mouse, "\\E[M");
     }
 
+    @Override
     protected int getConsoleOutputCP() {
         return Kernel32.INSTANCE.GetConsoleOutputCP();
+    }
+
+    @Override
+    protected void setConsoleOutputCP(int cp) {
+        try {
+            Kernel32.INSTANCE.SetConsoleOutputCP(cp);
+        } catch (LastErrorException e) {
+            // Not sure why it throws exceptions, just log at trace
+            Log.trace("Error setting console output code page", e);
+        }
     }
 
     @Override
@@ -62,10 +75,10 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
 
     private char[] mouse = new char[] { '\033', '[', 'M', ' ', ' ', ' ' };
 
-    protected byte[] readConsoleInput() throws IOException {
+    protected String readConsoleInput() throws IOException {
         Kernel32.INPUT_RECORD[] events = doReadConsoleInput();
         if (events == null) {
-            return new byte[0];
+            return "";
         }
         StringBuilder sb = new StringBuilder();
         for (Kernel32.INPUT_RECORD event : events) {
@@ -148,7 +161,7 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
                 prevButtonState = dwButtonState;
             }
         }
-        return sb.toString().getBytes();
+        return sb.toString();
     }
 
     private Kernel32.INPUT_RECORD[] doReadConsoleInput() throws IOException {
