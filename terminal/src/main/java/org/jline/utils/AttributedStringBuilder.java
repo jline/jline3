@@ -166,7 +166,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
         }
     }
 
-    public void appendAnsi(String ansi) {
+    public AttributedStringBuilder appendAnsi(String ansi) {
         int ansiStart = 0;
         int ansiState = 0;
         ensureCapacity(length + ansi.length());
@@ -324,6 +324,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                 length++;
             }
         }
+        return this;
     }
 
     protected void insertTab(AttributedStyle s) {

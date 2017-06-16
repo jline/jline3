@@ -88,6 +88,16 @@ class StyleExpressionTest
     }
 
     @Test
+    void 'evaluate expression with recursive replacements'() {
+        def result = underTest.evaluate('@{underline foo @{fg:cyan bar}}')
+        println result.toAnsi()
+        assert result == new AttributedStringBuilder()
+                .append('foo ', DEFAULT.underline())
+                .append('bar', DEFAULT.underline().foreground(CYAN))
+                .toAttributedString()
+    }
+
+    @Test
     void 'evaluate expression missing value'() {
         def result = underTest.evaluate('@{bold}')
         println result.toAnsi()
@@ -102,11 +112,9 @@ class StyleExpressionTest
     }
 
     @Test
-    @Ignore("FIXME: need to adjust parser to cope with } in value")
     void 'evaluate expression with ${} value'() {
-        def result = underTest.evaluate('@{bold,fg:cyan ${foo}}')
+        def result = underTest.evaluate('@{bold,fg:cyan ${foo\\}}')
         println result.toAnsi()
-        // FIXME: this is not presently valid; will match value '${foo'
-        assert result == new AttributedString('${foo}', DEFAULT.foreground(CYAN))
+        assert result == new AttributedString('${foo}', DEFAULT.bold().foreground(CYAN))
     }
 }

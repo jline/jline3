@@ -12,7 +12,6 @@ import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static java.util.Objects.requireNonNull;
@@ -23,10 +22,6 @@ import static java.util.Objects.requireNonNull;
  * @since 3.4
  */
 public class StyleExpression {
-    /**
-     * Regular-expression to match {@code @{style value}}.
-     */
-    private static final Pattern PATTERN = Pattern.compile("@\\{([^ ]+) ([^}]+)\\}");
 
     private final StyleResolver resolver;
 
@@ -45,35 +40,19 @@ public class StyleExpression {
         requireNonNull(buff);
         requireNonNull(expression);
 
-        String input = expression;
-        Matcher matcher = PATTERN.matcher(input);
+        String translated = InterpolationHelper.substVars(expression, this::style, false);
+        buff.appendAnsi(translated);
+    }
 
-        while (matcher.find()) {
-            String spec = matcher.group(1);
-            String value = matcher.group(2);
-
-            // pull off the unmatched prefix of input
-            int start = matcher.start(0);
-            String prefix = input.substring(0, start);
-
-            // pull off remainder from match
-            int end = matcher.end(0);
-            String suffix = input.substring(end, input.length());
-
-            // resolve style
+    private String style(String key) {
+        int idx = key.indexOf(' ');
+        if (idx > 0) {
+            String spec = key.substring(0, idx);
+            String value = key.substring(idx + 1);
             AttributedStyle style = resolver.resolve(spec);
-
-            // apply to buffer
-            buff.append(prefix)
-                    .append(value, style);
-
-            // reset matcher to the suffix of this match
-            input = suffix;
-            matcher.reset(input);
+            return new AttributedStringBuilder().style(style).appendAnsi(value).toAnsi();
         }
-
-        // append anything left over
-        buff.append(input);
+        return null;
     }
 
     /**
