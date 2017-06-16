@@ -17,7 +17,7 @@ import org.jline.utils.NonBlockingReader;
 import org.jline.utils.ShutdownHooks;
 import org.jline.utils.Signals;
 
-import java.io.BufferedWriter;
+import java.io.BufferedOutputStream;
 import java.io.FilterInputStream;
 import java.io.InputStream;
 import java.io.IOError;
@@ -70,7 +70,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         this.consoleOutputCP = getConsoleOutputCP();
         setConsoleOutputCP(CODE_PAGE);
         this.reader = new NonBlockingReader(getName(), new org.jline.utils.InputStreamReader(input, CHARSET));
-        this.writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(output, CHARSET)));
+        this.writer = new PrintWriter(new OutputStreamWriter(new BufferedOutputStream(output), CHARSET));
         parseInfoCmp();
         // Attributes
         attributes.setLocalFlag(Attributes.LocalFlag.ISIG, true);

@@ -78,6 +78,9 @@ interface Kernel32 extends StdCallLibrary {
     // HWND WINAPI GetConsoleWindow(void);
     Pointer GetConsoleWindow();
 
+    // UINT WINAPI GetConsoleCP(void)
+    int GetConsoleCP();
+
     // UINT WINAPI GetConsoleOutputCP(void)
     int GetConsoleOutputCP();
 
@@ -187,6 +190,10 @@ interface Kernel32 extends StdCallLibrary {
     // BOOL WINAPI SetConsoleCP(
     // _In_ UINT wCodePageID);
     void SetConsoleCP(int in_wCodePageID) throws LastErrorException;
+
+    // BOOL WINAPI SetConsoleOutputCP(
+    // _In_ UINT wCodePageID);
+    void SetConsoleOutputCP(int in_wCodePageID) throws LastErrorException;
 
     // BOOL WINAPI SetConsoleCursorPosition(
     // _In_ HANDLE hConsoleOutput,

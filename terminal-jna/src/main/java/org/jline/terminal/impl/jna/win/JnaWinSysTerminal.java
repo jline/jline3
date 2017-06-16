@@ -13,6 +13,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.function.IntConsumer;
 
+import com.sun.jna.LastErrorException;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
 import org.jline.terminal.Cursor;
@@ -45,7 +46,12 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
 
     @Override
     protected void setConsoleOutputCP(int cp) {
-        Kernel32.INSTANCE.SetConsoleCP(cp);
+        try {
+            Kernel32.INSTANCE.SetConsoleOutputCP(cp);
+        } catch (LastErrorException e) {
+            // Not sure why it throws exceptions, just log at trace
+            Log.trace("Error setting console output code page", e);
+        }
     }
 
     @Override
