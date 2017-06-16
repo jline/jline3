@@ -8,6 +8,7 @@
  */
 package org.jline.terminal.impl.jna.win;
 
+import java.io.BufferedOutputStream;
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -34,7 +35,7 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
     }
 
     public JnaWinSysTerminal(String name, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
-        super(new WindowsAnsiOutputStream(new FileOutputStream(FileDescriptor.out), consoleOut),
+        super(new WindowsAnsiOutputStream(new BufferedOutputStream(new FileOutputStream(FileDescriptor.out)), consoleOut),
               name, nativeSignals, signalHandler);
         strings.put(InfoCmp.Capability.key_mouse, "\\E[M");
     }

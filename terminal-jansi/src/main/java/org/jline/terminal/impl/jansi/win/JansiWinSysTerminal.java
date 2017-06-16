@@ -8,6 +8,7 @@
  */
 package org.jline.terminal.impl.jansi.win;
 
+import java.io.BufferedOutputStream;
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.IOError;
@@ -36,7 +37,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
     }
 
     public JansiWinSysTerminal(String name, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
-        super(new WindowsAnsiOutputStream(new FileOutputStream(FileDescriptor.out)),
+        super(new WindowsAnsiOutputStream(new BufferedOutputStream(new FileOutputStream(FileDescriptor.out))),
               name, nativeSignals, signalHandler);
     }
 
