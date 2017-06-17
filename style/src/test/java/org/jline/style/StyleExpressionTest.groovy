@@ -26,7 +26,7 @@ class StyleExpressionTest
     @Before
     void setUp() {
         super.setUp()
-        this.underTest = new StyleExpression()
+        this.underTest = new StyleExpression(new StyleResolver(source, 'test'))
     }
 
     @Test
@@ -116,5 +116,12 @@ class StyleExpressionTest
         def result = underTest.evaluate('@{bold,fg:cyan ${foo\\}}')
         println result.toAnsi()
         assert result == new AttributedString('${foo}', DEFAULT.bold().foreground(CYAN))
+    }
+
+    @Test
+    void 'evaluate with style reference'() {
+        source.set('test', 'very-red', 'bold,fg:red')
+        def string = underTest.evaluate('@{.very-red foo bar}')
+        assert string == new AttributedString('foo bar', BOLD.foreground(RED))
     }
 }
