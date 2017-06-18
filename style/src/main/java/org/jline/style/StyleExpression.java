@@ -50,7 +50,7 @@ public class StyleExpression {
             String spec = key.substring(0, idx);
             String value = key.substring(idx + 1);
             AttributedStyle style = resolver.resolve(spec);
-            return new AttributedStringBuilder().style(style).appendAnsi(value).toAnsi();
+            return new AttributedStringBuilder().style(style).ansiAppend(value).toAnsi();
         }
         return null;
     }

@@ -134,6 +134,14 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
         return current;
     }
 
+    public AttributedStringBuilder append(AttributedString str) {
+        return append((AttributedCharSequence) str, 0, str.length());
+    }
+
+    public AttributedStringBuilder append(AttributedString str, int start, int end) {
+        return append((AttributedCharSequence) str, start, end);
+    }
+
     public AttributedStringBuilder append(AttributedCharSequence str) {
         return append(str, 0, str.length());
     }
@@ -166,7 +174,11 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
         }
     }
 
-    public AttributedStringBuilder appendAnsi(String ansi) {
+    public void appendAnsi(String ansi) {
+        ansiAppend(ansi);
+    }
+
+    public AttributedStringBuilder ansiAppend(String ansi) {
         int ansiStart = 0;
         int ansiState = 0;
         ensureCapacity(length + ansi.length());

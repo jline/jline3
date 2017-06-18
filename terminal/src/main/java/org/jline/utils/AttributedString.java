@@ -101,19 +101,19 @@ public class AttributedString extends AttributedCharSequence {
         if (ansi == null) {
             return null;
         }
-        AttributedStringBuilder sb = new AttributedStringBuilder(ansi.length());
-        sb.tabs(tabs);
-        sb.appendAnsi(ansi);
-        return sb.toAttributedString();
+        return new AttributedStringBuilder(ansi.length())
+                .tabs(tabs)
+                .ansiAppend(ansi)
+                .toAttributedString();
     }
 
     public static String stripAnsi(String ansi) {
         if (ansi == null) {
             return null;
         }
-        AttributedStringBuilder sb = new AttributedStringBuilder(ansi.length());
-        sb.appendAnsi(ansi);
-        return sb.toString();
+        return new AttributedStringBuilder(ansi.length())
+                .ansiAppend(ansi)
+                .toString();
     }
 
     @Override
