@@ -64,13 +64,7 @@ public final class ShutdownHooks
 
     private static Thread addHook(final Thread thread) {
         Log.debug("Registering shutdown-hook: ", thread);
-        try {
-            Runtime.getRuntime().addShutdownHook(thread);
-        }
-        catch (AbstractMethodError e) {
-            // JDK 1.3+ only method. Bummer.
-            Log.debug("Failed to register shutdown-hook", e);
-        }
+        Runtime.getRuntime().addShutdownHook(thread);
         return thread;
     }
 
@@ -97,10 +91,6 @@ public final class ShutdownHooks
 
         try {
             Runtime.getRuntime().removeShutdownHook(thread);
-        }
-        catch (AbstractMethodError e) {
-            // JDK 1.3+ only method. Bummer.
-            Log.debug("Failed to remove shutdown-hook", e);
         }
         catch (IllegalStateException e) {
             // The VM is shutting down, not a big deal; ignore
