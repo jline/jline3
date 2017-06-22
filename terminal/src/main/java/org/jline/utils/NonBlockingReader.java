@@ -168,6 +168,9 @@ public class NonBlockingReader
                 long start = System.currentTimeMillis ();
 
                 try {
+                    if (Thread.interrupted()) {
+                        throw new InterruptedException();
+                    }
                     wait(timeout);
                 }
                 catch (InterruptedException e) {

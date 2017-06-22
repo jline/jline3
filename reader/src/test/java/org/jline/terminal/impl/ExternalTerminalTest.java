@@ -92,6 +92,7 @@ public class ExternalTerminalTest {
                     outIn.flush();
                     Thread.sleep(50);
                     outIn.write(3);
+                    Thread.sleep(50);
                     outIn.write('c');
                     outIn.flush();
                     Thread.sleep(50);
