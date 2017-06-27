@@ -33,6 +33,8 @@ import java.util.Map;
 
 public abstract class AbstractWindowsTerminal extends AbstractTerminal {
 
+    public static final String TYPE_WINDOWS = "windows";
+
     private static final int PIPE_SIZE = 1024;
 
     private static final Charset CHARSET = Charset.forName("UTF-8");
@@ -61,7 +63,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     private volatile boolean closing;
 
     public AbstractWindowsTerminal(OutputStream output, String name, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
-        super(name, "windows", signalHandler);
+        super(name, TYPE_WINDOWS, signalHandler);
         PipedInputStream input = new PipedInputStream(PIPE_SIZE);
         this.slaveInputPipe = new PipedOutputStream(input);
         this.input = new FilterInputStream(input) {};
