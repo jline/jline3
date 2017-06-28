@@ -248,6 +248,8 @@ public interface LineReader {
     String YANK_POP = "yank-pop";
     String MOUSE = "mouse";
 
+    String BEGIN_PASTE = "begin-paste";
+
     //
     // KeyMap names
     //
@@ -362,7 +364,8 @@ public interface LineReader {
         AUTO_REMOVE_SLASH(true),
         INSERT_TAB(true),
         MOUSE,
-        DISABLE_HIGHLIGHTER;
+        DISABLE_HIGHLIGHTER,
+        BRACKETED_PASTE(true);
 
         private final boolean def;
 
@@ -382,7 +385,8 @@ public interface LineReader {
     enum RegionType {
         NONE,
         CHAR,
-        LINE
+        LINE,
+        PASTE
     }
 
     /**

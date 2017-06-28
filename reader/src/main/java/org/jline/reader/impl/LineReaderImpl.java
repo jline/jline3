@@ -93,6 +93,11 @@ public class LineReaderImpl implements LineReader, Flushable
 
     private static final int MIN_ROWS = 3;
 
+    public static final String BRACKETED_PASTE_ON = "\033[?2004h";
+    public static final String BRACKETED_PASTE_OFF = "\033[?2004l";
+    public static final String BRACKETED_PASTE_BEGIN = "\033[200~";
+    public static final String BRACKETED_PASTE_END = "\033[201~";
+
     /**
      * Possible states in which the current readline operation may be in.
      */
@@ -491,6 +496,8 @@ public class LineReaderImpl implements LineReader, Flushable
                     callWidget(FRESH_LINE);
                 if (isSet(Option.MOUSE))
                     terminal.trackMouse(Terminal.MouseTracking.Normal);
+                if (isSet(Option.BRACKETED_PASTE))
+                    terminal.writer().write(BRACKETED_PASTE_ON);
             } else {
                 // For dumb terminals, we need to make sure that CR are ignored
                 Attributes attr = new Attributes(originalAttributes);
@@ -530,6 +537,10 @@ public class LineReaderImpl implements LineReader, Flushable
                 count = ((repeatCount == 0) ? 1 : repeatCount) * mult;
                 // Reset undo/redo flag
                 isUndo = false;
+                // Reset region after a paste
+                if (regionActive == RegionType.PASTE) {
+                    regionActive = RegionType.NONE;
+                }
 
                 // Get executable widget
                 Buffer copy = buf.copy();
@@ -2229,6 +2240,8 @@ public class LineReaderImpl implements LineReader, Flushable
             println();
             terminal.puts(Capability.keypad_local);
             terminal.trackMouse(Terminal.MouseTracking.Off);
+            if (isSet(Option.BRACKETED_PASTE))
+                terminal.writer().write(BRACKETED_PASTE_OFF);
             flush();
         }
         history.moveToEnd();
@@ -3285,6 +3298,7 @@ public class LineReaderImpl implements LineReader, Flushable
         widgets.put(YANK, this::yank);
         widgets.put(YANK_POP, this::yankPop);
         widgets.put(MOUSE, this::mouse);
+        widgets.put(BEGIN_PASTE, this::beginPaste);
         return widgets;
     }
 
@@ -4867,6 +4881,32 @@ public class LineReaderImpl implements LineReader, Flushable
         return true;
     }
 
+    public boolean beginPaste() {
+        final Object SELF_INSERT = new Object();
+        final Object END_PASTE = new Object();
+        KeyMap<Object> keyMap = new KeyMap<>();
+        keyMap.setUnicode(SELF_INSERT);
+        keyMap.setNomatch(SELF_INSERT);
+        keyMap.setAmbiguousTimeout(0);
+        keyMap.bind(END_PASTE, BRACKETED_PASTE_END);
+        StringBuilder sb = new StringBuilder();
+        while (true) {
+            Object b = bindingReader.readBinding(keyMap);
+            if (b == END_PASTE) {
+                break;
+            }
+            String s = getLastBinding();
+            if ("\r".equals(s)) {
+                s = "\n";
+            }
+            sb.append(s);
+        }
+        regionActive = RegionType.PASTE;
+        regionMark = getBuffer().cursor();
+        getBuffer().write(sb);
+        return true;
+    }
+
     /**
      * Clean the used display
      */
@@ -5297,6 +5337,7 @@ public class LineReaderImpl implements LineReader, Flushable
         bind(map, KILL_WHOLE_LINE,      key(Capability.key_dl));
         bind(map, OVERWRITE_MODE,       key(Capability.key_ic));
         bind(map, MOUSE,                key(Capability.key_mouse));
+        bind(map, BEGIN_PASTE,          BRACKETED_PASTE_BEGIN);
     }
 
     /**
