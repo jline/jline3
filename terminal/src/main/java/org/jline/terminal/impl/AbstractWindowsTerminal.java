@@ -176,13 +176,74 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         setConsoleOutputCP(consoleOutputCP);
     }
 
-    protected String getEscapeSequence(short keyCode) {
+    final int ctrlFlag = 4;
+    final int altFlag = 2;
+    final int shiftFlag = 1;
+
+    protected String getEscapeSequenceFromConsoleInput(final int[] keyEvent) {
+        final int KEY_DOWN = 0;
+        final int KEY_CODE = 1;
+        final int KEY_CHAR = 2;
+        final int KEY_STAT = 3;
+        final int KEY_REPEAT = 4;
+        final int KEY_SCAN = 5;
+        final int altState = 0x0002 | 0x0001;
+        final int ctrlState = 0x0008 | 0x0004;
+        final int shiftState = 0x0010;
+        final boolean isCtrl = (keyEvent[KEY_STAT] & ctrlState) > 0;
+        final boolean isAlt = (keyEvent[KEY_STAT] & altState) > 0;
+        final boolean isShift = (keyEvent[KEY_STAT] & shiftState) > 0;
+        char ch = (char) keyEvent[KEY_CHAR];
+        short code = (short) keyEvent[KEY_CODE];
+        StringBuilder sb = new StringBuilder(32);
+
+        // key down event
+        if (keyEvent[KEY_DOWN] == 1 && ch != 3) {
+            if (isShift && ch == '\t') return getSequence(InfoCmp.Capability.key_btab);
+            final String keySeq = getEscapeSequence(code, (isCtrl ? ctrlFlag : 0) + (isAlt ? altFlag : 0) + (isShift ? shiftFlag : 0));
+            if (keySeq != null) return keySeq;
+            if (ch >= 32 && ch <= 126) { //Visible ANSI character
+                if (isAlt) sb.append("\033");
+                if (isCtrl) {
+                    sb.append(String.valueOf(ch == '?' ? ((char) 0x7f) : Character.toUpperCase(ch) & 0x1f));
+                } else {
+                    sb.append(ch);
+                }
+            } else if (ch > 0) {
+                sb.append(ch);
+            } else if (isCtrl && code >= 'A' && code <= 'Z') { //Handles the ctrl key events(uchar=0)
+                if (code >= 'A' && code <= 'Z') {
+                    ch = (char) (code - 0x40);
+                } else if (code == 191) {
+                    ch = 127;
+                }
+                if (ch > 0) {
+                    if (isAlt) sb.append("\033");
+                    sb.append(ch);
+                }
+            }
+        } else {// key up event
+            //In Win10 Ctrl+C doesn't have keydown event
+            if (ch == 3) return "\3";
+            // support ALT+NumPad input method
+            if (keyEvent[KEY_CODE] == 0x12 /*VK_MENU ALT key*/ && ch > 0)
+                sb.append(ch);  // no such combination in windows
+
+        }
+        return sb.toString();
+    }
+
+    protected String getEscapeSequence(short keyCode, int keyState) {
         // virtual keycodes: http://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
         // TODO: numpad keys, modifiers
         String escapeSequence = null;
+        String fmt = null;
         switch (keyCode) {
             case 0x08: // VK_BACK BackSpace
-                escapeSequence = getSequence(InfoCmp.Capability.key_backspace);
+                if ((keyState & altFlag) == 0)
+                    escapeSequence = getSequence(InfoCmp.Capability.key_backspace);
+                else
+                    fmt = "\\E^H";
                 break;
             case 0x21: // VK_PRIOR PageUp
                 escapeSequence = getSequence(InfoCmp.Capability.key_ppage);
@@ -192,21 +253,27 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
                 break;
             case 0x23: // VK_END
                 escapeSequence = getSequence(InfoCmp.Capability.key_end);
+                fmt = "\\E1;%dF";
                 break;
             case 0x24: // VK_HOME
                 escapeSequence = getSequence(InfoCmp.Capability.key_home);
+                fmt = "\\E[1;%dH";
                 break;
             case 0x25: // VK_LEFT
                 escapeSequence = getSequence(InfoCmp.Capability.key_left);
+                fmt = "\\E[1;%dD";
                 break;
             case 0x26: // VK_UP
                 escapeSequence = getSequence(InfoCmp.Capability.key_up);
+                fmt = "\\E[1;%dA";
                 break;
             case 0x27: // VK_RIGHT
                 escapeSequence = getSequence(InfoCmp.Capability.key_right);
+                fmt = "\\E[1;%dC";
                 break;
             case 0x28: // VK_DOWN
                 escapeSequence = getSequence(InfoCmp.Capability.key_down);
+                fmt = "\\E[1;%dB";
                 break;
             case 0x2D: // VK_INSERT
                 escapeSequence = getSequence(InfoCmp.Capability.key_ic);
@@ -216,42 +283,65 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
                 break;
             case 0x70: // VK_F1
                 escapeSequence = getSequence(InfoCmp.Capability.key_f1);
+                fmt = "\\E[1;%dP";
                 break;
             case 0x71: // VK_F2
                 escapeSequence = getSequence(InfoCmp.Capability.key_f2);
+                fmt = "\\E[1;%dQ";
                 break;
             case 0x72: // VK_F3
                 escapeSequence = getSequence(InfoCmp.Capability.key_f3);
+                fmt = "\\E[1;%dR";
                 break;
             case 0x73: // VK_F4
                 escapeSequence = getSequence(InfoCmp.Capability.key_f4);
+                fmt = "\\E[1;%dS";
                 break;
             case 0x74: // VK_F5
                 escapeSequence = getSequence(InfoCmp.Capability.key_f5);
+                fmt = "\\E[15;%d";
                 break;
             case 0x75: // VK_F6
                 escapeSequence = getSequence(InfoCmp.Capability.key_f6);
+                fmt = "\\E[17;%d";
                 break;
             case 0x76: // VK_F7
                 escapeSequence = getSequence(InfoCmp.Capability.key_f7);
+                fmt = "\\E[18;%d";
                 break;
             case 0x77: // VK_F8
                 escapeSequence = getSequence(InfoCmp.Capability.key_f8);
+                fmt = "\\E[19;%d";
                 break;
             case 0x78: // VK_F9
                 escapeSequence = getSequence(InfoCmp.Capability.key_f9);
+                fmt = "\\E[20;%d";
                 break;
             case 0x79: // VK_F10
                 escapeSequence = getSequence(InfoCmp.Capability.key_f10);
+                fmt = "\\E[21;%d";
                 break;
             case 0x7A: // VK_F11
                 escapeSequence = getSequence(InfoCmp.Capability.key_f11);
+                fmt = "\\E[23;%d";
                 break;
             case 0x7B: // VK_F12
                 escapeSequence = getSequence(InfoCmp.Capability.key_f12);
+                fmt = "\\E[24;%d";
                 break;
-            default:
+            case 0x5D: // VK_CLOSE_BRACKET(Menu key)
+            case 0x5B: // VK_OPEN_BRACKET(Window key)
                 break;
+        }
+        if (fmt != null && keyState > 0) {
+            if (fmt.indexOf("%d") > -1) fmt = String.format(fmt, keyState + 1);
+            StringWriter sw = new StringWriter();
+            try {
+                Curses.tputs(sw, fmt);
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+            return sw.toString();
         }
         return escapeSequence;
     }

@@ -76,48 +76,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
         StringBuilder sb = new StringBuilder();
         for (INPUT_RECORD event : events) {
             KEY_EVENT_RECORD keyEvent = event.keyEvent;
-            // support some C1 control sequences: ALT + [@-_] (and [a-z]?) => ESC <ascii>
-            // http://en.wikipedia.org/wiki/C0_and_C1_control_codes#C1_set
-            final int altState = KEY_EVENT_RECORD.LEFT_ALT_PRESSED | KEY_EVENT_RECORD.RIGHT_ALT_PRESSED;
-            // Pressing "Alt Gr" is translated to Alt-Ctrl, hence it has to be checked that Ctrl is _not_ pressed,
-            // otherwise inserting of "Alt Gr" codes on non-US keyboards would yield errors
-            final int ctrlState = KEY_EVENT_RECORD.LEFT_CTRL_PRESSED | KEY_EVENT_RECORD.RIGHT_CTRL_PRESSED;
-            // Compute the overall alt state
-            boolean isAlt = ((keyEvent.controlKeyState & altState) != 0) && ((keyEvent.controlKeyState & ctrlState) == 0);
-
-            //Log.trace(keyEvent.keyDown? "KEY_DOWN" : "KEY_UP", "key code:", keyEvent.keyCode, "char:", (long)keyEvent.uchar);
-            if (keyEvent.keyDown) {
-                if (keyEvent.uchar > 0) {
-                    boolean shiftPressed = (keyEvent.controlKeyState & KEY_EVENT_RECORD.SHIFT_PRESSED) != 0;
-                    if (keyEvent.uchar == '\t' && shiftPressed) {
-                        sb.append(getSequence(InfoCmp.Capability.key_btab));
-                    } else {
-                        if (isAlt) {
-                            sb.append('\033');
-                        }
-                        sb.append(keyEvent.uchar);
-                    }
-                }
-                else {
-                    // virtual keycodes: http://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
-                    // TODO: numpad keys, modifiers
-                    String escapeSequence = getEscapeSequence(keyEvent.keyCode);
-                    if (escapeSequence != null) {
-                        for (int k = 0; k < keyEvent.repeatCount; k++) {
-                            if (isAlt) {
-                                sb.append('\033');
-                            }
-                            sb.append(escapeSequence);
-                        }
-                    }
-                }
-            } else {
-                // key up event
-                // support ALT+NumPad input method
-                if (keyEvent.keyCode == 0x12/*VK_MENU ALT key*/ && keyEvent.uchar > 0) {
-                    sb.append(keyEvent.uchar);
-                }
-            }
+            sb.append(getEscapeSequenceFromConsoleInput(new int[]{keyEvent.keyDown?1:0 , keyEvent.keyCode, keyEvent.uchar, keyEvent.controlKeyState, keyEvent.repeatCount,keyEvent.scanCode}));
         }
         return sb.toString();
     }
