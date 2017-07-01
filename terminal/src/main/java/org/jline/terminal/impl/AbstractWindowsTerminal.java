@@ -210,6 +210,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
                     sb.append(ch);
                 }
             } else if (ch > 0) {
+                if (isAlt) sb.append('\033');
                 sb.append(ch);
             } else if (isCtrl && code >= 'A' && code <= 'Z') { //Handles the ctrl key events(uchar=0)
                 if (code >= 'A' && code <= 'Z') {
