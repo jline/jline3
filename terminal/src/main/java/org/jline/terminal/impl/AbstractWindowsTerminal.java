@@ -180,42 +180,39 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     final int altFlag = 2;
     final int shiftFlag = 1;
 
-    protected String getEscapeSequenceFromConsoleInput(final int[] keyEvent) {
-        final int KEY_DOWN = 0;
-        final int KEY_CODE = 1;
-        final int KEY_CHAR = 2;
-        final int KEY_STAT = 3;
-        final int KEY_REPEAT = 4;
-        final int KEY_SCAN = 5;
+    protected String getEscapeSequenceFromConsoleInput(final boolean isKeyDown, final short virtualKeyCode, final char uchar, final int controlKeyState, final short repeatCount, final short scanCode) {
         final int altState = 0x0002 | 0x0001;
         final int ctrlState = 0x0008 | 0x0004;
         final int shiftState = 0x0010;
-        final boolean isCtrl = (keyEvent[KEY_STAT] & ctrlState) > 0;
-        final boolean isAlt = (keyEvent[KEY_STAT] & altState) > 0;
-        final boolean isShift = (keyEvent[KEY_STAT] & shiftState) > 0;
-        char ch = (char) keyEvent[KEY_CHAR];
-        short code = (short) keyEvent[KEY_CODE];
+        final boolean isCtrl = (controlKeyState & ctrlState) > 0;
+        final boolean isAlt = (controlKeyState & altState) > 0;
+        final boolean isShift = (controlKeyState & shiftState) > 0;
+        char ch = uchar;
         StringBuilder sb = new StringBuilder(32);
-
         // key down event
-        if (keyEvent[KEY_DOWN] == 1 && ch != 3) {
+        if (isKeyDown && ch != '\3') {
             if (isShift && ch == '\t') return getSequence(InfoCmp.Capability.key_btab);
-            final String keySeq = getEscapeSequence(code, (isCtrl ? ctrlFlag : 0) + (isAlt ? altFlag : 0) + (isShift ? shiftFlag : 0));
+            final String keySeq = getEscapeSequence(virtualKeyCode, (isCtrl ? ctrlFlag : 0) + (isAlt ? altFlag : 0) + (isShift ? shiftFlag : 0));
             if (keySeq != null) return keySeq;
-            if (ch >= 32 && ch <= 126) { //Visible ANSI character
+            /* uchar value in Windows when CTRL is pressed:
+             * 1). Ctrl +  <0x41 to 0x5e>      : uchar=<keyCode> - 'A' + 1
+             * 2). Ctrl + Backspace(0x08)      : uchar=0x7f
+             * 3). Ctrl + Enter(0x0d)          : uchar=0x0a
+             * 4). Ctrl + Space(0x20)          : uchar=0x20
+             * 5). Ctrl + <Other key>          : uchar=0
+             * 6). Ctrl + Alt + <Any key>      : uchar=0
+            */
+            if (ch > 0) {
                 if (isAlt) sb.append("\033");
-                if (isCtrl) {
-                    sb.append(String.valueOf(ch == '?' ? ((char) 0x7f) : Character.toUpperCase(ch) & 0x1f));
+                if (isCtrl && ch != ' ' && ch != '\n' && ch != 0x7f) {
+                    sb.append((char) (ch == '?' ? 0x7f : Character.toUpperCase(ch) & 0x1f));
                 } else {
                     sb.append(ch);
                 }
-            } else if (ch > 0) {
-                if (isAlt) sb.append('\033');
-                sb.append(ch);
-            } else if (isCtrl && code >= 'A' && code <= 'Z') { //Handles the ctrl key events(uchar=0)
-                if (code >= 'A' && code <= 'Z') {
-                    ch = (char) (code - 0x40);
-                } else if (code == 191) {
+            } else if (isCtrl) { //Handles the ctrl key events(uchar=0)
+                if (virtualKeyCode >= 'A' && virtualKeyCode <= 'Z') {
+                    ch = (char) (virtualKeyCode - 0x40);
+                } else if (virtualKeyCode == 191) { //?
                     ch = 127;
                 }
                 if (ch > 0) {
@@ -224,12 +221,10 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
                 }
             }
         } else {// key up event
-            //In Win10 Ctrl+C doesn't have keydown event
-            if (ch == 3) return "\3";
+            if (ch == '\3') return "\3";
             // support ALT+NumPad input method
-            if (keyEvent[KEY_CODE] == 0x12 /*VK_MENU ALT key*/ && ch > 0)
-                sb.append(ch);  // no such combination in windows
-
+            if (virtualKeyCode == 0x12 /*VK_MENU ALT key*/ && ch > 0)
+                sb.append(ch);  // no such combination in Windows
         }
         return sb.toString();
     }
@@ -241,9 +236,8 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         String fmt = null;
         switch (keyCode) {
             case 0x08: // VK_BACK BackSpace
-                if ((keyState & altFlag) == 0)
-                    escapeSequence = getSequence(InfoCmp.Capability.key_backspace);
-                else
+                escapeSequence = getSequence(InfoCmp.Capability.key_backspace);
+                if ((keyState & altFlag) > 0)
                     fmt = "\\E^H";
                 break;
             case 0x21: // VK_PRIOR PageUp
@@ -254,7 +248,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
                 break;
             case 0x23: // VK_END
                 escapeSequence = getSequence(InfoCmp.Capability.key_end);
-                fmt = "\\E1;%dF";
+                fmt = "\\E[1;%dF";
                 break;
             case 0x24: // VK_HOME
                 escapeSequence = getSequence(InfoCmp.Capability.key_home);

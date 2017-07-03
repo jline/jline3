@@ -76,7 +76,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
         StringBuilder sb = new StringBuilder();
         for (INPUT_RECORD event : events) {
             KEY_EVENT_RECORD keyEvent = event.keyEvent;
-            sb.append(getEscapeSequenceFromConsoleInput(new int[]{keyEvent.keyDown?1:0 , keyEvent.keyCode, keyEvent.uchar, keyEvent.controlKeyState, keyEvent.repeatCount,keyEvent.scanCode}));
+            sb.append(getEscapeSequenceFromConsoleInput(keyEvent.keyDown , keyEvent.keyCode, keyEvent.uchar, keyEvent.controlKeyState, keyEvent.repeatCount,keyEvent.scanCode));
         }
         return sb.toString();
     }

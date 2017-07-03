@@ -84,7 +84,7 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
         for (Kernel32.INPUT_RECORD event : events) {
             if (event.EventType == Kernel32.INPUT_RECORD.KEY_EVENT) {
                 Kernel32.KEY_EVENT_RECORD keyEvent = event.Event.KeyEvent;
-                sb.append(getEscapeSequenceFromConsoleInput(new int[]{keyEvent.bKeyDown ? 1 : 0, keyEvent.wVirtualKeyCode, keyEvent.uChar.UnicodeChar, keyEvent.dwControlKeyState, keyEvent.wRepeatCount, keyEvent.wVirtualScanCode}));
+                sb.append(getEscapeSequenceFromConsoleInput(keyEvent.bKeyDown, keyEvent.wVirtualKeyCode, keyEvent.uChar.UnicodeChar, keyEvent.dwControlKeyState, keyEvent.wRepeatCount, keyEvent.wVirtualScanCode));
             } else if (event.EventType == Kernel32.INPUT_RECORD.WINDOW_BUFFER_SIZE_EVENT) {
                 raise(Signal.WINCH);
             } else if (event.EventType == Kernel32.INPUT_RECORD.MOUSE_EVENT) {
