@@ -84,45 +84,7 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
         for (Kernel32.INPUT_RECORD event : events) {
             if (event.EventType == Kernel32.INPUT_RECORD.KEY_EVENT) {
                 Kernel32.KEY_EVENT_RECORD keyEvent = event.Event.KeyEvent;
-                // support some C1 control sequences: ALT + [@-_] (and [a-z]?) => ESC <ascii>
-                // http://en.wikipedia.org/wiki/C0_and_C1_control_codes#C1_set
-                final int altState = Kernel32.LEFT_ALT_PRESSED | Kernel32.RIGHT_ALT_PRESSED;
-                // Pressing "Alt Gr" is translated to Alt-Ctrl, hence it has to be checked that Ctrl is _not_ pressed,
-                // otherwise inserting of "Alt Gr" codes on non-US keyboards would yield errors
-                final int ctrlState = Kernel32.LEFT_CTRL_PRESSED | Kernel32.RIGHT_CTRL_PRESSED;
-                // Compute the overall alt state
-                boolean isAlt = ((keyEvent.dwControlKeyState & altState) != 0) && ((keyEvent.dwControlKeyState & ctrlState) == 0);
-
-                //Log.trace(keyEvent.keyDown? "KEY_DOWN" : "KEY_UP", "key code:", keyEvent.keyCode, "char:", (long)keyEvent.uchar);
-                if (keyEvent.bKeyDown) {
-                    if (keyEvent.uChar.UnicodeChar > 0) {
-                        boolean shiftPressed = (keyEvent.dwControlKeyState & Kernel32.SHIFT_PRESSED) != 0;
-                        if (keyEvent.uChar.UnicodeChar == '\t' && shiftPressed) {
-                            sb.append(getSequence(InfoCmp.Capability.key_btab));
-                        } else {
-                            if (isAlt) {
-                                sb.append('\033');
-                            }
-                            sb.append(keyEvent.uChar.UnicodeChar);
-                        }
-                    } else {
-                        String escapeSequence = getEscapeSequence(keyEvent.wVirtualKeyCode);
-                        if (escapeSequence != null) {
-                            for (int k = 0; k < keyEvent.wRepeatCount; k++) {
-                                if (isAlt) {
-                                    sb.append('\033');
-                                }
-                                sb.append(escapeSequence);
-                            }
-                        }
-                    }
-                } else {
-                    // key up event
-                    // support ALT+NumPad input method
-                    if (keyEvent.wVirtualKeyCode == 0x12/*VK_MENU ALT key*/ && keyEvent.uChar.UnicodeChar > 0) {
-                        sb.append(keyEvent.uChar.UnicodeChar);
-                    }
-                }
+                sb.append(getEscapeSequenceFromConsoleInput(keyEvent.bKeyDown, keyEvent.wVirtualKeyCode, keyEvent.uChar.UnicodeChar, keyEvent.dwControlKeyState, keyEvent.wRepeatCount, keyEvent.wVirtualScanCode));
             } else if (event.EventType == Kernel32.INPUT_RECORD.WINDOW_BUFFER_SIZE_EVENT) {
                 raise(Signal.WINCH);
             } else if (event.EventType == Kernel32.INPUT_RECORD.MOUSE_EVENT) {

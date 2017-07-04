@@ -22,6 +22,7 @@ import org.jline.builtins.Completers.TreeCompleter;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.impl.DefaultParser;
+import org.jline.reader.impl.LineReaderImpl;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.terminal.Cursor;
@@ -310,6 +311,18 @@ public class Example
                             terminal.writer().println("Unknown capability");
                         }
                     }
+                }
+                else if ("testkey".equals(pl.word())) {
+                    terminal.writer().write("Input the key event(Enter to complete): ");
+                    terminal.writer().flush();
+                    StringBuilder sb = new StringBuilder();
+                    while (true) {
+                        int c = ((LineReaderImpl) reader).readCharacter();
+                        if (c == 10 || c == 13) break;
+                        sb.append(new String(Character.toChars(c)));
+                    }
+                    terminal.writer().println(KeyMap.display(sb.toString()));
+                    terminal.writer().flush();
                 }
                 else if ("bindkey".equals(pl.word())) {
                     if (pl.words().size() == 1) {
