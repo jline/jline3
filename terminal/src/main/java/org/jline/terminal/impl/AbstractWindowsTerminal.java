@@ -191,7 +191,6 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         StringBuilder sb = new StringBuilder(32);
         // key down event
         if (isKeyDown && ch != '\3') {
-            if (isShift && ch == '\t') return getSequence(InfoCmp.Capability.key_btab);
             final String keySeq = getEscapeSequence(virtualKeyCode, (isCtrl ? ctrlFlag : 0) + (isAlt ? altFlag : 0) + (isShift ? shiftFlag : 0));
             if (keySeq != null) return keySeq;
             /* uchar value in Windows when CTRL is pressed:
@@ -233,126 +232,93 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         // virtual keycodes: http://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
         // TODO: numpad keys, modifiers
         String escapeSequence = null;
-        String fmt = null;
         switch (keyCode) {
             case 0x08: // VK_BACK BackSpace
-                escapeSequence = getSequence(InfoCmp.Capability.key_backspace);
-                if ((keyState & altFlag) > 0)
-                    fmt = "\\E^H";
+                escapeSequence = (keyState & altFlag) > 0 ? "\\E^H" : strings.get(InfoCmp.Capability.key_backspace);
+                break;
+            case 0x09:
+                escapeSequence = (keyState & shiftFlag) > 0 ? strings.get(InfoCmp.Capability.key_btab) : null;
                 break;
             case 0x21: // VK_PRIOR PageUp
-                escapeSequence = getSequence(InfoCmp.Capability.key_ppage);
+                escapeSequence = strings.get(InfoCmp.Capability.key_ppage);
                 break;
             case 0x22: // VK_NEXT PageDown
-                escapeSequence = getSequence(InfoCmp.Capability.key_npage);
+                escapeSequence = strings.get(InfoCmp.Capability.key_npage);
                 break;
             case 0x23: // VK_END
-                escapeSequence = getSequence(InfoCmp.Capability.key_end);
-                fmt = "\\E[1;%dF";
+                escapeSequence = keyState > 0 ? "\\E[1;%dF" : strings.get(InfoCmp.Capability.key_end);
                 break;
             case 0x24: // VK_HOME
-                escapeSequence = getSequence(InfoCmp.Capability.key_home);
-                fmt = "\\E[1;%dH";
+                escapeSequence = keyState > 0 ? "\\E[1;%dH" : strings.get(InfoCmp.Capability.key_home);
                 break;
             case 0x25: // VK_LEFT
-                escapeSequence = getSequence(InfoCmp.Capability.key_left);
-                fmt = "\\E[1;%dD";
+                escapeSequence = keyState > 0 ? "\\E[1;%dD" : strings.get(InfoCmp.Capability.key_left);
                 break;
             case 0x26: // VK_UP
-                escapeSequence = getSequence(InfoCmp.Capability.key_up);
-                fmt = "\\E[1;%dA";
+                escapeSequence = keyState > 0 ? "\\E[1;%dA" : strings.get(InfoCmp.Capability.key_up);
                 break;
             case 0x27: // VK_RIGHT
-                escapeSequence = getSequence(InfoCmp.Capability.key_right);
-                fmt = "\\E[1;%dC";
+                escapeSequence = keyState > 0 ? "\\E[1;%dC" : strings.get(InfoCmp.Capability.key_right);
                 break;
             case 0x28: // VK_DOWN
-                escapeSequence = getSequence(InfoCmp.Capability.key_down);
-                fmt = "\\E[1;%dB";
+                escapeSequence = keyState > 0 ? "\\E[1;%dB" : strings.get(InfoCmp.Capability.key_down);
                 break;
             case 0x2D: // VK_INSERT
-                escapeSequence = getSequence(InfoCmp.Capability.key_ic);
+                escapeSequence = strings.get(InfoCmp.Capability.key_ic);
                 break;
             case 0x2E: // VK_DELETE
-                escapeSequence = getSequence(InfoCmp.Capability.key_dc);
+                escapeSequence = strings.get(InfoCmp.Capability.key_dc);
                 break;
             case 0x70: // VK_F1
-                escapeSequence = getSequence(InfoCmp.Capability.key_f1);
-                fmt = "\\E[1;%dP";
+                escapeSequence = keyState > 0 ? "\\E[1;%dP" : strings.get(InfoCmp.Capability.key_f1);
                 break;
             case 0x71: // VK_F2
-                escapeSequence = getSequence(InfoCmp.Capability.key_f2);
-                fmt = "\\E[1;%dQ";
+                escapeSequence = keyState > 0 ? "\\E[1;%dQ" : strings.get(InfoCmp.Capability.key_f2);
                 break;
             case 0x72: // VK_F3
-                escapeSequence = getSequence(InfoCmp.Capability.key_f3);
-                fmt = "\\E[1;%dR";
+                escapeSequence = keyState > 0 ? "\\E[1;%dR" : strings.get(InfoCmp.Capability.key_f3);
                 break;
             case 0x73: // VK_F4
-                escapeSequence = getSequence(InfoCmp.Capability.key_f4);
-                fmt = "\\E[1;%dS";
+                escapeSequence = keyState > 0 ? "\\E[1;%dS" : strings.get(InfoCmp.Capability.key_f4);
                 break;
             case 0x74: // VK_F5
-                escapeSequence = getSequence(InfoCmp.Capability.key_f5);
-                fmt = "\\E[15;%d";
+                escapeSequence = keyState > 0 ? "\\E[15;%d~" : strings.get(InfoCmp.Capability.key_f5);
                 break;
             case 0x75: // VK_F6
-                escapeSequence = getSequence(InfoCmp.Capability.key_f6);
-                fmt = "\\E[17;%d";
+                escapeSequence = keyState > 0 ? "\\E[17;%d~" : strings.get(InfoCmp.Capability.key_f6);
                 break;
             case 0x76: // VK_F7
-                escapeSequence = getSequence(InfoCmp.Capability.key_f7);
-                fmt = "\\E[18;%d";
+                escapeSequence = keyState > 0 ? "\\E[18;%d~" : strings.get(InfoCmp.Capability.key_f7);
                 break;
             case 0x77: // VK_F8
-                escapeSequence = getSequence(InfoCmp.Capability.key_f8);
-                fmt = "\\E[19;%d";
+                escapeSequence = keyState > 0 ? "\\E[19;%d~" : strings.get(InfoCmp.Capability.key_f8);
                 break;
             case 0x78: // VK_F9
-                escapeSequence = getSequence(InfoCmp.Capability.key_f9);
-                fmt = "\\E[20;%d";
+                escapeSequence = keyState > 0 ? "\\E[20;%d~" : strings.get(InfoCmp.Capability.key_f9);
                 break;
             case 0x79: // VK_F10
-                escapeSequence = getSequence(InfoCmp.Capability.key_f10);
-                fmt = "\\E[21;%d";
+                escapeSequence = keyState > 0 ? "\\E[21;%d~" : strings.get(InfoCmp.Capability.key_f10);
                 break;
             case 0x7A: // VK_F11
-                escapeSequence = getSequence(InfoCmp.Capability.key_f11);
-                fmt = "\\E[23;%d";
+                escapeSequence = keyState > 0 ? "\\E[23;%d~" : strings.get(InfoCmp.Capability.key_f11);
                 break;
             case 0x7B: // VK_F12
-                escapeSequence = getSequence(InfoCmp.Capability.key_f12);
-                fmt = "\\E[24;%d";
+                escapeSequence = keyState > 0 ? "\\E[24;%d~" : strings.get(InfoCmp.Capability.key_f12);
                 break;
             case 0x5D: // VK_CLOSE_BRACKET(Menu key)
             case 0x5B: // VK_OPEN_BRACKET(Window key)
                 break;
         }
-        if (fmt != null && keyState > 0) {
-            if (fmt.indexOf("%d") > -1) fmt = String.format(fmt, keyState + 1);
+        if (escapeSequence != null) {
             StringWriter sw = new StringWriter();
             try {
-                Curses.tputs(sw, fmt);
+                Curses.tputs(sw, String.format(escapeSequence, keyState + 1));
             } catch (IOException e) {
                 throw new IOError(e);
             }
             return sw.toString();
         }
         return escapeSequence;
-    }
-
-    protected String getSequence(InfoCmp.Capability cap) {
-        String str = strings.get(cap);
-        if (str != null) {
-            StringWriter sw = new StringWriter();
-            try {
-                Curses.tputs(sw, str);
-            } catch (IOException e) {
-                throw new IOError(e);
-            }
-            return sw.toString();
-        }
-        return null;
     }
 
     protected void pump() {
