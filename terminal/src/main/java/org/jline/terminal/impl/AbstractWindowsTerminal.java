@@ -176,9 +176,9 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         setConsoleOutputCP(consoleOutputCP);
     }
 
-    final int ctrlFlag = 4;
-    final int altFlag = 2;
-    final int shiftFlag = 1;
+    final int CTRL_FLAG = 4;
+    final int ALT_FLAG = 2;
+    final int SHIFT_FLAG = 1;
 
     protected String getEscapeSequenceFromConsoleInput(final boolean isKeyDown, final short virtualKeyCode, final char uchar, final int controlKeyState, final short repeatCount, final short scanCode) {
         final int altState = 0x0002 | 0x0001;
@@ -191,7 +191,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         StringBuilder sb = new StringBuilder(32);
         // key down event
         if (isKeyDown && ch != '\3') {
-            final String keySeq = getEscapeSequence(virtualKeyCode, (isCtrl ? ctrlFlag : 0) + (isAlt ? altFlag : 0) + (isShift ? shiftFlag : 0));
+            final String keySeq = getEscapeSequence(virtualKeyCode, (isCtrl ? CTRL_FLAG : 0) + (isAlt ? ALT_FLAG : 0) + (isShift ? SHIFT_FLAG : 0));
             if (keySeq != null) return keySeq;
             /* uchar value in Windows when CTRL is pressed:
              * 1). Ctrl +  <0x41 to 0x5e>      : uchar=<keyCode> - 'A' + 1
@@ -234,91 +234,103 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         String escapeSequence = null;
         switch (keyCode) {
             case 0x08: // VK_BACK BackSpace
-                escapeSequence = (keyState & altFlag) > 0 ? "\\E^H" : strings.get(InfoCmp.Capability.key_backspace);
+                escapeSequence = (keyState & ALT_FLAG) > 0 ? "\\E^H" : getRawSequence(InfoCmp.Capability.key_backspace);
                 break;
             case 0x09:
-                escapeSequence = (keyState & shiftFlag) > 0 ? strings.get(InfoCmp.Capability.key_btab) : null;
+                escapeSequence = (keyState & SHIFT_FLAG) > 0 ? getRawSequence(InfoCmp.Capability.key_btab) : null;
                 break;
             case 0x21: // VK_PRIOR PageUp
-                escapeSequence = strings.get(InfoCmp.Capability.key_ppage);
+                escapeSequence = getRawSequence(InfoCmp.Capability.key_ppage);
                 break;
             case 0x22: // VK_NEXT PageDown
-                escapeSequence = strings.get(InfoCmp.Capability.key_npage);
+                escapeSequence = getRawSequence(InfoCmp.Capability.key_npage);
                 break;
             case 0x23: // VK_END
-                escapeSequence = keyState > 0 ? "\\E[1;%dF" : strings.get(InfoCmp.Capability.key_end);
+                escapeSequence = keyState > 0 ? "\\E[1;%p1%dF" : getRawSequence(InfoCmp.Capability.key_end);
                 break;
             case 0x24: // VK_HOME
-                escapeSequence = keyState > 0 ? "\\E[1;%dH" : strings.get(InfoCmp.Capability.key_home);
+                escapeSequence = keyState > 0 ? "\\E[1;%p1%dH" : getRawSequence(InfoCmp.Capability.key_home);
                 break;
             case 0x25: // VK_LEFT
-                escapeSequence = keyState > 0 ? "\\E[1;%dD" : strings.get(InfoCmp.Capability.key_left);
+                escapeSequence = keyState > 0 ? "\\E[1;%p1%dD" : getRawSequence(InfoCmp.Capability.key_left);
                 break;
             case 0x26: // VK_UP
-                escapeSequence = keyState > 0 ? "\\E[1;%dA" : strings.get(InfoCmp.Capability.key_up);
+                escapeSequence = keyState > 0 ? "\\E[1;%p1%dA" : getRawSequence(InfoCmp.Capability.key_up);
                 break;
             case 0x27: // VK_RIGHT
-                escapeSequence = keyState > 0 ? "\\E[1;%dC" : strings.get(InfoCmp.Capability.key_right);
+                escapeSequence = keyState > 0 ? "\\E[1;%p1%dC" : getRawSequence(InfoCmp.Capability.key_right);
                 break;
             case 0x28: // VK_DOWN
-                escapeSequence = keyState > 0 ? "\\E[1;%dB" : strings.get(InfoCmp.Capability.key_down);
+                escapeSequence = keyState > 0 ? "\\E[1;%p1%dB" : getRawSequence(InfoCmp.Capability.key_down);
                 break;
             case 0x2D: // VK_INSERT
-                escapeSequence = strings.get(InfoCmp.Capability.key_ic);
+                escapeSequence = getRawSequence(InfoCmp.Capability.key_ic);
                 break;
             case 0x2E: // VK_DELETE
-                escapeSequence = strings.get(InfoCmp.Capability.key_dc);
+                escapeSequence = getRawSequence(InfoCmp.Capability.key_dc);
                 break;
             case 0x70: // VK_F1
-                escapeSequence = keyState > 0 ? "\\E[1;%dP" : strings.get(InfoCmp.Capability.key_f1);
+                escapeSequence = keyState > 0 ? "\\E[1;%p1%dP" : getRawSequence(InfoCmp.Capability.key_f1);
                 break;
             case 0x71: // VK_F2
-                escapeSequence = keyState > 0 ? "\\E[1;%dQ" : strings.get(InfoCmp.Capability.key_f2);
+                escapeSequence = keyState > 0 ? "\\E[1;%p1%dQ" : getRawSequence(InfoCmp.Capability.key_f2);
                 break;
             case 0x72: // VK_F3
-                escapeSequence = keyState > 0 ? "\\E[1;%dR" : strings.get(InfoCmp.Capability.key_f3);
+                escapeSequence = keyState > 0 ? "\\E[1;%p1%dR" : getRawSequence(InfoCmp.Capability.key_f3);
                 break;
             case 0x73: // VK_F4
-                escapeSequence = keyState > 0 ? "\\E[1;%dS" : strings.get(InfoCmp.Capability.key_f4);
+                escapeSequence = keyState > 0 ? "\\E[1;%p1%dS" : getRawSequence(InfoCmp.Capability.key_f4);
                 break;
             case 0x74: // VK_F5
-                escapeSequence = keyState > 0 ? "\\E[15;%d~" : strings.get(InfoCmp.Capability.key_f5);
+                escapeSequence = keyState > 0 ? "\\E[15;%p1%d~" : getRawSequence(InfoCmp.Capability.key_f5);
                 break;
             case 0x75: // VK_F6
-                escapeSequence = keyState > 0 ? "\\E[17;%d~" : strings.get(InfoCmp.Capability.key_f6);
+                escapeSequence = keyState > 0 ? "\\E[17;%p1%d~" : getRawSequence(InfoCmp.Capability.key_f6);
                 break;
             case 0x76: // VK_F7
-                escapeSequence = keyState > 0 ? "\\E[18;%d~" : strings.get(InfoCmp.Capability.key_f7);
+                escapeSequence = keyState > 0 ? "\\E[18;%p1%d~" : getRawSequence(InfoCmp.Capability.key_f7);
                 break;
             case 0x77: // VK_F8
-                escapeSequence = keyState > 0 ? "\\E[19;%d~" : strings.get(InfoCmp.Capability.key_f8);
+                escapeSequence = keyState > 0 ? "\\E[19;%p1%d~" : getRawSequence(InfoCmp.Capability.key_f8);
                 break;
             case 0x78: // VK_F9
-                escapeSequence = keyState > 0 ? "\\E[20;%d~" : strings.get(InfoCmp.Capability.key_f9);
+                escapeSequence = keyState > 0 ? "\\E[20;%p1%d~" : getRawSequence(InfoCmp.Capability.key_f9);
                 break;
             case 0x79: // VK_F10
-                escapeSequence = keyState > 0 ? "\\E[21;%d~" : strings.get(InfoCmp.Capability.key_f10);
+                escapeSequence = keyState > 0 ? "\\E[21;%p1%d~" : getRawSequence(InfoCmp.Capability.key_f10);
                 break;
             case 0x7A: // VK_F11
-                escapeSequence = keyState > 0 ? "\\E[23;%d~" : strings.get(InfoCmp.Capability.key_f11);
+                escapeSequence = keyState > 0 ? "\\E[23;%p1%d~" : getRawSequence(InfoCmp.Capability.key_f11);
                 break;
             case 0x7B: // VK_F12
-                escapeSequence = keyState > 0 ? "\\E[24;%d~" : strings.get(InfoCmp.Capability.key_f12);
+                escapeSequence = keyState > 0 ? "\\E[24;%p1%d~" : getRawSequence(InfoCmp.Capability.key_f12);
                 break;
             case 0x5D: // VK_CLOSE_BRACKET(Menu key)
             case 0x5B: // VK_OPEN_BRACKET(Window key)
                 break;
         }
-        if (escapeSequence != null) {
+        return translate(escapeSequence, keyState + 1);
+    }
+
+    protected String getRawSequence(InfoCmp.Capability cap) {
+        return strings.get(cap);
+    }
+
+    protected String getSequence(InfoCmp.Capability cap) {
+        return translate(getRawSequence(cap));
+    }
+
+    private String translate(String str, Object... params) {
+        if (str != null) {
             StringWriter sw = new StringWriter();
             try {
-                Curses.tputs(sw, String.format(escapeSequence, keyState + 1));
+                Curses.tputs(sw, str, params);
             } catch (IOException e) {
                 throw new IOError(e);
             }
             return sw.toString();
         }
-        return escapeSequence;
+        return null;
     }
 
     protected void pump() {
