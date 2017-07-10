@@ -288,7 +288,8 @@ public class Attributes {
     }
 
     public int getControlChar(ControlChar c) {
-        return cchars.getOrDefault(c, -1);
+        Integer v = cchars.get(c);
+        return v != null ? v : -1;
     }
 
     public void setControlChar(ControlChar c, int value) {
