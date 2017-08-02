@@ -36,7 +36,7 @@ set "logconf=%DIRNAME%etc\logging.properties"
     if "%1" == "debug" goto :EXECUTE_DEBUG
     if "%1" == "debugs" goto :EXECUTE_DEBUGS
     if "%1" == "verbose" goto :EXECUTE_VERBOSE
-    if "%1" == "" goto :EXECUTE
+    if "%1" == "" goto :EXECUTE_MAIN
     set "opts=%opts% %~1"
     shift
     goto :RUN_LOOP
@@ -73,7 +73,7 @@ set "logconf=%DIRNAME%etc\logging.properties"
     shift
     goto :RUN_LOOP
 
-:EXECUTE
+:EXECUTE_MAIN
 popd
 
 rem Launch gogo shell
