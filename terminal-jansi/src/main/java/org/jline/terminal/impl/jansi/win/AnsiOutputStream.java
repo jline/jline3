@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jline.terminal.impl.jna.win;
+package org.jline.terminal.impl.jansi.win;
 
 import java.io.FilterOutputStream;
 import java.io.IOException;
@@ -58,14 +58,13 @@ public class AnsiOutputStream extends FilterOutputStream {
     private static final int LOOKING_FOR_FIRST_ESC_CHAR = 0;
     private static final int LOOKING_FOR_SECOND_ESC_CHAR = 1;
     private static final int LOOKING_FOR_NEXT_ARG = 2;
-    private static final int LOOKING_FOR_STR_ARG_END = 3;
-    private static final int LOOKING_FOR_INT_ARG_END = 4;
-    private static final int LOOKING_FOR_OSC_COMMAND = 5;
-    private static final int LOOKING_FOR_OSC_COMMAND_END = 6;
-    private static final int LOOKING_FOR_OSC_PARAM = 7;
-    private static final int LOOKING_FOR_ST = 8;
+    private static final int LOOKING_FOR_INT_ARG_END = 3;
+    private static final int LOOKING_FOR_OSC_COMMAND = 4;
+    private static final int LOOKING_FOR_OSC_COMMAND_END = 5;
+    private static final int LOOKING_FOR_OSC_PARAM = 6;
+    private static final int LOOKING_FOR_ST = 7;
 
-    int state = LOOKING_FOR_FIRST_ESC_CHAR;
+    private int state = LOOKING_FOR_FIRST_ESC_CHAR;
 
     private static final int FIRST_ESC_CHAR = 27;
     private static final int SECOND_ESC_CHAR = '[';
@@ -98,10 +97,7 @@ public class AnsiOutputStream extends FilterOutputStream {
 
             case LOOKING_FOR_NEXT_ARG:
                 buffer[pos++] = (byte) data;
-                if ('"' == data) {
-                    startOfValue = pos - 1;
-                    state = LOOKING_FOR_STR_ARG_END;
-                } else if ('0' <= data && data <= '9') {
+                if ('0' <= data && data <= '9') {
                     startOfValue = pos - 1;
                     state = LOOKING_FOR_INT_ARG_END;
                 } else if (';' == data) {
@@ -122,19 +118,6 @@ public class AnsiOutputStream extends FilterOutputStream {
                 if (!('0' <= data && data <= '9')) {
                     String strValue = new String(buffer, startOfValue, (pos - 1) - startOfValue, Charset.defaultCharset());
                     Integer value = new Integer(strValue);
-                    options.add(value);
-                    if (data == ';') {
-                        state = LOOKING_FOR_NEXT_ARG;
-                    } else {
-                        reset(processEscapeCommand(options, data));
-                    }
-                }
-                break;
-
-            case LOOKING_FOR_STR_ARG_END:
-                buffer[pos++] = (byte) data;
-                if ('"' != data) {
-                    String value = new String(buffer, startOfValue, (pos - 1) - startOfValue, Charset.defaultCharset());
                     options.add(value);
                     if (data == ';') {
                         state = LOOKING_FOR_NEXT_ARG;

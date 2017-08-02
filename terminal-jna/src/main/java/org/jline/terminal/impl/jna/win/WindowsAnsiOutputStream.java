@@ -114,6 +114,8 @@ public final class WindowsAnsiOutputStream extends AnsiOutputStream {
     }
 
     private void applyCursorPosition() throws IOException {
+        info.dwCursorPosition.X = (short) Math.max(0, Math.min(info.dwSize.X - 1, info.dwCursorPosition.X));
+        info.dwCursorPosition.Y = (short) Math.max(0, Math.min(info.dwSize.Y - 1, info.dwCursorPosition.Y));
         Kernel32.INSTANCE.SetConsoleCursorPosition(console, info.dwCursorPosition);
     }
 
@@ -179,51 +181,63 @@ public final class WindowsAnsiOutputStream extends AnsiOutputStream {
     protected void processCursorUpLine(int count) throws IOException {
         getConsoleInfo();
         info.dwCursorPosition.X = 0;
-        info.dwCursorPosition.Y = (short) Math.max(info.srWindow.Top, info.dwCursorPosition.Y-count);
+        info.dwCursorPosition.Y -= count;
         applyCursorPosition();
     }
 
     protected void processCursorDownLine(int count) throws IOException {
         getConsoleInfo();
         info.dwCursorPosition.X = 0;
-        info.dwCursorPosition.Y = (short) Math.min(info.dwSize.Y, info.dwCursorPosition.Y+count);
+        info.dwCursorPosition.Y += count;
         applyCursorPosition();
     }
 
     protected void processCursorLeft(int count) throws IOException {
         getConsoleInfo();
-        info.dwCursorPosition.X = (short) Math.max(0, info.dwCursorPosition.X-count);
+        info.dwCursorPosition.X -= count;
         applyCursorPosition();
     }
 
     protected void processCursorRight(int count) throws IOException {
         getConsoleInfo();
-        info.dwCursorPosition.X = (short)Math.min(info.srWindow.width(), info.dwCursorPosition.X+count);
+        info.dwCursorPosition.X += count;
         applyCursorPosition();
     }
 
     protected void processCursorDown(int count) throws IOException {
         getConsoleInfo();
-        info.dwCursorPosition.Y = (short) Math.min(info.dwSize.Y, info.dwCursorPosition.Y+count);
-        applyCursorPosition();
+        int nb = Math.max(0, info.dwCursorPosition.Y + count - info.dwSize.Y + 1);
+        if (nb != count) {
+            info.dwCursorPosition.Y += count;
+            applyCursorPosition();
+        }
+        if (nb > 0) {
+            Kernel32.SMALL_RECT scroll = new Kernel32.SMALL_RECT(info.srWindow);
+            scroll.Top = 0;
+            Kernel32.COORD org = new Kernel32.COORD();
+            org.X = 0;
+            org.Y = (short)(- nb);
+            Kernel32.CHAR_INFO info = new Kernel32.CHAR_INFO(' ', originalColors);
+            Kernel32.INSTANCE.ScrollConsoleScreenBuffer(console, scroll, scroll, org, info);
+        }
     }
 
     protected void processCursorUp(int count) throws IOException {
         getConsoleInfo();
-        info.dwCursorPosition.Y = (short) Math.max(info.srWindow.Top, info.dwCursorPosition.Y-count);
+        info.dwCursorPosition.Y -= count;
         applyCursorPosition();
     }
 
     protected void processCursorTo(int row, int col) throws IOException {
         getConsoleInfo();
-        info.dwCursorPosition.Y = (short) Math.max(info.srWindow.Top, Math.min(info.dwSize.Y, info.srWindow.Top+row-1));
-        info.dwCursorPosition.X = (short) Math.max(0, Math.min(info.srWindow.width(), col-1));
+        info.dwCursorPosition.Y = (short) (row - 1);
+        info.dwCursorPosition.X = (short) (col - 1);
         applyCursorPosition();
     }
 
     protected void processCursorToColumn(int x) throws IOException {
         getConsoleInfo();
-        info.dwCursorPosition.X = (short) Math.max(0, Math.min(info.srWindow.width(), x-1));
+        info.dwCursorPosition.X = (short) (x - 1);
         applyCursorPosition();
     }
 

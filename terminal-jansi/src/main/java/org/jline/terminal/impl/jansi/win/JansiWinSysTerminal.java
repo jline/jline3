@@ -15,7 +15,6 @@ import java.io.IOError;
 import java.io.IOException;
 import java.util.function.IntConsumer;
 
-import org.fusesource.jansi.WindowsAnsiOutputStream;
 import org.fusesource.jansi.internal.Kernel32;
 import org.fusesource.jansi.internal.Kernel32.CONSOLE_SCREEN_BUFFER_INFO;
 import org.fusesource.jansi.internal.Kernel32.INPUT_RECORD;
