@@ -36,7 +36,7 @@ public class SolarisNativePty extends JnaNativePty {
             len++;
         }
         String name = new String(buf, 0, len);
-        return new SolarisNativePty(-1, null, slave, FileDescriptor.in, name);
+        return new SolarisNativePty(-1, null, slave, FileDescriptor.in, 1, FileDescriptor.out, name);
     }
 
     public static SolarisNativePty open(Attributes attr, Size size) throws IOException {
@@ -56,6 +56,10 @@ public class SolarisNativePty extends JnaNativePty {
 
     public SolarisNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, String name) {
         super(master, masterFD, slave, slaveFD, name);
+    }
+
+    public SolarisNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, int slaveOut, FileDescriptor slaveOutFD, String name) {
+        super(master, masterFD, slave, slaveFD, slaveOut, slaveOutFD, name);
     }
 
     @Override

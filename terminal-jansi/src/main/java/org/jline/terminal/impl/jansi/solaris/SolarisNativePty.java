@@ -24,7 +24,7 @@ public class SolarisNativePty extends JansiNativePty {
     public static SolarisNativePty current() throws IOException {
         try {
             String name = ttyname();
-            return new SolarisNativePty(-1, null, 0, FileDescriptor.in, name);
+            return new SolarisNativePty(-1, null, 0, FileDescriptor.in, 1, FileDescriptor.out, name);
         } catch (IOException e) {
             throw new IOException("Not a tty", e);
         }
@@ -34,6 +34,9 @@ public class SolarisNativePty extends JansiNativePty {
         super(master, masterFD, slave, slaveFD, name);
     }
 
+    public SolarisNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, int slaveOut, FileDescriptor slaveOutFD, String name) {
+        super(master, masterFD, slave, slaveFD, slaveOut, slaveOutFD, name);
+    }
     // CONSTANTS
 
     private static final int VINTR       = 0;

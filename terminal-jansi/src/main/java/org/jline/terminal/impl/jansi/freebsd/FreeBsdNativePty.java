@@ -24,7 +24,7 @@ public class FreeBsdNativePty extends JansiNativePty {
     public static FreeBsdNativePty current() throws IOException {
         try {
             String name = ttyname();
-            return new FreeBsdNativePty(-1, null, 0, FileDescriptor.in, name);
+            return new FreeBsdNativePty(-1, null, 0, FileDescriptor.in, 1, FileDescriptor.out, name);
         } catch (IOException e) {
             throw new IOException("Not a tty", e);
         }
@@ -49,6 +49,9 @@ public class FreeBsdNativePty extends JansiNativePty {
         super(master, masterFD, slave, slaveFD, name);
     }
 
+    public FreeBsdNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, int slaveOut, FileDescriptor slaveOutFD, String name) {
+        super(master, masterFD, slave, slaveFD, slaveOut, slaveOutFD, name);
+    }
     // CONSTANTS
 
     private static final int VEOF        = 0;

@@ -31,16 +31,24 @@ public abstract class JansiNativePty implements Pty {
 
     private final int master;
     private final int slave;
+    private final int slaveOut;
     private final String name;
     private final FileDescriptor masterFD;
     private final FileDescriptor slaveFD;
+    private final FileDescriptor slaveOutFD;
 
     public JansiNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, String name) {
+        this(master, masterFD, slave, slaveFD, slave, slaveFD, name);
+    }
+
+    public JansiNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, int slaveOut, FileDescriptor slaveOutFD, String name) {
         this.master = master;
         this.slave = slave;
+        this.slaveOut = slaveOut;
         this.name = name;
         this.masterFD = masterFD;
         this.slaveFD = slaveFD;
+        this.slaveOutFD = slaveOutFD;
     }
 
     protected static String ttyname() throws IOException {
@@ -81,6 +89,10 @@ public abstract class JansiNativePty implements Pty {
         return slave;
     }
 
+    public int getSlaveOut() {
+        return slaveOut;
+    }
+
     public String getName() {
         return name;
     }
@@ -91,6 +103,10 @@ public abstract class JansiNativePty implements Pty {
 
     public FileDescriptor getSlaveFD() {
         return slaveFD;
+    }
+
+    public FileDescriptor getSlaveOutFD() {
+        return slaveOutFD;
     }
 
     public InputStream getMasterInput() {
@@ -106,7 +122,7 @@ public abstract class JansiNativePty implements Pty {
     }
 
     public OutputStream getSlaveOutput() {
-        return new FileOutputStream(getSlaveFD());
+        return new FileOutputStream(getSlaveOutFD());
     }
 
 

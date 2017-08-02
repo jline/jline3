@@ -37,7 +37,7 @@ public class OsXNativePty extends JnaNativePty {
             len++;
         }
         String name = new String(buf, 0, len);
-        return new OsXNativePty(-1, null, slave, FileDescriptor.in, name);
+        return new OsXNativePty(-1, null, slave, FileDescriptor.in, 1, FileDescriptor.out, name);
     }
 
     public static OsXNativePty open(Attributes attr, Size size) throws IOException {
@@ -57,6 +57,10 @@ public class OsXNativePty extends JnaNativePty {
 
     public OsXNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, String name) {
         super(master, masterFD, slave, slaveFD, name);
+    }
+
+    public OsXNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, int slaveOut, FileDescriptor slaveOutFD, String name) {
+        super(master, masterFD, slave, slaveFD, slaveOut, slaveOutFD, name);
     }
 
     @Override

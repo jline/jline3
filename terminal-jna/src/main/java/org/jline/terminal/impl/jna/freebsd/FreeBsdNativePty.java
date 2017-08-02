@@ -44,7 +44,7 @@ public class FreeBsdNativePty extends JnaNativePty {
             len++;
         }
         String name = new String(buf, 0, len);
-        return new FreeBsdNativePty(-1, null, slave, FileDescriptor.in, name);
+        return new FreeBsdNativePty(-1, null, slave, FileDescriptor.in, 1, FileDescriptor.out, name);
     }
 
     public static FreeBsdNativePty open(Attributes attr, Size size) throws IOException {
@@ -64,6 +64,10 @@ public class FreeBsdNativePty extends JnaNativePty {
 
     public FreeBsdNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, String name) {
         super(master, masterFD, slave, slaveFD, name);
+    }
+
+    public FreeBsdNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, int slaveOut, FileDescriptor slaveOutFD, String name) {
+        super(master, masterFD, slave, slaveFD, slaveOut, slaveOutFD, name);
     }
 
     @Override

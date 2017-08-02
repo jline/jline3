@@ -24,7 +24,7 @@ public class LinuxNativePty extends JansiNativePty {
     public static LinuxNativePty current() throws IOException {
         try {
             String name = ttyname();
-            return new LinuxNativePty(-1, null, 0, FileDescriptor.in, name);
+            return new LinuxNativePty(-1, null, 0, FileDescriptor.in, 1, FileDescriptor.out, name);
         } catch (IOException e) {
             throw new IOException("Not a tty", e);
         }
@@ -49,6 +49,9 @@ public class LinuxNativePty extends JansiNativePty {
         super(master, masterFD, slave, slaveFD, name);
     }
 
+    public LinuxNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, int slaveOut, FileDescriptor slaveOutFD, String name) {
+        super(master, masterFD, slave, slaveFD, slaveOut, slaveOutFD, name);
+    }
     // CONSTANTS
 
     private static final int VINTR       = 0;
