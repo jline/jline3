@@ -185,7 +185,9 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         final int ctrlState = 0x0008 | 0x0004;
         final int shiftState = 0x0010;
         final boolean isCtrl = (controlKeyState & ctrlState) > 0;
-        final boolean isAlt = (controlKeyState & altState) > 0;
+        // Pressing "Alt Gr" is translated to Alt-Ctrl, hence it has to be checked that Ctrl is _not_ pressed,
+        // otherwise inserting of "Alt Gr" codes on non-US keyboards would yield errors
+        final boolean isAlt = (controlKeyState & altState) > 0 && !isCtrl;
         final boolean isShift = (controlKeyState & shiftState) > 0;
         char ch = uchar;
         StringBuilder sb = new StringBuilder(32);
