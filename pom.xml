@@ -365,6 +365,16 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
                 <version>3.0.1</version>
+                <configuration>
+                    <archive>
+                        <manifestEntries> 
+                            <Bundle-Name>JLine Sources Bundle</Bundle-Name>
+                            <Bundle-SymbolicName>${project.groupId}.source</Bundle-SymbolicName>
+                            <Bundle-Version>${project.version}</Bundle-Version>
+                            <Eclipse-SourceBundle>${project.groupId};version="${project.version}"</Eclipse-SourceBundle>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
