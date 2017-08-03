@@ -15,6 +15,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -85,6 +89,39 @@ public class HistoryTest extends ReaderTestSupport
 
         assertHistoryContains(1, "b", "c", "d", "e", "f");
         assertEquals("f", history.get(5));
+    }
+
+    @Test
+    public void testTrimIterate() throws IOException {
+        Path histFile = Files.createTempFile(null, null);
+
+        reader.setVariable(LineReader.HISTORY_FILE, histFile);
+        reader.setVariable(LineReader.HISTORY_SIZE, 4);
+        reader.setVariable(LineReader.HISTORY_FILE_SIZE, 4);
+
+        assertEquals(0, history.size());
+        assertEquals(0, history.index());
+
+        history.add("a");
+        history.add("b");
+        history.add("c");
+        history.add("d");
+        history.add("e");
+        history.add("f");
+        history.add("g");
+
+        assertEquals(4, history.size());
+        assertEquals(7, history.index());
+        assertHistoryContains(3, "d", "e", "f", "g");
+
+        assertEquals("e", history.get(4));
+        assertEquals(3, history.iterator().next().index());
+
+        try (BufferedReader reader = Files.newBufferedReader(histFile)) {
+            // We should have 5 lines: c, d, e, f, g
+            // The history file was trimmed while adding f, but we later added g without trimming
+            assertEquals(5, reader.lines().count());
+        }
     }
 
     @Test

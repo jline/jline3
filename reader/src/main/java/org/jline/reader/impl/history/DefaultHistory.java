@@ -35,7 +35,8 @@ public class DefaultHistory implements History {
 
     private LineReader reader;
 
-    private int loaded = 0;
+    private int lastLoaded = 0;
+    private int nbEntriesInFile = 0;
     private int offset = 0;
     private int index = 0;
 
@@ -87,7 +88,8 @@ public class DefaultHistory implements History {
                             String line = unescape(l.substring(idx + 1));
                             internalAdd(time, line);
                         });
-                        loaded = items.size();
+                        lastLoaded = items.size();
+                        nbEntriesInFile = lastLoaded;
                         maybeResize();
                     }
                 }
@@ -118,17 +120,18 @@ public class DefaultHistory implements History {
             // Append new items to the history file
             try (BufferedWriter writer = Files.newBufferedWriter(path.toAbsolutePath(),
               StandardOpenOption.WRITE, StandardOpenOption.APPEND, StandardOpenOption.CREATE)) {
-                for (Entry entry : items.subList(loaded, items.size())) {
+                for (Entry entry : items.subList(lastLoaded, items.size())) {
                     writer.append(format(entry));
                 }
             }
+            nbEntriesInFile += items.size() - lastLoaded;
             // If we are over 25% max size, trim history file
             int max = getInt(reader, LineReader.HISTORY_FILE_SIZE, DEFAULT_HISTORY_FILE_SIZE);
-            if (last() > max + max / 4) {
+            if (nbEntriesInFile > max + max / 4) {
                 trimHistory(path, max);
             }
         }
-        loaded = items.size();
+        lastLoaded = items.size();
     }
 
     protected void trimHistory(Path path, int max) throws IOException {
@@ -155,15 +158,18 @@ public class DefaultHistory implements History {
         Files.move(temp, path, StandardCopyOption.REPLACE_EXISTING);
         // Keep items in memory
         internalClear();
+        offset = allItems.get(0).index();
         items.addAll(allItems);
-        loaded = items.size();
+        lastLoaded = items.size();
+        nbEntriesInFile = items.size();
         maybeResize();
     }
 
     private void internalClear() {
         offset = 0;
         index = 0;
-        loaded = 0;
+        lastLoaded = 0;
+        nbEntriesInFile = 0;
         items.clear();
     }
 
@@ -275,7 +281,7 @@ public class DefaultHistory implements History {
     private void maybeResize() {
         while (size() > getInt(reader, LineReader.HISTORY_SIZE, DEFAULT_HISTORY_SIZE)) {
             items.removeFirst();
-            loaded--;
+            lastLoaded--;
             offset++;
         }
         index = size();
@@ -436,7 +442,7 @@ public class DefaultHistory implements History {
         return sb.toString();
     }
 
-    private static String unescape(String s) {
+    static String unescape(String s) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < s.length(); i++) {
             char ch = s.charAt(i);
