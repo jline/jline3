@@ -176,56 +176,79 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         setConsoleOutputCP(consoleOutputCP);
     }
 
-    final int CTRL_FLAG = 4;
-    final int ALT_FLAG = 2;
-    final int SHIFT_FLAG = 1;
+    static final int SHIFT_FLAG = 0x01;
+    static final int ALT_FLAG =   0x02;
+    static final int CTRL_FLAG =  0x04;
+
+    static final int RIGHT_ALT_PRESSED =   0x0001;
+    static final int LEFT_ALT_PRESSED =    0x0002;
+    static final int RIGHT_CTRL_PRESSED =  0x0004;
+    static final int LEFT_CTRL_PRESSED =   0x0008;
+    static final int SHIFT_PRESSED =       0x0010;
+    static final int NUMLOCK_ON =          0x0020;
+    static final int SCROLLLOCK_ON =       0x0040;
+    static final int CAPSLOCK_ON =         0x0080;
 
     protected String getEscapeSequenceFromConsoleInput(final boolean isKeyDown, final short virtualKeyCode, final char uchar, final int controlKeyState, final short repeatCount, final short scanCode) {
-        final int altState = 0x0002 | 0x0001;
-        final int ctrlState = 0x0008 | 0x0004;
-        final int shiftState = 0x0010;
-        final boolean isCtrl = (controlKeyState & ctrlState) > 0;
-        // Pressing "Alt Gr" is translated to Alt-Ctrl, hence it has to be checked that Ctrl is _not_ pressed,
-        // otherwise inserting of "Alt Gr" codes on non-US keyboards would yield errors
-        final boolean isAlt = (controlKeyState & altState) > 0 && !isCtrl;
-        final boolean isShift = (controlKeyState & shiftState) > 0;
+        final boolean isCtrl = (controlKeyState & (RIGHT_CTRL_PRESSED | LEFT_CTRL_PRESSED)) > 0;
+        final boolean isAlt = (controlKeyState & (RIGHT_ALT_PRESSED | LEFT_ALT_PRESSED)) > 0;
+        final boolean isShift = (controlKeyState & SHIFT_PRESSED) > 0;
         char ch = uchar;
         StringBuilder sb = new StringBuilder(32);
         // key down event
         if (isKeyDown && ch != '\3') {
-            final String keySeq = getEscapeSequence(virtualKeyCode, (isCtrl ? CTRL_FLAG : 0) + (isAlt ? ALT_FLAG : 0) + (isShift ? SHIFT_FLAG : 0));
-            if (keySeq != null) return keySeq;
-            /* uchar value in Windows when CTRL is pressed:
-             * 1). Ctrl +  <0x41 to 0x5e>      : uchar=<keyCode> - 'A' + 1
-             * 2). Ctrl + Backspace(0x08)      : uchar=0x7f
-             * 3). Ctrl + Enter(0x0d)          : uchar=0x0a
-             * 4). Ctrl + Space(0x20)          : uchar=0x20
-             * 5). Ctrl + <Other key>          : uchar=0
-             * 6). Ctrl + Alt + <Any key>      : uchar=0
-            */
-            if (ch > 0) {
-                if (isAlt) sb.append("\033");
-                if (isCtrl && ch != ' ' && ch != '\n' && ch != 0x7f) {
-                    sb.append((char) (ch == '?' ? 0x7f : Character.toUpperCase(ch) & 0x1f));
-                } else {
-                    sb.append(ch);
+            // Pressing "Alt Gr" is translated to Alt-Ctrl, hence it has to be checked that Ctrl is _not_ pressed,
+            // otherwise inserting of "Alt Gr" codes on non-US keyboards would yield errors
+            if (ch != 0
+                    && (controlKeyState & (RIGHT_ALT_PRESSED | LEFT_ALT_PRESSED | RIGHT_CTRL_PRESSED | LEFT_CTRL_PRESSED | SHIFT_PRESSED))
+                        == (RIGHT_ALT_PRESSED | LEFT_CTRL_PRESSED)) {
+                sb.append(ch);
+            } else {
+                final String keySeq = getEscapeSequence(virtualKeyCode, (isCtrl ? CTRL_FLAG : 0) + (isAlt ? ALT_FLAG : 0) + (isShift ? SHIFT_FLAG : 0));
+                if (keySeq != null) {
+                    return keySeq;
                 }
-            } else if (isCtrl) { //Handles the ctrl key events(uchar=0)
-                if (virtualKeyCode >= 'A' && virtualKeyCode <= 'Z') {
-                    ch = (char) (virtualKeyCode - 0x40);
-                } else if (virtualKeyCode == 191) { //?
-                    ch = 127;
-                }
+                /* uchar value in Windows when CTRL is pressed:
+                 * 1). Ctrl +  <0x41 to 0x5e>      : uchar=<keyCode> - 'A' + 1
+                 * 2). Ctrl + Backspace(0x08)      : uchar=0x7f
+                 * 3). Ctrl + Enter(0x0d)          : uchar=0x0a
+                 * 4). Ctrl + Space(0x20)          : uchar=0x20
+                 * 5). Ctrl + <Other key>          : uchar=0
+                 * 6). Ctrl + Alt + <Any key>      : uchar=0
+                */
                 if (ch > 0) {
-                    if (isAlt) sb.append("\033");
-                    sb.append(ch);
+                    if (isAlt) {
+                        sb.append("\033");
+                    }
+                    if (isCtrl && ch != ' ' && ch != '\n' && ch != 0x7f) {
+                        sb.append((char) (ch == '?' ? 0x7f : Character.toUpperCase(ch) & 0x1f));
+                    } else {
+                        sb.append(ch);
+                    }
+                } else if (isCtrl) { //Handles the ctrl key events(uchar=0)
+                    if (virtualKeyCode >= 'A' && virtualKeyCode <= 'Z') {
+                        ch = (char) (virtualKeyCode - 0x40);
+                    } else if (virtualKeyCode == 191) { //?
+                        ch = 127;
+                    }
+                    if (ch > 0) {
+                        if (isAlt) {
+                            sb.append("\033");
+                        }
+                        sb.append(ch);
+                    }
                 }
             }
-        } else {// key up event
-            if (ch == '\3') return "\3";
+        }
+        // key up event
+        else {
+            if (ch == '\3') {
+                return "\3";
+            }
             // support ALT+NumPad input method
-            if (virtualKeyCode == 0x12 /*VK_MENU ALT key*/ && ch > 0)
+            if (virtualKeyCode == 0x12 /*VK_MENU ALT key*/ && ch > 0) {
                 sb.append(ch);  // no such combination in Windows
+            }
         }
         return sb.toString();
     }
