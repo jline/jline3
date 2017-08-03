@@ -15,9 +15,9 @@
  */
 package org.jline.terminal.impl.jansi.win;
 
-import org.fusesource.jansi.AnsiOutputStream;
 import org.fusesource.jansi.internal.Kernel32.*;
 import org.fusesource.jansi.internal.WindowsSupport;
+import org.jline.utils.AnsiOutputStream;
 
 import java.io.IOException;
 import java.io.OutputStream;

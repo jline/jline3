@@ -13,6 +13,7 @@ import java.io.OutputStream;
 
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
+import org.jline.utils.AnsiOutputStream;
 
 import static org.jline.terminal.impl.jna.win.Kernel32.BACKGROUND_BLUE;
 import static org.jline.terminal.impl.jna.win.Kernel32.BACKGROUND_GREEN;
