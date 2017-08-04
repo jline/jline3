@@ -98,6 +98,7 @@ public class LineReaderImpl implements LineReader, Flushable
     public static final String BRACKETED_PASTE_BEGIN = "\033[200~";
     public static final String BRACKETED_PASTE_END = "\033[201~";
 
+
     /**
      * Possible states in which the current readline operation may be in.
      */
@@ -120,12 +121,14 @@ public class LineReaderImpl implements LineReader, Flushable
         INTERRUPT
     }
 
+
     protected enum ViMoveMode {
         NORMAL,
         YANK,
         DELETE,
         CHANGE
     }
+
 
     protected enum BellType {
         NONE,
@@ -139,15 +142,16 @@ public class LineReaderImpl implements LineReader, Flushable
 
     /** The terminal to use */
     protected final Terminal terminal;
+
     /** The application name */
     protected final String appName;
     /** The terminal keys mapping */
     protected final Map<String, KeyMap<Binding>> keyMaps;
-
     //
     // Configuration
     //
     protected final Map<String, Object> variables;
+
     protected History history = new DefaultHistory();
     protected Completer completer = null;
     protected Highlighter highlighter = new DefaultHighlighter();
@@ -165,17 +169,17 @@ public class LineReaderImpl implements LineReader, Flushable
     protected final Size size = new Size();
 
     protected AttributedString prompt;
+
     protected AttributedString rightPrompt;
-
-    protected Character mask;
-
+    
+    private LineReaderCallback lineReaderCallback;
+    
     protected Map<Integer, String> modifiedHistory = new HashMap<>();
+
     protected Buffer historyBuffer = null;
     protected CharSequence searchBuffer;
     protected StringBuffer searchTerm = null;
     protected int searchIndex = -1;
-
-
     // Reading buffers
     protected final BindingReader bindingReader;
 
@@ -184,6 +188,8 @@ public class LineReaderImpl implements LineReader, Flushable
      * VI character find
      */
     protected int findChar;
+
+
     protected int findDir;
     protected int findTailAdd;
     /**
@@ -191,14 +197,14 @@ public class LineReaderImpl implements LineReader, Flushable
      */
     private int searchDir;
     private String searchString;
-
     /**
      * Region state
      */
     protected int regionMark;
-    protected RegionType regionActive;
 
+    protected RegionType regionActive;
     private boolean forceChar;
+
     private boolean forceLine;
 
     /**
@@ -423,10 +429,14 @@ public class LineReaderImpl implements LineReader, Flushable
      *                  was pressed).
      */
     public String readLine(String prompt, String rightPrompt, Character mask, String buffer) throws UserInterruptException, EndOfFileException {
-        // prompt may be null
-        // mask may be null
-        // buffer may be null
+        return readLineWithCallback(prompt, rightPrompt, buffer, new LineReaderMaskCallback(mask));
+    }
 
+    public String readLineWithCallback(String prompt, String rightPrompt, String buffer, LineReaderCallback lineReaderCallback) throws UserInterruptException, EndOfFileException {
+        // prompt may be null
+        // lineReaderCallback may be null
+        // buffer may be null
+        
         Thread readLineThread = Thread.currentThread();
         SignalHandler previousIntrHandler = null;
         SignalHandler previousWinchHandler = null;
@@ -439,7 +449,7 @@ public class LineReaderImpl implements LineReader, Flushable
             }
             reading = true;
 
-            this.mask = mask;
+            this.lineReaderCallback = lineReaderCallback;
 
             /*
              * This is the accumulator for VI-mode repeat count. That is, while in
@@ -857,10 +867,12 @@ public class LineReaderImpl implements LineReader, Flushable
             str = sb.toString();
         }
 
+        if (this.lineReaderCallback != null) {
+            historyLine = this.lineReaderCallback.onAddLineToHistory(historyLine);
+        }
+        
         // we only add it to the history if the buffer is not empty
-        // and if mask is null, since having a mask typically means
-        // the string was a password. We clear the mask after this call
-        if (str.length() > 0 && mask == null) {
+        if (historyLine != null && historyLine.length() > 0 ) {
             history.add(Instant.now(), historyLine);
         }
         return str;
@@ -3322,7 +3334,12 @@ public class LineReaderImpl implements LineReader, Flushable
 
             sb.setLength(0);
             sb.append(prompt);
-            concat(getMaskedBuffer(buf.upToCursor()).columnSplitLength(Integer.MAX_VALUE), sb);
+            String line = buf.upToCursor();
+            if(lineReaderCallback != null) {
+                line = lineReaderCallback.onDisplayLine(line);
+            }
+            
+            concat(new AttributedString(line).columnSplitLength(Integer.MAX_VALUE), sb);
             AttributedString toCursor = sb.toAttributedString();
 
             int w = WCWidth.wcwidth('…');
@@ -3383,16 +3400,8 @@ public class LineReaderImpl implements LineReader, Flushable
             AttributedStringBuilder sb = new AttributedStringBuilder().tabs(TAB_WIDTH);
             sb.append(prompt);
             String buffer = buf.upToCursor();
-            if (mask != null) {
-                if (mask == NULL_MASK) {
-                    buffer = "";
-                } else {
-                    StringBuilder nsb = new StringBuilder();
-                    for (int i = buffer.length(); i-- > 0; ) {
-                        nsb.append((char) mask);
-                    }
-                    buffer = nsb.toString();
-                }
+            if (lineReaderCallback != null) {
+                buffer = lineReaderCallback.onDisplayLine(buffer);
             }
             sb.append(insertSecondaryPrompts(new AttributedString(buffer), secondaryPrompts, false));
             List<AttributedString> promptLines = sb.columnSplitLength(size.getColumns(), false, display.delayLineWrap());
@@ -3431,29 +3440,14 @@ public class LineReaderImpl implements LineReader, Flushable
         return full.toAttributedString();
     }
 
-    private AttributedString getMaskedBuffer(String buffer) {
-        if (mask != null) {
-            if (mask == NULL_MASK) {
-                buffer = "";
-            } else {
-                StringBuilder sb = new StringBuilder();
-                for (int i = buffer.length(); i-- > 0;) {
-                    sb.append((char) mask);
-                }
-                buffer = sb.toString();
-            }
+    private AttributedString getHighlightedBuffer(String buffer) {
+        if (lineReaderCallback != null) {
+            buffer = lineReaderCallback.onHighlightLine(buffer);
+        } 
+        if (highlighter != null && !isSet(Option.DISABLE_HIGHLIGHTER)) {
+            return highlighter.highlight(this, buffer);
         }
         return new AttributedString(buffer);
-    }
-
-    private AttributedString getHighlightedBuffer(String buffer) {
-        if (mask != null) {
-            return getMaskedBuffer(buffer);
-        } else if (highlighter != null && !isSet(Option.DISABLE_HIGHLIGHTER)) {
-            return highlighter.highlight(this, buffer);
-        } else {
-            return new AttributedString(buffer);
-        }
     }
 
     private AttributedString expandPromptPattern(String pattern, int padToWidth,
