@@ -67,6 +67,12 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
         return writer;
     }
 
+    @Override
+    public void close() throws IOException {
+        super.close();
+        reader.close();
+    }
+
     private class InputStreamWrapper extends InputStream {
 
         private final InputStream in;
