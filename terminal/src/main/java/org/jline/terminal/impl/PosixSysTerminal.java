@@ -32,6 +32,7 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
     protected final PrintWriter writer;
     protected final Map<Signal, Object> nativeHandlers = new HashMap<>();
     protected final Task closer;
+    protected boolean focus = false;
 
     public PosixSysTerminal(String name, String type, Pty pty, String encoding,
                             boolean nativeSignals, SignalHandler signalHandler) throws IOException {
@@ -94,5 +95,13 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
         }
         super.close();
         reader.close();
+    }
+
+    public void setFocus(boolean focus) {
+        this.focus = focus;
+    }
+
+    public boolean isFocused() {
+        return focus;
     }
 }

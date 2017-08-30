@@ -33,6 +33,7 @@ public final class LineReaderBuilder {
     Highlighter highlighter;
     Parser parser;
     Expander expander;
+    boolean focusTracking;
 
     private LineReaderBuilder() {
     }
@@ -89,6 +90,18 @@ public final class LineReaderBuilder {
         return this;
     }
 
+    /**
+     * Only supported through DECSET-1004 on linux platforms at the moment. See {@link LineReaderImpl#enableFocusTracking()}
+     * for more information.
+     * 
+     * @param focusTracking request focus
+     * @return this
+     */
+    public LineReaderBuilder setFocusTracking(boolean focusTracking) {
+        this.focusTracking = focusTracking;
+        return this;
+    }
+
     public LineReader build() {
         Terminal terminal = this.terminal;
         if (terminal == null) {
@@ -99,6 +112,9 @@ public final class LineReaderBuilder {
             }
         }
         LineReaderImpl reader = new LineReaderImpl(terminal, appName, variables);
+        if(focusTracking){
+            reader.enableFocusTracking();
+        }
         if (history != null) {
             reader.setHistory(history);
         } else {

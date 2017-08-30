@@ -47,6 +47,7 @@ import org.jline.terminal.*;
 import org.jline.terminal.Attributes.ControlChar;
 import org.jline.terminal.Terminal.Signal;
 import org.jline.terminal.Terminal.SignalHandler;
+import org.jline.terminal.impl.PosixSysTerminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
@@ -73,7 +74,7 @@ import static org.jline.keymap.KeyMap.translate;
  * @author <a href="mailto:gnodet@gmail.com">Guillaume Nodet</a>
  */
 @SuppressWarnings("StatementWithEmptyBody")
-public class LineReaderImpl implements LineReader, Flushable
+public class LineReaderImpl implements LineReader, Flushable, Runnable
 {
     public static final char NULL_MASK = 0;
 
@@ -90,6 +91,8 @@ public class LineReaderImpl implements LineReader, Flushable
     public static final long   DEFAULT_BLINK_MATCHING_PAREN = 500L;
     public static final long   DEFAULT_AMBIGUOUS_BINDING = 1000L;
     public static final String DEFAULT_SECONDARY_PROMPT_PATTERN = "%M> ";
+    private static final String CSI = "\033[";
+    private boolean csiEnabled = false;
 
     private static final int MIN_ROWS = 3;
 
@@ -238,6 +241,7 @@ public class LineReaderImpl implements LineReader, Flushable
     protected boolean overTyping = false;
 
     protected String keyMap;
+    private volatile Thread csithread = null;
 
     protected int smallTerminalOffset = 0;
 
@@ -268,6 +272,15 @@ public class LineReaderImpl implements LineReader, Flushable
         builtinWidgets = builtinWidgets();
         widgets = new HashMap<>(builtinWidgets);
         bindingReader = new BindingReader(terminal.reader());
+    }
+    
+    public void enableFocusTracking() {
+        bind(this.keyMaps.get(MAIN), FOCUS_IN, CSI + "I");
+        bind(this.keyMaps.get(MAIN), FOCUS_OUT, CSI + "O");
+        widgets.put(FOCUS_IN, this::focusIn);
+        widgets.put(FOCUS_OUT, this::focusOut);
+        this.csiEnabled = true;
+        startCSIThread();
     }
 
     public Terminal getTerminal() {
@@ -414,6 +427,47 @@ public class LineReaderImpl implements LineReader, Flushable
         return readLine(prompt, null, mask, buffer);
     }
 
+    public void run() {
+        if (reading) {
+            throw new IllegalStateException("Shouldn't be reading");
+        }
+        Attributes originalAttributes = null;
+        //create a new binding reader since it's stateful
+        BindingReader bindingReader = new BindingReader(terminal.reader());
+        KeyMap<Binding> local = new KeyMap<>();
+        bind(local, FOCUS_IN, CSI + "I");
+        bind(local, FOCUS_OUT, CSI + "O");
+        try {
+            originalAttributes = terminal.enterRawMode();
+            reading = true;
+            while (true) {
+                Binding o = bindingReader.readBinding(local, null, false);
+                if (o != null) {
+                    Widget w = getWidget(o);
+                    if (!w.apply()) {
+                        beep();
+                    }
+                }
+                if (Thread.currentThread().isInterrupted()) {
+                    return;
+                }
+                Thread.sleep(100);
+            }
+        } catch (InterruptedException e) {
+            //do nothing
+        } catch (IOError e) {
+            //do nothing, thrown by readBinding when Thread is interrupted
+        } finally {
+            if (originalAttributes != null) {
+                terminal.setAttributes(originalAttributes);
+            }
+            synchronized (this) {
+                reading = false;
+                csithread = null;
+            }
+        }
+    }
+
     /**
      * Read a line from the <i>in</i> {@link InputStream}, and return the line
      * (without any trailing newlines).
@@ -423,6 +477,15 @@ public class LineReaderImpl implements LineReader, Flushable
      *                  was pressed).
      */
     public String readLine(String prompt, String rightPrompt, Character mask, String buffer) throws UserInterruptException, EndOfFileException {
+        if(csiEnabled && csithread != null) {
+            csithread.interrupt();
+            try {
+                csithread.join(200);
+            } catch (InterruptedException e) {
+                throw new IllegalStateException("Error waiting for CSI thread");
+            }
+        }
+        
         // prompt may be null
         // mask may be null
         // buffer may be null
@@ -595,6 +658,9 @@ public class LineReaderImpl implements LineReader, Flushable
             }
             if (previousContHandler != null) {
                 terminal.handle(Signal.CONT, previousContHandler);
+            }
+            if(csiEnabled) {
+                startCSIThread();
             }
         }
     }
@@ -1611,6 +1677,15 @@ public class LineReaderImpl implements LineReader, Flushable
             }
         }
         return true;
+    }
+
+    private synchronized void startCSIThread() {
+        if (csithread == null) {
+            csithread = new Thread(this);
+            csithread.setDaemon(true);
+            csithread.setName("Jline terminal CSI reader Thread");
+            csithread.start();
+        }
     }
 
     private int findbol() {
@@ -4961,6 +5036,24 @@ public class LineReaderImpl implements LineReader, Flushable
         return true;
     }
 
+    public boolean focusIn() {
+        if(PosixSysTerminal.class.isInstance(terminal)){
+            PosixSysTerminal posixSysTerminal = PosixSysTerminal.class.cast(terminal);
+            posixSysTerminal.setFocus(true);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean focusOut() {
+        if(PosixSysTerminal.class.isInstance(terminal)){
+            PosixSysTerminal posixSysTerminal = PosixSysTerminal.class.cast(terminal);
+            posixSysTerminal.setFocus(false);
+            return true;
+        }
+        return false;
+    }
+    
     //
     // Helpers
     //

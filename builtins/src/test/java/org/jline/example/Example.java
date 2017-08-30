@@ -29,6 +29,9 @@ import org.jline.terminal.Cursor;
 import org.jline.terminal.MouseEvent;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.terminal.impl.FocusTrackingSupport;
+import org.jline.terminal.impl.PosixSysTerminal;
+import org.jline.terminal.impl.jna.linux.LibNotifyImpl;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
@@ -70,6 +73,8 @@ public class Example
             String trigger = null;
             boolean color = false;
             boolean timer = false;
+            LibNotifyImpl libNotifyImpl = null;
+            boolean desktopNotifications = false;
 
             TerminalBuilder builder = TerminalBuilder.builder();
 
@@ -211,6 +216,11 @@ public class Example
                     case "mousetrack":
                         mouse = 2;
                         break label;
+                    case "desktop-notifications":
+                        completer = new StringsCompleter("foo", "bar", "baz");
+                        libNotifyImpl = new LibNotifyImpl();
+                        desktopNotifications = true;
+                        break label;
                     default:
                         usage();
                         return;
@@ -228,7 +238,12 @@ public class Example
                     .terminal(terminal)
                     .completer(completer)
                     .parser(parser)
+                    .setFocusTracking(desktopNotifications)
                     .build();
+            
+            if(desktopNotifications){
+                FocusTrackingSupport.enableFocusTracking(terminal);
+            }
 
             if (timer) {
                 Executors.newScheduledThreadPool(1)
@@ -294,6 +309,10 @@ public class Example
                     line = reader.readLine("password> ", mask);
                 }
                 if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) {
+                    terminal.close();
+                    if(libNotifyImpl != null) {
+                        libNotifyImpl.close();
+                    }
                     break;
                 }
                 ParsedLine pl = reader.getParser().parse(line, 0);
@@ -370,7 +389,19 @@ public class Example
                     terminal.flush();
                 }
                 else if ("sleep".equals(pl.word())) {
-                    Thread.sleep(3000);
+                    if(pl.words().size() ==2){
+                        int foo = Integer.valueOf(pl.words().get(1));
+                        Thread.sleep(foo);
+                    }else {
+                        Thread.sleep(3000);
+                    }
+                }
+                
+                if(desktopNotifications && PosixSysTerminal.class.isInstance(terminal)){
+                    PosixSysTerminal posixSysTerminal = PosixSysTerminal.class.cast(terminal);
+                    if(!posixSysTerminal.isFocused()) {
+                        libNotifyImpl.showNotification("JLine Terminal", "Finished executing command [" + line + "]", Example.class.getClassLoader().getResource("Opensource.svg.png").getPath());
+                    }
                 }
             }
         }
