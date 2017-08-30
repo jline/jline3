@@ -72,7 +72,7 @@ public class ShellCommand implements Command, SessionAware {
             exitStatus = 1;
             LOGGER.log(Level.SEVERE, "Unable to start shell", e);
             try {
-                Throwable t = (e.getCause() != e)  ? e.getCause() : e;
+                Throwable t = (e.getCause() != null)  ? e.getCause() : e;
                 err.write(t.toString().getBytes());
                 err.flush();
             } catch (IOException e2) {
