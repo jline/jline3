@@ -9,6 +9,7 @@
 package org.jline.builtins;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.time.LocalTime;
@@ -105,7 +106,7 @@ public class Commands {
         edit.run();
     }
 
-    public static void less(Terminal terminal, PrintStream out, PrintStream err,
+    public static void less(Terminal terminal, InputStream in, PrintStream out, PrintStream err,
                             Path currentDir,
                             String[] argv) throws IOException, InterruptedException {
         final String[] usage = {
@@ -148,7 +149,7 @@ public class Commands {
         }
         for (String arg : opt.args()) {
             if ("-".equals(arg)) {
-                sources.add(new StdInSource());
+                sources.add(new StdInSource(in));
             } else {
                 sources.add(new URLSource(currentDir.resolve(arg).toUri().toURL(), arg));
             }

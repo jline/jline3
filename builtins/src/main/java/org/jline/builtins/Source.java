@@ -101,7 +101,11 @@ public interface Source {
     class StdInSource extends InputStreamSource {
 
         public StdInSource() {
-            super(System.in, false, null);
+            this(System.in);
+        }
+
+        public StdInSource(InputStream in) {
+            super(in, false, null);
         }
 
     }
