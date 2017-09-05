@@ -266,7 +266,7 @@ public class Example
             while (true) {
                 String line = null;
                 try {
-                    line = reader.readLine(prompt, rightPrompt, null, null);
+                    line = reader.readLine(prompt, rightPrompt, (MaskingCallback) null, null);
                 } catch (UserInterruptException e) {
                     // Ignore
                 } catch (EndOfFileException e) {

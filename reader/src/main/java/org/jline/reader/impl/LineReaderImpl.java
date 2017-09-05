@@ -167,7 +167,7 @@ public class LineReaderImpl implements LineReader, Flushable
     protected AttributedString prompt;
     protected AttributedString rightPrompt;
 
-    protected Character mask;
+    protected MaskingCallback maskingCallback;
 
     protected Map<Integer, String> modifiedHistory = new HashMap<>();
     protected Buffer historyBuffer = null;
@@ -375,7 +375,7 @@ public class LineReaderImpl implements LineReader, Flushable
      * Read the next line and return the contents of the buffer.
      */
     public String readLine() throws UserInterruptException, EndOfFileException {
-        return readLine(null, null, null, null);
+        return readLine(null, null, (MaskingCallback) null, null);
     }
 
     /**
@@ -387,7 +387,7 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     public String readLine(String prompt) throws UserInterruptException, EndOfFileException {
-        return readLine(prompt, null, null, null);
+        return readLine(prompt, null, (MaskingCallback) null, null);
     }
 
     /**
@@ -423,10 +423,14 @@ public class LineReaderImpl implements LineReader, Flushable
      *                  was pressed).
      */
     public String readLine(String prompt, String rightPrompt, Character mask, String buffer) throws UserInterruptException, EndOfFileException {
-        // prompt may be null
-        // mask may be null
-        // buffer may be null
+        return readLine(prompt, rightPrompt, mask != null ? new SimpleMaskingCallback(mask) : null, buffer);
+    }
 
+    public String readLine(String prompt, String rightPrompt, MaskingCallback maskingCallback, String buffer) throws UserInterruptException, EndOfFileException {
+        // prompt may be null
+        // maskingCallback may be null
+        // buffer may be null
+        
         Thread readLineThread = Thread.currentThread();
         SignalHandler previousIntrHandler = null;
         SignalHandler previousWinchHandler = null;
@@ -439,7 +443,7 @@ public class LineReaderImpl implements LineReader, Flushable
             }
             reading = true;
 
-            this.mask = mask;
+            this.maskingCallback = maskingCallback;
 
             /*
              * This is the accumulator for VI-mode repeat count. That is, while in
@@ -857,10 +861,12 @@ public class LineReaderImpl implements LineReader, Flushable
             str = sb.toString();
         }
 
+        if (maskingCallback != null) {
+            historyLine = maskingCallback.history(historyLine);
+        }
+
         // we only add it to the history if the buffer is not empty
-        // and if mask is null, since having a mask typically means
-        // the string was a password. We clear the mask after this call
-        if (str.length() > 0 && mask == null) {
+        if (historyLine != null && historyLine.length() > 0 ) {
             history.add(Instant.now(), historyLine);
         }
         return str;
@@ -3322,7 +3328,12 @@ public class LineReaderImpl implements LineReader, Flushable
 
             sb.setLength(0);
             sb.append(prompt);
-            concat(getMaskedBuffer(buf.upToCursor()).columnSplitLength(Integer.MAX_VALUE), sb);
+            String line = buf.upToCursor();
+            if(maskingCallback != null) {
+                line = maskingCallback.display(line);
+            }
+            
+            concat(new AttributedString(line).columnSplitLength(Integer.MAX_VALUE), sb);
             AttributedString toCursor = sb.toAttributedString();
 
             int w = WCWidth.wcwidth('…');
@@ -3383,16 +3394,8 @@ public class LineReaderImpl implements LineReader, Flushable
             AttributedStringBuilder sb = new AttributedStringBuilder().tabs(TAB_WIDTH);
             sb.append(prompt);
             String buffer = buf.upToCursor();
-            if (mask != null) {
-                if (mask == NULL_MASK) {
-                    buffer = "";
-                } else {
-                    StringBuilder nsb = new StringBuilder();
-                    for (int i = buffer.length(); i-- > 0; ) {
-                        nsb.append((char) mask);
-                    }
-                    buffer = nsb.toString();
-                }
+            if (maskingCallback != null) {
+                buffer = maskingCallback.display(buffer);
             }
             sb.append(insertSecondaryPrompts(new AttributedString(buffer), secondaryPrompts, false));
             List<AttributedString> promptLines = sb.columnSplitLength(size.getColumns(), false, display.delayLineWrap());
@@ -3431,29 +3434,14 @@ public class LineReaderImpl implements LineReader, Flushable
         return full.toAttributedString();
     }
 
-    private AttributedString getMaskedBuffer(String buffer) {
-        if (mask != null) {
-            if (mask == NULL_MASK) {
-                buffer = "";
-            } else {
-                StringBuilder sb = new StringBuilder();
-                for (int i = buffer.length(); i-- > 0;) {
-                    sb.append((char) mask);
-                }
-                buffer = sb.toString();
-            }
+    private AttributedString getHighlightedBuffer(String buffer) {
+        if (maskingCallback != null) {
+            buffer = maskingCallback.display(buffer);
+        } 
+        if (highlighter != null && !isSet(Option.DISABLE_HIGHLIGHTER)) {
+            return highlighter.highlight(this, buffer);
         }
         return new AttributedString(buffer);
-    }
-
-    private AttributedString getHighlightedBuffer(String buffer) {
-        if (mask != null) {
-            return getMaskedBuffer(buffer);
-        } else if (highlighter != null && !isSet(Option.DISABLE_HIGHLIGHTER)) {
-            return highlighter.highlight(this, buffer);
-        } else {
-            return new AttributedString(buffer);
-        }
     }
 
     private AttributedString expandPromptPattern(String pattern, int padToWidth,
