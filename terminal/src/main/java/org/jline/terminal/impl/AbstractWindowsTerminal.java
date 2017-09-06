@@ -37,8 +37,9 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
 
     private static final int PIPE_SIZE = 1024;
 
-    private static final Charset CHARSET = Charset.forName("UTF-8");
-    private static final int CODE_PAGE = 65001;
+    private static final String UTF8 = "UTF-8";
+    private static final Charset UTF8_CHARSET = Charset.forName(UTF8);
+    private static final int UTF8_CODE_PAGE = 65001;
 
     protected static final int ENABLE_PROCESSED_INPUT = 0x0001;
     protected static final int ENABLE_LINE_INPUT      = 0x0002;
@@ -57,21 +58,22 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     protected final ShutdownHooks.Task closer;
     protected final Attributes attributes = new Attributes();
     protected final Thread pump;
-    protected final int consoleOutputCP;
 
     protected MouseTracking tracking = MouseTracking.Off;
     private volatile boolean closing;
 
     public AbstractWindowsTerminal(OutputStream output, String name, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
         super(name, TYPE_WINDOWS, signalHandler);
-        PipedInputStream input = new PipedInputStream(PIPE_SIZE);
-        this.slaveInputPipe = new PipedOutputStream(input);
-        this.input = new FilterInputStream(input) {};
+        PipedInputStream input = new PipedInputStream(PIPE_SIZE); // UTF-8 encoded
+        this.slaveInputPipe = new PipedOutputStream(input); // UTF-8 encoded
+        this.input = new FilterInputStream(input) {}; // UTF-8 encoded
         this.output = output;
-        this.consoleOutputCP = getConsoleOutputCP();
-        setConsoleOutputCP(CODE_PAGE);
-        this.reader = new NonBlockingReader(getName(), new org.jline.utils.InputStreamReader(input, CHARSET));
-        this.writer = new PrintWriter(new OutputStreamWriter(output, CHARSET));
+        String encoding = getConsoleEncoding();
+        if (encoding == null) {
+            encoding = Charset.defaultCharset().name();
+        }
+        this.reader = new NonBlockingReader(getName(), new org.jline.utils.InputStreamReader(input, UTF8_CHARSET));
+        this.writer = new PrintWriter(new OutputStreamWriter(output, encoding));
         parseInfoCmp();
         // Attributes
         attributes.setLocalFlag(Attributes.LocalFlag.ISIG, true);
@@ -93,6 +95,23 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         pump.start();
         closer = this::close;
         ShutdownHooks.add(closer);
+    }
+
+    protected String getConsoleEncoding() {
+        int codepage = getConsoleOutputCP();
+        //http://docs.oracle.com/javase/6/docs/technotes/guides/intl/encoding.doc.html
+        if (codepage == UTF8_CODE_PAGE) {
+            return UTF8;
+        }
+        String charsetMS = "ms" + codepage;
+        if (Charset.isSupported(charsetMS)) {
+            return charsetMS;
+        }
+        String charsetCP = "cp" + codepage;
+        if (Charset.isSupported(charsetCP)) {
+            return charsetCP;
+        }
+        return null;
     }
 
     @Override
@@ -173,7 +192,6 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         }
         reader.close();
         writer.close();
-        setConsoleOutputCP(consoleOutputCP);
     }
 
     static final int SHIFT_FLAG = 0x01;
@@ -362,7 +380,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         try {
             while (!closing) {
                 String buf = readConsoleInput();
-                for (byte b : buf.getBytes(CHARSET)) {
+                for (byte b : buf.getBytes(UTF8_CHARSET)) {
                     processInputByte(b);
                 }
             }
