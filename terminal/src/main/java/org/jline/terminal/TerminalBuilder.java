@@ -130,6 +130,11 @@ public final class TerminalBuilder {
         return this;
     }
 
+    public TerminalBuilder codepage(int codepage) {
+        this.codepage = codepage;
+        return this;
+    }
+
     /**
      * Attributes to use when creating a non system terminal,
      * i.e. when the builder has been given the input and
