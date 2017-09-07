@@ -40,7 +40,7 @@ public class AttributedCharSequenceTest {
     private static class DumbWindowsTerminal extends AbstractWindowsTerminal {
 
         public DumbWindowsTerminal() throws IOException {
-            super(new ByteArrayOutputStream(), "windows", false, SignalHandler.SIG_DFL);
+            super(new ByteArrayOutputStream(), "windows", 0, false, SignalHandler.SIG_DFL);
         }
 
         @Override

@@ -21,7 +21,7 @@ public class JnaSupportImpl implements JnaSupport {
     }
 
     @Override
-    public Terminal winSysTerminal(String name, boolean nativeSignals, Terminal.SignalHandler signalHandler) throws IOException {
-        return new JnaWinSysTerminal(name, nativeSignals, signalHandler);
+    public Terminal winSysTerminal(String name, int codepage, boolean nativeSignals, Terminal.SignalHandler signalHandler) throws IOException {
+        return new JnaWinSysTerminal(name, codepage, nativeSignals, signalHandler);
     }
 }

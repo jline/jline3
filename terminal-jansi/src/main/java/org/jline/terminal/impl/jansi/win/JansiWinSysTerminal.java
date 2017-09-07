@@ -32,12 +32,12 @@ import static org.fusesource.jansi.internal.Kernel32.STD_OUTPUT_HANDLE;
 public class JansiWinSysTerminal extends AbstractWindowsTerminal {
 
     public JansiWinSysTerminal(String name, boolean nativeSignals) throws IOException {
-        this(name, nativeSignals, SignalHandler.SIG_DFL);
+        this(name, 0, nativeSignals, SignalHandler.SIG_DFL);
     }
 
-    public JansiWinSysTerminal(String name, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
+    public JansiWinSysTerminal(String name, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
         super(new WindowsAnsiOutputStream(new BufferedOutputStream(new FileOutputStream(FileDescriptor.out))),
-              name, nativeSignals, signalHandler);
+              name, codepage, nativeSignals, signalHandler);
     }
 
     @Override

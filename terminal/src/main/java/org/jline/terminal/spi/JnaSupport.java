@@ -12,6 +12,6 @@ public interface JnaSupport {
 
     Pty open(Attributes attributes, Size size) throws IOException;
 
-    Terminal winSysTerminal(String name, boolean nativeSignals, Terminal.SignalHandler signalHandler) throws IOException;
+    Terminal winSysTerminal(String name, int codepage, boolean nativeSignals, Terminal.SignalHandler signalHandler) throws IOException;
 
 }

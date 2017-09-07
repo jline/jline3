@@ -39,6 +39,7 @@ public final class TerminalBuilder {
     //
 
     public static final String PROP_ENCODING = "org.jline.terminal.encoding";
+    public static final String PROP_CODEPAGE = "org.jline.terminal.codepage";
     public static final String PROP_TYPE = "org.jline.terminal.type";
     public static final String PROP_JNA = "org.jline.terminal.jna";
     public static final String PROP_JANSI = "org.jline.terminal.jansi";
@@ -69,6 +70,7 @@ public final class TerminalBuilder {
     private OutputStream out;
     private String type;
     private String encoding;
+    private int codepage;
     private Boolean system;
     private Boolean jna;
     private Boolean jansi;
@@ -189,6 +191,13 @@ public final class TerminalBuilder {
         if (encoding == null) {
             encoding = Charset.defaultCharset().name();
         }
+        int codepage = this.codepage;
+        if (codepage <= 0) {
+            String str = System.getProperty(PROP_CODEPAGE);
+            if (str != null) {
+                codepage = Integer.parseInt(str);
+            }
+        }
         String type = this.type;
         if (type == null) {
             type = System.getProperty(PROP_TYPE);
@@ -240,7 +249,7 @@ public final class TerminalBuilder {
             else if (OSUtils.IS_WINDOWS) {
                 if (jna) {
                     try {
-                        return load(JnaSupport.class).winSysTerminal(name, nativeSignals, signalHandler);
+                        return load(JnaSupport.class).winSysTerminal(name, codepage, nativeSignals, signalHandler);
                     } catch (Throwable t) {
                         Log.debug("Error creating JNA based terminal: ", t.getMessage(), t);
                         exception.addSuppressed(t);
@@ -248,7 +257,7 @@ public final class TerminalBuilder {
                 }
                 if (jansi) {
                     try {
-                        return load(JansiSupport.class).winSysTerminal(name, nativeSignals, signalHandler);
+                        return load(JansiSupport.class).winSysTerminal(name, codepage, nativeSignals, signalHandler);
                     } catch (Throwable t) {
                         Log.debug("Error creating JANSI based terminal: ", t.getMessage(), t);
                         exception.addSuppressed(t);

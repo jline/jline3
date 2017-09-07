@@ -58,16 +58,29 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     protected final ShutdownHooks.Task closer;
     protected final Attributes attributes = new Attributes();
     protected final Thread pump;
+    protected final int consoleOutputCP;
 
     protected MouseTracking tracking = MouseTracking.Off;
     private volatile boolean closing;
 
-    public AbstractWindowsTerminal(OutputStream output, String name, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
+    public AbstractWindowsTerminal(OutputStream output, String name, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
         super(name, TYPE_WINDOWS, signalHandler);
         PipedInputStream input = new PipedInputStream(PIPE_SIZE); // UTF-8 encoded
         this.slaveInputPipe = new PipedOutputStream(input); // UTF-8 encoded
         this.input = new FilterInputStream(input) {}; // UTF-8 encoded
         this.output = output;
+        if (codepage > 0) {
+            // Find out the console code page and save it
+            this.consoleOutputCP = getConsoleOutputCP();
+            // Try to set the code page
+            if (this.consoleOutputCP != codepage) {
+                setConsoleOutputCP(codepage);
+            }
+        } else {
+            this.consoleOutputCP = 0;
+        }
+        // Whether the above call succeeded or failed, grab the console
+        // code page and find a matching charset to encode
         String encoding = getConsoleEncoding();
         if (encoding == null) {
             encoding = Charset.defaultCharset().name();
@@ -192,6 +205,9 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         }
         reader.close();
         writer.close();
+        if (consoleOutputCP > 0) {
+            setConsoleOutputCP(consoleOutputCP);
+        }
     }
 
     static final int SHIFT_FLAG = 0x01;

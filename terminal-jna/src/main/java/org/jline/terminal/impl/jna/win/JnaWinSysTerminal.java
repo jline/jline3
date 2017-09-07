@@ -31,12 +31,12 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
     private int prevButtonState;
 
     public JnaWinSysTerminal(String name, boolean nativeSignals) throws IOException {
-        this(name, nativeSignals, SignalHandler.SIG_DFL);
+        this(name, 0, nativeSignals, SignalHandler.SIG_DFL);
     }
 
-    public JnaWinSysTerminal(String name, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
+    public JnaWinSysTerminal(String name, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
         super(new WindowsAnsiOutputStream(new BufferedOutputStream(new FileOutputStream(FileDescriptor.out)), consoleOut),
-              name, nativeSignals, signalHandler);
+              name, codepage, nativeSignals, signalHandler);
         strings.put(InfoCmp.Capability.key_mouse, "\\E[M");
     }
 
