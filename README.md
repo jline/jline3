@@ -65,4 +65,9 @@ Check out and build:
     git clone git://github.com/jline/jline3.git
     cd jline3
     mvn install
+    
+## Continuous Integration
+
+* [Travis](https://travis-ci.org/jline/jline3)
+* [AppVeyor](https://ci.appveyor.com/project/gnodet/jline3)
 
