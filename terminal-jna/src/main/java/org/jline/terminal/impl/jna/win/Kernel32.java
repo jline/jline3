@@ -237,6 +237,16 @@ interface Kernel32 extends StdCallLibrary {
                               boolean in_bAbsolute, SMALL_RECT in_lpConsoleWindow)
             throws LastErrorException;
 
+    // BOOL WINAPI WriteConsole(
+    //  _In_             HANDLE  hConsoleOutput,
+    //  _In_       const VOID    *lpBuffer,
+    //  _In_             DWORD   nNumberOfCharsToWrite,
+    //  _Out_            LPDWORD lpNumberOfCharsWritten,
+    //  _Reserved_       LPVOID  lpReserved
+    // );
+    void WriteConsoleW(Pointer in_hConsoleOutput, char[] in_lpBuffer, int in_nNumberOfCharsToWrite,
+                          IntByReference out_lpNumberOfCharsWritten, Pointer reserved_lpReserved) throws LastErrorException;
+
     // BOOL WINAPI WriteConsoleOutput(
     // _In_ HANDLE hConsoleOutput,
     // _In_ const CHAR_INFO *lpBuffer,

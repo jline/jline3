@@ -17,10 +17,10 @@ package org.jline.terminal.impl.jansi.win;
 
 import org.fusesource.jansi.internal.Kernel32.*;
 import org.fusesource.jansi.internal.WindowsSupport;
-import org.jline.utils.AnsiOutputStream;
+import org.jline.utils.AnsiWriter;
 
 import java.io.IOException;
-import java.io.OutputStream;
+import java.io.Writer;
 
 import static org.fusesource.jansi.internal.Kernel32.*;
 
@@ -32,7 +32,7 @@ import static org.fusesource.jansi.internal.Kernel32.*;
  * @author <a href="http://hiramchirino.com">Hiram Chirino</a>
  * @author Joris Kuipers
  */
-public final class WindowsAnsiOutputStream extends AnsiOutputStream {
+public final class WindowsAnsiWriter extends AnsiWriter {
 
     private static final long console = GetStdHandle(STD_OUTPUT_HANDLE);
 
@@ -77,8 +77,8 @@ public final class WindowsAnsiOutputStream extends AnsiOutputStream {
     private short savedX = -1;
     private short savedY = -1;
 
-    public WindowsAnsiOutputStream(OutputStream os) throws IOException {
-        super(os);
+    public WindowsAnsiWriter(Writer out) throws IOException {
+        super(out);
         getConsoleInfo();
         originalColors = info.attributes;
     }

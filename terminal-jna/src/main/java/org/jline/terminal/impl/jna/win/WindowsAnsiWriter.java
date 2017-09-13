@@ -9,11 +9,11 @@
 package org.jline.terminal.impl.jna.win;
 
 import java.io.IOException;
-import java.io.OutputStream;
+import java.io.Writer;
 
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
-import org.jline.utils.AnsiOutputStream;
+import org.jline.utils.AnsiWriter;
 
 import static org.jline.terminal.impl.jna.win.Kernel32.BACKGROUND_BLUE;
 import static org.jline.terminal.impl.jna.win.Kernel32.BACKGROUND_GREEN;
@@ -33,7 +33,7 @@ import static org.jline.terminal.impl.jna.win.Kernel32.FOREGROUND_RED;
  * @author <a href="http://hiramchirino.com">Hiram Chirino</a>
  * @author Joris Kuipers
  */
-public final class WindowsAnsiOutputStream extends AnsiOutputStream {
+public final class WindowsAnsiWriter extends AnsiWriter {
 
     private static final short FOREGROUND_BLACK   = 0;
     private static final short FOREGROUND_YELLOW  = (short) (FOREGROUND_RED|FOREGROUND_GREEN);
@@ -80,8 +80,8 @@ public final class WindowsAnsiOutputStream extends AnsiOutputStream {
     private short savedX = -1;
     private short savedY = -1;
 
-    public WindowsAnsiOutputStream(OutputStream os, Pointer console) throws IOException {
-        super(os);
+    public WindowsAnsiWriter(Writer out, Pointer console) throws IOException {
+        super(out);
         this.console = console;
         getConsoleInfo();
         originalColors = info.wAttributes;

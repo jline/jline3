@@ -11,13 +11,11 @@ package org.jline.utils;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
-import org.jline.terminal.impl.DumbTerminal;
 import org.junit.Test;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InterruptedIOException;
-import java.io.OutputStream;
+import java.io.StringWriter;
 
 import static org.junit.Assert.assertEquals;
 
@@ -40,7 +38,7 @@ public class AttributedCharSequenceTest {
     private static class DumbWindowsTerminal extends AbstractWindowsTerminal {
 
         public DumbWindowsTerminal() throws IOException {
-            super(new ByteArrayOutputStream(), "windows", 0, false, SignalHandler.SIG_DFL);
+            super(new StringWriter(), "windows", 0, false, SignalHandler.SIG_DFL);
         }
 
         @Override
@@ -51,11 +49,6 @@ public class AttributedCharSequenceTest {
         @Override
         protected int getConsoleOutputCP() {
             return 0;
-        }
-
-        @Override
-        protected void setConsoleOutputCP(int cp) {
-
         }
 
         @Override
