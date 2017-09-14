@@ -11,11 +11,11 @@ package org.jline.terminal.impl.jna.win;
 import com.sun.jna.LastErrorException;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
+import org.jline.terminal.impl.AbstractWindowsConsoleWriter;
 
 import java.io.IOException;
-import java.io.Writer;
 
-class JnaWinConsoleWriter extends Writer {
+class JnaWinConsoleWriter extends AbstractWindowsConsoleWriter {
 
     private final Pointer consoleHandle;
 
@@ -24,26 +24,12 @@ class JnaWinConsoleWriter extends Writer {
     }
 
     @Override
-    public synchronized void write(char[] cbuf, int off, int len) throws IOException {
-        char[] text = cbuf;
-        if (off != 0) {
-            text = new char[len];
-            System.arraycopy(cbuf, off, text, 0, len);
-        }
-
+    protected void writeConsole(char[] text, int len) throws IOException {
         try {
             Kernel32.INSTANCE.WriteConsoleW(this.consoleHandle, text, len, new IntByReference(), null);
         } catch (LastErrorException e) {
             throw new IOException("Failed to write to console", e);
         }
-    }
-
-    @Override
-    public void flush() {
-    }
-
-    @Override
-    public void close() {
     }
 
 }
