@@ -93,6 +93,7 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
             Signals.unregister(entry.getKey().name(), entry.getValue());
         }
         super.close();
-        reader.close();
+        // Do not call reader.close()
+        reader.shutdown();
     }
 }
