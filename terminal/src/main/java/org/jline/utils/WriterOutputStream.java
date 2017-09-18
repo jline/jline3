@@ -35,16 +35,19 @@ public class WriterOutputStream extends OutputStream {
     @Override
     public void write(int b) throws IOException {
         out.write(b);
+        flush();
     }
 
     @Override
     public void write(byte[] b) throws IOException {
         out.write(new String(b, this.charset));
+        flush();
     }
 
     @Override
     public void write(byte[] b, int off, int len) throws IOException {
         out.write(new String(b, off, len, this.charset));
+        flush();
     }
 
     @Override

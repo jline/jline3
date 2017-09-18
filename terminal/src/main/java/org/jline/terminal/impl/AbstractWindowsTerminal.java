@@ -72,7 +72,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         this.writer = new PrintWriter(writer);
         // Grab the console code page and find a matching charset to encode
         Charset charset = getConsoleEncoding(codepage);
-        this.output = new BufferedOutputStream(new WriterOutputStream(writer, charset));
+        this.output = new WriterOutputStream(writer, charset);
         parseInfoCmp();
         // Attributes
         attributes.setLocalFlag(Attributes.LocalFlag.ISIG, true);
