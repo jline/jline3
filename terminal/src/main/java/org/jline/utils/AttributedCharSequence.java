@@ -54,7 +54,8 @@ public abstract class AttributedCharSequence implements CharSequence {
             if (max_colors != null) {
                 colors = max_colors;
             }
-            windows = terminal.getType().toLowerCase(Locale.ENGLISH)
+            windows = terminal.getType() != null
+                && terminal.getType().toLowerCase(Locale.ENGLISH)
                     .startsWith(AbstractWindowsTerminal.TYPE_WINDOWS);
         }
         for (int i = 0; i < length(); i++) {
