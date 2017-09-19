@@ -112,19 +112,16 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
         return sb.toString();
     }
 
+    private final Kernel32.INPUT_RECORD[] inputEvents = new Kernel32.INPUT_RECORD[1];
+    private final IntByReference eventsRead = new IntByReference();
+
     private Kernel32.INPUT_RECORD[] doReadConsoleInput() throws IOException {
-        Kernel32.INPUT_RECORD[] ir = new Kernel32.INPUT_RECORD[1];
-        IntByReference r = new IntByReference();
-        Kernel32.INSTANCE.ReadConsoleInput(consoleIn, ir, ir.length, r);
-        for (int i = 0; i < r.getValue(); ++i) {
-            switch (ir[i].EventType) {
-                case Kernel32.INPUT_RECORD.KEY_EVENT:
-                case Kernel32.INPUT_RECORD.WINDOW_BUFFER_SIZE_EVENT:
-                case Kernel32.INPUT_RECORD.MOUSE_EVENT:
-                    return ir;
-            }
+        Kernel32.INSTANCE.ReadConsoleInput(consoleIn, inputEvents, 1, eventsRead);
+        if (eventsRead.getValue() == 1) {
+            return inputEvents;
+        } else {
+            return null;
         }
-        return null;
     }
 
     @Override
