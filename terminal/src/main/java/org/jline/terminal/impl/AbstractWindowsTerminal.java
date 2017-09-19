@@ -14,18 +14,15 @@ import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.Log;
 import org.jline.utils.NonBlockingReader;
+import org.jline.utils.PumpReader;
 import org.jline.utils.ShutdownHooks;
 import org.jline.utils.Signals;
 import org.jline.utils.WriterOutputStream;
 
-import java.io.BufferedOutputStream;
-import java.io.FilterInputStream;
 import java.io.InputStream;
 import java.io.IOError;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -50,7 +47,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     protected static final int ENABLE_INSERT_MODE     = 0x0020;
     protected static final int ENABLE_QUICK_EDIT_MODE = 0x0040;
 
-    protected final OutputStream slaveInputPipe;
+    protected final Writer slaveInputPipe;
     protected final InputStream input;
     protected final OutputStream output;
     protected final NonBlockingReader reader;
@@ -65,10 +62,10 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
 
     public AbstractWindowsTerminal(Writer writer, String name, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
         super(name, TYPE_WINDOWS, signalHandler);
-        PipedInputStream input = new PipedInputStream(PIPE_SIZE); // UTF-8 encoded
-        this.slaveInputPipe = new PipedOutputStream(input); // UTF-8 encoded
-        this.input = new FilterInputStream(input) {}; // UTF-8 encoded
-        this.reader = new NonBlockingReader(getName(), new org.jline.utils.InputStreamReader(input, StandardCharsets.UTF_8));
+        PumpReader reader = new PumpReader();
+        this.slaveInputPipe = reader.getWriter();
+        this.reader = new NonBlockingReader(getName(), reader);
+        this.input = reader.createInputStream(StandardCharsets.UTF_8);
         this.writer = new PrintWriter(writer);
         // Grab the console code page and find a matching charset to encode
         Charset charset = getConsoleEncoding(codepage);
@@ -382,8 +379,8 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         try {
             while (!closing) {
                 String buf = readConsoleInput();
-                for (byte b : buf.getBytes(StandardCharsets.UTF_8)) {
-                    processInputByte(b);
+                for (char b : buf.toCharArray()) {
+                    processInputChar(b);
                 }
             }
         } catch (IOException e) {
@@ -393,7 +390,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         }
     }
 
-    public void processInputByte(int c) throws IOException {
+    public void processInputChar(char c) throws IOException {
         if (attributes.getLocalFlag(Attributes.LocalFlag.ISIG)) {
             if (c == attributes.getControlChar(Attributes.ControlChar.VINTR)) {
                 raise(Signal.INT);
