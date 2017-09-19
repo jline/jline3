@@ -16,18 +16,21 @@ import org.jline.utils.Log;
 import org.jline.utils.NonBlockingReader;
 import org.jline.utils.ShutdownHooks;
 import org.jline.utils.Signals;
+import org.jline.utils.WriterOutputStream;
 
+import java.io.BufferedOutputStream;
 import java.io.FilterInputStream;
 import java.io.InputStream;
 import java.io.IOError;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.io.Writer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -37,8 +40,6 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
 
     private static final int PIPE_SIZE = 1024;
 
-    private static final String UTF8 = "UTF-8";
-    private static final Charset UTF8_CHARSET = Charset.forName(UTF8);
     private static final int UTF8_CODE_PAGE = 65001;
 
     protected static final int ENABLE_PROCESSED_INPUT = 0x0001;
@@ -58,35 +59,20 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     protected final ShutdownHooks.Task closer;
     protected final Attributes attributes = new Attributes();
     protected final Thread pump;
-    protected final int consoleOutputCP;
 
     protected MouseTracking tracking = MouseTracking.Off;
     private volatile boolean closing;
 
-    public AbstractWindowsTerminal(OutputStream output, String name, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
+    public AbstractWindowsTerminal(Writer writer, String name, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
         super(name, TYPE_WINDOWS, signalHandler);
         PipedInputStream input = new PipedInputStream(PIPE_SIZE); // UTF-8 encoded
         this.slaveInputPipe = new PipedOutputStream(input); // UTF-8 encoded
         this.input = new FilterInputStream(input) {}; // UTF-8 encoded
-        this.output = output;
-        if (codepage > 0) {
-            // Find out the console code page and save it
-            this.consoleOutputCP = getConsoleOutputCP();
-            // Try to set the code page
-            if (this.consoleOutputCP != codepage) {
-                setConsoleOutputCP(codepage);
-            }
-        } else {
-            this.consoleOutputCP = 0;
-        }
-        // Whether the above call succeeded or failed, grab the console
-        // code page and find a matching charset to encode
-        String encoding = getConsoleEncoding();
-        if (encoding == null) {
-            encoding = Charset.defaultCharset().name();
-        }
-        this.reader = new NonBlockingReader(getName(), new org.jline.utils.InputStreamReader(input, UTF8_CHARSET));
-        this.writer = new PrintWriter(new OutputStreamWriter(output, encoding));
+        this.reader = new NonBlockingReader(getName(), new org.jline.utils.InputStreamReader(input, StandardCharsets.UTF_8));
+        this.writer = new PrintWriter(writer);
+        // Grab the console code page and find a matching charset to encode
+        Charset charset = getConsoleEncoding(codepage);
+        this.output = new WriterOutputStream(writer, charset);
         parseInfoCmp();
         // Attributes
         attributes.setLocalFlag(Attributes.LocalFlag.ISIG, true);
@@ -110,21 +96,24 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         ShutdownHooks.add(closer);
     }
 
-    protected String getConsoleEncoding() {
-        int codepage = getConsoleOutputCP();
+    protected Charset getConsoleEncoding(int codepage) {
+        if (codepage <= 0) {
+            codepage = getConsoleOutputCP();
+        }
+
         //http://docs.oracle.com/javase/6/docs/technotes/guides/intl/encoding.doc.html
         if (codepage == UTF8_CODE_PAGE) {
-            return UTF8;
+            return StandardCharsets.UTF_8;
         }
         String charsetMS = "ms" + codepage;
         if (Charset.isSupported(charsetMS)) {
-            return charsetMS;
+            return Charset.forName(charsetMS);
         }
         String charsetCP = "cp" + codepage;
         if (Charset.isSupported(charsetCP)) {
-            return charsetCP;
+            return Charset.forName(charsetCP);
         }
-        return null;
+        return Charset.defaultCharset();
     }
 
     @Override
@@ -205,9 +194,6 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         }
         reader.close();
         writer.close();
-        if (consoleOutputCP > 0) {
-            setConsoleOutputCP(consoleOutputCP);
-        }
     }
 
     static final int SHIFT_FLAG = 0x01;
@@ -396,7 +382,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         try {
             while (!closing) {
                 String buf = readConsoleInput();
-                for (byte b : buf.getBytes(UTF8_CHARSET)) {
+                for (byte b : buf.getBytes(StandardCharsets.UTF_8)) {
                     processInputByte(b);
                 }
             }
@@ -448,8 +434,6 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     }
 
     protected abstract int getConsoleOutputCP();
-
-    protected abstract void setConsoleOutputCP(int cp);
 
     protected abstract int getConsoleMode();
 

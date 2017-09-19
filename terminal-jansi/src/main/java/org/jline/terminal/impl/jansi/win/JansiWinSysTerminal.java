@@ -8,9 +8,7 @@
  */
 package org.jline.terminal.impl.jansi.win;
 
-import java.io.BufferedOutputStream;
-import java.io.FileDescriptor;
-import java.io.FileOutputStream;
+import java.io.BufferedWriter;
 import java.io.IOError;
 import java.io.IOException;
 import java.util.function.IntConsumer;
@@ -36,18 +34,13 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
     }
 
     public JansiWinSysTerminal(String name, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
-        super(new WindowsAnsiOutputStream(new BufferedOutputStream(new FileOutputStream(FileDescriptor.out))),
+        super(new WindowsAnsiWriter(new BufferedWriter(new JansiWinConsoleWriter())),
               name, codepage, nativeSignals, signalHandler);
     }
 
     @Override
     protected int getConsoleOutputCP() {
         return Kernel32.GetConsoleOutputCP();
-    }
-
-    @Override
-    protected void setConsoleOutputCP(int cp) {
-        Kernel32.SetConsoleOutputCP(cp);
     }
 
     @Override
