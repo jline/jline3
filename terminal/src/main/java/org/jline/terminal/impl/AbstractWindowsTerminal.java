@@ -34,6 +34,18 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * The AbstractWindowsTerminal is used as the base class for windows terminal.
+ * Due to windows limitations, mostly the missing support for ansi sequences,
+ * the only way to create a correct terminal is to use the windows api to set
+ * character attributes, move the cursor, erasing, etc...
+ *
+ * UTF-8 support is also lacking in windows and the code page supposed to
+ * emulate UTF-8 is a bit broken. In order to work around this broken
+ * code page, windows api WriteConsoleW is used directly.  This means that
+ * the writer() becomes the primary output, while the output() is bridged
+ * to the writer() using a WriterOutputStream wrapper.
+ */
 public abstract class AbstractWindowsTerminal extends AbstractTerminal {
 
     public static final String TYPE_WINDOWS = "windows";
