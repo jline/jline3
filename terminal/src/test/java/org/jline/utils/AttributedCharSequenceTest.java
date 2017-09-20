@@ -62,13 +62,14 @@ public class AttributedCharSequenceTest {
         }
 
         @Override
-        protected String readConsoleInput() throws IOException {
+        protected boolean processConsoleInput() throws IOException {
             try {
                 Thread.sleep(100);
             } catch (InterruptedException e) {
                 throw new InterruptedIOException();
             }
-            return "";
+
+            return false;
         }
     }
 

@@ -60,17 +60,18 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
         return size;
     }
 
-    protected String readConsoleInput() throws IOException {
+    protected boolean processConsoleInput() throws IOException {
         INPUT_RECORD[] events = WindowsSupport.readConsoleInput(1);
         if (events == null) {
-            return "";
+            return false;
         }
-        StringBuilder sb = new StringBuilder();
+
         for (INPUT_RECORD event : events) {
             KEY_EVENT_RECORD keyEvent = event.keyEvent;
-            sb.append(getEscapeSequenceFromConsoleInput(keyEvent.keyDown , keyEvent.keyCode, keyEvent.uchar, keyEvent.controlKeyState, keyEvent.repeatCount,keyEvent.scanCode));
+            processKeyEvent(keyEvent.keyDown , keyEvent.keyCode, keyEvent.uchar, keyEvent.controlKeyState);
         }
-        return sb.toString();
+
+        return true;
     }
 
     @Override

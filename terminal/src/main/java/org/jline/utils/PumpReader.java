@@ -21,7 +21,7 @@ import java.nio.charset.CodingErrorAction;
 public class PumpReader extends Reader {
 
     private static final int EOF = -1;
-    private static final int BUFFER_SIZE = 4096;
+    private static final int DEFAULT_BUFFER_SIZE = 4096;
 
     // Read and write buffer are backed by the same array
     private final CharBuffer readBuffer;
@@ -32,7 +32,11 @@ public class PumpReader extends Reader {
     private boolean closed;
 
     public PumpReader() {
-        char[] buf = new char[BUFFER_SIZE];
+        this(DEFAULT_BUFFER_SIZE);
+    }
+
+    public PumpReader(int bufferSize) {
+        char[] buf = new char[bufferSize];
         this.readBuffer = CharBuffer.wrap(buf);
         this.writeBuffer = CharBuffer.wrap(buf);
         this.writer = new Writer(this);
@@ -247,8 +251,11 @@ public class PumpReader extends Reader {
     }
 
     synchronized void flush() {
-        // Notify readers
-        notifyAll();
+        // Avoid waking up readers when there is nothing to read
+        if (readBuffer.hasRemaining()) {
+            // Notify readers
+            notifyAll();
+        }
     }
 
     @Override

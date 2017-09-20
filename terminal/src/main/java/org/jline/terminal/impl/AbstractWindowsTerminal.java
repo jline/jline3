@@ -19,9 +19,9 @@ import org.jline.utils.ShutdownHooks;
 import org.jline.utils.Signals;
 import org.jline.utils.WriterOutputStream;
 
-import java.io.InputStream;
 import java.io.IOError;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -34,8 +34,6 @@ import java.util.Map;
 public abstract class AbstractWindowsTerminal extends AbstractTerminal {
 
     public static final String TYPE_WINDOWS = "windows";
-
-    private static final int PIPE_SIZE = 1024;
 
     private static final int UTF8_CODE_PAGE = 65001;
 
@@ -206,12 +204,10 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     static final int SCROLLLOCK_ON =       0x0040;
     static final int CAPSLOCK_ON =         0x0080;
 
-    protected String getEscapeSequenceFromConsoleInput(final boolean isKeyDown, final short virtualKeyCode, final char uchar, final int controlKeyState, final short repeatCount, final short scanCode) {
+    protected void processKeyEvent(final boolean isKeyDown, final short virtualKeyCode, char ch, final int controlKeyState) throws IOException {
         final boolean isCtrl = (controlKeyState & (RIGHT_CTRL_PRESSED | LEFT_CTRL_PRESSED)) > 0;
         final boolean isAlt = (controlKeyState & (RIGHT_ALT_PRESSED | LEFT_ALT_PRESSED)) > 0;
         final boolean isShift = (controlKeyState & SHIFT_PRESSED) > 0;
-        char ch = uchar;
-        StringBuilder sb = new StringBuilder(32);
         // key down event
         if (isKeyDown && ch != '\3') {
             // Pressing "Alt Gr" is translated to Alt-Ctrl, hence it has to be checked that Ctrl is _not_ pressed,
@@ -219,11 +215,14 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
             if (ch != 0
                     && (controlKeyState & (RIGHT_ALT_PRESSED | LEFT_ALT_PRESSED | RIGHT_CTRL_PRESSED | LEFT_CTRL_PRESSED | SHIFT_PRESSED))
                         == (RIGHT_ALT_PRESSED | LEFT_CTRL_PRESSED)) {
-                sb.append(ch);
+                processInputChar(ch);
             } else {
                 final String keySeq = getEscapeSequence(virtualKeyCode, (isCtrl ? CTRL_FLAG : 0) + (isAlt ? ALT_FLAG : 0) + (isShift ? SHIFT_FLAG : 0));
                 if (keySeq != null) {
-                    return keySeq;
+                    for (char c : keySeq.toCharArray()) {
+                        processInputChar(c);
+                    }
+                    return;
                 }
                 /* uchar value in Windows when CTRL is pressed:
                  * 1). Ctrl +  <0x41 to 0x5e>      : uchar=<keyCode> - 'A' + 1
@@ -235,12 +234,12 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
                 */
                 if (ch > 0) {
                     if (isAlt) {
-                        sb.append("\033");
+                        processInputChar('\033');
                     }
                     if (isCtrl && ch != ' ' && ch != '\n' && ch != 0x7f) {
-                        sb.append((char) (ch == '?' ? 0x7f : Character.toUpperCase(ch) & 0x1f));
+                        processInputChar((char) (ch == '?' ? 0x7f : Character.toUpperCase(ch) & 0x1f));
                     } else {
-                        sb.append(ch);
+                        processInputChar(ch);
                     }
                 } else if (isCtrl) { //Handles the ctrl key events(uchar=0)
                     if (virtualKeyCode >= 'A' && virtualKeyCode <= 'Z') {
@@ -250,24 +249,22 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
                     }
                     if (ch > 0) {
                         if (isAlt) {
-                            sb.append("\033");
+                            processInputChar('\033');
                         }
-                        sb.append(ch);
+                        processInputChar(ch);
                     }
                 }
             }
+        } else if (ch == '\3') {
+            processInputChar('\3');
         }
         // key up event
         else {
-            if (ch == '\3') {
-                return "\3";
-            }
             // support ALT+NumPad input method
             if (virtualKeyCode == 0x12 /*VK_MENU ALT key*/ && ch > 0) {
-                sb.append(ch);  // no such combination in Windows
+                processInputChar(ch);  // no such combination in Windows
             }
         }
-        return sb.toString();
     }
 
     protected String getEscapeSequence(short keyCode, int keyState) {
@@ -349,7 +346,8 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
                 break;
             case 0x5D: // VK_CLOSE_BRACKET(Menu key)
             case 0x5B: // VK_OPEN_BRACKET(Window key)
-                break;
+            default:
+                return null;
         }
         return translate(escapeSequence, keyState + 1);
     }
@@ -378,9 +376,8 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     protected void pump() {
         try {
             while (!closing) {
-                String buf = readConsoleInput();
-                for (char b : buf.toCharArray()) {
-                    processInputChar(b);
+                if (processConsoleInput()) {
+                    slaveInputPipe.flush();
                 }
             }
         } catch (IOException e) {
@@ -420,7 +417,6 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
 //            masterOutput.flush();
 //        }
         slaveInputPipe.write(c);
-        slaveInputPipe.flush();
     }
 
     @Override
@@ -436,7 +432,12 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
 
     protected abstract void setConsoleMode(int mode);
 
-    protected abstract String readConsoleInput() throws IOException;
+    /**
+     * Read a single input event from the input buffer and process it.
+     *
+     * @return true if new input was generated from the event
+     */
+    protected abstract boolean processConsoleInput() throws IOException;
 
 }
 
