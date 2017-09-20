@@ -60,6 +60,7 @@ public class AnsiWriter extends FilterWriter {
     private static final int LOOKING_FOR_OSC_COMMAND_END = 6;
     private static final int LOOKING_FOR_OSC_PARAM = 7;
     private static final int LOOKING_FOR_ST = 8;
+    private static final int LOOKING_FOR_CHARSET = 9;
 
     int state = LOOKING_FOR_FIRST_ESC_CHAR;
 
@@ -68,6 +69,8 @@ public class AnsiWriter extends FilterWriter {
     private static final int SECOND_OSC_CHAR = ']';
     private static final int BEL = 7;
     private static final int SECOND_ST_CHAR = '\\';
+    private static final int SECOND_CHARSET0_CHAR = '(';
+    private static final int SECOND_CHARSET1_CHAR = ')';
 
     @Override
     public synchronized void write(int data) throws IOException {
@@ -87,6 +90,12 @@ public class AnsiWriter extends FilterWriter {
                     state = LOOKING_FOR_NEXT_ARG;
                 } else if (data == SECOND_OSC_CHAR) {
                     state = LOOKING_FOR_OSC_COMMAND;
+                } else if (data == SECOND_CHARSET0_CHAR) {
+                    options.add((int) '0');
+                    state = LOOKING_FOR_CHARSET;
+                } else if (data == SECOND_CHARSET1_CHAR) {
+                    options.add((int) '1');
+                    state = LOOKING_FOR_CHARSET;
                 } else {
                     reset(false);
                 }
@@ -208,6 +217,11 @@ public class AnsiWriter extends FilterWriter {
                 } else {
                     state = LOOKING_FOR_OSC_PARAM;
                 }
+                break;
+
+            case LOOKING_FOR_CHARSET:
+                options.add((char) data);
+                reset(processCharsetSelect(options));
                 break;
         }
 
@@ -745,6 +759,21 @@ public class AnsiWriter extends FilterWriter {
      * @param param
      */
     protected void processUnknownOperatingSystemCommand(int command, String param) {
+    }
+
+    /**
+     * Process character set sequence.
+     * @param options
+     * @return true if the charcter set select command was processed.
+     */
+    private boolean processCharsetSelect(ArrayList<Object> options) throws IOException {
+        int set = optionInt(options, 0);
+        char seq = (Character) options.get(1);
+        processCharsetSelect(set, seq);
+        return true;
+    }
+
+    protected void processCharsetSelect(int set, char seq) {
     }
 
     private int optionInt(ArrayList<Object> options, int index) {
