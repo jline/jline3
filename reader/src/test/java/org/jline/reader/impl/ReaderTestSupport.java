@@ -10,6 +10,7 @@ package org.jline.reader.impl;
 
 import java.io.*;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.ConsoleHandler;
@@ -65,7 +66,7 @@ public abstract class ReaderTestSupport
 
         in = new EofPipedInputStream();
         out = new ByteArrayOutputStream();
-        terminal = new DumbTerminal("terminal", "ansi", in, out, "UTF-8");
+        terminal = new DumbTerminal("terminal", "ansi", in, out, StandardCharsets.UTF_8);
         terminal.setSize(new Size(160, 80));
         reader = new TestLineReader(terminal, "JLine", null);
         reader.setKeyMap(LineReaderImpl.EMACS);

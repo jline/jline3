@@ -70,16 +70,14 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     protected MouseTracking tracking = MouseTracking.Off;
     private volatile boolean closing;
 
-    public AbstractWindowsTerminal(Writer writer, String name, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
-        super(name, TYPE_WINDOWS, signalHandler);
+    public AbstractWindowsTerminal(Writer writer, String name, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
+        super(name, TYPE_WINDOWS, selectCharset(encoding, codepage), signalHandler);
         PumpReader reader = new PumpReader();
         this.slaveInputPipe = reader.getWriter();
         this.reader = new NonBlockingReader(getName(), reader);
-        this.input = reader.createInputStream(StandardCharsets.UTF_8);
+        this.input = reader.createInputStream(encoding());
         this.writer = new PrintWriter(writer);
-        // Grab the console code page and find a matching charset to encode
-        Charset charset = getConsoleEncoding(codepage);
-        this.output = new WriterOutputStream(writer, charset);
+        this.output = new WriterOutputStream(writer, encoding());
         parseInfoCmp();
         // Attributes
         attributes.setLocalFlag(Attributes.LocalFlag.ISIG, true);
@@ -105,11 +103,20 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         ShutdownHooks.add(closer);
     }
 
-    protected Charset getConsoleEncoding(int codepage) {
-        if (codepage <= 0) {
-            codepage = getConsoleOutputCP();
+    private static Charset selectCharset(Charset encoding, int codepage) {
+        if (encoding != null) {
+            return encoding;
         }
 
+        if (codepage >= 0) {
+            return getCodepageCharset(codepage);
+        }
+
+        // Use UTF-8 as default
+        return StandardCharsets.UTF_8;
+    }
+
+    private static Charset getCodepageCharset(int codepage) {
         //http://docs.oracle.com/javase/6/docs/technotes/guides/intl/encoding.doc.html
         if (codepage == UTF8_CODE_PAGE) {
             return StandardCharsets.UTF_8;

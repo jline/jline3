@@ -20,6 +20,7 @@ import org.jline.terminal.spi.JansiSupport;
 import org.jline.terminal.spi.Pty;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -92,9 +93,9 @@ public class JansiSupportImpl implements JansiSupport {
     }
 
     @Override
-    public Terminal winSysTerminal(String name, int codepage, boolean nativeSignals, Terminal.SignalHandler signalHandler) throws IOException {
+    public Terminal winSysTerminal(String name, Charset encoding, int codepage, boolean nativeSignals, Terminal.SignalHandler signalHandler) throws IOException {
         if (JANSI_MAJOR_VERSION > 1 || JANSI_MAJOR_VERSION == 1 && JANSI_MINOR_VERSION >= 12) {
-            JansiWinSysTerminal terminal = new JansiWinSysTerminal(name, codepage, nativeSignals, signalHandler);
+            JansiWinSysTerminal terminal = new JansiWinSysTerminal(name, encoding, codepage, nativeSignals, signalHandler);
             if (JANSI_MAJOR_VERSION == 1 && JANSI_MINOR_VERSION < 16) {
                 terminal.disableScrolling();
             }

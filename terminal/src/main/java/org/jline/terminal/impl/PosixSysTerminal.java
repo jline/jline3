@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -33,14 +34,16 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
     protected final Map<Signal, Object> nativeHandlers = new HashMap<>();
     protected final Task closer;
 
-    public PosixSysTerminal(String name, String type, Pty pty, String encoding,
+    public PosixSysTerminal(String name, String type, Pty pty, Charset encoding,
                             boolean nativeSignals, SignalHandler signalHandler) throws IOException {
-        super(name, type, pty, signalHandler);
-        Objects.requireNonNull(encoding);
+        super(name, type, pty, encoding, signalHandler);
+        if (encoding == null) {
+            encoding = Charset.defaultCharset();
+        }
         this.input = pty.getSlaveInput();
         this.output = pty.getSlaveOutput();
-        this.reader = new NonBlockingReader(getName(), new InputStreamReader(input, encoding));
-        this.writer = new PrintWriter(new OutputStreamWriter(output, encoding));
+        this.reader = new NonBlockingReader(getName(), new InputStreamReader(input, encoding()));
+        this.writer = new PrintWriter(new OutputStreamWriter(output, encoding()));
         parseInfoCmp();
         if (nativeSignals) {
             for (final Signal signal : Signal.values()) {

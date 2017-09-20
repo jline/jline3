@@ -10,6 +10,7 @@ package org.jline.terminal.impl.jna.win;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.function.IntConsumer;
 
 import com.sun.jna.Pointer;
@@ -25,12 +26,12 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
     private static final Pointer consoleOut = Kernel32.INSTANCE.GetStdHandle(Kernel32.STD_OUTPUT_HANDLE);
 
     public JnaWinSysTerminal(String name, boolean nativeSignals) throws IOException {
-        this(name, 0, nativeSignals, SignalHandler.SIG_DFL);
+        this(name, null, 0, nativeSignals, SignalHandler.SIG_DFL);
     }
 
-    public JnaWinSysTerminal(String name, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
+    public JnaWinSysTerminal(String name, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
         super(new WindowsAnsiWriter(new BufferedWriter(new JnaWinConsoleWriter(consoleOut)), consoleOut),
-              name, codepage, nativeSignals, signalHandler);
+              name, encoding, codepage, nativeSignals, signalHandler);
         strings.put(InfoCmp.Capability.key_mouse, "\\E[M");
 
         // Start input pump thread

@@ -32,15 +32,15 @@ public class DumbTerminal extends AbstractTerminal {
     private final Size size;
 
     public DumbTerminal(InputStream in, OutputStream out) throws IOException {
-        this(TYPE_DUMB, TYPE_DUMB, in, out, Charset.defaultCharset().name());
+        this(TYPE_DUMB, TYPE_DUMB, in, out, null);
     }
 
-    public DumbTerminal(String name, String type, InputStream in, OutputStream out, String encoding) throws IOException {
+    public DumbTerminal(String name, String type, InputStream in, OutputStream out, Charset encoding) throws IOException {
         this(name, type, in, out, encoding, SignalHandler.SIG_DFL);
     }
 
-    public DumbTerminal(String name, String type, InputStream in, OutputStream out, String encoding, SignalHandler signalHandler) throws IOException {
-        super(name, type, signalHandler);
+    public DumbTerminal(String name, String type, InputStream in, OutputStream out, Charset encoding, SignalHandler signalHandler) throws IOException {
+        super(name, type, encoding, signalHandler);
         this.input = new InputStream() {
             @Override
             public int read() throws IOException {
@@ -91,8 +91,8 @@ public class DumbTerminal extends AbstractTerminal {
             }
         };
         this.output = out;
-        this.reader = new NonBlockingReader(getName(), new InputStreamReader(input, encoding));
-        this.writer = new PrintWriter(new OutputStreamWriter(output, encoding));
+        this.reader = new NonBlockingReader(getName(), new InputStreamReader(input, encoding()));
+        this.writer = new PrintWriter(new OutputStreamWriter(output, encoding()));
         this.attributes = new Attributes();
         this.attributes.setControlChar(ControlChar.VERASE,  (char) 127);
         this.attributes.setControlChar(ControlChar.VWERASE, (char) 23);

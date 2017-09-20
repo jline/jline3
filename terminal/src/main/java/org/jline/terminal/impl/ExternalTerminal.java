@@ -13,6 +13,7 @@ import org.jline.terminal.Cursor;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.IntConsumer;
 
@@ -36,14 +37,14 @@ public class ExternalTerminal extends LineDisciplineTerminal {
     public ExternalTerminal(String name, String type,
                             InputStream masterInput,
                             OutputStream masterOutput,
-                            String encoding) throws IOException {
+                            Charset encoding) throws IOException {
         this(name, type, masterInput, masterOutput, encoding, SignalHandler.SIG_DFL);
     }
 
     public ExternalTerminal(String name, String type,
                             InputStream masterInput,
                             OutputStream masterOutput,
-                            String encoding,
+                            Charset encoding,
                             SignalHandler signalHandler) throws IOException {
         super(name, type, masterOutput, encoding, signalHandler);
         this.masterInput = masterInput;

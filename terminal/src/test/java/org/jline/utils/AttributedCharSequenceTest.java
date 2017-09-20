@@ -38,7 +38,7 @@ public class AttributedCharSequenceTest {
     private static class DumbWindowsTerminal extends AbstractWindowsTerminal {
 
         public DumbWindowsTerminal() throws IOException {
-            super(new StringWriter(), "windows", 0, false, SignalHandler.SIG_DFL);
+            super(new StringWriter(), "windows", null,0, false, SignalHandler.SIG_DFL);
         }
 
         @Override

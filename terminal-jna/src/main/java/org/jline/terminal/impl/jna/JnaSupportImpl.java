@@ -8,6 +8,7 @@ import org.jline.terminal.spi.JnaSupport;
 import org.jline.terminal.spi.Pty;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 
 public class JnaSupportImpl implements JnaSupport {
     @Override
@@ -21,7 +22,7 @@ public class JnaSupportImpl implements JnaSupport {
     }
 
     @Override
-    public Terminal winSysTerminal(String name, int codepage, boolean nativeSignals, Terminal.SignalHandler signalHandler) throws IOException {
-        return new JnaWinSysTerminal(name, codepage, nativeSignals, signalHandler);
+    public Terminal winSysTerminal(String name, Charset encoding, int codepage, boolean nativeSignals, Terminal.SignalHandler signalHandler) throws IOException {
+        return new JnaWinSysTerminal(name, encoding, codepage, nativeSignals, signalHandler);
     }
 }

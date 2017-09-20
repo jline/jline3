@@ -107,7 +107,7 @@ public class AttributedStringTest {
         assertEquals("\033[48;5;254mHello\033[0m", sb.toAnsi(
                 new DumbTerminal("dumb", "xterm-256color",
                         new ByteArrayInputStream(new byte[0]), new ByteArrayOutputStream(),
-                        Charset.defaultCharset().name())));
+                        null)));
     }
 
     @Test

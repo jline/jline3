@@ -13,6 +13,7 @@ import java.io.Flushable;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 
@@ -67,6 +68,14 @@ public interface Terminal extends Closeable, Flushable {
     NonBlockingReader reader();
 
     PrintWriter writer();
+
+    /**
+     * Returns the {@link Charset} that should be used to encode characters
+     * for {@link #input()} and {@link #output()}.
+     *
+     * @return The terminal encoding
+     */
+    Charset encoding();
 
     InputStream input();
 

@@ -12,6 +12,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
 
 import org.jline.reader.LineReader;
@@ -38,7 +39,7 @@ public class ExternalTerminalTest {
         PipedInputStream in = new PipedInputStream();
         PipedOutputStream outIn = new PipedOutputStream(in);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ExternalTerminal console = new ExternalTerminal("foo", "ansi", in, out, "UTF-8");
+        ExternalTerminal console = new ExternalTerminal("foo", "ansi", in, out, StandardCharsets.UTF_8);
 
         testConsole(outIn, out, console);
     }
@@ -78,7 +79,7 @@ public class ExternalTerminalTest {
         PipedInputStream in = new PipedInputStream();
         final PipedOutputStream outIn = new PipedOutputStream(in);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ExternalTerminal console = new ExternalTerminal("foo", "ansi", in, out, "UTF-8");
+        ExternalTerminal console = new ExternalTerminal("foo", "ansi", in, out, StandardCharsets.UTF_8);
         Attributes attributes = console.getAttributes();
         attributes.setLocalFlag(LocalFlag.ISIG, true);
         attributes.setControlChar(ControlChar.VINTR, 3);
@@ -118,7 +119,7 @@ public class ExternalTerminalTest {
         PipedInputStream in = new PipedInputStream();
         final PipedOutputStream outIn = new PipedOutputStream(in);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ExternalTerminal console = new ExternalTerminal("foo", "ansi", in, out, "UTF-8");
+        ExternalTerminal console = new ExternalTerminal("foo", "ansi", in, out, StandardCharsets.UTF_8);
 
         outIn.write(new byte[] { 'a', '\033', 'b', '\033', '[', '2', ';', '3', 'R', 'f'});
         outIn.flush();

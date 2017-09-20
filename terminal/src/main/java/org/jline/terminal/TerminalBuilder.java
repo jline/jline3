@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.nio.charset.UnsupportedCharsetException;
 import java.util.ServiceLoader;
 
 import org.jline.terminal.impl.AbstractPosixTerminal;
@@ -69,7 +70,7 @@ public final class TerminalBuilder {
     private InputStream in;
     private OutputStream out;
     private String type;
-    private String encoding;
+    private Charset encoding;
     private int codepage;
     private Boolean system;
     private Boolean jna;
@@ -125,11 +126,50 @@ public final class TerminalBuilder {
         return this;
     }
 
-    public TerminalBuilder encoding(String encoding) {
+    /**
+     * Set the encoding to use for reading/writing from the console.
+     * If {@code null} (the default value), JLine will automatically select
+     * a {@link Charset}, usually the default system encoding. However,
+     * on some platforms (e.g. Windows) it may use a different one depending
+     * on the {@link Terminal} implementation.
+     *
+     * <p>Use {@link Terminal#encoding()} to get the {@link Charset} that
+     * should be used for a {@link Terminal}.</p>
+     *
+     * @param encoding The encoding to use or null to automatically select one
+     * @return The builder
+     * @throws UnsupportedCharsetException If the given encoding is not supported
+     * @see Terminal#encoding()
+     */
+    public TerminalBuilder encoding(String encoding) throws UnsupportedCharsetException {
+        return encoding(encoding != null ? Charset.forName(encoding) : null);
+    }
+
+    /**
+     * Set the {@link Charset} to use for reading/writing from the console.
+     * If {@code null} (the default value), JLine will automatically select
+     * a {@link Charset}, usually the default system encoding. However,
+     * on some platforms (e.g. Windows) it may use a different one depending
+     * on the {@link Terminal} implementation.
+     *
+     * <p>Use {@link Terminal#encoding()} to get the {@link Charset} that
+     * should be used to read/write from a {@link Terminal}.</p>
+     *
+     * @param encoding The encoding to use or null to automatically select one
+     * @return The builder
+     * @see Terminal#encoding()
+     */
+    public TerminalBuilder encoding(Charset encoding) {
         this.encoding = encoding;
         return this;
     }
 
+    /**
+     * @deprecated JLine now writes Unicode output independently from the selected
+     *   code page. Using this option will only make it emulate the selected code
+     *   page for {@link Terminal#input()} and {@link Terminal#output()}.
+     */
+    @Deprecated
     public TerminalBuilder codepage(int codepage) {
         this.codepage = codepage;
         return this;
@@ -189,12 +229,12 @@ public final class TerminalBuilder {
         if (name == null) {
             name = "JLine terminal";
         }
-        String encoding = this.encoding;
+        Charset encoding = this.encoding;
         if (encoding == null) {
-            encoding = System.getProperty(PROP_ENCODING);
-        }
-        if (encoding == null) {
-            encoding = Charset.defaultCharset().name();
+            String charsetName = System.getProperty(PROP_ENCODING);
+            if (charsetName != null && Charset.isSupported(charsetName)) {
+                encoding = Charset.forName(charsetName);
+            }
         }
         int codepage = this.codepage;
         if (codepage <= 0) {
@@ -254,7 +294,7 @@ public final class TerminalBuilder {
             else if (OSUtils.IS_WINDOWS) {
                 if (jna) {
                     try {
-                        return load(JnaSupport.class).winSysTerminal(name, codepage, nativeSignals, signalHandler);
+                        return load(JnaSupport.class).winSysTerminal(name, encoding, codepage, nativeSignals, signalHandler);
                     } catch (Throwable t) {
                         Log.debug("Error creating JNA based terminal: ", t.getMessage(), t);
                         exception.addSuppressed(t);
@@ -262,7 +302,7 @@ public final class TerminalBuilder {
                 }
                 if (jansi) {
                     try {
-                        return load(JansiSupport.class).winSysTerminal(name, codepage, nativeSignals, signalHandler);
+                        return load(JansiSupport.class).winSysTerminal(name, encoding, codepage, nativeSignals, signalHandler);
                     } catch (Throwable t) {
                         Log.debug("Error creating JANSI based terminal: ", t.getMessage(), t);
                         exception.addSuppressed(t);

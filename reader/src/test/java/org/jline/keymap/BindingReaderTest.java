@@ -11,6 +11,7 @@ package org.jline.keymap;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -45,7 +46,7 @@ public class BindingReaderTest {
 
         in = new EofPipedInputStream();
         out = new ByteArrayOutputStream();
-        terminal = new DumbTerminal("dumb", "dumb", in, out, "UTF-8");
+        terminal = new DumbTerminal("dumb", "dumb", in, out, StandardCharsets.UTF_8);
         terminal.setSize(new Size(160, 80));
     }
 
