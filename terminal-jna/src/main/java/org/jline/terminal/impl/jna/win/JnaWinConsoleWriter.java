@@ -18,6 +18,7 @@ import java.io.IOException;
 class JnaWinConsoleWriter extends AbstractWindowsConsoleWriter {
 
     private final Pointer consoleHandle;
+    private final IntByReference writtenChars = new IntByReference();
 
     JnaWinConsoleWriter(Pointer consoleHandle) {
         this.consoleHandle = consoleHandle;
@@ -26,7 +27,7 @@ class JnaWinConsoleWriter extends AbstractWindowsConsoleWriter {
     @Override
     protected void writeConsole(char[] text, int len) throws IOException {
         try {
-            Kernel32.INSTANCE.WriteConsoleW(this.consoleHandle, text, len, new IntByReference(), null);
+            Kernel32.INSTANCE.WriteConsoleW(this.consoleHandle, text, len, this.writtenChars, null);
         } catch (LastErrorException e) {
             throw new IOException("Failed to write to console", e);
         }

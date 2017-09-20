@@ -40,8 +40,8 @@ public class AbstractWindowsTerminalTest {
             protected void setConsoleMode(int mode) {
             }
             @Override
-            protected String readConsoleInput() throws IOException {
-                return "";
+            protected boolean processConsoleInput() throws IOException {
+                return false;
             }
             @Override
             public Size getSize() {

@@ -14,18 +14,15 @@ import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.Log;
 import org.jline.utils.NonBlockingReader;
+import org.jline.utils.PumpReader;
 import org.jline.utils.ShutdownHooks;
 import org.jline.utils.Signals;
 import org.jline.utils.WriterOutputStream;
 
-import java.io.BufferedOutputStream;
-import java.io.FilterInputStream;
-import java.io.InputStream;
 import java.io.IOError;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -50,8 +47,6 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
 
     public static final String TYPE_WINDOWS = "windows";
 
-    private static final int PIPE_SIZE = 1024;
-
     private static final int UTF8_CODE_PAGE = 65001;
 
     protected static final int ENABLE_PROCESSED_INPUT = 0x0001;
@@ -62,7 +57,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     protected static final int ENABLE_INSERT_MODE     = 0x0020;
     protected static final int ENABLE_QUICK_EDIT_MODE = 0x0040;
 
-    protected final OutputStream slaveInputPipe;
+    protected final Writer slaveInputPipe;
     protected final InputStream input;
     protected final OutputStream output;
     protected final NonBlockingReader reader;
@@ -77,10 +72,10 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
 
     public AbstractWindowsTerminal(Writer writer, String name, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
         super(name, TYPE_WINDOWS, signalHandler);
-        PipedInputStream input = new PipedInputStream(PIPE_SIZE); // UTF-8 encoded
-        this.slaveInputPipe = new PipedOutputStream(input); // UTF-8 encoded
-        this.input = new FilterInputStream(input) {}; // UTF-8 encoded
-        this.reader = new NonBlockingReader(getName(), new org.jline.utils.InputStreamReader(input, StandardCharsets.UTF_8));
+        PumpReader reader = new PumpReader();
+        this.slaveInputPipe = reader.getWriter();
+        this.reader = new NonBlockingReader(getName(), reader);
+        this.input = reader.createInputStream(StandardCharsets.UTF_8);
         this.writer = new PrintWriter(writer);
         // Grab the console code page and find a matching charset to encode
         Charset charset = getConsoleEncoding(codepage);
@@ -103,7 +98,9 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         }
         pump = new Thread(this::pump, "WindowsStreamPump");
         pump.setDaemon(true);
-        pump.start();
+        // This is called by the JNA/Jansi terminal implementation to avoid
+        // race conditions if they do initialization in their constructor
+        //pump.start();
         closer = this::close;
         ShutdownHooks.add(closer);
     }
@@ -221,12 +218,10 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     static final int SCROLLLOCK_ON =       0x0040;
     static final int CAPSLOCK_ON =         0x0080;
 
-    protected String getEscapeSequenceFromConsoleInput(final boolean isKeyDown, final short virtualKeyCode, final char uchar, final int controlKeyState, final short repeatCount, final short scanCode) {
+    protected void processKeyEvent(final boolean isKeyDown, final short virtualKeyCode, char ch, final int controlKeyState) throws IOException {
         final boolean isCtrl = (controlKeyState & (RIGHT_CTRL_PRESSED | LEFT_CTRL_PRESSED)) > 0;
         final boolean isAlt = (controlKeyState & (RIGHT_ALT_PRESSED | LEFT_ALT_PRESSED)) > 0;
         final boolean isShift = (controlKeyState & SHIFT_PRESSED) > 0;
-        char ch = uchar;
-        StringBuilder sb = new StringBuilder(32);
         // key down event
         if (isKeyDown && ch != '\3') {
             // Pressing "Alt Gr" is translated to Alt-Ctrl, hence it has to be checked that Ctrl is _not_ pressed,
@@ -234,11 +229,14 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
             if (ch != 0
                     && (controlKeyState & (RIGHT_ALT_PRESSED | LEFT_ALT_PRESSED | RIGHT_CTRL_PRESSED | LEFT_CTRL_PRESSED | SHIFT_PRESSED))
                         == (RIGHT_ALT_PRESSED | LEFT_CTRL_PRESSED)) {
-                sb.append(ch);
+                processInputChar(ch);
             } else {
                 final String keySeq = getEscapeSequence(virtualKeyCode, (isCtrl ? CTRL_FLAG : 0) + (isAlt ? ALT_FLAG : 0) + (isShift ? SHIFT_FLAG : 0));
                 if (keySeq != null) {
-                    return keySeq;
+                    for (char c : keySeq.toCharArray()) {
+                        processInputChar(c);
+                    }
+                    return;
                 }
                 /* uchar value in Windows when CTRL is pressed:
                  * 1). Ctrl +  <0x41 to 0x5e>      : uchar=<keyCode> - 'A' + 1
@@ -250,12 +248,12 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
                 */
                 if (ch > 0) {
                     if (isAlt) {
-                        sb.append("\033");
+                        processInputChar('\033');
                     }
                     if (isCtrl && ch != ' ' && ch != '\n' && ch != 0x7f) {
-                        sb.append((char) (ch == '?' ? 0x7f : Character.toUpperCase(ch) & 0x1f));
+                        processInputChar((char) (ch == '?' ? 0x7f : Character.toUpperCase(ch) & 0x1f));
                     } else {
-                        sb.append(ch);
+                        processInputChar(ch);
                     }
                 } else if (isCtrl) { //Handles the ctrl key events(uchar=0)
                     if (virtualKeyCode >= 'A' && virtualKeyCode <= 'Z') {
@@ -265,24 +263,22 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
                     }
                     if (ch > 0) {
                         if (isAlt) {
-                            sb.append("\033");
+                            processInputChar('\033');
                         }
-                        sb.append(ch);
+                        processInputChar(ch);
                     }
                 }
             }
+        } else if (ch == '\3') {
+            processInputChar('\3');
         }
         // key up event
         else {
-            if (ch == '\3') {
-                return "\3";
-            }
             // support ALT+NumPad input method
             if (virtualKeyCode == 0x12 /*VK_MENU ALT key*/ && ch > 0) {
-                sb.append(ch);  // no such combination in Windows
+                processInputChar(ch);  // no such combination in Windows
             }
         }
-        return sb.toString();
     }
 
     protected String getEscapeSequence(short keyCode, int keyState) {
@@ -364,7 +360,8 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
                 break;
             case 0x5D: // VK_CLOSE_BRACKET(Menu key)
             case 0x5B: // VK_OPEN_BRACKET(Window key)
-                break;
+            default:
+                return null;
         }
         return translate(escapeSequence, keyState + 1);
     }
@@ -393,9 +390,8 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     protected void pump() {
         try {
             while (!closing) {
-                String buf = readConsoleInput();
-                for (byte b : buf.getBytes(StandardCharsets.UTF_8)) {
-                    processInputByte(b);
+                if (processConsoleInput()) {
+                    slaveInputPipe.flush();
                 }
             }
         } catch (IOException e) {
@@ -405,7 +401,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         }
     }
 
-    public void processInputByte(int c) throws IOException {
+    public void processInputChar(char c) throws IOException {
         if (attributes.getLocalFlag(Attributes.LocalFlag.ISIG)) {
             if (c == attributes.getControlChar(Attributes.ControlChar.VINTR)) {
                 raise(Signal.INT);
@@ -435,7 +431,6 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
 //            masterOutput.flush();
 //        }
         slaveInputPipe.write(c);
-        slaveInputPipe.flush();
     }
 
     @Override
@@ -451,7 +446,12 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
 
     protected abstract void setConsoleMode(int mode);
 
-    protected abstract String readConsoleInput() throws IOException;
+    /**
+     * Read a single input event from the input buffer and process it.
+     *
+     * @return true if new input was generated from the event
+     */
+    protected abstract boolean processConsoleInput() throws IOException;
 
 }
 
