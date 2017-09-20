@@ -10,6 +10,7 @@ package org.jline.terminal.impl;
 
 import java.io.IOError;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,18 +36,20 @@ public abstract class AbstractTerminal implements Terminal {
 
     protected final String name;
     protected final String type;
+    protected final Charset encoding;
     protected final Map<Signal, SignalHandler> handlers = new HashMap<>();
     protected final Set<Capability> bools = new HashSet<>();
     protected final Map<Capability, Integer> ints = new HashMap<>();
     protected final Map<Capability, String> strings = new HashMap<>();
 
     public AbstractTerminal(String name, String type) throws IOException {
-        this(name, type, SignalHandler.SIG_DFL);
+        this(name, type, null, SignalHandler.SIG_DFL);
     }
 
-    public AbstractTerminal(String name, String type, SignalHandler signalHandler) throws IOException {
+    public AbstractTerminal(String name, String type, Charset encoding, SignalHandler signalHandler) throws IOException {
         this.name = name;
         this.type = type;
+        this.encoding = encoding != null ? encoding : Charset.defaultCharset();
         for (Signal signal : Signal.values()) {
             handlers.put(signal, signalHandler);
         }
@@ -122,6 +125,11 @@ public abstract class AbstractTerminal implements Terminal {
 
     public String getKind() {
         return getClass().getSimpleName();
+    }
+
+    @Override
+    public Charset encoding() {
+        return this.encoding;
     }
 
     public void flush() {

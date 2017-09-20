@@ -31,9 +31,7 @@ public class PosixSysTerminalTest {
         EasyMock.expect(pty.getSlaveOutput()).andReturn(new ByteArrayOutputStream()).anyTimes();
         EasyMock.replay(pty);
         try (PosixSysTerminal terminal = new PosixSysTerminal(
-                "name", "ansi", pty,
-                Charset.defaultCharset().name(), true,
-                SignalHandler.SIG_DFL)) {
+                "name", "ansi", pty, null, true, SignalHandler.SIG_DFL)) {
             assertEquals(Signal.values().length, terminal.nativeHandlers.size());
         }
     }
@@ -46,8 +44,7 @@ public class PosixSysTerminalTest {
         EasyMock.expect(pty.getSlaveOutput()).andReturn(new ByteArrayOutputStream()).anyTimes();
         EasyMock.replay(pty);
         try (PosixSysTerminal terminal = new PosixSysTerminal(
-                "name", "ansi", pty,
-                Charset.defaultCharset().name(), true,
+                "name", "ansi", pty,null, true,
                 SignalHandler.SIG_IGN)) {
             assertEquals(Signal.values().length, terminal.nativeHandlers.size());
         }
@@ -61,8 +58,7 @@ public class PosixSysTerminalTest {
         EasyMock.expect(pty.getSlaveOutput()).andReturn(new ByteArrayOutputStream()).anyTimes();
         EasyMock.replay(pty);
         try (PosixSysTerminal terminal = new PosixSysTerminal(
-                "name", "ansi", pty,
-                Charset.defaultCharset().name(), true,
+                "name", "ansi", pty,null, true,
                 SignalHandler.SIG_DFL)) {
             assertEquals(Signal.values().length, terminal.nativeHandlers.size());
             SignalHandler prev = terminal.handle(Signal.INT, s -> {});

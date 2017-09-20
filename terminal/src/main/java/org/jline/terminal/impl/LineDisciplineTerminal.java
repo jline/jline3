@@ -16,6 +16,7 @@ import java.io.OutputStreamWriter;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
 import java.util.Objects;
 
 import org.jline.terminal.Attributes;
@@ -90,16 +91,16 @@ public class LineDisciplineTerminal extends AbstractTerminal {
     public LineDisciplineTerminal(String name,
                                   String type,
                                   OutputStream masterOutput,
-                                  String encoding) throws IOException {
+                                  Charset encoding) throws IOException {
         this(name, type, masterOutput, encoding, SignalHandler.SIG_DFL);
     }
 
     public LineDisciplineTerminal(String name,
                                   String type,
                                   OutputStream masterOutput,
-                                  String encoding,
+                                  Charset encoding,
                                   SignalHandler signalHandler) throws IOException {
-        super(name, type, signalHandler);
+        super(name, type, encoding, signalHandler);
         PipedInputStream input = new PipedInputStream(PIPE_SIZE);
         this.slaveInputPipe = new PipedOutputStream(input);
         // This is a hack to fix a problem in gogo where closure closes
@@ -107,9 +108,9 @@ public class LineDisciplineTerminal extends AbstractTerminal {
         // So we need to get around and make sure it's not an instance of
         // that class by using a dumb FilterInputStream class to wrap it.
         this.slaveInput = new FilterInputStream(input) {};
-        this.slaveReader = new NonBlockingReader(getName(), new InputStreamReader(slaveInput, encoding));
+        this.slaveReader = new NonBlockingReader(getName(), new InputStreamReader(slaveInput, encoding()));
         this.slaveOutput = new FilteringOutputStream();
-        this.slaveWriter = new PrintWriter(new OutputStreamWriter(slaveOutput, encoding));
+        this.slaveWriter = new PrintWriter(new OutputStreamWriter(slaveOutput, encoding()));
         this.masterOutput = masterOutput;
         this.attributes = ExecPty.doGetAttr(DEFAULT_TERMINAL_ATTRIBUTES);
         this.size = new Size(160, 50);

@@ -10,6 +10,7 @@ package org.jline.terminal.impl;
 
 import java.io.IOError;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Objects;
 import java.util.function.IntConsumer;
 
@@ -24,11 +25,11 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
     protected final Attributes originalAttributes;
 
     public AbstractPosixTerminal(String name, String type, Pty pty) throws IOException {
-        this(name, type, pty, SignalHandler.SIG_DFL);
+        this(name, type, pty, null, SignalHandler.SIG_DFL);
     }
 
-    public AbstractPosixTerminal(String name, String type, Pty pty, SignalHandler signalHandler) throws IOException {
-        super(name, type, signalHandler);
+    public AbstractPosixTerminal(String name, String type, Pty pty, Charset encoding, SignalHandler signalHandler) throws IOException {
+        super(name, type, encoding, signalHandler);
         Objects.requireNonNull(pty);
         this.pty = pty;
         this.originalAttributes = this.pty.getAttr();

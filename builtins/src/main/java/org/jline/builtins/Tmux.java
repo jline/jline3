@@ -1679,7 +1679,7 @@ public class Tmux {
                     name,
                     type,
                     masterOutput,
-                    Charset.defaultCharset().name()) {
+                    null) {
                 @Override
                 public void close() throws IOException {
                     super.close();

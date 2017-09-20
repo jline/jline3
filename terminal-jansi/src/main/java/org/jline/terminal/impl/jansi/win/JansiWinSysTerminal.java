@@ -11,6 +11,7 @@ package org.jline.terminal.impl.jansi.win;
 import java.io.BufferedWriter;
 import java.io.IOError;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.function.IntConsumer;
 
 import org.fusesource.jansi.internal.Kernel32;
@@ -30,12 +31,12 @@ import static org.fusesource.jansi.internal.Kernel32.STD_OUTPUT_HANDLE;
 public class JansiWinSysTerminal extends AbstractWindowsTerminal {
 
     public JansiWinSysTerminal(String name, boolean nativeSignals) throws IOException {
-        this(name, 0, nativeSignals, SignalHandler.SIG_DFL);
+        this(name, null, 0, nativeSignals, SignalHandler.SIG_DFL);
     }
 
-    public JansiWinSysTerminal(String name, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
+    public JansiWinSysTerminal(String name, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
         super(new WindowsAnsiWriter(new BufferedWriter(new JansiWinConsoleWriter())),
-              name, codepage, nativeSignals, signalHandler);
+              name, encoding, codepage, nativeSignals, signalHandler);
 
         // Start input pump thread
         pump.start();
