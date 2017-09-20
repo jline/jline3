@@ -187,7 +187,7 @@ public abstract class ReaderTestSupport
         @Override
         public String toString() {
             try {
-                return out.toString("UTF-8");
+                return out.toString(StandardCharsets.UTF_8.name());
             } catch (UnsupportedEncodingException e) {
                 throw new RuntimeException(e);
             }
@@ -282,7 +282,7 @@ public abstract class ReaderTestSupport
         }
 
         public TestBuffer append(final String str) {
-            for (byte b : str.getBytes(Charset.forName("UTF-8"))) {
+            for (byte b : str.getBytes(StandardCharsets.UTF_8)) {
                 append(b);
             }
             return this;

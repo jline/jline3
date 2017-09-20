@@ -52,7 +52,7 @@ public class BindingReaderTest {
 
     @Test
     public void testBindingReaderNoUnicode() {
-        in.setIn(new ByteArrayInputStream("\uD834\uDD21abc".getBytes(Charset.forName("UTF-8"))));
+        in.setIn(new ByteArrayInputStream("\uD834\uDD21abc".getBytes(StandardCharsets.UTF_8)));
         BindingReader reader = new BindingReader(terminal.reader());
         KeyMap<Binding> keyMap = new KeyMap<>();
         keyMap.bind(new Reference("foo"), "b");
@@ -63,7 +63,7 @@ public class BindingReaderTest {
 
     @Test
     public void testBindingReaderUnicode() {
-        in.setIn(new ByteArrayInputStream("\uD834\uDD21abc".getBytes(Charset.forName("UTF-8"))));
+        in.setIn(new ByteArrayInputStream("\uD834\uDD21abc".getBytes(StandardCharsets.UTF_8)));
         BindingReader reader = new BindingReader(terminal.reader());
         KeyMap<Binding> keyMap = new KeyMap<>();
         keyMap.setUnicode(new Reference("insert"));

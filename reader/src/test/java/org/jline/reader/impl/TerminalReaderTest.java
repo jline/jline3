@@ -10,6 +10,7 @@ package org.jline.reader.impl;
 
 import java.io.ByteArrayInputStream;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
@@ -49,7 +50,7 @@ public class TerminalReaderTest extends ReaderTestSupport
 
     @Test
     public void testReadlineWithUnicode() throws Exception {
-        System.setProperty("input.encoding", "UTF-8");
+        System.setProperty("input.encoding", StandardCharsets.UTF_8.name());
         assertLine("\u6771\u00E9\u00E8", new TestBuffer("\u6771\u00E9\u00E8\n"));
     }
     

@@ -13,6 +13,7 @@ import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.io.Reader;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import org.jline.utils.InputStreamReader;
 import org.junit.Test;
@@ -27,8 +28,8 @@ public class MultiByteCharTest extends ReaderTestSupport {
 
         PipedOutputStream pos = new PipedOutputStream();
         PipedInputStream pis = new PipedInputStream(pos);
-        pos.write(str.getBytes(Charset.forName("UTF-8")));
-        Reader r = new InputStreamReader(pis, Charset.forName("UTF-8"));
+        pos.write(str.getBytes(StandardCharsets.UTF_8));
+        Reader r = new InputStreamReader(pis, StandardCharsets.UTF_8);
         int c0 = r.read();
         int c1 = r.read();
         int c2 = r.read();
