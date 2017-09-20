@@ -157,7 +157,7 @@ public class PumpReader extends Reader {
         return b;
     }
 
-    private int copyChars(char[] cbuf, int off, int len) {
+    private int copyFromBuffer(char[] cbuf, int off, int len) {
         len = Math.min(len, readBuffer.remaining());
         readBuffer.get(cbuf, off, len);
         return len;
@@ -165,13 +165,17 @@ public class PumpReader extends Reader {
 
     @Override
     public synchronized int read(char[] cbuf, int off, int len) throws IOException {
+        if (len == 0) {
+            return 0;
+        }
+
         if (!waitForInput()) {
             return EOF;
         }
 
-        int count = copyChars(cbuf, off, len);
+        int count = copyFromBuffer(cbuf, off, len);
         if (rewindReadBuffer() && count < len) {
-            count += copyChars(cbuf, off + count, len - count);
+            count += copyFromBuffer(cbuf, off + count, len - count);
             rewindReadBuffer();
         }
 
@@ -180,6 +184,10 @@ public class PumpReader extends Reader {
 
     @Override
     public int read(CharBuffer target) throws IOException {
+        if (!target.hasRemaining()) {
+            return 0;
+        }
+
         if (!waitForInput()) {
             return EOF;
         }
@@ -193,19 +201,30 @@ public class PumpReader extends Reader {
         return count;
     }
 
-    synchronized int readBytes(CharsetEncoder encoder, byte[] b, int off, int len) throws IOException {
-        if (!waitForInput()) {
-            return EOF;
-        }
-
-        ByteBuffer output = ByteBuffer.wrap(b, off, len);
+    private void encodeBytes(CharsetEncoder encoder, ByteBuffer output) throws IOException {
         CoderResult result = encoder.encode(readBuffer, output, false);
         if (rewindReadBuffer() && result.isUnderflow()) {
             encoder.encode(readBuffer, output, false);
             rewindReadBuffer();
         }
+    }
 
-        return output.position();
+    synchronized int readBytes(CharsetEncoder encoder, byte[] b, int off, int len) throws IOException {
+        if (!waitForInput()) {
+            return 0;
+        }
+
+        ByteBuffer output = ByteBuffer.wrap(b, off, len);
+        encodeBytes(encoder, output);
+        return output.position() - off;
+    }
+
+    synchronized void readBytes(CharsetEncoder encoder, ByteBuffer output) throws IOException {
+        if (!waitForInput()) {
+            return;
+        }
+
+        encodeBytes(encoder, output);
     }
 
     synchronized void write(char c) throws IOException {
@@ -304,28 +323,78 @@ public class PumpReader extends Reader {
         private final PumpReader reader;
         private final CharsetEncoder encoder;
 
+        // To encode a character with multiple bytes (e.g. certain Unicode characters)
+        // we need enough space to encode them. Reading would fail if the read() method
+        // is used to read a single byte in these cases.
+        // Use this buffer to ensure we always have enough space to encode a character.
+        private final ByteBuffer buffer;
+
         private InputStream(PumpReader reader, Charset charset) {
             this.reader = reader;
             this.encoder = charset.newEncoder()
                     .onUnmappableCharacter(CodingErrorAction.REPLACE)
                     .onMalformedInput(CodingErrorAction.REPLACE);
+            this.buffer = ByteBuffer.allocate((int) Math.ceil(encoder.maxBytesPerChar()));
+
+            // No input available after initialization
+            buffer.limit(0);
         }
 
         @Override
         public int available() throws IOException {
-            return (int) (reader.available() * (double) this.encoder.averageBytesPerChar());
+            return (int) (reader.available() * (double) this.encoder.averageBytesPerChar()) + buffer.remaining();
         }
 
         @Override
         public int read() throws IOException {
-            byte[] buf = new byte[1];
-            int count = read(buf);
-            return count == 1 ? buf[0] : EOF;
+            if (!buffer.hasRemaining() && !readUsingBuffer()) {
+                return EOF;
+            }
+
+            return buffer.get();
+        }
+
+        private boolean readUsingBuffer() throws IOException {
+            buffer.clear(); // Reset buffer
+            reader.readBytes(encoder, buffer);
+            buffer.flip();
+            return buffer.hasRemaining();
+        }
+
+        private int copyFromBuffer(byte[] b, int off, int len) {
+            len = Math.min(len, buffer.remaining());
+            buffer.get(b, off, len);
+            return len;
         }
 
         @Override
         public int read(byte[] b, int off, int len) throws IOException {
-            return reader.readBytes(this.encoder, b, off, len);
+            if (len == 0) {
+                return 0;
+            }
+
+            int read;
+            if (buffer.hasRemaining()) {
+                read = copyFromBuffer(b, off, len);
+                if (read == len) {
+                    return len;
+                }
+
+                off += read;
+                len -= read;
+            } else {
+                read = 0;
+            }
+
+            // Do we have enough space to avoid buffering?
+            if (len >= buffer.capacity()) {
+                read += reader.readBytes(this.encoder, b, off, len);
+            } else if (readUsingBuffer()) {
+                read += copyFromBuffer(b, off, len);
+            }
+
+            // Return EOF if we didn't read any bytes
+            return read == 0 ? EOF : read;
         }
 
         @Override
