@@ -32,6 +32,9 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
         super(new WindowsAnsiWriter(new BufferedWriter(new JnaWinConsoleWriter(consoleOut)), consoleOut),
               name, codepage, nativeSignals, signalHandler);
         strings.put(InfoCmp.Capability.key_mouse, "\\E[M");
+
+        // Start input pump thread
+        pump.start();
     }
 
     @Override

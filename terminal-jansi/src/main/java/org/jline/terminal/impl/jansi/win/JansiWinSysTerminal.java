@@ -36,6 +36,9 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
     public JansiWinSysTerminal(String name, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
         super(new WindowsAnsiWriter(new BufferedWriter(new JansiWinConsoleWriter())),
               name, codepage, nativeSignals, signalHandler);
+
+        // Start input pump thread
+        pump.start();
     }
 
     @Override
