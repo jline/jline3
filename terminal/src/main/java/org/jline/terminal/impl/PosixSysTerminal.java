@@ -16,7 +16,6 @@ import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 import org.jline.terminal.spi.Pty;
 import org.jline.utils.InputStreamReader;
@@ -37,9 +36,6 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
     public PosixSysTerminal(String name, String type, Pty pty, Charset encoding,
                             boolean nativeSignals, SignalHandler signalHandler) throws IOException {
         super(name, type, pty, encoding, signalHandler);
-        if (encoding == null) {
-            encoding = Charset.defaultCharset();
-        }
         this.input = pty.getSlaveInput();
         this.output = pty.getSlaveOutput();
         this.reader = new NonBlockingReader(getName(), new InputStreamReader(input, encoding()));
