@@ -8,24 +8,19 @@
  */
 package org.jline.reader.impl;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Function;
-
 import org.jline.reader.Candidate;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
-import org.jline.terminal.Size;
-import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
-import org.jline.terminal.impl.DumbTerminal;
 import org.jline.utils.AttributedString;
-import org.jline.utils.Display;
+import org.junit.Ignore;
 import org.junit.Test;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -33,6 +28,7 @@ import static org.junit.Assert.fail;
 public class LineReaderTest {
 
     @Test(expected = EndOfFileException.class)
+    @Ignore
     public void emptyStringGivesEOFWithJna() throws Exception {
         String inputString = "";
         InputStream inputStream = new ByteArrayInputStream(inputString.getBytes());
@@ -52,6 +48,7 @@ public class LineReaderTest {
     }
 
     @Test(expected = EndOfFileException.class)
+    @Ignore
     public void emptyStringGivesEOFNoJna() throws Exception {
         String inputString = "";
         InputStream inputStream = new ByteArrayInputStream(inputString.getBytes());

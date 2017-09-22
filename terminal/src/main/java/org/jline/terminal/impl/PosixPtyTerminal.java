@@ -20,13 +20,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.jline.terminal.spi.Pty;
 import org.jline.utils.ClosedException;
 import org.jline.utils.InputStreamReader;
+import org.jline.utils.NonBlocking;
+import org.jline.utils.NonBlockingInputStream;
 import org.jline.utils.NonBlockingReader;
 
 public class PosixPtyTerminal extends AbstractPosixTerminal {
 
-    private final InputStreamWrapper input;
+    private final NonBlockingInputStream input;
     private final OutputStream output;
-    private final InputStreamReader innerReader;
     private final NonBlockingReader reader;
     private final PrintWriter writer;
     private final Thread inputPumpThread;
@@ -40,10 +41,9 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
         super(name, type, pty, encoding, signalHandler);
         Objects.requireNonNull(in);
         Objects.requireNonNull(out);
-        this.input = new InputStreamWrapper(pty.getSlaveInput());
+        this.input = new InputStreamWrapper(NonBlocking.nonBlocking(name, pty.getSlaveInput()));
         this.output = pty.getSlaveOutput();
-        this.innerReader = new InputStreamReader(input, encoding());
-        this.reader = new NonBlockingReader(name, innerReader);
+        this.reader = NonBlocking.nonBlocking(name, input, encoding());
         this.writer = new PrintWriter(new OutputStreamWriter(output, encoding()));
         this.inputPumpThread = new PumpThread(in, getPty().getMasterOutput());
         this.outputPumpThread = new PumpThread(getPty().getMasterInput(), out);
@@ -74,21 +74,21 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
         reader.close();
     }
 
-    private class InputStreamWrapper extends InputStream {
+    private class InputStreamWrapper extends NonBlockingInputStream {
 
-        private final InputStream in;
+        private final NonBlockingInputStream in;
         private final AtomicBoolean closed = new AtomicBoolean();
 
-        protected InputStreamWrapper(InputStream in) {
+        protected InputStreamWrapper(NonBlockingInputStream in) {
             this.in = in;
         }
 
         @Override
-        public int read() throws IOException {
+        public int read(long timeout, boolean isPeek) throws IOException {
             if (closed.get()) {
                 throw new ClosedException();
             }
-            return in.read();
+            return in.read(timeout, isPeek);
         }
 
         @Override

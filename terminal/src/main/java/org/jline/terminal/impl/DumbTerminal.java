@@ -20,11 +20,13 @@ import java.nio.charset.Charset;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Attributes.ControlChar;
 import org.jline.terminal.Size;
+import org.jline.utils.NonBlocking;
+import org.jline.utils.NonBlockingInputStream;
 import org.jline.utils.NonBlockingReader;
 
 public class DumbTerminal extends AbstractTerminal {
 
-    private final InputStream input;
+    private final NonBlockingInputStream input;
     private final OutputStream output;
     private final NonBlockingReader reader;
     private final PrintWriter writer;
@@ -41,11 +43,12 @@ public class DumbTerminal extends AbstractTerminal {
 
     public DumbTerminal(String name, String type, InputStream in, OutputStream out, Charset encoding, SignalHandler signalHandler) throws IOException {
         super(name, type, encoding, signalHandler);
-        this.input = new InputStream() {
+        NonBlockingInputStream nbis = NonBlocking.nonBlocking(getName(), in);
+        this.input = new NonBlockingInputStream() {
             @Override
-            public int read() throws IOException {
+            public int read(long timeout, boolean isPeek) throws IOException {
                 for (;;) {
-                    int c = in.read();
+                    int c = nbis.read(timeout, isPeek);
                     if (attributes.getLocalFlag(Attributes.LocalFlag.ISIG)) {
                         if (c == attributes.getControlChar(ControlChar.VINTR)) {
                             raise(Signal.INT);
@@ -74,24 +77,9 @@ public class DumbTerminal extends AbstractTerminal {
                     return c;
                 }
             }
-            public int read(byte b[], int off, int len) throws IOException {
-                if (b == null) {
-                    throw new NullPointerException();
-                } else if (off < 0 || len < 0 || len > b.length - off) {
-                    throw new IndexOutOfBoundsException();
-                } else if (len == 0) {
-                    return 0;
-                }
-                int c = read();
-                if (c == -1) {
-                    return -1;
-                }
-                b[off] = (byte)c;
-                return 1;
-            }
         };
         this.output = out;
-        this.reader = new NonBlockingReader(getName(), new InputStreamReader(input, encoding()));
+        this.reader = NonBlocking.nonBlocking(getName(), input, encoding());
         this.writer = new PrintWriter(new OutputStreamWriter(output, encoding()));
         this.attributes = new Attributes();
         this.attributes.setControlChar(ControlChar.VERASE,  (char) 127);

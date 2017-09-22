@@ -13,6 +13,9 @@ import org.jline.terminal.Size;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.Log;
+import org.jline.utils.NonBlocking;
+import org.jline.utils.NonBlockingInputStream;
+import org.jline.utils.NonBlockingPumpReader;
 import org.jline.utils.NonBlockingReader;
 import org.jline.utils.PumpReader;
 import org.jline.utils.ShutdownHooks;
@@ -58,7 +61,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     protected static final int ENABLE_QUICK_EDIT_MODE = 0x0040;
 
     protected final Writer slaveInputPipe;
-    protected final InputStream input;
+    protected final NonBlockingInputStream input;
     protected final OutputStream output;
     protected final NonBlockingReader reader;
     protected final PrintWriter writer;
@@ -73,10 +76,10 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
 
     public AbstractWindowsTerminal(Writer writer, String name, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
         super(name, TYPE_WINDOWS, selectCharset(encoding, codepage), signalHandler);
-        PumpReader reader = new PumpReader();
+        NonBlockingPumpReader reader = NonBlocking.nonBlockingPumpReader();
         this.slaveInputPipe = reader.getWriter();
-        this.reader = new NonBlockingReader(getName(), reader);
-        this.input = reader.createInputStream(encoding());
+        this.reader = reader;
+        this.input = NonBlocking.nonBlockingStream(reader, encoding());
         this.writer = new PrintWriter(writer);
         this.output = new WriterOutputStream(writer, encoding());
         parseInfoCmp();

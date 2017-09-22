@@ -82,6 +82,51 @@ public interface Terminal extends Closeable, Flushable {
     OutputStream output();
 
     //
+    // Input control
+    //
+
+    /**
+     * Whether this terminal supports {@link #pause()} and {@link #resume()} calls.
+     * @return whether this terminal supports {@link #pause()} and {@link #resume()} calls.
+     * @see #paused()
+     * @see #pause()
+     * @see #resume()
+     */
+    boolean canPauseResume();
+
+    /**
+     * Stop reading the input stream.
+     *
+     * @see #resume()
+     * @see #paused()
+     */
+    void pause();
+
+    /**
+     * Resume reading the input stream.
+     *
+     * @see #pause()
+     * @see #paused()
+     */
+    void resume();
+
+    /**
+     * Check whether the terminal is currently reading the input stream or not.
+     * In order to process signal as quickly as possible, the terminal need to read
+     * the input stream and buffer it internally so that it can detect specific
+     * characters in the input stream (Ctrl+C, Ctrl+D, etc...) and raise the
+     * appropriate signals.
+     * However, there are some cases where this processing should be disabled, for
+     * example when handing the terminal control to a subprocess.
+     *
+     * @return whether the terminal is currently reading the input stream or not
+     *
+     * @see #pause()
+     * @see #resume()
+     */
+    boolean paused();
+
+    //
     // Pty settings
     //
 

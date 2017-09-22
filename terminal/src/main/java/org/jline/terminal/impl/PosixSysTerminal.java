@@ -17,8 +17,9 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.jline.utils.NonBlocking;
 import org.jline.terminal.spi.Pty;
-import org.jline.utils.InputStreamReader;
+import org.jline.utils.NonBlockingInputStream;
 import org.jline.utils.NonBlockingReader;
 import org.jline.utils.ShutdownHooks;
 import org.jline.utils.ShutdownHooks.Task;
@@ -26,7 +27,7 @@ import org.jline.utils.Signals;
 
 public class PosixSysTerminal extends AbstractPosixTerminal {
 
-    protected final InputStream input;
+    protected final NonBlockingInputStream input;
     protected final OutputStream output;
     protected final NonBlockingReader reader;
     protected final PrintWriter writer;
@@ -36,9 +37,9 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
     public PosixSysTerminal(String name, String type, Pty pty, Charset encoding,
                             boolean nativeSignals, SignalHandler signalHandler) throws IOException {
         super(name, type, pty, encoding, signalHandler);
-        this.input = pty.getSlaveInput();
+        this.input = NonBlocking.nonBlocking(getName(), pty.getSlaveInput());
         this.output = pty.getSlaveOutput();
-        this.reader = new NonBlockingReader(getName(), new InputStreamReader(input, encoding()));
+        this.reader = NonBlocking.nonBlocking(getName(), input, encoding());
         this.writer = new PrintWriter(new OutputStreamWriter(output, encoding()));
         parseInfoCmp();
         if (nativeSignals) {

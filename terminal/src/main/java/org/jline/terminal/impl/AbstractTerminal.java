@@ -95,8 +95,8 @@ public abstract class AbstractTerminal implements Terminal {
         Attributes newAttr = new Attributes(prvAttr);
         newAttr.setLocalFlags(EnumSet.of(LocalFlag.ICANON, LocalFlag.ECHO, LocalFlag.IEXTEN), false);
         newAttr.setInputFlags(EnumSet.of(InputFlag.IXON, InputFlag.ICRNL, InputFlag.INLCR), false);
-        newAttr.setControlChar(ControlChar.VMIN, 1);
-        newAttr.setControlChar(ControlChar.VTIME, 0);
+        newAttr.setControlChar(ControlChar.VMIN, 0);
+        newAttr.setControlChar(ControlChar.VTIME, 1);
         setAttributes(newAttr);
         return prvAttr;
     }
@@ -204,4 +204,25 @@ public abstract class AbstractTerminal implements Terminal {
     public MouseEvent readMouseEvent(IntSupplier reader) {
         return lastMouseEvent = MouseSupport.readMouse(reader, lastMouseEvent);
     }
+
+    @Override
+    public boolean canPauseResume() {
+        return false;
+    }
+
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void resume() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean paused() {
+        return false;
+    }
+
 }

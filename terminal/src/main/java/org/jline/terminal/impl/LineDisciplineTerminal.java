@@ -27,6 +27,9 @@ import org.jline.terminal.Attributes.OutputFlag;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.utils.InputStreamReader;
+import org.jline.utils.NonBlocking;
+import org.jline.utils.NonBlockingInputStream;
+import org.jline.utils.NonBlockingPumpInputStream;
 import org.jline.utils.NonBlockingReader;
 
 /**
@@ -77,7 +80,7 @@ public class LineDisciplineTerminal extends AbstractTerminal {
     /*
      * Slave streams
      */
-    protected final InputStream slaveInput;
+    protected final NonBlockingInputStream slaveInput;
     protected final NonBlockingReader slaveReader;
     protected final PrintWriter slaveWriter;
     protected final OutputStream slaveOutput;
@@ -101,14 +104,10 @@ public class LineDisciplineTerminal extends AbstractTerminal {
                                   Charset encoding,
                                   SignalHandler signalHandler) throws IOException {
         super(name, type, encoding, signalHandler);
-        PipedInputStream input = new PipedInputStream(PIPE_SIZE);
-        this.slaveInputPipe = new PipedOutputStream(input);
-        // This is a hack to fix a problem in gogo where closure closes
-        // streams for commands if they are instances of PipedInputStream.
-        // So we need to get around and make sure it's not an instance of
-        // that class by using a dumb FilterInputStream class to wrap it.
-        this.slaveInput = new FilterInputStream(input) {};
-        this.slaveReader = new NonBlockingReader(getName(), new InputStreamReader(slaveInput, encoding()));
+        NonBlockingPumpInputStream input = NonBlocking.nonBlockingPumpInputStream(PIPE_SIZE);
+        this.slaveInputPipe = input.getOutputStream();
+        this.slaveInput = input;
+        this.slaveReader = NonBlocking.nonBlocking(getName(), slaveInput, encoding());
         this.slaveOutput = new FilteringOutputStream();
         this.slaveWriter = new PrintWriter(new OutputStreamWriter(slaveOutput, encoding()));
         this.masterOutput = masterOutput;
