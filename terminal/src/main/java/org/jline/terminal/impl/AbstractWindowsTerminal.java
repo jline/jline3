@@ -66,6 +66,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     protected final ShutdownHooks.Task closer;
     protected final Attributes attributes = new Attributes();
     protected final Thread pump;
+    protected final int originalConsoleMode;
 
     protected MouseTracking tracking = MouseTracking.Off;
     private volatile boolean closing;
@@ -80,6 +81,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         this.output = new WriterOutputStream(writer, encoding());
         parseInfoCmp();
         // Attributes
+        originalConsoleMode = getConsoleMode();
         attributes.setLocalFlag(Attributes.LocalFlag.ISIG, true);
         attributes.setControlChar(Attributes.ControlChar.VINTR, ctrl('C'));
         attributes.setControlChar(Attributes.ControlChar.VEOF,  ctrl('D'));
@@ -210,6 +212,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         }
         reader.close();
         writer.close();
+        setConsoleMode(originalConsoleMode);
     }
 
     static final int SHIFT_FLAG = 0x01;
