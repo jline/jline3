@@ -74,6 +74,15 @@ public interface History extends Iterable<History.Entry>
         Instant time();
 
         String line();
+
+        /**
+         * By default an entry should be persisted to e.g. a history file (if configured).
+         * @return true
+         */
+        default boolean isPersistable() {
+            return true;
+        }
+
     }
 
     ListIterator<Entry> iterator(int index);
