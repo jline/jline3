@@ -648,7 +648,7 @@ public class LineReaderImpl implements LineReader, Flushable
     @Override
     public void callWidget(String name) {
         if (!reading) {
-            throw new IllegalStateException();
+            throw new IllegalStateException("Widgets can only be called during a `readLine` call");
         }
         try {
             Widget w;
