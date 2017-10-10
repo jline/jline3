@@ -84,6 +84,11 @@ public class DefaultHistory implements History {
                         internalClear();
                         reader.lines().forEach(l -> {
                             int idx = l.indexOf(':');
+                            if (idx < 0) {
+                                throw new IllegalArgumentException("Bad history file syntax! " +
+                                        "The history file `" + path + "` may be an older history: " +
+                                        "please remove it or use a different history file.");
+                            }
                             Instant time = Instant.ofEpochMilli(Long.parseLong(l.substring(0, idx)));
                             String line = unescape(l.substring(idx + 1));
                             internalAdd(time, line);
