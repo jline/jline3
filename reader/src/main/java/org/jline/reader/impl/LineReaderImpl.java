@@ -2239,6 +2239,20 @@ public class LineReaderImpl implements LineReader, Flushable
     */
 
     protected void cleanup() {
+        if (isSet(Option.ERASE_LINE_ON_FINISH)) {
+            Buffer oldBuffer = buf.copy();
+            AttributedString oldPrompt = prompt;
+            buf.clear();
+            prompt = new AttributedString("");
+            doCleanup();
+            prompt = oldPrompt;
+            buf.copyFrom(oldBuffer);
+        } else {
+            doCleanup();
+        }
+    }
+
+    protected void doCleanup() {
         buf.cursor(buf.length());
         post = null;
         if (size.getColumns() > 0 || size.getRows() > 0) {

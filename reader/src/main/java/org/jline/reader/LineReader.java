@@ -365,7 +365,13 @@ public interface LineReader {
         INSERT_TAB(true),
         MOUSE,
         DISABLE_HIGHLIGHTER,
-        BRACKETED_PASTE(true);
+        BRACKETED_PASTE(true),
+        /**
+         * Instead of printing a new line when the line is read, the entire line
+         * (including the prompt) will be erased, thereby leaving the screen as it
+         * was before the readLine call.
+         */
+        ERASE_LINE_ON_FINISH;
 
         private final boolean def;
 
