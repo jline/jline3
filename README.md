@@ -1,6 +1,6 @@
 <!--
 
-    Copyright (c) 2002-2016, the original author or authors.
+    Copyright (c) 2002-2017, the original author or authors.
 
     This software is distributable under the BSD license. See the terms of the
     BSD license in the documentation provided with this software.
@@ -38,7 +38,7 @@ Use the following definition to use JLine in your maven project:
     <dependency>
       <groupId>org.jline</groupId>
       <artifactId>jline</artifactId>
-      <version>3.3.0</version>
+      <version>3.5.1</version>
     </dependency>
 
 JLine can also be used with more low-level jars:
@@ -46,12 +46,12 @@ JLine can also be used with more low-level jars:
     <dependency>
       <groupId>org.jline</groupId>
       <artifactId>jline-terminal</artifactId>
-      <version>3.3.0</version>
+      <version>3.5.1</version>
     </dependency>
     <dependency>
       <groupId>org.jline</groupId>
       <artifactId>jline-reader</artifactId>
-      <version>3.3.0</version>
+      <version>3.5.1</version>
     </dependency>
 
 # Building
