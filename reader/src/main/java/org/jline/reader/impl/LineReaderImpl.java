@@ -4071,80 +4071,79 @@ public class LineReaderImpl implements LineReader, Flushable
             update();
         }
 
-        public void down() {
-            if (isSet(Option.LIST_ROWS_FIRST)) {
-                int r = selection / columns;
-                int c = selection % columns;
-                if ((r + 1) * columns + c < possible.size()) {
-                    r++;
-                } else if (c + 1 < columns) {
-                    c++;
-                    r = 0;
-                } else {
-                    r = 0;
-                    c = 0;
+        /**
+         * Move 'step' options along the major axis of the menu.<p>
+         * ie. if the menu is listing rows first, change row (up/down);
+         * otherwise move column (left/right)
+         *
+         * @param step number of options to move by
+         */
+        private void major(int step) {
+            int axis = isSet(Option.LIST_ROWS_FIRST) ? columns : lines;
+            int sel = selection + step * axis;
+            if (sel < 0) {
+                int pos = (sel + axis) % axis; // needs +axis as (-1)%x == -1
+                int remainders = possible.size() % axis;
+                sel = possible.size() - remainders + pos;
+                if (sel >= possible.size()) {
+                    sel -= axis;
                 }
-                selection = r * columns + c;
-                update();
-            } else {
-                next();
+            } else if (sel >= possible.size()) {
+                sel = sel % axis;
             }
+            selection = sel;
+            update();
         }
-        public void left() {
-            if (isSet(Option.LIST_ROWS_FIRST)) {
-                previous();
-            } else {
-                int c = selection / lines;
-                int r = selection % lines;
-                if (c - 1 >= 0) {
-                    c--;
-                } else {
-                    c = columns - 1;
-                    r--;
-                }
-                selection = c * lines + r;
-                if (selection < 0) {
-                    selection = possible.size() - 1;
-                }
-                update();
+
+        /**
+         * Move 'step' options along the minor axis of the menu.<p>
+         * ie. if the menu is listing rows first, move along the row (left/right);
+         * otherwise move along the column (up/down)
+         *
+         * @param step number of options to move by
+         */
+        private void minor(int step) {
+            int axis = isSet(Option.LIST_ROWS_FIRST) ? columns : lines;
+            int row = selection % axis;
+            int options = possible.size();
+            if (selection - row + axis > options) {
+                // selection is the last row/column
+                // so there are fewer options than other rows
+                axis = options%axis;
             }
+            selection = selection - row + ((axis + row + step) % axis);
+            update();
         }
-        public void right() {
-            if (isSet(Option.LIST_ROWS_FIRST)) {
-                next();
-            } else {
-                int c = selection / lines;
-                int r = selection % lines;
-                if (c + 1 < columns) {
-                    c++;
-                } else {
-                    c = 0;
-                    r++;
-                }
-                selection = c * lines + r;
-                if (selection >= possible.size()) {
-                    selection = 0;
-                }
-                update();
-            }
-        }
+
         public void up() {
             if (isSet(Option.LIST_ROWS_FIRST)) {
-                int r = selection / columns;
-                int c = selection % columns;
-                if (r > 0) {
-                    r--;
-                } else {
-                    c = (c + columns - 1) % columns;
-                    r = lines - 1;
-                    if (r * columns + c >= possible.size()) {
-                        r--;
-                    }
-                }
-                selection = r * columns + c;
-                update();
+                major(-1);
             } else {
-                previous();
+                minor(-1);
+            }
+        }
+
+        public void down() {
+            if (isSet(Option.LIST_ROWS_FIRST)) {
+                major(1);
+            } else {
+                minor(1);
+            }
+        }
+
+        public void left() {
+            if (isSet(Option.LIST_ROWS_FIRST)) {
+                minor(-1);
+            } else {
+                major(-1);
+            }
+        }
+
+        public void right() {
+            if (isSet(Option.LIST_ROWS_FIRST)) {
+                minor(1);
+            } else {
+                major(1);
             }
         }
 
