@@ -4222,9 +4222,11 @@ public class LineReaderImpl implements LineReader, Flushable
                     menuSupport.previous();
                     break;
                 case UP_LINE_OR_HISTORY:
+                case UP_LINE_OR_SEARCH:
                     menuSupport.up();
                     break;
                 case DOWN_LINE_OR_HISTORY:
+                case DOWN_LINE_OR_SEARCH:
                     menuSupport.down();
                     break;
                 case FORWARD_CHAR:
