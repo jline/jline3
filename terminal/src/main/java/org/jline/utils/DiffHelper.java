@@ -93,8 +93,8 @@ public class DiffHelper {
             commonStart++;
         }
         if (startHiddenRange >= 0
-            && (commonStart == l1 || ! text1.isHidden(commonStart))
-            && (commonStart == l2 || ! text2.isHidden(commonStart)))
+            && ((l1 > commonStart && text1.isHidden(commonStart))
+                || (l2 > commonStart && text2.isHidden(commonStart))))
             commonStart = startHiddenRange;
 
         startHiddenRange = -1;
