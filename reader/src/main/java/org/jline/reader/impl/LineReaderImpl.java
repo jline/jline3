@@ -4487,8 +4487,10 @@ public class LineReaderImpl implements LineReader, Flushable
             while (c > 1 && c * maxWidth + (c - 1) * MARGIN_BETWEEN_COLUMNS >= width) {
                 c--;
             }
-            int columns = c;
-            int lines = (candidates.size() + columns - 1) / columns;
+            int lines = (candidates.size() + c - 1) / c;
+            // Try to minimize the number of columns for the given number of rows
+            // Prevents eg 9 candiates being split 6/3 instead of 5/4.
+            final int columns = (candidates.size() + lines - 1) / lines;
             IntBinaryOperator index;
             if (isSet(Option.LIST_ROWS_FIRST)) {
                 index = (i, j) -> i * columns + j;
