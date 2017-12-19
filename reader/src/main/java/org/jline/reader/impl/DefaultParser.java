@@ -28,6 +28,34 @@ public class DefaultParser implements Parser {
 
     private boolean eofOnEscapedNewLine;
 
+    //
+    // Chainable setters
+    //
+
+    public DefaultParser quoteChars(final char[] chars) {
+        this.quoteChars = chars;
+        return this;
+    }
+
+    public DefaultParser escapeChars(final char[] chars) {
+        this.escapeChars = chars;
+        return this;
+    }
+
+    public DefaultParser eofOnUnclosedQuote(boolean eofOnUnclosedQuote) {
+        this.eofOnUnclosedQuote = eofOnUnclosedQuote;
+        return this;
+    }
+
+    public DefaultParser eofOnEscapedNewLine(boolean eofOnEscapedNewLine) {
+        this.eofOnEscapedNewLine = eofOnEscapedNewLine;
+        return this;
+    }
+
+    //
+    // Java bean getters and setters
+    //
+
     public void setQuoteChars(final char[] chars) {
         this.quoteChars = chars;
     }

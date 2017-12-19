@@ -797,6 +797,12 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     @Override
+    public LineReader variable(String name, Object value) {
+        variables.put(name, value);
+        return this;
+    }
+
+    @Override
     public Map<String, Object> getVariables() {
         return variables;
     }
@@ -809,6 +815,12 @@ public class LineReaderImpl implements LineReader, Flushable
     @Override
     public void setVariable(String name, Object value) {
         variables.put(name, value);
+    }
+
+    @Override
+    public LineReader option(Option option, boolean value) {
+        options.put(option, value);
+        return this;
     }
 
     @Override

@@ -481,6 +481,14 @@ public interface LineReader {
      */
     String readLine(String prompt, String rightPrompt, MaskingCallback maskingCallback, String buffer) throws UserInterruptException, EndOfFileException;
 
+    //
+    // Chainable setters
+    //
+
+    LineReader variable(String name, Object value);
+
+    LineReader option(Option option, boolean value);
+
     void callWidget(String name);
 
     Map<String, Object> getVariables();
