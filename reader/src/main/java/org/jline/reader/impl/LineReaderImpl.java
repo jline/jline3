@@ -3832,33 +3832,37 @@ public class LineReaderImpl implements LineReader, Flushable
                       Map<String, List<Candidate>>>> matchers;
         Predicate<String> exact;
         if (prefix) {
-            String wp = line.word().substring(0, line.wordCursor());
+            String wd = line.word();
+            String wdi = caseInsensitive ? wd.toLowerCase() : wd;
+            String wp = wdi.substring(0, line.wordCursor());
             matchers = Arrays.asList(
-                    simpleMatcher(s -> s.startsWith(wp)),
-                    simpleMatcher(s -> s.contains(wp)),
-                    typoMatcher(wp, errors)
+                    simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).startsWith(wp)),
+                    simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).contains(wp)),
+                    typoMatcher(wp, errors, caseInsensitive)
             );
-            exact = s -> s.equals(wp);
+            exact = s -> caseInsensitive ? s.equalsIgnoreCase(wp) : s.equals(wp);
         } else if (isSet(Option.COMPLETE_IN_WORD)) {
             String wd = line.word();
-            String wp = wd.substring(0, line.wordCursor());
-            String ws = wd.substring(line.wordCursor());
+            String wdi = caseInsensitive ? wd.toLowerCase() : wd;
+            String wp = wdi.substring(0, line.wordCursor());
+            String ws = wdi.substring(line.wordCursor());
             Pattern p1 = Pattern.compile(Pattern.quote(wp) + ".*" + Pattern.quote(ws) + ".*");
             Pattern p2 = Pattern.compile(".*" + Pattern.quote(wp) + ".*" + Pattern.quote(ws) + ".*");
             matchers = Arrays.asList(
-                    simpleMatcher(s -> p1.matcher(s).matches()),
-                    simpleMatcher(s -> p2.matcher(s).matches()),
-                    typoMatcher(wd, errors)
+                    simpleMatcher(s -> p1.matcher(caseInsensitive ? s.toLowerCase() : s).matches()),
+                    simpleMatcher(s -> p2.matcher(caseInsensitive ? s.toLowerCase() : s).matches()),
+                    typoMatcher(wdi, errors, caseInsensitive)
             );
-            exact = s -> s.equals(wd);
+            exact = s -> caseInsensitive ? s.equalsIgnoreCase(wd) : s.equals(wd);
         } else {
             String wd = line.word();
+            String wdi = caseInsensitive ? wd.toLowerCase() : wd;
             matchers = Arrays.asList(
-                    simpleMatcher(s -> s.startsWith(wd)),
-                    simpleMatcher(s -> s.contains(wd)),
-                    typoMatcher(wd, errors)
+                    simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).startsWith(wdi)),
+                    simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).contains(wdi)),
+                    typoMatcher(wdi, errors, caseInsensitive)
             );
-            exact = s -> s.equals(wd);
+            exact = s -> caseInsensitive ? s.equalsIgnoreCase(wd) : s.equals(wd);
         }
         // Find matching candidates
         Map<String, List<Candidate>> matching = Collections.emptyMap();
@@ -4014,10 +4018,10 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     private Function<Map<String, List<Candidate>>,
-                     Map<String, List<Candidate>>> typoMatcher(String word, int errors) {
+                     Map<String, List<Candidate>>> typoMatcher(String word, int errors, boolean caseInsensitive) {
         return m -> {
             Map<String, List<Candidate>> map = m.entrySet().stream()
-                    .filter(e -> distance(word, e.getKey()) < errors)
+                    .filter(e -> distance(word, caseInsensitive ? e.getKey() : e.getKey().toLowerCase()) < errors)
                     .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
             if (map.size() > 1) {
                 map.computeIfAbsent(word, w -> new ArrayList<>())
@@ -4303,13 +4307,16 @@ public class LineReaderImpl implements LineReader, Flushable
             }
         }
 
+        boolean caseInsensitive = isSet(Option.CASE_INSENSITIVE);
         StringBuilder sb = new StringBuilder();
         while (true) {
             String current = completed + sb.toString();
             List<Candidate> cands;
             if (sb.length() > 0) {
                 cands = possible.stream()
-                        .filter(c -> c.value().startsWith(current))
+                        .filter(c -> caseInsensitive
+                                    ? c.value().toLowerCase().startsWith(current.toLowerCase())
+                                    : c.value().startsWith(current))
                         .collect(Collectors.toList());
             } else {
                 cands = possible;
