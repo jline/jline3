@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -9,14 +9,25 @@
 package org.jline.reader.impl;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
 
+import org.jline.reader.Candidate;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
+import org.jline.terminal.Size;
+import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.terminal.impl.DumbTerminal;
+import org.jline.utils.AttributedString;
+import org.jline.utils.Display;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 public class LineReaderTest {
@@ -57,6 +68,24 @@ public class LineReaderTest {
         // this gets trapped in an infinite loop
         reader.readLine();
         fail("Should have thrown an EndOfFileException");
+    }
+
+    @Test
+    public void testGroup() throws Exception {
+        List<Candidate> c = new ArrayList<>();
+        c.add(new Candidate("option1", "option1", "group1", null, null, null, false));
+        c.add(new Candidate("option2", "option2", "group1", null, null, null, false));
+        c.add(new Candidate("option3", "option3", "group2", null, null, null, false));
+        c.add(new Candidate("option4", "option4", "group2", null, null, null, false));
+
+        assertEquals("group1\noption1   option2\ngroup2\noption3   option4",  computeGroupPost(c, true,   true));
+        assertEquals("group1\ngroup2\noption1   option2   option3   option4", computeGroupPost(c, true,   false));
+        assertEquals("option1   option2   option3   option4",                 computeGroupPost(c, false,  false));
+        assertEquals("option1   option2\noption3   option4",                  computeGroupPost(c, false,  true));
+    }
+
+    private String computeGroupPost(List<Candidate> c, boolean autoGroup, boolean groupName) {
+        return LineReaderImpl.computePost(c, null, null, "", s -> AttributedString.fromAnsi(s).columnLength(), 80, autoGroup, groupName, true).post.toString();
     }
 
 }
