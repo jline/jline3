@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -4403,8 +4403,11 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     protected PostResult computePost(List<Candidate> possible, Candidate selection, List<Candidate> ordered, String completed) {
+        return computePost(possible, selection, ordered, completed, display::wcwidth, size.getColumns(), isSet(Option.AUTO_GROUP), isSet(Option.GROUP), isSet(Option.LIST_ROWS_FIRST));
+    }
+
+    static PostResult computePost(List<Candidate> possible, Candidate selection, List<Candidate> ordered, String completed, Function<String, Integer> wcwidth, int width, boolean autoGroup, boolean groupName, boolean rowsFirst) {
         List<Object> strings = new ArrayList<>();
-        boolean groupName = isSet(Option.GROUP);
         if (groupName) {
             LinkedHashMap<String, TreeMap<String, Candidate>> sorted = new LinkedHashMap<>();
             for (Candidate cand : possible) {
@@ -4417,7 +4420,7 @@ public class LineReaderImpl implements LineReader, Flushable
                 if (group.isEmpty() && sorted.size() > 1) {
                     group = "others";
                 }
-                if (!group.isEmpty() && isSet(Option.AUTO_GROUP)) {
+                if (!group.isEmpty() && autoGroup) {
                     strings.add(group);
                 }
                 strings.add(new ArrayList<>(entry.getValue().values()));
@@ -4435,17 +4438,15 @@ public class LineReaderImpl implements LineReader, Flushable
                 }
                 sorted.put(cand.value(), cand);
             }
-            if (isSet(Option.AUTO_GROUP)) {
-                for (String group : groups) {
-                    strings.add(group);
-                }
+            if (autoGroup) {
+                strings.addAll(groups);
             }
             strings.add(new ArrayList<>(sorted.values()));
             if (ordered != null) {
                 ordered.addAll(sorted.values());
             }
         }
-        return toColumns(strings, selection, completed);
+        return toColumns(strings, selection, completed, wcwidth, width, rowsFirst);
     }
 
     private static final String DESC_PREFIX = "(";
@@ -4454,24 +4455,23 @@ public class LineReaderImpl implements LineReader, Flushable
     private static final int MARGIN_BETWEEN_COLUMNS = 3;
 
     @SuppressWarnings("unchecked")
-    protected PostResult toColumns(List<Object> items, Candidate selection, String completed) {
+    static PostResult toColumns(List<Object> items, Candidate selection, String completed, Function<String, Integer> wcwidth, int width, boolean rowsFirst) {
         int[] out = new int[2];
-        int width = size.getColumns();
         // TODO: support Option.LIST_PACKED
         // Compute column width
         int maxWidth = 0;
         for (Object item : items) {
             if (item instanceof String) {
-                int len = display.wcwidth((String) item);
+                int len = wcwidth.apply((String) item);
                 maxWidth = Math.max(maxWidth, len);
             }
             else if (item instanceof List) {
                 for (Candidate cand : (List<Candidate>) item) {
-                    int len = display.wcwidth(cand.displ());
+                    int len = wcwidth.apply(cand.displ());
                     if (cand.descr() != null) {
                         len += MARGIN_BETWEEN_DISPLAY_AND_DESC;
                         len += DESC_PREFIX.length();
-                        len += display.wcwidth(cand.descr());
+                        len += wcwidth.apply(cand.descr());
                         len += DESC_SUFFIX.length();
                     }
                     maxWidth = Math.max(maxWidth, len);
@@ -4481,7 +4481,7 @@ public class LineReaderImpl implements LineReader, Flushable
         // Build columns
         AttributedStringBuilder sb = new AttributedStringBuilder();
         for (Object list : items) {
-            toColumns(list, width, maxWidth, sb, selection, completed, out);
+            toColumns(list, width, maxWidth, sb, selection, completed, rowsFirst, out);
         }
         if (sb.length() > 0 && sb.charAt(sb.length() - 1) == '\n') {
             sb.setLength(sb.length() - 1);
@@ -4490,7 +4490,7 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     @SuppressWarnings("unchecked")
-    protected void toColumns(Object items, int width, int maxWidth, AttributedStringBuilder sb, Candidate selection, String completed, int[] out) {
+    static void toColumns(Object items, int width, int maxWidth, AttributedStringBuilder sb, Candidate selection, String completed, boolean rowsFirst, int[] out) {
         if (maxWidth <= 0) {
             return;
         }
@@ -4515,7 +4515,7 @@ public class LineReaderImpl implements LineReader, Flushable
             // Prevents eg 9 candiates being split 6/3 instead of 5/4.
             final int columns = (candidates.size() + lines - 1) / lines;
             IntBinaryOperator index;
-            if (isSet(Option.LIST_ROWS_FIRST)) {
+            if (rowsFirst) {
                 index = (i, j) -> i * columns + j;
             } else {
                 index = (i, j) -> j * lines + i;
