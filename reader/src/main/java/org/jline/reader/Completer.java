@@ -21,7 +21,7 @@ import java.util.List;
 public interface Completer
 {
     /**
-     * Populates <i>candidates</i> with a list of possible completions for the <i>buffer</i>.
+     * Populates <i>candidates</i> with a list of possible completions for the <i>command line</i>.
      *
      * The list of candidates will be sorted and filtered by the LineReader, so that
      * the list of candidates displayed to the user will usually be smaller than

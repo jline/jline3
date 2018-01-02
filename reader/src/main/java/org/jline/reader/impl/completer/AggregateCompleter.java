@@ -62,15 +62,15 @@ public class AggregateCompleter
     /**
      * Perform a completion operation across all aggregated completers.
      *
+     * The effect is similar to the following code:
+     * <blockquote><pre>{@code completers.forEach(c -> c.complete(reader, line, candidates));}</pre></blockquote>
+     *
      * @see Completer#complete(LineReader, ParsedLine, List)
      */
     public void complete(LineReader reader, final ParsedLine line, final List<Candidate> candidates) {
         Objects.requireNonNull(line);
         Objects.requireNonNull(candidates);
-
-        for (Completer completer : completers) {
-            completer.complete(reader, line, candidates);
-        }
+        completers.forEach(c -> c.complete(reader, line, candidates));
     }
 
     /**
