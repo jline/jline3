@@ -3764,6 +3764,10 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     protected boolean doComplete(CompletionType lst, boolean useMenu, boolean prefix) {
+        // If completion is disabled, just bail out
+        if (getBoolean(DISABLE_COMPLETION, false)) {
+            return true;
+        }
         // Try to expand history first
         // If there is actually an expansion, bail out now
         try {
