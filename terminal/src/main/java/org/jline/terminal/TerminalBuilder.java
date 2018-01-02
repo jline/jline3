@@ -271,11 +271,11 @@ public final class TerminalBuilder {
                 Log.warn("Attributes and size fields are ignored when creating a system terminal");
             }
             IllegalStateException exception = new IllegalStateException("Unable to create a system terminal");
-            //
-            // Cygwin support
-            //
-            if (OSUtils.IS_CYGWIN || OSUtils.IS_MINGW) {
-                if (exec) {
+            if (OSUtils.IS_WINDOWS) {
+                //
+                // Cygwin support
+                //
+                if ((OSUtils.IS_CYGWIN || OSUtils.IS_MINGW) && exec) {
                     try {
                         Pty pty = ExecPty.current();
                         // Cygwin defaults to XTERM, but actually supports 256 colors,
@@ -290,8 +290,6 @@ public final class TerminalBuilder {
                         exception.addSuppressed(e);
                     }
                 }
-            }
-            else if (OSUtils.IS_WINDOWS) {
                 if (jna) {
                     try {
                         return load(JnaSupport.class).winSysTerminal(name, encoding, codepage, nativeSignals, signalHandler);
