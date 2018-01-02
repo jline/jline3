@@ -279,7 +279,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
                     }
                 }
             }
-        } else if (ch == '\3') {
+        } else if (isKeyDown && ch == '\3') {
             processInputChar('\3');
         }
         // key up event
