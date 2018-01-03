@@ -368,7 +368,7 @@ public interface LineReader {
          *  instead of completing.  This is mainly useful when {@link #BRACKETED_PASTE} is
          *  disabled, so that copy/paste of indented text does not trigger completion.
          */
-        INSERT_TAB(true),
+        INSERT_TAB,
         MOUSE,
         DISABLE_HIGHLIGHTER,
         BRACKETED_PASTE(true),
