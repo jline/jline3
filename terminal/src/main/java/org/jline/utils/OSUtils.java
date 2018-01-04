@@ -16,13 +16,11 @@ public class OSUtils {
 
     public static final boolean IS_CYGWIN = IS_WINDOWS
             && System.getenv("PWD") != null
-            && System.getenv("PWD").startsWith("/")
-            && !"cygwin".equals(System.getenv("TERM"));
+            && System.getenv("PWD").startsWith("/");
 
     public static final boolean IS_MINGW = IS_WINDOWS
             && System.getenv("MSYSTEM") != null
-            && System.getenv("MSYSTEM").startsWith("MINGW")
-            && !"cygwin".equals(System.getenv("TERM"));
+            && System.getenv("MSYSTEM").startsWith("MINGW");
 
     public static final boolean IS_OSX = System.getProperty("os.name").toLowerCase().contains("mac");
 

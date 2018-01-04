@@ -272,10 +272,11 @@ public final class TerminalBuilder {
             }
             IllegalStateException exception = new IllegalStateException("Unable to create a system terminal");
             if (OSUtils.IS_WINDOWS) {
+                boolean cygwinTerm = "cygwin".equals(System.getenv("TERM"));
                 //
                 // Cygwin support
                 //
-                if ((OSUtils.IS_CYGWIN || OSUtils.IS_MINGW) && exec) {
+                if ((OSUtils.IS_CYGWIN || OSUtils.IS_MINGW) && exec && !cygwinTerm) {
                     try {
                         Pty pty = ExecPty.current();
                         // Cygwin defaults to XTERM, but actually supports 256 colors,
