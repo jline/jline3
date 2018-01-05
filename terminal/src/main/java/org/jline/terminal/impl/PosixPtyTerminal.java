@@ -121,6 +121,7 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
 
         @Override
         public int read(long timeout, boolean isPeek) throws IOException {
+            checkInterrupted();
             if (c != 0) {
                 int r = c;
                 if (!isPeek) {
@@ -138,6 +139,7 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
                         }
                         return r;
                     }
+                    checkInterrupted();
                     long cur = System.currentTimeMillis();
                     if (timeout > 0 && cur - start > timeout) {
                         return NonBlockingInputStream.READ_EXPIRED;

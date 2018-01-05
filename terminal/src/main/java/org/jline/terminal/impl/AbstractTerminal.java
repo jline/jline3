@@ -10,6 +10,7 @@ package org.jline.terminal.impl;
 
 import java.io.IOError;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.nio.charset.Charset;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -205,4 +206,9 @@ public abstract class AbstractTerminal implements Terminal {
         return lastMouseEvent = MouseSupport.readMouse(reader, lastMouseEvent);
     }
 
+    protected void checkInterrupted() throws InterruptedIOException {
+        if (Thread.interrupted()) {
+            throw new InterruptedIOException();
+        }
+    }
 }
