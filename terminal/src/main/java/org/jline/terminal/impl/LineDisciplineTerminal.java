@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,13 +8,10 @@
  */
 package org.jline.terminal.impl;
 
-import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.util.Objects;
@@ -26,7 +23,6 @@ import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Attributes.OutputFlag;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
-import org.jline.utils.InputStreamReader;
 import org.jline.utils.NonBlocking;
 import org.jline.utils.NonBlockingInputStream;
 import org.jline.utils.NonBlockingPumpInputStream;
@@ -247,6 +243,24 @@ public class LineDisciplineTerminal extends AbstractTerminal {
                 }
             }
         }
+    }
+
+    @Override
+    public boolean canPauseResume() {
+        return false;
+    }
+
+    @Override
+    public void pause() {
+    }
+
+    @Override
+    public void resume() {
+    }
+
+    @Override
+    public boolean paused() {
+        return false;
     }
 
     private class FilteringOutputStream extends OutputStream {

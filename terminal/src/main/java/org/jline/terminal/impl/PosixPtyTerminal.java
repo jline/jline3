@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -17,21 +17,27 @@ import java.nio.charset.Charset;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.jline.terminal.Attributes;
 import org.jline.terminal.spi.Pty;
 import org.jline.utils.ClosedException;
-import org.jline.utils.InputStreamReader;
 import org.jline.utils.NonBlocking;
 import org.jline.utils.NonBlockingInputStream;
 import org.jline.utils.NonBlockingReader;
 
 public class PosixPtyTerminal extends AbstractPosixTerminal {
 
+    private final InputStream in;
+    private final OutputStream out;
+    private final InputStream masterInput;
+    private final OutputStream masterOutput;
     private final NonBlockingInputStream input;
     private final OutputStream output;
     private final NonBlockingReader reader;
     private final PrintWriter writer;
-    private final Thread inputPumpThread;
-    private final Thread outputPumpThread;
+    private Thread inputPumpThread;
+    private Thread outputPumpThread;
+    private AtomicBoolean paused = new AtomicBoolean(true);
+    private Attributes current;
 
     public PosixPtyTerminal(String name, String type, Pty pty, InputStream in, OutputStream out, Charset encoding) throws IOException {
         this(name, type, pty, in, out, encoding, SignalHandler.SIG_DFL);
@@ -39,17 +45,16 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
 
     public PosixPtyTerminal(String name, String type, Pty pty, InputStream in, OutputStream out, Charset encoding, SignalHandler signalHandler) throws IOException {
         super(name, type, pty, encoding, signalHandler);
-        Objects.requireNonNull(in);
-        Objects.requireNonNull(out);
-        this.input = new InputStreamWrapper(NonBlocking.nonBlocking(name, pty.getSlaveInput()));
+        this.in = Objects.requireNonNull(in);
+        this.out = Objects.requireNonNull(out);
+        this.masterInput = pty.getMasterInput();
+        this.masterOutput = pty.getMasterOutput();
+        this.input = new InputStreamWrapper(new PosixInputStream(pty.getSlaveInput()));
         this.output = pty.getSlaveOutput();
         this.reader = NonBlocking.nonBlocking(name, input, encoding());
         this.writer = new PrintWriter(new OutputStreamWriter(output, encoding()));
-        this.inputPumpThread = new PumpThread(in, getPty().getMasterOutput());
-        this.outputPumpThread = new PumpThread(getPty().getMasterInput(), out);
         parseInfoCmp();
-        this.inputPumpThread.start();
-        this.outputPumpThread.start();
+        resume();
     }
 
     public InputStream input() {
@@ -72,6 +77,85 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
     public void close() throws IOException {
         super.close();
         reader.close();
+    }
+
+    @Override
+    public boolean canPauseResume() {
+        return true;
+    }
+
+    @Override
+    public void pause() {
+        paused.compareAndSet(false, true);
+    }
+
+    @Override
+    public void resume() {
+        if (paused.compareAndSet(true, false)) {
+            this.inputPumpThread = new PumpThread(in, masterOutput);
+            this.outputPumpThread = new PumpThread(masterInput, out);
+            this.inputPumpThread.start();
+            this.outputPumpThread.start();
+        }
+    }
+
+    @Override
+    public boolean paused() {
+        return paused.get();
+    }
+
+    @Override
+    public void setAttributes(Attributes attr) {
+        super.setAttributes(attr);
+        current = new Attributes(attr);
+    }
+
+    class PosixInputStream extends NonBlockingInputStream {
+
+        final InputStream in;
+        int c = 0;
+
+        PosixInputStream(InputStream in) {
+            this.in = in;
+        }
+
+        @Override
+        public int read(long timeout, boolean isPeek) throws IOException {
+            if (c != 0) {
+                int r = c;
+                if (!isPeek) {
+                    c = 0;
+                }
+                return r;
+            } else {
+                setNonBlocking();
+                long start = System.currentTimeMillis();
+                while (true) {
+                    int r = in.read();
+                    if (r >= 0) {
+                        if (isPeek) {
+                            c = r;
+                        }
+                        return r;
+                    }
+                    long cur = System.currentTimeMillis();
+                    if (timeout > 0 && cur - start > timeout) {
+                        return NonBlockingInputStream.READ_EXPIRED;
+                    }
+                }
+            }
+        }
+
+        private void setNonBlocking() {
+            if (current == null
+                    || current.getControlChar(Attributes.ControlChar.VMIN) != 0
+                    || current.getControlChar(Attributes.ControlChar.VTIME) != 1) {
+                Attributes attr = getAttributes();
+                attr.setControlChar(Attributes.ControlChar.VMIN, 0);
+                attr.setControlChar(Attributes.ControlChar.VTIME, 1);
+                setAttributes(attr);
+            }
+        }
     }
 
     private class InputStreamWrapper extends NonBlockingInputStream {
@@ -109,7 +193,7 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
         @Override
         public void run() {
             try {
-                while (true) {
+                while (!paused.get()) {
                     int b = in.read();
                     if (b < 0) {
                         input.close();

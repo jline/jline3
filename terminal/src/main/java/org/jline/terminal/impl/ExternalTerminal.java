@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -31,8 +31,9 @@ import java.util.function.IntConsumer;
 public class ExternalTerminal extends LineDisciplineTerminal {
 
     protected final AtomicBoolean closed = new AtomicBoolean();
-    protected final Thread pumpThread;
     protected final InputStream masterInput;
+    protected final AtomicBoolean paused = new AtomicBoolean(true);
+    protected Thread pumpThread;
 
     public ExternalTerminal(String name, String type,
                             InputStream masterInput,
@@ -48,25 +49,51 @@ public class ExternalTerminal extends LineDisciplineTerminal {
                             SignalHandler signalHandler) throws IOException {
         super(name, type, masterOutput, encoding, signalHandler);
         this.masterInput = masterInput;
-        this.pumpThread = new Thread(this::pump, toString() + " input pump thread");
-        this.pumpThread.start();
+        resume();
     }
 
     public void close() throws IOException {
         if (closed.compareAndSet(false, true)) {
-            pumpThread.interrupt();
+            pause();
             super.close();
         }
+    }
+
+    @Override
+    public boolean canPauseResume() {
+        return true;
+    }
+
+    @Override
+    public void pause() {
+        if (paused.compareAndSet(false, true)) {
+            this.pumpThread.interrupt();
+        }
+    }
+
+    @Override
+    public void resume() {
+        if (paused.compareAndSet(true, false)) {
+            this.pumpThread = new Thread(this::pump, toString() + " input pump thread");
+            this.pumpThread.start();
+        }
+    }
+
+    @Override
+    public boolean paused() {
+        return paused.get();
     }
 
     public void pump() {
         try {
             while (true) {
                 int c = masterInput.read();
-                if (c < 0 || closed.get()) {
+                if (c >= 0) {
+                    processInputByte((char) c);
+                }
+                if (c < 0 || closed.get() || paused.get()) {
                     break;
                 }
-                processInputByte((char) c);
             }
         } catch (IOException e) {
             // Ignore

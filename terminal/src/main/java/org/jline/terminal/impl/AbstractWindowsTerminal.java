@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -33,6 +33,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * The AbstractWindowsTerminal is used as the base class for windows terminal.
@@ -68,8 +69,10 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     protected final Map<Signal, Object> nativeHandlers = new HashMap<>();
     protected final ShutdownHooks.Task closer;
     protected final Attributes attributes = new Attributes();
-    protected final Thread pump;
     protected final int originalConsoleMode;
+
+    protected Thread pump;
+    protected final AtomicBoolean paused = new AtomicBoolean(true);
 
     protected MouseTracking tracking = MouseTracking.Off;
     private volatile boolean closing;
@@ -99,11 +102,6 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
                 }
             }
         }
-        pump = new Thread(this::pump, "WindowsStreamPump");
-        pump.setDaemon(true);
-        // This is called by the JNA/Jansi terminal implementation to avoid
-        // race conditions if they do initialization in their constructor
-        //pump.start();
         closer = this::close;
         ShutdownHooks.add(closer);
     }
@@ -400,9 +398,33 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         return null;
     }
 
+    @Override
+    public boolean canPauseResume() {
+        return true;
+    }
+
+    @Override
+    public void pause() {
+        paused.set(true);
+    }
+
+    @Override
+    public void resume() {
+        if (paused.compareAndSet(true, false)) {
+            pump = new Thread(this::pump, "WindowsStreamPump");
+            pump.setDaemon(true);
+            pump.start();
+        }
+    }
+
+    @Override
+    public boolean paused() {
+        return paused.get();
+    }
+
     protected void pump() {
         try {
-            while (!closing) {
+            while (!closing && !paused.get()) {
                 if (processConsoleInput()) {
                     slaveInputPipe.flush();
                 }

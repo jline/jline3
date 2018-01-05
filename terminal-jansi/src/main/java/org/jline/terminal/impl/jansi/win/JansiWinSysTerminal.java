@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -39,7 +39,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
               name, encoding, codepage, nativeSignals, signalHandler);
 
         // Start input pump thread
-        pump.start();
+        resume();
     }
 
     @Override
@@ -65,7 +65,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
     }
 
     protected boolean processConsoleInput() throws IOException {
-        INPUT_RECORD[] events = WindowsSupport.readConsoleInput(1);
+        INPUT_RECORD[] events = WindowsSupport.readConsoleInput(1, 100);
         if (events == null) {
             return false;
         }

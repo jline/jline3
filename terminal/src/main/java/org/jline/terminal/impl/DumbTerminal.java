@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,10 +8,8 @@
  */
 package org.jline.terminal.impl;
 
-import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -130,4 +128,23 @@ public class DumbTerminal extends AbstractTerminal {
 
     public void close() throws IOException {
     }
+
+    @Override
+    public boolean canPauseResume() {
+        return false;
+    }
+
+    @Override
+    public void pause() {
+    }
+
+    @Override
+    public void resume() {
+    }
+
+    @Override
+    public boolean paused() {
+        return false;
+    }
+
 }

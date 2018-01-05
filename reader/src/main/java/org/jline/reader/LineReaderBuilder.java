@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -12,6 +12,7 @@ import java.io.IOError;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import org.jline.reader.impl.LineReaderImpl;
 import org.jline.reader.impl.history.DefaultHistory;
@@ -26,7 +27,8 @@ public final class LineReaderBuilder {
 
     Terminal terminal;
     String appName;
-    Map<String, Object> variables;
+    Map<String, Object> variables = new HashMap<>();
+    Map<LineReader.Option, Boolean> options = new HashMap<>();
     History history;
     Completer completer;
     History memoryHistory;
@@ -49,18 +51,18 @@ public final class LineReaderBuilder {
 
     public LineReaderBuilder variables(Map<String, Object> variables) {
         Map<String, Object> old = this.variables;
-        this.variables = variables;
-        if (old != null) {
-            this.variables.putAll(old);
-        }
+        this.variables = Objects.requireNonNull(variables);
+        this.variables.putAll(old);
         return this;
     }
 
     public LineReaderBuilder variable(String name, Object value) {
-        if (variables == null) {
-            variables = new HashMap<>();
-        }
         this.variables.put(name, value);
+        return this;
+    }
+
+    public LineReaderBuilder option(LineReader.Option option, boolean value) {
+        this.options.put(option, value);
         return this;
     }
 
@@ -118,6 +120,9 @@ public final class LineReaderBuilder {
         }
         if (expander != null) {
             reader.setExpander(expander);
+        }
+        for (Map.Entry<LineReader.Option, Boolean> e : options.entrySet()) {
+            reader.option(e.getKey(), e.getValue());
         }
         return reader;
     }

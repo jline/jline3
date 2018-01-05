@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -17,6 +17,7 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.jline.terminal.Attributes;
 import org.jline.utils.NonBlocking;
 import org.jline.terminal.spi.Pty;
 import org.jline.utils.NonBlockingInputStream;
@@ -33,11 +34,12 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
     protected final PrintWriter writer;
     protected final Map<Signal, Object> nativeHandlers = new HashMap<>();
     protected final Task closer;
+    private Attributes current;
 
     public PosixSysTerminal(String name, String type, Pty pty, Charset encoding,
                             boolean nativeSignals, SignalHandler signalHandler) throws IOException {
         super(name, type, pty, encoding, signalHandler);
-        this.input = NonBlocking.nonBlocking(getName(), pty.getSlaveInput());
+        this.input = new PosixInputStream(pty.getSlaveInput());
         this.output = pty.getSlaveOutput();
         this.reader = NonBlocking.nonBlocking(getName(), input, encoding());
         this.writer = new PrintWriter(new OutputStreamWriter(output, encoding()));
@@ -96,4 +98,77 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
         // Do not call reader.close()
         reader.shutdown();
     }
+
+    @Override
+    public boolean canPauseResume() {
+        // There's no pump thread, so return false as there's no need to pause / resume
+        return false;
+    }
+
+    @Override
+    public void pause() {
+    }
+
+    @Override
+    public void resume() {
+    }
+
+    @Override
+    public boolean paused() {
+        return false;
+    }
+
+    @Override
+    public void setAttributes(Attributes attr) {
+        super.setAttributes(attr);
+        current = new Attributes(attr);
+    }
+
+    class PosixInputStream extends NonBlockingInputStream {
+        final InputStream in;
+        int c = 0;
+
+        PosixInputStream(InputStream in) {
+            this.in = in;
+        }
+
+        @Override
+        public int read(long timeout, boolean isPeek) throws IOException {
+            if (c != 0) {
+                int r = c;
+                if (!isPeek) {
+                    c = 0;
+                }
+                return r;
+            } else {
+                setNonBlocking();
+                long start = System.currentTimeMillis();
+                while (true) {
+                    int r = in.read();
+                    if (r >= 0) {
+                        if (isPeek) {
+                            c = r;
+                        }
+                        return r;
+                    }
+                    long cur = System.currentTimeMillis();
+                    if (timeout > 0 && cur - start > timeout) {
+                        return NonBlockingInputStream.READ_EXPIRED;
+                    }
+                }
+            }
+        }
+
+        private void setNonBlocking() {
+            if (current == null
+                    || current.getControlChar(Attributes.ControlChar.VMIN) != 0
+                    || current.getControlChar(Attributes.ControlChar.VTIME) != 1) {
+                Attributes attr = getAttributes();
+                attr.setControlChar(Attributes.ControlChar.VMIN, 0);
+                attr.setControlChar(Attributes.ControlChar.VTIME, 1);
+                setAttributes(attr);
+            }
+        }
+    }
+
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -35,7 +35,7 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
         strings.put(InfoCmp.Capability.key_mouse, "\\E[M");
 
         // Start input pump thread
-        pump.start();
+        resume();
     }
 
     @Override
@@ -62,7 +62,7 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
     }
 
     protected boolean processConsoleInput() throws IOException {
-        Kernel32.INPUT_RECORD event = readConsoleInput();
+        Kernel32.INPUT_RECORD event = readConsoleInput(100);
         if (event == null) {
             return false;
         }
@@ -126,7 +126,10 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
     private final Kernel32.INPUT_RECORD[] inputEvents = new Kernel32.INPUT_RECORD[1];
     private final IntByReference eventsRead = new IntByReference();
 
-    private Kernel32.INPUT_RECORD readConsoleInput() throws IOException {
+    private Kernel32.INPUT_RECORD readConsoleInput(int dwMilliseconds) throws IOException {
+        if (Kernel32.INSTANCE.WaitForSingleObject(consoleIn, dwMilliseconds) != 0) {
+            return null;
+        }
         Kernel32.INSTANCE.ReadConsoleInput(consoleIn, inputEvents, 1, eventsRead);
         if (eventsRead.getValue() == 1) {
             return inputEvents[0];
