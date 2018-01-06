@@ -128,13 +128,13 @@ public final class WindowsAnsiWriter extends AnsiWriter {
         int[] written = new int[1];
         switch (eraseOption) {
             case ERASE_SCREEN:
-                COORD topLeft = new COORD();
-                topLeft.x = 0;
-                topLeft.y = info.window.top;
-                int screenLength = info.window.height() * info.size.x;
-                FillConsoleOutputAttribute(console, originalColors, screenLength, topLeft, written);
-                FillConsoleOutputCharacterW(console, ' ', screenLength, topLeft, written);
-                break;
+				COORD topLeft = new COORD();
+				topLeft.x = 0;
+				topLeft.y = 0;
+				int screenLength = info.size.y * info.size.x;
+				FillConsoleOutputAttribute(console, originalColors, screenLength, topLeft, written);
+				FillConsoleOutputCharacterW(console, ' ', screenLength, topLeft, written);
+				break;
             case ERASE_SCREEN_TO_BEGINING:
                 COORD topLeft2 = new COORD();
                 topLeft2.x = 0;

@@ -296,7 +296,7 @@ public class AnsiWriter extends FilterWriter {
                     processCursorTo(optionInt(options, 0, 1), optionInt(options, 1, 1));
                     return true;
                 case 'J':
-                    processEraseScreen(optionInt(options, 0, 0));
+                    processEraseScreen(optionInt(options, 0, 2));
                     return true;
                 case 'K':
                     processEraseLine(optionInt(options, 0, 0));
