@@ -231,7 +231,7 @@ public final class WindowsAnsiWriter extends AnsiWriter {
 
     protected void processCursorTo(int row, int col) throws IOException {
         getConsoleInfo();
-        info.dwCursorPosition.Y = (short) (row - 1);
+        info.dwCursorPosition.Y = (short) (info.srWindow.Top + row - 1);
         info.dwCursorPosition.X = (short) (col - 1);
         applyCursorPosition();
     }
