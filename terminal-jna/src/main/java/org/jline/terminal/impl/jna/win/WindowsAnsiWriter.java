@@ -137,8 +137,8 @@ public final class WindowsAnsiWriter extends AnsiWriter {
             case ERASE_SCREEN:
                 Kernel32.COORD topLeft = new Kernel32.COORD();
                 topLeft.X = 0;
-                topLeft.Y = info.srWindow.Top;
-                int screenLength = info.srWindow.height() * info.dwSize.X;
+                topLeft.Y = 0;
+                int screenLength = info.dwSize.Y * info.dwSize.X;
                 Kernel32.INSTANCE.FillConsoleOutputCharacter(console, ' ', screenLength, topLeft, written);
                 Kernel32.INSTANCE.FillConsoleOutputAttribute(console, info.wAttributes, screenLength, topLeft, written);
                 break;
