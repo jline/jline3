@@ -241,7 +241,7 @@ public final class WindowsAnsiWriter extends AnsiWriter {
     @Override
     protected void processCursorTo(int row, int col) throws IOException {
         getConsoleInfo();
-        info.cursorPosition.y = (short) (row - 1);
+        info.cursorPosition.y = (short) (info.window.top + row - 1);
         info.cursorPosition.x = (short) (col - 1);
         applyCursorPosition();
     }
