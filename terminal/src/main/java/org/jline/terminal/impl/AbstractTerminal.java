@@ -211,4 +211,23 @@ public abstract class AbstractTerminal implements Terminal {
             throw new InterruptedIOException();
         }
     }
+
+    @Override
+    public boolean canPauseResume() {
+        return false;
+    }
+
+    @Override
+    public void pause() {
+    }
+
+    @Override
+    public void resume() {
+    }
+
+    @Override
+    public boolean paused() {
+        return false;
+    }
+
 }

@@ -100,25 +100,6 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
     }
 
     @Override
-    public boolean canPauseResume() {
-        // There's no pump thread, so return false as there's no need to pause / resume
-        return false;
-    }
-
-    @Override
-    public void pause() {
-    }
-
-    @Override
-    public void resume() {
-    }
-
-    @Override
-    public boolean paused() {
-        return false;
-    }
-
-    @Override
     public void setAttributes(Attributes attr) {
         super.setAttributes(attr);
         current = new Attributes(attr);

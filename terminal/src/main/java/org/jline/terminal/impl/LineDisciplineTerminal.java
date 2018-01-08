@@ -245,24 +245,6 @@ public class LineDisciplineTerminal extends AbstractTerminal {
         }
     }
 
-    @Override
-    public boolean canPauseResume() {
-        return false;
-    }
-
-    @Override
-    public void pause() {
-    }
-
-    @Override
-    public void resume() {
-    }
-
-    @Override
-    public boolean paused() {
-        return false;
-    }
-
     private class FilteringOutputStream extends OutputStream {
         @Override
         public void write(int b) throws IOException {

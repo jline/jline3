@@ -129,22 +129,4 @@ public class DumbTerminal extends AbstractTerminal {
     public void close() throws IOException {
     }
 
-    @Override
-    public boolean canPauseResume() {
-        return false;
-    }
-
-    @Override
-    public void pause() {
-    }
-
-    @Override
-    public void resume() {
-    }
-
-    @Override
-    public boolean paused() {
-        return false;
-    }
-
 }
