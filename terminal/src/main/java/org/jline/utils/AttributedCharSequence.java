@@ -48,15 +48,11 @@ public abstract class AttributedCharSequence implements CharSequence {
         int foreground = -1;
         int background = -1;
         int colors = 8;
-        boolean windows = false;
         if (terminal != null) {
             Integer max_colors = terminal.getNumericCapability(Capability.max_colors);
             if (max_colors != null) {
                 colors = max_colors;
             }
-            windows = terminal.getType() != null
-                && terminal.getType().toLowerCase(Locale.ENGLISH)
-                    .startsWith(AbstractWindowsTerminal.TYPE_WINDOWS);
         }
         for (int i = 0; i < length(); i++) {
             char c = charAt(i);
@@ -74,25 +70,13 @@ public abstract class AttributedCharSequence implements CharSequence {
                     if ((d & (F_BOLD | F_FAINT)) != 0) {
                         if (    (d & F_BOLD)  != 0 && (s & F_BOLD)  == 0
                              || (d & F_FAINT) != 0 && (s & F_FAINT) == 0) {
-                            if (!windows) {
-                                first = attr(sb, "22", first);
-                            }
+                            first = attr(sb, "22", first);
                         }
                         if ((d & F_BOLD) != 0 && (s & F_BOLD) != 0) {
-                            if (!windows) {
-                                first = attr(sb, "1", first);
-                            } else {
-                                int rounded = roundColor(fg, colors);
-                                fg = rounded  % 8 + 8;
-                            }
+                            first = attr(sb, "1", first);
                         }
                         if ((d & F_FAINT) != 0 && (s & F_FAINT) != 0) {
-                            if (!windows) {
-                                first = attr(sb, "2", first);
-                            } else {
-                                int rounded = roundColor(fg, colors);
-                                fg = rounded  % 8;
-                            }
+                            first = attr(sb, "2", first);
                         }
                     }
                     if ((d & F_ITALIC) != 0) {
