@@ -17,7 +17,6 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.jline.terminal.Attributes;
 import org.jline.utils.NonBlocking;
 import org.jline.terminal.spi.Pty;
 import org.jline.utils.NonBlockingInputStream;
@@ -34,12 +33,11 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
     protected final PrintWriter writer;
     protected final Map<Signal, Object> nativeHandlers = new HashMap<>();
     protected final Task closer;
-    private Attributes current;
 
     public PosixSysTerminal(String name, String type, Pty pty, Charset encoding,
                             boolean nativeSignals, SignalHandler signalHandler) throws IOException {
         super(name, type, pty, encoding, signalHandler);
-        this.input = new PosixInputStream(pty.getSlaveInput());
+        this.input = NonBlocking.nonBlocking(getName(), pty.getSlaveInput());
         this.output = pty.getSlaveOutput();
         this.reader = NonBlocking.nonBlocking(getName(), input, encoding());
         this.writer = new PrintWriter(new OutputStreamWriter(output, encoding()));
@@ -97,61 +95,6 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
         super.close();
         // Do not call reader.close()
         reader.shutdown();
-    }
-
-    @Override
-    public void setAttributes(Attributes attr) {
-        super.setAttributes(attr);
-        current = new Attributes(attr);
-    }
-
-    class PosixInputStream extends NonBlockingInputStream {
-        final InputStream in;
-        int c = 0;
-
-        PosixInputStream(InputStream in) {
-            this.in = in;
-        }
-
-        @Override
-        public int read(long timeout, boolean isPeek) throws IOException {
-            checkInterrupted();
-            if (c != 0) {
-                int r = c;
-                if (!isPeek) {
-                    c = 0;
-                }
-                return r;
-            } else {
-                setNonBlocking();
-                long start = System.currentTimeMillis();
-                while (true) {
-                    int r = in.read();
-                    if (r >= 0) {
-                        if (isPeek) {
-                            c = r;
-                        }
-                        return r;
-                    }
-                    checkInterrupted();
-                    long cur = System.currentTimeMillis();
-                    if (timeout > 0 && cur - start > timeout) {
-                        return NonBlockingInputStream.READ_EXPIRED;
-                    }
-                }
-            }
-        }
-
-        private void setNonBlocking() {
-            if (current == null
-                    || current.getControlChar(Attributes.ControlChar.VMIN) != 0
-                    || current.getControlChar(Attributes.ControlChar.VTIME) != 1) {
-                Attributes attr = getAttributes();
-                attr.setControlChar(Attributes.ControlChar.VMIN, 0);
-                attr.setControlChar(Attributes.ControlChar.VTIME, 1);
-                setAttributes(attr);
-            }
-        }
     }
 
 }

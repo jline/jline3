@@ -19,13 +19,14 @@ import java.lang.reflect.Constructor;
 import com.sun.jna.Platform;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
+import org.jline.terminal.impl.AbstractPty;
 import org.jline.terminal.spi.Pty;
 import org.jline.terminal.impl.jna.freebsd.FreeBsdNativePty;
 import org.jline.terminal.impl.jna.linux.LinuxNativePty;
 import org.jline.terminal.impl.jna.osx.OsXNativePty;
 import org.jline.terminal.impl.jna.solaris.SolarisNativePty;
 
-public abstract class JnaNativePty implements Pty {
+public abstract class JnaNativePty extends AbstractPty implements Pty {
 
     private final int master;
     private final int slave;
@@ -123,7 +124,7 @@ public abstract class JnaNativePty implements Pty {
         return new FileOutputStream(getMasterFD());
     }
 
-    public InputStream getSlaveInput() {
+    protected InputStream doGetSlaveInput() {
         return new FileInputStream(getSlaveFD());
     }
 

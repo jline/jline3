@@ -78,7 +78,7 @@ public class FreeBsdNativePty extends JnaNativePty {
     }
 
     @Override
-    public void setAttr(Attributes attr) throws IOException {
+    protected void doSetAttr(Attributes attr) throws IOException {
         termios termios = new termios(attr);
         C_LIBRARY.tcsetattr(getSlave(), TCSANOW, termios);
     }

@@ -31,7 +31,7 @@ import org.jline.utils.OSUtils;
 
 import static org.jline.utils.ExecHelper.exec;
 
-public class ExecPty implements Pty {
+public class ExecPty extends AbstractPty implements Pty {
 
     private final String name;
     private final boolean system;
@@ -69,7 +69,7 @@ public class ExecPty implements Pty {
     }
 
     @Override
-    public InputStream getSlaveInput() throws IOException {
+    protected InputStream doGetSlaveInput() throws IOException {
         return system
                 ? new FileInputStream(FileDescriptor.in)
                 : new FileInputStream(getName());
@@ -89,7 +89,7 @@ public class ExecPty implements Pty {
     }
 
     @Override
-    public void setAttr(Attributes attr) throws IOException {
+    protected void doSetAttr(Attributes attr) throws IOException {
         List<String> commands = getFlagsToSet(attr, getAttr());
         if (!commands.isEmpty()) {
             commands.add(0, OSUtils.STTY_COMMAND);
