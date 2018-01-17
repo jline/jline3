@@ -100,7 +100,7 @@ public class NonBlockingPumpReader extends NonBlockingReader {
         // Blocks until more input is available or the reader is closed.
         int res = wait(readBuffer, timeout);
         if (res >= 0) {
-            res = readBuffer.get();
+            res = isPeek ? readBuffer.get(readBuffer.position()) : readBuffer.get();
         }
         rewind(readBuffer, writeBuffer);
         return res;
