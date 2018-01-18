@@ -281,6 +281,10 @@ public interface LineReader {
     String REMOVE_SUFFIX_CHARS = "REMOVE_SUFFIX_CHARS";
     String SEARCH_TERMINATORS = "search-terminators";
     String ERRORS = "errors";
+    /** Property for the "others" group name */
+    String OTHERS_GROUP_NAME = "OTHERS_GROUP_NAME";
+    /** Property for the "original" group name */
+    String ORIGINAL_GROUP_NAME = "ORIGINAL_GROUP_NAME";
     /** Completion style for displaying groups name */
     String COMPLETION_STYLE_GROUP = "COMPLETION_STYLE_GROUP";
     /** Completion style for displaying the current selected item */

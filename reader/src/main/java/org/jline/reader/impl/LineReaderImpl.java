@@ -90,6 +90,8 @@ public class LineReaderImpl implements LineReader, Flushable
     public static final long   DEFAULT_BLINK_MATCHING_PAREN = 500L;
     public static final long   DEFAULT_AMBIGUOUS_BINDING = 1000L;
     public static final String DEFAULT_SECONDARY_PROMPT_PATTERN = "%M> ";
+    public static final String DEFAULT_OTHERS_GROUP_NAME = "others";
+    public static final String DEFAULT_ORIGINAL_GROUP_NAME = "original";
     public static final String DEFAULT_COMPLETION_STYLE_STARTING = "36";    // cyan
     public static final String DEFAULT_COMPLETION_STYLE_DESCRIPTION = "90"; // dark gray
     public static final String DEFAULT_COMPLETION_STYLE_GROUP = "35;1";     // magenta
@@ -3991,6 +3993,14 @@ public class LineReaderImpl implements LineReader, Flushable
         return true;
     }
 
+    protected String getOthersGroupName() {
+        return getString(OTHERS_GROUP_NAME, DEFAULT_OTHERS_GROUP_NAME);
+    }
+
+    protected String getOriginalGroupName() {
+        return getString(ORIGINAL_GROUP_NAME, DEFAULT_ORIGINAL_GROUP_NAME);
+    }
+
     private void mergeCandidates(List<Candidate> possible) {
         // Merge candidates if the have the same key
         Map<String, List<Candidate>> keyedCandidates = new HashMap<>();
@@ -4033,7 +4043,7 @@ public class LineReaderImpl implements LineReader, Flushable
                     .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
             if (map.size() > 1) {
                 map.computeIfAbsent(word, w -> new ArrayList<>())
-                        .add(new Candidate(word, word, "original", null, null, null, false));
+                        .add(new Candidate(word, word, getOriginalGroupName(), null, null, null, false));
             }
             return map;
         };
@@ -4422,7 +4432,7 @@ public class LineReaderImpl implements LineReader, Flushable
             for (Map.Entry<String, TreeMap<String, Candidate>> entry : sorted.entrySet()) {
                 String group = entry.getKey();
                 if (group.isEmpty() && sorted.size() > 1) {
-                    group = "others";
+                    group = getOthersGroupName();
                 }
                 if (!group.isEmpty() && autoGroup) {
                     strings.add(group);
