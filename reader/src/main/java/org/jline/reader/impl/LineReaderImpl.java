@@ -90,6 +90,10 @@ public class LineReaderImpl implements LineReader, Flushable
     public static final long   DEFAULT_BLINK_MATCHING_PAREN = 500L;
     public static final long   DEFAULT_AMBIGUOUS_BINDING = 1000L;
     public static final String DEFAULT_SECONDARY_PROMPT_PATTERN = "%M> ";
+    public static final String DEFAULT_COMPLETION_STYLE_STARTING = "36";    // cyan
+    public static final String DEFAULT_COMPLETION_STYLE_DESCRIPTION = "90"; // dark gray
+    public static final String DEFAULT_COMPLETION_STYLE_GROUP = "35;1";     // magenta
+    public static final String DEFAULT_COMPLETION_STYLE_SELECTION = "7";    // inverted
 
     private static final int MIN_ROWS = 3;
 
@@ -4406,7 +4410,7 @@ public class LineReaderImpl implements LineReader, Flushable
         return computePost(possible, selection, ordered, completed, display::wcwidth, size.getColumns(), isSet(Option.AUTO_GROUP), isSet(Option.GROUP), isSet(Option.LIST_ROWS_FIRST));
     }
 
-    static PostResult computePost(List<Candidate> possible, Candidate selection, List<Candidate> ordered, String completed, Function<String, Integer> wcwidth, int width, boolean autoGroup, boolean groupName, boolean rowsFirst) {
+    protected PostResult computePost(List<Candidate> possible, Candidate selection, List<Candidate> ordered, String completed, Function<String, Integer> wcwidth, int width, boolean autoGroup, boolean groupName, boolean rowsFirst) {
         List<Object> strings = new ArrayList<>();
         if (groupName) {
             LinkedHashMap<String, TreeMap<String, Candidate>> sorted = new LinkedHashMap<>();
@@ -4455,7 +4459,7 @@ public class LineReaderImpl implements LineReader, Flushable
     private static final int MARGIN_BETWEEN_COLUMNS = 3;
 
     @SuppressWarnings("unchecked")
-    static PostResult toColumns(List<Object> items, Candidate selection, String completed, Function<String, Integer> wcwidth, int width, boolean rowsFirst) {
+    protected PostResult toColumns(List<Object> items, Candidate selection, String completed, Function<String, Integer> wcwidth, int width, boolean rowsFirst) {
         int[] out = new int[2];
         // TODO: support Option.LIST_PACKED
         // Compute column width
@@ -4490,13 +4494,13 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     @SuppressWarnings("unchecked")
-    static void toColumns(Object items, int width, int maxWidth, AttributedStringBuilder sb, Candidate selection, String completed, boolean rowsFirst, int[] out) {
+    protected void toColumns(Object items, int width, int maxWidth, AttributedStringBuilder sb, Candidate selection, String completed, boolean rowsFirst, int[] out) {
         if (maxWidth <= 0) {
             return;
         }
         // This is a group
         if (items instanceof String) {
-            sb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.CYAN))
+            sb.style(getCompletionStyleGroup())
                     .append((String) items)
                     .style(AttributedStyle.DEFAULT)
                     .append("\n");
@@ -4545,7 +4549,7 @@ public class LineReaderImpl implements LineReader, Flushable
                         }
                         if (cand == selection) {
                             out[1] = i;
-                            sb.style(AttributedStyle.INVERSE);
+                            sb.style(getCompletionStyleSelection());
                             if (left.toString().startsWith(completed)) {
                                 sb.append(left.toString(), 0, completed.length());
                                 sb.append(left.toString(), completed.length(), left.length());
@@ -4561,7 +4565,7 @@ public class LineReaderImpl implements LineReader, Flushable
                             sb.style(AttributedStyle.DEFAULT);
                         } else {
                             if (left.toString().startsWith(completed)) {
-                                sb.style(sb.style().foreground(AttributedStyle.CYAN));
+                                sb.style(getCompletionStyleStarting());
                                 sb.append(left, 0, completed.length());
                                 sb.style(AttributedStyle.DEFAULT);
                                 sb.append(left, completed.length(), left.length());
@@ -4574,7 +4578,7 @@ public class LineReaderImpl implements LineReader, Flushable
                                 }
                             }
                             if (right != null) {
-                                sb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.BLACK + AttributedStyle.BRIGHT));
+                                sb.style(getCompletionStyleDescription());
                                 sb.append(right);
                                 sb.style(AttributedStyle.DEFAULT);
                             }
@@ -4590,6 +4594,30 @@ public class LineReaderImpl implements LineReader, Flushable
             }
             out[0] += lines;
         }
+    }
+
+    private AttributedStyle getCompletionStyleStarting() {
+        return getCompletionStyle(COMPLETION_STYLE_STARTING, DEFAULT_COMPLETION_STYLE_STARTING);
+    }
+
+    protected AttributedStyle getCompletionStyleDescription() {
+        return getCompletionStyle(COMPLETION_STYLE_DESCRIPTION, DEFAULT_COMPLETION_STYLE_DESCRIPTION);
+    }
+
+    protected AttributedStyle getCompletionStyleGroup() {
+        return getCompletionStyle(COMPLETION_STYLE_GROUP, DEFAULT_COMPLETION_STYLE_GROUP);
+    }
+
+    protected AttributedStyle getCompletionStyleSelection() {
+        return getCompletionStyle(COMPLETION_STYLE_SELECTION, DEFAULT_COMPLETION_STYLE_SELECTION);
+    }
+
+    protected AttributedStyle getCompletionStyle(String name, String value) {
+        return buildStyle(getString(name, value));
+    }
+
+    protected AttributedStyle buildStyle(String str) {
+        return AttributedString.fromAnsi("\u001b[" + str + "m ").styleAt(0);
     }
 
     private String getCommonStart(String str1, String str2, boolean caseInsensitive) {

@@ -281,6 +281,14 @@ public interface LineReader {
     String REMOVE_SUFFIX_CHARS = "REMOVE_SUFFIX_CHARS";
     String SEARCH_TERMINATORS = "search-terminators";
     String ERRORS = "errors";
+    /** Completion style for displaying groups name */
+    String COMPLETION_STYLE_GROUP = "COMPLETION_STYLE_GROUP";
+    /** Completion style for displaying the current selected item */
+    String COMPLETION_STYLE_SELECTION = "COMPLETION_STYLE_SELECTION";
+    /** Completion style for displaying the candidate description */
+    String COMPLETION_STYLE_DESCRIPTION = "COMPLETION_STYLE_DESCRIPTION";
+    /** Completion style for displaying the matching part of candidates */
+    String COMPLETION_STYLE_STARTING = "COMPLETION_STYLE_STARTING";
     /**
      * Set the template for prompts for secondary (continuation) lines.
      * This is a prompt template as described in the class header.

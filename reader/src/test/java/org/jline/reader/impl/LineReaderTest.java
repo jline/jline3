@@ -12,12 +12,16 @@ import org.jline.reader.Candidate;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
+import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.terminal.impl.DumbTerminal;
 import org.jline.utils.AttributedString;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -81,8 +85,9 @@ public class LineReaderTest {
         assertEquals("option1   option2\noption3   option4",                  computeGroupPost(c, false,  true));
     }
 
-    private String computeGroupPost(List<Candidate> c, boolean autoGroup, boolean groupName) {
-        return LineReaderImpl.computePost(c, null, null, "", s -> AttributedString.fromAnsi(s).columnLength(), 80, autoGroup, groupName, true).post.toString();
+    private String computeGroupPost(List<Candidate> c, boolean autoGroup, boolean groupName) throws IOException {
+        Terminal terminal = new DumbTerminal(new ByteArrayInputStream(new byte[0]), new ByteArrayOutputStream());
+        return new LineReaderImpl(terminal).computePost(c, null, null, "", s -> AttributedString.fromAnsi(s).columnLength(), 80, autoGroup, groupName, true).post.toString();
     }
 
 }
