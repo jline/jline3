@@ -26,12 +26,14 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
     private static final Pointer consoleOut = Kernel32.INSTANCE.GetStdHandle(Kernel32.STD_OUTPUT_HANDLE);
 
     public JnaWinSysTerminal(String name, boolean nativeSignals) throws IOException {
-        this(name, null, 0, nativeSignals, SignalHandler.SIG_DFL);
+        this(name, TYPE_WINDOWS, false, null, 0, nativeSignals, SignalHandler.SIG_DFL);
     }
 
-    public JnaWinSysTerminal(String name, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
-        super(new WindowsAnsiWriter(new BufferedWriter(new JnaWinConsoleWriter(consoleOut)), consoleOut),
-              name, encoding, codepage, nativeSignals, signalHandler);
+    public JnaWinSysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
+        super(ansiPassThrough
+                        ? new JnaWinConsoleWriter(consoleOut)
+                        : new WindowsAnsiWriter(new BufferedWriter(new JnaWinConsoleWriter(consoleOut)), consoleOut),
+              name, type, encoding, codepage, nativeSignals, signalHandler);
         strings.put(InfoCmp.Capability.key_mouse, "\\E[M");
 
         // Start input pump thread

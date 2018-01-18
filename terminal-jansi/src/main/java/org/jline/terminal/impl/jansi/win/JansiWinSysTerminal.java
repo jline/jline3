@@ -31,12 +31,19 @@ import static org.fusesource.jansi.internal.Kernel32.STD_OUTPUT_HANDLE;
 public class JansiWinSysTerminal extends AbstractWindowsTerminal {
 
     public JansiWinSysTerminal(String name, boolean nativeSignals) throws IOException {
-        this(name, null, 0, nativeSignals, SignalHandler.SIG_DFL);
+        this(name, TYPE_WINDOWS, false, null, 0, nativeSignals, SignalHandler.SIG_DFL);
     }
 
-    public JansiWinSysTerminal(String name, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
-        super(new WindowsAnsiWriter(new BufferedWriter(new JansiWinConsoleWriter())),
-              name, encoding, codepage, nativeSignals, signalHandler);
+    public JansiWinSysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
+        super(ansiPassThrough
+                        ? new JansiWinConsoleWriter()
+                        : new WindowsAnsiWriter(new BufferedWriter(new JansiWinConsoleWriter())),
+              name,
+              type,
+              encoding,
+              codepage,
+              nativeSignals,
+              signalHandler);
 
         // Start input pump thread
         resume();

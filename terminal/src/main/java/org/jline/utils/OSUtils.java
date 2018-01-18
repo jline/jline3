@@ -22,6 +22,9 @@ public class OSUtils {
             && System.getenv("MSYSTEM") != null
             && System.getenv("MSYSTEM").startsWith("MINGW");
 
+    public static final boolean IS_CONEMU = IS_WINDOWS
+            && System.getenv("ConEmuPID") != null;
+
     public static final boolean IS_OSX = System.getProperty("os.name").toLowerCase().contains("mac");
 
     public static String TTY_COMMAND;

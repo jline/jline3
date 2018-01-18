@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.charset.Charset;
 
+import static org.jline.terminal.impl.AbstractWindowsTerminal.TYPE_WINDOWS;
 import static org.junit.Assert.assertEquals;
 
 public class AbstractWindowsTerminalTest {
@@ -27,7 +28,7 @@ public class AbstractWindowsTerminalTest {
     @Test
     public void testWriterBuffering() throws Exception {
         StringWriter sw = new StringWriter();
-        Terminal terminal = new AbstractWindowsTerminal(new AnsiWriter(new BufferedWriter(sw)), "name", Charset.defaultCharset(),0,
+        Terminal terminal = new AbstractWindowsTerminal(new AnsiWriter(new BufferedWriter(sw)), "name", TYPE_WINDOWS, Charset.defaultCharset(),0,
                 false, Terminal.SignalHandler.SIG_DFL) {
             @Override
             protected int getConsoleOutputCP() {

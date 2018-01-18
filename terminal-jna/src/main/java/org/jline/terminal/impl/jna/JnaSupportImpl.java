@@ -22,7 +22,7 @@ public class JnaSupportImpl implements JnaSupport {
     }
 
     @Override
-    public Terminal winSysTerminal(String name, Charset encoding, int codepage, boolean nativeSignals, Terminal.SignalHandler signalHandler) throws IOException {
-        return new JnaWinSysTerminal(name, encoding, codepage, nativeSignals, signalHandler);
+    public Terminal winSysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, Terminal.SignalHandler signalHandler) throws IOException {
+        return new JnaWinSysTerminal(name, type, ansiPassThrough, encoding, codepage, nativeSignals, signalHandler);
     }
 }

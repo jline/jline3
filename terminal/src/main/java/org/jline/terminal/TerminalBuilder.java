@@ -30,6 +30,9 @@ import org.jline.terminal.spi.Pty;
 import org.jline.utils.Log;
 import org.jline.utils.OSUtils;
 
+import static org.jline.terminal.impl.AbstractWindowsTerminal.TYPE_WINDOWS;
+import static org.jline.terminal.impl.AbstractWindowsTerminal.TYPE_WINDOWS_256_COLOR;
+
 /**
  * Builder class to create terminals.
  */
@@ -273,6 +276,10 @@ public final class TerminalBuilder {
             IllegalStateException exception = new IllegalStateException("Unable to create a system terminal");
             if (OSUtils.IS_WINDOWS) {
                 boolean cygwinTerm = "cygwin".equals(System.getenv("TERM"));
+                boolean ansiPassThrough = OSUtils.IS_CONEMU;
+                if (type == null) {
+                    type = OSUtils.IS_CONEMU ? TYPE_WINDOWS_256_COLOR : TYPE_WINDOWS;
+                }
                 //
                 // Cygwin support
                 //
@@ -293,7 +300,7 @@ public final class TerminalBuilder {
                 }
                 if (jna) {
                     try {
-                        return load(JnaSupport.class).winSysTerminal(name, encoding, codepage, nativeSignals, signalHandler);
+                        return load(JnaSupport.class).winSysTerminal(name, type, ansiPassThrough, encoding, codepage, nativeSignals, signalHandler);
                     } catch (Throwable t) {
                         Log.debug("Error creating JNA based terminal: ", t.getMessage(), t);
                         exception.addSuppressed(t);
@@ -301,7 +308,7 @@ public final class TerminalBuilder {
                 }
                 if (jansi) {
                     try {
-                        return load(JansiSupport.class).winSysTerminal(name, encoding, codepage, nativeSignals, signalHandler);
+                        return load(JansiSupport.class).winSysTerminal(name, type, ansiPassThrough, encoding, codepage, nativeSignals, signalHandler);
                     } catch (Throwable t) {
                         Log.debug("Error creating JANSI based terminal: ", t.getMessage(), t);
                         exception.addSuppressed(t);

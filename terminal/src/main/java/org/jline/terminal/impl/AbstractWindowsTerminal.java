@@ -50,6 +50,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public abstract class AbstractWindowsTerminal extends AbstractTerminal {
 
     public static final String TYPE_WINDOWS = "windows";
+    public static final String TYPE_WINDOWS_256_COLOR = "windows-256color";
 
     private static final int UTF8_CODE_PAGE = 65001;
 
@@ -77,8 +78,8 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     protected MouseTracking tracking = MouseTracking.Off;
     private volatile boolean closing;
 
-    public AbstractWindowsTerminal(Writer writer, String name, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
-        super(name, TYPE_WINDOWS, selectCharset(encoding, codepage), signalHandler);
+    public AbstractWindowsTerminal(Writer writer, String name, String type, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
+        super(name, type, selectCharset(encoding, codepage), signalHandler);
         NonBlockingPumpReader reader = NonBlocking.nonBlockingPumpReader();
         this.slaveInputPipe = reader.getWriter();
         this.reader = reader;
