@@ -27,6 +27,7 @@ interface Kernel32 extends StdCallLibrary {
     int STD_OUTPUT_HANDLE = -11;
     int STD_ERROR_HANDLE =  -12;
 
+    // Input modes
     int ENABLE_PROCESSED_INPUT =    0x0001;
     int ENABLE_LINE_INPUT =         0x0002;
     int ENABLE_ECHO_INPUT =         0x0004;
@@ -35,6 +36,9 @@ interface Kernel32 extends StdCallLibrary {
     int ENABLE_INSERT_MODE =        0x0020;
     int ENABLE_QUICK_EDIT_MODE =    0x0040;
     int ENABLE_EXTENDED_FLAGS =     0x0080;
+
+    // Output modes
+    int ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004;
 
     int RIGHT_ALT_PRESSED =     0x0001;
     int LEFT_ALT_PRESSED =      0x0002;

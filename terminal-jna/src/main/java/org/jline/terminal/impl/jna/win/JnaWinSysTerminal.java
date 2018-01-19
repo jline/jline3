@@ -10,15 +10,18 @@ package org.jline.terminal.impl.jna.win;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.function.IntConsumer;
 
+import com.sun.jna.LastErrorException;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
 import org.jline.utils.InfoCmp;
+import org.jline.utils.Log;
 
 public class JnaWinSysTerminal extends AbstractWindowsTerminal {
 
@@ -30,12 +33,26 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
     }
 
     public JnaWinSysTerminal(String name, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
-        super(new WindowsAnsiWriter(new BufferedWriter(new JnaWinConsoleWriter(consoleOut)), consoleOut),
+        super(createAnsiWriter(new BufferedWriter(new JnaWinConsoleWriter(consoleOut))),
               name, encoding, codepage, nativeSignals, signalHandler);
         strings.put(InfoCmp.Capability.key_mouse, "\\E[M");
 
         // Start input pump thread
         resume();
+    }
+
+    private static Writer createAnsiWriter(Writer writer) throws IOException {
+        IntByReference mode = new IntByReference();
+        Kernel32.INSTANCE.GetConsoleMode(consoleOut, mode);
+
+        try {
+            Kernel32.INSTANCE.SetConsoleMode(consoleOut, mode.getValue() | Kernel32.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+            return writer;
+        } catch (LastErrorException e) {
+            Log.debug("Unable to enable virtual terminal processing, using AnsiWriter instead", e);
+        }
+
+        return new WindowsAnsiWriter(writer, consoleOut);
     }
 
     @Override

@@ -11,6 +11,7 @@ package org.jline.terminal.impl.jansi.win;
 import java.io.BufferedWriter;
 import java.io.IOError;
 import java.io.IOException;
+import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.function.IntConsumer;
 
@@ -23,6 +24,7 @@ import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
 import org.jline.utils.InfoCmp;
+import org.jline.utils.Log;
 
 import static org.fusesource.jansi.internal.Kernel32.GetConsoleScreenBufferInfo;
 import static org.fusesource.jansi.internal.Kernel32.GetStdHandle;
@@ -30,17 +32,36 @@ import static org.fusesource.jansi.internal.Kernel32.STD_OUTPUT_HANDLE;
 
 public class JansiWinSysTerminal extends AbstractWindowsTerminal {
 
+    private static final int ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004;
+
     public JansiWinSysTerminal(String name, boolean nativeSignals) throws IOException {
         this(name, null, 0, nativeSignals, SignalHandler.SIG_DFL);
     }
 
     public JansiWinSysTerminal(String name, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
-        super(new WindowsAnsiWriter(new BufferedWriter(new JansiWinConsoleWriter())),
+        super(createAnsiWriter(new BufferedWriter(new JansiWinConsoleWriter())),
               name, encoding, codepage, nativeSignals, signalHandler);
 
         // Start input pump thread
         resume();
     }
+
+    private static Writer createAnsiWriter(Writer writer) throws IOException {
+        long console = GetStdHandle(STD_OUTPUT_HANDLE);
+
+        int[] mode = new int[1];
+        if (Kernel32.GetConsoleMode(console, mode) == 0) {
+            throw new IOException("Failed to get console mode: " + WindowsSupport.getLastErrorMessage());
+        }
+
+        if (Kernel32.SetConsoleMode(console, mode[0] | ENABLE_VIRTUAL_TERMINAL_PROCESSING) != 0) {
+            return writer;
+        }
+
+        Log.debug("Unable to enable virtual terminal processing, using AnsiWriter instead: " + WindowsSupport.getLastErrorMessage());
+        return new WindowsAnsiWriter(writer);
+    }
+
 
     @Override
     protected int getConsoleOutputCP() {
