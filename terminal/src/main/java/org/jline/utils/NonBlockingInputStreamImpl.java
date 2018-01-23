@@ -236,6 +236,7 @@ public class NonBlockingInputStreamImpl
             Log.debug("NonBlockingInputStream shutdown");
             synchronized (this) {
                 thread = null;
+                threadIsReading = false;
             }
         }
     }

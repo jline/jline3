@@ -244,6 +244,7 @@ public class NonBlockingReaderImpl
             Log.debug("NonBlockingReader shutdown");
             synchronized (this) {
                 thread = null;
+                threadIsReading = false;
             }
         }
     }
