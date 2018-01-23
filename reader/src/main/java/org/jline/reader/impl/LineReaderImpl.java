@@ -27,14 +27,10 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.function.Function;
-import java.util.function.IntBinaryOperator;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
+import java.util.function.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -3828,8 +3824,7 @@ public class LineReaderImpl implements LineReader, Flushable
         int errors = getInt(ERRORS, DEFAULT_ERRORS);
 
         // Build a list of sorted candidates
-        NavigableMap<String, List<Candidate>> sortedCandidates =
-                new TreeMap<>(caseInsensitive ? String.CASE_INSENSITIVE_ORDER : null);
+        Map<String, List<Candidate>> sortedCandidates = new HashMap<>();
         for (Candidate cand : candidates) {
             sortedCandidates
                     .computeIfAbsent(AttributedString.fromAnsi(cand.value()).toString(), s -> new ArrayList<>())
@@ -3993,12 +3988,27 @@ public class LineReaderImpl implements LineReader, Flushable
         return true;
     }
 
+    protected Comparator<Candidate> getCandidateComparator(boolean caseInsensitive, String word) {
+        String wdi = caseInsensitive ? word.toLowerCase() : word;
+        ToIntFunction<String> wordDistance = w -> distance(wdi, caseInsensitive ? w.toLowerCase() : w);
+        return Comparator
+                .comparing(Candidate::value, Comparator.comparingInt(wordDistance))
+                .thenComparing(Candidate::value, Comparator.comparingInt(String::length))
+                .thenComparing(Comparator.naturalOrder());
+    }
+
     protected String getOthersGroupName() {
         return getString(OTHERS_GROUP_NAME, DEFAULT_OTHERS_GROUP_NAME);
     }
 
     protected String getOriginalGroupName() {
         return getString(ORIGINAL_GROUP_NAME, DEFAULT_ORIGINAL_GROUP_NAME);
+    }
+
+
+    protected Comparator<String> getGroupComparator() {
+        return Comparator.<String>comparingInt(s -> getOthersGroupName().equals(s) ? 1 : getOriginalGroupName().equals(s) ? -1 : 0)
+                .thenComparing(String::toLowerCase, Comparator.naturalOrder());
     }
 
     private void mergeCandidates(List<Candidate> possible) {
@@ -4335,9 +4345,12 @@ public class LineReaderImpl implements LineReader, Flushable
                         .filter(c -> caseInsensitive
                                     ? c.value().toLowerCase().startsWith(current.toLowerCase())
                                     : c.value().startsWith(current))
+                        .sorted(getCandidateComparator(caseInsensitive, current))
                         .collect(Collectors.toList());
             } else {
-                cands = possible;
+                cands = possible.stream()
+                        .sorted(getCandidateComparator(caseInsensitive, current))
+                        .collect(Collectors.toList());
             }
             post = () -> {
                 AttributedString t = insertSecondaryPrompts(AttributedStringBuilder.append(prompt, buf.toString()), new ArrayList<>());
@@ -4423,13 +4436,17 @@ public class LineReaderImpl implements LineReader, Flushable
     protected PostResult computePost(List<Candidate> possible, Candidate selection, List<Candidate> ordered, String completed, Function<String, Integer> wcwidth, int width, boolean autoGroup, boolean groupName, boolean rowsFirst) {
         List<Object> strings = new ArrayList<>();
         if (groupName) {
-            LinkedHashMap<String, TreeMap<String, Candidate>> sorted = new LinkedHashMap<>();
+            Comparator<String> groupComparator = getGroupComparator();
+            Map<String, Map<String, Candidate>> sorted;
+            sorted = groupComparator != null
+                        ? new TreeMap<>(groupComparator)
+                        : new LinkedHashMap<>();
             for (Candidate cand : possible) {
                 String group = cand.group();
-                sorted.computeIfAbsent(group != null ? group : "", s -> new TreeMap<>())
+                sorted.computeIfAbsent(group != null ? group : "", s -> new LinkedHashMap<>())
                         .put(cand.value(), cand);
             }
-            for (Map.Entry<String, TreeMap<String, Candidate>> entry : sorted.entrySet()) {
+            for (Map.Entry<String, Map<String, Candidate>> entry : sorted.entrySet()) {
                 String group = entry.getKey();
                 if (group.isEmpty() && sorted.size() > 1) {
                     group = getOthersGroupName();
