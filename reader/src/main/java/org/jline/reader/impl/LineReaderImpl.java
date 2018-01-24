@@ -1922,13 +1922,18 @@ public class LineReaderImpl implements LineReader, Flushable
     protected boolean insertClose(String s) {
         putString(s);
 
+        long blink = getLong(BLINK_MATCHING_PAREN, DEFAULT_BLINK_MATCHING_PAREN);
+        if (blink <= 0) {
+            return true;
+        }
+
         int closePosition = buf.cursor();
 
         buf.move(-1);
         doViMatchBracket();
         redisplay();
 
-        peekCharacter(getLong(BLINK_MATCHING_PAREN, DEFAULT_BLINK_MATCHING_PAREN));
+        peekCharacter(blink);
 
         buf.cursor(closePosition);
         return true;
