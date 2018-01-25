@@ -353,7 +353,7 @@ public final class TerminalBuilder {
                         Log.warn("Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)");
                     }
                 }
-                return new DumbTerminal(name, type != null ? type : Terminal.TYPE_DUMB,
+                return new DumbTerminal(name, Terminal.TYPE_DUMB,
                         new FileInputStream(FileDescriptor.in),
                         new FileOutputStream(FileDescriptor.out),
                         encoding, signalHandler);
