@@ -568,6 +568,7 @@ public class AnsiWriter extends FilterWriter {
      * @throws IOException
      */
     protected void processSetForegroundColor(int color, boolean bright) throws IOException {
+        processSetForegroundColorExt(bright ? color + 8 : color);
     }
 
     /**
@@ -588,6 +589,7 @@ public class AnsiWriter extends FilterWriter {
      * @throws IOException
      */
     protected void processSetForegroundColorExt(int r, int g, int b) throws IOException {
+        processSetForegroundColorExt(Colors.roundRgbColor(r, g, b, 16));
     }
 
     /**
@@ -607,6 +609,7 @@ public class AnsiWriter extends FilterWriter {
      * @throws IOException
      */
     protected void processSetBackgroundColor(int color, boolean bright) throws IOException {
+        processSetBackgroundColorExt(bright ? color + 8 : color);
     }
 
     /**
@@ -627,6 +630,7 @@ public class AnsiWriter extends FilterWriter {
      * @throws IOException
      */
     protected void processSetBackgroundColorExt(int r, int g, int b) throws IOException {
+        processSetBackgroundColorExt(Colors.roundRgbColor(r, g, b, 16));
     }
 
     /**

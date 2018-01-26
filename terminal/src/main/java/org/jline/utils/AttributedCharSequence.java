@@ -88,8 +88,12 @@ public abstract class AttributedCharSequence implements CharSequence {
                             int rounded = roundColor(fg, colors);
                             if (rounded < 8) {
                                 first = attr(sb, "3" + Integer.toString(rounded), first);
+                                // small hack to force setting bold again after a foreground color change
+                                d |= (s & F_BOLD);
                             } else if (rounded < 16) {
                                 first = attr(sb, "9" + Integer.toString(rounded - 8), first);
+                                // small hack to force setting bold again after a foreground color change
+                                d |= (s & F_BOLD);
                             } else {
                                 first = attr(sb, "38;5;" + Integer.toString(rounded), first);
                             }

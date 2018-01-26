@@ -42,8 +42,11 @@ public class AttributedCharSequenceTest {
                 new ByteArrayOutputStream(),
                 StandardCharsets.UTF_8);
 
+        assertEquals("\33[34;47;1mblue on white\33[31;42;1mred on green\33[0m", AttributedString.fromAnsi("\33[34m\33[47m\33[1mblue on white\33[0m\33[31m\33[42m\33[1mred on green\33[0m").toAnsi(terminal));
+
         assertEquals("\33[32;1mtest\33[0m", AttributedString.fromAnsi("\33[32m\33[1mtest\33[0m").toAnsi(terminal));
         assertEquals("\33[32;1mtest\33[0m", AttributedString.fromAnsi("\33[1m\33[32mtest\33[0m").toAnsi(terminal));
+
     }
 
 }

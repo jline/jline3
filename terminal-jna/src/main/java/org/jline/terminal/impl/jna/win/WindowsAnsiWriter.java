@@ -14,6 +14,7 @@ import java.io.Writer;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
 import org.jline.utils.AnsiWriter;
+import org.jline.utils.Colors;
 
 import static org.jline.terminal.impl.jna.win.Kernel32.BACKGROUND_BLUE;
 import static org.jline.terminal.impl.jna.win.Kernel32.BACKGROUND_GREEN;
@@ -77,6 +78,8 @@ public final class WindowsAnsiWriter extends AnsiWriter {
     private final short originalColors;
 
     private boolean negative;
+    private boolean bold;
+    private boolean underline;
     private short savedX = -1;
     private short savedY = -1;
 
@@ -98,6 +101,14 @@ public final class WindowsAnsiWriter extends AnsiWriter {
     private void applyAttribute() throws IOException {
         out.flush();
         short attributes = info.wAttributes;
+        // bold is simulated by high foreground intensity
+        if (bold) {
+            attributes |= FOREGROUND_INTENSITY;
+        }
+        // underline is simulated by high foreground intensity
+        if (underline) {
+            attributes |= BACKGROUND_INTENSITY;
+        }
         if( negative ) {
             attributes = invertAttributeColors(attributes);
         }
@@ -118,16 +129,6 @@ public final class WindowsAnsiWriter extends AnsiWriter {
         info.dwCursorPosition.X = (short) Math.max(0, Math.min(info.dwSize.X - 1, info.dwCursorPosition.X));
         info.dwCursorPosition.Y = (short) Math.max(0, Math.min(info.dwSize.Y - 1, info.dwCursorPosition.Y));
         Kernel32.INSTANCE.SetConsoleCursorPosition(console, info.dwCursorPosition);
-    }
-
-    protected void processDefaultTextColor() throws IOException {
-        info.wAttributes = (short)((info.wAttributes & ~0x000F ) | (originalColors & 0x000F));
-        applyAttribute();
-    }
-
-    protected void processDefaultBackgroundColor() throws IOException {
-        info.wAttributes = (short)((info.wAttributes & ~0x00F0 ) | (originalColors & 0x00F0));
-        applyAttribute();
     }
 
     protected void processEraseScreen(int eraseOption) throws IOException {
@@ -242,43 +243,56 @@ public final class WindowsAnsiWriter extends AnsiWriter {
         applyCursorPosition();
     }
 
-    protected void processSetForegroundColor(int color, boolean bright) throws IOException {
-        info.wAttributes = (short)((info.wAttributes & ~0x0007 ) | ANSI_FOREGROUND_COLOR_MAP[color]);
-        info.wAttributes = (short) ((info.wAttributes & ~FOREGROUND_INTENSITY) | (bright ? FOREGROUND_INTENSITY : 0));
+    @Override
+    protected void processSetForegroundColorExt(int paletteIndex) throws IOException {
+        int color = Colors.roundColor(paletteIndex, 16);
+        info.wAttributes = (short) ((info.wAttributes & ~0x0007) | ANSI_FOREGROUND_COLOR_MAP[color & 0x07]);
+        info.wAttributes = (short) ((info.wAttributes & ~FOREGROUND_INTENSITY) | (color > 8 ? FOREGROUND_INTENSITY : 0));
         applyAttribute();
     }
 
-    protected void processSetBackgroundColor(int color, boolean bright) throws IOException {
+    protected void processSetBackgroundColorExt(int paletteIndex) throws IOException {
+        int color = Colors.roundColor(paletteIndex, 16);
         info.wAttributes = (short)((info.wAttributes & ~0x0070 ) | ANSI_BACKGROUND_COLOR_MAP[color]);
-        info.wAttributes = (short) ((info.wAttributes & ~BACKGROUND_INTENSITY) | (bright ? BACKGROUND_INTENSITY : 0));
+        info.wAttributes = (short) ((info.wAttributes & ~BACKGROUND_INTENSITY) | (color > 8 ? BACKGROUND_INTENSITY : 0));
+        applyAttribute();
+    }
+
+    protected void processDefaultTextColor() throws IOException {
+        info.wAttributes = (short)((info.wAttributes & ~0x000F ) | (originalColors & 0x000F));
+        applyAttribute();
+    }
+
+    protected void processDefaultBackgroundColor() throws IOException {
+        info.wAttributes = (short)((info.wAttributes & ~0x00F0 ) | (originalColors & 0x00F0));
         applyAttribute();
     }
 
     protected void processAttributeRest() throws IOException {
         info.wAttributes = (short)((info.wAttributes & ~0x00FF ) | originalColors);
         this.negative = false;
+        this.bold = false;
+        this.underline = false;
         applyAttribute();
     }
 
     protected void processSetAttribute(int attribute) throws IOException {
         switch(attribute) {
             case ATTRIBUTE_INTENSITY_BOLD:
-                info.wAttributes = (short)(info.wAttributes | FOREGROUND_INTENSITY );
+                bold = true;
                 applyAttribute();
                 break;
             case ATTRIBUTE_INTENSITY_NORMAL:
-                info.wAttributes = (short)(info.wAttributes & ~FOREGROUND_INTENSITY );
+                bold = false;
                 applyAttribute();
                 break;
 
-            // Yeah, setting the background intensity is not underlining.. but it's best we can do
-            // using the Windows console API
             case ATTRIBUTE_UNDERLINE:
-                info.wAttributes = (short)(info.wAttributes | BACKGROUND_INTENSITY );
+                underline = true;
                 applyAttribute();
                 break;
             case ATTRIBUTE_UNDERLINE_OFF:
-                info.wAttributes = (short)(info.wAttributes & ~BACKGROUND_INTENSITY );
+                underline = false;
                 applyAttribute();
                 break;
 

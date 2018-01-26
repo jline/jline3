@@ -18,6 +18,7 @@ package org.jline.terminal.impl.jansi.win;
 import org.fusesource.jansi.internal.Kernel32.*;
 import org.fusesource.jansi.internal.WindowsSupport;
 import org.jline.utils.AnsiWriter;
+import org.jline.utils.Colors;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -74,6 +75,8 @@ public final class WindowsAnsiWriter extends AnsiWriter {
     private final short originalColors;
 
     private boolean negative;
+    private boolean bold;
+    private boolean underline;
     private short savedX = -1;
     private short savedY = -1;
 
@@ -96,6 +99,14 @@ public final class WindowsAnsiWriter extends AnsiWriter {
     private void applyAttribute() throws IOException {
         out.flush();
         short attributes = info.attributes;
+        // bold is simulated by high foreground intensity
+        if (bold) {
+            attributes |= FOREGROUND_INTENSITY;
+        }
+        // underline is simulated by high foreground intensity
+        if (underline) {
+            attributes |= BACKGROUND_INTENSITY;
+        }
         if (negative) {
             attributes = invertAttributeColors(attributes);
         }
@@ -254,16 +265,18 @@ public final class WindowsAnsiWriter extends AnsiWriter {
     }
 
     @Override
-    protected void processSetForegroundColor(int color, boolean bright) throws IOException {
-        info.attributes = (short) ((info.attributes & ~0x0007) | ANSI_FOREGROUND_COLOR_MAP[color]);
-        info.attributes = (short) ((info.attributes & ~FOREGROUND_INTENSITY) | (bright ? FOREGROUND_INTENSITY : 0));
+    protected void processSetForegroundColorExt(int paletteIndex) throws IOException {
+        int color = Colors.roundColor(paletteIndex, 16);
+        info.attributes = (short) ((info.attributes & ~0x0007) | ANSI_FOREGROUND_COLOR_MAP[color & 0x07]);
+        info.attributes = (short) ((info.attributes & ~FOREGROUND_INTENSITY) | (color > 8 ? FOREGROUND_INTENSITY : 0));
         applyAttribute();
     }
 
     @Override
-    protected void processSetBackgroundColor(int color, boolean bright) throws IOException {
+    protected void processSetBackgroundColorExt(int paletteIndex) throws IOException {
+        int color = Colors.roundColor(paletteIndex, 16);
         info.attributes = (short) ((info.attributes & ~0x0070) | ANSI_BACKGROUND_COLOR_MAP[color]);
-        info.attributes = (short) ((info.attributes & ~BACKGROUND_INTENSITY) | (bright ? BACKGROUND_INTENSITY : 0));
+        info.attributes = (short) ((info.attributes & ~BACKGROUND_INTENSITY) | (color > 8 ? BACKGROUND_INTENSITY : 0));
         applyAttribute();
     }
 
@@ -285,6 +298,8 @@ public final class WindowsAnsiWriter extends AnsiWriter {
     protected void processAttributeRest() throws IOException {
         info.attributes = (short) ((info.attributes & ~0x00FF) | originalColors);
         this.negative = false;
+        this.bold = false;
+        this.underline = false;
         applyAttribute();
     }
 
@@ -292,22 +307,20 @@ public final class WindowsAnsiWriter extends AnsiWriter {
     protected void processSetAttribute(int attribute) throws IOException {
         switch (attribute) {
             case ATTRIBUTE_INTENSITY_BOLD:
-                info.attributes = (short) (info.attributes | FOREGROUND_INTENSITY);
+                bold = true;
                 applyAttribute();
                 break;
             case ATTRIBUTE_INTENSITY_NORMAL:
-                info.attributes = (short) (info.attributes & ~FOREGROUND_INTENSITY);
+                bold = false;
                 applyAttribute();
                 break;
 
-            // Yeah, setting the background intensity is not underlining.. but it's best we can do
-            // using the Windows console API
             case ATTRIBUTE_UNDERLINE:
-                info.attributes = (short) (info.attributes | BACKGROUND_INTENSITY);
+                underline = true;
                 applyAttribute();
                 break;
             case ATTRIBUTE_UNDERLINE_OFF:
-                info.attributes = (short) (info.attributes & ~BACKGROUND_INTENSITY);
+                underline = false;
                 applyAttribute();
                 break;
 
