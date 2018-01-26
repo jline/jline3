@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.jline.terminal.Terminal;
+import org.jline.terminal.impl.AbstractWindowsTerminal;
 import org.jline.utils.InfoCmp.Capability;
 
 import static org.jline.utils.AttributedStyle.BG_COLOR;
@@ -41,17 +42,23 @@ public abstract class AttributedCharSequence implements CharSequence {
         if (terminal != null && Terminal.TYPE_DUMB.equals(terminal.getType())) {
             return toString();
         }
-        StringBuilder sb = new StringBuilder();
-        int style = 0;
-        int foreground = -1;
-        int background = -1;
-        int colors = 8;
+        int colors = 256;
+        boolean force256colors = false;
         if (terminal != null) {
             Integer max_colors = terminal.getNumericCapability(Capability.max_colors);
             if (max_colors != null) {
                 colors = max_colors;
             }
+            force256colors = AbstractWindowsTerminal.TYPE_WINDOWS_256_COLOR.equals(terminal.getType());
         }
+        return toAnsi(colors, force256colors);
+    }
+
+    public String toAnsi(int colors, boolean force256colors) {
+        StringBuilder sb = new StringBuilder();
+        int style = 0;
+        int foreground = -1;
+        int background = -1;
         for (int i = 0; i < length(); i++) {
             char c = charAt(i);
             int  s = styleCodeAt(i) & ~F_HIDDEN; // The hidden flag does not change the ansi styles
@@ -86,11 +93,11 @@ public abstract class AttributedCharSequence implements CharSequence {
                     if (foreground != fg) {
                         if (fg >= 0) {
                             int rounded = roundColor(fg, colors);
-                            if (rounded < 8) {
+                            if (rounded < 8 && !force256colors) {
                                 first = attr(sb, "3" + Integer.toString(rounded), first);
                                 // small hack to force setting bold again after a foreground color change
                                 d |= (s & F_BOLD);
-                            } else if (rounded < 16) {
+                            } else if (rounded < 16 && !force256colors) {
                                 first = attr(sb, "9" + Integer.toString(rounded - 8), first);
                                 // small hack to force setting bold again after a foreground color change
                                 d |= (s & F_BOLD);
