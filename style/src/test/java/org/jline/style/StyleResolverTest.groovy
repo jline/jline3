@@ -8,6 +8,7 @@
  */
 package org.jline.style
 
+import org.jline.utils.Colors
 import org.junit.Before
 import org.junit.Test
 
@@ -121,7 +122,7 @@ class StyleResolverTest
     @Test
     void 'resolve fg:~olive'() {
         def style = underTest.resolve('fg:~olive')
-        assert style == DEFAULT.foreground(StyleColor.olive.code)
+        assert style == DEFAULT.foreground(Colors.rgbColor("olive"))
     }
 
     @Test
@@ -134,5 +135,10 @@ class StyleResolverTest
     void 'resolve invalid xterm256 color name'() {
         def style = underTest.resolve('fg:~foo')
         assert style == DEFAULT
+    }
+
+    @Test
+    void 'check color ordinal'() {
+        assert 86 == Colors.rgbColor("aquamarine1")
     }
 }

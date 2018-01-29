@@ -12,7 +12,9 @@ package org.jline.style;
  * Style colors.
  *
  * @since 3.4
+ * @deprecated use {@link org.jline.utils.Colors#rgbColor(String)}
  */
+@Deprecated
 public enum StyleColor {
     black(0), // #000000
     maroon(1), // #800000

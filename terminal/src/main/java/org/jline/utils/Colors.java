@@ -8,6 +8,13 @@
  */
 package org.jline.utils;
 
+import java.io.BufferedReader;
+import java.io.IOError;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.stream.Stream;
 
 public class Colors {
@@ -73,6 +80,8 @@ public class Colors {
 
     private static int[] COLORS_256 = DEFAULT_COLORS_256;
 
+    private static Map<String, Integer> COLOR_NAMES;
+
     public static void setRgbColors(int[] colors) {
         if (colors == null || colors.length != 256) {
             throw new IllegalArgumentException();
@@ -82,6 +91,25 @@ public class Colors {
 
     public static int rgbColor(int col) {
         return COLORS_256[col];
+    }
+
+    public static Integer rgbColor(String name) {
+        if (COLOR_NAMES == null) {
+            Map<String, Integer> colors = new LinkedHashMap<>();
+            try (InputStream is = InfoCmp.class.getResourceAsStream("colors.txt");
+                 BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                br.lines().map(String::trim)
+                        .filter(s -> !s.startsWith("#"))
+                        .filter(s -> !s.isEmpty())
+                        .forEachOrdered(s -> {
+                            colors.put(s, colors.size());
+                        });
+                COLOR_NAMES = colors;
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+        }
+        return COLOR_NAMES.get(name);
     }
 
     public static int roundColor(int col, int max) {
