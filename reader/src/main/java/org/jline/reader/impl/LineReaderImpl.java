@@ -3458,7 +3458,12 @@ public class LineReaderImpl implements LineReader, Flushable
         sb.append(lines.get(lines.size() - 1));
     }
 
-    private AttributedString getDisplayedBufferWithPrompts(List<AttributedString> secondaryPrompts) {
+    /**
+     * Compute the full string to be displayed with the left, right and secondary prompts
+     * @param secondaryPrompts a list to store the secondary prompts
+     * @return
+     */
+    public AttributedString getDisplayedBufferWithPrompts(List<AttributedString> secondaryPrompts) {
         AttributedString attBuf = getHighlightedBuffer(buf.toString());
 
         AttributedString tNewBuf = insertSecondaryPrompts(attBuf, secondaryPrompts);
