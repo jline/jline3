@@ -909,7 +909,7 @@ public class Tmux {
                         sb.style(sb.style().backgroundDefault());
                     } else {
                         int col = bg;
-                        col = AttributedCharSequence.roundRgbColor((col & 0xF00) >> 4, (col & 0x0F0), (col & 0x00F) << 4, 256);
+                        col = Colors.roundRgbColor((col & 0xF00) >> 4, (col & 0x0F0), (col & 0x00F) << 4, 256);
                         sb.style(sb.style().background(col));
                     }
                     prevBg = bg;
@@ -920,7 +920,7 @@ public class Tmux {
                         sb.style(sb.style().foregroundDefault());
                     } else {
                         int col = fg;
-                        col = AttributedCharSequence.roundRgbColor((col & 0xF00) >> 4, (col & 0x0F0), (col & 0x00F) << 4, 256);
+                        col = Colors.roundRgbColor((col & 0xF00) >> 4, (col & 0x0F0), (col & 0x00F) << 4, 256);
                         sb.style(sb.style().foreground(col));
                     }
                     prevFg = fg;

@@ -92,7 +92,7 @@ public abstract class AttributedCharSequence implements CharSequence {
                     }
                     if (foreground != fg) {
                         if (fg >= 0) {
-                            int rounded = roundColor(fg, colors);
+                            int rounded = Colors.roundColor(fg, colors);
                             if (rounded < 8 && !force256colors) {
                                 first = attr(sb, "3" + Integer.toString(rounded), first);
                                 // small hack to force setting bold again after a foreground color change
@@ -111,7 +111,7 @@ public abstract class AttributedCharSequence implements CharSequence {
                     }
                     if (background != bg) {
                         if (bg >= 0) {
-                            int rounded = roundColor(bg, colors);
+                            int rounded = Colors.roundColor(bg, colors);
                             if (rounded < 8) {
                                 first = attr(sb, "4" + Integer.toString(rounded), first);
                             } else if (rounded < 16) {
@@ -148,14 +148,17 @@ public abstract class AttributedCharSequence implements CharSequence {
         return sb.toString();
     }
 
+    @Deprecated
     public static int rgbColor(int col) {
         return Colors.rgbColor(col);
     }
 
+    @Deprecated
     public static int roundColor(int col, int max) {
         return Colors.roundColor(col, max);
     }
 
+    @Deprecated
     public static int roundRgbColor(int r, int g, int b, int max) {
         return Colors.roundRgbColor(r, g, b, max);
     }

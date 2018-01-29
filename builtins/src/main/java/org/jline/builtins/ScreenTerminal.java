@@ -44,7 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.jline.utils.AttributedCharSequence;
+import org.jline.utils.Colors;
 import org.jline.utils.WCWidth;
 
 /**
@@ -1014,7 +1014,7 @@ public class ScreenTerminal {
     }
 
     private long col24(int col) {
-        int c = AttributedCharSequence.rgbColor(col);
+        int c = Colors.rgbColor(col);
         int r = (c >> 16) & 0xFF;
         int g = (c >> 8) & 0xFF;
         int b = (c >> 0) & 0xFF;
