@@ -111,7 +111,7 @@ class StyleBundleInvocationHandler
         }
 
         StyleBundleInvocationHandler handler = new StyleBundleInvocationHandler(type, resolver);
-        return (T) Proxy.newProxyInstance(type.getClassLoader(), new Class[]{type}, handler);
+        return (T) Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[]{type}, handler);
     }
 
     /**
@@ -189,6 +189,9 @@ class StyleBundleInvocationHandler
     // @VisibleForTesting
     static class StyleBundleMethodMissingDefaultStyleException
             extends RuntimeException {
+
+        private static final long serialVersionUID = 1L;
+
         public StyleBundleMethodMissingDefaultStyleException(final Method method) {
             super(String.format("%s method missing @%s: %s",
                     StyleBundle.class.getSimpleName(),
@@ -204,6 +207,9 @@ class StyleBundleInvocationHandler
     // @VisibleForTesting
     static class InvalidStyleBundleMethodException
             extends RuntimeException {
+
+        private static final long serialVersionUID = 1L;
+
         public InvalidStyleBundleMethodException(final Method method, final String message) {
             super(message + ": " + method);
         }
@@ -215,7 +221,10 @@ class StyleBundleInvocationHandler
     // @VisibleForTesting
     static class InvalidStyleGroupException
             extends RuntimeException {
-        public InvalidStyleGroupException(final Class type) {
+
+        private static final long serialVersionUID = 1L;
+
+        public InvalidStyleGroupException(final Class<?> type) {
             super(String.format("%s missing or invalid @%s: %s",
                     StyleBundle.class.getSimpleName(),
                     StyleGroup.class.getSimpleName(),

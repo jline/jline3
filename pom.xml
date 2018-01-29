@@ -86,6 +86,7 @@
         <gogo.runtime.version>1.0.8</gogo.runtime.version>
         <gogo.jline.version>1.0.8</gogo.jline.version>
         <slf4j.version>1.7.21</slf4j.version>
+        <findbugs.version>3.0.2</findbugs.version>
 
         <surefire.argLine />
     </properties>
@@ -222,6 +223,12 @@
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
                 <version>${junit.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.code.findbugs</groupId>
+                <artifactId>jsr305</artifactId>
+                <version>${findbugs.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -452,9 +459,9 @@
         <module>builtins</module>
         <module>remote-ssh</module>
         <module>remote-telnet</module>
+        <module>style</module>
         <module>jline</module>
         <module>demo</module>
-        <module>style</module>
     </modules>
 
 </project>
