@@ -106,7 +106,8 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         closer = this::close;
         ShutdownHooks.add(closer);
         // ConEMU extended fonts support
-        if (!Boolean.getBoolean("org.jline.terminal.conemu.disable-activate")) {
+        if (TYPE_WINDOWS_256_COLOR.equals(getType())
+                && !Boolean.getBoolean("org.jline.terminal.conemu.disable-activate")) {
             writer.write("\u001b[9999E");
             writer.flush();
         }
