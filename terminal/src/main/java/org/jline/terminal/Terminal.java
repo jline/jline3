@@ -247,4 +247,21 @@ public interface Terminal extends Closeable, Flushable {
      */
     MouseEvent readMouseEvent(IntSupplier reader);
 
+    /**
+     * Returns <code>true</code> if the terminal has support for focus tracking.
+     * @return whether focus tracking is supported by the terminal
+     * @see #trackFocus(boolean)
+     */
+    boolean hasFocusSupport();
+
+    /**
+     * Enable or disable focus tracking mode.
+     * When focus tracking has been activated, each time the terminal grabs the focus,
+     * the string "\33[I" will be sent to the input stream and each time the focus is lost,
+     * the string "\33[O" will be sent to the input stream.
+     *
+     * @param tracking whether the focus tracking mode should be enabled or not
+     * @return <code>true</code> if focus tracking is supported
+     */
+    boolean trackFocus(boolean tracking);
 }

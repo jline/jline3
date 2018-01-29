@@ -206,6 +206,22 @@ public abstract class AbstractTerminal implements Terminal {
         return lastMouseEvent = MouseSupport.readMouse(reader, lastMouseEvent);
     }
 
+    @Override
+    public boolean hasFocusSupport() {
+        return type != null && type.startsWith("xterm");
+    }
+
+    @Override
+    public boolean trackFocus(boolean tracking) {
+        if (hasFocusSupport()) {
+            writer().write(tracking ? "\033[?1004h" : "\033[?1004l");
+            writer().flush();
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     protected void checkInterrupted() throws InterruptedIOException {
         if (Thread.interrupted()) {
             throw new InterruptedIOException();

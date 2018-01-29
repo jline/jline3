@@ -100,6 +100,9 @@ public class LineReaderImpl implements LineReader, Flushable
     public static final String BRACKETED_PASTE_BEGIN = "\033[200~";
     public static final String BRACKETED_PASTE_END = "\033[201~";
 
+    public static final String FOCUS_IN_SEQ = "\033[I";
+    public static final String FOCUS_OUT_SEQ = "\033[O";
+
     /**
      * Possible states in which the current readline operation may be in.
      */
@@ -3338,6 +3341,8 @@ public class LineReaderImpl implements LineReader, Flushable
         widgets.put(YANK_POP, this::yankPop);
         widgets.put(MOUSE, this::mouse);
         widgets.put(BEGIN_PASTE, this::beginPaste);
+        widgets.put(FOCUS_IN, this::focusIn);
+        widgets.put(FOCUS_OUT, this::focusOut);
         return widgets;
     }
 
@@ -4995,6 +5000,14 @@ public class LineReaderImpl implements LineReader, Flushable
         return true;
     }
 
+    public boolean focusIn() {
+        return false;
+    }
+
+    public boolean focusOut() {
+        return false;
+    }
+
     /**
      * Clean the used display
      */
@@ -5426,6 +5439,8 @@ public class LineReaderImpl implements LineReader, Flushable
         bind(map, OVERWRITE_MODE,       key(Capability.key_ic));
         bind(map, MOUSE,                key(Capability.key_mouse));
         bind(map, BEGIN_PASTE,          BRACKETED_PASTE_BEGIN);
+        bind(map, FOCUS_IN,             FOCUS_IN_SEQ);
+        bind(map, FOCUS_OUT,            FOCUS_OUT_SEQ);
     }
 
     /**
