@@ -162,12 +162,25 @@ public class StyleResolver {
                 style = applyReference(style, item);
             } else if (item.contains(":")) {
                 style = applyColor(style, item);
+            } else if (item.matches("[0-9]+(;[0-9]+)*")) {
+                style = applyAnsi(style, item);
             } else {
                 style = applyNamed(style, item);
             }
         }
 
         return style;
+    }
+
+    private AttributedStyle applyAnsi(final AttributedStyle style, final String spec) {
+        if (log.isLoggable(Level.FINEST)) {
+            log.finest("Apply-ansi: " + spec);
+        }
+
+        return new AttributedStringBuilder()
+                .style(style)
+                .ansiAppend("\033[" + spec + "m")
+                .style();
     }
 
     /**
