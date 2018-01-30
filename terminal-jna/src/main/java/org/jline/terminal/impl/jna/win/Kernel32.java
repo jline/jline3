@@ -427,9 +427,9 @@ interface Kernel32 extends StdCallLibrary {
         public static class EventUnion extends Union {
             public KEY_EVENT_RECORD KeyEvent;
             public MOUSE_EVENT_RECORD MouseEvent;
-             public WINDOW_BUFFER_SIZE_RECORD WindowBufferSizeEvent;
-            // MENU_EVENT_RECORD MenuEvent;
-            // FOCUS_EVENT_RECORD FocusEvent;
+            public WINDOW_BUFFER_SIZE_RECORD WindowBufferSizeEvent;
+            public MENU_EVENT_RECORD MenuEvent;
+            public FOCUS_EVENT_RECORD FocusEvent;
         }
 
         @Override
@@ -444,6 +444,12 @@ interface Kernel32 extends StdCallLibrary {
                     break;
                 case WINDOW_BUFFER_SIZE_EVENT:
                     Event.setType(WINDOW_BUFFER_SIZE_RECORD.class);
+                    break;
+                case MENU_EVENT:
+                    Event.setType(MENU_EVENT_RECORD.class);
+                    break;
+                case FOCUS_EVENT:
+                    Event.setType(MENU_EVENT_RECORD.class);
                     break;
             }
             super.read();
@@ -511,6 +517,35 @@ interface Kernel32 extends StdCallLibrary {
         public COORD dwSize;
 
         private static String[] fieldOrder = {"dwSize"};
+
+        @Override
+        protected java.util.List<String> getFieldOrder() {
+            return java.util.Arrays.asList(fieldOrder);
+        }
+    }
+
+    // typedef struct _MENU_EVENT_RECORD {
+    //   UINT dwCommandId;
+    // } MENU_EVENT_RECORD, *PMENU_EVENT_RECORD;
+    class MENU_EVENT_RECORD extends Structure {
+
+        public int dwCommandId;
+
+        private static String[] fieldOrder = {"dwCommandId"};
+
+        @Override
+        protected java.util.List<String> getFieldOrder() {
+            return java.util.Arrays.asList(fieldOrder);
+        }
+    }
+
+    // typedef struct _FOCUS_EVENT_RECORD {
+    //  BOOL bSetFocus;
+    //} FOCUS_EVENT_RECORD;
+    class FOCUS_EVENT_RECORD extends Structure {
+        public boolean bSetFocus;
+
+        private static String[] fieldOrder = {"bSetFocus"};
 
         @Override
         protected java.util.List<String> getFieldOrder() {

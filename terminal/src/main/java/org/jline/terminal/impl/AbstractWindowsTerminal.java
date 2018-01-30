@@ -76,6 +76,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     protected final AtomicBoolean paused = new AtomicBoolean(true);
 
     protected MouseTracking tracking = MouseTracking.Off;
+    protected boolean focusTracking = false;
     private volatile boolean closing;
 
     public AbstractWindowsTerminal(Writer writer, String name, String type, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
@@ -403,6 +404,17 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
             return sw.toString();
         }
         return null;
+    }
+
+    @Override
+    public boolean hasFocusSupport() {
+        return true;
+    }
+
+    @Override
+    public boolean trackFocus(boolean tracking) {
+        focusTracking = tracking;
+        return true;
     }
 
     @Override

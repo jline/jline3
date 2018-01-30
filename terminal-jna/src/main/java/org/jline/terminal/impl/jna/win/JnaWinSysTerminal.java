@@ -79,6 +79,9 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
             case Kernel32.INPUT_RECORD.MOUSE_EVENT:
                 processMouseEvent(event.Event.MouseEvent);
                 return true;
+            case Kernel32.INPUT_RECORD.FOCUS_EVENT:
+                processFocusEvent(event.Event.FocusEvent.bSetFocus);
+                return true;
             default:
                 // Skip event
                 return false;
@@ -87,6 +90,15 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
 
     private void processKeyEvent(Kernel32.KEY_EVENT_RECORD keyEvent) throws IOException {
         processKeyEvent(keyEvent.bKeyDown, keyEvent.wVirtualKeyCode, keyEvent.uChar.UnicodeChar, keyEvent.dwControlKeyState);
+    }
+
+    private char[] focus = new char[] { '\033', '[', ' ' };
+
+    private void processFocusEvent(boolean hasFocus) throws IOException {
+        if (focusTracking) {
+            focus[2] = hasFocus ? 'I' : 'O';
+            slaveInputPipe.write(focus);
+        }
     }
 
     private char[] mouse = new char[] { '\033', '[', 'M', ' ', ' ', ' ' };
