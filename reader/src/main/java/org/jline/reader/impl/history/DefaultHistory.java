@@ -435,6 +435,10 @@ public class DefaultHistory implements History {
                     sb.append('\\');
                     sb.append('n');
                     break;
+                case '\r':
+                    sb.append('\\');
+                    sb.append('r');
+                    break;
                 case '\\':
                     sb.append('\\');
                     sb.append('\\');
@@ -456,6 +460,8 @@ public class DefaultHistory implements History {
                     ch = s.charAt(++i);
                     if (ch == 'n') {
                         sb.append('\n');
+                    } else if (ch == 'r') {
+                        sb.append('\r');
                     } else {
                         sb.append(ch);
                     }
