@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -383,7 +383,7 @@ public class Completers {
                     cands.add((Candidate) obj);
                 } else if (obj instanceof Node) {
                     nodes.add((Node) obj);
-                } else if (obj instanceof Completer) {
+                } else if (obj instanceof org.jline.reader.Completer) {
                     comp = (org.jline.reader.Completer) obj;
                 } else {
                     throw new IllegalArgumentException();
@@ -440,6 +440,7 @@ public class Completers {
 
         private final NfaMatcher<String> matcher;
         private final Function<String, org.jline.reader.Completer> completers;
+        private final ThreadLocal<LineReader> reader = new ThreadLocal<>();
 
         public RegexCompleter(String syntax, Function<String, org.jline.reader.Completer> completers) {
             this.matcher = new NfaMatcher<>(syntax, this::doMatch);
@@ -449,15 +450,17 @@ public class Completers {
         @Override
         public synchronized void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
             List<String> words = line.words().subList(0, line.wordIndex());
+            this.reader.set(reader);
             Set<String> next = matcher.matchPartial(words);
             for (String n : next) {
-                completers.apply(n).complete(reader, new ArgumentLine(n, n.length()), candidates);
+                completers.apply(n).complete(reader, new ArgumentLine(line.word(), line.wordCursor()), candidates);
             }
+            this.reader.set(null);
         }
 
         private boolean doMatch(String arg, String name) {
             List<Candidate> candidates = new ArrayList<>();
-            completers.apply(name).complete(null, new ArgumentLine(arg, arg.length()), candidates);
+            completers.apply(name).complete(this.reader.get(), new ArgumentLine(arg, arg.length()), candidates);
             return candidates.stream().anyMatch(c -> c.value().equals(arg));
         }
 
