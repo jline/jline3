@@ -23,7 +23,7 @@
     <artifactId>jline-parent</artifactId>
     <name>JLine Parent</name>
     <description>JLine</description>
-    <version>3.6.0</version>
+    <version>3.6.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <licenses>
