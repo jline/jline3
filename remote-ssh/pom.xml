@@ -16,7 +16,7 @@
     <parent>
         <groupId>org.jline</groupId>
         <artifactId>jline-parent</artifactId>
-        <version>3.6.0-SNAPSHOT</version>
+        <version>3.6.0</version>
     </parent>
 
     <artifactId>jline-remote-ssh</artifactId>
