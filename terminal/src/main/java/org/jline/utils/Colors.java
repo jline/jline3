@@ -125,7 +125,7 @@ public class Colors {
     }
 
     public static int roundRgbColor(int r, int g, int b, int max) {
-        return roundColor(r << 16 + g << 8 + b, COLORS_256, max, (String) null);
+        return roundColor((r << 16) + (g << 8) + b, COLORS_256, max, (String) null);
     }
 
     private static int roundColor(int color, int[] colors, int max, String dist) {
