@@ -26,4 +26,8 @@ public class ColorsTest {
         assertEquals(2, Colors.roundColor(71, 16, "cie00"));
     }
 
+    @Test
+    public void testRgb() {
+        assertEquals(2, Colors.roundRgbColor(0, 128, 0, 16));
+    }
 }
