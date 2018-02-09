@@ -33,6 +33,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -423,8 +424,11 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     }
 
     @Override
-    public void pause() {
-        paused.set(true);
+    public void pause() throws InterruptedException {
+    	if (paused.compareAndSet(false, true)) {
+            this.pump.interrupt();
+            this.pump.join();
+        }
     }
 
     @Override
