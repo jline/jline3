@@ -76,7 +76,7 @@ public class JansiSupportImpl implements JansiSupport {
         if (JANSI_MAJOR_VERSION > 1 || JANSI_MAJOR_VERSION == 1 && JANSI_MINOR_VERSION >= 16) {
             String osName = System.getProperty("os.name");
             if (osName.startsWith("Linux")) {
-                return LinuxNativePty.open(attributes, size);
+                 return LinuxNativePty.open(attributes, size);
             }
             else if (osName.startsWith("Mac") || osName.startsWith("Darwin")) {
                 return OsXNativePty.open(attributes, size);
