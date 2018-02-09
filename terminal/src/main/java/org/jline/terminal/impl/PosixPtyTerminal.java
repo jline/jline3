@@ -132,7 +132,7 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
     private class PumpThread extends Thread {
         private final InputStream in;
         private final OutputStream out;
-        
+
         public PumpThread(InputStream in, OutputStream out) {
             this.in = in;
             this.out = out;
