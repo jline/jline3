@@ -75,15 +75,30 @@ public class MouseSupport {
             switch (b) {
                 case 0:
                     button = MouseEvent.Button.Button1;
-                    type = last.getButton() == button ? MouseEvent.Type.Dragged : MouseEvent.Type.Pressed;
+                    if (last.getButton() == button
+                            && (last.getType() == MouseEvent.Type.Pressed || last.getType() == MouseEvent.Type.Dragged)) {
+                        type = MouseEvent.Type.Dragged;
+                    } else {
+                        type = MouseEvent.Type.Pressed;
+                    }
                     break;
                 case 1:
                     button = MouseEvent.Button.Button2;
-                    type = last.getButton() == button ? MouseEvent.Type.Dragged : MouseEvent.Type.Pressed;
+                    if (last.getButton() == button
+                            && (last.getType() == MouseEvent.Type.Pressed || last.getType() == MouseEvent.Type.Dragged)) {
+                        type = MouseEvent.Type.Dragged;
+                    } else {
+                        type = MouseEvent.Type.Pressed;
+                    }
                     break;
                 case 2:
                     button = MouseEvent.Button.Button3;
-                    type = last.getButton() == button ? MouseEvent.Type.Dragged : MouseEvent.Type.Pressed;
+                    if (last.getButton() == button
+                            && (last.getType() == MouseEvent.Type.Pressed || last.getType() == MouseEvent.Type.Dragged)) {
+                        type = MouseEvent.Type.Dragged;
+                    } else {
+                        type = MouseEvent.Type.Pressed;
+                    }
                     break;
                 default:
                     if (last.getType() == MouseEvent.Type.Pressed || last.getType() == MouseEvent.Type.Dragged) {
