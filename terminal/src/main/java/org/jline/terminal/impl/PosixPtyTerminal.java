@@ -15,6 +15,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jline.terminal.spi.Pty;
@@ -83,8 +84,11 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
     }
 
     @Override
-    public void pause() {
-        paused.compareAndSet(false, true);
+    public void pause() throws InterruptedException {
+        if (paused.compareAndSet(false, true)) {
+        	this.inputPumpThread.join();
+        	this.outputPumpThread.join();
+        }
     }
 
     @Override

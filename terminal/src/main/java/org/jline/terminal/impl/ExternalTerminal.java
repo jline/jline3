@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.IntConsumer;
 
@@ -54,7 +55,8 @@ public class ExternalTerminal extends LineDisciplineTerminal {
 
     public void close() throws IOException {
         if (closed.compareAndSet(false, true)) {
-            pause();
+        	this.paused.set(true);
+        	this.pumpThread.interrupt();
             super.close();
         }
     }
@@ -65,9 +67,10 @@ public class ExternalTerminal extends LineDisciplineTerminal {
     }
 
     @Override
-    public void pause() {
+    public void pause() throws InterruptedException {
         if (paused.compareAndSet(false, true)) {
             this.pumpThread.interrupt();
+            this.pumpThread.join();
         }
     }
 
