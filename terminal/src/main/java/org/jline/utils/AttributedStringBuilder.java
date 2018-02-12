@@ -171,7 +171,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
 
     protected void ensureCapacity(int nl) {
         if (nl > buffer.length) {
-            int s = buffer.length;
+            int s = Math.max(buffer.length, 1);
             while (s <= nl) {
                 s *= 2;
             }
