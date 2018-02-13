@@ -92,6 +92,28 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
     }
 
     @Override
+    public void pause(boolean wait) throws InterruptedException {
+        Thread p1, p2;
+        synchronized (lock) {
+            paused = true;
+            p1 = inputPumpThread;
+            p2 = outputPumpThread;
+        }
+        if (p1 != null) {
+            p1.interrupt();
+        }
+        if (p2 != null) {
+            p2.interrupt();
+        }
+        if (p1 != null) {
+            p1.join();
+        }
+        if (p2 !=null) {
+            p2.join();
+        }
+    }
+
+    @Override
     public void resume() {
         synchronized (lock) {
             paused = false;

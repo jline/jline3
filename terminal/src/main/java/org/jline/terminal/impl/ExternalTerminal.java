@@ -73,6 +73,19 @@ public class ExternalTerminal extends LineDisciplineTerminal {
     }
 
     @Override
+    public void pause(boolean wait) throws InterruptedException {
+        Thread p;
+        synchronized (lock) {
+            paused = true;
+            p = pumpThread;
+        }
+        if (p != null) {
+            p.interrupt();
+            p.join();
+        }
+    }
+
+    @Override
     public void resume() {
         synchronized (lock) {
             paused = false;

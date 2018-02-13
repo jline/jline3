@@ -237,6 +237,9 @@ public abstract class AbstractTerminal implements Terminal {
     public void pause() {
     }
 
+    public void pause(boolean wait) throws InterruptedException {
+    }
+
     @Override
     public void resume() {
     }

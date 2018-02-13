@@ -429,6 +429,19 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     }
 
     @Override
+    public void pause(boolean wait) throws InterruptedException {
+        Thread p;
+        synchronized (lock) {
+            paused = true;
+            p = pump;
+        }
+        if (p != null) {
+            p.interrupt();
+            p.join();
+        }
+    }
+
+    @Override
     public void resume() {
         synchronized (lock) {
             paused = false;
