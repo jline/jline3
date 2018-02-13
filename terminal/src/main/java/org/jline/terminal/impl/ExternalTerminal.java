@@ -32,7 +32,8 @@ public class ExternalTerminal extends LineDisciplineTerminal {
 
     protected final AtomicBoolean closed = new AtomicBoolean();
     protected final InputStream masterInput;
-    protected final AtomicBoolean paused = new AtomicBoolean(true);
+    protected final Object lock = new Object();
+    protected boolean paused = true;
     protected Thread pumpThread;
 
     public ExternalTerminal(String name, String type,
@@ -66,22 +67,28 @@ public class ExternalTerminal extends LineDisciplineTerminal {
 
     @Override
     public void pause() {
-        if (paused.compareAndSet(false, true)) {
-            this.pumpThread.interrupt();
+        synchronized (lock) {
+            paused = true;
         }
     }
 
     @Override
     public void resume() {
-        if (paused.compareAndSet(true, false)) {
-            this.pumpThread = new Thread(this::pump, toString() + " input pump thread");
-            this.pumpThread.start();
+        synchronized (lock) {
+            paused = false;
+            if (pumpThread == null) {
+                pumpThread = new Thread(this::pump, toString() + " input pump thread");
+                pumpThread.setDaemon(true);
+                pumpThread.start();
+            }
         }
     }
 
     @Override
     public boolean paused() {
-        return paused.get();
+        synchronized (lock) {
+            return paused;
+        }
     }
 
     public void pump() {
@@ -91,12 +98,22 @@ public class ExternalTerminal extends LineDisciplineTerminal {
                 if (c >= 0) {
                     processInputByte((char) c);
                 }
-                if (c < 0 || closed.get() || paused.get()) {
+                if (c < 0 || closed.get()) {
                     break;
+                }
+                synchronized (lock) {
+                    if (paused) {
+                        pumpThread = null;
+                        return;
+                    }
                 }
             }
         } catch (IOException e) {
             // Ignore
+        } finally {
+            synchronized (lock) {
+                pumpThread = null;
+            }
         }
         try {
             close();

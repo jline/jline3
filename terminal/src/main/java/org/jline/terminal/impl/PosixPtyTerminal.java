@@ -33,9 +33,11 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
     private final OutputStream output;
     private final NonBlockingReader reader;
     private final PrintWriter writer;
+
+    private final Object lock = new Object();
     private Thread inputPumpThread;
     private Thread outputPumpThread;
-    private AtomicBoolean paused = new AtomicBoolean(true);
+    private boolean paused = true;
 
     public PosixPtyTerminal(String name, String type, Pty pty, InputStream in, OutputStream out, Charset encoding) throws IOException {
         this(name, type, pty, in, out, encoding, SignalHandler.SIG_DFL);
@@ -84,22 +86,33 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
 
     @Override
     public void pause() {
-        paused.compareAndSet(false, true);
+        synchronized (lock) {
+            paused = true;
+        }
     }
 
     @Override
     public void resume() {
-        if (paused.compareAndSet(true, false)) {
-            this.inputPumpThread = new PumpThread(in, masterOutput);
-            this.outputPumpThread = new PumpThread(masterInput, out);
-            this.inputPumpThread.start();
-            this.outputPumpThread.start();
+        synchronized (lock) {
+            paused = false;
+            if (inputPumpThread == null) {
+                inputPumpThread = new Thread(this::pumpIn, toString() + " input pump thread");
+                inputPumpThread.setDaemon(true);
+                inputPumpThread.start();
+            }
+            if (outputPumpThread == null) {
+                inputPumpThread = new Thread(this::pumpOut, toString() + " output pump thread");
+                outputPumpThread.setDaemon(true);
+                outputPumpThread.start();
+            }
         }
     }
 
     @Override
     public boolean paused() {
-        return paused.get();
+        synchronized (lock) {
+            return paused;
+        }
     }
 
     private class InputStreamWrapper extends NonBlockingInputStream {
@@ -125,30 +138,61 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
         }
     }
 
-    private class PumpThread extends Thread {
-        private final InputStream in;
-        private final OutputStream out;
-
-        public PumpThread(InputStream in, OutputStream out) {
-            this.in = in;
-            this.out = out;
-        }
-
-        @Override
-        public void run() {
-            try {
-                while (!paused.get()) {
-                    int b = in.read();
-                    if (b < 0) {
-                        input.close();
-                        break;
+    private void pumpIn() {
+        try {
+            for (;;) {
+                synchronized (lock) {
+                    if (paused) {
+                        inputPumpThread = null;
+                        return;
                     }
-                    out.write(b);
-                    out.flush();
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
+                int b = in.read();
+                if (b < 0) {
+                    input.close();
+                    break;
+                }
+                masterOutput.write(b);
+                masterOutput.flush();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            synchronized (lock) {
+                inputPumpThread = null;
             }
         }
     }
+
+    private void pumpOut() {
+        try {
+            for (;;) {
+                synchronized (lock) {
+                    if (paused) {
+                        outputPumpThread = null;
+                        return;
+                    }
+                }
+                int b = masterInput.read();
+                if (b < 0) {
+                    input.close();
+                    break;
+                }
+                out.write(b);
+                out.flush();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            synchronized (lock) {
+                outputPumpThread = null;
+            }
+        }
+        try {
+            close();
+        } catch (Throwable t) {
+            // Ignore
+        }
+    }
+
 }

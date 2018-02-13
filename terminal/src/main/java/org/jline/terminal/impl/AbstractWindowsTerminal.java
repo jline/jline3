@@ -17,7 +17,6 @@ import org.jline.utils.NonBlocking;
 import org.jline.utils.NonBlockingInputStream;
 import org.jline.utils.NonBlockingPumpReader;
 import org.jline.utils.NonBlockingReader;
-import org.jline.utils.PumpReader;
 import org.jline.utils.ShutdownHooks;
 import org.jline.utils.Signals;
 import org.jline.utils.WriterOutputStream;
@@ -33,7 +32,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * The AbstractWindowsTerminal is used as the base class for windows terminal.
@@ -72,8 +70,9 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     protected final Attributes attributes = new Attributes();
     protected final int originalConsoleMode;
 
+    protected final Object lock = new Object();
+    protected boolean paused = true;
     protected Thread pump;
-    protected final AtomicBoolean paused = new AtomicBoolean(true);
 
     protected MouseTracking tracking = MouseTracking.Off;
     protected boolean focusTracking = false;
@@ -424,26 +423,39 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
 
     @Override
     public void pause() {
-        paused.set(true);
+        synchronized (lock) {
+            paused = true;
+        }
     }
 
     @Override
     public void resume() {
-        if (paused.compareAndSet(true, false)) {
-            pump = new Thread(this::pump, "WindowsStreamPump");
-            pump.setDaemon(true);
-            pump.start();
+        synchronized (lock) {
+            paused = false;
+            if (pump == null) {
+                pump = new Thread(this::pump, "WindowsStreamPump");
+                pump.setDaemon(true);
+                pump.start();
+            }
         }
     }
 
     @Override
     public boolean paused() {
-        return paused.get();
+        synchronized (lock) {
+            return paused;
+        }
     }
 
     protected void pump() {
         try {
-            while (!closing && !paused.get()) {
+            while (!closing) {
+                synchronized (lock) {
+                    if (paused) {
+                        pump = null;
+                        break;
+                    }
+                }
                 if (processConsoleInput()) {
                     slaveInputPipe.flush();
                 }
@@ -451,6 +463,15 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         } catch (IOException e) {
             if (!closing) {
                 Log.warn("Error in WindowsStreamPump", e);
+                try {
+                    close();
+                } catch (IOException e1) {
+                    Log.warn("Error closing terminal", e);
+                }
+            }
+        } finally {
+            synchronized (lock) {
+                pump = null;
             }
         }
     }
