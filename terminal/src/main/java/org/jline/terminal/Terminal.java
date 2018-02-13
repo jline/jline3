@@ -103,6 +103,13 @@ public interface Terminal extends Closeable, Flushable {
     void pause();
 
     /**
+     * Stop reading the input stream and optionally wait for the underlying threads to finish.
+     * @param wait
+     * @throws InterruptedException
+     */
+    void pause(boolean wait) throws InterruptedException;
+
+    /**
      * Resume reading the input stream.
      *
      * @see #pause()
