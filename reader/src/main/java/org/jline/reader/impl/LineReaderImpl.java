@@ -631,13 +631,7 @@ public class LineReaderImpl implements LineReader, Flushable
             // a clr_eol first if possible.
             String el = terminal.getStringCapability(Capability.clr_eol);
             if (el != null) {
-                StringWriter sw = new StringWriter();
-                try {
-                    Curses.tputs(sw, el);
-                } catch (IOException e) {
-                    // nothing
-                }
-                sb.append(sw.toString());
+                Curses.tputs(sb, el);
             }
             for (int i = 0; i < size.getColumns() - 2; i++) {
                 sb.append(" ");

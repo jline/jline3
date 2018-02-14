@@ -78,11 +78,10 @@ public abstract class ReaderTestSupport
         assertTrue(output.contains(s));
     }
 
-    protected void assertBeeped() throws IOException {
+    protected void assertBeeped() {
         String bellCap = terminal.getStringCapability(Capability.bell);
-        StringWriter sw = new StringWriter();
-        Curses.tputs(sw, bellCap);
-        assertConsoleOutputContains(sw.toString());
+        String s = Curses.tputs(bellCap);
+        assertConsoleOutputContains(s);
     }
 
     protected void assertBuffer(final String expected, final TestBuffer buffer) throws IOException {

@@ -8,8 +8,10 @@
  */
 package org.jline.utils;
 
+import java.io.Flushable;
+import java.io.IOError;
 import java.io.IOException;
-import java.io.Writer;
+import java.io.StringWriter;
 import java.util.Stack;
 
 /**
@@ -33,12 +35,34 @@ public final class Curses {
     /**
      * Print the given terminal capabilities
      *
+     * @param cap the capability to output
+     * @param params optional parameters
+     */
+    public static String tputs(String cap, Object... params) {
+        if (cap != null) {
+            StringWriter sw = new StringWriter();
+            tputs(sw, cap, params);
+            return sw.toString();
+        }
+        return null;
+    }
+
+    /**
+     * Print the given terminal capabilities
+     *
      * @param out the output stream
      * @param str the capability to output
      * @param params optional parameters
-     * @throws IOException if an error occurs
      */
-    public static void tputs(Writer out, String str, Object... params) throws IOException {
+    public static void tputs(Appendable out, String str, Object... params) {
+        try {
+            doTputs(out, str, params);
+        } catch (Exception e) {
+            throw new IOError(e);
+        }
+    }
+
+    private static void doTputs(Appendable out, String str, Object... params) throws IOException {
         int index = 0;
         int length = str.length();
         int ifte = IFTE_NONE;
@@ -56,45 +80,45 @@ public final class Curses {
                             case 'e':
                             case 'E':
                                 if (exec) {
-                                    out.write(27); // escape
+                                    out.append((char) 27); // escape
                                 }
                                 break;
                             case 'n':
-                                out.write('\n');
+                                out.append('\n');
                                 break;
 //                        case 'l':
 //                            rawPrint('\l');
 //                            break;
                             case 'r':
                                 if (exec) {
-                                    out.write('\r');
+                                    out.append('\r');
                                 }
                                 break;
                             case 't':
                                 if (exec) {
-                                    out.write('\t');
+                                    out.append('\t');
                                 }
                                 break;
                             case 'b':
                                 if (exec) {
-                                    out.write('\b');
+                                    out.append('\b');
                                 }
                                 break;
                             case 'f':
                                 if (exec) {
-                                    out.write('\f');
+                                    out.append('\f');
                                 }
                                 break;
                             case 's':
                                 if (exec) {
-                                    out.write(' ');
+                                    out.append(' ');
                                 }
                                 break;
                             case ':':
                             case '^':
                             case '\\':
                                 if (exec) {
-                                    out.write(ch);
+                                    out.append(ch);
                                 }
                                 break;
                             default:
@@ -105,7 +129,7 @@ public final class Curses {
                 case '^':
                     ch = str.charAt(index++);
                     if (exec) {
-                        out.write(ch - '@');
+                        out.append((char)(ch - '@'));
                     }
                     break;
                 case '%':
@@ -113,7 +137,7 @@ public final class Curses {
                     switch (ch) {
                         case '%':
                             if (exec) {
-                                out.write('%');
+                                out.append('%');
                             }
                             break;
                         case 'p':
@@ -316,7 +340,7 @@ public final class Curses {
                             }
                             break;
                         case 'd':
-                            out.write(Integer.toString(toInteger(stack.pop())));
+                            out.append(Integer.toString(toInteger(stack.pop())));
                             break;
                         default:
                             throw new UnsupportedOperationException();
@@ -339,19 +363,21 @@ public final class Curses {
                         }
                         index++;
                         try {
-                            out.flush();
+                            if (out instanceof Flushable) {
+                                ((Flushable) out).flush();
+                            }
                             Thread.sleep(nb);
                         } catch (InterruptedException e) {
                         }
                     } else {
                         if (exec) {
-                            out.write(ch);
+                            out.append(ch);
                         }
                     }
                     break;
                 default:
                     if (exec) {
-                        out.write(ch);
+                        out.append(ch);
                     }
                     break;
             }

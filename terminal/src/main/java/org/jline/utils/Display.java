@@ -8,9 +8,6 @@
  */
 package org.jline.utils;
 
-import java.io.IOError;
-import java.io.IOException;
-import java.io.StringWriter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -53,7 +50,7 @@ public class Display {
         this.wrapAtEol = terminal.getBooleanCapability(Capability.auto_right_margin);
         this.delayedWrapAtEol = this.wrapAtEol
             && terminal.getBooleanCapability(Capability.eat_newline_glitch);
-        this.cursorDownIsNewLine = "\n".equals(tput(Capability.cursor_down));
+        this.cursorDownIsNewLine = "\n".equals(Curses.tputs(terminal.getStringCapability(Capability.cursor_down)));
     }
 
     /** If cursor is at right margin, don't wrap immediately.
@@ -373,22 +370,8 @@ public class Display {
     }
 
     private int computeCost(Capability cap) {
-        String s = tput(cap, 0);
+        String s = Curses.tputs(terminal.getStringCapability(cap), 0);
         return s != null ? s.length() : Integer.MAX_VALUE;
-    }
-
-    private String tput(Capability cap, Object... params) {
-        try {
-            StringWriter sw = new StringWriter();
-            String d = terminal.getStringCapability(cap);
-            if (d != null) {
-                Curses.tputs(sw, d, params);
-                return sw.toString();
-            }
-            return null;
-        } catch (IOException e) {
-            throw new IOError(e);
-        }
     }
 
     private static int[] longestCommon(List<AttributedString> l1, List<AttributedString> l2) {

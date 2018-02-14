@@ -381,28 +381,11 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
             default:
                 return null;
         }
-        return translate(escapeSequence, keyState + 1);
+        return Curses.tputs(escapeSequence, keyState + 1);
     }
 
     protected String getRawSequence(InfoCmp.Capability cap) {
         return strings.get(cap);
-    }
-
-    protected String getSequence(InfoCmp.Capability cap) {
-        return translate(getRawSequence(cap));
-    }
-
-    private String translate(String str, Object... params) {
-        if (str != null) {
-            StringWriter sw = new StringWriter();
-            try {
-                Curses.tputs(sw, str, params);
-            } catch (IOException e) {
-                throw new IOError(e);
-            }
-            return sw.toString();
-        }
-        return null;
     }
 
     @Override

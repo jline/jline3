@@ -22,13 +22,8 @@ public class CursesTest {
     @Test
     public void testTputs() throws Exception {
 
-        assertEquals("\033[3;4r", tputs("\\E[%i%p1%d;%p2%dr", 2, 3));
+        assertEquals("\033[3;4r", Curses.tputs("\\E[%i%p1%d;%p2%dr", 2, 3));
 
     }
 
-    private String tputs(String cap, Object... params) throws Exception {
-        StringWriter sw = new StringWriter();
-        Curses.tputs(sw, cap, params);
-        return sw.toString();
-    }
 }

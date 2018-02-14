@@ -326,10 +326,8 @@ public class TerminalReaderTest extends ReaderTestSupport
 
         reader.setVariable(LineReader.BELL_STYLE, "audible");
         reader.beep();
-        String bellCap = terminal.getStringCapability(Capability.bell);
-        StringWriter sw = new StringWriter();
-        Curses.tputs(sw, bellCap);
-        assertEquals("out should have received bell", sw.toString(), out.toString());
+        String bell = Curses.tputs(terminal.getStringCapability(Capability.bell));
+        assertEquals("out should have received bell", bell, out.toString());
     }
 
     @Test

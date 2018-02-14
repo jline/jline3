@@ -142,11 +142,7 @@ public abstract class AbstractTerminal implements Terminal {
         if (str == null) {
             return false;
         }
-        try {
-            Curses.tputs(writer(), str, params);
-        } catch (IOException e) {
-            throw new IOError(e);
-        }
+        Curses.tputs(writer(), str, params);
         return true;
     }
 

@@ -240,17 +240,7 @@ public class KeyMap<T> {
     }
 
     public static String key(Terminal terminal, Capability capability) {
-        try {
-            String str = terminal.getStringCapability(capability);
-            if (str != null) {
-                StringWriter sw = new StringWriter();
-                Curses.tputs(sw, str);
-                return sw.toString();
-            }
-        } catch (IOException e) {
-            // Ignore
-        }
-        return null;
+        return Curses.tputs(terminal.getStringCapability(capability));
     }
 
     public static final Comparator<String> KEYSEQ_COMPARATOR = (s1, s2) -> {
