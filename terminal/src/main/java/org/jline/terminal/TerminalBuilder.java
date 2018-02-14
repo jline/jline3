@@ -50,6 +50,13 @@ public final class TerminalBuilder {
     public static final String PROP_EXEC = "org.jline.terminal.exec";
     public static final String PROP_DUMB = "org.jline.terminal.dumb";
 
+    //
+    // Other system properties controlling various jline parts
+    //
+
+    public static final String PROP_NON_BLOCKING_READS = "org.jline.terminal.pty.nonBlockingReads";
+    public static final String PROP_COLOR_DISTANCE = "org.jline.utils.colorDistance";
+
     /**
      * Returns the default system terminal.
      * Terminals should be closed properly using the {@link Terminal#close()}

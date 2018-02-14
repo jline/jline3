@@ -17,6 +17,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import static org.jline.terminal.TerminalBuilder.PROP_COLOR_DISTANCE;
+
 public class Colors {
 
     /**
@@ -151,7 +153,7 @@ public class Colors {
 
     private static Distance getDistance(String dist) {
         if (dist == null) {
-            dist = System.getProperty("org.jline.utils.color.distance", "cie76");
+            dist = System.getProperty(PROP_COLOR_DISTANCE, "cie76");
         }
         return doGetDistance(dist);
     }

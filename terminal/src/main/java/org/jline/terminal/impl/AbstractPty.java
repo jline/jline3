@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
 
+import static org.jline.terminal.TerminalBuilder.PROP_NON_BLOCKING_READS;
+
 public abstract class AbstractPty implements Pty {
 
     private Attributes current;
@@ -22,7 +24,7 @@ public abstract class AbstractPty implements Pty {
     @Override
     public InputStream getSlaveInput() throws IOException {
         InputStream si = doGetSlaveInput();
-        if (Boolean.parseBoolean(System.getProperty("org.jline.terminal.pty.nonBlockingReads", "true"))) {
+        if (Boolean.parseBoolean(System.getProperty(PROP_NON_BLOCKING_READS, "true"))) {
             return new PtyInputStream(si);
         } else {
             return si;
