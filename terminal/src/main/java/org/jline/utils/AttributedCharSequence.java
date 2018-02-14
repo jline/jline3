@@ -31,8 +31,12 @@ import static org.jline.utils.AttributedStyle.F_ITALIC;
 import static org.jline.utils.AttributedStyle.F_UNDERLINE;
 import static org.jline.utils.AttributedStyle.F_HIDDEN;
 import static org.jline.utils.AttributedStyle.MASK;
+import static org.jline.terminal.TerminalBuilder.PROP_DISABLE_ALTERNATE_CHARSET;
 
 public abstract class AttributedCharSequence implements CharSequence {
+
+    // cache the value here as we can't afford to get it each time
+    static final boolean DISABLE_ALTERNATE_CHARSET = Boolean.getBoolean(PROP_DISABLE_ALTERNATE_CHARSET);
 
     public String toAnsi() {
         return toAnsi(null);
@@ -44,23 +48,54 @@ public abstract class AttributedCharSequence implements CharSequence {
         }
         int colors = 256;
         boolean force256colors = false;
+        String alternateIn = null, alternateOut = null;
         if (terminal != null) {
             Integer max_colors = terminal.getNumericCapability(Capability.max_colors);
             if (max_colors != null) {
                 colors = max_colors;
             }
             force256colors = AbstractWindowsTerminal.TYPE_WINDOWS_256_COLOR.equals(terminal.getType());
+            if (!DISABLE_ALTERNATE_CHARSET) {
+                alternateIn = Curses.tputs(terminal.getStringCapability(Capability.enter_alt_charset_mode));
+                alternateOut = Curses.tputs(terminal.getStringCapability(Capability.exit_alt_charset_mode));
+            }
         }
-        return toAnsi(colors, force256colors);
+        return toAnsi(colors, force256colors, alternateIn, alternateOut);
     }
 
     public String toAnsi(int colors, boolean force256colors) {
+        return toAnsi(colors, force256colors, null, null);
+    }
+
+    public String toAnsi(int colors, boolean force256colors, String altIn, String altOut) {
         StringBuilder sb = new StringBuilder();
         int style = 0;
         int foreground = -1;
         int background = -1;
+        boolean alt = false;
         for (int i = 0; i < length(); i++) {
             char c = charAt(i);
+            if (altIn != null && altOut != null) {
+                char pc = c;
+                switch (c) {
+                    case '┘': c = 'j'; break;
+                    case '┐': c = 'k'; break;
+                    case '┌': c = 'l'; break;
+                    case '└': c = 'm'; break;
+                    case '┼': c = 'n'; break;
+                    case '─': c = 'q'; break;
+                    case '├': c = 't'; break;
+                    case '┤': c = 'u'; break;
+                    case '┴': c = 'v'; break;
+                    case '┬': c = 'w'; break;
+                    case '│': c = 'x'; break;
+                }
+                boolean oldalt = alt;
+                alt = c != pc;
+                if (oldalt ^ alt) {
+                    sb.append(alt ? altIn : altOut);
+                }
+            }
             int  s = styleCodeAt(i) & ~F_HIDDEN; // The hidden flag does not change the ansi styles
             if (style != s) {
                 int  d = (style ^ s) & MASK;
@@ -141,6 +176,9 @@ public abstract class AttributedCharSequence implements CharSequence {
                 style = s;
             }
             sb.append(c);
+        }
+        if (alt) {
+            sb.append(altOut);
         }
         if (style != 0) {
             sb.append("\033[0m");
