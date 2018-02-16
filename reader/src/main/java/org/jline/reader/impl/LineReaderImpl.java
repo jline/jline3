@@ -3351,7 +3351,7 @@ public class LineReaderImpl implements LineReader, Flushable
         return true;
     }
 
-    protected void redisplay(boolean flush) {
+    protected synchronized void redisplay(boolean flush) {
         if (skipRedisplay) {
             skipRedisplay = false;
             return;
