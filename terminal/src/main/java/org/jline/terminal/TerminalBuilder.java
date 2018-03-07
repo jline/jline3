@@ -16,6 +16,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
+import java.util.Optional;
 import java.util.ServiceLoader;
 
 import org.jline.terminal.impl.AbstractPosixTerminal;
@@ -49,6 +50,7 @@ public final class TerminalBuilder {
     public static final String PROP_JANSI = "org.jline.terminal.jansi";
     public static final String PROP_EXEC = "org.jline.terminal.exec";
     public static final String PROP_DUMB = "org.jline.terminal.dumb";
+    public static final String PROP_DUMB_COLOR = "org.jline.terminal.dumb.color";
 
     /**
      * Returns the default system terminal.
@@ -346,21 +348,16 @@ public final class TerminalBuilder {
                 }
             }
             if (dumb == null || dumb) {
-                boolean color = false;
-                try {
-                    ProcessHandle parent = ProcessHandle.current().parent().orElse(null);
-                    if (parent != null) {
-                        String command = parent.info().command().orElse(null);
-                        if (command != null) {
-                            if (command.contains("emacs")
-                                    || command.contains("idea")
-                                    || command.contains("eclipse")) {
-                                color = true;
-                            }
-                        }
-                    }
-                } catch (Throwable t) {
-                    // ignore
+                // forced colored dumb terminal
+                boolean color = getBoolean(PROP_DUMB_COLOR, false);
+                // detect emacs using the env variable
+                if (!color) {
+                    color = System.getenv("INSIDE_EMACS") != null;
+                }
+                // detect Intellij Idea
+                if (!color) {
+                    String command = getParentProcessCommand();
+                    color = command != null && command.contains("idea");
                 }
                 if (!color && dumb == null) {
                     if (Log.isDebugEnabled()) {
@@ -401,6 +398,19 @@ public final class TerminalBuilder {
                 terminal.setSize(size);
             }
             return terminal;
+        }
+    }
+
+    private static String getParentProcessCommand() {
+        try {
+            Class<?> phClass = Class.forName("java.lang.ProcessHandler");
+            Object current = phClass.getMethod("current").invoke(null);
+            Object parent = ((Optional<?>) phClass.getMethod("parent").invoke(current)).orElse(null);
+            Object info = phClass.getMethod("info").invoke(parent);
+            Object command = ((Optional<?>) info.getClass().getMethod("command").invoke(info)).orElse(null);
+            return (String) command;
+        } catch (Throwable t) {
+            return null;
         }
     }
 
