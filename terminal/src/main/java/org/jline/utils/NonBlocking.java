@@ -86,6 +86,7 @@ public class NonBlocking {
             this.chars = CharBuffer.allocate(bufferSize);
             // No input available after initialization
             this.bytes.limit(0);
+            this.chars.limit(0);
         }
 
         @Override

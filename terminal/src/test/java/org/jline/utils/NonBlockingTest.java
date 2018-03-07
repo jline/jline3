@@ -58,4 +58,12 @@ public class NonBlockingTest {
         assertEquals('中', nbr.read(100));
         assertEquals(NonBlockingReader.READ_EXPIRED, nbr.read(100));
     }
+
+    @Test
+    public void testNonBlockStreamOnReader() throws IOException {
+        NonBlockingPumpReader reader = NonBlocking.nonBlockingPumpReader();
+        NonBlockingInputStream is = NonBlocking.nonBlockingStream(reader, StandardCharsets.UTF_8);
+        reader.getWriter().write("a");
+        assertEquals('a', is.read(1000L));
+    }
 }
