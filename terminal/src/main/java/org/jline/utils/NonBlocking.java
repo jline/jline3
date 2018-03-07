@@ -16,10 +16,7 @@ import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
-import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
-import java.nio.charset.MalformedInputException;
-import java.nio.charset.UnmappableCharacterException;
 
 public class NonBlocking {
 
@@ -74,23 +71,19 @@ public class NonBlocking {
         private final CharBuffer chars;
 
         private NonBlockingReaderInputStream(NonBlockingReader reader, Charset charset) {
-            this(reader, charset, 4);
-        }
-
-        private NonBlockingReaderInputStream(NonBlockingReader reader, Charset charset, int bufferSize) {
             this.reader = reader;
             this.encoder = charset.newEncoder()
                     .onUnmappableCharacter(CodingErrorAction.REPLACE)
                     .onMalformedInput(CodingErrorAction.REPLACE);
-            this.bytes = ByteBuffer.allocate((int) Math.ceil(bufferSize * encoder.maxBytesPerChar()));
-            this.chars = CharBuffer.allocate(bufferSize);
+            this.bytes = ByteBuffer.allocate(4);
+            this.chars = CharBuffer.allocate(2);
             // No input available after initialization
             this.bytes.limit(0);
             this.chars.limit(0);
         }
 
         @Override
-        public int available() throws IOException {
+        public int available() {
             return (int) (reader.available() * this.encoder.averageBytesPerChar())
                     + bytes.remaining();
         }
@@ -113,34 +106,16 @@ public class NonBlocking {
                     return EOF;
                 }
                 if (c >= 0) {
+                    if (!chars.hasRemaining()) {
+                        chars.position(0);
+                        chars.limit(0);
+                    }
                     int l = chars.limit();
                     chars.array()[chars.arrayOffset() + l] = (char) c;
                     chars.limit(l + 1);
-                    int p = bytes.position();
-                    l = bytes.limit();
-                    bytes.position(l);
-                    bytes.limit(bytes.capacity());
-                    CoderResult result = encoder.encode(chars, bytes, false);
-                    l = bytes.position();
-                    bytes.position(p);
-                    bytes.limit(l);
-                    if (result.isUnderflow()) {
-                        if (chars.limit() == chars.capacity()) {
-                            chars.compact();
-                            chars.limit(chars.position());
-                            chars.position(0);
-                        }
-                    } else if (result.isOverflow()) {
-                        if (bytes.limit() == bytes.capacity()) {
-                            bytes.compact();
-                            bytes.limit(bytes.position());
-                            bytes.position(0);
-                        }
-                    } else if (result.isMalformed()) {
-                        throw new MalformedInputException(result.length());
-                    } else if (result.isUnmappable()) {
-                        throw new UnmappableCharacterException(result.length());
-                    }
+                    bytes.clear();
+                    encoder.encode(chars, bytes, false);
+                    bytes.flip();
                 }
                 if (!isInfinite) {
                     timeout -= System.currentTimeMillis() - start;
@@ -161,7 +136,7 @@ public class NonBlocking {
 
     private static class NonBlockingInputStreamReader extends NonBlockingReader {
 
-        private final NonBlockingInputStream nbis;
+        private final NonBlockingInputStream input;
         private final CharsetDecoder decoder;
         private final ByteBuffer bytes;
         private final CharBuffer chars;
@@ -170,15 +145,14 @@ public class NonBlocking {
             this(inputStream,
                 (encoding != null ? encoding : Charset.defaultCharset()).newDecoder()
                     .onMalformedInput(CodingErrorAction.REPLACE)
-                    .onUnmappableCharacter(CodingErrorAction.REPLACE),
-                4);
+                    .onUnmappableCharacter(CodingErrorAction.REPLACE));
         }
 
-        public NonBlockingInputStreamReader(NonBlockingInputStream nbis, CharsetDecoder decoder, int bufferSize) {
-            this.nbis = nbis;
+        public NonBlockingInputStreamReader(NonBlockingInputStream input, CharsetDecoder decoder) {
+            this.input = input;
             this.decoder = decoder;
-            this.bytes = ByteBuffer.allocate((int) Math.ceil(bufferSize / decoder.maxCharsPerByte()));
-            this.chars = CharBuffer.allocate(bufferSize);
+            this.bytes = ByteBuffer.allocate(4);
+            this.chars = CharBuffer.allocate(2);
             this.bytes.limit(0);
             this.chars.limit(0);
         }
@@ -191,32 +165,21 @@ public class NonBlocking {
                 if (!isInfinite) {
                     start = System.currentTimeMillis();
                 }
-                int b = nbis.read(timeout);
+                int b = input.read(timeout);
                 if (b == EOF) {
                     return EOF;
                 }
                 if (b >= 0) {
-                    if (bytes.capacity() - bytes.limit() < 1) {
-                        bytes.compact();
-                        bytes.limit(bytes.position());
+                    if (!bytes.hasRemaining()) {
                         bytes.position(0);
-                    }
-                    if (chars.capacity() - chars.limit() < 2) {
-                        chars.compact();
-                        chars.limit(chars.position());
-                        chars.position(0);
+                        bytes.limit(0);
                     }
                     int l = bytes.limit();
                     bytes.array()[bytes.arrayOffset() + l] = (byte) b;
                     bytes.limit(l + 1);
-                    int p = chars.position();
-                    l = chars.limit();
-                    chars.position(l);
-                    chars.limit(chars.capacity());
+                    chars.clear();
                     decoder.decode(bytes, chars, false);
-                    l = chars.position();
-                    chars.position(p);
-                    chars.limit(l);
+                    chars.flip();
                 }
 
                 if (!isInfinite) {
@@ -236,12 +199,13 @@ public class NonBlocking {
 
         @Override
         public void shutdown() {
-            nbis.shutdown();
+            input.shutdown();
         }
 
         @Override
         public void close() throws IOException {
-            nbis.close();
+            input.close();
         }
     }
+
 }

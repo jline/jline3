@@ -63,7 +63,32 @@ public class NonBlockingTest {
     public void testNonBlockStreamOnReader() throws IOException {
         NonBlockingPumpReader reader = NonBlocking.nonBlockingPumpReader();
         NonBlockingInputStream is = NonBlocking.nonBlockingStream(reader, StandardCharsets.UTF_8);
-        reader.getWriter().write("a");
-        assertEquals('a', is.read(1000L));
+
+        String s = "aaaaaaaaaaaaa";
+        byte[] bytes = s.getBytes(StandardCharsets.UTF_8);
+        reader.getWriter().write(s);
+        for(int i = 0; i < bytes.length; i++) {
+            int b = is.read(100L);
+            assertEquals("Mismatch at " + i, bytes[i], b);
+        }
+        assertEquals(NonBlockingInputStream.READ_EXPIRED, is.read(100));
+
+        s = "aaaaaaaaa中";
+        bytes = s.getBytes(StandardCharsets.UTF_8);
+        reader.getWriter().write(s);
+        for(int i = 0; i < bytes.length; i++) {
+            int b = is.read(100L);
+            assertEquals("Mismatch at " + i, bytes[i], b);
+        }
+        assertEquals(NonBlockingInputStream.READ_EXPIRED, is.read(100));
+
+        s = "aaaaaaaaa\uD801\uDC37";
+        bytes = s.getBytes(StandardCharsets.UTF_8);
+        reader.getWriter().write(s);
+        for(int i = 0; i < bytes.length; i++) {
+            int b = is.read(100L);
+            assertEquals("Mismatch at " + i, bytes[i], b);
+        }
+        assertEquals(NonBlockingInputStream.READ_EXPIRED, is.read(100));
     }
 }
