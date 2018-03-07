@@ -22,6 +22,12 @@ import static org.junit.Assert.assertEquals;
 public class AttributedCharSequenceTest {
 
     @Test
+    public void testUnderline() throws IOException {
+        AttributedString as = AttributedString.fromAnsi("\33[38;5;0m\33[48;5;15mtest\33[0m");
+        assertEquals("\33[38;5;0;48;5;15mtest\33[0m", as.toAnsi(256, true));
+    }
+
+    @Test
     public void testBoldOnWindows() throws IOException {
         String HIC = "\33[36;1m";
         AttributedStringBuilder sb = new AttributedStringBuilder();

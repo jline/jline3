@@ -112,9 +112,9 @@ public abstract class AttributedCharSequence implements CharSequence {
                     if (background != bg) {
                         if (bg >= 0) {
                             int rounded = Colors.roundColor(bg, colors);
-                            if (rounded < 8) {
+                            if (rounded < 8 && !force256colors) {
                                 first = attr(sb, "4" + Integer.toString(rounded), first);
-                            } else if (rounded < 16) {
+                            } else if (rounded < 16 && !force256colors) {
                                 first = attr(sb, "10" + Integer.toString(rounded - 8), first);
                             } else {
                                 first = attr(sb, "48;5;" + Integer.toString(rounded), first);
