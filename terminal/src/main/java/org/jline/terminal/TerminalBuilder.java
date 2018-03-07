@@ -346,14 +346,30 @@ public final class TerminalBuilder {
                 }
             }
             if (dumb == null || dumb) {
-                if (dumb == null) {
+                boolean color = false;
+                try {
+                    ProcessHandle parent = ProcessHandle.current().parent().orElse(null);
+                    if (parent != null) {
+                        String command = parent.info().command().orElse(null);
+                        if (command != null) {
+                            if (command.contains("emacs")
+                                    || command.contains("idea")
+                                    || command.contains("eclipse")) {
+                                color = true;
+                            }
+                        }
+                    }
+                } catch (Throwable t) {
+                    // ignore
+                }
+                if (!color && dumb == null) {
                     if (Log.isDebugEnabled()) {
                         Log.warn("Creating a dumb terminal", exception);
                     } else {
                         Log.warn("Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)");
                     }
                 }
-                return new DumbTerminal(name, Terminal.TYPE_DUMB,
+                return new DumbTerminal(name, color ? Terminal.TYPE_DUMB_COLOR : Terminal.TYPE_DUMB,
                         new FileInputStream(FileDescriptor.in),
                         new FileOutputStream(FileDescriptor.out),
                         encoding, signalHandler);
