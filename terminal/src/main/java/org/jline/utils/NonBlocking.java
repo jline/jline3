@@ -82,7 +82,7 @@ public class NonBlocking {
             this.encoder = charset.newEncoder()
                     .onUnmappableCharacter(CodingErrorAction.REPLACE)
                     .onMalformedInput(CodingErrorAction.REPLACE);
-            this.bytes = ByteBuffer.allocate((int) Math.ceil(bufferSize * encoder.maxBytesPerChar()));
+            this.bytes = ByteBuffer.allocate((int) Math.ceil(encoder.maxBytesPerChar()));
             this.chars = CharBuffer.allocate(bufferSize);
             // No input available after initialization
             this.bytes.limit(0);
@@ -116,13 +116,11 @@ public class NonBlocking {
                     int l = chars.limit();
                     chars.array()[chars.arrayOffset() + l] = (char) c;
                     chars.limit(l + 1);
-                    int p = bytes.position();
-                    l = bytes.limit();
-                    bytes.position(l);
+                    bytes.position(0);
                     bytes.limit(bytes.capacity());
                     CoderResult result = encoder.encode(chars, bytes, false);
                     l = bytes.position();
-                    bytes.position(p);
+                    bytes.position(0);
                     bytes.limit(l);
                     if (result.isUnderflow()) {
                         if (chars.limit() == chars.capacity()) {
@@ -131,11 +129,7 @@ public class NonBlocking {
                             chars.position(0);
                         }
                     } else if (result.isOverflow()) {
-                        if (bytes.limit() == bytes.capacity()) {
-                            bytes.compact();
-                            bytes.limit(bytes.position());
-                            bytes.position(0);
-                        }
+                        throw new IOException("Character encoding overflow");
                     } else if (result.isMalformed()) {
                         throw new MalformedInputException(result.length());
                     } else if (result.isUnmappable()) {
