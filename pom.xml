@@ -65,6 +65,7 @@
         <module>remote-ssh</module>
         <module>remote-telnet</module>
         <module>style</module>
+        <module>curses</module>
         <module>demo</module>
         <module>graal</module>
         <module>jansi-core</module>
@@ -157,6 +158,12 @@
             <dependency>
                 <groupId>org.jline</groupId>
                 <artifactId>jline-reader</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-curses</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
