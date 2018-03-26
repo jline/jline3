@@ -18,9 +18,15 @@ public class OSUtils {
             && System.getenv("PWD") != null
             && System.getenv("PWD").startsWith("/");
 
+    @Deprecated
     public static final boolean IS_MINGW = IS_WINDOWS
             && System.getenv("MSYSTEM") != null
             && System.getenv("MSYSTEM").startsWith("MINGW");
+
+    public static final boolean IS_MSYSTEM = IS_WINDOWS
+            && System.getenv("MSYSTEM") != null
+            && (System.getenv("MSYSTEM").startsWith("MINGW")
+                || System.getenv("MSYSTEM").equals("MSYSTEM"));
 
     public static final boolean IS_CONEMU = IS_WINDOWS
             && System.getenv("ConEmuPID") != null;
@@ -37,7 +43,7 @@ public class OSUtils {
         String stty;
         String sttyfopt;
         String infocmp;
-        if (OSUtils.IS_CYGWIN || OSUtils.IS_MINGW) {
+        if (OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM) {
             tty = "tty.exe";
             stty = "stty.exe";
             sttyfopt = null;

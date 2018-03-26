@@ -291,7 +291,7 @@ public final class TerminalBuilder {
                 //
                 // Cygwin support
                 //
-                if ((OSUtils.IS_CYGWIN || OSUtils.IS_MINGW) && exec && !cygwinTerm) {
+                if ((OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM) && exec && !cygwinTerm) {
                     try {
                         Pty pty = ExecPty.current();
                         // Cygwin defaults to XTERM, but actually supports 256 colors,
