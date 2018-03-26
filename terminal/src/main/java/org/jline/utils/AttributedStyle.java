@@ -56,11 +56,15 @@ public class AttributedStyle {
     final int style;
     final int mask;
 
-    AttributedStyle() {
+    public AttributedStyle() {
         this(0, 0);
     }
 
-    AttributedStyle(int style, int mask) {
+    public AttributedStyle(AttributedStyle s) {
+        this(s.style, s.mask);
+    }
+
+    public AttributedStyle(int style, int mask) {
         this.style = style;
         this.mask = mask & MASK | ((style & F_FOREGROUND) != 0 ? FG_COLOR : 0)
                                 | ((style & F_BACKGROUND) != 0 ? BG_COLOR : 0);
@@ -208,11 +212,11 @@ public class AttributedStyle {
         return new AttributedStyle(style & ~F_HIDDEN, mask & ~F_HIDDEN);
     }
 
-    int getStyle() {
+    public int getStyle() {
         return style;
     }
 
-    int getMask() {
+    public int getMask() {
         return mask;
     }
 
