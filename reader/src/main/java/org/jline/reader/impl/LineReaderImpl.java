@@ -3781,13 +3781,15 @@ public class LineReaderImpl implements LineReader, Flushable
         }
         // Try to expand history first
         // If there is actually an expansion, bail out now
-        try {
-            if (expandHistory()) {
-                return true;
+        if (!isSet(Option.DISABLE_EVENT_EXPANSION)) {
+            try {
+                if (expandHistory()) {
+                    return true;
+                }
+            } catch (Exception e) {
+                Log.info("Error while expanding history", e);
+                return false;
             }
-        } catch (Exception e) {
-            Log.info("Error while expanding history", e);
-            return false;
         }
 
         // Parse the command line
