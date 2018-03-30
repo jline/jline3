@@ -126,7 +126,9 @@ public class DefaultHistory implements History {
             try (BufferedWriter writer = Files.newBufferedWriter(path.toAbsolutePath(),
               StandardOpenOption.WRITE, StandardOpenOption.APPEND, StandardOpenOption.CREATE)) {
                 for (Entry entry : items.subList(lastLoaded, items.size())) {
-                    writer.append(format(entry));
+                    if (entry.isPersistable()) {
+                        writer.append(format(entry));
+                    }
                 }
             }
             nbEntriesInFile += items.size() - lastLoaded;
@@ -148,7 +150,7 @@ public class DefaultHistory implements History {
                 int idx = l.indexOf(':');
                 Instant time = Instant.ofEpochMilli(Long.parseLong(l.substring(0, idx)));
                 String line = unescape(l.substring(idx + 1));
-                allItems.add(new EntryImpl(allItems.size(), time, line));
+                allItems.add(createEntry(allItems.size(), time, line));
             });
         }
         // Remove duplicates
@@ -168,6 +170,17 @@ public class DefaultHistory implements History {
         lastLoaded = items.size();
         nbEntriesInFile = items.size();
         maybeResize();
+    }
+
+    /**
+     * Create a history entry. Subclasses may override to use their own entry implementations.
+     * @param index index of history entry
+     * @param time entry creation time
+     * @param line the entry text
+     * @return entry object
+     */
+    protected Entry createEntry(int index, Instant time, String line) {
+        return new EntryImpl(index, time, line);
     }
 
     private void internalClear() {
@@ -278,7 +291,7 @@ public class DefaultHistory implements History {
     }
 
     protected void internalAdd(Instant time, String line) {
-        Entry entry = new EntryImpl(offset + items.size(), time, line);
+        Entry entry = createEntry(offset + items.size(), time, line);
         items.add(entry);
         maybeResize();
     }
@@ -296,7 +309,7 @@ public class DefaultHistory implements History {
         return items.listIterator(index - offset);
     }
 
-    static class EntryImpl implements Entry {
+    protected static class EntryImpl implements Entry {
 
         private final int index;
         private final Instant time;
