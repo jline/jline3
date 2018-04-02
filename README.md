@@ -36,24 +36,28 @@ JLine is distributed under the [BSD License](http://www.opensource.org/licenses/
 
 Use the following definition to use JLine in your maven project:
 
-    <dependency>
-      <groupId>org.jline</groupId>
-      <artifactId>jline</artifactId>
-      <version>3.5.1</version>
-    </dependency>
+```xml
+<dependency>
+  <groupId>org.jline</groupId>
+  <artifactId>jline</artifactId>
+  <version>3.5.1</version>
+</dependency>
+```
 
 JLine can also be used with more low-level jars:
 
-    <dependency>
-      <groupId>org.jline</groupId>
-      <artifactId>jline-terminal</artifactId>
-      <version>3.5.1</version>
-    </dependency>
-    <dependency>
-      <groupId>org.jline</groupId>
-      <artifactId>jline-reader</artifactId>
-      <version>3.5.1</version>
-    </dependency>
+```xml
+<dependency>
+  <groupId>org.jline</groupId>
+  <artifactId>jline-terminal</artifactId>
+  <version>3.5.1</version>
+</dependency>
+<dependency>
+  <groupId>org.jline</groupId>
+  <artifactId>jline-reader</artifactId>
+  <version>3.5.1</version>
+</dependency>
+```
 
 # Building
 
@@ -64,9 +68,11 @@ JLine can also be used with more low-level jars:
 
 Check out and build:
 
-    git clone git://github.com/jline/jline3.git
-    cd jline3
-    mvn install
+```sh
+git clone git://github.com/jline/jline3.git
+cd jline3
+mvn install
+```
     
 ## Continuous Integration
 
