@@ -51,6 +51,22 @@ You can also use finer grained jars:
 * `jline-remote-telnet`: helpers for using jline over telnet (including a telnet server implementation)
 * `jline-builtins`: several high level tools: `less` pager, `nano` editor, `screen` multiplexer, etc...
 
+## Supported platforms
+
+JLine supports the following platforms:
+* FreeBSD
+* Linux
+* OS X
+* Solaris
+* Windows
+
+## Jansi vs JNA
+
+To access the JVM's main terminal under a \*nix system, no additional dependency will be needed.  However, such usage will make use of child processes whenever the terminal is accessed (using `Terminal.getAttributes`, `Terminal.setAttributes`, `Terminal.getSize`, `Terminal.setSize`).  If one of the Jansi or JNA library is present, it will be used and JLine will use native calls instead of child processes.  This also allows the use of pseudo-terminals when dealing with non system terminals (for example when creating a terminal for an incoming connection).
+
+On the Windows platform, relying on native calls is mandatory, so you need to have either Jansi or JNA library in your classpath along with the `jline-terminal-jansi` or `jline-terminal-jna` jar.  Failing to do so will create a `dumb` terminal with no advanced capabilities.
+
+There is no difference between JLine's support for Jansi and JNA.  Both will provide the exact same behaviors. So it's a matter of preference: Jansi is a smaller but more focused library while JNA is a bigger but more generic and versatile one.
 
 # Maven Usage
 
