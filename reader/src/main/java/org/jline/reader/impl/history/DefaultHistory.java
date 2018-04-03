@@ -296,6 +296,11 @@ public class DefaultHistory implements History {
         return items.listIterator(index - offset);
     }
 
+    @Override
+    public Spliterator<Entry> spliterator() {
+        return items.spliterator();
+    }
+
     static class EntryImpl implements Entry {
 
         private final int index;

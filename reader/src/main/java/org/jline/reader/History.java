@@ -10,6 +10,7 @@ package org.jline.reader;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.Iterator;
 import java.util.ListIterator;
 
 /**
@@ -80,6 +81,24 @@ public interface History extends Iterable<History.Entry>
 
     default ListIterator<Entry> iterator() {
         return iterator(first());
+    }
+
+    default Iterator<Entry> reverseIterator() {
+        return reverseIterator(last());
+    }
+
+    default Iterator<Entry> reverseIterator(int index) {
+        return new Iterator<Entry>() {
+            private final ListIterator<Entry> it = iterator(index + 1);
+            @Override
+            public boolean hasNext() {
+                return it.hasPrevious();
+            }
+            @Override
+            public Entry next() {
+                return it.previous();
+            }
+        };
     }
 
     //

@@ -139,7 +139,6 @@ public abstract class ReaderTestSupport
         String line;
         String prevLine = null;
         while ((line = reader.readLine(null, null, mask, null)) != null) {
-
             prevLine = line;
         }
 

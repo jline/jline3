@@ -13,26 +13,14 @@ import java.io.IOError;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
-import java.io.StringWriter;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Set;
-import java.util.TreeMap;
 import java.util.function.*;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
@@ -178,6 +166,8 @@ public class LineReaderImpl implements LineReader, Flushable
     protected Buffer historyBuffer = null;
     protected CharSequence searchBuffer;
     protected StringBuffer searchTerm = null;
+    protected boolean searchFailing;
+    protected boolean searchBackward;
     protected int searchIndex = -1;
 
 
@@ -2290,100 +2280,179 @@ public class LineReaderImpl implements LineReader, Flushable
         return doSearchHistory(true);
     }
 
+    static class Pair<U,V> {
+        final U u; final V v;
+        public Pair(U u, V v) {
+            this.u = u;
+            this.v = v;
+        }
+        public U getU() {
+            return u;
+        }
+        public V getV() {
+            return v;
+        }
+    }
+
     protected boolean doSearchHistory(boolean backward) {
         if (history.isEmpty()) {
             return false;
         }
 
-        Buffer originalBuffer = buf.copy();
-        String previousSearchTerm = (searchTerm != null) ? searchTerm.toString() : "";
-        searchTerm = new StringBuffer(buf.toString());
-        if (searchTerm.length() > 0) {
-            searchIndex = backward
-                    ? searchBackwards(searchTerm.toString(), history.index(), false)
-                    : searchForwards(searchTerm.toString(), history.index(), false);
-            if (searchIndex == -1) {
-                beep();
-            }
-            printSearchStatus(searchTerm.toString(),
-                    searchIndex > -1 ? history.get(searchIndex) : "", backward);
-        } else {
-            searchIndex = -1;
-            printSearchStatus("", "", backward);
-        }
-
-        redisplay();
-
         KeyMap<Binding> terminators = new KeyMap<>();
         getString(SEARCH_TERMINATORS, DEFAULT_SEARCH_TERMINATORS)
                 .codePoints().forEach(c -> bind(terminators, ACCEPT_LINE, new String(Character.toChars(c))));
 
+        Buffer originalBuffer = buf.copy();
+        searchIndex = -1;
+        searchTerm = new StringBuffer();
+        searchBackward = backward;
+        searchFailing = false;
+        post = () -> new AttributedString((searchFailing ? "failing" + " " : "")
+                        + (searchBackward ? "bck-i-search" : "fwd-i-search")
+                        + ": " + searchTerm + "_");
+
+        redisplay();
         try {
             while (true) {
-                Binding o = readBinding(getKeys(), terminators);
-                if (new Reference(SEND_BREAK).equals(o)) {
-                    buf.copyFrom(originalBuffer);
-                    return true;
-                } else if (new Reference(HISTORY_INCREMENTAL_SEARCH_BACKWARD).equals(o)) {
-                    backward = true;
-                    if (searchTerm.length() == 0) {
-                        searchTerm.append(previousSearchTerm);
-                    }
-                    if (searchIndex > 0) {
-                        searchIndex = searchBackwards(searchTerm.toString(), searchIndex, false);
-                    }
-                } else if (new Reference(HISTORY_INCREMENTAL_SEARCH_FORWARD).equals(o)) {
-                    backward = false;
-                    if (searchTerm.length() == 0) {
-                        searchTerm.append(previousSearchTerm);
-                    }
-                    if (searchIndex > -1 && searchIndex < history.size() - 1) {
-                        searchIndex = searchForwards(searchTerm.toString(), searchIndex, false);
-                    }
-                } else if (new Reference(BACKWARD_DELETE_CHAR).equals(o)) {
-                    if (searchTerm.length() > 0) {
-                        searchTerm.deleteCharAt(searchTerm.length() - 1);
-                        if (backward) {
-                            searchIndex = searchBackwards(searchTerm.toString(), history.index(), false);
-                        } else {
-                            searchIndex = searchForwards(searchTerm.toString(), history.index(), false);
+                int prevSearchIndex = searchIndex;
+                Binding operation = readBinding(getKeys(), terminators);
+                String ref = (operation instanceof Reference) ? ((Reference) operation).name() : "";
+                boolean next = false;
+                switch (ref) {
+                    case SEND_BREAK:
+                        beep();
+                        buf.copyFrom(originalBuffer);
+                        return true;
+                    case HISTORY_INCREMENTAL_SEARCH_BACKWARD:
+                        searchBackward = true;
+                        next = true;
+                        break;
+                    case HISTORY_INCREMENTAL_SEARCH_FORWARD:
+                        searchBackward = false;
+                        next = true;
+                        break;
+                    case BACKWARD_DELETE_CHAR:
+                        if (searchTerm.length() > 0) {
+                            searchTerm.deleteCharAt(searchTerm.length() - 1);
                         }
-                    }
-                } else if (new Reference(SELF_INSERT).equals(o)) {
-                    searchTerm.append(getLastBinding());
-                    if (backward) {
-                        searchIndex = searchBackwards(searchTerm.toString(), history.index(), false);
-                    } else {
-                        searchIndex = searchForwards(searchTerm.toString(), history.index(), false);
-                    }
-                } else {
-                    // Set buffer and cursor position to the found string.
-                    if (searchIndex != -1) {
-                        history.moveTo(searchIndex);
-                    }
-                    pushBackBinding();
-                    return true;
+                        break;
+                    case SELF_INSERT:
+                        searchTerm.append(getLastBinding());
+                        break;
+                    default:
+                        // Set buffer and cursor position to the found string.
+                        if (searchIndex != -1) {
+                            history.moveTo(searchIndex);
+                        }
+                        pushBackBinding();
+                        return true;
                 }
 
                 // print the search status
-                if (searchTerm.length() == 0) {
-                    printSearchStatus("", "", backward);
-                    searchIndex = -1;
+                String pattern = doGetSearchPattern();
+                if (pattern.length() == 0) {
+                    buf.copyFrom(originalBuffer);
+                    searchFailing = false;
                 } else {
-                    if (searchIndex == -1) {
-                        beep();
-                        printSearchStatus(searchTerm.toString(), "", backward);
+                    boolean caseInsensitive = isSet(Option.CASE_INSENSITIVE_SEARCH);
+                    Pattern pat = Pattern.compile(pattern, caseInsensitive ? Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE
+                                                                           : Pattern.UNICODE_CASE);
+                    Pair<Integer, Integer> pair = null;
+                    if (searchBackward) {
+                        boolean nextOnly = next;
+                        pair = matches(pat, buf.toString(), searchIndex).stream()
+                                .filter(p -> nextOnly ? p.v < buf.cursor() : p.v <= buf.cursor())
+                                .max(Comparator.comparing(Pair::getV))
+                                .orElse(null);
+                        if (pair == null) {
+                            pair = StreamSupport.stream(
+                                    Spliterators.spliteratorUnknownSize(history.reverseIterator(searchIndex < 0 ? history.last() : searchIndex - 1), Spliterator.ORDERED), false)
+                                    .flatMap(e -> matches(pat, e.line(), e.index()).stream())
+                                    .findFirst()
+                                    .orElse(null);
+                        }
                     } else {
-                        printSearchStatus(searchTerm.toString(), history.get(searchIndex), backward);
+                        boolean nextOnly = next;
+                        pair = matches(pat, buf.toString(), searchIndex).stream()
+                                .filter(p -> nextOnly ? p.v > buf.cursor() : p.v >= buf.cursor())
+                                .min(Comparator.comparing(Pair::getV))
+                                .orElse(null);
+                        if (pair == null) {
+                            pair = StreamSupport.stream(
+                                    Spliterators.spliteratorUnknownSize(history.iterator((searchIndex < 0 ? history.last() : searchIndex) + 1), Spliterator.ORDERED), false)
+                                    .flatMap(e -> matches(pat, e.line(), e.index()).stream())
+                                    .findFirst()
+                                    .orElse(null);
+                            if (pair == null && searchIndex >= 0) {
+                                pair = matches(pat, originalBuffer.toString(), -1).stream()
+                                        .min(Comparator.comparing(Pair::getV))
+                                        .orElse(null);
+                            }
+                        }
+                    }
+                    if (pair != null) {
+                        searchIndex = pair.u;
+                        buf.clear();
+                        if (searchIndex >= 0) {
+                            buf.write(history.get(searchIndex));
+                        } else {
+                            buf.write(originalBuffer.toString());
+                        }
+                        buf.cursor(pair.v);
+                        searchFailing = false;
+                    } else {
+                        searchFailing = true;
+                        beep();
                     }
                 }
                 redisplay();
             }
+        } catch (IOError e) {
+            // Ignore Ctrl+C interrupts and just exit the loop
+            if (!(e.getCause() instanceof InterruptedException)) {
+                throw e;
+            }
+            return true;
         } finally {
             searchTerm = null;
             searchIndex = -1;
             post = null;
         }
+    }
+
+    private List<Pair<Integer, Integer>> matches(Pattern p, String line, int index) {
+        List<Pair<Integer, Integer>> starts = new ArrayList<>();
+        Matcher m = p.matcher(line);
+        while (m.find()) {
+            starts.add(new Pair<>(index, m.start()));
+        }
+        return starts;
+   }
+
+    private String doGetSearchPattern() {
+        StringBuilder sb = new StringBuilder();
+        boolean inQuote = false;
+        for (int i = 0; i < searchTerm.length(); i++) {
+            char c = searchTerm.charAt(i);
+            if (Character.isLowerCase(c)) {
+                if (inQuote) {
+                    sb.append("\\E");
+                    inQuote = false;
+                }
+                sb.append("[").append(Character.toLowerCase(c)).append(Character.toUpperCase(c)).append("]");
+            } else {
+                if (!inQuote) {
+                    sb.append("\\Q");
+                    inQuote = true;
+                }
+                sb.append(c);
+            }
+        }
+        if (inQuote) {
+            sb.append("\\E");
+        }
+        return sb.toString();
     }
 
     private void pushBackBinding() {
@@ -2492,17 +2561,17 @@ public class LineReaderImpl implements LineReader, Flushable
         return searchBackwards(searchTerm, history.index(), false);
     }
 
-
     public int searchBackwards(String searchTerm, int startIndex, boolean startsWith) {
         ListIterator<History.Entry> it = history.iterator(startIndex);
         while (it.hasPrevious()) {
             History.Entry e = it.previous();
+            String line = e.line();
             if (startsWith) {
-                if (e.line().startsWith(searchTerm)) {
+                if (line.startsWith(searchTerm)) {
                     return e.index();
                 }
             } else {
-                if (e.line().contains(searchTerm)) {
+                if (line.contains(searchTerm)) {
                     return e.index();
                 }
             }
@@ -2551,13 +2620,6 @@ public class LineReaderImpl implements LineReader, Flushable
      */
     public int searchForwards(String searchTerm) {
         return searchForwards(searchTerm, history.index());
-    }
-
-    public void printSearchStatus(String searchTerm, String match, boolean backward) {
-        String searchLabel = backward ? "bck-i-search" : "i-search";
-        post = () -> new AttributedString(searchLabel + ": " + searchTerm + "_");
-        setBuffer(match);
-        buf.move(match.indexOf(searchTerm) - buf.cursor());
     }
 
     protected boolean quit() {

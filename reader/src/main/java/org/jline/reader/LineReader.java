@@ -354,6 +354,7 @@ public interface LineReader {
         RECOGNIZE_EXACT,
         /** display group name before each group (else display all group names first) */
         GROUP(true),
+        /** if completion is case insensitive or not */
         CASE_INSENSITIVE,
         LIST_AMBIGUOUS,
         LIST_PACKED,
@@ -391,7 +392,11 @@ public interface LineReader {
          * (including the prompt) will be erased, thereby leaving the screen as it
          * was before the readLine call.
          */
-        ERASE_LINE_ON_FINISH;
+        ERASE_LINE_ON_FINISH,
+
+        /** if history search is fully case insensitive */
+        CASE_INSENSITIVE_SEARCH,
+        ;
 
         private final boolean def;
 

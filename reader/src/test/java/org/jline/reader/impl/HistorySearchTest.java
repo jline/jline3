@@ -24,6 +24,17 @@ public class HistorySearchTest extends ReaderTestSupport {
     }
 
     @Test
+    public void testCaseInsensitive() throws Exception {
+        setupHistory();
+        reader.setOpt(LineReader.Option.CASE_INSENSITIVE_SEARCH);
+        try {
+            assertLine("fiddle", new TestBuffer().ctrl('R').append("I").enter(), false);
+        } finally {
+            reader.unsetOpt(LineReader.Option.CASE_INSENSITIVE_SEARCH);
+        }
+    }
+
+    @Test
     public void testReverseHistorySearch() throws Exception {
         DefaultHistory history = setupHistory();
 
@@ -84,8 +95,8 @@ public class HistorySearchTest extends ReaderTestSupport {
         String readLineResult;
         in.setIn(new ByteArrayInputStream(translate("x^S^S\n").getBytes()));
         readLineResult = reader.readLine();
-        assertEquals("", readLineResult);
-        assertEquals(3, history.size());
+        assertEquals("x", readLineResult);
+        assertEquals(4, history.size());
     }
 
     @Test
@@ -96,8 +107,6 @@ public class HistorySearchTest extends ReaderTestSupport {
         in.setIn(new ByteArrayInputStream(translate("f^Rf^G").getBytes()));
         readLineResult = reader.readLine();
         assertEquals(null, readLineResult);
-        assertTrue(out.toString().contains("bck-i-search: f_"));
-        assertFalse(out.toString().contains("bck-i-search: ff_"));
         assertEquals("f", reader.getBuffer().toString());
         assertEquals(3, history.size());
     }
@@ -109,12 +118,13 @@ public class HistorySearchTest extends ReaderTestSupport {
         String readLineResult;
         in.setIn(new ByteArrayInputStream(translate("f^Rf\nfoo^G").getBytes()));
         readLineResult = reader.readLine();
-        assertEquals("", readLineResult);
+        assertEquals("f", readLineResult);
+        assertEquals(4, history.size());
 
         readLineResult = reader.readLine();
         assertEquals(null, readLineResult);
         assertEquals("", reader.getBuffer().toString());
-        assertEquals(3, history.size());
+        assertEquals(4, history.size());
     }
 
     @Test
