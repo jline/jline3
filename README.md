@@ -56,24 +56,28 @@ You can also use finer grained jars:
 
 Use the following definition to use JLine in your maven project:
 
-    <dependency>
-      <groupId>org.jline</groupId>
-      <artifactId>jline</artifactId>
-      <version>${jline.version}</version>
-    </dependency>
+```xml
+<dependency>
+    <groupId>org.jline</groupId>
+    <artifactId>jline</artifactId>
+    <version>${jline.version}</version>
+</dependency>
+```
 
 JLine can also be used with more low-level jars:
 
-    <dependency>
-      <groupId>org.jline</groupId>
-      <artifactId>jline-terminal</artifactId>
-      <version>${jline.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.jline</groupId>
-      <artifactId>jline-reader</artifactId>
-      <version>${jline.version}</version>
-    </dependency>
+```xml
+<dependency>
+    <groupId>org.jline</groupId>
+    <artifactId>jline-terminal</artifactId>
+    <version>${jline.version}</version>
+</dependency>
+<dependency>
+    <groupId>org.jline</groupId>
+    <artifactId>jline-reader</artifactId>
+    <version>${jline.version}</version>
+</dependency>
+```
 
 All the jars and releases are available from Maven Central, so you'll find everything at the following location <https://repo1.maven.org/maven2/org/jline/>.
 
@@ -86,9 +90,11 @@ All the jars and releases are available from Maven Central, so you'll find every
 
 Check out and build:
 
-    git clone git://github.com/jline/jline3.git
-    cd jline3
-    ./build rebuild
+```sh
+git clone git://github.com/jline/jline3.git
+cd jline3
+./build rebuild
+ ```
 
 ## Results
 
@@ -117,7 +123,9 @@ Note that all those artifacts are also installed in the local maven repostitory,
 
 To run the demo, simply use the following command after having build `JLine`
 
-    ./build demo
+```sh
+./build demo
+```
 
 ## Continuous Integration
 
