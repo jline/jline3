@@ -943,8 +943,7 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     protected void setBuffer(Buffer buffer) {
-        setBuffer(buffer.toString());
-        buf.cursor(buffer.cursor());
+        buf.copyFrom(buffer);
     }
 
     /**

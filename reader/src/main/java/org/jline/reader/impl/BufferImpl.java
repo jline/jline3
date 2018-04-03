@@ -37,10 +37,16 @@ public class BufferImpl implements Buffer
         g1 = buffer.length;
     }
 
+    private BufferImpl(BufferImpl buffer) {
+        this.cursor = buffer.cursor;
+        this.cursorCol = buffer.cursorCol;
+        this.buffer = buffer.buffer.clone();
+        this.g0 = buffer.g0;
+        this.g1 = buffer.g1;
+    }
+
     public BufferImpl copy () {
-        BufferImpl that = new BufferImpl();
-        that.copyFrom(this);
-        return that;
+        return new BufferImpl(this);
     }
 
     public int cursor() {
