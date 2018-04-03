@@ -932,12 +932,12 @@ public class LineReaderImpl implements LineReader, Flushable
     // Helper methods
     //
 
-    protected void setPrompt(final String prompt) {
+    public void setPrompt(final String prompt) {
         this.prompt = (prompt == null ? AttributedString.EMPTY
                        : expandPromptPattern(prompt, 0, "", 0));
     }
 
-    protected void setRightPrompt(final String rightPrompt) {
+    public void setRightPrompt(final String rightPrompt) {
         this.rightPrompt = (rightPrompt == null ? AttributedString.EMPTY
                             : expandPromptPattern(rightPrompt, 0, "", 0));
     }
