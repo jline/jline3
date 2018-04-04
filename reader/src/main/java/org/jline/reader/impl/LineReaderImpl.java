@@ -2562,24 +2562,30 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     public int searchBackwards(String searchTerm, int startIndex, boolean startsWith) {
+        boolean caseInsensitive = isSet(Option.CASE_INSENSITIVE_SEARCH);
+        if (caseInsensitive) {
+            searchTerm = searchTerm.toLowerCase();
+        }
         ListIterator<History.Entry> it = history.iterator(startIndex);
         while (it.hasPrevious()) {
             History.Entry e = it.previous();
             String line = e.line();
-            if (startsWith) {
-                if (line.startsWith(searchTerm)) {
-                    return e.index();
-                }
-            } else {
-                if (line.contains(searchTerm)) {
-                    return e.index();
-                }
+            if (caseInsensitive) {
+                line = line.toLowerCase();
+            }
+            int idx = line.indexOf(searchTerm);
+            if ((startsWith && idx == 0) || (!startsWith && idx >= 0)) {
+                return e.index();
             }
         }
         return -1;
     }
 
     public int searchForwards(String searchTerm, int startIndex, boolean startsWith) {
+        boolean caseInsensitive = isSet(Option.CASE_INSENSITIVE_SEARCH);
+        if (caseInsensitive) {
+            searchTerm = searchTerm.toLowerCase();
+        }
         if (startIndex > history.last()) {
             startIndex = history.last();
         }
@@ -2589,14 +2595,13 @@ public class LineReaderImpl implements LineReader, Flushable
         }
         while (it.hasNext()) {
             History.Entry e = it.next();
-            if (startsWith) {
-                if (e.line().startsWith(searchTerm)) {
-                    return e.index();
-                }
-            } else {
-                if (e.line().contains(searchTerm)) {
-                    return e.index();
-                }
+            String line = e.line();
+            if (caseInsensitive) {
+                line = line.toLowerCase();
+            }
+            int idx = line.indexOf(searchTerm);
+            if ((startsWith && idx == 0) || (!startsWith && idx >= 0)) {
+                return e.index();
             }
         }
         return -1;
