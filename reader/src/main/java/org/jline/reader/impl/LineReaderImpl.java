@@ -3988,8 +3988,12 @@ public class LineReaderImpl implements LineReader, Flushable
                 buf.backspace(line.word().length());
             }
             buf.write(completion.value());
-            if (completion.complete() && buf.currChar() != ' ') {
-                buf.write(" ");
+            if (completion.complete()) {
+                if (buf.currChar() != ' ') {
+                    buf.write(" ");
+                } else {
+                    buf.move(1);
+                }
             }
             if (completion.suffix() != null) {
                 redisplay();
