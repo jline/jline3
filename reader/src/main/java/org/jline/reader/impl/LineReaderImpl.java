@@ -4649,7 +4649,8 @@ public class LineReaderImpl implements LineReader, Flushable
                         if (cand == selection) {
                             out[1] = i;
                             sb.style(getCompletionStyleSelection());
-                            if (left.toString().startsWith(completed)) {
+                            if (left.toString().regionMatches(
+                                    isSet(Option.CASE_INSENSITIVE), 0, completed, 0, completed.length())) {
                                 sb.append(left.toString(), 0, completed.length());
                                 sb.append(left.toString(), completed.length(), left.length());
                             } else {
@@ -4663,7 +4664,8 @@ public class LineReaderImpl implements LineReader, Flushable
                             }
                             sb.style(AttributedStyle.DEFAULT);
                         } else {
-                            if (left.toString().startsWith(completed)) {
+                            if (left.toString().regionMatches(
+                                    isSet(Option.CASE_INSENSITIVE), 0, completed, 0, completed.length())) {
                                 sb.style(getCompletionStyleStarting());
                                 sb.append(left, 0, completed.length());
                                 sb.style(AttributedStyle.DEFAULT);
