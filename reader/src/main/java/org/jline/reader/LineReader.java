@@ -536,6 +536,8 @@ public interface LineReader {
 
     Buffer getBuffer();
 
+    String getAppName();
+
     /**
      * Push back a key sequence that will be later consumed by the line reader.
      * This method can be used after reading the cursor position using

@@ -53,7 +53,7 @@ public class InputRCTest {
                 .terminal(TerminalBuilder.builder().streams(new ByteArrayInputStream(new byte[0]), new ByteArrayOutputStream()).build())
                 .appName(appName)
                 .build();
-        InputRC.configure(lr, appName, getClass().getResource(config));
+        InputRC.configure(lr, getClass().getResource(config));
         return lr;
     }
 

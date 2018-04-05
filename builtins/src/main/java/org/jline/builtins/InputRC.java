@@ -22,19 +22,19 @@ import java.util.Locale;
 
 public final class InputRC {
 
-    public static void configure(LineReader reader, String appName, URL url) throws IOException {
+    public static void configure(LineReader reader, URL url) throws IOException {
         try (InputStream is = url.openStream()) {
-            configure(reader, appName, is);
+            configure(reader, is);
         }
     }
 
-    public static void configure(LineReader reader, String appName, InputStream is) throws IOException {
+    public static void configure(LineReader reader, InputStream is) throws IOException {
         try (InputStreamReader r = new InputStreamReader(is)) {
-            configure(reader, appName, r);
+            configure(reader, r);
         }
     }
 
-    public static void configure(LineReader reader, String appName, Reader r) throws IOException {
+    public static void configure(LineReader reader, Reader r) throws IOException {
         BufferedReader br;
         if (r instanceof BufferedReader) {
             br = (BufferedReader) r;
@@ -48,7 +48,7 @@ public final class InputRC {
         } else if ("emacs".equals(reader.getVariable(LineReader.EDITING_MODE))) {
             reader.getKeyMaps().put(LineReader.MAIN, reader.getKeyMaps().get(LineReader.EMACS));
         }
-        new InputRC(reader, appName).parse(br);
+        new InputRC(reader).parse(br);
         if ("vi".equals(reader.getVariable(LineReader.EDITING_MODE))) {
             reader.getKeyMaps().put(LineReader.MAIN, reader.getKeyMaps().get(LineReader.VIINS));
         } else if ("emacs".equals(reader.getVariable(LineReader.EDITING_MODE))) {
@@ -57,11 +57,9 @@ public final class InputRC {
     }
 
     private final LineReader reader;
-    private final String appName;
 
-    private InputRC(LineReader reader, String appName) {
+    private InputRC(LineReader reader) {
         this.reader = reader;
-        this.appName = appName;
     }
 
     private void parse(BufferedReader br) throws IOException, IllegalArgumentException {
@@ -109,7 +107,7 @@ public final class InputRC {
                             String mode = (String) reader.getVariable(LineReader.EDITING_MODE);
                             parsing = args.substring("mode=".length()).equalsIgnoreCase(mode);
                         } else {
-                            parsing = args.equalsIgnoreCase(appName);
+                            parsing = args.equalsIgnoreCase(reader.getAppName());
                         }
                     } else if ("else".equalsIgnoreCase(cmd)) {
                         if (ifsStack.isEmpty()) {
