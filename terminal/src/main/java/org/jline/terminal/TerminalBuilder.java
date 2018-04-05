@@ -16,6 +16,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
+import java.util.Optional;
 import java.util.ServiceLoader;
 
 import org.jline.terminal.impl.AbstractPosixTerminal;
@@ -49,6 +50,7 @@ public final class TerminalBuilder {
     public static final String PROP_JANSI = "org.jline.terminal.jansi";
     public static final String PROP_EXEC = "org.jline.terminal.exec";
     public static final String PROP_DUMB = "org.jline.terminal.dumb";
+    public static final String PROP_DUMB_COLOR = "org.jline.terminal.dumb.color";
 
     //
     // Other system properties controlling various jline parts
@@ -354,14 +356,25 @@ public final class TerminalBuilder {
                 }
             }
             if (dumb == null || dumb) {
-                if (dumb == null) {
+                // forced colored dumb terminal
+                boolean color = getBoolean(PROP_DUMB_COLOR, false);
+                // detect emacs using the env variable
+                if (!color) {
+                    color = System.getenv("INSIDE_EMACS") != null;
+                }
+                // detect Intellij Idea
+                if (!color) {
+                    String command = getParentProcessCommand();
+                    color = command != null && command.contains("idea");
+                }
+                if (!color && dumb == null) {
                     if (Log.isDebugEnabled()) {
                         Log.warn("Creating a dumb terminal", exception);
                     } else {
                         Log.warn("Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)");
                     }
                 }
-                return new DumbTerminal(name, Terminal.TYPE_DUMB,
+                return new DumbTerminal(name, color ? Terminal.TYPE_DUMB_COLOR : Terminal.TYPE_DUMB,
                         new FileInputStream(FileDescriptor.in),
                         new FileOutputStream(FileDescriptor.out),
                         encoding, signalHandler);
@@ -393,6 +406,19 @@ public final class TerminalBuilder {
                 terminal.setSize(size);
             }
             return terminal;
+        }
+    }
+
+    private static String getParentProcessCommand() {
+        try {
+            Class<?> phClass = Class.forName("java.lang.ProcessHandler");
+            Object current = phClass.getMethod("current").invoke(null);
+            Object parent = ((Optional<?>) phClass.getMethod("parent").invoke(current)).orElse(null);
+            Object info = phClass.getMethod("info").invoke(parent);
+            Object command = ((Optional<?>) info.getClass().getMethod("command").invoke(info)).orElse(null);
+            return (String) command;
+        } catch (Throwable t) {
+            return null;
         }
     }
 

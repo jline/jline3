@@ -431,7 +431,8 @@ public class LineReaderImpl implements LineReader, Flushable
         SignalHandler previousWinchHandler = null;
         SignalHandler previousContHandler = null;
         Attributes originalAttributes = null;
-        boolean dumb = Terminal.TYPE_DUMB.equals(terminal.getType());
+        boolean dumb = Terminal.TYPE_DUMB.equals(terminal.getType())
+                    || Terminal.TYPE_DUMB_COLOR.equals(terminal.getType());
         try {
             if (reading) {
                 throw new IllegalStateException();

@@ -33,6 +33,7 @@ public interface Terminal extends Closeable, Flushable {
      * Type used for dumb terminals.
      */
     String TYPE_DUMB = "dumb";
+    String TYPE_DUMB_COLOR = "dumb-color";
 
     String getName();
 
