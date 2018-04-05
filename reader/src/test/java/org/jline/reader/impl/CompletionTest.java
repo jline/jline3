@@ -25,6 +25,13 @@ import static org.junit.Assert.assertTrue;
 public class CompletionTest extends ReaderTestSupport {
 
     @Test
+    public void testCompleteEscape() throws IOException {
+        reader.setCompleter(new StringsCompleter("foo bar"));
+        assertBuffer("foo\\ bar ", new TestBuffer("fo\t"));
+        assertBuffer("\"foo bar\" ", new TestBuffer("\"fo\t"));
+    }
+
+    @Test
     public void testListAndMenu() throws IOException {
         reader.setCompleter(new StringsCompleter("foo", "foobar"));
 

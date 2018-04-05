@@ -8,15 +8,13 @@
  */
 package org.jline.reader.impl;
 
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.function.Predicate;
 
+import org.jline.reader.CompletingParsedLine;
 import org.jline.reader.EOFError;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.Parser;
-import org.jline.reader.Parser.ParseContext;
 
 public class DefaultParser implements Parser {
 
@@ -149,7 +147,8 @@ public class DefaultParser implements Parser {
                     ? "quote" : "dquote");
         }
 
-        return new ArgumentList(line, words, wordIndex, wordCursor, cursor);
+        String openingQuote = quoteStart >= 0 ? line.substring(quoteStart, quoteStart + 1) : null;
+        return new ArgumentList(line, words, wordIndex, wordCursor, cursor, openingQuote);
     }
 
     /**
@@ -173,13 +172,13 @@ public class DefaultParser implements Parser {
         if (pos < 0) {
             return false;
         }
-
-        for (int i = 0; (quoteChars != null) && (i < quoteChars.length); i++) {
-            if (buffer.charAt(pos) == quoteChars[i]) {
-                return !isEscaped(buffer, pos);
+        if (quoteChars != null) {
+            for (char e : quoteChars) {
+                if (e == buffer.charAt(pos)) {
+                    return !isEscaped(buffer, pos);
+                }
             }
         }
-
         return false;
     }
 
@@ -190,13 +189,13 @@ public class DefaultParser implements Parser {
         if (pos < 0) {
             return false;
         }
-
-        for (int i = 0; (escapeChars != null) && (i < escapeChars.length); i++) {
-            if (buffer.charAt(pos) == escapeChars[i]) {
-                return !isEscaped(buffer, pos); // escape escape
+        if (escapeChars != null) {
+            for (char e : escapeChars) {
+                if (e == buffer.charAt(pos)) {
+                    return !isEscaped(buffer, pos);
+                }
             }
         }
-
         return false;
     }
 
@@ -214,7 +213,6 @@ public class DefaultParser implements Parser {
         if (pos <= 0) {
             return false;
         }
-
         return isEscapeChar(buffer, pos - 1);
     }
 
@@ -227,12 +225,34 @@ public class DefaultParser implements Parser {
         return Character.isWhitespace(buffer.charAt(pos));
     }
 
+    private boolean isRawEscapeChar(char key) {
+        if (escapeChars != null) {
+            for (char e : escapeChars) {
+                if (e == key) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean isRawQuoteChar(char key) {
+        if (quoteChars != null) {
+            for (char e : quoteChars) {
+                if (e == key) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     /**
      * The result of a delimited buffer.
      *
      * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
      */
-    public static class ArgumentList implements ParsedLine
+    public class ArgumentList implements ParsedLine, CompletingParsedLine
     {
         private final String line;
 
@@ -244,12 +264,15 @@ public class DefaultParser implements Parser {
 
         private final int cursor;
 
-        public ArgumentList(final String line, final List<String> words, final int wordIndex, final int wordCursor, final int cursor) {
+        private final String openingQuote;
+
+        public ArgumentList(final String line, final List<String> words, final int wordIndex, final int wordCursor, final int cursor, final String openingQuote) {
             this.line = line;
             this.words = Collections.unmodifiableList(Objects.requireNonNull(words));
             this.wordIndex = wordIndex;
             this.wordCursor = wordCursor;
             this.cursor = cursor;
+            this.openingQuote = openingQuote;
         }
 
         public int wordIndex() {
@@ -280,6 +303,30 @@ public class DefaultParser implements Parser {
             return line;
         }
 
+        public CharSequence emit(CharSequence candidate) {
+            StringBuilder sb = new StringBuilder(candidate);
+            Predicate<Integer> needToBeEscaped;
+            // Completion is protected by an opening quote:
+            // Delimiters (spaces) don't need to be escaped, nor do other quotes, but everything else does.
+            // Also, close the quote at the end
+            if (openingQuote != null) {
+                needToBeEscaped = i -> isRawEscapeChar(sb.charAt(i)) || String.valueOf(sb.charAt(i)).equals(openingQuote);
+            }
+            // No quote protection, need to escape everything: delimiter chars (spaces), quote chars
+            // and escapes themselves
+            else {
+                needToBeEscaped = i -> isDelimiterChar(sb, i) || isRawEscapeChar(sb.charAt(i)) || isRawQuoteChar(sb.charAt(i));
+            }
+            for (int i = 0; i < sb.length(); i++) {
+                if (needToBeEscaped.test(i)) {
+                    sb.insert(i++, escapeChars[0]);
+                }
+            }
+            if (openingQuote != null) {
+                sb.append(openingQuote);
+            }
+            return sb;
+        }
     }
 
 }

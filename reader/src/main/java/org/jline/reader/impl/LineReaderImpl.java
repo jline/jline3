@@ -3993,7 +3993,8 @@ public class LineReaderImpl implements LineReader, Flushable
                 buf.move(line.word().length() - line.wordCursor());
                 buf.backspace(line.word().length());
             }
-            buf.write(completion.value());
+            CompletingParsedLine cpl = (line instanceof CompletingParsedLine) ? ((CompletingParsedLine) line) : t -> t;
+            buf.write(cpl.emit(completion.value()));
             if (completion.complete()) {
                 if (buf.currChar() != ' ') {
                     buf.write(" ");
