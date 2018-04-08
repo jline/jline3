@@ -92,6 +92,9 @@ public class DefaultParser implements Parser {
         int wordCursor = -1;
         int wordIndex = -1;
         int quoteStart = -1;
+        int rawWordCursor = -1;
+        int rawWordLength = -1;
+        int rawWordStart = 0;
 
         for (int i = 0; (line != null) && (i < line.length()); i++) {
             // once we reach the cursor, set the
@@ -101,6 +104,7 @@ public class DefaultParser implements Parser {
                 // the position in the current argument is just the
                 // length of the current argument
                 wordCursor = current.length();
+                rawWordCursor = i - rawWordStart;
             }
 
             if (quoteStart < 0 && isQuoteChar(line, i)) {
@@ -113,9 +117,14 @@ public class DefaultParser implements Parser {
                     words.add(current.toString());
                     current.setLength(0);
                     quoteStart = -1;
-                } else if (!isEscapeChar(line, i)) {
-                    // Take the next character
-                    current.append(line.charAt(i));
+                    if (rawWordCursor >= 0 && rawWordLength < 0) {
+                        rawWordLength = i - rawWordStart + 1;
+                    }
+                } else {
+                    if (!isEscapeChar(line, i)) {
+                        // Take the next character
+                        current.append(line.charAt(i));
+                    }
                 }
             } else {
                 // Not in a quote block
@@ -123,20 +132,31 @@ public class DefaultParser implements Parser {
                     if (current.length() > 0) {
                         words.add(current.toString());
                         current.setLength(0); // reset the arg
+                        if (rawWordCursor >= 0 && rawWordLength < 0) {
+                            rawWordLength = i - rawWordStart;
+                        }
                     }
-                } else if (!isEscapeChar(line, i)) {
-                    current.append(line.charAt(i));
+                    rawWordStart = i + 1;
+                } else {
+                    if (!isEscapeChar(line, i)) {
+                        current.append(line.charAt(i));
+                    }
                 }
             }
         }
 
         if (current.length() > 0 || cursor == line.length()) {
             words.add(current.toString());
+            if (rawWordCursor >= 0 && rawWordLength < 0) {
+                rawWordLength = line.length() - rawWordStart;
+            }
         }
 
         if (cursor == line.length()) {
             wordIndex = words.size() - 1;
             wordCursor = words.get(words.size() - 1).length();
+            rawWordCursor = cursor - rawWordStart;
+            rawWordLength = rawWordCursor;
         }
 
         if (eofOnEscapedNewLine && isEscapeChar(line, line.length() - 1)) {
@@ -148,7 +168,7 @@ public class DefaultParser implements Parser {
         }
 
         String openingQuote = quoteStart >= 0 ? line.substring(quoteStart, quoteStart + 1) : null;
-        return new ArgumentList(line, words, wordIndex, wordCursor, cursor, openingQuote);
+        return new ArgumentList(line, words, wordIndex, wordCursor, cursor, openingQuote, rawWordCursor, rawWordLength);
     }
 
     /**
@@ -266,13 +286,22 @@ public class DefaultParser implements Parser {
 
         private final String openingQuote;
 
-        public ArgumentList(final String line, final List<String> words, final int wordIndex, final int wordCursor, final int cursor, final String openingQuote) {
+        private final int rawWordCursor;
+
+        private final int rawWordLength;
+
+        public ArgumentList(final String line, final List<String> words,
+                            final int wordIndex, final int wordCursor,
+                            final int cursor, final String openingQuote,
+                            final int rawWordCursor, final int rawWordLength) {
             this.line = line;
             this.words = Collections.unmodifiableList(Objects.requireNonNull(words));
             this.wordIndex = wordIndex;
             this.wordCursor = wordCursor;
             this.cursor = cursor;
             this.openingQuote = openingQuote;
+            this.rawWordCursor = rawWordCursor;
+            this.rawWordLength = rawWordLength;
         }
 
         public int wordIndex() {
@@ -303,7 +332,7 @@ public class DefaultParser implements Parser {
             return line;
         }
 
-        public CharSequence emit(CharSequence candidate) {
+        public CharSequence escape(CharSequence candidate, boolean complete) {
             StringBuilder sb = new StringBuilder(candidate);
             Predicate<Integer> needToBeEscaped;
             // Completion is protected by an opening quote:
@@ -323,9 +352,22 @@ public class DefaultParser implements Parser {
                 }
             }
             if (openingQuote != null) {
-                sb.append(openingQuote);
+                sb.insert(0, openingQuote);
+                if (complete) {
+                    sb.append(openingQuote);
+                }
             }
             return sb;
+        }
+
+        @Override
+        public int rawWordCursor() {
+            return rawWordCursor;
+        }
+
+        @Override
+        public int rawWordLength() {
+            return rawWordLength;
         }
     }
 

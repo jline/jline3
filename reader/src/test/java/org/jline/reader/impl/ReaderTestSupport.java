@@ -13,6 +13,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -323,14 +324,14 @@ public abstract class ReaderTestSupport
         }
 
         @Override
-        protected boolean doList(List<Candidate> possible, String completed, boolean runLoop) {
+        protected boolean doList(List<Candidate> possible, String completed, boolean runLoop, BiFunction<CharSequence, Boolean, CharSequence> escaper) {
             list = true;
-            return super.doList(possible, completed, runLoop);
+            return super.doList(possible, completed, runLoop, escaper);
         }
         @Override
-        protected boolean doMenu(List<Candidate> possible, String completed) {
+        protected boolean doMenu(List<Candidate> possible, String completed, BiFunction<CharSequence, Boolean, CharSequence> escaper) {
             menu = true;
-            return super.doMenu(possible, completed);
+            return super.doMenu(possible, completed, escaper);
         }
     }
 

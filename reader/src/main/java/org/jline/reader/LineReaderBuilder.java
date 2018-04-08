@@ -18,6 +18,7 @@ import org.jline.reader.impl.LineReaderImpl;
 import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.Log;
 
 public final class LineReaderBuilder {
 
@@ -82,6 +83,16 @@ public final class LineReaderBuilder {
     }
 
     public LineReaderBuilder parser(Parser parser) {
+        if (parser != null) {
+            try {
+                if (!(parser.parse("", 0) instanceof CompletingParsedLine)) {
+                    Log.warn("The Parser of class " + parser.getClass().getName() + " does not support the CompletingParsedLine interface. " +
+                            "Completion with escaped or quoted words won't work correctly.");
+                }
+            } catch (Throwable t) {
+                // Ignore
+            }
+        }
         this.parser = parser;
         return this;
     }

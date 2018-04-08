@@ -15,9 +15,12 @@ package org.jline.reader;
  *
  * @author Eric Bottard
  */
-@FunctionalInterface
-public interface CompletingParsedLine {
+public interface CompletingParsedLine extends ParsedLine {
 
-    CharSequence emit(CharSequence candidate);
+    CharSequence escape(CharSequence candidate, boolean complete);
+
+    int rawWordCursor();
+
+    int rawWordLength();
 
 }

@@ -3860,9 +3860,9 @@ public class LineReaderImpl implements LineReader, Flushable
         }
 
         // Parse the command line
-        ParsedLine line;
+        CompletingParsedLine line;
         try {
-            line = parser.parse(buf.toString(), buf.cursor(), ParseContext.COMPLETE);
+            line = wrap(parser.parse(buf.toString(), buf.cursor(), ParseContext.COMPLETE));
         } catch (Exception e) {
             Log.info("Error while parsing line", e);
             return false;
@@ -3967,7 +3967,7 @@ public class LineReaderImpl implements LineReader, Flushable
             List<Candidate> possible = matching.entrySet().stream()
                     .flatMap(e -> e.getValue().stream())
                     .collect(Collectors.toList());
-            doList(possible, line.word(), false);
+            doList(possible, line.word(), false, line::escape);
             return !possible.isEmpty();
         }
 
@@ -3988,13 +3988,12 @@ public class LineReaderImpl implements LineReader, Flushable
         // Complete and exit
         if (completion != null && !completion.value().isEmpty()) {
             if (prefix) {
-                buf.backspace(line.wordCursor());
+                buf.backspace(line.rawWordCursor());
             } else {
-                buf.move(line.word().length() - line.wordCursor());
-                buf.backspace(line.word().length());
+                buf.move(line.rawWordLength() - line.rawWordCursor());
+                buf.backspace(line.rawWordLength());
             }
-            CompletingParsedLine cpl = (line instanceof CompletingParsedLine) ? ((CompletingParsedLine) line) : t -> t;
-            buf.write(cpl.emit(completion.value()));
+            buf.write(line.escape(completion.value(), completion.complete()));
             if (completion.complete()) {
                 if (buf.currChar() != ' ') {
                     buf.write(" ");
@@ -4028,7 +4027,7 @@ public class LineReaderImpl implements LineReader, Flushable
         if (useMenu) {
             buf.move(line.word().length() - line.wordCursor());
             buf.backspace(line.word().length());
-            doMenu(possible, line.word());
+            doMenu(possible, line.word(), line::escape);
             return true;
         }
 
@@ -4038,7 +4037,7 @@ public class LineReaderImpl implements LineReader, Flushable
             current = line.word().substring(0, line.wordCursor());
         } else {
             current = line.word();
-            buf.move(current.length() - line.wordCursor());
+            buf.move(line.rawWordLength() - line.rawWordCursor());
         }
         // Now, we need to find the unambiguous completion
         // TODO: need to find common suffix
@@ -4049,8 +4048,8 @@ public class LineReaderImpl implements LineReader, Flushable
         boolean hasUnambiguous = commonPrefix.startsWith(current) && !commonPrefix.equals(current);
 
         if (hasUnambiguous) {
-            buf.backspace(current.length());
-            buf.write(commonPrefix);
+            buf.backspace(line.rawWordLength());
+            buf.write(line.escape(commonPrefix, false));
             current = commonPrefix;
             if ((!isSet(Option.AUTO_LIST) && isSet(Option.AUTO_MENU))
                     || (isSet(Option.AUTO_LIST) && isSet(Option.LIST_AMBIGUOUS))) {
@@ -4060,15 +4059,51 @@ public class LineReaderImpl implements LineReader, Flushable
             }
         }
         if (isSet(Option.AUTO_LIST)) {
-            if (!doList(possible, current, true)) {
+            if (!doList(possible, current, true, line::escape)) {
                 return true;
             }
         }
         if (isSet(Option.AUTO_MENU)) {
             buf.backspace(current.length());
-            doMenu(possible, line.word());
+            doMenu(possible, line.word(), line::escape);
         }
         return true;
+    }
+
+    private CompletingParsedLine wrap(ParsedLine line) {
+        if (line instanceof CompletingParsedLine) {
+            return (CompletingParsedLine) line;
+        } else {
+            return new CompletingParsedLine() {
+                public String word() {
+                    return line.word();
+                }
+                public int wordCursor() {
+                    return line.wordCursor();
+                }
+                public int wordIndex() {
+                    return line.wordIndex();
+                }
+                public List<String> words() {
+                    return line.words();
+                }
+                public String line() {
+                    return line.line();
+                }
+                public int cursor() {
+                    return line.cursor();
+                }
+                public CharSequence escape(CharSequence candidate, boolean complete) {
+                    return candidate;
+                }
+                public int rawWordCursor() {
+                    return wordCursor();
+                }
+                public int rawWordLength() {
+                    return word().length();
+                }
+            };
+        }
     }
 
     protected Comparator<Candidate> getCandidateComparator(boolean caseInsensitive, String word) {
@@ -4166,6 +4201,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
     private class MenuSupport implements Supplier<AttributedString> {
         final List<Candidate> possible;
+        final BiFunction<CharSequence, Boolean, CharSequence> escaper;
         int selection;
         int topLine;
         String word;
@@ -4174,8 +4210,9 @@ public class LineReaderImpl implements LineReader, Flushable
         int columns;
         String completed;
 
-        public MenuSupport(List<Candidate> original, String completed) {
+        public MenuSupport(List<Candidate> original, String completed, BiFunction<CharSequence, Boolean, CharSequence> escaper) {
             this.possible = new ArrayList<>();
+            this.escaper = escaper;
             this.selection = -1;
             this.topLine = 0;
             this.word = "";
@@ -4276,7 +4313,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
         private void update() {
             buf.backspace(word.length());
-            word = completion().value();
+            word = escaper.apply(completion().value(), true).toString();
             buf.write(word);
 
             // Compute displayed prompt
@@ -4324,14 +4361,14 @@ public class LineReaderImpl implements LineReader, Flushable
 
     }
 
-    protected boolean doMenu(List<Candidate> original, String completed) {
+    protected boolean doMenu(List<Candidate> original, String completed, BiFunction<CharSequence, Boolean, CharSequence> escaper) {
         // Reorder candidates according to display order
         final List<Candidate> possible = new ArrayList<>();
         mergeCandidates(original);
         computePost(original, null, possible, completed);
 
         // Build menu support
-        MenuSupport menuSupport = new MenuSupport(original, completed);
+        MenuSupport menuSupport = new MenuSupport(original, completed, escaper);
         post = menuSupport;
         redisplay();
 
@@ -4394,7 +4431,7 @@ public class LineReaderImpl implements LineReader, Flushable
         return false;
     }
 
-    protected boolean doList(List<Candidate> possible, String completed, boolean runLoop) {
+    protected boolean doList(List<Candidate> possible, String completed, boolean runLoop, BiFunction<CharSequence, Boolean, CharSequence> escaper) {
         // If we list only and if there's a big
         // number of items, we should ask the user
         // for confirmation, display the list
@@ -4484,8 +4521,8 @@ public class LineReaderImpl implements LineReader, Flushable
                         post = null;
                         pushBackBinding();
                     } else if (isSet(Option.AUTO_MENU)) {
-                        buf.backspace(current.length());
-                        doMenu(cands, current);
+                        buf.backspace(escaper.apply(current, false).length());
+                        doMenu(cands, current, escaper);
                     }
                     return false;
                 } else {
