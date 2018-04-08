@@ -306,10 +306,10 @@ public class Completers {
                     String value = curBuf + p.getFileName().toString();
                     if (Files.isDirectory(p)) {
                         candidates.add(new Candidate(
-                                value + (reader.isSet(LineReader.Option.AUTO_PARAM_SLASH) ? "/" : ""),
+                                value + (reader.isSet(LineReader.Option.AUTO_PARAM_SLASH) ? File.separator : ""),
                                 getDisplay(reader.getTerminal(), p),
                                 null, null,
-                                reader.isSet(LineReader.Option.AUTO_REMOVE_SLASH) ? "/" : null,
+                                reader.isSet(LineReader.Option.AUTO_REMOVE_SLASH) ? File.separator : null,
                                 null,
                                 false));
                     } else {
