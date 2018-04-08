@@ -58,11 +58,12 @@ public class FileNameCompleter implements Completer
 
         Path current;
         String curBuf;
-        int lastSep = buffer.lastIndexOf(File.separator);
+        String sep = getUserDir().getFileSystem().getSeparator();
+        int lastSep = buffer.lastIndexOf(sep);
         if (lastSep >= 0) {
             curBuf = buffer.substring(0, lastSep + 1);
             if (curBuf.startsWith("~")) {
-                if (curBuf.startsWith("~/")) {
+                if (curBuf.startsWith("~" + sep)) {
                     current = getUserHome().resolve(curBuf.substring(2));
                 } else {
                     current = getUserHome().getParent().resolve(curBuf.substring(1));
@@ -79,10 +80,10 @@ public class FileNameCompleter implements Completer
                 String value = curBuf + p.getFileName().toString();
                 if (Files.isDirectory(p)) {
                     candidates.add(new Candidate(
-                            value + (reader.isSet(Option.AUTO_PARAM_SLASH) ? "/" : ""),
+                            value + (reader.isSet(Option.AUTO_PARAM_SLASH) ? sep : ""),
                             getDisplay(reader.getTerminal(), p),
                             null, null,
-                            reader.isSet(Option.AUTO_REMOVE_SLASH) ? "/" : null,
+                            reader.isSet(Option.AUTO_REMOVE_SLASH) ? sep : null,
                             null,
                             false));
                 } else {
