@@ -290,6 +290,25 @@ public class DefaultParser implements Parser {
 
         private final int rawWordLength;
 
+        @Deprecated
+        public ArgumentList(final String line, final List<String> words,
+                            final int wordIndex, final int wordCursor,
+                            final int cursor) {
+            this(line, words, wordIndex, wordCursor, cursor,
+                    null, wordCursor, words.get(wordIndex).length());
+        }
+
+        /**
+         *
+         * @param line the command line being edited
+         * @param words
+         * @param wordIndex
+         * @param wordCursor
+         * @param cursor
+         * @param openingQuote the opening quote (usually '\"' or '\'') or null
+         * @param rawWordCursor the cursor position inside the raw word (i.e. including quotes and escape characters)
+         * @param rawWordLength the raw word length, including quotes and escape characters
+         */
         public ArgumentList(final String line, final List<String> words,
                             final int wordIndex, final int wordCursor,
                             final int cursor, final String openingQuote,
