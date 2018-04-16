@@ -4,6 +4,8 @@
 
 ## [JLine 3.7.0][3_7_0]
 [3_7_0]: https://repo1.maven.org/maven2/org/jline/jline/3.7.0/
+* [`e4d5fd6`](https://github.com/jline/jline3/commit/e4d5fd69b7421b184f8f4f79a6f8b46cc6326b69) Upgrade maven plugins
+* [`c4cbea8`](https://github.com/jline/jline3/commit/c4cbea89715b84deef8fe8f8031165b3b13192e9) Add changelog
 * [`b838d17`](https://github.com/jline/jline3/commit/b838d1754a009b180b473e85d36671a15be43186) Upgrade to jansi 1.17.1
 * [`124114f`](https://github.com/jline/jline3/commit/124114f36034705e275847d69429c69f5e784d1b) Fix demo parser to support quotes and escape characters
 * [`ed06ec3`](https://github.com/jline/jline3/commit/ed06ec37f39d1556cd1b471c8e0cd23faa4d0209) Bring back previous constructor with a deprecated notice, #245
