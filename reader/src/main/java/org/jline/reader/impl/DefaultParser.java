@@ -162,7 +162,7 @@ public class DefaultParser implements Parser {
         if (eofOnEscapedNewLine && isEscapeChar(line, line.length() - 1)) {
             throw new EOFError(-1, -1, "Escaped new line", "newline");
         }
-        if (eofOnUnclosedQuote && quoteStart >= 0) {
+        if (eofOnUnclosedQuote && quoteStart >= 0 && context != ParseContext.COMPLETE) {
             throw new EOFError(-1, -1, "Missing closing quote", line.charAt(quoteStart) == '\''
                     ? "quote" : "dquote");
         }
