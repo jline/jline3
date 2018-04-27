@@ -14,6 +14,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.Optional;
@@ -411,11 +412,12 @@ public final class TerminalBuilder {
 
     private static String getParentProcessCommand() {
         try {
-            Class<?> phClass = Class.forName("java.lang.ProcessHandler");
+            Class<?> phClass = Class.forName("java.lang.ProcessHandle");
             Object current = phClass.getMethod("current").invoke(null);
             Object parent = ((Optional<?>) phClass.getMethod("parent").invoke(current)).orElse(null);
-            Object info = phClass.getMethod("info").invoke(parent);
-            Object command = ((Optional<?>) info.getClass().getMethod("command").invoke(info)).orElse(null);
+            Method infoMethod = phClass.getMethod("info");
+            Object info = infoMethod.invoke(parent);
+            Object command = ((Optional<?>) infoMethod.getReturnType().getMethod("command").invoke(info)).orElse(null);
             return (String) command;
         } catch (Throwable t) {
             return null;
