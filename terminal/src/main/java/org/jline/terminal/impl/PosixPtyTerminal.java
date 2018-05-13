@@ -44,6 +44,10 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
     }
 
     public PosixPtyTerminal(String name, String type, Pty pty, InputStream in, OutputStream out, Charset encoding, SignalHandler signalHandler) throws IOException {
+        this(name, type, pty, in, out, encoding, signalHandler, false);
+    }
+
+    public PosixPtyTerminal(String name, String type, Pty pty, InputStream in, OutputStream out, Charset encoding, SignalHandler signalHandler, boolean paused) throws IOException {
         super(name, type, pty, encoding, signalHandler);
         this.in = Objects.requireNonNull(in);
         this.out = Objects.requireNonNull(out);
@@ -54,7 +58,9 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
         this.reader = NonBlocking.nonBlocking(name, input, encoding());
         this.writer = new PrintWriter(new OutputStreamWriter(output, encoding()));
         parseInfoCmp();
-        resume();
+        if (!paused) {
+            resume();
+        }
     }
 
     public InputStream input() {

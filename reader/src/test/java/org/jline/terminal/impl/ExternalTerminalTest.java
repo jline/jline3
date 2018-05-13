@@ -34,6 +34,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class ExternalTerminalTest {
@@ -135,6 +136,14 @@ public class ExternalTerminalTest {
         assertEquals(1, cursor.getY());
         assertEquals("a\033b", sb.toString());
         assertEquals('f', console.reader().read());
+    }
+
+    @Test
+    public void testPaused() throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ByteArrayInputStream bais = new ByteArrayInputStream("abcdefghijklmnopqrstuvwxyz".getBytes());
+        Terminal term = TerminalBuilder.builder().system(false).streams(bais, baos).paused(true).build();
+        assertTrue(term.paused());
     }
 
     @Test

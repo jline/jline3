@@ -35,6 +35,10 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
     }
 
     public JansiWinSysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
+        this(name, TYPE_WINDOWS, false, null, 0, nativeSignals, signalHandler, false);
+    }
+
+    public JansiWinSysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler, boolean paused) throws IOException {
         super(ansiPassThrough
                         ? new JansiWinConsoleWriter()
                         : new WindowsAnsiWriter(new BufferedWriter(new JansiWinConsoleWriter())),
@@ -46,7 +50,9 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
               signalHandler);
 
         // Start input pump thread
-        resume();
+        if (!paused) {
+            resume();
+        }
     }
 
     @Override

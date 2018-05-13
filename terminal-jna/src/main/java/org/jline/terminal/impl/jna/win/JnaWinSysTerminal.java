@@ -30,6 +30,10 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
     }
 
     public JnaWinSysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
+        this(name, TYPE_WINDOWS, false, null, 0, nativeSignals, signalHandler, false);
+    }
+
+    public JnaWinSysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler, boolean paused) throws IOException {
         super(ansiPassThrough
                         ? new JnaWinConsoleWriter(consoleOut)
                         : new WindowsAnsiWriter(new BufferedWriter(new JnaWinConsoleWriter(consoleOut)), consoleOut),
@@ -37,7 +41,9 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
         strings.put(InfoCmp.Capability.key_mouse, "\\E[M");
 
         // Start input pump thread
-        resume();
+        if (!paused) {
+            resume();
+        }
     }
 
     @Override

@@ -48,9 +48,20 @@ public class ExternalTerminal extends LineDisciplineTerminal {
                             OutputStream masterOutput,
                             Charset encoding,
                             SignalHandler signalHandler) throws IOException {
+        this(name, type, masterInput, masterOutput, encoding, signalHandler, false);
+    }
+
+    public ExternalTerminal(String name, String type,
+                            InputStream masterInput,
+                            OutputStream masterOutput,
+                            Charset encoding,
+                            SignalHandler signalHandler,
+                            boolean paused) throws IOException {
         super(name, type, masterOutput, encoding, signalHandler);
         this.masterInput = masterInput;
-        resume();
+        if (!paused) {
+            resume();
+        }
     }
 
     public void close() throws IOException {

@@ -95,6 +95,7 @@ public final class TerminalBuilder {
     private Size size;
     private boolean nativeSignals = false;
     private Terminal.SignalHandler signalHandler = Terminal.SignalHandler.SIG_DFL;
+    private boolean paused = false;
 
     private TerminalBuilder() {
     }
@@ -229,6 +230,20 @@ public final class TerminalBuilder {
         return this;
     }
 
+    /**
+     * Initial paused state of the terminal (defaults to false).
+     * By default, the terminal is started, but in some cases,
+     * one might want to make sure the input stream is not consumed
+     * before needed, in which case the terminal needs to be created
+     * in a paused state.
+     * @param paused
+     * @see Terminal#pause()
+     */
+    public TerminalBuilder paused(boolean paused) {
+        this.paused = paused;
+        return this;
+    }
+
     public Terminal build() throws IOException {
         Terminal terminal = doBuild();
         Log.debug(() -> "Using terminal " + terminal.getClass().getSimpleName());
@@ -311,7 +326,7 @@ public final class TerminalBuilder {
                 }
                 if (jna) {
                     try {
-                        return load(JnaSupport.class).winSysTerminal(name, type, ansiPassThrough, encoding, codepage, nativeSignals, signalHandler);
+                        return load(JnaSupport.class).winSysTerminal(name, type, ansiPassThrough, encoding, codepage, nativeSignals, signalHandler, paused);
                     } catch (Throwable t) {
                         Log.debug("Error creating JNA based terminal: ", t.getMessage(), t);
                         exception.addSuppressed(t);
@@ -319,7 +334,7 @@ public final class TerminalBuilder {
                 }
                 if (jansi) {
                     try {
-                        return load(JansiSupport.class).winSysTerminal(name, type, ansiPassThrough, encoding, codepage, nativeSignals, signalHandler);
+                        return load(JansiSupport.class).winSysTerminal(name, type, ansiPassThrough, encoding, codepage, nativeSignals, signalHandler, paused);
                     } catch (Throwable t) {
                         Log.debug("Error creating JANSI based terminal: ", t.getMessage(), t);
                         exception.addSuppressed(t);
@@ -386,7 +401,7 @@ public final class TerminalBuilder {
             if (jna) {
                 try {
                     Pty pty = load(JnaSupport.class).open(attributes, size);
-                    return new PosixPtyTerminal(name, type, pty, in, out, encoding, signalHandler);
+                    return new PosixPtyTerminal(name, type, pty, in, out, encoding, signalHandler, paused);
                 } catch (Throwable t) {
                     Log.debug("Error creating JNA based terminal: ", t.getMessage(), t);
                 }
@@ -394,12 +409,12 @@ public final class TerminalBuilder {
             if (jansi) {
                 try {
                     Pty pty = load(JansiSupport.class).open(attributes, size);
-                    return new PosixPtyTerminal(name, type, pty, in, out, encoding, signalHandler);
+                    return new PosixPtyTerminal(name, type, pty, in, out, encoding, signalHandler, paused);
                 } catch (Throwable t) {
                     Log.debug("Error creating JANSI based terminal: ", t.getMessage(), t);
                 }
             }
-            Terminal terminal = new ExternalTerminal(name, type, in, out, encoding, signalHandler);
+            Terminal terminal = new ExternalTerminal(name, type, in, out, encoding, signalHandler, paused);
             if (attributes != null) {
                 terminal.setAttributes(attributes);
             }
