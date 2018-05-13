@@ -24,7 +24,6 @@ import org.jline.terminal.Attributes.OutputFlag;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.utils.NonBlocking;
-import org.jline.utils.NonBlockingInputStream;
 import org.jline.utils.NonBlockingPumpInputStream;
 import org.jline.utils.NonBlockingReader;
 
@@ -76,7 +75,7 @@ public class LineDisciplineTerminal extends AbstractTerminal {
     /*
      * Slave streams
      */
-    protected final NonBlockingInputStream slaveInput;
+    protected final NonBlockingPumpInputStream slaveInput;
     protected final NonBlockingReader slaveReader;
     protected final PrintWriter slaveWriter;
     protected final OutputStream slaveOutput;
@@ -228,6 +227,10 @@ public class LineDisciplineTerminal extends AbstractTerminal {
             }
         }
         masterOutput.write(c);
+    }
+
+    protected void processIOException(IOException ioException) {
+        this.slaveInput.setIoException(ioException);
     }
 
     public void close() throws IOException {

@@ -8,8 +8,11 @@
  */
 package org.jline.terminal.impl;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FilterInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.charset.StandardCharsets;
@@ -25,6 +28,7 @@ import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Attributes.OutputFlag;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -133,4 +137,27 @@ public class ExternalTerminalTest {
         assertEquals('f', console.reader().read());
     }
 
+    @Test
+    public void testExceptionOnInputStream() throws IOException, InterruptedException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ByteArrayInputStream bais = new ByteArrayInputStream("abcdefghijklmnopqrstuvwxyz".getBytes());
+        InputStream in = new FilterInputStream(bais) {
+            @Override
+            public int read() throws IOException {
+                int r = super.read();
+                if (r == 'm') {
+                    throw new IOException("Inject IOException");
+                }
+                return r;
+            }
+        };
+        Terminal term = TerminalBuilder.builder().system(false).streams(in, baos).build();
+        Thread.sleep(100);
+        try {
+            term.input().read();
+            fail("Should have thrown an exception");
+        } catch (IOException error) {
+            // expected
+        }
+    }
 }

@@ -122,7 +122,7 @@ public class ExternalTerminal extends LineDisciplineTerminal {
                 }
             }
         } catch (IOException e) {
-            // Ignore
+            processIOException(e);
         } finally {
             synchronized (lock) {
                 pumpThread = null;

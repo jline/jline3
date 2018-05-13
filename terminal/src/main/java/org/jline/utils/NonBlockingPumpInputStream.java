@@ -25,6 +25,8 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
 
     private boolean closed;
 
+    private IOException ioException;
+
     public NonBlockingPumpInputStream() {
         this(DEFAULT_BUFFER_SIZE);
     }
@@ -92,6 +94,9 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
 
     @Override
     public synchronized int read(long timeout, boolean isPeek) throws IOException {
+        if (ioException != null) {
+            throw ioException;
+        }
         // Blocks until more input is available or the reader is closed.
         int res = wait(readBuffer, timeout);
         if (res >= 0) {
@@ -99,6 +104,10 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
         }
         rewind(readBuffer, writeBuffer);
         return res;
+    }
+
+    public synchronized void setIoException(IOException exception) {
+        this.ioException = exception;
     }
 
     synchronized void write(byte[] cbuf, int off, int len) throws IOException {
