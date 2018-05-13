@@ -2,6 +2,7 @@ package org.jline.reader.impl;
 
 import java.io.ByteArrayInputStream;
 
+import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
 import org.jline.reader.impl.history.DefaultHistory;
 import org.junit.Test;
@@ -10,6 +11,7 @@ import static org.jline.keymap.KeyMap.translate;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class HistorySearchTest extends ReaderTestSupport {
 
@@ -103,10 +105,13 @@ public class HistorySearchTest extends ReaderTestSupport {
     public void testAbortingSearchRetainsCurrentBufferAndPrintsDetails() throws Exception {
         DefaultHistory history = setupHistory();
 
-        String readLineResult;
         in.setIn(new ByteArrayInputStream(translate("f^Rf^G").getBytes()));
-        readLineResult = reader.readLine();
-        assertEquals(null, readLineResult);
+        try {
+            reader.readLine();
+            fail("Expected an EndOfFileException to be thrown");
+        } catch (EndOfFileException e) {
+            // expected
+        }
         assertEquals("f", reader.getBuffer().toString());
         assertEquals(3, history.size());
     }
@@ -121,8 +126,12 @@ public class HistorySearchTest extends ReaderTestSupport {
         assertEquals("f", readLineResult);
         assertEquals(4, history.size());
 
-        readLineResult = reader.readLine();
-        assertEquals(null, readLineResult);
+        try {
+            reader.readLine();
+            fail("Expected an EndOfFileException to be thrown");
+        } catch (EndOfFileException e) {
+            // expected
+        }
         assertEquals("", reader.getBuffer().toString());
         assertEquals(4, history.size());
     }
@@ -132,9 +141,12 @@ public class HistorySearchTest extends ReaderTestSupport {
         DefaultHistory history = setupHistory();
         history.purge();
 
-        String readLineResult;
         in.setIn(new ByteArrayInputStream(translate("^Sa").getBytes()));
-        readLineResult = reader.readLine();
-        assertEquals(null, readLineResult);
+        try {
+            reader.readLine();
+            fail("Expected an EndOfFileException to be thrown");
+        } catch (EndOfFileException e) {
+            // expected
+        }
     }
 }

@@ -21,6 +21,7 @@ import java.util.logging.Logger;
 
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Candidate;
+import org.jline.reader.EndOfFileException;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
@@ -103,9 +104,16 @@ public abstract class ReaderTestSupport
         //String line;
         //while ((line = reader.readLine((String) null)) != null) {
             //System.err.println("Read line: " + line);
-        while ((reader.readLine(null, null, mask, null)) != null) {
+        try {
+            while (true) {
+                reader.readLine(null, null, mask, null);
+            }
+        } catch (EndOfFileException e) {
             // noop
         }
+//        while ((reader.readLine(null, null, mask, null)) != null) {
+            // noop
+//        }
 
         assertEquals(expected, reader.getBuffer().toString());
     }
@@ -137,13 +145,16 @@ public abstract class ReaderTestSupport
 
         in.setIn(new ByteArrayInputStream(buffer.getBytes()));
 
-        String line;
-        String prevLine = null;
-        while ((line = reader.readLine(null, null, mask, null)) != null) {
-            prevLine = line;
+        String line = null;
+        try {
+            while (true) {
+                line = reader.readLine(null, null, mask, null);
+            }
+        } catch (EndOfFileException e) {
+            // ignore
         }
 
-        assertEquals(expected, prevLine);
+        assertEquals(expected, line);
     }
 
     private String getKeyForAction(final String key) {
