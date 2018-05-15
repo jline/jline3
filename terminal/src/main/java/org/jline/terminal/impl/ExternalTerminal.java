@@ -140,9 +140,9 @@ public class ExternalTerminal extends LineDisciplineTerminal {
             }
         }
         try {
-            close();
-        } catch (Throwable t) {
-            // Ignore
+            slaveInput.close();
+        } catch (IOException e) {
+            // ignore
         }
     }
 

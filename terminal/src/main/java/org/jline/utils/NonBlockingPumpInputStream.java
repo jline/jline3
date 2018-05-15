@@ -44,7 +44,7 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
         return this.output;
     }
 
-    private int wait(ByteBuffer buffer, long timeout) throws InterruptedIOException {
+    private int wait(ByteBuffer buffer, long timeout) throws IOException {
         boolean isInfinite = (timeout <= 0L);
         long end = 0;
         if (!isInfinite) {
@@ -55,17 +55,23 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
             notifyAll();
             try {
                 wait(timeout);
+                if (ioException != null) {
+                    throw ioException;
+                }
             } catch (InterruptedException e) {
+                if (ioException != null) {
+                    throw ioException;
+                }
                 throw new InterruptedIOException();
             }
             if (!isInfinite) {
                 timeout = end - System.currentTimeMillis();
             }
         }
-        return closed
-                ? EOF
-                : buffer.hasRemaining()
-                    ? 0
+        return buffer.hasRemaining()
+                ? 0
+                : closed
+                    ? EOF
                     : READ_EXPIRED;
     }
 
@@ -108,6 +114,7 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
 
     public synchronized void setIoException(IOException exception) {
         this.ioException = exception;
+        notifyAll();
     }
 
     synchronized void write(byte[] cbuf, int off, int len) throws IOException {

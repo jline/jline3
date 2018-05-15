@@ -169,4 +169,29 @@ public class ExternalTerminalTest {
             // expected
         }
     }
+
+    @Test
+    public void testReadUntilEof() throws IOException, InterruptedException {
+        String str = "test 1\n" +
+                "test 2\n" +
+                "test 3\n" +
+                "exit\n";
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        InputStream in = new ByteArrayInputStream(str.getBytes(StandardCharsets.UTF_8));
+        Terminal term = TerminalBuilder.builder().system(false).streams(in, baos).build();
+        Thread.sleep(100);
+        ByteArrayOutputStream baos2 = new ByteArrayOutputStream();
+        byte[] buffer = new byte[1014];
+        int l;
+        for (;;) {
+            l = term.input().read(buffer);
+            if (l >= 0) {
+                baos2.write(buffer, 0, l);
+            } else {
+                break;
+            }
+        };
+        String str2 = new String(baos2.toByteArray(), StandardCharsets.UTF_8);
+        assertEquals(str, str2);
+    }
 }
