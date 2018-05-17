@@ -2250,20 +2250,22 @@ public class LineReaderImpl implements LineReader, Flushable
             AttributedString oldPrompt = prompt;
             buf.clear();
             prompt = new AttributedString("");
-            doCleanup();
+            doCleanup(false);
             prompt = oldPrompt;
             buf.copyFrom(oldBuffer);
         } else {
-            doCleanup();
+            doCleanup(true);
         }
     }
 
-    protected void doCleanup() {
+    protected void doCleanup(boolean nl) {
         buf.cursor(buf.length());
         post = null;
         if (size.getColumns() > 0 || size.getRows() > 0) {
             redisplay(false);
-            println();
+            if (nl) {
+                println();
+            }
             terminal.puts(Capability.keypad_local);
             terminal.trackMouse(Terminal.MouseTracking.Off);
             if (isSet(Option.BRACKETED_PASTE))
