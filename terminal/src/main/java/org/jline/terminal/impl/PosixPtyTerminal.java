@@ -129,7 +129,7 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
                 inputPumpThread.start();
             }
             if (outputPumpThread == null) {
-                inputPumpThread = new Thread(this::pumpOut, toString() + " output pump thread");
+                outputPumpThread = new Thread(this::pumpOut, toString() + " output pump thread");
                 outputPumpThread.setDaemon(true);
                 outputPumpThread.start();
             }
