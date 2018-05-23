@@ -47,7 +47,7 @@ You can also use finer grained jars:
 * `jline-terminal-jna`: terminal implementations leveraging the `jna` library
 * `jline-reader`: the line reader (including completion, history, etc...)
 * `jline-style`: styling api
-* `jline-remote-ssh`: helpers for using jline with [Mina SSHD](http://mima.apache.org/sshd/)
+* `jline-remote-ssh`: helpers for using jline with [Mina SSHD](http://mina.apache.org/sshd-project/)
 * `jline-remote-telnet`: helpers for using jline over telnet (including a telnet server implementation)
 * `jline-builtins`: several high level tools: `less` pager, `nano` editor, `screen` multiplexer, etc...
 
