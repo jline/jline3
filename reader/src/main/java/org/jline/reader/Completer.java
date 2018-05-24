@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -30,6 +30,7 @@ public interface Completer
      * for the typo matcher to work, all possible candidates for the word being
      * completed should be returned.
      *
+     * @param reader        The line reader
      * @param line          The parsed command line
      * @param candidates    The {@link List} of candidates to populate
      */

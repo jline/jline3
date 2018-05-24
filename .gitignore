@@ -5,3 +5,4 @@ target
 .settings/
 .idea
 build.rc
+.vscode

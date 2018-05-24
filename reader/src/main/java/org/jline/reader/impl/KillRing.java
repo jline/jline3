@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -32,6 +32,8 @@ public final class KillRing {
 
     /**
      * Creates a new kill ring of the given size.
+     *
+     * @param size the size of the ring
      */
     public KillRing(int size) {
         slots = new String[size];
@@ -60,6 +62,7 @@ public final class KillRing {
 
     /**
      * Returns {@code true} if the last command was a yank.
+     * @return {@code true} if the last command was a yank
      */
     public boolean lastYank() {
         return lastYank;
@@ -68,6 +71,7 @@ public final class KillRing {
     /**
      * Adds the string to the kill-ring. Also sets lastYank to false
      * and lastKill to true.
+     * @param str the string to add
      */
     public void add(String str) {
         lastYank = false;
@@ -90,6 +94,7 @@ public final class KillRing {
      * adds the text at the beginning of the previous kill to avoid
      * that two consecutive backwards kills followed by a yank leaves
      * things reversed.
+     * @param str the string to add
      */
     public void addBackwards(String str) {
         lastYank = false;
@@ -109,6 +114,7 @@ public final class KillRing {
     /**
      * Yanks a previously killed text. Returns {@code null} if the
      * ring is empty.
+     * @return the text in the current position
      */
     public String yank() {
         lastKill = false;
@@ -120,6 +126,7 @@ public final class KillRing {
      * Moves the pointer to the current slot back and returns the text
      * in that position. If the previous command was not yank returns
      * null.
+     * @return the text in the previous position
      */
     public String yankPop() {
         lastKill = false;

@@ -174,7 +174,7 @@ public class LineDisciplineTerminal extends AbstractTerminal {
      * using this method.
      *
      * @param c the input byte
-     * @throws IOException
+     * @throws IOException if anything wrong happens
      */
     public void processInputByte(int c) throws IOException {
         if (attributes.getLocalFlag(LocalFlag.ISIG)) {
@@ -214,7 +214,7 @@ public class LineDisciplineTerminal extends AbstractTerminal {
      * All data going to the master should be provided by this method.
      *
      * @param c the output byte
-     * @throws IOException
+     * @throws IOException if anything wrong happens
      */
     protected void processOutputByte(int c) throws IOException {
         if (attributes.getOutputFlag(OutputFlag.OPOST)) {

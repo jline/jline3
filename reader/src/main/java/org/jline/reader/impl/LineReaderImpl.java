@@ -308,6 +308,8 @@ public class LineReaderImpl implements LineReader, Flushable
 
     /**
      * Set the completer.
+     *
+     * @param completer the completer to use
      */
     public void setCompleter(Completer completer) {
         this.completer = completer;
@@ -315,6 +317,8 @@ public class LineReaderImpl implements LineReader, Flushable
 
     /**
      * Returns the completer.
+     *
+     * @return the completer
      */
     public Completer getCompleter() {
         return completer;
@@ -368,6 +372,8 @@ public class LineReaderImpl implements LineReader, Flushable
 
     /**
      * Read the next line and return the contents of the buffer.
+     *
+     * @return          A line that is read from the terminal, can never be null.
      */
     public String readLine() throws UserInterruptException, EndOfFileException {
         return readLine(null, null, (MaskingCallback) null, null);
@@ -376,11 +382,21 @@ public class LineReaderImpl implements LineReader, Flushable
     /**
      * Read the next line with the specified character mask. If null, then
      * characters will be echoed. If 0, then no characters will be echoed.
+     *
+     * @param mask      The mask character, <code>null</code> or <code>0</code>.
+     * @return          A line that is read from the terminal, can never be null.
      */
     public String readLine(Character mask) throws UserInterruptException, EndOfFileException {
         return readLine(null, null, mask, null);
     }
 
+    /**
+     * Read a line from the <i>in</i> {@link InputStream}, and return the line
+     * (without any trailing newlines).
+     *
+     * @param prompt    The prompt to issue to the terminal, may be null.
+     * @return          A line that is read from the terminal, can never be null.
+     */
     public String readLine(String prompt) throws UserInterruptException, EndOfFileException {
         return readLine(prompt, null, (MaskingCallback) null, null);
     }
@@ -390,8 +406,8 @@ public class LineReaderImpl implements LineReader, Flushable
      * (without any trailing newlines).
      *
      * @param prompt    The prompt to issue to the terminal, may be null.
-     * @return          A line that is read from the terminal, or null if there was null input (e.g., <i>CTRL-D</i>
-     *                  was pressed).
+     * @param mask      The mask character, <code>null</code> or <code>0</code>.
+     * @return          A line that is read from the terminal, can never be null.
      */
     public String readLine(String prompt, Character mask) throws UserInterruptException, EndOfFileException {
         return readLine(prompt, null, mask, null);
@@ -402,8 +418,9 @@ public class LineReaderImpl implements LineReader, Flushable
      * (without any trailing newlines).
      *
      * @param prompt    The prompt to issue to the terminal, may be null.
-     * @return          A line that is read from the terminal, or null if there was null input (e.g., <i>CTRL-D</i>
-     *                  was pressed).
+     * @param mask      The mask character, <code>null</code> or <code>0</code>.
+     * @param buffer    A string that will be set for editing.
+     * @return          A line that is read from the terminal, can never be null.
      */
     public String readLine(String prompt, Character mask, String buffer) throws UserInterruptException, EndOfFileException {
         return readLine(prompt, null, mask, buffer);
@@ -413,14 +430,26 @@ public class LineReaderImpl implements LineReader, Flushable
      * Read a line from the <i>in</i> {@link InputStream}, and return the line
      * (without any trailing newlines).
      *
-     * @param prompt    The prompt to issue to the terminal, may be null.
-     * @return          A line that is read from the terminal, or null if there was null input (e.g., <i>CTRL-D</i>
-     *                  was pressed).
+     * @param prompt      The prompt to issue to the terminal, may be null.
+     * @param rightPrompt The prompt to issue to the right of the terminal, may be null.
+     * @param mask        The mask character, <code>null</code> or <code>0</code>.
+     * @param buffer      A string that will be set for editing.
+     * @return            A line that is read from the terminal, can never be null.
      */
     public String readLine(String prompt, String rightPrompt, Character mask, String buffer) throws UserInterruptException, EndOfFileException {
         return readLine(prompt, rightPrompt, mask != null ? new SimpleMaskingCallback(mask) : null, buffer);
     }
 
+    /**
+     * Read a line from the <i>in</i> {@link InputStream}, and return the line
+     * (without any trailing newlines).
+     *
+     * @param prompt          The prompt to issue to the terminal, may be null.
+     * @param rightPrompt     The prompt to issue to the right of the terminal, may be null.
+     * @param maskingCallback The callback used to mask parts of the edited line.
+     * @param buffer          A string that will be set for editing.
+     * @return                A line that is read from the terminal, can never be null.
+     */
     public String readLine(String prompt, String rightPrompt, MaskingCallback maskingCallback, String buffer) throws UserInterruptException, EndOfFileException {
         // prompt may be null
         // maskingCallback may be null
@@ -599,7 +628,7 @@ public class LineReaderImpl implements LineReader, Flushable
         }
     }
 
-    /** Make sure we position the cursor on column 0 */
+    /* Make sure we position the cursor on column 0 */
     protected boolean freshLine() {
         boolean wrapAtEol = terminal.getBooleanCapability(Capability.auto_right_margin);
         boolean delayedWrapAtEol = wrapAtEol && terminal.getBooleanCapability(Capability.eat_newline_glitch);
@@ -657,6 +686,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
     /**
      * Clear the line and redraw it.
+     * @return <code>true</code>
      */
     public boolean redrawLine() {
         display.reset();
@@ -665,14 +695,16 @@ public class LineReaderImpl implements LineReader, Flushable
 
     /**
      * Write out the specified string to the buffer and the output stream.
+     * @param str the char sequence to write in the buffer
      */
     public void putString(final CharSequence str) {
         buf.write(str, overTyping);
     }
 
     /**
-     * Flush the terminal output stream. This is important for printout out single characters (like a buf.backspace or
-     * keyboard) that we want the terminal to handle immediately.
+     * Flush the terminal output stream. This is important for printout out single
+     * characters (like a buf.backspace or keyboard) that we want the terminal to
+     * handle immediately.
      */
     public void flush() {
         terminal.flush();
@@ -1770,6 +1802,8 @@ public class LineReaderImpl implements LineReader, Flushable
 
     /**
      * Implements vi search ("/" or "?").
+     *
+     * @return <code>true</code> if the search was successful
      */
     protected boolean viHistorySearchForward() {
         searchDir = 1;
@@ -1937,7 +1971,7 @@ public class LineReaderImpl implements LineReader, Flushable
     /**
      * Implements vi style bracket matching ("%" command). The matching
      * bracket for the current bracket type that you are sitting on is matched.
-     * The logic works like so:
+     *
      * @return true if it worked, false if the cursor was not on a bracket
      *   character or if there was no matching bracket.
      */
@@ -2007,6 +2041,7 @@ public class LineReaderImpl implements LineReader, Flushable
      * Performs character transpose. The character prior to the cursor and the
      * character under the cursor are swapped and the cursor is advanced one.
      * Do not cross line breaks.
+     * @return true
      */
     protected boolean transposeChars() {
         int lstart = buf.cursor() - 1;
@@ -2953,6 +2988,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
     /**
      * Deletes the previous character from the cursor position
+     * @return <code>true</code> if it succeeded, <code>false</code> otherwise
      */
     protected boolean viBackwardDeleteChar() {
         for (int i = 0; i < count; i++) {
@@ -2966,6 +3002,7 @@ public class LineReaderImpl implements LineReader, Flushable
     /**
      * Deletes the character you are sitting on and sucks the rest of
      * the line in from the right.
+     * @return <code>true</code> if it succeeded, <code>false</code> otherwise
      */
     protected boolean viDeleteChar() {
         for (int i = 0; i < count; i++) {
@@ -2980,6 +3017,7 @@ public class LineReaderImpl implements LineReader, Flushable
      * Switches the case of the current character from upper to lower
      * or lower to upper as necessary and advances the cursor one
      * position to the right.
+     * @return <code>true</code> if it succeeded, <code>false</code> otherwise
      */
     protected boolean viSwapCase() {
         for (int i = 0; i < count; i++) {
@@ -2998,6 +3036,7 @@ public class LineReaderImpl implements LineReader, Flushable
     /**
      * Implements the vi change character command (in move-mode "r"
      * followed by the character to change to).
+     * @return <code>true</code> if it succeeded, <code>false</code> otherwise
      */
     protected boolean viReplaceChars() {
         int c = readCharacter();
@@ -3034,7 +3073,7 @@ public class LineReaderImpl implements LineReader, Flushable
      * @param isChange If true, then the delete is part of a change operationg
      *    (e.g. "c$" is change-to-end-of line, so we first must delete to end
      *    of line to start the change
-     * @return true if it succeeded, false otherwise
+     * @return <code>true</code> if it succeeded, <code>false</code> otherwise
      */
     protected boolean doViDeleteOrChange(int startPos, int endPos, boolean isChange) {
         if (startPos == endPos) {
@@ -3068,7 +3107,7 @@ public class LineReaderImpl implements LineReader, Flushable
      *
      * @param startPos The starting position from which to yank
      * @param endPos The ending position to which to yank
-     * @return true if the yank succeeded
+     * @return <code>true</code> if the yank succeeded
      */
     protected boolean viYankTo(int startPos, int endPos) {
         int cursorPos = startPos;
@@ -3110,6 +3149,7 @@ public class LineReaderImpl implements LineReader, Flushable
     /**
      * Pasts the yank buffer to the right of the current cursor position
      * and moves the cursor to the end of the pasted region.
+     * @return <code>true</code>
      */
     protected boolean viPutAfter() {
         if (yankBuffer.indexOf('\n') >= 0) {
@@ -3524,7 +3564,7 @@ public class LineReaderImpl implements LineReader, Flushable
     /**
      * Compute the full string to be displayed with the left, right and secondary prompts
      * @param secondaryPrompts a list to store the secondary prompts
-     * @return
+     * @return the displayed string including the buffer, left prompts and the help below
      */
     public AttributedString getDisplayedBufferWithPrompts(List<AttributedString> secondaryPrompts) {
         AttributedString attBuf = getHighlightedBuffer(buf.toString());
@@ -4812,6 +4852,8 @@ public class LineReaderImpl implements LineReader, Flushable
 
     /**
      * Move up or down the history tree.
+     * @param next <code>true</code> to go to the next, <code>false</code> for the previous.
+     * @return <code>true</code> if successful, <code>false</code> otherwise
      */
     protected boolean moveHistory(final boolean next) {
         if (!buf.toString().equals(history.current())) {
@@ -4836,7 +4878,8 @@ public class LineReaderImpl implements LineReader, Flushable
     //
 
     /**
-     * Raw output printing
+     * Raw output printing.
+     * @param str the string to print to the terminal
      */
     void print(String str) {
         terminal.writer().write(str);
@@ -5124,6 +5167,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
     /**
      * Clean the used display
+     * @return <code>true</code>
      */
     public boolean clear() {
         display.update(Collections.emptyList(), 0);
@@ -5132,6 +5176,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
     /**
      * Clear the screen by issuing the ANSI "clear screen" code.
+     * @return <code>true</code>
      */
     public boolean clearScreen() {
         if (terminal.puts(Capability.clear_screen)) {
@@ -5144,6 +5189,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
     /**
      * Issue an audible keyboard bell.
+     * @return <code>true</code>
      */
     public boolean beep() {
         BellType bell_preference = BellType.AUDIBLE;

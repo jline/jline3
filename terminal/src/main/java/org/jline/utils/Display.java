@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -53,8 +53,10 @@ public class Display {
         this.cursorDownIsNewLine = "\n".equals(Curses.tputs(terminal.getStringCapability(Capability.cursor_down)));
     }
 
-    /** If cursor is at right margin, don't wrap immediately.
-     * See {@link org.jline.reader.LineReader.Option#DELAY_LINE_WRAP}.
+    /**
+     * If cursor is at right margin, don't wrap immediately.
+     * See <code>org.jline.reader.LineReader.Option#DELAY_LINE_WRAP</code>.
+     * @return <code>true</code> if line wrap is delayed, <code>false</code> otherwise
      */
     public boolean delayLineWrap() {
         return delayLineWrap;
@@ -90,6 +92,7 @@ public class Display {
 
     /**
      * Update the display according to the new lines and flushes the output.
+     * @param newLines the lines to display
      * @param targetCursorPos desired cursor position - see Size.cursorPos.
      */
     public void update(List<AttributedString> newLines, int targetCursorPos) {
@@ -98,6 +101,7 @@ public class Display {
 
     /**
      * Update the display according to the new lines.
+     * @param newLines the lines to display
      * @param targetCursorPos desired cursor position - see Size.cursorPos.
      * @param flush whether the output should be flushed or not
      */
@@ -395,7 +399,8 @@ public class Display {
         return max != 0 ? new int[] { start1, start2, max } : null;
     }
 
-    /** Move cursor from cursorPos to argument, updating cursorPos
+    /*
+     * Move cursor from cursorPos to argument, updating cursorPos
      * We're at the right margin if {@code (cursorPos % columns1) == columns}.
      * This method knows how to move both *from* and *to* the right margin.
      */
@@ -419,7 +424,8 @@ public class Display {
         }
     }
 
-    /** Move cursor from cursorPos to argument, updating cursorPos
+    /*
+     * Move cursor from cursorPos to argument, updating cursorPos
      * We're at the right margin if {@code (cursorPos % columns1) == columns}.
      * This method knows how to move *from* the right margin,
      * but does not know how to move *to* the right margin.

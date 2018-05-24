@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -25,21 +25,25 @@ public interface History extends Iterable<History.Entry>
 
     /**
      * Initialize the history for the given reader.
+     * @param reader the reader to attach to
      */
     void attach(LineReader reader);
 
     /**
      * Load history.
+     * @throws IOException if a problem occurs
      */
     void load() throws IOException;
 
     /**
      * Save history.
+     * @throws IOException if a problem occurs
      */
     void save() throws IOException;
 
     /**
      * Purge history.
+     * @throws IOException if a problem occurs
      */
     void purge() throws IOException;
 
@@ -107,6 +111,8 @@ public interface History extends Iterable<History.Entry>
 
     /**
      * Return the content of the current buffer.
+     *
+     * @return the content of the current buffer
      */
     String current();
 
@@ -143,6 +149,9 @@ public interface History extends Iterable<History.Entry>
 
     /**
      * Move to the specified index in the history
+     *
+     * @param index The index to move to.
+     * @return      Returns true if the index was moved.
      */
     boolean moveTo(int index);
 

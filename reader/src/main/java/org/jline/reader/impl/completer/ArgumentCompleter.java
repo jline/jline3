@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -57,6 +57,8 @@ public class ArgumentCompleter implements Completer
     /**
      * If true, a completion at argument index N will only succeed
      * if all the completions from 0-(N-1) also succeed.
+     *
+     * @param strict the strict flag
      */
     public void setStrict(final boolean strict) {
         this.strict = strict;
@@ -74,6 +76,8 @@ public class ArgumentCompleter implements Completer
     }
 
     /**
+     * Returns the list of completers used inside this <code>ArgumentCompleter</code>.
+     * @return The list of completers.
      * @since 2.3
      */
     public List<Completer> getCompleters() {

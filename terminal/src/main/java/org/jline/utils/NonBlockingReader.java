@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -38,6 +38,7 @@ public abstract class NonBlockingReader extends Reader {
      * @param timeout The amount of time to wait, 0 == forever
      * @return -1 on eof, -2 if the timeout expired with no available input
      * or the character that was read (without consuming it).
+     * @throws IOException if anything wrong happens
      */
     public int peek(long timeout) throws IOException {
         return read(timeout, true);
@@ -50,6 +51,7 @@ public abstract class NonBlockingReader extends Reader {
      * @param timeout The amount of time to wait for the character
      * @return The character read, -1 if EOF is reached, or -2 if the
      * read timed out.
+     * @throws IOException if anything wrong happens
      */
     public int read(long timeout) throws IOException {
         return read(timeout, false);
@@ -59,6 +61,10 @@ public abstract class NonBlockingReader extends Reader {
      * This version of read() is very specific to jline's purposes, it
      * will always always return a single byte at a time, rather than filling
      * the entire buffer.
+     * @param b the buffer
+     * @param off the offset in the buffer
+     * @param len the maximum number of chars to read
+     * @throws IOException if anything wrong happens
      */
     @Override
     public int read(char[] b, int off, int len) throws IOException {
@@ -87,8 +93,10 @@ public abstract class NonBlockingReader extends Reader {
      * Attempts to read a character from the input stream for a specific
      * period of time.
      * @param timeout The amount of time to wait for the character
+     * @param isPeek <code>true</code>if the character read must not be consumed
      * @return The character read, -1 if EOF is reached, or -2 if the
      *   read timed out.
+     * @throws IOException if anything wrong happens
      */
     protected abstract int read(long timeout, boolean isPeek) throws IOException;
 

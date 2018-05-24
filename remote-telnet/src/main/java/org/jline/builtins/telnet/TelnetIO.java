@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -52,12 +52,12 @@ import java.util.logging.Logger;
  * Class that represents the TelnetIO implementation. It contains
  * an inner IACHandler class to handle the telnet protocol level
  * communication.
- * <p/>
+ * <p>
  * Although supposed to work full-duplex, we only process the telnet protocol
  * layer communication in case of reading requests from the higher levels.
  * This is the only way to meet the one thread per connection requirement.
  * </p>
- * <p/>
+ * <p>
  * The output is done via byte-oriented streams, definately suitable for the
  * telnet protocol. The format of the  output is UTF-8 (Unicode), which is a
  * standard and supported by any telnet client, including the ones included
@@ -199,7 +199,7 @@ public class TelnetIO {
     protected static final int LOGOUT = 18;
     /**
      * Telnet Option: Linemode
-     * <p/>
+     * <p>
      * The infamous line mode option.
      */
     protected static final int LINEMODE = 34;
@@ -334,6 +334,7 @@ public class TelnetIO {
      * alone,but CRLF(\r\n), which is a rule of the telnet protocol.
      *
      * @param b Byte to be written.
+     * @throws IOException if an error occurs
      */
     public void write(byte b) throws IOException {
         //ensure CRLF(\r\n) is written for LF(\n) to adhere
@@ -355,6 +356,7 @@ public class TelnetIO {
      * Method to output an int.
      *
      * @param i Integer to be written.
+     * @throws IOException if an error occurs
      */
     public void write(int i)
             throws IOException {
@@ -365,6 +367,7 @@ public class TelnetIO {
      * Method to write an array of bytes.
      *
      * @param sequence byte[] to be written.
+     * @throws IOException if an error occurs
      */
     public void write(byte[] sequence) throws IOException {
         for (byte b : sequence) {
@@ -376,6 +379,7 @@ public class TelnetIO {
      * Method to output an array of int' s.
      *
      * @param sequence int [] to write
+     * @throws IOException if an error occurs
      */
     public void write(int[] sequence) throws IOException {
         for (int i : sequence) {
@@ -387,6 +391,7 @@ public class TelnetIO {
      * Method to write a char.
      *
      * @param ch char to be written.
+     * @throws IOException if an error occurs
      */
     public void write(char ch) throws IOException {
         write((byte) ch);
@@ -396,6 +401,7 @@ public class TelnetIO {
      * Method to output a string.
      *
      * @param str String to be written.
+     * @throws IOException if an error occurs
      */
     public void write(String str) throws IOException {
         write(str.getBytes());
@@ -403,6 +409,8 @@ public class TelnetIO {
 
     /**
      * Method to flush all buffered output.
+     *
+     * @throws IOException if an error occurs
      */
     public void flush() throws IOException {
         out.flush();
@@ -438,6 +446,7 @@ public class TelnetIO {
      * Invokes the IACHandler upon IAC (Byte=255).
      *
      * @return int read from stream.
+     * @throws IOException if an error occurs
      */
     public int read() throws IOException {
         int c = rawread();
@@ -475,13 +484,15 @@ public class TelnetIO {
     /**
      * This method reads an unsigned 16bit Integer from the stream,
      * its here for getting the NAWS Data Values for height and width.
+     *
+     * @throws IOException if an error occurs
      */
     private int read16int() throws IOException {
         int c = in.readUnsignedShort();
         return c;
     }//read16int
 
-    /**
+    /*
      * The following options are options which might be of interest, but are not
      * yet implemented or in use.
      */
@@ -491,6 +502,7 @@ public class TelnetIO {
      * Telnet protocol layer communication is filtered and processed here.
      *
      * @return int read from stream.
+     * @throws IOException if an error occurs
      */
     private int rawread() throws IOException {
         int b = 0;
@@ -505,6 +517,8 @@ public class TelnetIO {
      * Checks for the telnet protocol specified  CR followed by NULL or LF<BR>
      * Subsequently reads for the next byte and forwards
      * only a ENTER represented by LF internally.
+     *
+     * @throws IOException if an error occurs
      */
     private int stripCRSeq(int input) throws IOException {
         if (input == 13) {
@@ -605,12 +619,13 @@ public class TelnetIO {
      * <LI><A HREF="ftp://ds.internic.net/rfc/rfc1073.txt">1073 Telnet Window Size Option</A>
      * <LI><A HREF="ftp://ds.internic.net/rfc/rfc1091.txt">1091 Telnet Terminal-Type Option</A>
      * </OL>
-     * <p/>
+     * <p>
      * Furthermore there are some more, which helped to solve problems, or might be important
      * for future enhancements:<BR>
      * <A HREF="ftp://ds.internic.net/rfc/rfc1143.txt">1143 The Q Method of Implementing Option Negotiation</A><BR>
      * <A HREF="ftp://ds.internic.net/rfc/rfc1416.txt">1416 Telnet Authentication Option</A><BR>
-     * <p/>
+     * </p>
+     * <p>
      * After an intense study of the available material (mainly cryptical written RFCs,
      * a telnet client implementation for the macintosh based upon NCSA telnet, and a server side
      * implementation called key, a mud-like system completely written in Java) I realized
@@ -623,14 +638,12 @@ public class TelnetIO {
      * a BBS is intended to be a single process the user is interacting with.
      * <LI> The <B>LAMER</B> has to be expected to log in with the standard Microsoft telnet
      * implementation. This means forget every nice feature and most of the almost-standards.
-     * <p/>
      * </OL>
-     * <BR>
      *
      * @author Dieter Wimberger
      * @version 1.1 16/06/1998
-     * <p/>
-     * <p/>
+     *
+     * <p>
      * <B>To-Do</B>:<UL>
      * <LI>UNIX conform new style TTYPE negotiation. Setting a list and selecting from it...
      * </UL>

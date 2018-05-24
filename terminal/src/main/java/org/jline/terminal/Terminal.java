@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -105,8 +105,8 @@ public interface Terminal extends Closeable, Flushable {
 
     /**
      * Stop reading the input stream and optionally wait for the underlying threads to finish.
-     * @param wait
-     * @throws InterruptedException
+     * @param wait <code>true</code> to wait until the terminal is actually paused
+     * @throws InterruptedException if the call has been interrupted
      */
     void pause(boolean wait) throws InterruptedException;
 
@@ -186,7 +186,7 @@ public interface Terminal extends Closeable, Flushable {
      * As the response is read from the input stream, some
      * characters may be read before the cursor position is actually
      * read. Those characters can be given back using
-     * {@link org.jline.keymap.BindingReader#runMacro(String)}.
+     * <code>org.jline.keymap.BindingReader#runMacro(String)</code>
      *
      * @param discarded a consumer receiving discarded characters
      * @return <code>null</code> if cursor position reporting

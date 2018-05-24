@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -66,8 +66,13 @@ public final class TerminalBuilder {
      * Terminals should be closed properly using the {@link Terminal#close()}
      * method in order to restore the original terminal state.
      *
+     * <p>
      * This call is equivalent to:
      * <code>builder().build()</code>
+     * </p>
+     *
+     * @return the default system terminal
+     * @throws IOException if an error occurs
      */
     public static Terminal terminal() throws IOException {
         return builder().build();
@@ -75,6 +80,8 @@ public final class TerminalBuilder {
 
     /**
      * Creates a new terminal builder instance.
+     *
+     * @return a builder
      */
     public static TerminalBuilder builder() {
         return new TerminalBuilder();
@@ -180,6 +187,8 @@ public final class TerminalBuilder {
     }
 
     /**
+     * @param codepage the codepage
+     * @return The builder
      * @deprecated JLine now writes Unicode output independently from the selected
      *   code page. Using this option will only make it emulate the selected code
      *   page for {@link Terminal#input()} and {@link Terminal#output()}.
@@ -197,6 +206,8 @@ public final class TerminalBuilder {
      * or when {@link #system(boolean)} has been explicitely called with
      * <code>false</code>.
      *
+     * @param attributes the attributes to use
+     * @return The builder
      * @see #size(Size)
      * @see #system(boolean)
      */
@@ -212,6 +223,8 @@ public final class TerminalBuilder {
      * or when {@link #system(boolean)} has been explicitely called with
      * <code>false</code>.
      *
+     * @param size the initial size
+     * @return The builder
      * @see #attributes(Attributes)
      * @see #system(boolean)
      */
@@ -236,7 +249,8 @@ public final class TerminalBuilder {
      * one might want to make sure the input stream is not consumed
      * before needed, in which case the terminal needs to be created
      * in a paused state.
-     * @param paused
+     * @param paused the initial paused state
+     * @return The builder
      * @see Terminal#pause()
      */
     public TerminalBuilder paused(boolean paused) {

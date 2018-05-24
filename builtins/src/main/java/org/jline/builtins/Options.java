@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -241,7 +241,10 @@ public class Options {
     }
 
     /**
-     * prints usage message and returns IllegalArgumentException, for you to throw.
+     * Prints usage message and returns IllegalArgumentException, for you to throw.
+     *
+     * @param s the message to display
+     * @return an exception with the generated message
      */
     public IllegalArgumentException usageError(String s) {
         error = usageName + ": " + s;

@@ -1,3 +1,11 @@
+/*
+ * Copyright (c) 2002-2018, the original author or authors.
+ *
+ * This software is distributable under the BSD license. See the terms of the
+ * BSD license in the documentation provided with this software.
+ *
+ * http://www.opensource.org/licenses/bsd-license.php
+ */
 package org.jline.utils;
 
 import java.io.IOException;
@@ -32,9 +40,10 @@ public abstract class NonBlockingInputStream extends InputStream {
      * Peeks to see if there is a byte waiting in the input stream without
      * actually consuming the byte.
      *
-     * @param timeout The amount of time to wait, 0 == forever
-     * @return -1 on eof, -2 if the timeout expired with no available input
-     *   or the character that was read (without consuming it).
+     * @param      timeout The amount of time to wait, 0 == forever
+     * @return     -1 on eof, -2 if the timeout expired with no available input
+     *             or the character that was read (without consuming it).
+     * @exception  IOException  if an I/O error occurs.
      */
     public int peek(long timeout) throws IOException {
         return read(timeout, true);
@@ -44,9 +53,10 @@ public abstract class NonBlockingInputStream extends InputStream {
      * Attempts to read a character from the input stream for a specific
      * period of time.
      *
-     * @param timeout The amount of time to wait for the character
-     * @return The character read, -1 if EOF is reached, or -2 if the
-     * read timed out.
+     * @param      timeout      The amount of time to wait for the character
+     * @return     The character read, -1 if EOF is reached,
+     *             or -2 if the read timed out.
+     * @exception  IOException  if an I/O error occurs.
      */
     public int read(long timeout) throws IOException {
         return read(timeout, false);

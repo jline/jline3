@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -34,6 +34,8 @@ public class Styler {
 
     /**
      * Returns global {@link StyleSource}.
+     *
+     * @return the global style source
      */
     public static StyleSource getSource() {
         return source;
@@ -41,6 +43,8 @@ public class Styler {
 
     /**
      * Install global {@link StyleSource}.
+     *
+     * @param source the new global style source
      */
     public static void setSource(final StyleSource source) {
         Styler.source = requireNonNull(source);
@@ -52,6 +56,9 @@ public class Styler {
 
     /**
      * Create a resolver for the given style-group.
+     *
+     * @param group the group
+     * @return the resolver
      */
     public static StyleResolver resolver(final String group) {
         return new StyleResolver(source, group);
@@ -59,6 +66,9 @@ public class Styler {
 
     /**
      * Create a factory for the given style-group.
+     *
+     * @param group the group
+     * @return the factory
      */
     public static StyleFactory factory(final String group) {
         return new StyleFactory(resolver(group));
@@ -68,6 +78,10 @@ public class Styler {
      * Create a {@link StyleBundle} proxy.
      * <p>
      * Target class must be annotated with {@link StyleGroup}.
+     *
+     * @param <T> the interface to proxy
+     * @param type the interface to proxy
+     * @return the proxy
      */
     public static <T extends StyleBundle> T bundle(final Class<T> type) {
         return StyleBundleInvocationHandler.create(source, type);
@@ -75,6 +89,11 @@ public class Styler {
 
     /**
      * Create a {@link StyleBundle} proxy with explicit style-group.
+     *
+     * @param <T> the interface to proxy
+     * @param group the group
+     * @param type the interface to proxy
+     * @return the proxy
      */
     public static <T extends StyleBundle> T bundle(final String group, final Class<T> type) {
         return StyleBundleInvocationHandler.create(resolver(group), type);

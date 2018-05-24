@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -35,6 +35,9 @@ public class StyleExpression {
 
     /**
      * Evaluate expression and append to buffer.
+     *
+     * @param buff the buffer to append to
+     * @param expression the expression to evaluate
      */
     public void evaluate(final AttributedStringBuilder buff, final String expression) {
         requireNonNull(buff);
@@ -57,6 +60,9 @@ public class StyleExpression {
 
     /**
      * Evaluate expression.
+     *
+     * @param expression the expression to evaluate
+     * @return the result string
      */
     public AttributedString evaluate(final String expression) {
         AttributedStringBuilder buff = new AttributedStringBuilder();

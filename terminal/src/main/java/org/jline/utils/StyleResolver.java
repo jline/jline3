@@ -39,6 +39,7 @@ public class StyleResolver {
      * <p>
      * Full xterm256 color can be specified with: {@code ~<color>}.
      *
+     * @param name the name of the color
      * @return color code, or {@code null} if unable to determine.
      */
     private static Integer color(String name) {
@@ -108,6 +109,9 @@ public class StyleResolver {
      * Resolve the given style specification.
      * <p>
      * If for some reason the specification is invalid, then {@link AttributedStyle#DEFAULT} will be used.
+     *
+     * @param spec the specification
+     * @return the style
      */
     public AttributedStyle resolve(final String spec) {
         requireNonNull(spec);
@@ -129,6 +133,10 @@ public class StyleResolver {
      * Resolve the given style specification.
      * <p>
      * If this resolves to {@link AttributedStyle#DEFAULT} then given default specification is used if non-null.
+     *
+     * @param spec the specification
+     * @param defaultSpec the default specifiaction
+     * @return the style
      */
     public AttributedStyle resolve(final String spec, final String defaultSpec) {
         requireNonNull(spec);
@@ -146,6 +154,10 @@ public class StyleResolver {
 
     /**
      * Apply style specification.
+     *
+     * @param style the style to apply to
+     * @param spec the specification
+     * @return the new style
      */
     private AttributedStyle apply(AttributedStyle style, final String spec) {
         if (log.isLoggable(Level.FINEST)) {
@@ -185,6 +197,10 @@ public class StyleResolver {
 
     /**
      * Apply source-referenced named style.
+     *
+     * @param style the style to apply to
+     * @param spec the specification
+     * @return the new style
      */
     private AttributedStyle applyReference(final AttributedStyle style, final String spec) {
         if (log.isLoggable(Level.FINEST)) {
@@ -207,6 +223,10 @@ public class StyleResolver {
 
     /**
      * Apply default named styles.
+     *
+     * @param style the style to apply to
+     * @param name the named style
+     * @return the new style
      */
     private AttributedStyle applyNamed(final AttributedStyle style, final String name) {
         if (log.isLoggable(Level.FINEST)) {
@@ -262,7 +282,9 @@ public class StyleResolver {
     /**
      * Apply color styles specification.
      *
-     * @param spec Color specification: {@code <color-mode>:<color-name>}
+     * @param style The style to apply to
+     * @param spec  Color specification: {@code <color-mode>:<color-name>}
+     * @return      The new style
      */
     private AttributedStyle applyColor(final AttributedStyle style, final String spec) {
         if (log.isLoggable(Level.FINEST)) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -26,7 +26,7 @@ import java.io.Reader;
  *          the thread that handles blocking I/O.
  * </ul>
  * @since 2.7
- * @author Scott C. Gray <scottgray1@gmail.com>
+ * @author Scott C. Gray &lt;scottgray1@gmail.com&gt;
  */
 public class NonBlockingReaderImpl
     extends NonBlockingReader
@@ -47,6 +47,7 @@ public class NonBlockingReaderImpl
      * reader. Note that this call also spawn a separate thread to perform the
      * blocking I/O on behalf of the thread that is using this class. The
      * {@link #shutdown()} method must be called in order to shut this thread down.
+     * @param name The reader name
      * @param in The reader to wrap
      */
     public NonBlockingReaderImpl(String name, Reader in) {

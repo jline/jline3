@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -21,27 +21,37 @@ public interface ParsedLine {
     String word();
 
     /**
-     * The cursor position within the current word
+     * The cursor position within the current word.
+     *
+     * @return the cursor position within the current word
      */
     int wordCursor();
 
     /**
-     * The index of the current word in the list of words
+     * The index of the current word in the list of words.
+     *
+     * @return the index of the current word in the list of words
      */
     int wordIndex();
 
     /**
-     * The list of words
+     * The list of words.
+     *
+     * @return the list of words
      */
     List<String> words();
 
     /**
-     * The unparsed line
+     * The unparsed line.
+     *
+     * @return the unparsed line
      */
     String line();
 
     /**
-     * The cursor position within the line
+     * The cursor position within the line.
+     *
+     * @return the cursor position within the line
      */
     int cursor();
 

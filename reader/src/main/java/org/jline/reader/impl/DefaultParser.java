@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -204,6 +204,13 @@ public class DefaultParser implements Parser {
 
     /**
      * Check if this character is a valid escape char (i.e. one that has not been escaped)
+     *
+     * @param buffer
+     *          the buffer to check in
+     * @param pos
+     *          the position of the character to check
+     * @return true if the character at the specified position in the given buffer is an escape
+     *         character and the character immediately preceding it is not an escape character.
      */
     public boolean isEscapeChar(final CharSequence buffer, final int pos) {
         if (pos < 0) {
@@ -226,8 +233,8 @@ public class DefaultParser implements Parser {
      *          the buffer to check in
      * @param pos
      *          the position of the character to check
-     * @return true if the character at the specified position in the given buffer is an escape character and the character immediately preceding it is not an
-     *         escape character.
+     * @return true if the character at the specified position in the given buffer is an escape
+     *         character and the character immediately preceding it is an escape character.
      */
     public boolean isEscaped(final CharSequence buffer, final int pos) {
         if (pos <= 0) {
@@ -240,6 +247,12 @@ public class DefaultParser implements Parser {
      * Returns true if the character at the specified position if a delimiter. This method will only be called if
      * the character is not enclosed in any of the {@link #getQuoteChars}, and is not escaped by ant of the
      * {@link #getEscapeChars}. To perform escaping manually, override {@link #isDelimiter} instead.
+     *
+     * @param buffer
+     *          the buffer to check in
+     * @param pos
+     *          the position of the character to check
+     * @return true if the character at the specified position in the given buffer is a delimiter.
      */
     public boolean isDelimiterChar(CharSequence buffer, int pos) {
         return Character.isWhitespace(buffer.charAt(pos));
@@ -301,10 +314,10 @@ public class DefaultParser implements Parser {
         /**
          *
          * @param line the command line being edited
-         * @param words
-         * @param wordIndex
-         * @param wordCursor
-         * @param cursor
+         * @param words the list of words
+         * @param wordIndex the index of the current word in the list of words
+         * @param wordCursor the cursor position within the current word
+         * @param cursor the cursor position within the line
          * @param openingQuote the opening quote (usually '\"' or '\'') or null
          * @param rawWordCursor the cursor position inside the raw word (i.e. including quotes and escape characters)
          * @param rawWordLength the raw word length, including quotes and escape characters

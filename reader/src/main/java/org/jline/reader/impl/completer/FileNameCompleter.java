@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,7 +8,6 @@
  */
 package org.jline.reader.impl.completer;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,11 +26,10 @@ import org.jline.utils.AttributedStyle;
 /**
  * A file name completer takes the buffer and issues a list of
  * potential completions.
- * <p/>
+ * <p>
  * This completer tries to behave as similar as possible to
  * <i>bash</i>'s file name completion (using GNU readline)
  * with the following exceptions:
- * <p/>
  * <ul>
  * <li>Candidates that are directories will end with "/"</li>
  * <li>Wildcard regular expressions are not evaluated or replaced</li>
@@ -43,8 +41,7 @@ import org.jline.utils.AttributedStyle;
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  * @since 2.3
- * @deprecated use org.jline.builtins.Completers$FileNameCompleter instead
- * @see org.jline.builtins.Completers$FileNameCompleter
+ * @deprecated use <code>org.jline.builtins.Completers$FileNameCompleter</code> instead
  */
 @Deprecated
 public class FileNameCompleter implements Completer

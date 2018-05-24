@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2017 the original author(s).
+ * Copyright (C) 2009-2018 the original author(s).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -388,7 +388,7 @@ public final class WindowsAnsiWriter extends AnsiWriter {
     }
 
     @Override
-    protected void processChangeWindowTitle(String label) {
-        SetConsoleTitle(label);
+    protected void processChangeWindowTitle(String title) {
+        SetConsoleTitle(title);
     }
 }

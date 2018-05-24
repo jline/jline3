@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -123,8 +123,8 @@ public abstract class ConnectionManager implements Runnable {
 
     /**
      * Returns the {@link Connection} at the given index.
-     * @param idx
-     * @return
+     * @param idx the index
+     * @return the connection
      */
     public Connection getConnection(int idx) {
         synchronized (openConnections) {
@@ -136,6 +136,7 @@ public abstract class ConnectionManager implements Runnable {
      * Get all {@link Connection} instances with the given
      * <tt>InetAddress</tt>.
      *
+     * @param addr the address
      * @return all {@link Connection} instances with the given
      *         <tt>InetAddress</tt>.
      */

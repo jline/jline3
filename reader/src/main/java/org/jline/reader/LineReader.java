@@ -19,7 +19,6 @@ import org.jline.terminal.Terminal;
 /** Read lines from the console, with input editing.
  *
  * <h3>Prompt strings</h3>
- * <p>
  * It is traditional for an interactive console-based program
  * to print a short prompt string to signal that the user is expected
  * to type a command.  JLine supports 3 kinds of prompt string:
@@ -33,13 +32,14 @@ import org.jline.terminal.Terminal;
  * All of these are specified with prompt templates,
  * which are similar to {@code printf} format strings,
  * using the character {@code '%'} to indicate special functionality.
- * <p>
+ * </p>
  * The pattern may include ANSI escapes.
  * It may include these template markers:
  * <dl>
  * <dt>{@code %N}</dt>
  * <dd>A line number. This is the sum of {@code getLineNumber()}
  *   and a counter starting with 1 for the first continuation line.
+ * </dd>
  * <dt>{@code %M}</dt>
  * <dd>A short word explaining what is "missing". This is supplied from
  * the {@link EOFError#getMissing()} method, if provided.
@@ -56,9 +56,8 @@ import org.jline.terminal.Terminal;
  * <dt>{@code %%}</dt>
  * <dd>A literal {@code '%'}.
  * </dd>
- * <dt><code>%{</code></dt>
- * <dt><code>%}</code></dt>
- * Text between a <code>%{</code>...<code>%}</code> pair is printed as
+ * <dt><code>%{</code></dt><dt><code>%}</code></dt>
+ * <dd>Text between a <code>%{</code>...<code>%}</code> pair is printed as
  * part of a prompt, but not interpreted by JLine
  * (except that {@code '%'}-escapes are processed).  The text is assumed
  * to take zero columns (not move the cursor).  If it changes the style,
@@ -66,7 +65,6 @@ import org.jline.terminal.Terminal;
  * do not need to be within a <code>%{</code>...<code>%}</code> pair
  * (though can be) since JLine knows how to deal with them.  However,
  * these delimiters are needed for unusual non-standard escape sequences.
- * <dd>
  * </dd>
  * </dl>
  */
@@ -379,7 +377,7 @@ public interface LineReader {
         DELAY_LINE_WRAP,
         AUTO_PARAM_SLASH(true),
         AUTO_REMOVE_SLASH(true),
-        /** When hitting the <tab> key at the beginning of the line, insert a tabulation
+        /** When hitting the <code>&lt;tab&gt;</code> key at the beginning of the line, insert a tabulation
          *  instead of completing.  This is mainly useful when {@link #BRACKETED_PASTE} is
          *  disabled, so that copy/paste of indented text does not trigger completion.
          */
@@ -423,7 +421,11 @@ public interface LineReader {
     /**
      * Read the next line and return the contents of the buffer.
      *
-     * Equivalent to <code>readLine(null, null, null)</code>
+     * Equivalent to <code>readLine(null, null, null)</code>.
+     *
+     * @return the line read
+     * @throws UserInterruptException If the call was interrupted by the user.
+     * @throws EndOfFileException     If the end of the input stream was reached.
      */
     String readLine() throws UserInterruptException, EndOfFileException;
 
@@ -432,6 +434,11 @@ public interface LineReader {
      * characters will be echoed. If 0, then no characters will be echoed.
      *
      * Equivalent to <code>readLine(null, mask, null)</code>
+     *
+     * @param mask      The mask character, <code>null</code> or <code>0</code>.
+     * @return          A line that is read from the terminal, can never be null.
+     * @throws UserInterruptException If the call was interrupted by the user.
+     * @throws EndOfFileException     If the end of the input stream was reached.
      */
     String readLine(Character mask) throws UserInterruptException, EndOfFileException;
 
@@ -440,6 +447,11 @@ public interface LineReader {
      * If null, then the default prompt will be used.
      *
      * Equivalent to <code>readLine(prompt, null, null)</code>
+     *
+     * @param prompt    The prompt to issue to the terminal, may be null.
+     * @return          A line that is read from the terminal, can never be null.
+     * @throws UserInterruptException If the call was interrupted by the user.
+     * @throws EndOfFileException     If the end of the input stream was reached.
      */
     String readLine(String prompt) throws UserInterruptException, EndOfFileException;
 
@@ -448,6 +460,12 @@ public interface LineReader {
      * (without any trailing newlines).
      *
      * Equivalent to <code>readLine(prompt, mask, null)</code>
+     *
+     * @param prompt    The prompt to issue to the terminal, may be null.
+     * @param mask      The mask character, <code>null</code> or <code>0</code>.
+     * @return          A line that is read from the terminal, can never be null.
+     * @throws UserInterruptException If the call was interrupted by the user.
+     * @throws EndOfFileException     If the end of the input stream was reached.
      */
     String readLine(String prompt, Character mask) throws UserInterruptException, EndOfFileException;
 
@@ -455,14 +473,16 @@ public interface LineReader {
      * Read a line from the <i>in</i> {@link InputStream}, and return the line
      * (without any trailing newlines).
      *
+     * Equivalent to <code>readLine(prompt, null, mask, buffer)</code>
+     *
      * @param prompt    The prompt to issue to the terminal, may be null.
      *   This is a template, with optional {@code '%'} escapes, as
      *   described in the class header.
      * @param mask      The character mask, may be null.
      * @param buffer    The default value presented to the user to edit, may be null.
      * @return          A line that is read from the terminal, can never be null.
-     *
-     * Equivalent to <code>readLine(prompt, null, mask, buffer)</code>
+     * @throws UserInterruptException If the call was interrupted by the user.
+     * @throws EndOfFileException     If the end of the input stream was reached.
      */
     String readLine(String prompt, Character mask, String buffer) throws UserInterruptException, EndOfFileException;
 
@@ -483,6 +503,8 @@ public interface LineReader {
      * @throws UserInterruptException if readLine was interrupted (using Ctrl-C for example)
      * @throws EndOfFileException if an EOF has been found (using Ctrl-D for example)
      * @throws java.io.IOError in case of other i/o errors
+     * @throws UserInterruptException If the call was interrupted by the user.
+     * @throws EndOfFileException     If the end of the input stream was reached.
      */
     String readLine(String prompt, String rightPrompt, Character mask, String buffer) throws UserInterruptException, EndOfFileException;
 
@@ -503,6 +525,8 @@ public interface LineReader {
      * @throws UserInterruptException if readLine was interrupted (using Ctrl-C for example)
      * @throws EndOfFileException if an EOF has been found (using Ctrl-D for example)
      * @throws java.io.IOError in case of other i/o errors
+     * @throws UserInterruptException If the call was interrupted by the user.
+     * @throws EndOfFileException     If the end of the input stream was reached.
      */
     String readLine(String prompt, String rightPrompt, MaskingCallback maskingCallback, String buffer) throws UserInterruptException, EndOfFileException;
 

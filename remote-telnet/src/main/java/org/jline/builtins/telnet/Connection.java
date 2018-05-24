@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -46,18 +46,20 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Class that implements a connection with this telnet daemon.<br>
+ * Class that implements a connection with this telnet daemon.
+ * <p>
  * It is derived from java.lang.Thread, which reflects the architecture
  * constraint of one thread per connection. This might seem a waste of
  * resources, but as a matter of fact sharing threads would require a
  * far more complex imlementation, due to the fact that telnet is not a
  * stateless protocol (i.e. alive throughout a session of multiple requests
- * and responses).<br>
+ * and responses).
+ * <p>
  * Each Connection instance is created by the listeners ConnectionManager
  * instance, making it part of a threadgroup and passing in an associated
  * ConnectionData instance, that holds vital information about the connection.
- * Be sure to take a look at their documention.<br>
- * <p/>
+ * Be sure to take a look at their documention.
+ * <p>
  * Once the thread has started and is running, it will get a login
  * shell instance from the ShellManager and run passing its own reference.
  *

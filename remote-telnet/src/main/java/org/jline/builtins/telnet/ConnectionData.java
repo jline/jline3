@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -80,6 +80,7 @@ public class ConnectionData {
      * information about a connection.
      *
      * @param sock Socket of the inbound connection.
+     * @param cm the connection manager
      */
     public ConnectionData(Socket sock, ConnectionManager cm) {
         socket = sock;
@@ -314,10 +315,10 @@ public class ConnectionData {
     /**
      * Sets the terminal type that has been negotiated
      * between telnet client and telnet server, in form of
-     * a String.<br>
-     * <p/>
+     * a String.
+     * <p>
      * <em>This method should not be called explicitly
-     * by the application (i.e. the its here for the io subsystem).</em><br>
+     * by the application (i.e. the its here for the io subsystem).</em>
      *
      * @param termtype the negotiated terminal type as String.
      */

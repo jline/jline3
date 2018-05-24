@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -38,9 +38,16 @@ public class Size {
         this.rows = (short) rows;
     }
 
-    /** A cursor position combines a row number with a column position.
+    /**
+     * A cursor position combines a row number with a column position.
+     * <p>
      * Note each row has {@code col+1} different column positions,
      * including the right margin.
+     * </p>
+     *
+     * @param col the new column
+     * @param row the new row
+     * @return the cursor position
      */
     public int cursorPos(int row, int col) {
         return row * (cols+1) + col;

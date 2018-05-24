@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -104,9 +104,10 @@ public class ConnectionEvent {
         CONNECTION_TIMEDOUT,
 
         /**
-         * Defines the connection requested logout event type.<br>
+         * Defines the connection requested logout event type.
+         * <p>
          * It occurs if a connection requested disgraceful logout by
-         * sending a <Ctrl>-<D> key combination.
+         * sending a <code>&lt;Ctrl&gt;-&lt;D&gt;</code> key combination.
          */
         CONNECTION_LOGOUTREQUEST,
 

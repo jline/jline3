@@ -43,6 +43,7 @@ public class NonBlockingInputStreamImpl
      * reader. Note that this call also spawn a separate thread to perform the
      * blocking I/O on behalf of the thread that is using this class. The
      * {@link #shutdown()} method must be called in order to shut this thread down.
+     * @param name The stream name
      * @param in The reader to wrap
      */
     public NonBlockingInputStreamImpl(String name, InputStream in) {
@@ -84,8 +85,10 @@ public class NonBlockingInputStreamImpl
      * Attempts to read a byte from the input stream for a specific
      * period of time.
      * @param timeout The amount of time to wait for the character
+     * @param isPeek <code>true</code>if the byte read must not be consumed
      * @return The byte read, -1 if EOF is reached, or -2 if the
      *   read timed out.
+     * @throws IOException if anything wrong happens
      */
     public synchronized int read(long timeout, boolean isPeek) throws IOException {
         /*

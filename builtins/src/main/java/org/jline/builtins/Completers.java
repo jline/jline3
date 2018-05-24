@@ -257,11 +257,10 @@ public class Completers {
     /**
      * A file name completer takes the buffer and issues a list of
      * potential completions.
-     * <p/>
+     * <p>
      * This completer tries to behave as similar as possible to
      * <i>bash</i>'s file name completion (using GNU readline)
      * with the following exceptions:
-     * <p/>
      * <ul>
      * <li>Candidates that are directories will end with "/"</li>
      * <li>Wildcard regular expressions are not evaluated or replaced</li>

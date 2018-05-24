@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -199,6 +199,8 @@ public class AttributedStyle {
      * The hidden flag can be used to embed custom escape sequences.
      * The characters are considered being 0-column long and will be printed as-is.
      * The user is responsible for ensuring that those sequences do not move the cursor.
+     *
+     * @return the new style
      */
     public AttributedStyle hidden() {
         return new AttributedStyle(style | F_HIDDEN, mask | F_HIDDEN);

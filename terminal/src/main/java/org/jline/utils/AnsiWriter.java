@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2017 the original author(s).
+ * Copyright (C) 2009-2018 the original author(s).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -131,7 +131,7 @@ public class AnsiWriter extends FilterWriter {
                 buffer[pos++] = (char) data;
                 if (!('0' <= data && data <= '9')) {
                     String strValue = new String(buffer, startOfValue, (pos - 1) - startOfValue);
-                    Integer value = new Integer(strValue);
+                    Integer value = Integer.valueOf(strValue);
                     options.add(value);
                     if (data == ';') {
                         state = LOOKING_FOR_NEXT_ARG;
@@ -173,7 +173,7 @@ public class AnsiWriter extends FilterWriter {
                 buffer[pos++] = (char) data;
                 if (';' == data) {
                     String strValue = new String(buffer, startOfValue, (pos - 1) - startOfValue);
-                    Integer value = new Integer(strValue);
+                    Integer value = Integer.valueOf(strValue);
                     options.add(value);
                     startOfValue = pos;
                     state = LOOKING_FOR_OSC_PARAM;
@@ -234,7 +234,7 @@ public class AnsiWriter extends FilterWriter {
     /**
      * Resets all state to continue with regular parsing
      * @param skipBuffer if current buffer should be skipped or written to out
-     * @throws IOException
+     * @throws IOException if an error occurs
      */
     private void reset(boolean skipBuffer) throws IOException {
         if (!skipBuffer) {
@@ -262,9 +262,10 @@ public class AnsiWriter extends FilterWriter {
     }
 
     /**
-     *
-     * @param options
-     * @param command
+     * Process escape command
+     * @param options the list of options
+     * @param command the command
+     * @throws IOException if an error occurs
      * @return true if the escape command was processed.
      */
     private boolean processEscapeCommand(ArrayList<Object> options, int command) throws IOException {
@@ -413,8 +414,8 @@ public class AnsiWriter extends FilterWriter {
     }
 
     /**
-     *
-     * @param options
+     * Process operating system command.
+     * @param options the options list
      * @return true if the operating system command was processed.
      */
     private boolean processOperatingSystemCommand(ArrayList<Object> options) throws IOException {
@@ -446,42 +447,46 @@ public class AnsiWriter extends FilterWriter {
 
     /**
      * Process <code>CSI u</code> ANSI code, corresponding to <code>RCP – Restore Cursor Position</code>
-     * @throws IOException
+     * @throws IOException if an error occurs
      */
     protected void processRestoreCursorPosition() throws IOException {
     }
 
     /**
      * Process <code>CSI s</code> ANSI code, corresponding to <code>SCP – Save Cursor Position</code>
-     * @throws IOException
+     * @throws IOException if an error occurs
      */
     protected void processSaveCursorPosition() throws IOException {
     }
 
     /**
      * Process <code>CSI s</code> ANSI code, corresponding to <code>IL – Insert Line</code>
-     * @throws IOException
+     * @param optionInt the option
+     * @throws IOException if an error occurs
      */
     protected void processInsertLine(int optionInt) throws IOException {
     }
 
     /**
      * Process <code>CSI s</code> ANSI code, corresponding to <code>DL – Delete Line</code>
-     * @throws IOException
+     * @param optionInt the option
+     * @throws IOException if an error occurs
      */
     protected void processDeleteLine(int optionInt) throws IOException {
     }
 
     /**
      * Process <code>CSI n T</code> ANSI code, corresponding to <code>SD – Scroll Down</code>
-     * @throws IOException
+     * @param optionInt the option
+     * @throws IOException if an error occurs
      */
     protected void processScrollDown(int optionInt) throws IOException {
     }
 
     /**
      * Process <code>CSI n U</code> ANSI code, corresponding to <code>SU – Scroll Up</code>
-     * @throws IOException
+     * @param optionInt the option
+     * @throws IOException if an error occurs
      */
     protected void processScrollUp(int optionInt) throws IOException {
     }
@@ -492,7 +497,8 @@ public class AnsiWriter extends FilterWriter {
 
     /**
      * Process <code>CSI n J</code> ANSI code, corresponding to <code>ED – Erase in Display</code>
-     * @throws IOException
+     * @param eraseOption the erase option
+     * @throws IOException if an error occurs
      */
     protected void processEraseScreen(int eraseOption) throws IOException {
     }
@@ -503,7 +509,8 @@ public class AnsiWriter extends FilterWriter {
 
     /**
      * Process <code>CSI n K</code> ANSI code, corresponding to <code>ED – Erase in Line</code>
-     * @throws IOException
+     * @param eraseOption the erase option
+     * @throws IOException if an error occurs
      */
     protected void processEraseLine(int eraseOption) throws IOException {
     }
@@ -529,8 +536,8 @@ public class AnsiWriter extends FilterWriter {
      * process <code>SGR</code> other than <code>0</code> (reset), <code>30-39</code> (foreground),
      * <code>40-49</code> (background), <code>90-97</code> (foreground high intensity) or
      * <code>100-107</code> (background high intensity)
-     * @param attribute
-     * @throws IOException
+     * @param attribute the attribute to set
+     * @throws IOException if an error occurs
      * @see #processAttributeRest()
      * @see #processSetForegroundColor(int)
      * @see #processSetForegroundColor(int, boolean)
@@ -554,7 +561,7 @@ public class AnsiWriter extends FilterWriter {
     /**
      * process <code>SGR 30-37</code> corresponding to <code>Set text color (foreground)</code>.
      * @param color the text color
-     * @throws IOException
+     * @throws IOException if an error occurs
      */
     protected void processSetForegroundColor(int color) throws IOException {
         processSetForegroundColor(color, false);
@@ -565,7 +572,7 @@ public class AnsiWriter extends FilterWriter {
      * <code>Set text color (foreground)</code> either in normal mode or high intensity.
      * @param color the text color
      * @param bright is high intensity?
-     * @throws IOException
+     * @throws IOException if an error occurs
      */
     protected void processSetForegroundColor(int color, boolean bright) throws IOException {
         processSetForegroundColorExt(bright ? color + 8 : color);
@@ -575,7 +582,7 @@ public class AnsiWriter extends FilterWriter {
      * process <code>SGR 38</code> corresponding to <code>extended set text color (foreground)</code>
      * with a palette of 255 colors.
      * @param paletteIndex the text color in the palette
-     * @throws IOException
+     * @throws IOException if an error occurs
      */
     protected void processSetForegroundColorExt(int paletteIndex) throws IOException {
     }
@@ -586,7 +593,7 @@ public class AnsiWriter extends FilterWriter {
      * @param r red
      * @param g green
      * @param b blue
-     * @throws IOException
+     * @throws IOException if an error occurs
      */
     protected void processSetForegroundColorExt(int r, int g, int b) throws IOException {
         processSetForegroundColorExt(Colors.roundRgbColor(r, g, b, 16));
@@ -595,7 +602,7 @@ public class AnsiWriter extends FilterWriter {
     /**
      * process <code>SGR 40-47</code> corresponding to <code>Set background color</code>.
      * @param color the background color
-     * @throws IOException
+     * @throws IOException if an error occurs
      */
     protected void processSetBackgroundColor(int color) throws IOException {
         processSetBackgroundColor(color, false);
@@ -606,7 +613,7 @@ public class AnsiWriter extends FilterWriter {
      * <code>Set background color</code> either in normal mode or high intensity.
      * @param color the background color
      * @param bright is high intensity?
-     * @throws IOException
+     * @throws IOException if an error occurs
      */
     protected void processSetBackgroundColor(int color, boolean bright) throws IOException {
         processSetBackgroundColorExt(bright ? color + 8 : color);
@@ -616,7 +623,7 @@ public class AnsiWriter extends FilterWriter {
      * process <code>SGR 48</code> corresponding to <code>extended set background color</code>
      * with a palette of 255 colors.
      * @param paletteIndex the background color in the palette
-     * @throws IOException
+     * @throws IOException if an error occurs
      */
     protected void processSetBackgroundColorExt(int paletteIndex) throws IOException {
     }
@@ -627,7 +634,7 @@ public class AnsiWriter extends FilterWriter {
      * @param r red
      * @param g green
      * @param b blue
-     * @throws IOException
+     * @throws IOException if an error occurs
      */
     protected void processSetBackgroundColorExt(int r, int g, int b) throws IOException {
         processSetBackgroundColorExt(Colors.roundRgbColor(r, g, b, 16));
@@ -635,21 +642,21 @@ public class AnsiWriter extends FilterWriter {
 
     /**
      * process <code>SGR 39</code> corresponding to <code>Default text color (foreground)</code>
-     * @throws IOException
+     * @throws IOException if an error occurs
      */
     protected void processDefaultTextColor() throws IOException {
     }
 
     /**
      * process <code>SGR 49</code> corresponding to <code>Default background color</code>
-     * @throws IOException
+     * @throws IOException if an error occurs
      */
     protected void processDefaultBackgroundColor() throws IOException {
     }
 
     /**
      * process <code>SGR 0</code> corresponding to <code>Reset / Normal</code>
-     * @throws IOException
+     * @throws IOException if an error occurs
      */
     protected void processAttributeRest() throws IOException {
     }
@@ -657,9 +664,9 @@ public class AnsiWriter extends FilterWriter {
     /**
      * process <code>CSI n ; m H</code> corresponding to <code>CUP – Cursor Position</code> or
      * <code>CSI n ; m f</code> corresponding to <code>HVP – Horizontal and Vertical Position</code>
-     * @param row
-     * @param col
-     * @throws IOException
+     * @param row the row
+     * @param col the column
+     * @throws IOException if an error occurs
      */
     protected void processCursorTo(int row, int col) throws IOException {
     }
@@ -667,7 +674,7 @@ public class AnsiWriter extends FilterWriter {
     /**
      * process <code>CSI n G</code> corresponding to <code>CHA – Cursor Horizontal Absolute</code>
      * @param x the column
-     * @throws IOException
+     * @throws IOException if an error occurs
      */
     protected void processCursorToColumn(int x) throws IOException {
     }
@@ -675,7 +682,7 @@ public class AnsiWriter extends FilterWriter {
     /**
      * process <code>CSI n F</code> corresponding to <code>CPL – Cursor Previous Line</code>
      * @param count line count
-     * @throws IOException
+     * @throws IOException if an error occurs
      */
     protected void processCursorUpLine(int count) throws IOException {
     }
@@ -683,7 +690,7 @@ public class AnsiWriter extends FilterWriter {
     /**
      * process <code>CSI n E</code> corresponding to <code>CNL – Cursor Next Line</code>
      * @param count line count
-     * @throws IOException
+     * @throws IOException if an error occurs
      */
     protected void processCursorDownLine(int count) throws IOException {
         // Poor mans impl..
@@ -694,16 +701,16 @@ public class AnsiWriter extends FilterWriter {
 
     /**
      * process <code>CSI n D</code> corresponding to <code>CUB – Cursor Back</code>
-     * @param count
-     * @throws IOException
+     * @param count the count
+     * @throws IOException if an error occurs
      */
     protected void processCursorLeft(int count) throws IOException {
     }
 
     /**
      * process <code>CSI n C</code> corresponding to <code>CUF – Cursor Forward</code>
-     * @param count
-     * @throws IOException
+     * @param count the count
+     * @throws IOException if an error occurs
      */
     protected void processCursorRight(int count) throws IOException {
         // Poor mans impl..
@@ -714,16 +721,16 @@ public class AnsiWriter extends FilterWriter {
 
     /**
      * process <code>CSI n B</code> corresponding to <code>CUD – Cursor Down</code>
-     * @param count
-     * @throws IOException
+     * @param count the count
+     * @throws IOException if an error occurs
      */
     protected void processCursorDown(int count) throws IOException {
     }
 
     /**
      * process <code>CSI n A</code> corresponding to <code>CUU – Cursor Up</code>
-     * @param count
-     * @throws IOException
+     * @param count the count
+     * @throws IOException if an error occurs
      */
     protected void processCursorUp(int count) throws IOException {
     }
@@ -733,8 +740,7 @@ public class AnsiWriter extends FilterWriter {
 
     /**
      * process <code>OSC 0;text BEL</code> corresponding to <code>Change Window and Icon label</code>
-     * @param label
-     * @throws IOException
+     * @param label the label
      */
     protected void processChangeIconNameAndWindowTitle(String label) {
         processChangeIconName(label);
@@ -743,24 +749,22 @@ public class AnsiWriter extends FilterWriter {
 
     /**
      * process <code>OSC 1;text BEL</code> corresponding to <code>Change Icon label</code>
-     * @param label
-     * @throws IOException
+     * @param name the icon name
      */
-    protected void processChangeIconName(String label) {
+    protected void processChangeIconName(String name) {
     }
 
     /**
      * process <code>OSC 2;text BEL</code> corresponding to <code>Change Window title</code>
-     * @param label
-     * @throws IOException
+     * @param title the title
      */
-    protected void processChangeWindowTitle(String label) {
+    protected void processChangeWindowTitle(String title) {
     }
 
     /**
      * Process unknown <code>OSC</code> command.
-     * @param command
-     * @param param
+     * @param command the command
+     * @param param the param
      */
     protected void processUnknownOperatingSystemCommand(int command, String param) {
     }

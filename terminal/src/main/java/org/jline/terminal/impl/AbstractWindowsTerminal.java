@@ -521,6 +521,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
      * Read a single input event from the input buffer and process it.
      *
      * @return true if new input was generated from the event
+     * @throws IOException if anything wrong happens
      */
     protected abstract boolean processConsoleInput() throws IOException;
 
