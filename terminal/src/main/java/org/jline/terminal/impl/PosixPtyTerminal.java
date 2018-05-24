@@ -38,6 +38,7 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
     private Thread inputPumpThread;
     private Thread outputPumpThread;
     private boolean paused = true;
+    private IOException ioException;
 
     public PosixPtyTerminal(String name, String type, Pty pty, InputStream in, OutputStream out, Charset encoding) throws IOException {
         this(name, type, pty, in, out, encoding, SignalHandler.SIG_DFL);
@@ -154,9 +155,16 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
 
         @Override
         public int read(long timeout, boolean isPeek) throws IOException {
-            if (closed.get()) {
+            if (closed.get() && in.peek(timeout) < 0) {
                 throw new ClosedException();
             }
+
+            final IOException ioe = getIoException();
+            if (ioe != null) {
+                setIoException(null);
+                throw ioe;
+            }
+
             return in.read(timeout, isPeek);
         }
 
@@ -164,6 +172,14 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
         public void close() throws IOException {
             closed.set(true);
         }
+    }
+
+    private synchronized void setIoException(IOException ioe) {
+        ioException = ioe;
+    }
+
+    private synchronized IOException getIoException() {
+        return ioException;
     }
 
     private void pumpIn() {
@@ -184,7 +200,7 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
                 masterOutput.flush();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            setIoException(e);
         } finally {
             synchronized (lock) {
                 inputPumpThread = null;
