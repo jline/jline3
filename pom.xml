@@ -242,7 +242,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.6.0</version>
+                    <version>3.7.0</version>
                     <configuration>
                         <showWarnings>true</showWarnings>
                         <compilerArgs>
@@ -356,7 +356,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>3.0.2</version>
+                <version>3.1.0</version>
                 <configuration>
                     <archive>
                         <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
@@ -404,7 +404,8 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.0.0</version>
                 <configuration>
-                    <additionalparam>-Xdoclint:none</additionalparam>
+                    <additionalparam>-Xdoclint:none </additionalparam>
+                    <additionalOptions>${javadocOptions}</additionalOptions>
                     <failOnError>false</failOnError>
                 </configuration>
                 <executions>
@@ -415,6 +416,13 @@
                         </goals>
                     </execution>
                 </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.apache.commons</groupId>
+                        <artifactId>commons-lang3</artifactId>
+                        <version>3.7</version>
+                    </dependency>
+                </dependencies>
             </plugin>
 
             <plugin>
@@ -433,9 +441,10 @@
             <id>java9</id>
             <properties>
                 <surefire.argLine>--add-opens java.base/java.io=ALL-UNNAMED</surefire.argLine>
+                <javadocOptions>-html4</javadocOptions>
             </properties>
             <activation>
-                <jdk>9</jdk>
+                <jdk>[9,)</jdk>
             </activation>
             <build>
                 <plugins>
