@@ -1,23 +1,25 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
  * http://www.opensource.org/licenses/bsd-license.php
  */
-package org.jline.style
+package org.jline.style;
 
-import org.junit.Before
+import org.junit.Before;
 
 /**
  * Support for style tests.
  */
-abstract class StyleTestSupport {
-    protected MemoryStyleSource source
+public abstract class StyleTestSupport {
+
+    protected MemoryStyleSource source;
 
     @Before
-    void setUp() {
-        this.source = new MemoryStyleSource()
+    public void setUp() {
+        this.source = new MemoryStyleSource();
     }
+
 }
