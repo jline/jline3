@@ -55,13 +55,9 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
             notifyAll();
             try {
                 wait(timeout);
-                if (ioException != null) {
-                    throw ioException;
-                }
+                checkIoException();
             } catch (InterruptedException e) {
-                if (ioException != null) {
-                    throw ioException;
-                }
+                checkIoException();
                 throw new InterruptedIOException();
             }
             if (!isInfinite) {
@@ -100,9 +96,7 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
 
     @Override
     public synchronized int read(long timeout, boolean isPeek) throws IOException {
-        if (ioException != null) {
-            throw ioException;
-        }
+        checkIoException();
         // Blocks until more input is available or the reader is closed.
         int res = wait(readBuffer, timeout);
         if (res >= 0) {
@@ -115,6 +109,12 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
     public synchronized void setIoException(IOException exception) {
         this.ioException = exception;
         notifyAll();
+    }
+
+    protected synchronized void checkIoException() throws IOException {
+        if (ioException != null) {
+            throw ioException;
+        }
     }
 
     synchronized void write(byte[] cbuf, int off, int len) throws IOException {
