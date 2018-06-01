@@ -247,14 +247,14 @@ public final class WindowsAnsiWriter extends AnsiWriter {
     protected void processSetForegroundColorExt(int paletteIndex) throws IOException {
         int color = Colors.roundColor(paletteIndex, 16);
         info.wAttributes = (short) ((info.wAttributes & ~0x0007) | ANSI_FOREGROUND_COLOR_MAP[color & 0x07]);
-        info.wAttributes = (short) ((info.wAttributes & ~FOREGROUND_INTENSITY) | (color > 8 ? FOREGROUND_INTENSITY : 0));
+        info.wAttributes = (short) ((info.wAttributes & ~FOREGROUND_INTENSITY) | (color >= 8 ? FOREGROUND_INTENSITY : 0));
         applyAttribute();
     }
 
     protected void processSetBackgroundColorExt(int paletteIndex) throws IOException {
         int color = Colors.roundColor(paletteIndex, 16);
         info.wAttributes = (short)((info.wAttributes & ~0x0070 ) | ANSI_BACKGROUND_COLOR_MAP[color & 0x07]);
-        info.wAttributes = (short) ((info.wAttributes & ~BACKGROUND_INTENSITY) | (color > 8 ? BACKGROUND_INTENSITY : 0));
+        info.wAttributes = (short) ((info.wAttributes & ~BACKGROUND_INTENSITY) | (color >= 8 ? BACKGROUND_INTENSITY : 0));
         applyAttribute();
     }
 
