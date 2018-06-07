@@ -71,6 +71,12 @@ import org.jline.terminal.Terminal;
 
 public interface LineReader {
 
+    /**
+     * System property that can be set to avoid a warning being logged
+     * when using a Parser which does not return {@link CompletingParsedLine} objects.
+     */
+    String PROP_SUPPORT_PARSEDLINE = "org.jline.reader.support.parsedline";
+
     //
     // Widget names
     //

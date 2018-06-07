@@ -10,6 +10,16 @@ package org.jline.reader;
 
 import java.util.List;
 
+/**
+ * <code>ParsedLine</code> objects are returned by the {@link Parser}
+ * during completion or when accepting the line.
+ *
+ * The instances should implement the {@link CompletingParsedLine}
+ * interface so that escape chars and quotes can be correctly handled.
+ *
+ * @see Parser
+ * @see CompletingParsedLine
+ */
 public interface ParsedLine {
 
     /**
