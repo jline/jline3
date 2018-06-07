@@ -317,9 +317,6 @@ public final class TerminalBuilder {
             if (OSUtils.IS_WINDOWS) {
                 boolean cygwinTerm = "cygwin".equals(System.getenv("TERM"));
                 boolean ansiPassThrough = OSUtils.IS_CONEMU;
-                if (type == null) {
-                    type = OSUtils.IS_CONEMU ? TYPE_WINDOWS_256_COLOR : TYPE_WINDOWS;
-                }
                 //
                 // Cygwin support
                 //

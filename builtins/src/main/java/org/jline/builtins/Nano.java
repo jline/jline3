@@ -973,24 +973,26 @@ public class Nano {
         newAttr.setControlChar(ControlChar.VTIME, 0);
         newAttr.setControlChar(ControlChar.VINTR, 0);
         terminal.setAttributes(newAttr);
-        SignalHandler prevHandler = terminal.handle(Signal.WINCH, this::handle);
         terminal.puts(Capability.enter_ca_mode);
         terminal.puts(Capability.keypad_xmit);
-        size.copy(terminal.getSize());
-        display.clear();
-        display.reset();
-        display.resize(size.getRows(), size.getColumns());
         if (mouseSupport) {
             terminal.trackMouse(Terminal.MouseTracking.Normal);
         }
 
         this.shortcuts = standardShortcuts();
 
+        SignalHandler prevHandler = null;
         try {
             buffer.open();
             if (buffer.file != null) {
                 setMessage("Read " + buffer.lines.size() + " lines");
             }
+
+            size.copy(terminal.getSize());
+            display.clear();
+            display.reset();
+            display.resize(size.getRows(), size.getColumns());
+            prevHandler = terminal.handle(Signal.WINCH, this::handle);
 
             display();
 
@@ -1923,11 +1925,13 @@ public class Nano {
     }
 
     protected void handle(Signal signal) {
-        size.copy(terminal.getSize());
-        buffer.computeAllOffsets();
-        buffer.moveToChar(buffer.offsetInLine + buffer.column);
-        resetDisplay();
-        display();
+        if (buffer != null) {
+            size.copy(terminal.getSize());
+            buffer.computeAllOffsets();
+            buffer.moveToChar(buffer.offsetInLine + buffer.column);
+            resetDisplay();
+            display();
+        }
     }
 
     protected void bindKeys() {

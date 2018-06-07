@@ -10,40 +10,59 @@ package org.jline.terminal.impl.jna.win;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.function.IntConsumer;
 
+import com.sun.jna.LastErrorException;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
+import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
 import org.jline.utils.InfoCmp;
+import org.jline.utils.OSUtils;
 
 public class JnaWinSysTerminal extends AbstractWindowsTerminal {
 
     private static final Pointer consoleIn = Kernel32.INSTANCE.GetStdHandle(Kernel32.STD_INPUT_HANDLE);
     private static final Pointer consoleOut = Kernel32.INSTANCE.GetStdHandle(Kernel32.STD_OUTPUT_HANDLE);
 
-    public JnaWinSysTerminal(String name, boolean nativeSignals) throws IOException {
-        this(name, TYPE_WINDOWS, false, null, 0, nativeSignals, SignalHandler.SIG_DFL);
-    }
-
-    public JnaWinSysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
-        this(name, TYPE_WINDOWS, false, null, 0, nativeSignals, signalHandler, false);
-    }
-
-    public JnaWinSysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler, boolean paused) throws IOException {
-        super(ansiPassThrough
-                        ? new JnaWinConsoleWriter(consoleOut)
-                        : new WindowsAnsiWriter(new BufferedWriter(new JnaWinConsoleWriter(consoleOut)), consoleOut),
-              name, type, encoding, codepage, nativeSignals, signalHandler);
-        strings.put(InfoCmp.Capability.key_mouse, "\\E[M");
-
+    public static JnaWinSysTerminal createTerminal(String name, String type, Charset encoding, int codepage, boolean nativeSignals, Terminal.SignalHandler signalHandler, boolean paused) throws IOException {
+        Writer writer;
+        IntByReference mode = new IntByReference();
+        Kernel32.INSTANCE.GetConsoleMode(consoleOut, mode);
+        try {
+            Kernel32.INSTANCE.SetConsoleMode(consoleOut, mode.getValue() | AbstractWindowsTerminal.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+            if (type == null) {
+                type = TYPE_WINDOWS_VTP;
+            }
+            writer = new JnaWinConsoleWriter(consoleOut);
+        } catch (LastErrorException e) {
+            if (OSUtils.IS_CONEMU) {
+                if (type == null) {
+                    type = TYPE_WINDOWS_256_COLOR;
+                }
+                writer = new JnaWinConsoleWriter(consoleOut);
+            } else {
+                if (type == null) {
+                    type = TYPE_WINDOWS;
+                }
+                writer = new WindowsAnsiWriter(new BufferedWriter(new JnaWinConsoleWriter(consoleOut)), consoleOut);
+            }
+        }
+        JnaWinSysTerminal terminal = new JnaWinSysTerminal(writer, name, type, encoding, codepage, nativeSignals, signalHandler);
         // Start input pump thread
         if (!paused) {
-            resume();
+            terminal.resume();
         }
+        return terminal;
+    }
+
+    JnaWinSysTerminal(Writer writer, String name, String type, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
+        super(writer, name, type, encoding, codepage, nativeSignals, signalHandler);
+        strings.put(InfoCmp.Capability.key_mouse, "\\E[M");
     }
 
     @Override

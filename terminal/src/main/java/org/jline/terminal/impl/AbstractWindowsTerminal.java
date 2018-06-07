@@ -49,6 +49,9 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
 
     public static final String TYPE_WINDOWS = "windows";
     public static final String TYPE_WINDOWS_256_COLOR = "windows-256color";
+    public static final String TYPE_WINDOWS_VTP = "windows-vtp";
+
+    public static final int ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004;
 
     private static final int UTF8_CODE_PAGE = 65001;
 

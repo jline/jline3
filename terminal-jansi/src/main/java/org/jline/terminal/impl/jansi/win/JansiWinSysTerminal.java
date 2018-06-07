@@ -11,6 +11,7 @@ package org.jline.terminal.impl.jansi.win;
 import java.io.BufferedWriter;
 import java.io.IOError;
 import java.io.IOException;
+import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.function.IntConsumer;
 
@@ -21,38 +22,50 @@ import org.fusesource.jansi.internal.Kernel32.KEY_EVENT_RECORD;
 import org.fusesource.jansi.internal.WindowsSupport;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
+import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
 import org.jline.utils.InfoCmp;
 
 import static org.fusesource.jansi.internal.Kernel32.GetConsoleScreenBufferInfo;
 import static org.fusesource.jansi.internal.Kernel32.GetStdHandle;
 import static org.fusesource.jansi.internal.Kernel32.STD_OUTPUT_HANDLE;
+import org.jline.utils.OSUtils;
 
 public class JansiWinSysTerminal extends AbstractWindowsTerminal {
 
-    public JansiWinSysTerminal(String name, boolean nativeSignals) throws IOException {
-        this(name, TYPE_WINDOWS, false, null, 0, nativeSignals, SignalHandler.SIG_DFL);
-    }
-
-    public JansiWinSysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
-        this(name, TYPE_WINDOWS, false, null, 0, nativeSignals, signalHandler, false);
-    }
-
-    public JansiWinSysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler, boolean paused) throws IOException {
-        super(ansiPassThrough
-                        ? new JansiWinConsoleWriter()
-                        : new WindowsAnsiWriter(new BufferedWriter(new JansiWinConsoleWriter())),
-              name,
-              type,
-              encoding,
-              codepage,
-              nativeSignals,
-              signalHandler);
-
+    public static JansiWinSysTerminal createTerminal(String name, String type, Charset encoding, int codepage, boolean nativeSignals, Terminal.SignalHandler signalHandler, boolean paused) throws IOException {
+        Writer writer;
+        long console = GetStdHandle(STD_OUTPUT_HANDLE);
+        int[] mode = new int[1];
+        if (Kernel32.GetConsoleMode(console, mode) == 0) {
+            throw new IOException("Failed to get console mode: " + WindowsSupport.getLastErrorMessage());
+        }
+        if (Kernel32.SetConsoleMode(console, mode[0] | AbstractWindowsTerminal.ENABLE_VIRTUAL_TERMINAL_PROCESSING) != 0) {
+            if (type == null) {
+                type = TYPE_WINDOWS_VTP;
+            }
+            writer = new JansiWinConsoleWriter();
+        } else if (OSUtils.IS_CONEMU) {
+            if (type == null) {
+                type = TYPE_WINDOWS_256_COLOR;
+            }
+            writer = new JansiWinConsoleWriter();
+        } else {
+            if (type == null) {
+                type = TYPE_WINDOWS;
+            }
+            writer = new WindowsAnsiWriter(new BufferedWriter(new JansiWinConsoleWriter()));
+        }
+        JansiWinSysTerminal terminal = new JansiWinSysTerminal(writer, name, type, encoding, codepage, nativeSignals, signalHandler);
         // Start input pump thread
         if (!paused) {
-            resume();
+            terminal.resume();
         }
+        return terminal;
+    }
+
+    JansiWinSysTerminal(Writer writer, String name, String type, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
+        super(writer, name, type, encoding, codepage, nativeSignals, signalHandler);
     }
 
     @Override
