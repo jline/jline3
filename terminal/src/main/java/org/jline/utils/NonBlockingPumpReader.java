@@ -60,10 +60,10 @@ public class NonBlockingPumpReader extends NonBlockingReader {
                 timeout = end - System.currentTimeMillis();
             }
         }
-        return closed
-                ? EOF
-                : buffer.hasRemaining()
-                    ? 0
+        return buffer.hasRemaining()
+                ? 0
+                : closed
+                    ? EOF
                     : READ_EXPIRED;
     }
 
