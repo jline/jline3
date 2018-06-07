@@ -68,6 +68,16 @@ public interface History extends Iterable<History.Entry>
 
     void add(Instant time, String line);
 
+    /**
+     * Check if an entry should be persisted or not.
+     *
+     * @param entry the entry to check
+     * @return <code>true</code> if the given entry should be persisted, <code>false</code> otherwise
+     */
+    default boolean isPersistable(Entry entry) {
+        return true;
+    }
+
     //
     // Entries
     //
