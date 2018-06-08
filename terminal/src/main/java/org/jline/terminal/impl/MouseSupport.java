@@ -11,10 +11,12 @@ package org.jline.terminal.impl;
 import org.jline.terminal.MouseEvent;
 import org.jline.terminal.Terminal;
 import org.jline.utils.InfoCmp;
+import org.jline.utils.InputStreamReader;
 
 import java.io.EOFException;
 import java.io.IOError;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
 import java.util.function.IntSupplier;
 
@@ -116,7 +118,14 @@ public class MouseSupport {
 
     private static int readExt(Terminal terminal) {
         try {
-            int c = terminal.reader().read();
+            // The coordinates are encoded in UTF-8, so if that's not the input encoding,
+            // we need to get around
+            int c;
+            if (terminal.encoding() != StandardCharsets.UTF_8) {
+                c = new InputStreamReader(terminal.input(), StandardCharsets.UTF_8).read();
+            } else {
+                c = terminal.reader().read();
+            }
             if (c < 0) {
                 throw new EOFException();
             }
