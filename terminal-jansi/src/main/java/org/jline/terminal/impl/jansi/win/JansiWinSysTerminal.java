@@ -84,9 +84,12 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
     }
 
     public Size getSize() {
+        long outputHandle = Kernel32.GetStdHandle(Kernel32.STD_OUTPUT_HANDLE);
+        CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO();
+        Kernel32.GetConsoleScreenBufferInfo(outputHandle, info);
         Size size = new Size();
-        size.setColumns(WindowsSupport.getWindowsTerminalWidth());
-        size.setRows(WindowsSupport.getWindowsTerminalHeight());
+        size.setColumns(info.size.x);
+        size.setRows(info.size.y);
         return size;
     }
 
