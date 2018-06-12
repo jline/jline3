@@ -28,6 +28,6 @@ public class JnaSupportImpl implements JnaSupport {
 
     @Override
     public Terminal winSysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, Terminal.SignalHandler signalHandler, boolean paused) throws IOException {
-        return JnaWinSysTerminal.createTerminal(name, type, encoding, codepage, nativeSignals, signalHandler, paused);
+        return JnaWinSysTerminal.createTerminal(name, type, ansiPassThrough, encoding, codepage, nativeSignals, signalHandler, paused);
     }
 }

@@ -33,28 +33,32 @@ import org.jline.utils.OSUtils;
 
 public class JansiWinSysTerminal extends AbstractWindowsTerminal {
 
-    public static JansiWinSysTerminal createTerminal(String name, String type, Charset encoding, int codepage, boolean nativeSignals, Terminal.SignalHandler signalHandler, boolean paused) throws IOException {
+    public static JansiWinSysTerminal createTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler, boolean paused) throws IOException {
         Writer writer;
-        long console = GetStdHandle(STD_OUTPUT_HANDLE);
-        int[] mode = new int[1];
-        if (Kernel32.GetConsoleMode(console, mode) == 0) {
-            throw new IOException("Failed to get console mode: " + WindowsSupport.getLastErrorMessage());
-        }
-        if (Kernel32.SetConsoleMode(console, mode[0] | AbstractWindowsTerminal.ENABLE_VIRTUAL_TERMINAL_PROCESSING) != 0) {
-            if (type == null) {
-                type = TYPE_WINDOWS_VTP;
-            }
-            writer = new JansiWinConsoleWriter();
-        } else if (OSUtils.IS_CONEMU) {
-            if (type == null) {
-                type = TYPE_WINDOWS_256_COLOR;
-            }
+        if (ansiPassThrough) {
             writer = new JansiWinConsoleWriter();
         } else {
-            if (type == null) {
-                type = TYPE_WINDOWS;
+            long console = GetStdHandle(STD_OUTPUT_HANDLE);
+            int[] mode = new int[1];
+            if (Kernel32.GetConsoleMode(console, mode) == 0) {
+                throw new IOException("Failed to get console mode: " + WindowsSupport.getLastErrorMessage());
             }
-            writer = new WindowsAnsiWriter(new BufferedWriter(new JansiWinConsoleWriter()));
+            if (Kernel32.SetConsoleMode(console, mode[0] | AbstractWindowsTerminal.ENABLE_VIRTUAL_TERMINAL_PROCESSING) != 0) {
+                if (type == null) {
+                    type = TYPE_WINDOWS_VTP;
+                }
+                writer = new JansiWinConsoleWriter();
+            } else if (OSUtils.IS_CONEMU) {
+                if (type == null) {
+                    type = TYPE_WINDOWS_256_COLOR;
+                }
+                writer = new JansiWinConsoleWriter();
+            } else {
+                if (type == null) {
+                    type = TYPE_WINDOWS;
+                }
+                writer = new WindowsAnsiWriter(new BufferedWriter(new JansiWinConsoleWriter()));
+            }
         }
         JansiWinSysTerminal terminal = new JansiWinSysTerminal(writer, name, type, encoding, codepage, nativeSignals, signalHandler);
         // Start input pump thread

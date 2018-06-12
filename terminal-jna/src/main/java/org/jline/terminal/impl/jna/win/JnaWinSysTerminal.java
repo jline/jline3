@@ -29,27 +29,31 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
     private static final Pointer consoleIn = Kernel32.INSTANCE.GetStdHandle(Kernel32.STD_INPUT_HANDLE);
     private static final Pointer consoleOut = Kernel32.INSTANCE.GetStdHandle(Kernel32.STD_OUTPUT_HANDLE);
 
-    public static JnaWinSysTerminal createTerminal(String name, String type, Charset encoding, int codepage, boolean nativeSignals, Terminal.SignalHandler signalHandler, boolean paused) throws IOException {
+    public static JnaWinSysTerminal createTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler, boolean paused) throws IOException {
         Writer writer;
-        IntByReference mode = new IntByReference();
-        Kernel32.INSTANCE.GetConsoleMode(consoleOut, mode);
-        try {
-            Kernel32.INSTANCE.SetConsoleMode(consoleOut, mode.getValue() | AbstractWindowsTerminal.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
-            if (type == null) {
-                type = TYPE_WINDOWS_VTP;
-            }
+        if (ansiPassThrough) {
             writer = new JnaWinConsoleWriter(consoleOut);
-        } catch (LastErrorException e) {
-            if (OSUtils.IS_CONEMU) {
+        } else {
+            IntByReference mode = new IntByReference();
+            Kernel32.INSTANCE.GetConsoleMode(consoleOut, mode);
+            try {
+                Kernel32.INSTANCE.SetConsoleMode(consoleOut, mode.getValue() | AbstractWindowsTerminal.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
                 if (type == null) {
-                    type = TYPE_WINDOWS_256_COLOR;
+                    type = TYPE_WINDOWS_VTP;
                 }
                 writer = new JnaWinConsoleWriter(consoleOut);
-            } else {
-                if (type == null) {
-                    type = TYPE_WINDOWS;
+            } catch (LastErrorException e) {
+                if (OSUtils.IS_CONEMU) {
+                    if (type == null) {
+                        type = TYPE_WINDOWS_256_COLOR;
+                    }
+                    writer = new JnaWinConsoleWriter(consoleOut);
+                } else {
+                    if (type == null) {
+                        type = TYPE_WINDOWS;
+                    }
+                    writer = new WindowsAnsiWriter(new BufferedWriter(new JnaWinConsoleWriter(consoleOut)), consoleOut);
                 }
-                writer = new WindowsAnsiWriter(new BufferedWriter(new JnaWinConsoleWriter(consoleOut)), consoleOut);
             }
         }
         JnaWinSysTerminal terminal = new JnaWinSysTerminal(writer, name, type, encoding, codepage, nativeSignals, signalHandler);
