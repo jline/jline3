@@ -177,23 +177,46 @@ public class LineDisciplineTerminal extends AbstractTerminal {
      * @throws IOException if anything wrong happens
      */
     public void processInputByte(int c) throws IOException {
+        boolean flushOut = doProcessInputByte(c);
+        slaveInputPipe.flush();
+        if (flushOut) {
+            masterOutput.flush();
+        }
+    }
+
+    public void processInputBytes(byte[] input) throws IOException {
+        processInputBytes(input, 0, input.length);
+    }
+
+    public void processInputBytes(byte[] input, int offset, int length) throws IOException {
+        boolean flushOut = false;
+        for (int i = 0; i < length; i++) {
+            flushOut |= doProcessInputByte(input[offset + i]);
+        }
+        slaveInputPipe.flush();
+        if (flushOut) {
+            masterOutput.flush();
+        }
+    }
+
+    protected boolean doProcessInputByte(int c) throws IOException {
         if (attributes.getLocalFlag(LocalFlag.ISIG)) {
             if (c == attributes.getControlChar(ControlChar.VINTR)) {
                 raise(Signal.INT);
-                return;
+                return false;
             } else if (c == attributes.getControlChar(ControlChar.VQUIT)) {
                 raise(Signal.QUIT);
-                return;
+                return false;
             } else if (c == attributes.getControlChar(ControlChar.VSUSP)) {
                 raise(Signal.TSTP);
-                return;
+                return false;
             } else if (c == attributes.getControlChar(ControlChar.VSTATUS)) {
                 raise(Signal.INFO);
             }
         }
         if (c == '\r') {
             if (attributes.getInputFlag(InputFlag.IGNCR)) {
-                return;
+                return false;
             }
             if (attributes.getInputFlag(InputFlag.ICRNL)) {
                 c = '\n';
@@ -201,12 +224,13 @@ public class LineDisciplineTerminal extends AbstractTerminal {
         } else if (c == '\n' && attributes.getInputFlag(InputFlag.INLCR)) {
             c = '\r';
         }
+        boolean flushOut = false;
         if (attributes.getLocalFlag(LocalFlag.ECHO)) {
             processOutputByte(c);
-            masterOutput.flush();
+            flushOut = true;
         }
         slaveInputPipe.write(c);
-        slaveInputPipe.flush();
+        return flushOut;
     }
 
     /**

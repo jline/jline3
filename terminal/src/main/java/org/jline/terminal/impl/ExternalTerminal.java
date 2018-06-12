@@ -117,10 +117,11 @@ public class ExternalTerminal extends LineDisciplineTerminal {
 
     public void pump() {
         try {
+            byte[] buf = new byte[1024];
             while (true) {
-                int c = masterInput.read();
+                int c = masterInput.read(buf);
                 if (c >= 0) {
-                    processInputByte((char) c);
+                    processInputBytes(buf, 0, c);
                 }
                 if (c < 0 || closed.get()) {
                     break;
