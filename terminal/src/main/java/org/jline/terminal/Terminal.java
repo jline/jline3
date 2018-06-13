@@ -66,8 +66,21 @@ public interface Terminal extends Closeable, Flushable {
     // Input / output
     //
 
+    /**
+     * Retrieve the <code>Reader</code> for this terminal.
+     * This is the standard way to read input from this terminal.
+     * The reader is non blocking.
+     * 
+     * @return The non blocking reader
+     */
     NonBlockingReader reader();
-
+    
+    /**
+     * Retrieve the <code>Writer</code> for this terminal.
+     * This is the standard way to write to this terminal.
+     * 
+     * @return The writer
+     */
     PrintWriter writer();
 
     /**
@@ -78,8 +91,28 @@ public interface Terminal extends Closeable, Flushable {
      */
     Charset encoding();
 
+    /**
+     * Retrieve the input stream for this terminal.
+     * In some rare cases, there may be a need to access the 
+     * terminal input stream directly. In the usual cases, 
+     * use the {@link #reader()} instead.
+     * 
+     * @return The input stream
+     * 
+     * @see #reader()
+     */
     InputStream input();
 
+    /**
+     * Retrieve the output stream for this terminal.
+     * In some rare cases, there may be a need to access the
+     * terminal output stream directly. In the usual cases,
+     * use the {@link #writer()} instead.
+     * 
+     * @return The output stream
+     * 
+     * @see #writer();
+     */
     OutputStream output();
 
     //
@@ -88,6 +121,7 @@ public interface Terminal extends Closeable, Flushable {
 
     /**
      * Whether this terminal supports {@link #pause()} and {@link #resume()} calls.
+     * 
      * @return whether this terminal supports {@link #pause()} and {@link #resume()} calls.
      * @see #paused()
      * @see #pause()
@@ -105,6 +139,7 @@ public interface Terminal extends Closeable, Flushable {
 
     /**
      * Stop reading the input stream and optionally wait for the underlying threads to finish.
+     * 
      * @param wait <code>true</code> to wait until the terminal is actually paused
      * @throws InterruptedException if the call has been interrupted
      */
