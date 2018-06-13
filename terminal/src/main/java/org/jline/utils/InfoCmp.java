@@ -522,9 +522,8 @@ public final class InfoCmp {
                     .forEach(s -> {
                         String[] names = s.split(", ");
                         Capability cap = Enum.valueOf(Capability.class, names[0]);
-                        for (String name : names) {
-                            capabilities.put(name, cap);
-                        }
+                        capabilities.put(names[0], cap);
+                        capabilities.put(names[1], cap);
                     });
             return capabilities;
         } catch (IOException e) {

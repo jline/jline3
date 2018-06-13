@@ -50,4 +50,14 @@ public class InfoCmpTest {
         assertEquals(0x100, (int) ints.get(Capability.max_colors));
         assertEquals(0x7fff, (int) ints.get(Capability.max_pairs));
     }
+
+    @Test
+    public void testClrEos() {
+        Set<Capability> bools = new HashSet<>();
+        Map<Capability, Integer> ints = new HashMap<>();
+        Map<Capability, String> strings = new HashMap<>();
+        String infocmp = InfoCmp.getLoadedInfoCmp("xterm");
+        InfoCmp.parseInfoCmp(infocmp, bools, ints, strings);
+        assertEquals("\\E[J", strings.get(Capability.clr_eos));
+    }
 }
