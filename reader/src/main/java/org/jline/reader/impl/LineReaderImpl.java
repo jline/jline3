@@ -39,6 +39,7 @@ import org.jline.utils.Display;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.Levenshtein;
 import org.jline.utils.Log;
+import org.jline.utils.Status;
 import org.jline.utils.WCWidth;
 
 import static org.jline.keymap.KeyMap.alt;
@@ -3460,6 +3461,11 @@ public class LineReaderImpl implements LineReader, Flushable
             return;
         }
 
+        Status status = Status.getStatus(terminal, false);
+        if (status != null) {
+            status.redraw();
+        }
+
         if (size.getRows() > 0 && size.getRows() < MIN_ROWS) {
             AttributedStringBuilder sb = new AttributedStringBuilder().tabs(TAB_WIDTH);
 
@@ -5180,6 +5186,10 @@ public class LineReaderImpl implements LineReader, Flushable
      */
     public boolean clearScreen() {
         if (terminal.puts(Capability.clear_screen)) {
+            Status status = Status.getStatus(terminal, false);
+            if (status != null) {
+                status.reset();
+            }
             redrawLine();
         } else {
             println();

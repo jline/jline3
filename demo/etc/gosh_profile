@@ -3,6 +3,45 @@ if { $.reader } {
     source ((($.reader parser) class) getResource "/gosh_profile")
 }
 
+status = {
+    p1 = $1
+    if { "on" equals $p1 } {
+        __status_on
+    } {
+        if { "off" equals $p1 } {
+            ($.terminal status) update null
+        } {
+            echo "Error: use 'status on' or 'status off'."
+        }
+    }
+}
+
+__status_on = {
+    sb = (new org.jline.utils.AttributedStringBuilder)
+    $sb style (($sb style) foreground 2)
+    cols = ($.terminal width)
+    each {1..$cols} { $sb append $'\u2500' }
+    s1 = ($sb toAttributedString)
+    $sb setLength 0
+    $sb style (($sb style) foreground 0)
+    $sb append "  "
+    $sb style (($sb style) inverse)
+    $sb append "^L"
+    $sb style (($sb style) inverseOff)
+    $sb append " Clear  "
+    $sb style (($sb style) inverse)
+    $sb append "^D"
+    $sb style (($sb style) inverseOff)
+    $sb append " Exit  "
+    $sb style (($sb style) inverse)
+    $sb append "^C"
+    $sb style (($sb style) inverseOff)
+    $sb append " Interrupt  "
+    s2 = ($sb toAttributedString)
+    ($.terminal status) update [ $s1 $s2 ]
+}
+
+
 __load_class_from = {
 	(($1 class) classLoader) loadClass $2
 }

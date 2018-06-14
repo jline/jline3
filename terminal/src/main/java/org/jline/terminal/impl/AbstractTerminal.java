@@ -8,7 +8,6 @@
  */
 package org.jline.terminal.impl;
 
-import java.io.IOError;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.nio.charset.Charset;
@@ -32,6 +31,7 @@ import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.Log;
+import org.jline.utils.Status;
 
 public abstract class AbstractTerminal implements Terminal {
 
@@ -42,6 +42,7 @@ public abstract class AbstractTerminal implements Terminal {
     protected final Set<Capability> bools = new HashSet<>();
     protected final Map<Capability, Integer> ints = new HashMap<>();
     protected final Map<Capability, String> strings = new HashMap<>();
+    protected Status status;
 
     public AbstractTerminal(String name, String type) throws IOException {
         this(name, type, null, SignalHandler.SIG_DFL);
@@ -56,6 +57,17 @@ public abstract class AbstractTerminal implements Terminal {
         }
     }
 
+    public Status getStatus() {
+        return getStatus(true);
+    }
+
+    public Status getStatus(boolean create) {
+        if (status == null && create) {
+            status = new Status(this);
+        }
+        return status;
+    }
+
     public SignalHandler handle(Signal signal, SignalHandler handler) {
         Objects.requireNonNull(signal);
         Objects.requireNonNull(handler);
@@ -68,9 +80,16 @@ public abstract class AbstractTerminal implements Terminal {
         if (handler != SignalHandler.SIG_DFL && handler != SignalHandler.SIG_IGN) {
             handler.handle(signal);
         }
+        if (status != null && signal == Signal.WINCH) {
+            status.resize();
+        }
     }
 
     public void close() throws IOException {
+        if (status != null) {
+            status.update(null);
+            flush();
+        }
     }
 
     protected void echoSignal(Signal signal) {
