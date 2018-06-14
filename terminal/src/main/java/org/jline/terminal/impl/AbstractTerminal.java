@@ -70,6 +70,9 @@ public abstract class AbstractTerminal implements Terminal {
         }
     }
 
+    public void close() throws IOException {
+    }
+
     protected void echoSignal(Signal signal) {
         ControlChar cc = null;
         switch (signal) {

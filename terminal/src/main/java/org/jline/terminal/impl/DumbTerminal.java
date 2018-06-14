@@ -126,7 +126,4 @@ public class DumbTerminal extends AbstractTerminal {
         size.copy(sz);
     }
 
-    public void close() throws IOException {
-    }
-
 }

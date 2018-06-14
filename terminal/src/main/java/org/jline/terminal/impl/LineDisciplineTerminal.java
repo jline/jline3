@@ -234,6 +234,7 @@ public class LineDisciplineTerminal extends AbstractTerminal {
     }
 
     public void close() throws IOException {
+        super.close();
         try {
             slaveReader.close();
         } finally {
