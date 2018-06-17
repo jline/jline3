@@ -4044,7 +4044,9 @@ public class LineReaderImpl implements LineReader, Flushable
             buf.write(line.escape(completion.value(), completion.complete()));
             if (completion.complete()) {
                 if (buf.currChar() != ' ') {
-                    buf.write(" ");
+                    if (!isSet(Option.NO_EXTRA_SPACE)) {
+                        buf.write(" ");
+                    }
                 } else {
                     buf.move(1);
                 }
