@@ -7,12 +7,10 @@ status = {
     p1 = $1
     if { "on" equals $p1 } {
         __status_on
-    } {
-        if { "off" equals $p1 } {
-            ($.terminal status) update null
-        } {
-            echo "Error: use 'status on' or 'status off'."
-        }
+    } elif { "off" equals $p1 } {
+        ($.terminal status) update null
+    } else {
+        echo "Error: use 'status on' or 'status off'."
     }
 }
 
@@ -71,7 +69,7 @@ __process_stream = {
 # with gogo-jline-1.0.4, should not be needed at all, see FELIX-5463 and FELIX-5462
 (($.processor class) getMethod "addConverter" (__load_class_from $.processor "org.apache.felix.service.command.Converter")) invoke $.processor (new org.jline.demo.FunctionConverter)
 
-if { $.terminal } {
+if { $.terminal } then {
     try {
         #
         # TTop command
@@ -88,9 +86,9 @@ if { $.terminal } {
         complete -c gogo:ttop -s t -l stats --description "Comma separated list of stats to display"
 
         max_colors = ($.terminal getNumericCapability "max_colors")
-        if { %(max_colors >= 256) } {
+        if { %(max_colors >= 256) } then {
             HIGHLIGHTER_COLORS = "rs=35:st=32:nu=32:co=32:va=36:vn=36:fu=1;38;5;69:bf=1;38;5;197:re=90"
-        } {
+        } else {
             HIGHLIGHTER_COLORS = "rs=35:st=32:nu=32:co=32:va=36:vn=36:fu=94:bf=91:re=90"
         }
 
@@ -164,8 +162,8 @@ if { $.terminal } {
         complete -c remote:telnetd -s p -l port --description "Listening IP port" -n '__option_not_present -p --port'
         complete -c remote:telnetd -a '[start stop status]'
 
-    } {
-        if { not { (($exception cause) toString) startsWith "java.lang.NoClassDefFoundError: org/apache/sshd/" } } {
+    } catch {
+        if { not { (($exception cause) toString) startsWith "java.lang.NoClassDefFoundError: org/apache/sshd/" } } then {
             $exception printStackTrace
         }
     }
