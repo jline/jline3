@@ -4412,6 +4412,8 @@ public class LineReaderImpl implements LineReader, Flushable
     protected boolean doMenu(List<Candidate> original, String completed, BiFunction<CharSequence, Boolean, CharSequence> escaper) {
         // Reorder candidates according to display order
         final List<Candidate> possible = new ArrayList<>();
+        boolean caseInsensitive = isSet(Option.CASE_INSENSITIVE);
+        original.sort(getCandidateComparator(caseInsensitive, completed));
         mergeCandidates(original);
         computePost(original, null, possible, completed);
 

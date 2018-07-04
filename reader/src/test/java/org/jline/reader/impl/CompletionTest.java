@@ -9,7 +9,9 @@
 package org.jline.reader.impl;
 
 import java.io.IOException;
+import java.util.Arrays;
 
+import static java.util.Arrays.asList;
 import org.jline.reader.Completer;
 import org.jline.reader.LineReader.Option;
 import org.jline.reader.Reference;
@@ -129,6 +131,17 @@ public class CompletionTest extends ReaderTestSupport {
         reader.getKeys().bind(new Reference("complete-prefix"), "\t");
 
         assertLine("read and nd", new TestBuffer("read and\033[D\033[D\t\n"));
+    }
+
+    @Test
+    public void testMenuOrder() {
+        reader.setCompleter(new StringsCompleter(Arrays.asList("ae_helloWorld", "ad_helloWorld", "ac_helloWorld", "ab_helloWorld", "aa_helloWorld")));
+        reader.unsetOpt(Option.AUTO_LIST);
+        reader.setOpt(Option.AUTO_MENU);
+
+        assertLine("aa_helloWorld ", new TestBuffer("a\t\n\n"));
+
+        assertLine("ab_helloWorld ", new TestBuffer("a\t\t\n\n"));
     }
 
 }
