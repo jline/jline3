@@ -78,7 +78,7 @@ public class CompletionTest extends ReaderTestSupport {
         assertFalse(reader.list);
         assertFalse(reader.menu);
 
-        assertBuffer("foobar", new TestBuffer("fo\t\t"));
+        assertBuffer("foo", new TestBuffer("fo\t\t"));
         assertFalse(reader.list);
         assertTrue(reader.menu);
 
