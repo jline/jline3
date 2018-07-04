@@ -41,7 +41,7 @@ __status_on = {
 
 
 __load_class_from = {
-	(($1 class) classLoader) loadClass $2
+	(($1 class) getClassLoader) loadClass $2
 }
 __get_static_field = {
 	((__load_class_from $.session $1) getField $2) get null
