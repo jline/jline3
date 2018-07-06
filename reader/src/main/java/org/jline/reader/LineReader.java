@@ -15,8 +15,19 @@ import java.util.function.IntConsumer;
 import org.jline.keymap.KeyMap;
 import org.jline.terminal.MouseEvent;
 import org.jline.terminal.Terminal;
+import org.jline.utils.AttributedString;
 
 /** Read lines from the console, with input editing.
+ *
+ * <h3>Thread safety</h3>
+ * The <code>LineReader</code> implementations are not thread safe,
+ * thus you should not attempt to use a single reader in several threads.
+ * Any attempt to call one of the <code>readLine</code> call while one is
+ * already executing in a different thread will immediately result in an
+ * <code>IllegalStateException</code> being thrown.  Other calls may lead to
+ * unknown behaviors. There is one exception though: users are allowed to call
+ * {@link #printAbove(String)} or {@link #printAbove(AttributedString)} at
+ * any time to allow text to be printed above the current prompt.
  *
  * <h3>Prompt strings</h3>
  * It is traditional for an interactive console-based program
@@ -535,6 +546,31 @@ public interface LineReader {
      * @throws EndOfFileException     If the end of the input stream was reached.
      */
     String readLine(String prompt, String rightPrompt, MaskingCallback maskingCallback, String buffer) throws UserInterruptException, EndOfFileException;
+
+    /**
+     * Prints a line above the prompt and redraw everything.
+     * If the LineReader is not actually reading a line, the string will simply be printed to the terminal.
+     *
+     * @see #printAbove(AttributedString)
+     * @param str the string to print
+     */
+    void printAbove(String str);
+
+    /**
+     * Prints a string before the prompt and redraw everything.
+     * If the LineReader is not actually reading a line, the string will simply be printed to the terminal.
+     *
+     * @see #printAbove(String)
+     * @param str the string to print
+     */
+    void printAbove(AttributedString str);
+
+    /**
+     * Check if a thread is currently in a <code>readLine()</code> call.
+     *
+     * @return <code>true</code> if there is an ongoing <code>readLine()</code> call.
+     */
+    boolean isReading();
 
     //
     // Chainable setters
