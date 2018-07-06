@@ -16,6 +16,7 @@ import java.io.InterruptedIOException;
 import java.time.Instant;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -213,6 +214,7 @@ public class LineReaderImpl implements LineReader, Flushable
      * Current internal state of the line reader
      */
     protected State   state = State.DONE;
+    protected final AtomicBoolean startedReading = new AtomicBoolean();
     protected boolean reading;
 
     protected Supplier<AttributedString> post;
@@ -455,7 +457,11 @@ public class LineReaderImpl implements LineReader, Flushable
         // prompt may be null
         // maskingCallback may be null
         // buffer may be null
-        
+
+        if (!startedReading.compareAndSet(false, true)) {
+            throw new IllegalStateException();
+        }
+
         Thread readLineThread = Thread.currentThread();
         SignalHandler previousIntrHandler = null;
         SignalHandler previousWinchHandler = null;
@@ -464,10 +470,6 @@ public class LineReaderImpl implements LineReader, Flushable
         boolean dumb = Terminal.TYPE_DUMB.equals(terminal.getType())
                     || Terminal.TYPE_DUMB_COLOR.equals(terminal.getType());
         try {
-            if (reading) {
-                throw new IllegalStateException();
-            }
-            reading = true;
 
             this.maskingCallback = maskingCallback;
 
@@ -501,47 +503,51 @@ public class LineReaderImpl implements LineReader, Flushable
                 history.attach(this);
             }
 
-            previousIntrHandler = terminal.handle(Signal.INT, signal -> readLineThread.interrupt());
-            previousWinchHandler = terminal.handle(Signal.WINCH, this::handleSignal);
-            previousContHandler = terminal.handle(Signal.CONT, this::handleSignal);
-            originalAttributes = terminal.enterRawMode();
+            synchronized (this) {
+                this.reading = true;
 
-            // Cache terminal size for the duration of the call to readLine()
-            // It will eventually be updated with WINCH signals
-            size.copy(terminal.getSize());
+                previousIntrHandler = terminal.handle(Signal.INT, signal -> readLineThread.interrupt());
+                previousWinchHandler = terminal.handle(Signal.WINCH, this::handleSignal);
+                previousContHandler = terminal.handle(Signal.CONT, this::handleSignal);
+                originalAttributes = terminal.enterRawMode();
 
-            display = new Display(terminal, false);
-            if (size.getRows() == 0 || size.getColumns() == 0) {
-                display.resize(1, Integer.MAX_VALUE);
-            } else {
-                display.resize(size.getRows(), size.getColumns());
+                // Cache terminal size for the duration of the call to readLine()
+                // It will eventually be updated with WINCH signals
+                size.copy(terminal.getSize());
+
+                display = new Display(terminal, false);
+                if (size.getRows() == 0 || size.getColumns() == 0) {
+                    display.resize(1, Integer.MAX_VALUE);
+                } else {
+                    display.resize(size.getRows(), size.getColumns());
+                }
+                if (isSet(Option.DELAY_LINE_WRAP))
+                    display.setDelayLineWrap(true);
+
+                // Move into application mode
+                if (!dumb) {
+                    terminal.puts(Capability.keypad_xmit);
+                    if (isSet(Option.AUTO_FRESH_LINE))
+                        callWidget(FRESH_LINE);
+                    if (isSet(Option.MOUSE))
+                        terminal.trackMouse(Terminal.MouseTracking.Normal);
+                    if (isSet(Option.BRACKETED_PASTE))
+                        terminal.writer().write(BRACKETED_PASTE_ON);
+                } else {
+                    // For dumb terminals, we need to make sure that CR are ignored
+                    Attributes attr = new Attributes(originalAttributes);
+                    attr.setInputFlag(Attributes.InputFlag.IGNCR, true);
+                    terminal.setAttributes(attr);
+                }
+
+                callWidget(CALLBACK_INIT);
+
+                undo.newState(buf.copy());
+
+                // Draw initial prompt
+                redrawLine();
+                redisplay();
             }
-            if (isSet(Option.DELAY_LINE_WRAP))
-                display.setDelayLineWrap(true);
-
-            // Move into application mode
-            if (!dumb) {
-                terminal.puts(Capability.keypad_xmit);
-                if (isSet(Option.AUTO_FRESH_LINE))
-                    callWidget(FRESH_LINE);
-                if (isSet(Option.MOUSE))
-                    terminal.trackMouse(Terminal.MouseTracking.Normal);
-                if (isSet(Option.BRACKETED_PASTE))
-                    terminal.writer().write(BRACKETED_PASTE_ON);
-            } else {
-                // For dumb terminals, we need to make sure that CR are ignored
-                Attributes attr = new Attributes(originalAttributes);
-                attr.setInputFlag(Attributes.InputFlag.IGNCR, true);
-                terminal.setAttributes(attr);
-            }
-
-            callWidget(CALLBACK_INIT);
-
-            undo.newState(buf.copy());
-
-            // Draw initial prompt
-            redrawLine();
-            redisplay();
 
             while (true) {
 
@@ -572,36 +578,38 @@ public class LineReaderImpl implements LineReader, Flushable
                     regionActive = RegionType.NONE;
                 }
 
-                // Get executable widget
-                Buffer copy = buf.copy();
-                Widget w = getWidget(o);
-                if (!w.apply()) {
-                    beep();
-                }
-                if (!isUndo && !copy.toString().equals(buf.toString())) {
-                    undo.newState(buf.copy());
-                }
+                synchronized (this) {
+                    // Get executable widget
+                    Buffer copy = buf.copy();
+                    Widget w = getWidget(o);
+                    if (!w.apply()) {
+                        beep();
+                    }
+                    if (!isUndo && !copy.toString().equals(buf.toString())) {
+                        undo.newState(buf.copy());
+                    }
 
-                switch (state) {
-                    case DONE:
-                        return finishBuffer();
-                    case EOF:
-                        throw new EndOfFileException();
-                    case INTERRUPT:
-                        throw new UserInterruptException(buf.toString());
-                }
+                    switch (state) {
+                        case DONE:
+                            return finishBuffer();
+                        case EOF:
+                            throw new EndOfFileException();
+                        case INTERRUPT:
+                            throw new UserInterruptException(buf.toString());
+                    }
 
-                if (!isArgDigit) {
-                    /*
-                     * If the operation performed wasn't a vi argument
-                     * digit, then clear out the current repeatCount;
-                     */
-                    repeatCount = 0;
-                    mult = 1;
-                }
+                    if (!isArgDigit) {
+                        /*
+                         * If the operation performed wasn't a vi argument
+                         * digit, then clear out the current repeatCount;
+                         */
+                        repeatCount = 0;
+                        mult = 1;
+                    }
 
-                if (!dumb) {
-                    redisplay();
+                    if (!dumb) {
+                        redisplay();
+                    }
                 }
             }
         } catch (IOError e) {
@@ -612,21 +620,52 @@ public class LineReaderImpl implements LineReader, Flushable
             }
         }
         finally {
-            cleanup();
-            reading = false;
-            if (originalAttributes != null) {
-                terminal.setAttributes(originalAttributes);
+            synchronized (this) {
+                this.reading = false;
+
+                cleanup();
+                if (originalAttributes != null) {
+                    terminal.setAttributes(originalAttributes);
+                }
+                if (previousIntrHandler != null) {
+                    terminal.handle(Signal.INT, previousIntrHandler);
+                }
+                if (previousWinchHandler != null) {
+                    terminal.handle(Signal.WINCH, previousWinchHandler);
+                }
+                if (previousContHandler != null) {
+                    terminal.handle(Signal.CONT, previousContHandler);
+                }
             }
-            if (previousIntrHandler != null) {
-                terminal.handle(Signal.INT, previousIntrHandler);
-            }
-            if (previousWinchHandler != null) {
-                terminal.handle(Signal.WINCH, previousWinchHandler);
-            }
-            if (previousContHandler != null) {
-                terminal.handle(Signal.CONT, previousContHandler);
-            }
+            startedReading.set(false);
         }
+    }
+
+    @Override
+    public synchronized void printAbove(String str) {
+        boolean reading = this.reading;
+        if (reading) {
+            display.update(Collections.emptyList(), 0);
+        }
+        if (str.endsWith("\n")) {
+            terminal.writer().print(str);
+        } else {
+            terminal.writer().println(str);
+        }
+        if (reading) {
+            redisplay(false);
+        }
+        terminal.flush();
+    }
+
+    @Override
+    public void printAbove(AttributedString str) {
+        printAbove(str.toAnsi(terminal));
+    }
+
+    @Override
+    public synchronized boolean isReading() {
+        return reading;
     }
 
     /* Make sure we position the cursor on column 0 */
@@ -666,7 +705,7 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     @Override
-    public void callWidget(String name) {
+    public synchronized void callWidget(String name) {
         if (!reading) {
             throw new IllegalStateException("Widgets can only be called during a `readLine` call");
         }
