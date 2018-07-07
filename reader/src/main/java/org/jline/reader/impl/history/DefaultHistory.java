@@ -83,17 +83,7 @@ public class DefaultHistory implements History {
                     Log.trace("Loading history from: ", path);
                     try (BufferedReader reader = Files.newBufferedReader(path)) {
                         internalClear();
-                        reader.lines().forEach(l -> {
-                            int idx = l.indexOf(':');
-                            if (idx < 0) {
-                                throw new IllegalArgumentException("Bad history file syntax! " +
-                                        "The history file `" + path + "` may be an older history: " +
-                                        "please remove it or use a different history file.");
-                            }
-                            Instant time = Instant.ofEpochMilli(Long.parseLong(l.substring(0, idx)));
-                            String line = unescape(l.substring(idx + 1));
-                            internalAdd(time, line);
-                        });
+                        reader.lines().forEach(line -> addHistoryLine(path, line));
                         lastLoaded = items.size();
                         nbEntriesInFile = lastLoaded;
                         maybeResize();
@@ -104,6 +94,23 @@ public class DefaultHistory implements History {
                 internalClear();
                 throw e;
             }
+        }
+    }
+
+    protected void addHistoryLine(Path path, String line) {
+        if (reader.isSet(LineReader.Option.HISTORY_TIMESTAMPED)) {
+            int idx = line.indexOf(':');
+            if (idx < 0) {
+                throw new IllegalArgumentException("Bad history file syntax! " +
+                        "The history file `" + path + "` may be an older history: " +
+                        "please remove it or use a different history file.");
+            }
+            Instant time = Instant.ofEpochMilli(Long.parseLong(line.substring(0, idx)));
+            String unescaped = unescape(line.substring(idx + 1));
+            internalAdd(time, unescaped);
+        }
+        else {
+            internalAdd(Instant.now(), unescape(line));
         }
     }
 
@@ -232,7 +239,10 @@ public class DefaultHistory implements History {
     }
 
     private String format(Entry entry) {
-        return Long.toString(entry.time().toEpochMilli()) + ":" + escape(entry.line()) + "\n";
+        if (reader.isSet(LineReader.Option.HISTORY_TIMESTAMPED)) {
+            return Long.toString(entry.time().toEpochMilli()) + ":" + escape(entry.line()) + "\n";
+        }
+        return escape(entry.line()) + "\n";
     }
 
     public String get(final int index) {
