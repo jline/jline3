@@ -351,6 +351,7 @@ public interface LineReader {
         HISTORY_REDUCE_BLANKS(true),
         HISTORY_BEEP(true),
         HISTORY_INCREMENTAL(true),
+        HISTORY_TIMESTAMPED(true),
         /** when displaying candidates, group them by {@link Candidate#group()} */
         AUTO_GROUP(true),
         AUTO_MENU(true),
