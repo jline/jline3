@@ -32,6 +32,9 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
     public static JnaWinSysTerminal createTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler, boolean paused) throws IOException {
         Writer writer;
         if (ansiPassThrough) {
+            if (type == null) {
+                type = OSUtils.IS_CONEMU ? TYPE_WINDOWS_256_COLOR : TYPE_WINDOWS;
+            }
             writer = new JnaWinConsoleWriter(consoleOut);
         } else {
             IntByReference mode = new IntByReference();
