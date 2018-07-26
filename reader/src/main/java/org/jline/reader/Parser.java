@@ -16,6 +16,10 @@ public interface Parser {
         return parse(line, cursor, ParseContext.UNSPECIFIED);
     }
 
+    default boolean isEscapeChar(char ch) {
+        return ch == '\\';
+    }
+
     enum ParseContext {
         UNSPECIFIED,
 

@@ -202,6 +202,18 @@ public class DefaultParser implements Parser {
         return false;
     }
 
+    @Override
+    public boolean isEscapeChar(char ch) {
+        if (escapeChars != null) {
+            for (char e : escapeChars) {
+                if (e == ch) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     /**
      * Check if this character is a valid escape char (i.e. one that has not been escaped)
      *
@@ -216,14 +228,8 @@ public class DefaultParser implements Parser {
         if (pos < 0) {
             return false;
         }
-        if (escapeChars != null) {
-            for (char e : escapeChars) {
-                if (e == buffer.charAt(pos)) {
-                    return !isEscaped(buffer, pos);
-                }
-            }
-        }
-        return false;
+        char ch = buffer.charAt(pos);
+        return isEscapeChar(ch) && !isEscaped(buffer, pos);
     }
 
     /**

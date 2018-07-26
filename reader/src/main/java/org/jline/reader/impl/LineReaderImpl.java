@@ -926,7 +926,7 @@ public class LineReaderImpl implements LineReader, Flushable
                     if (ch != '\n') {
                         sb.append(ch);
                     }
-                } else if (ch == '\\') {
+                } else if (parser.isEscapeChar(ch)) {
                     escaped = true;
                 } else {
                     sb.append(ch);
