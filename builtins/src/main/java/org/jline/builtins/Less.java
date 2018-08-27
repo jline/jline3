@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
@@ -217,13 +218,27 @@ public class Less {
                         int c = terminal.reader().read();
                         message = null;
                         if (c == '\r') {
-                            pattern = buffer.toString().substring(1);
-                            if (buffer.charAt(0) == '/') {
-                                moveToNextMatch();
-                            } else {
-                                moveToPreviousMatch();
+                            try {
+                                pattern = buffer.toString().substring(1);
+                                getPattern();
+                                if (buffer.charAt(0) == '/') {
+                                    moveToNextMatch();
+                                } else {
+                                    moveToPreviousMatch();
+                                }
+                                buffer.setLength(0);
+                            } catch (PatternSyntaxException e) {
+                                String str = e.getMessage();
+                                if (str.indexOf('\n') > 0) {
+                                    str = str.substring(0, str.indexOf('\n'));
+                                }
+                                pattern = null;
+                                buffer.setLength(0);
+                                message = "Invalid pattern: " + str + " (Press a key)";
+                                display(false);
+                                terminal.reader().read();
+                                message = null;
                             }
-                            buffer.setLength(0);
                         } else {
                             buffer.append((char) c);
                         }
