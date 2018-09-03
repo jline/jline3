@@ -10,12 +10,12 @@ package org.jline.terminal.impl;
 
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
+import static org.jline.terminal.impl.AbstractWindowsTerminal.TYPE_WINDOWS_256_COLOR;
 import org.jline.utils.AnsiWriter;
+import org.jline.utils.InfoCmp;
 import org.junit.Test;
 
-import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.charset.Charset;
@@ -57,6 +57,35 @@ public class AbstractWindowsTerminalTest {
         assertEquals("This is a char.\n", sw.toString());
         terminal.writer().flush();
         assertEquals("This is a char.\nThis is a string.\n", sw.toString());
+    }
+
+    @Test
+    public void testConEmuClearScreen() throws IOException {
+        System.setProperty("org.jline.terminal.conemu.disable-activate", "false");
+        StringWriter sw = new StringWriter();
+        Terminal terminal = new AbstractWindowsTerminal(new AnsiWriter(new BufferedWriter(sw)), "name", TYPE_WINDOWS_256_COLOR, Charset.defaultCharset(),0,
+                false, Terminal.SignalHandler.SIG_DFL) {
+            @Override
+            protected int getConsoleOutputCP() {
+                return 0;
+            }
+            @Override
+            protected int getConsoleMode() {
+                return 0;
+            }
+            @Override
+            protected void setConsoleMode(int mode) {
+            }
+            @Override
+            protected boolean processConsoleInput() throws IOException {
+                return false;
+            }
+            @Override
+            public Size getSize() {
+                return new Size(80, 25);
+            }
+        };
+        assertEquals("\\E[H\\E[J\\E[9999E", terminal.getStringCapability(InfoCmp.Capability.clear_screen));
     }
 
 }

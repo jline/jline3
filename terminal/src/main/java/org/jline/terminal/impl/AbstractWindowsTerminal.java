@@ -111,6 +111,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         // ConEMU extended fonts support
         if (TYPE_WINDOWS_256_COLOR.equals(getType())
                 && !Boolean.getBoolean("org.jline.terminal.conemu.disable-activate")) {
+            strings.replace(InfoCmp.Capability.clear_screen, "\\E[H\\E[J", "\\E[H\\E[J\\E[9999E");
             writer.write("\u001b[9999E");
             writer.flush();
         }
