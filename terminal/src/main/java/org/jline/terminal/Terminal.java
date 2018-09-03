@@ -111,7 +111,7 @@ public interface Terminal extends Closeable, Flushable {
      * 
      * @return The output stream
      * 
-     * @see #writer();
+     * @see #writer()
      */
     OutputStream output();
 
