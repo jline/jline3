@@ -27,6 +27,7 @@ import java.util.function.Function;
 
 import org.jline.reader.Candidate;
 import org.jline.reader.LineReader;
+import org.jline.reader.LineReader.Option;
 import org.jline.reader.ParsedLine;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedStringBuilder;
@@ -460,8 +461,10 @@ public class Completers {
 
         private boolean doMatch(String arg, String name) {
             List<Candidate> candidates = new ArrayList<>();
-            completers.apply(name).complete(this.reader.get(), new ArgumentLine(arg, arg.length()), candidates);
-            return candidates.stream().anyMatch(c -> c.value().equals(arg));
+            LineReader r = reader.get();
+            boolean caseInsensitive = r != null && r.isSet(Option.CASE_INSENSITIVE);
+            completers.apply(name).complete(r, new ArgumentLine(arg, arg.length()), candidates);
+            return candidates.stream().anyMatch(c -> caseInsensitive ? c.value().equalsIgnoreCase(arg) : c.value().equals(arg));
         }
 
         public static class ArgumentLine implements ParsedLine {
