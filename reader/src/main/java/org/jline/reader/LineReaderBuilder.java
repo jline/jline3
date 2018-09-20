@@ -85,7 +85,7 @@ public final class LineReaderBuilder {
     public LineReaderBuilder parser(Parser parser) {
         if (parser != null) {
             try {
-                if (!Boolean.parseBoolean(LineReader.PROP_SUPPORT_PARSEDLINE)
+                if (!Boolean.getBoolean(LineReader.PROP_SUPPORT_PARSEDLINE)
                         && !(parser.parse("", 0) instanceof CompletingParsedLine)) {
                     Log.warn("The Parser of class " + parser.getClass().getName() + " does not support the CompletingParsedLine interface. " +
                             "Completion with escaped or quoted words won't work correctly.");
