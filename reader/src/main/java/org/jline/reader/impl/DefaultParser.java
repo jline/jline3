@@ -173,7 +173,7 @@ public class DefaultParser implements Parser {
 
     /**
      * Returns true if the specified character is a whitespace parameter. Check to ensure that the character is not
-     * escaped by any of {@link #getQuoteChars}, and is not escaped by ant of the {@link #getEscapeChars}, and
+     * escaped by any of {@link #getQuoteChars}, and is not escaped by any of the {@link #getEscapeChars}, and
      * returns true from {@link #isDelimiterChar}.
      *
      * @param buffer    The complete command buffer
@@ -251,7 +251,7 @@ public class DefaultParser implements Parser {
 
     /**
      * Returns true if the character at the specified position if a delimiter. This method will only be called if
-     * the character is not enclosed in any of the {@link #getQuoteChars}, and is not escaped by ant of the
+     * the character is not enclosed in any of the {@link #getQuoteChars}, and is not escaped by any of the
      * {@link #getEscapeChars}. To perform escaping manually, override {@link #isDelimiter} instead.
      *
      * @param buffer
