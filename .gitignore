@@ -6,3 +6,5 @@ target
 .idea
 build.rc
 .vscode
+
+.mvn/wrapper/maven-wrapper.jar
