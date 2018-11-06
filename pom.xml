@@ -405,6 +405,7 @@
                 <version>3.0.0</version>
                 <configuration>
                     <additionalparam>-Xdoclint:none </additionalparam>
+                    <additionalparam>-notimestamp </additionalparam>
                     <additionalOptions>${javadocOptions}</additionalOptions>
                     <failOnError>false</failOnError>
                 </configuration>
