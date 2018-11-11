@@ -8,6 +8,7 @@
  */
 package org.jline.reader.completer;
 
+import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.ReaderTestSupport;
 import org.jline.reader.impl.completer.StringsCompleter;
 import org.junit.Test;
@@ -30,4 +31,16 @@ public class StringsCompleterTest
         assertBuffer("ba", new TestBuffer("ba").tab());
         assertBuffer("baz ", new TestBuffer("baz").tab());
     }
+
+    @Test
+    public void escapeCharsNull() throws Exception {
+    	DefaultParser dp = (DefaultParser)reader.getParser();
+    	dp.setEscapeChars(null);
+    	reader.setParser(dp);
+        reader.setCompleter(new StringsCompleter("foo bar", "bar"));
+
+        assertBuffer("foo bar ", new TestBuffer("f").tab());
+        assertBuffer("bar ", new TestBuffer("b").tab());
+    }
+    
 }
