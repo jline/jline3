@@ -35,6 +35,7 @@ import org.jline.builtins.Source.StdInSource;
 import org.jline.builtins.Source.URLSource;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
+import org.jline.reader.Highlighter;
 import org.jline.reader.History;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReader.Option;
@@ -188,6 +189,7 @@ public class Commands {
         if (opt.isSet("clear") || opt.isSet("save")) {
             return;
         }
+        final Highlighter highlighter = reader.getHighlighter();
         for (History.Entry entry : history) {
             AttributedStringBuilder sb = new AttributedStringBuilder();
             sb.append("  ");
@@ -199,7 +201,7 @@ public class Commands {
                 DateTimeFormatter.ISO_LOCAL_TIME.formatTo(lt, sb);
             }
             sb.append("  ");
-            sb.append(entry.line());
+            sb.append(highlighter.highlight(reader, entry.line()));
             out.println(sb.toAnsi(reader.getTerminal()));
         }
     }
