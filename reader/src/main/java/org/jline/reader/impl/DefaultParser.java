@@ -373,20 +373,22 @@ public class DefaultParser implements Parser {
         public CharSequence escape(CharSequence candidate, boolean complete) {
             StringBuilder sb = new StringBuilder(candidate);
             Predicate<Integer> needToBeEscaped;
-            // Completion is protected by an opening quote:
-            // Delimiters (spaces) don't need to be escaped, nor do other quotes, but everything else does.
-            // Also, close the quote at the end
-            if (openingQuote != null) {
-                needToBeEscaped = i -> isRawEscapeChar(sb.charAt(i)) || String.valueOf(sb.charAt(i)).equals(openingQuote);
-            }
-            // No quote protection, need to escape everything: delimiter chars (spaces), quote chars
-            // and escapes themselves
-            else {
-                needToBeEscaped = i -> isDelimiterChar(sb, i) || isRawEscapeChar(sb.charAt(i)) || isRawQuoteChar(sb.charAt(i));
-            }
-            for (int i = 0; i < sb.length(); i++) {
-                if (needToBeEscaped.test(i)) {
-                    sb.insert(i++, escapeChars[0]);
+            if (escapeChars != null) {
+                // Completion is protected by an opening quote:
+                // Delimiters (spaces) don't need to be escaped, nor do other quotes, but everything else does.
+                // Also, close the quote at the end
+                if (openingQuote != null) {
+                    needToBeEscaped = i -> isRawEscapeChar(sb.charAt(i)) || String.valueOf(sb.charAt(i)).equals(openingQuote);
+                }
+                // No quote protection, need to escape everything: delimiter chars (spaces), quote chars
+                // and escapes themselves
+                else {
+                    needToBeEscaped = i -> isDelimiterChar(sb, i) || isRawEscapeChar(sb.charAt(i)) || isRawQuoteChar(sb.charAt(i));
+                }
+                for (int i = 0; i < sb.length(); i++) {
+                    if (needToBeEscaped.test(i)) {
+                        sb.insert(i++, escapeChars[0]);
+                    }
                 }
             }
             if (openingQuote != null) {
