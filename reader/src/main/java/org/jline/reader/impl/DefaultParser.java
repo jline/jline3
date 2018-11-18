@@ -373,6 +373,7 @@ public class DefaultParser implements Parser {
         public CharSequence escape(CharSequence candidate, boolean complete) {
             StringBuilder sb = new StringBuilder(candidate);
             Predicate<Integer> needToBeEscaped;
+            String _openingQuote=null;
             if (escapeChars != null) {
                 // Completion is protected by an opening quote:
                 // Delimiters (spaces) don't need to be escaped, nor do other quotes, but everything else does.
@@ -390,14 +391,28 @@ public class DefaultParser implements Parser {
                         sb.insert(i++, escapeChars[0]);
                     }
                 }
+            } else if (openingQuote==null) {
+                for (int i = 0; i < sb.length(); i++) {
+                    if (isDelimiterChar(sb, i)) {
+                        _openingQuote="'";
+                        break;
+                    }
+                }
+            	
             }
             if (openingQuote != null) {
-                sb.insert(0, openingQuote);
-                if (complete) {
-                    sb.append(openingQuote);
-                }
+            	encloseQuotes(sb, openingQuote, complete);
+            } else if (_openingQuote != null) {
+            	encloseQuotes(sb, _openingQuote, complete);
             }
             return sb;
+        }
+        
+        private void encloseQuotes(StringBuilder sb, String openingQuote, boolean complete){
+            sb.insert(0, openingQuote);
+            if (complete) {
+                sb.append(openingQuote);
+            }  
         }
 
         @Override

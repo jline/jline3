@@ -34,13 +34,30 @@ public class StringsCompleterTest
 
     @Test
     public void escapeCharsNull() throws Exception {
+        DefaultParser dp = (DefaultParser)reader.getParser();
+        dp.setEscapeChars(null);
+    	reader.setParser(dp);
+        reader.setCompleter(new StringsCompleter("foo bar"));
+
+        assertBuffer("'foo bar' ", new TestBuffer("f").tab());
+        assertBuffer("'foo bar' ", new TestBuffer("'f").tab());
+        // mrn 18/11/2018 IMHO the two bellow are wrong
+        assertBuffer("'foo bar' ", new TestBuffer("foo'b").tab()); 
+        assertBuffer("'foo bar' ", new TestBuffer("'bar'f").tab()); 
+    }
+
+    @Test
+    public void escapeChars() throws Exception {
     	DefaultParser dp = (DefaultParser)reader.getParser();
-    	dp.setEscapeChars(null);
+    	dp.setEscapeChars(new char[]{'\\'});
     	reader.setParser(dp);
         reader.setCompleter(new StringsCompleter("foo bar", "bar"));
 
-        assertBuffer("foo bar ", new TestBuffer("f").tab());
-        assertBuffer("bar ", new TestBuffer("b").tab());
+        assertBuffer("foo\\ bar ", new TestBuffer("f").tab());
+        assertBuffer("'bar' ", new TestBuffer("'b").tab());
+        // mrn 18/11/2018 IMHO the two bellow are wrong
+        assertBuffer("foo\\ bar ", new TestBuffer("'bar'f").tab());
+        assertBuffer("'bar' ", new TestBuffer("bar'f").tab());
     }
     
 }
