@@ -131,7 +131,7 @@ The finer grained bundles are located at:
 
 Maven has a concept of `SNAPSHOT`. During development, the jline version will always ends with `-SNAPSHOT`, which means that the version is in development and not a release.
 
-Note that all those artifacts are also installed in the local maven repostitory, so you will usually find them in the following folder: `~/.m2/repository/org/jline/`.
+Note that all those artifacts are also installed in the local maven repository, so you will usually find them in the following folder: `~/.m2/repository/org/jline/`.
 
 ## Running the demo
 
