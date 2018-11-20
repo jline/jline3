@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Tests for {@link DefaultHistory}.
@@ -148,4 +150,30 @@ public class HistoryTest extends ReaderTestSupport
         assertEquals("a", trimmed.get(2).line());
     }
 
+    @Test
+    public void testAddHistoryLine() throws IOException {
+        final Path histFile = Files.createTempFile(null, null);
+
+        reader.setOpt(LineReader.Option.HISTORY_TIMESTAMPED);
+        try {
+            history.addHistoryLine(histFile, ":test");
+            fail("Wrong handling of timestamped history");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().startsWith("Bad history file syntax!"));
+        }
+
+        try {
+            history.addHistoryLine(histFile, "test:test");
+            fail("Wrong handling of timestamped history");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().startsWith("Bad history file syntax!"));
+        }
+
+        try {
+            history.addHistoryLine(histFile, "123456789123456789123456789:test");
+            fail("Wrong handling of timestamped history ");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().startsWith("Bad history file syntax!"));
+        }
+    }
 }
