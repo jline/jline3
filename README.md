@@ -17,7 +17,7 @@ JLine 3.x is an evolution of [JLine 2.x](https://github.com/jline/jline2).
 
 # License
 
-JLine is distributed under the [BSD License](http://www.opensource.org/licenses/bsd-license.php), meaning that you are completely free to redistribute, modify, or sell it with almost no restrictions.
+JLine is distributed under the [BSD License](https://opensource.org/licenses/BSD-3-Clause), meaning that you are completely free to redistribute, modify, or sell it with almost no restrictions.
 
 # Documentation
 
