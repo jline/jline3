@@ -6,7 +6,7 @@
     This software is distributable under the BSD license. See the terms of the
     BSD license in the documentation provided with this software.
 
-    http://www.opensource.org/licenses/bsd-license.php
+    https://opensource.org/licenses/BSD-3-Clause
 
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
@@ -29,7 +29,7 @@
     <licenses>
         <license>
             <name>The BSD License</name>
-            <url>http://www.opensource.org/licenses/bsd-license.php</url>
+            <url>https://opensource.org/licenses/BSD-3-Clause</url>
             <distribution>repo</distribution>
         </license>
     </licenses>

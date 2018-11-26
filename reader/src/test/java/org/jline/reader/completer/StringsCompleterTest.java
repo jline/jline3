@@ -4,10 +4,11 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
- * http://www.opensource.org/licenses/bsd-license.php
+ * https://opensource.org/licenses/BSD-3-Clause
  */
 package org.jline.reader.completer;
 
+import org.jline.reader.LineReader;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.ReaderTestSupport;
 import org.jline.reader.impl.completer.StringsCompleter;
@@ -34,30 +35,30 @@ public class StringsCompleterTest
 
     @Test
     public void escapeCharsNull() throws Exception {
-        DefaultParser dp = (DefaultParser)reader.getParser();
-        dp.setEscapeChars(null);
+    	DefaultParser dp = (DefaultParser) reader.getParser();
+    	dp.setEscapeChars(null);
+    	reader.setVariable(LineReader.ERRORS, 0);
     	reader.setParser(dp);
-        reader.setCompleter(new StringsCompleter("foo bar"));
+        reader.setCompleter(new StringsCompleter("foo bar", "bar"));
 
         assertBuffer("'foo bar' ", new TestBuffer("f").tab());
         assertBuffer("'foo bar' ", new TestBuffer("'f").tab());
-        // mrn 18/11/2018 IMHO the two bellow are wrong
-        assertBuffer("'foo bar' ", new TestBuffer("foo'b").tab()); 
-        assertBuffer("'foo bar' ", new TestBuffer("'bar'f").tab()); 
+        assertBuffer("foo'b", new TestBuffer("foo'b").tab());
+        assertBuffer("bar'f", new TestBuffer("bar'f").tab());
     }
 
     @Test
     public void escapeChars() throws Exception {
-    	DefaultParser dp = (DefaultParser)reader.getParser();
-    	dp.setEscapeChars(new char[]{'\\'});
-    	reader.setParser(dp);
+        DefaultParser dp = (DefaultParser) reader.getParser();
+        dp.setEscapeChars(new char[] { '\\' });
+        reader.setVariable(LineReader.ERRORS, 0);
+        reader.setParser(dp);
         reader.setCompleter(new StringsCompleter("foo bar", "bar"));
 
         assertBuffer("foo\\ bar ", new TestBuffer("f").tab());
         assertBuffer("'bar' ", new TestBuffer("'b").tab());
-        // mrn 18/11/2018 IMHO the two bellow are wrong
-        assertBuffer("foo\\ bar ", new TestBuffer("'bar'f").tab());
-        assertBuffer("'bar' ", new TestBuffer("bar'f").tab());
+        assertBuffer("'bar'f", new TestBuffer("'bar'f").tab());
+        assertBuffer("bar'f", new TestBuffer("bar'f").tab());
     }
-    
+
 }

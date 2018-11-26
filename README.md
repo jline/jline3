@@ -5,10 +5,10 @@
     This software is distributable under the BSD license. See the terms of the
     BSD license in the documentation provided with this software.
 
-    http://www.opensource.org/licenses/bsd-license.php
+    https://opensource.org/licenses/BSD-3-Clause
 
 -->
-# JLine [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.jline/jline/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.jline/jline) [![Build Status: Linux](https://travis-ci.org/jline/jline3.svg?branch=master)](https://travis-ci.org/jline/jline3) [![Build Status: Windows](https://ci.appveyor.com/api/projects/status/github/jline/jline3?svg=true)](https://ci.appveyor.com/project/gnodet/jline3) [![DepShield Badge](https://depshield.sonatype.org/badges/jline/jline3/depshield.svg)](https://depshield.github.io)
+# JLine [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-3-Clause) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.jline/jline/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.jline/jline) [![Build Status: Linux](https://travis-ci.org/jline/jline3.svg?branch=master)](https://travis-ci.org/jline/jline3) [![Build Status: Windows](https://ci.appveyor.com/api/projects/status/github/jline/jline3?svg=true)](https://ci.appveyor.com/project/gnodet/jline3) [![DepShield Badge](https://depshield.sonatype.org/badges/jline/jline3/depshield.svg)](https://depshield.github.io)
 
 
 JLine is a Java library for handling console input. It is similar in functionality to [BSD editline](http://www.thrysoee.dk/editline/) and [GNU readline](http://www.gnu.org/s/readline/) but with additional features that bring it in par with [ZSH line editor](http://zsh.sourceforge.net/Doc/Release/Zsh-Line-Editor.html). People familiar with the readline/editline capabilities for modern shells (such as bash and tcsh) will find most of the command editing features of JLine to be familiar.
@@ -17,7 +17,7 @@ JLine 3.x is an evolution of [JLine 2.x](https://github.com/jline/jline2).
 
 # License
 
-JLine is distributed under the [BSD License](http://www.opensource.org/licenses/bsd-license.php), meaning that you are completely free to redistribute, modify, or sell it with almost no restrictions.
+JLine is distributed under the [BSD License](https://opensource.org/licenses/BSD-3-Clause), meaning that you are completely free to redistribute, modify, or sell it with almost no restrictions.
 
 # Documentation
 
@@ -131,7 +131,7 @@ The finer grained bundles are located at:
 
 Maven has a concept of `SNAPSHOT`. During development, the jline version will always ends with `-SNAPSHOT`, which means that the version is in development and not a release.
 
-Note that all those artifacts are also installed in the local maven repostitory, so you will usually find them in the following folder: `~/.m2/repository/org/jline/`.
+Note that all those artifacts are also installed in the local maven repository, so you will usually find them in the following folder: `~/.m2/repository/org/jline/`.
 
 ## Running the demo
 

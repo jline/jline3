@@ -4,7 +4,7 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
- * http://www.opensource.org/licenses/bsd-license.php
+ * https://opensource.org/licenses/BSD-3-Clause
  */
 package org.jline.reader.impl;
 
@@ -21,6 +21,7 @@ import java.util.function.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.jline.keymap.BindingReader;
@@ -5358,6 +5359,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
     public KeyMap<Binding> emacs() {
         KeyMap<Binding> emacs = new KeyMap<>();
+        bindKeys(emacs);
         bind(emacs, SET_MARK_COMMAND,                       ctrl('@'));
         bind(emacs, BEGINNING_OF_LINE,                      ctrl('A'));
         bind(emacs, BACKWARD_CHAR,                          ctrl('B'));
@@ -5439,6 +5441,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
     public KeyMap<Binding> viInsertion() {
         KeyMap<Binding> viins = new KeyMap<>();
+        bindKeys(viins);
         bind(viins, SELF_INSERT,                            range("^@-^_"));
         bind(viins, LIST_CHOICES,                           ctrl('D'));
         bind(viins, SEND_BREAK,                             ctrl('G'));
@@ -5636,6 +5639,13 @@ public class LineReaderImpl implements LineReader, Flushable
 
     private String key(Capability capability) {
         return KeyMap.key(terminal, capability);
+    }
+
+    private void bindKeys(KeyMap<Binding> emacs) {
+        Stream.of(Capability.values())
+                .filter(c -> c.name().startsWith("key_"))
+                .map(this::key)
+                .forEach(k -> bind(emacs, this::beep, k));
     }
 
     private void bindArrowKeys(KeyMap<Binding> map) {

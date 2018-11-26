@@ -4,12 +4,13 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
- * http://www.opensource.org/licenses/bsd-license.php
+ * https://opensource.org/licenses/BSD-3-Clause
  */
 package org.jline.reader.impl.history;
 
 import java.io.*;
 import java.nio.file.*;
+import java.time.DateTimeException;
 import java.time.Instant;
 import java.util.*;
 
@@ -100,12 +101,19 @@ public class DefaultHistory implements History {
     protected void addHistoryLine(Path path, String line) {
         if (reader.isSet(LineReader.Option.HISTORY_TIMESTAMPED)) {
             int idx = line.indexOf(':');
+            final String badHistoryFileSyntax = "Bad history file syntax! " +
+                "The history file `" + path + "` may be an older history: " +
+                "please remove it or use a different history file.";
             if (idx < 0) {
-                throw new IllegalArgumentException("Bad history file syntax! " +
-                        "The history file `" + path + "` may be an older history: " +
-                        "please remove it or use a different history file.");
+                throw new IllegalArgumentException(badHistoryFileSyntax);
             }
-            Instant time = Instant.ofEpochMilli(Long.parseLong(line.substring(0, idx)));
+            Instant time;
+            try {
+                time = Instant.ofEpochMilli(Long.parseLong(line.substring(0, idx)));
+            } catch (DateTimeException | NumberFormatException e) {
+                throw new IllegalArgumentException(badHistoryFileSyntax);
+            }
+
             String unescaped = unescape(line.substring(idx + 1));
             internalAdd(time, unescaped);
         }

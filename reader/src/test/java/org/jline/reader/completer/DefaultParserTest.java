@@ -4,7 +4,7 @@
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
- * http://www.opensource.org/licenses/bsd-license.php
+ * https://opensource.org/licenses/BSD-3-Clause
  */
 package org.jline.reader.completer;
 
@@ -79,6 +79,6 @@ public class DefaultParserTest extends ReaderTestSupport {
         assertEquals(Arrays.asList("'1", "2", "3"), delimited.words());
 
         delimited = parser.parse("'1 '2\\' 3", 0);
-        assertEquals(Arrays.asList("1 ", "2'", "3"), delimited.words());
+        assertEquals(Arrays.asList("1 2'", "3"), delimited.words());
     }
 }
