@@ -110,37 +110,25 @@ public class DefaultParser implements Parser {
             if (quoteStart < 0 && isQuoteChar(line, i)) {
                 // Start a quote block
                 quoteStart = i;
-            } else if (quoteStart >= 0) {
-                // In a quote block
-                if (line.charAt(quoteStart) == line.charAt(i) && !isEscaped(line, i)) {
-                    // End the block; arg could be empty, but that's fine
+            } else if (quoteStart >= 0 && line.charAt(quoteStart) == line.charAt(i) && !isEscaped(line, i)) {
+                // End quote block
+                quoteStart = -1;
+                if (rawWordCursor >= 0 && rawWordLength < 0) {
+                    rawWordLength = i - rawWordStart + 1;
+                }
+            } else if (quoteStart < 0 && isDelimiter(line, i)) {
+                // Delimiter
+                if (current.length() > 0) {
                     words.add(current.toString());
-                    current.setLength(0);
-                    quoteStart = -1;
+                    current.setLength(0); // reset the arg
                     if (rawWordCursor >= 0 && rawWordLength < 0) {
-                        rawWordLength = i - rawWordStart + 1;
-                    }
-                } else {
-                    if (!isEscapeChar(line, i)) {
-                        // Take the next character
-                        current.append(line.charAt(i));
+                        rawWordLength = i - rawWordStart;
                     }
                 }
+                rawWordStart = i + 1;
             } else {
-                // Not in a quote block
-                if (isDelimiter(line, i)) {
-                    if (current.length() > 0) {
-                        words.add(current.toString());
-                        current.setLength(0); // reset the arg
-                        if (rawWordCursor >= 0 && rawWordLength < 0) {
-                            rawWordLength = i - rawWordStart;
-                        }
-                    }
-                    rawWordStart = i + 1;
-                } else {
-                    if (!isEscapeChar(line, i)) {
-                        current.append(line.charAt(i));
-                    }
+                if (!isEscapeChar(line, i)) {
+                    current.append(line.charAt(i));
                 }
             }
         }
@@ -373,6 +361,7 @@ public class DefaultParser implements Parser {
         public CharSequence escape(CharSequence candidate, boolean complete) {
             StringBuilder sb = new StringBuilder(candidate);
             Predicate<Integer> needToBeEscaped;
+            String quote = openingQuote;
             if (escapeChars != null) {
                 // Completion is protected by an opening quote:
                 // Delimiters (spaces) don't need to be escaped, nor do other quotes, but everything else does.
@@ -390,11 +379,18 @@ public class DefaultParser implements Parser {
                         sb.insert(i++, escapeChars[0]);
                     }
                 }
+            } else if (openingQuote == null) {
+                for (int i = 0; i < sb.length(); i++) {
+                    if (isDelimiterChar(sb, i)) {
+                        quote = "'";
+                        break;
+                    }
+                }
             }
-            if (openingQuote != null) {
-                sb.insert(0, openingQuote);
+            if (quote != null) {
+                sb.insert(0, quote);
                 if (complete) {
-                    sb.append(openingQuote);
+                    sb.append(quote);
                 }
             }
             return sb;
