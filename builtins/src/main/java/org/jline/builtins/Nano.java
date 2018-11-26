@@ -1473,7 +1473,6 @@ public class Nano {
         s.put("^G", "Get Help");
         s.put("^O", "WriteOut");
         s.put("^R", "Read File");
-        s.put("^O", "WriteOut");
         s.put("^Y", "Prev Page");
         s.put("^K", "Cut Text");
         s.put("^C", "Cur Pos");
@@ -1552,6 +1551,7 @@ public class Nano {
     void search() throws IOException {
         KeyMap<Operation> searchKeyMap = new KeyMap<>();
         searchKeyMap.setUnicode(Operation.INSERT);
+        searchKeyMap.setNomatch(Operation.INSERT);
         for (char i = 'A'; i <= 'Z'; i++) {
             searchKeyMap.bind(Operation.DO_LOWER_CASE, alt(i));
         }
