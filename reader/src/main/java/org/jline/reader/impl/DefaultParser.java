@@ -95,6 +95,7 @@ public class DefaultParser implements Parser {
         int rawWordCursor = -1;
         int rawWordLength = -1;
         int rawWordStart = 0;
+        boolean quotedWord = false;
 
         for (int i = 0; (line != null) && (i < line.length()); i++) {
             // once we reach the cursor, set the
@@ -110,12 +111,20 @@ public class DefaultParser implements Parser {
             if (quoteStart < 0 && isQuoteChar(line, i)) {
                 // Start a quote block
                 quoteStart = i;
+                if (current.length()==0) {
+                	quotedWord = true;
+                } else {
+                	current.append(line.charAt(i));
+                }
             } else if (quoteStart >= 0 && line.charAt(quoteStart) == line.charAt(i) && !isEscaped(line, i)) {
                 // End quote block
-                quoteStart = -1;
-                if (rawWordCursor >= 0 && rawWordLength < 0) {
+                if (!quotedWord) {
+                	current.append(line.charAt(i));
+                } else if (rawWordCursor >= 0 && rawWordLength < 0) {
                     rawWordLength = i - rawWordStart + 1;
                 }
+                quoteStart = -1;
+                quotedWord = false;                
             } else if (quoteStart < 0 && isDelimiter(line, i)) {
                 // Delimiter
                 if (current.length() > 0) {
@@ -155,7 +164,7 @@ public class DefaultParser implements Parser {
                     ? "quote" : "dquote");
         }
 
-        String openingQuote = quoteStart >= 0 ? line.substring(quoteStart, quoteStart + 1) : null;
+        String openingQuote = quotedWord ? line.substring(quoteStart, quoteStart + 1) : null;
         return new ArgumentList(line, words, wordIndex, wordCursor, cursor, openingQuote, rawWordCursor, rawWordLength);
     }
 
@@ -381,9 +390,12 @@ public class DefaultParser implements Parser {
                 }
             } else if (openingQuote == null) {
                 for (int i = 0; i < sb.length(); i++) {
+                	if (isQuoteChar(sb, i)) {
+                        quote = null;                		
+                        break;
+                	}
                     if (isDelimiterChar(sb, i)) {
                         quote = "'";
-                        break;
                     }
                 }
             }
