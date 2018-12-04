@@ -63,10 +63,10 @@ public class StringsCompleterTest
 
     @Test
     public void middleQuotesEscapeCharsNull() throws Exception {
-    	DefaultParser dp = (DefaultParser) reader.getParser();
-    	dp.setEscapeChars(null);
-    	reader.setVariable(LineReader.ERRORS, 0);
-    	reader.setParser(dp);
+        DefaultParser dp = (DefaultParser) reader.getParser();
+        dp.setEscapeChars(null);
+        reader.setVariable(LineReader.ERRORS, 0);
+        reader.setParser(dp);
         reader.setCompleter(new StringsCompleter("/foo?name='foo bar'","/foo?name='foo qux'"));
 
         assertBuffer("/foo?name='foo ", new TestBuffer("/f").tab());
@@ -75,10 +75,10 @@ public class StringsCompleterTest
 
     @Test
     public void middleQuotesEscapeChars() throws Exception {
-    	DefaultParser dp = (DefaultParser) reader.getParser();
+        DefaultParser dp = (DefaultParser) reader.getParser();
         dp.setEscapeChars(new char[] { '\\' });
-    	reader.setVariable(LineReader.ERRORS, 0);
-    	reader.setParser(dp);
+        reader.setVariable(LineReader.ERRORS, 0);
+        reader.setParser(dp);
         reader.setCompleter(new StringsCompleter("/foo?name='foo bar'","/foo?name='foo qux'"));
 
         assertBuffer("/foo?name=\\'foo\\ ", new TestBuffer("/f").tab());

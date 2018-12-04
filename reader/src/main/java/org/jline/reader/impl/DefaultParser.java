@@ -112,14 +112,14 @@ public class DefaultParser implements Parser {
                 // Start a quote block
                 quoteStart = i;
                 if (current.length()==0) {
-                	quotedWord = true;
+                    quotedWord = true;
                 } else {
-                	current.append(line.charAt(i));
+                    current.append(line.charAt(i));
                 }
             } else if (quoteStart >= 0 && line.charAt(quoteStart) == line.charAt(i) && !isEscaped(line, i)) {
                 // End quote block
                 if (!quotedWord) {
-                	current.append(line.charAt(i));
+                    current.append(line.charAt(i));
                 } else if (rawWordCursor >= 0 && rawWordLength < 0) {
                     rawWordLength = i - rawWordStart + 1;
                 }
@@ -390,10 +390,10 @@ public class DefaultParser implements Parser {
                 }
             } else if (openingQuote == null) {
                 for (int i = 0; i < sb.length(); i++) {
-                	if (isQuoteChar(sb, i)) {
-                        quote = null;                		
+                    if (isQuoteChar(sb, i)) {
+                        quote = null;
                         break;
-                	}
+                    }
                     if (isDelimiterChar(sb, i)) {
                         quote = "'";
                     }
