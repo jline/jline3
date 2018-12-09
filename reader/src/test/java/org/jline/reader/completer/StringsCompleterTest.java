@@ -81,7 +81,7 @@ public class StringsCompleterTest
         reader.setParser(dp);
         reader.setCompleter(new StringsCompleter("/foo?name='foo bar'","/foo?name='foo qux'"));
 
-        assertBuffer("/foo?name=\\'foo\\ ", new TestBuffer("/f").tab());
-        assertBuffer("/foo?name=\\'foo\\ bar\\' ", new TestBuffer("/foo?name='foo b").tab());
+        assertBuffer("/foo?name='foo ", new TestBuffer("/f").tab());
+        assertBuffer("/foo?name='foo bar' ", new TestBuffer("/foo?name='foo b").tab());
     }
 }

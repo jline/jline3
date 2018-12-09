@@ -371,12 +371,26 @@ public class DefaultParser implements Parser {
             StringBuilder sb = new StringBuilder(candidate);
             Predicate<Integer> needToBeEscaped;
             String quote = openingQuote;
+            boolean middleQuotes = false;
+            if (openingQuote==null) {
+                for (int i=0; i < sb.length(); i++) {
+                    if (isQuoteChar(sb, i)) {
+                        middleQuotes = true;
+                        break;
+                    }
+                }
+            }
             if (escapeChars != null) {
                 // Completion is protected by an opening quote:
                 // Delimiters (spaces) don't need to be escaped, nor do other quotes, but everything else does.
                 // Also, close the quote at the end
                 if (openingQuote != null) {
                     needToBeEscaped = i -> isRawEscapeChar(sb.charAt(i)) || String.valueOf(sb.charAt(i)).equals(openingQuote);
+                }
+                // Completion is protected by middle quotes:
+                // Delimiters (spaces) don't need to be escaped, nor do quotes, but everything else does.
+                else if (middleQuotes) {
+                    needToBeEscaped = i -> isRawEscapeChar(sb.charAt(i));
                 }
                 // No quote protection, need to escape everything: delimiter chars (spaces), quote chars
                 // and escapes themselves
@@ -388,14 +402,11 @@ public class DefaultParser implements Parser {
                         sb.insert(i++, escapeChars[0]);
                     }
                 }
-            } else if (openingQuote == null) {
+            } else if (openingQuote == null && !middleQuotes) {
                 for (int i = 0; i < sb.length(); i++) {
-                    if (isQuoteChar(sb, i)) {
-                        quote = null;
-                        break;
-                    }
                     if (isDelimiterChar(sb, i)) {
                         quote = "'";
+                        break;
                     }
                 }
             }
