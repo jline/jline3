@@ -207,10 +207,10 @@ public class DefaultParser implements Parser {
                     ? "quote" : "dquote");
         }
         if (bracketChecker.isOpeningBracketMissing() && context != ParseContext.COMPLETE) {
-            throw new EOFError(-1, -1, "Missing opening bracket", "missing: " + bracketChecker.getMissingOpeningBracket());
+            throw new EOFError(-1, -1, "Missing opening bracket", "missing:" + bracketChecker.getMissingOpeningBracket());
         }
         if (bracketChecker.isClosingBracketMissing() && context != ParseContext.COMPLETE) {
-            throw new EOFError(-1, -1, "Missing closing brackets", "+: " + bracketChecker.getMissingClosingBrackets());
+            throw new EOFError(-1, -1, "Missing closing brackets", "add:" + bracketChecker.getMissingClosingBrackets());
         }
 
         String openingQuote = quoteStart >= 0 ? line.substring(quoteStart, quoteStart + 1) : null;
