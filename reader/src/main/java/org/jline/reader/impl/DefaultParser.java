@@ -370,11 +370,11 @@ public class DefaultParser implements Parser {
 
         public String getMissingClosingBrackets(){
             if (!isClosingBracketMissing()) return null;
-            String out="";
+            StringBuilder out = new StringBuilder("");
             for (int i=nested.size()-1; i>-1; i--) {
-                out += Character.toString(closingBrackets[nested.get(i)]);                
+                out.append(Character.toString(closingBrackets[nested.get(i)]));                
             }
-            return out;
+            return out.toString();
         }
         
         private int bracketId(final char[] brackets, final CharSequence buffer, final int pos){
