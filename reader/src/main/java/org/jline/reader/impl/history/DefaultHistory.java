@@ -69,7 +69,7 @@ public class DefaultHistory implements History {
             try {
                 load();
             }
-            catch (IOException e) {
+            catch (IllegalArgumentException | IOException e) {
                 Log.warn("Failed to load history", e);
             }
         }
@@ -90,7 +90,7 @@ public class DefaultHistory implements History {
                         maybeResize();
                     }
                 }
-            } catch (IOException e) {
+            } catch (IllegalArgumentException | IOException e) {
                 Log.debug("Failed to load history; clearing", e);
                 internalClear();
                 throw e;
