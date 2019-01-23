@@ -11,6 +11,7 @@ package org.jline.builtins;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Array;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -302,25 +303,22 @@ public class Completers {
                 curBuf = "";
                 current = getUserDir();
             }
-            try {
-                Files.newDirectoryStream(current, this::accept).forEach(p -> {
-                    String value = curBuf + p.getFileName().toString();
-                    if (Files.isDirectory(p)) {
-                        candidates.add(new Candidate(
-                                value + (reader.isSet(LineReader.Option.AUTO_PARAM_SLASH) ? sep : ""),
-                                getDisplay(reader.getTerminal(), p),
-                                null, null,
-                                reader.isSet(LineReader.Option.AUTO_REMOVE_SLASH) ? sep : null,
-                                null,
-                                false));
-                    } else {
-                        candidates.add(new Candidate(value, getDisplay(reader.getTerminal(), p),
-                                null, null, null, null, true));
-                    }
-                });
-            } catch (IOException e) {
-                // Ignore
-            }
+			try (DirectoryStream<Path> directory = Files.newDirectoryStream(current, this::accept)) {
+				directory.forEach(p -> {
+					String value = curBuf + p.getFileName().toString();
+					if (Files.isDirectory(p)) {
+						candidates.add(
+								new Candidate(value + (reader.isSet(LineReader.Option.AUTO_PARAM_SLASH) ? sep : ""),
+										getDisplay(reader.getTerminal(), p), null, null,
+										reader.isSet(LineReader.Option.AUTO_REMOVE_SLASH) ? sep : null, null, false));
+					} else {
+						candidates.add(new Candidate(value, getDisplay(reader.getTerminal(), p), null, null, null, null,
+								true));
+					}
+				});
+			} catch (IOException e) {
+				// Ignore
+			}
         }
 
         protected boolean accept(Path path) {
