@@ -135,4 +135,14 @@ public class AttributedStringTest {
                 .toAnsi();
         assertEquals("This i\u001B[34ms\u001B[33m a\u001B[31m Test.\u001B[0m", ansiStr);
     }
+
+    @Test
+    public void testColumns() {
+        AttributedString message = new AttributedString("👍");
+        int messageLength = message.columnLength();
+        assertEquals(1, messageLength);
+        AttributedString messageAgain = message.columnSubSequence(0, messageLength);
+        assertEquals("👍", messageAgain.toString());
+    }
+
 }

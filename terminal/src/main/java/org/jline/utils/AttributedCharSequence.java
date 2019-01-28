@@ -293,7 +293,7 @@ public abstract class AttributedCharSequence implements CharSequence {
             if (col + w > start) {
                 break;
             }
-            begin++;
+            begin += Character.charCount(cp);
             col += w;
         }
         int end = begin;
@@ -305,7 +305,7 @@ public abstract class AttributedCharSequence implements CharSequence {
             if (col + w > stop) {
                 break;
             }
-            end++;
+            end += Character.charCount(cp);
             col += w;
         }
         return subSequence(begin, end);
