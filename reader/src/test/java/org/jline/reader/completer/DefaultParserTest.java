@@ -53,6 +53,12 @@ public class DefaultParserTest extends ReaderTestSupport {
 
         delimited = parser.parse("1 '2 3'", 0);
         assertEquals(Arrays.asList("1", "2 3"), delimited.words());
+
+        delimited = parser.parse("0'1 2' 3", 0);
+        assertEquals(Arrays.asList("0'1 2'", "3"), delimited.words());
+
+        delimited = parser.parse("'01 '2 3", 0);
+        assertEquals(Arrays.asList("01 2", "3"), delimited.words());
     }
 
     @Test
@@ -61,7 +67,7 @@ public class DefaultParserTest extends ReaderTestSupport {
         assertEquals(Arrays.asList("1' '2", "3"), delimited.words());
 
         delimited = parser.parse("'1\" 2' 3\"", 0);
-        assertEquals(Arrays.asList("1\" 2", "3"), delimited.words());
+        assertEquals(Arrays.asList("1\" 2", "3\""), delimited.words());
     }
 
     @Test

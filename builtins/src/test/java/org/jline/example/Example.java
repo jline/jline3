@@ -22,6 +22,7 @@ import org.jline.builtins.Completers.TreeCompleter;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.impl.DefaultParser;
+import org.jline.reader.impl.DefaultParser.Bracket;
 import org.jline.reader.impl.LineReaderImpl;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
@@ -130,6 +131,12 @@ public class Example
                         p.setEofOnUnclosedQuote(true);
                         parser = p;
                         break label;
+                    case "brackets":
+                        prompt = "long-prompt> ";
+                        DefaultParser p2 = new DefaultParser();
+                        p2.eofOnUnclosedBracket(Bracket.CURLY,Bracket.ROUND,Bracket.SQUARE);
+                        parser = p2;
+                        break label;
                     case "foo":
                         completer = new ArgumentCompleter(
                                 new StringsCompleter("foo11", "foo12", "foo13"),
@@ -228,6 +235,7 @@ public class Example
                     .terminal(terminal)
                     .completer(completer)
                     .parser(parser)
+                    .variable(LineReader.SECONDARY_PROMPT_PATTERN, "%M%P > ")
                     .build();
 
             if (timer) {
