@@ -5003,7 +5003,9 @@ public class LineReaderImpl implements LineReader, Flushable
                 while (end < buf.length() && buf.atChar(end) != '\n') {
                     end++;
                 }
-                end++;
+                if (end < buf.length()) {
+                    end++;
+                }
             }
         }
         String killed = buf.substring(start, end);

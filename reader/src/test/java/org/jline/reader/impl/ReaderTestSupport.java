@@ -39,6 +39,7 @@ import static org.jline.reader.LineReader.COMPLETE_WORD;
 import static org.jline.reader.LineReader.DOWN_HISTORY;
 import static org.jline.reader.LineReader.END_OF_LINE;
 import static org.jline.reader.LineReader.FORWARD_WORD;
+import static org.jline.reader.LineReader.KILL_WHOLE_LINE;
 import static org.jline.reader.LineReader.KILL_WORD;
 import static org.jline.reader.LineReader.UP_HISTORY;
 import static org.jline.reader.LineReader.YANK;
@@ -164,6 +165,7 @@ public abstract class ReaderTestSupport
             case BEGINNING_OF_LINE:    return "\033[H";
             case END_OF_LINE:          return "\u0005";
             case KILL_WORD:            return "\u001Bd";
+            case KILL_WHOLE_LINE:      return "\u0015";
             case BACKWARD_KILL_WORD:   return "\u0017";
             case ACCEPT_LINE:          return "\n";
             case UP_HISTORY:           return "\033[A";

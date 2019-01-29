@@ -12,6 +12,7 @@ import org.junit.Test;
 
 import static org.jline.reader.LineReader.BACKWARD_KILL_WORD;
 import static org.jline.reader.LineReader.BACKWARD_WORD;
+import static org.jline.reader.LineReader.KILL_WHOLE_LINE;
 import static org.jline.reader.LineReader.KILL_WORD;
 import static org.jline.reader.LineReader.YANK;
 import static org.jline.reader.LineReader.YANK_POP;
@@ -173,5 +174,12 @@ public class KillRingTest extends ReaderTestSupport {
         assertBuffer("This ", b = b.op(KILL_WORD));
         assertBuffer("", b = b.op(BACKWARD_KILL_WORD));
         assertBuffer("This is a test", b = b.op(YANK));
+    }
+
+    @Test
+    public void testKillWholeLine() throws Exception {
+        TestBuffer b = new TestBuffer("b");
+        assertBuffer("", b = b.op(KILL_WHOLE_LINE));
+        assertBuffer("b", b = b.op(YANK));
     }
 }
