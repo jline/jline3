@@ -17,6 +17,13 @@ import org.jline.reader.ParsedLine;
 import org.jline.reader.Parser;
 
 public class DefaultParser implements Parser {
+    
+    public enum Bracket { 
+        ROUND,   // ()
+        CURLY,   // {}
+        SQUARE,  // []
+        ANGLE;   // <>
+    }
 
     private char[] quoteChars = {'\'', '"'};
 
@@ -25,7 +32,11 @@ public class DefaultParser implements Parser {
     private boolean eofOnUnclosedQuote;
 
     private boolean eofOnEscapedNewLine;
+    
+    private char[] openingBrackets = null;
 
+    private char[] closingBrackets = null;
+    
     //
     // Chainable setters
     //
@@ -45,6 +56,11 @@ public class DefaultParser implements Parser {
         return this;
     }
 
+    public DefaultParser eofOnUnclosedBracket(Bracket... brackets){
+        setEofOnUnclosedBracket(brackets);
+        return this;
+    }
+    
     public DefaultParser eofOnEscapedNewLine(boolean eofOnEscapedNewLine) {
         this.eofOnEscapedNewLine = eofOnEscapedNewLine;
         return this;
@@ -86,6 +102,40 @@ public class DefaultParser implements Parser {
         return eofOnEscapedNewLine;
     }
 
+    public void setEofOnUnclosedBracket(Bracket... brackets){
+        if (brackets == null) {
+            openingBrackets = null;
+            closingBrackets = null;
+        } else {
+            Set<Bracket> bs = new HashSet<>();
+            bs.addAll(Arrays.asList(brackets));
+            openingBrackets = new char[bs.size()];
+            closingBrackets = new char[bs.size()];
+            int i = 0;
+            for (Bracket b : bs) {
+                switch (b) {
+                case ROUND:
+                    openingBrackets[i] = '(';
+                    closingBrackets[i] = ')';
+                    break;
+                case CURLY:
+                    openingBrackets[i] = '{';
+                    closingBrackets[i] = '}';
+                    break;
+                case SQUARE:
+                    openingBrackets[i] = '[';
+                    closingBrackets[i] = ']';
+                    break;
+                case ANGLE:
+                    openingBrackets[i] = '<';
+                    closingBrackets[i] = '>';
+                    break;
+                }
+                i++;
+            }
+        }
+    }
+    
     public ParsedLine parse(final String line, final int cursor, ParseContext context) {
         List<String> words = new LinkedList<>();
         StringBuilder current = new StringBuilder();
@@ -95,6 +145,7 @@ public class DefaultParser implements Parser {
         int rawWordCursor = -1;
         int rawWordLength = -1;
         int rawWordStart = 0;
+        BracketChecker bracketChecker = new BracketChecker();
 
         for (int i = 0; (line != null) && (i < line.length()); i++) {
             // once we reach the cursor, set the
@@ -129,6 +180,7 @@ public class DefaultParser implements Parser {
             } else {
                 if (!isEscapeChar(line, i)) {
                     current.append(line.charAt(i));
+                    bracketChecker.check(line, i);
                 }
             }
         }
@@ -153,6 +205,12 @@ public class DefaultParser implements Parser {
         if (eofOnUnclosedQuote && quoteStart >= 0 && context != ParseContext.COMPLETE) {
             throw new EOFError(-1, -1, "Missing closing quote", line.charAt(quoteStart) == '\''
                     ? "quote" : "dquote");
+        }
+        if (bracketChecker.isOpeningBracketMissing() && context != ParseContext.COMPLETE) {
+            throw new EOFError(-1, -1, "Missing opening bracket", "missing:" + bracketChecker.getMissingOpeningBracket());
+        }
+        if (bracketChecker.isClosingBracketMissing() && context != ParseContext.COMPLETE) {
+            throw new EOFError(-1, -1, "Missing closing brackets", "add:" + bracketChecker.getMissingClosingBrackets());
         }
 
         String openingQuote = quoteStart >= 0 ? line.substring(quoteStart, quoteStart + 1) : null;
@@ -272,6 +330,61 @@ public class DefaultParser implements Parser {
             }
         }
         return false;
+    }
+
+    private class BracketChecker {
+        private int missingOpeningBracket = -1;
+        private List<Integer> nested = new ArrayList<>();
+        
+        public BracketChecker(){}
+        
+        public void check(final CharSequence buffer, final int pos){
+            if (openingBrackets == null || pos < 0) return;
+            int bid = bracketId(openingBrackets, buffer, pos);
+            if (bid >= 0) {
+                nested.add(bid);
+            } else {
+                bid = bracketId(closingBrackets, buffer, pos);
+                if (bid >= 0) {
+                    if (!nested.isEmpty() && bid == nested.get(nested.size()-1)) {
+                        nested.remove(nested.size()-1);
+                    } else {
+                        missingOpeningBracket = bid;
+                    }
+                }
+            }            
+        }
+        
+        public boolean isOpeningBracketMissing(){
+            return missingOpeningBracket != -1;
+        }
+        
+        public String getMissingOpeningBracket(){
+            if (!isOpeningBracketMissing()) return null;
+            return Character.toString(openingBrackets[missingOpeningBracket]);
+        }
+
+        public boolean isClosingBracketMissing(){
+            return !nested.isEmpty();
+        }
+
+        public String getMissingClosingBrackets(){
+            if (!isClosingBracketMissing()) return null;
+            StringBuilder out = new StringBuilder("");
+            for (int i=nested.size()-1; i>-1; i--) {
+                out.append(Character.toString(closingBrackets[nested.get(i)]));                
+            }
+            return out.toString();
+        }
+        
+        private int bracketId(final char[] brackets, final CharSequence buffer, final int pos){
+            for (int i=0; i < brackets.length; i++) {
+                if (buffer.charAt(pos) == brackets[i]) {
+                    return i;
+                }
+            }
+            return -1;        
+        } 
     }
 
     /**
