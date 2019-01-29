@@ -145,6 +145,7 @@ public class DefaultParser implements Parser {
         int rawWordLength = -1;
         int rawWordStart = 0;
         BracketChecker bracketChecker = new BracketChecker();
+        boolean quotedWord = false;
 
         for (int i = 0; (line != null) && (i < line.length()); i++) {
             // once we reach the cursor, set the
@@ -160,12 +161,20 @@ public class DefaultParser implements Parser {
             if (quoteStart < 0 && isQuoteChar(line, i)) {
                 // Start a quote block
                 quoteStart = i;
+                if (current.length()==0) {
+                    quotedWord = true;
+                } else {
+                    current.append(line.charAt(i));
+                }
             } else if (quoteStart >= 0 && line.charAt(quoteStart) == line.charAt(i) && !isEscaped(line, i)) {
                 // End quote block
-                quoteStart = -1;
-                if (rawWordCursor >= 0 && rawWordLength < 0) {
+                if (!quotedWord) {
+                    current.append(line.charAt(i));
+                } else if (rawWordCursor >= 0 && rawWordLength < 0) {
                     rawWordLength = i - rawWordStart + 1;
                 }
+                quoteStart = -1;
+                quotedWord = false;                
             } else if (quoteStart < 0 && isDelimiter(line, i)) {
                 // Delimiter
                 if (current.length() > 0) {
@@ -212,7 +221,7 @@ public class DefaultParser implements Parser {
             throw new EOFError(-1, -1, "Missing closing brackets", "add: " + bracketChecker.getMissingClosingBrackets());
         }
 
-        String openingQuote = quoteStart >= 0 ? line.substring(quoteStart, quoteStart + 1) : null;
+        String openingQuote = quotedWord ? line.substring(quoteStart, quoteStart + 1) : null;
         return new ArgumentList(line, words, wordIndex, wordCursor, cursor, openingQuote, rawWordCursor, rawWordLength);
     }
 
@@ -480,12 +489,26 @@ public class DefaultParser implements Parser {
             StringBuilder sb = new StringBuilder(candidate);
             Predicate<Integer> needToBeEscaped;
             String quote = openingQuote;
+            boolean middleQuotes = false;
+            if (openingQuote==null) {
+                for (int i=0; i < sb.length(); i++) {
+                    if (isQuoteChar(sb, i)) {
+                        middleQuotes = true;
+                        break;
+                    }
+                }
+            }
             if (escapeChars != null) {
                 // Completion is protected by an opening quote:
                 // Delimiters (spaces) don't need to be escaped, nor do other quotes, but everything else does.
                 // Also, close the quote at the end
                 if (openingQuote != null) {
                     needToBeEscaped = i -> isRawEscapeChar(sb.charAt(i)) || String.valueOf(sb.charAt(i)).equals(openingQuote);
+                }
+                // Completion is protected by middle quotes:
+                // Delimiters (spaces) don't need to be escaped, nor do quotes, but everything else does.
+                else if (middleQuotes) {
+                    needToBeEscaped = i -> isRawEscapeChar(sb.charAt(i));
                 }
                 // No quote protection, need to escape everything: delimiter chars (spaces), quote chars
                 // and escapes themselves
@@ -497,7 +520,7 @@ public class DefaultParser implements Parser {
                         sb.insert(i++, escapeChars[0]);
                     }
                 }
-            } else if (openingQuote == null) {
+            } else if (openingQuote == null && !middleQuotes) {
                 for (int i = 0; i < sb.length(); i++) {
                     if (isDelimiterChar(sb, i)) {
                         quote = "'";

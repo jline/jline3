@@ -61,4 +61,27 @@ public class StringsCompleterTest
         assertBuffer("bar'f", new TestBuffer("bar'f").tab());
     }
 
+    @Test
+    public void middleQuotesEscapeCharsNull() throws Exception {
+        DefaultParser dp = (DefaultParser) reader.getParser();
+        dp.setEscapeChars(null);
+        reader.setVariable(LineReader.ERRORS, 0);
+        reader.setParser(dp);
+        reader.setCompleter(new StringsCompleter("/foo?name='foo bar'","/foo?name='foo qux'"));
+
+        assertBuffer("/foo?name='foo ", new TestBuffer("/f").tab());
+        assertBuffer("/foo?name='foo bar' ", new TestBuffer("/foo?name='foo b").tab());
+    }
+
+    @Test
+    public void middleQuotesEscapeChars() throws Exception {
+        DefaultParser dp = (DefaultParser) reader.getParser();
+        dp.setEscapeChars(new char[] { '\\' });
+        reader.setVariable(LineReader.ERRORS, 0);
+        reader.setParser(dp);
+        reader.setCompleter(new StringsCompleter("/foo?name='foo bar'","/foo?name='foo qux'"));
+
+        assertBuffer("/foo?name='foo ", new TestBuffer("/f").tab());
+        assertBuffer("/foo?name='foo bar' ", new TestBuffer("/foo?name='foo b").tab());
+    }
 }
