@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2019, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -54,7 +54,8 @@ public abstract class AttributedCharSequence implements CharSequence {
             if (max_colors != null) {
                 colors = max_colors;
             }
-            force256colors = AbstractWindowsTerminal.TYPE_WINDOWS_256_COLOR.equals(terminal.getType());
+            force256colors = AbstractWindowsTerminal.TYPE_WINDOWS_256_COLOR.equals(terminal.getType())
+                || AbstractWindowsTerminal.TYPE_WINDOWS_CONEMU.equals(terminal.getType());
             if (!DISABLE_ALTERNATE_CHARSET) {
                 alternateIn = Curses.tputs(terminal.getStringCapability(Capability.enter_alt_charset_mode));
                 alternateOut = Curses.tputs(terminal.getStringCapability(Capability.exit_alt_charset_mode));

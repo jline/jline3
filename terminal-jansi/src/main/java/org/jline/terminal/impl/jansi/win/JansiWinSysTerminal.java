@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2019, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -37,7 +37,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
         Writer writer;
         if (ansiPassThrough) {
             if (type == null) {
-                type = OSUtils.IS_CONEMU ? TYPE_WINDOWS_256_COLOR : TYPE_WINDOWS;
+                type = OSUtils.IS_CONEMU ? TYPE_WINDOWS_CONEMU : TYPE_WINDOWS;
             }
             writer = new JansiWinConsoleWriter();
         } else {
@@ -53,7 +53,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
                 writer = new JansiWinConsoleWriter();
             } else if (OSUtils.IS_CONEMU) {
                 if (type == null) {
-                    type = TYPE_WINDOWS_256_COLOR;
+                    type = TYPE_WINDOWS_CONEMU;
                 }
                 writer = new JansiWinConsoleWriter();
             } else {

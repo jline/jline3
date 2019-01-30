@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2019, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -33,6 +33,7 @@ import org.jline.terminal.*;
 import org.jline.terminal.Attributes.ControlChar;
 import org.jline.terminal.Terminal.Signal;
 import org.jline.terminal.Terminal.SignalHandler;
+import org.jline.terminal.impl.AbstractWindowsTerminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
@@ -5247,6 +5248,11 @@ public class LineReaderImpl implements LineReader, Flushable
      */
     public boolean clearScreen() {
         if (terminal.puts(Capability.clear_screen)) {
+            // ConEMU extended fonts support
+            if (AbstractWindowsTerminal.TYPE_WINDOWS_CONEMU.equals(terminal.getType())
+                    && !Boolean.getBoolean("org.jline.terminal.conemu.disable-activate")) {
+                terminal.writer().write("\u001b[9999E");
+            }
             Status status = Status.getStatus(terminal, false);
             if (status != null) {
                 status.reset();

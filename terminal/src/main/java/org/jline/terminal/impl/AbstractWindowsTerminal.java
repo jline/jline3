@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2019, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -21,12 +21,10 @@ import org.jline.utils.ShutdownHooks;
 import org.jline.utils.Signals;
 import org.jline.utils.WriterOutputStream;
 
-import java.io.IOError;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -49,6 +47,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
 
     public static final String TYPE_WINDOWS = "windows";
     public static final String TYPE_WINDOWS_256_COLOR = "windows-256color";
+    public static final String TYPE_WINDOWS_CONEMU = "windows-conemu";
     public static final String TYPE_WINDOWS_VTP = "windows-vtp";
 
     public static final int ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004;
@@ -109,9 +108,8 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         closer = this::close;
         ShutdownHooks.add(closer);
         // ConEMU extended fonts support
-        if (TYPE_WINDOWS_256_COLOR.equals(getType())
+        if (TYPE_WINDOWS_CONEMU.equals(getType())
                 && !Boolean.getBoolean("org.jline.terminal.conemu.disable-activate")) {
-            strings.replace(InfoCmp.Capability.clear_screen, "\\E[H\\E[J", "\\E[H\\E[J\\E[9999E");
             writer.write("\u001b[9999E");
             writer.flush();
         }
