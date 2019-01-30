@@ -183,6 +183,11 @@ public interface Terminal extends Closeable, Flushable {
 
     void setAttributes(Attributes attr);
 
+    /**
+     * Retrieve the size of the visible window
+     * @return the visible terminal size
+     * @see #getBufferSize()
+     */
     Size getSize();
 
     void setSize(Size size);
@@ -193,6 +198,22 @@ public interface Terminal extends Closeable, Flushable {
 
     default int getHeight() {
         return getSize().getRows();
+    }
+
+    /**
+     * Retrieve the size of the window buffer.
+     * Some terminals can be configured to have a buffer size
+     * larger than the visible window size and provide scroll bars.
+     * In such cases, this method should attempt to return the size
+     * of the whole buffer.  The <code>getBufferSize()</code> method
+     * can be used to avoid wrapping when using the terminal in a line
+     * editing mode, while the {@link #getSize()} method should be
+     * used when using full screen mode.
+     * @return the terminal buffer size
+     * @see #getSize()
+     */
+    default Size getBufferSize() {
+        return getSize();
     }
 
     void flush();

@@ -92,6 +92,12 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
     public Size getSize() {
         Kernel32.CONSOLE_SCREEN_BUFFER_INFO info = new Kernel32.CONSOLE_SCREEN_BUFFER_INFO();
         Kernel32.INSTANCE.GetConsoleScreenBufferInfo(consoleOut, info);
+        return new Size(info.windowWidth(), info.windowHeight());
+    }
+
+    public Size getBufferSize() {
+        Kernel32.CONSOLE_SCREEN_BUFFER_INFO info = new Kernel32.CONSOLE_SCREEN_BUFFER_INFO();
+        Kernel32.INSTANCE.GetConsoleScreenBufferInfo(consoleOut, info);
         return new Size(info.dwSize.X, info.dwSize.Y);
     }
 

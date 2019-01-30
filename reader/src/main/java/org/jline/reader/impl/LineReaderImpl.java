@@ -514,7 +514,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
                 // Cache terminal size for the duration of the call to readLine()
                 // It will eventually be updated with WINCH signals
-                size.copy(terminal.getSize());
+                size.copy(terminal.getBufferSize());
 
                 display = new Display(terminal, false);
                 if (size.getRows() == 0 || size.getColumns() == 0) {
@@ -949,13 +949,13 @@ public class LineReaderImpl implements LineReader, Flushable
 
     protected void handleSignal(Signal signal) {
         if (signal == Signal.WINCH) {
-            size.copy(terminal.getSize());
+            size.copy(terminal.getBufferSize());
             display.resize(size.getRows(), size.getColumns());
             redisplay();
         }
         else if (signal == Signal.CONT) {
             terminal.enterRawMode();
-            size.copy(terminal.getSize());
+            size.copy(terminal.getBufferSize());
             display.resize(size.getRows(), size.getColumns());
             terminal.puts(Capability.keypad_xmit);
             redrawLine();
