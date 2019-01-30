@@ -188,7 +188,9 @@ public class DefaultParser implements Parser {
             } else {
                 if (!isEscapeChar(line, i)) {
                     current.append(line.charAt(i));
-                    bracketChecker.check(line, i);
+                    if (quoteStart < 0) { 
+                        bracketChecker.check(line, i);
+                    }
                 }
             }
         }
