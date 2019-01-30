@@ -559,7 +559,7 @@ public class Less {
         }
     }
 
-    boolean display(boolean oneScreen) throws IOException {
+    synchronized boolean display(boolean oneScreen) throws IOException {
         List<AttributedString> newLines = new ArrayList<>();
         int width = size.getColumns() - (printLineNumbers ? 8 : 0);
         int height = size.getRows();
