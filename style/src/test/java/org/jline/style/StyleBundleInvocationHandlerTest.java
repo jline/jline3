@@ -8,7 +8,6 @@
  */
 package org.jline.style;
 
-import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 import org.jline.utils.AttributedString;
 import org.junit.Test;
 
@@ -40,7 +39,7 @@ public class StyleBundleInvocationHandlerTest extends StyleTestSupport {
     public void bundleDefaultStyle() {
         Styles styles = StyleBundleInvocationHandler.create(source, Styles.class);
         AttributedString string = styles.boldRed("foo bar");
-        DefaultGroovyMethods.println(this, string.toAnsi());
+        System.out.println(string.toAnsi());
         assert string.equals(new AttributedString("foo bar", BOLD.foreground(RED)));
     }
 
@@ -61,7 +60,7 @@ public class StyleBundleInvocationHandlerTest extends StyleTestSupport {
         source.set("test", "missingDefaultStyle", "bold");
         Styles styles = StyleBundleInvocationHandler.create(source, Styles.class);
         AttributedString string = styles.missingDefaultStyle("foo bar");
-        DefaultGroovyMethods.println(this, string.toAnsi());
+        System.out.println(string.toAnsi());
         assert string.equals(new AttributedString("foo bar", BOLD));
     }
 
@@ -69,7 +68,7 @@ public class StyleBundleInvocationHandlerTest extends StyleTestSupport {
     public void bundleStyleNameWithDefaultStyle() {
         Styles styles = StyleBundleInvocationHandler.create(source, Styles.class);
         AttributedString string = styles.boldRedObjectWithStyleName("foo bar");
-        DefaultGroovyMethods.println(this, string.toAnsi());
+        System.out.println(string.toAnsi());
         assert string.equals(new AttributedString("foo bar", BOLD.foreground(RED)));
     }
 
@@ -78,7 +77,7 @@ public class StyleBundleInvocationHandlerTest extends StyleTestSupport {
         source.set("test", "boldRed", "bold,fg:yellow");
         Styles styles = StyleBundleInvocationHandler.create(source, Styles.class);
         AttributedString string = styles.boldRed("foo bar");
-        DefaultGroovyMethods.println(this, string.toAnsi());
+        System.out.println(string.toAnsi());
         assert string.equals(new AttributedString("foo bar", BOLD.foreground(YELLOW)));
     }
 
@@ -87,7 +86,7 @@ public class StyleBundleInvocationHandlerTest extends StyleTestSupport {
         source.set("test2", "boldRed", "bold,fg:yellow");
         Styles styles = StyleBundleInvocationHandler.create(new StyleResolver(source, "test2"), Styles.class);
         AttributedString string = styles.boldRed("foo bar");
-        DefaultGroovyMethods.println(this, string.toAnsi());
+        System.out.println(string.toAnsi());
         assert string.equals(new AttributedString("foo bar", BOLD.foreground(YELLOW)));
     }
 
