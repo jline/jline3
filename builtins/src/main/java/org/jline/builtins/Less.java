@@ -144,6 +144,7 @@ public class Less {
                 }
                 terminal.writer().flush();
 
+                display.clear();
                 display(false);
                 checkInterrupted();
 
