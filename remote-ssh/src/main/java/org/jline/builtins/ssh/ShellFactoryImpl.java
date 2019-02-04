@@ -17,11 +17,11 @@ import java.util.function.Consumer;
 
 import org.apache.sshd.common.Factory;
 import org.apache.sshd.common.channel.PtyMode;
-import org.apache.sshd.server.Command;
 import org.apache.sshd.server.Environment;
 import org.apache.sshd.server.ExitCallback;
 import org.apache.sshd.server.SessionAware;
 import org.apache.sshd.server.Signal;
+import org.apache.sshd.server.command.Command;
 import org.apache.sshd.server.session.ServerSession;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Attributes.ControlChar;
@@ -33,7 +33,7 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
 /**
- * SSHD {@link org.apache.sshd.server.Command} factory which provides access to
+ * SSHD {@link org.apache.sshd.server.command.Command} factory which provides access to
  * Shell.
  */
 public class ShellFactoryImpl implements Factory<Command> {

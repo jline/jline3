@@ -15,10 +15,10 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.apache.sshd.server.Command;
 import org.apache.sshd.server.Environment;
 import org.apache.sshd.server.ExitCallback;
 import org.apache.sshd.server.SessionAware;
+import org.apache.sshd.server.command.Command;
 import org.apache.sshd.server.session.ServerSession;
 
 public class ShellCommand implements Command, SessionAware {
