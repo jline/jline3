@@ -236,6 +236,7 @@ public class Example
                     .completer(completer)
                     .parser(parser)
                     .variable(LineReader.SECONDARY_PROMPT_PATTERN, "%M%P > ")
+                    .variable(LineReader.INDENTATION, 2)
                     .build();
 
             if (timer) {

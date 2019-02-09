@@ -84,6 +84,7 @@ public class LineReaderImpl implements LineReader, Flushable
     public static final String DEFAULT_COMPLETION_STYLE_DESCRIPTION = "90"; // dark gray
     public static final String DEFAULT_COMPLETION_STYLE_GROUP = "35;1";     // magenta
     public static final String DEFAULT_COMPLETION_STYLE_SELECTION = "7";    // inverted
+    public static final int    DEFAULT_INDENTATION = 0;
 
     private static final int MIN_ROWS = 3;
 
@@ -240,9 +241,7 @@ public class LineReaderImpl implements LineReader, Flushable
     protected String keyMap;
 
     protected int smallTerminalOffset = 0;
-
-
-
+    
     public LineReaderImpl(Terminal terminal) throws IOException {
         this(terminal, null, null);
     }
@@ -1987,6 +1986,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
         long blink = getLong(BLINK_MATCHING_PAREN, DEFAULT_BLINK_MATCHING_PAREN);
         if (blink <= 0) {
+            removeIndentation();
             return true;
         }
 
@@ -1997,9 +1997,30 @@ public class LineReaderImpl implements LineReader, Flushable
         redisplay();
 
         peekCharacter(blink);
-
+        int blinkPosition = buf.cursor(); 
         buf.cursor(closePosition);
+        
+        if (blinkPosition != closePosition - 1) {
+            removeIndentation();
+        }
         return true;
+    }
+
+    private void removeIndentation(){
+        int indent = getInt(INDENTATION, DEFAULT_INDENTATION);
+        if (indent > 0 && buf.cursor() == buf.length()) {
+            buf.move(-1);
+            for (int i = 0; i < indent; i++) {
+                buf.move(-1);
+                int c = buf.currChar();
+                if (c == ' ') {
+                    buf.delete();
+                } else {
+                    break;
+                }
+            }
+            endOfLine();
+        }
     }
 
     protected boolean viMatchBracket() {
@@ -3774,17 +3795,32 @@ public class LineReaderImpl implements LineReader, Flushable
         AttributedStringBuilder buf = new AttributedStringBuilder();
         int width = 0;
         List<String> missings = new ArrayList<>();
-        if (computePrompts && secondaryPromptPattern.contains("%P")) {
+        String indentation = "";
+        int indent = getInt(INDENTATION, DEFAULT_INDENTATION);
+        if (lines.get(lines.size() - 1).length() != 0 || this.buf.cursor() != this.buf.length()) {
+            indent = 0;
+        }
+        if (computePrompts && (secondaryPromptPattern.contains("%P") || indent > 0)) {
             width = prompt.columnLength();
             for (int line = 0; line < lines.size() - 1; line++) {
                 AttributedString prompt;
                 buf.append(lines.get(line)).append("\n");
                 String missing = "";
-                if (needsMessage) {
+                boolean calculateIndention = indent > 0 && line == lines.size() - 2;
+                if (needsMessage || calculateIndention) {
                     try {
                         parser.parse(buf.toString(), buf.length(), ParseContext.SECONDARY_PROMPT);
                     } catch (EOFError e) {
-                        missing = e.getMissing();
+                        if (needsMessage) {
+                            missing = e.getMissing();
+                        }
+                        if (calculateIndention && e.getOpenBrackets() > 0) {
+                            StringBuilder sbldr = new StringBuilder();
+                            for (int i = 0; i < indent*e.getOpenBrackets(); i++) {
+                                sbldr.append(' ');
+                            }
+                            indentation = sbldr.toString();
+                        }
                     } catch (SyntaxError e) {
                         // Ignore
                     }
@@ -3794,6 +3830,9 @@ public class LineReaderImpl implements LineReader, Flushable
                 width = Math.max(width, prompt.columnLength());
             }
             buf.setLength(0);
+            if (!secondaryPromptPattern.contains("%P")) {
+                width = 0;
+            }
         }
         int line = 0;
         while (line < lines.size() - 1) {
@@ -3823,8 +3862,15 @@ public class LineReaderImpl implements LineReader, Flushable
             sb.append(prompt);
             line++;
         }
-        sb.append(lines.get(line));
-        buf.append(lines.get(line));
+        if (indentation.length() > 0) {
+            sb.append(indentation).append(lines.get(line));
+            buf.append(indentation).append(lines.get(line));
+            setBuffer(buf.toString());
+            endOfLine();
+        } else {
+            sb.append(lines.get(line));
+            buf.append(lines.get(line));            
+        }
         return sb.toAttributedString();
     }
 

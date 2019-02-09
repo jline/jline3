@@ -220,7 +220,9 @@ public class DefaultParser implements Parser {
             throw new EOFError(-1, -1, "Missing opening bracket", "missing: " + bracketChecker.getMissingOpeningBracket());
         }
         if (bracketChecker.isClosingBracketMissing() && context != ParseContext.COMPLETE) {
-            throw new EOFError(-1, -1, "Missing closing brackets", "add: " + bracketChecker.getMissingClosingBrackets());
+            throw new EOFError(-1, -1, 
+                               "Missing closing brackets", "add: " + bracketChecker.getMissingClosingBrackets(), 
+                               bracketChecker.getOpenBrackets());
         }
 
         String openingQuote = quotedWord ? line.substring(quoteStart, quoteStart + 1) : null;
@@ -391,6 +393,10 @@ public class DefaultParser implements Parser {
                 out.append(closingBrackets[nested.get(i)]);
             }
             return out.toString();
+        }
+        
+        public int getOpenBrackets(){
+            return nested.size();
         }
         
         private int bracketId(final char[] brackets, final CharSequence buffer, final int pos){

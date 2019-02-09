@@ -350,6 +350,11 @@ public interface LineReader {
      * Number of history items to keep in the history file.
      */
     String HISTORY_FILE_SIZE = "history-file-size";
+    
+    /**
+     * New line automatic indentation after opening/closing bracket.
+     */
+    String INDENTATION = "indentation";
 
     Map<String, KeyMap<Binding>> defaultKeyMaps();
 
