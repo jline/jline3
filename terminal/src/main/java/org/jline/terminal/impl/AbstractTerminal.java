@@ -31,6 +31,7 @@ import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.Log;
+import org.jline.utils.Signals;
 import org.jline.utils.Status;
 
 public abstract class AbstractTerminal implements Terminal {
@@ -71,7 +72,15 @@ public abstract class AbstractTerminal implements Terminal {
     public SignalHandler handle(Signal signal, SignalHandler handler) {
         Objects.requireNonNull(signal);
         Objects.requireNonNull(handler);
-        return handlers.put(signal, handler);
+        SignalHandler prev = handlers.put(signal, handler);
+        if (prev != handler) {
+            if (handler == SignalHandler.SIG_DFL) {
+                Signals.registerDefault(signal.name());
+            } else {
+                Signals.register(signal.name(), () -> raise(signal));
+            }
+        }
+        return prev;
     }
 
     public void raise(Signal signal) {

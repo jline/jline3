@@ -144,19 +144,6 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         return Charset.defaultCharset();
     }
 
-    @Override
-    public SignalHandler handle(Signal signal, SignalHandler handler) {
-        SignalHandler prev = super.handle(signal, handler);
-        if (prev != handler) {
-            if (handler == SignalHandler.SIG_DFL) {
-                Signals.registerDefault(signal.name());
-            } else {
-                Signals.register(signal.name(), () -> raise(signal));
-            }
-        }
-        return prev;
-    }
-
     public NonBlockingReader reader() {
         return reader;
     }
