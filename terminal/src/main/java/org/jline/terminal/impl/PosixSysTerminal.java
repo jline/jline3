@@ -14,16 +14,11 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.jline.utils.NonBlocking;
 import org.jline.terminal.spi.Pty;
 import org.jline.utils.NonBlockingInputStream;
 import org.jline.utils.NonBlockingReader;
-import org.jline.utils.ShutdownHooks;
-import org.jline.utils.ShutdownHooks.Task;
-import org.jline.utils.Signals;
 
 public class PosixSysTerminal extends AbstractPosixTerminal {
 
@@ -31,28 +26,14 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
     protected final OutputStream output;
     protected final NonBlockingReader reader;
     protected final PrintWriter writer;
-    protected final Map<Signal, Object> nativeHandlers = new HashMap<>();
-    protected final Task closer;
 
-    public PosixSysTerminal(String name, String type, Pty pty, Charset encoding,
-                            boolean nativeSignals, SignalHandler signalHandler) throws IOException {
-        super(name, type, pty, encoding, signalHandler);
+    public PosixSysTerminal(String name, String type, Pty pty, Charset encoding, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
+        super(name, type, pty, encoding, signalHandler, true);
         this.input = NonBlocking.nonBlocking(getName(), pty.getSlaveInput());
         this.output = pty.getSlaveOutput();
         this.reader = NonBlocking.nonBlocking(getName(), input, encoding());
         this.writer = new PrintWriter(new OutputStreamWriter(output, encoding()));
         parseInfoCmp();
-        if (nativeSignals) {
-            for (final Signal signal : Signal.values()) {
-                if (signalHandler == SignalHandler.SIG_DFL) {
-                    nativeHandlers.put(signal, Signals.registerDefault(signal.name()));
-                } else {
-                    nativeHandlers.put(signal, Signals.register(signal.name(), () -> raise(signal)));
-                }
-            }
-        }
-        closer = PosixSysTerminal.this::close;
-        ShutdownHooks.add(closer);
     }
 
     public NonBlockingReader reader() {
@@ -75,10 +56,6 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
 
     @Override
     public void close() throws IOException {
-        ShutdownHooks.remove(closer);
-        for (Map.Entry<Signal, Object> entry : nativeHandlers.entrySet()) {
-            Signals.unregister(entry.getKey().name(), entry.getValue());
-        }
         super.close();
         // Do not call reader.close()
         reader.shutdown();

@@ -48,7 +48,7 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
     }
 
     public PosixPtyTerminal(String name, String type, Pty pty, InputStream in, OutputStream out, Charset encoding, SignalHandler signalHandler, boolean paused) throws IOException {
-        super(name, type, pty, encoding, signalHandler);
+        super(name, type, pty, encoding, signalHandler, false);
         this.in = Objects.requireNonNull(in);
         this.out = Objects.requireNonNull(out);
         this.masterInput = pty.getMasterInput();

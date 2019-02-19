@@ -25,11 +25,11 @@ public abstract class AbstractPosixTerminal extends AbstractSystemTerminal {
     protected final Attributes originalAttributes;
 
     public AbstractPosixTerminal(String name, String type, Pty pty) throws IOException {
-        this(name, type, pty, null, SignalHandler.SIG_DFL);
+        this(name, type, pty, null, SignalHandler.SIG_DFL, true);
     }
 
-    public AbstractPosixTerminal(String name, String type, Pty pty, Charset encoding, SignalHandler signalHandler) throws IOException {
-        super(name, type, encoding, signalHandler);
+    public AbstractPosixTerminal(String name, String type, Pty pty, Charset encoding, SignalHandler signalHandler, boolean nativeSignals) throws IOException {
+        super(name, type, encoding, signalHandler, nativeSignals);
         Objects.requireNonNull(pty);
         this.pty = pty;
         this.originalAttributes = this.pty.getAttr();

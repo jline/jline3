@@ -17,8 +17,6 @@ import org.jline.utils.NonBlocking;
 import org.jline.utils.NonBlockingInputStream;
 import org.jline.utils.NonBlockingPumpReader;
 import org.jline.utils.NonBlockingReader;
-import org.jline.utils.ShutdownHooks;
-import org.jline.utils.Signals;
 import org.jline.utils.WriterOutputStream;
 
 import java.io.IOException;
@@ -28,8 +26,6 @@ import java.io.PrintWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * The AbstractWindowsTerminal is used as the base class for windows terminal.
@@ -67,8 +63,6 @@ public abstract class AbstractWindowsTerminal extends AbstractSystemTerminal {
     protected final OutputStream output;
     protected final NonBlockingReader reader;
     protected final PrintWriter writer;
-    protected final Map<Signal, Object> nativeHandlers = new HashMap<>();
-    protected final ShutdownHooks.Task closer;
     protected final Attributes attributes = new Attributes();
     protected final int originalConsoleMode;
 
@@ -81,7 +75,7 @@ public abstract class AbstractWindowsTerminal extends AbstractSystemTerminal {
     private volatile boolean closing;
 
     public AbstractWindowsTerminal(Writer writer, String name, String type, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
-        super(name, type, selectCharset(encoding, codepage), signalHandler);
+        super(name, type, selectCharset(encoding, codepage), signalHandler, nativeSignals);
         NonBlockingPumpReader reader = NonBlocking.nonBlockingPumpReader();
         this.slaveInputPipe = reader.getWriter();
         this.reader = reader;
@@ -95,18 +89,6 @@ public abstract class AbstractWindowsTerminal extends AbstractSystemTerminal {
         attributes.setControlChar(Attributes.ControlChar.VINTR, ctrl('C'));
         attributes.setControlChar(Attributes.ControlChar.VEOF,  ctrl('D'));
         attributes.setControlChar(Attributes.ControlChar.VSUSP, ctrl('Z'));
-        // Handle signals
-        if (nativeSignals) {
-            for (final Signal signal : Signal.values()) {
-                if (signalHandler == SignalHandler.SIG_DFL) {
-                    nativeHandlers.put(signal, Signals.registerDefault(signal.name()));
-                } else {
-                    nativeHandlers.put(signal, Signals.register(signal.name(), () -> raise(signal)));
-                }
-            }
-        }
-        closer = this::close;
-        ShutdownHooks.add(closer);
         // ConEMU extended fonts support
         if (TYPE_WINDOWS_CONEMU.equals(getType())
                 && !Boolean.getBoolean("org.jline.terminal.conemu.disable-activate")) {
@@ -204,10 +186,6 @@ public abstract class AbstractWindowsTerminal extends AbstractSystemTerminal {
         super.close();
         closing = true;
         pump.interrupt();
-        ShutdownHooks.remove(closer);
-        for (Map.Entry<Signal, Object> entry : nativeHandlers.entrySet()) {
-            Signals.unregister(entry.getKey().name(), entry.getValue());
-        }
         reader.close();
         writer.close();
         setConsoleMode(originalConsoleMode);
