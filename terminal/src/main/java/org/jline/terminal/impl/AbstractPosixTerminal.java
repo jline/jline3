@@ -19,7 +19,7 @@ import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
 import org.jline.terminal.spi.Pty;
 
-public abstract class AbstractPosixTerminal extends AbstractTerminal {
+public abstract class AbstractPosixTerminal extends AbstractSystemTerminal {
 
     protected final Pty pty;
     protected final Attributes originalAttributes;

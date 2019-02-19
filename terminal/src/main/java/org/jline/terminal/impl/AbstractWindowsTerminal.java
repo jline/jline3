@@ -43,7 +43,7 @@ import java.util.Map;
  * the writer() becomes the primary output, while the output() is bridged
  * to the writer() using a WriterOutputStream wrapper.
  */
-public abstract class AbstractWindowsTerminal extends AbstractTerminal {
+public abstract class AbstractWindowsTerminal extends AbstractSystemTerminal {
 
     public static final String TYPE_WINDOWS = "windows";
     public static final String TYPE_WINDOWS_256_COLOR = "windows-256color";
@@ -142,19 +142,6 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
             return Charset.forName(charsetCP);
         }
         return Charset.defaultCharset();
-    }
-
-    @Override
-    public SignalHandler handle(Signal signal, SignalHandler handler) {
-        SignalHandler prev = super.handle(signal, handler);
-        if (prev != handler) {
-            if (handler == SignalHandler.SIG_DFL) {
-                Signals.registerDefault(signal.name());
-            } else {
-                Signals.register(signal.name(), () -> raise(signal));
-            }
-        }
-        return prev;
     }
 
     public NonBlockingReader reader() {
