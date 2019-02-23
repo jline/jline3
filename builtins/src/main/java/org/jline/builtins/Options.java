@@ -237,7 +237,7 @@ public class Options {
 
         String msg = buf.toString();
 
-        err.print(msg);
+        HelpPrinter.getInstance().print(err, msg);
     }
 
     /**
@@ -503,6 +503,105 @@ public class Options {
     @Override
     public String toString() {
         return "isSet" + optSet + "\nArg" + optArg + "\nargs" + xargs;
+    }
+
+    public static class HelpPrinter {
+        private static HelpPrinter instance = new HelpPrinter();
+
+        private final Pattern patternTitle = Pattern.compile("(Usage):\\b");
+        private final Pattern patternCommand  = Pattern.compile("(^\\s*)([a-z]+){1}\\b");
+        private final Pattern patternArgument = Pattern.compile("(\\[|\\s|=)([A-Za-z]+[A-Za-z_-]*){1}\\b");
+        private final Pattern patternArgumentInComment = Pattern.compile("(\\s)([a-z]+[-]+[a-z]+){1}\\b");
+        private final Pattern patternOption = Pattern.compile("(\\s|\\[)(-\\?|[-]{1,2}[\\?A-Za-z-]+\\b){1}");
+        private final String title = "Usage";
+        private final String ansiReset = "\033[0m";
+        private String ansi4title = "\033[34;1m";
+        private String ansi4command = "\033[1m";
+        private String ansi4argument = "\033[3m";
+        private String ansi4option = "\033[33m";
+        private boolean color = false;
+        
+        private HelpPrinter() {}
+        
+        public static HelpPrinter getInstance() {
+            return instance;
+        }
+        
+        public void setColor(boolean color) {
+            this.color = color;
+        }
+        
+        public void setAnsi4title(String ansicode) {
+            this.ansi4title = ansicode;
+        }
+        
+        public void setAnsi4command(String ansicode) {
+            this.ansi4command = ansicode;
+        }
+        
+        public void setAnsi4argument(String ansicode) {
+            this.ansi4argument = ansicode;
+        }
+        
+        public void setAnsi4option(String ansicode) {
+            this.ansi4option = ansicode;
+        }
+        
+        public void print(PrintStream err, String msg) {
+            if (color) {
+                String[] p = msg.split(title + ":", 2);
+                if (p.length == 2) {
+                    err.print(highlightCommand(p[0]));
+                    err.print(ansi4title + title + ansiReset + ":");
+                    for (String line: p[1].split("\n")) {
+                        int ind = line.lastIndexOf("  ");
+                        if (ind > 20) {
+                            line = highlightSyntax(line.substring(0, ind)) + highlightComment(line.substring(ind + 1, line.length()));
+                        } else {
+                            line = highlightSyntax(line);
+                        }
+                        err.println(line);
+                    }                    
+                } else {
+                    err.print(msg);                    
+                }
+            } else {
+                err.print(msg);
+            }
+        }
+        
+        private String highlightCommand(String command) {
+            Matcher matcher = patternCommand.matcher(command);
+            if (matcher.find()) {
+                command = matcher.replaceAll("$1" + ansi4command + "$2" + ansiReset);
+            }
+            return command;
+        }
+        
+        private String highlightSyntax(String syntax) {
+            syntax = highlightCommand(syntax);
+            Matcher matcher = patternArgument.matcher(syntax);
+            if (matcher.find()) {
+                syntax = matcher.replaceAll("$1" + ansi4argument + "$2" + ansiReset);
+            }
+            matcher = patternOption.matcher(syntax);
+            if (matcher.find()) {
+                syntax = matcher.replaceAll("$1" + ansi4option + "$2" + ansiReset);
+            }
+            return syntax;
+        }
+        
+        private String highlightComment(String comment) {
+            Matcher matcher = patternOption.matcher(comment);
+            if (matcher.find()) {
+                comment = matcher.replaceAll("$1" + ansi4option + "$2" + ansiReset);
+            }
+            matcher = patternArgumentInComment.matcher(comment);
+            if (matcher.find()) {
+                comment = matcher.replaceAll("$1" + ansi4argument + "$2" + ansiReset);
+            }
+            return comment;
+        }
     }
 
 }

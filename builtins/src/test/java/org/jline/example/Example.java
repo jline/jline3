@@ -9,6 +9,10 @@
 package org.jline.example;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -16,9 +20,15 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
+import org.jline.builtins.Commands;
 import org.jline.builtins.Completers;
+import org.jline.builtins.Completers.CompletionData;
 import org.jline.builtins.Completers.TreeCompleter;
+import org.jline.builtins.Options.HelpPrinter;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.impl.DefaultParser;
@@ -230,6 +240,7 @@ public class Example
             }
 
             Terminal terminal = builder.build();
+            HelpPrinter.getInstance().setColor(true);
 
             LineReader reader = LineReaderBuilder.builder()
                     .terminal(terminal)
@@ -304,7 +315,8 @@ public class Example
                 if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) {
                     break;
                 }
-                ParsedLine pl = reader.getParser().parse(line, 0);
+                ParsedLine pl = reader.getParser().parse(line, 0);                
+                String[] argv = pl.words().toArray(new String[0]);
                 if ("set".equals(pl.word())) {
                     if (pl.words().size() == 3) {
                         reader.setVariable(pl.words().get(1), pl.words().get(2));
@@ -379,6 +391,52 @@ public class Example
                 }
                 else if ("sleep".equals(pl.word())) {
                     Thread.sleep(3000);
+                }
+                //
+                // builtin commands are added in order to test HelpPrinter class
+                //
+                else if ("tmux".equals(pl.word())) {
+                    Commands.tmux(terminal, System.out, System.err,
+                            null, //Supplier<Object> getter,   
+                            null, //Consumer<Object> setter,
+                            null, //Consumer<Terminal> runner,
+                            argv);
+                }
+                else if ("nano".equals(pl.word())) {
+                    Commands.nano(terminal, System.out, System.err,
+                            Paths.get(""),
+                            argv);
+                }
+                else if ("less".equals(pl.word())) {
+                    Commands.less(terminal, System.in, System.out, System.err,
+                            Paths.get(""),
+                            argv);
+                }
+                else if ("history".equals(pl.word())) {
+                    Commands.history(reader, System.out, System.err,
+                            argv);
+                }
+                else if ("complete".equals(pl.word())) {
+                    Commands.complete(reader, System.out, System.err,
+                            null, // Map<String, List<CompletionData>> completions,
+                            argv);
+                }
+                else if ("widget".equals(pl.word())) {
+                    Commands.widget(reader, System.out, System.err,
+                            null, //Function<String, Widget> widgetCreator,
+                            argv);
+                }
+                else if ("keymap".equals(pl.word())) {
+                    Commands.keymap(reader, System.out, System.err,
+                            argv);
+                }
+                else if ("setopt".equals(pl.word())) {
+                    Commands.setopt(reader, System.out, System.err,
+                            argv);
+                }
+                else if ("unsetopt".equals(pl.word())) {
+                    Commands.unsetopt(reader, System.out, System.err,
+                            argv);
                 }
             }
         }

@@ -58,11 +58,9 @@ public class Commands {
                 "Usage: tmux [command]",
                 "  -? --help                    Show help",
         };
-        // Simplified parsing
-        if (argv.length == 1 && ("--help".equals(argv[0]) || "-?".equals(argv[0]))) {
-            for (String s : usage) {
-                err.println(s);
-            }
+        Options opt = Options.compile(usage).parse(argv);
+        if (opt.isSet("help")) {
+            opt.usage(err);
             return;
         }
         // Tmux with no args
@@ -117,7 +115,7 @@ public class Commands {
                 "  -e --quit-at-eof             Exit on second EOF",
                 "  -E --QUIT-AT-EOF             Exit on EOF",
                 "  -q --quiet --silent          Silent mode",
-                "  -Q --QUIET --SILENT          Completely  silent",
+                "  -Q --QUIET --SILENT          Completely silent",
                 "  -S --chop-long-lines         Do not fold long lines",
                 "  -i --ignore-case             Search ignores lowercase case",
                 "  -I --IGNORE-CASE             Search ignores all case",
