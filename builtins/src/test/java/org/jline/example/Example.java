@@ -29,6 +29,7 @@ import org.jline.builtins.Completers;
 import org.jline.builtins.Completers.CompletionData;
 import org.jline.builtins.Completers.TreeCompleter;
 import org.jline.builtins.Options.HelpPrinter;
+import org.jline.builtins.TTop;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.impl.DefaultParser;
@@ -413,8 +414,7 @@ public class Example
                             argv);
                 }
                 else if ("history".equals(pl.word())) {
-                    Commands.history(reader, System.out, System.err,
-                            argv);
+                    Commands.history(reader, System.out, System.err, argv);
                 }
                 else if ("complete".equals(pl.word())) {
                     Commands.complete(reader, System.out, System.err,
@@ -427,16 +427,16 @@ public class Example
                             argv);
                 }
                 else if ("keymap".equals(pl.word())) {
-                    Commands.keymap(reader, System.out, System.err,
-                            argv);
+                    Commands.keymap(reader, System.out, System.err, argv);
                 }
                 else if ("setopt".equals(pl.word())) {
-                    Commands.setopt(reader, System.out, System.err,
-                            argv);
+                    Commands.setopt(reader, System.out, System.err, argv);
                 }
                 else if ("unsetopt".equals(pl.word())) {
-                    Commands.unsetopt(reader, System.out, System.err,
-                            argv);
+                    Commands.unsetopt(reader, System.out, System.err, argv);
+                }
+                else if ("ttop".equals(pl.word())) {
+                    TTop.ttop(terminal, System.out, System.err, argv);
                 }
             }
         }

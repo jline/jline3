@@ -368,8 +368,8 @@ public class Commands {
                 "  -e                              Select emacs keymap and bind it to main",
                 "  -l                              List existing keymap names",
                 "  -p                              List bindings which have given key sequence as a a prefix",
-                "  -r                              Unbind specified in-strings",
-                "  -s                              Bind each in-string to each out-string",
+                "  -r                              Unbind specified in-strings ",
+                "  -s                              Bind each in-string to each out-string ",
                 "  -v                              Select viins keymap and bind it to main",
         };
         Options opt = Options.compile(usage).parse(argv);

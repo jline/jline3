@@ -508,11 +508,10 @@ public class Options {
     public static class HelpPrinter {
         private static HelpPrinter instance = new HelpPrinter();
 
-        private final Pattern patternTitle = Pattern.compile("(Usage):\\b");
-        private final Pattern patternCommand  = Pattern.compile("(^\\s*)([a-z]+){1}\\b");
+        private final Pattern patternCommand  = Pattern.compile("(^\\s*)([a-z]+[a-z-]*){1}\\b");
         private final Pattern patternArgument = Pattern.compile("(\\[|\\s|=)([A-Za-z]+[A-Za-z_-]*){1}\\b");
-        private final Pattern patternArgumentInComment = Pattern.compile("(\\s)([a-z]+[-]+[a-z]+){1}\\b");
-        private final Pattern patternOption = Pattern.compile("(\\s|\\[)(-\\?|[-]{1,2}[\\?A-Za-z-]+\\b){1}");
+        private final Pattern patternArgumentInComment = Pattern.compile("(\\s)([a-z]+[-]+[a-z]+|[A-Z_]{2,}){1}(\\s)");
+        private final Pattern patternOption = Pattern.compile("(\\s|\\[)(-\\?|[-]{1,2}[A-Za-z-]+\\b){1}");
         private final String title = "Usage";
         private final String ansiReset = "\033[0m";
         private String ansi4title = "\033[34;1m";
@@ -598,7 +597,7 @@ public class Options {
             }
             matcher = patternArgumentInComment.matcher(comment);
             if (matcher.find()) {
-                comment = matcher.replaceAll("$1" + ansi4argument + "$2" + ansiReset);
+                comment = matcher.replaceAll("$1" + ansi4argument + "$2" + ansiReset + "$3");
             }
             return comment;
         }
