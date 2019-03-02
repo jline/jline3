@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -24,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.regex.Pattern;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Consumer;
@@ -31,6 +33,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.jline.builtins.Completers.CompletionData;
+import org.jline.builtins.Options;
 import org.jline.builtins.Source.StdInSource;
 import org.jline.builtins.Source.URLSource;
 import org.jline.keymap.KeyMap;
@@ -159,26 +162,31 @@ public class Commands {
     }
 
     public static void history(LineReader reader, PrintStream out, PrintStream err,
-                               String[] argv) throws IOException {
+                               String[] argv) throws IOException, IllegalArgumentException {
         final String[] usage = {
                 "history -  list history of commands",
-                "Usage: history [OPTIONS]",
+                "Usage: history [-dnrfEi] [-m match] [first] [last]",
+                "       history --clear",
+                "       history --save",
                 "  -? --help                       Displays command help",
                 "     --clear                      Clear history",
                 "     --save                       Save history",
-                "  -d                              Print timestamps for each event"};
-
+                "  -m match                        If option -m is present the first argument is taken as a pattern",
+                "                                  and only the history events matching the pattern will be shown",
+                "  -d                              Print timestamps for each event",
+                "  -f                              Print full time-date stamps in the US format",
+                "  -E                              Print full time-date stamps in the European format",
+                "  -i                              Print full time-date stamps in ISO8601 format",
+                "  -n                              Suppresses command numbers",
+                "  -r                              Reverses the order of the commands",
+                "  [first] [last]                  These optional arguments are numbers. A negative number is",
+                "                                  used as an offset to the current history event number"};
         Options opt = Options.compile(usage).parse(argv);
 
         if (opt.isSet("help")) {
             opt.usage(err);
             return;
         }
-        if (!opt.args().isEmpty()) {
-            err.println("usage: history [OPTIONS]");
-            return;
-        }
-
         History history = reader.getHistory();
         if (opt.isSet("clear")) {
             history.purge();
@@ -189,16 +197,59 @@ public class Commands {
         if (opt.isSet("clear") || opt.isSet("save")) {
             return;
         }
+        int argId = 0;
+        Pattern pattern = null;
+        if (opt.isSet("m")) {
+            if (opt.args().size() == 0) {
+                throw new IllegalArgumentException();
+            }
+            String sp = opt.args().get(argId++);
+            pattern = Pattern.compile(sp.toString());
+        }
+        int firstId = opt.args().size() > argId ? parseInteger(opt.args().get(argId++)) : -17;
+        int lastId  = opt.args().size() > argId ? parseInteger(opt.args().get(argId++)) : -1;
+        firstId = historyId(firstId, history.size() - 1);
+        lastId  = historyId(lastId, history.size() - 1);
+        if (firstId > lastId) {
+            throw new IllegalArgumentException();
+        }
+        int tot = lastId - firstId + 1;
+        int listed = 0;
         final Highlighter highlighter = reader.getHighlighter();
-        for (History.Entry entry : history) {
+        Iterator<History.Entry> iter = null;
+        if (opt.isSet("r")) {
+            iter =  history.reverseIterator(lastId);
+        } else {
+            iter =  history.iterator(firstId);
+        }
+        while (iter.hasNext() && listed < tot) {
+            History.Entry entry = iter.next();
+            listed++;
+            if (pattern != null && !pattern.matcher(entry.line()).matches()) {
+                continue;
+            }
             AttributedStringBuilder sb = new AttributedStringBuilder();
-            sb.append("  ");
-            sb.styled(AttributedStyle::bold, String.format("%3d", entry.index() + 1));
-            if (opt.isSet("d")) {
+            if (!opt.isSet("n")) {
                 sb.append("  ");
-                LocalTime lt = LocalTime.from(entry.time().atZone(ZoneId.systemDefault()))
-                        .truncatedTo(ChronoUnit.SECONDS);
-                DateTimeFormatter.ISO_LOCAL_TIME.formatTo(lt, sb);
+                sb.styled(AttributedStyle::bold, String.format("%3d", entry.index()));
+            }
+            if (opt.isSet("d") || opt.isSet("f") || opt.isSet("E") || opt.isSet("i")) {
+                sb.append("  ");
+                if (opt.isSet("d")) {
+                    LocalTime lt = LocalTime.from(entry.time().atZone(ZoneId.systemDefault()))
+                            .truncatedTo(ChronoUnit.SECONDS);
+                    DateTimeFormatter.ISO_LOCAL_TIME.formatTo(lt, sb);
+                } else {
+                    LocalDateTime lt = LocalDateTime.from(entry.time().atZone(ZoneId.systemDefault())
+                            .truncatedTo(ChronoUnit.MINUTES));
+                    String format = "yyyy-MM-dd hh:mm";
+                    if (opt.isSet("f")) {
+                        format = "MM/dd/yy hh:mm";
+                    } else if (opt.isSet("E")) {
+                        format = "dd.MM.yyyy hh:mm";
+                    }
+                    DateTimeFormatter.ofPattern(format).formatTo(lt, sb);
+                }
             }
             sb.append("  ");
             sb.append(highlighter.highlight(reader, entry.line()));
@@ -206,7 +257,28 @@ public class Commands {
         }
     }
 
-    public static void complete(LineReader reader, PrintStream out, PrintStream err,
+    private static int historyId(int id, int maxId) {
+        int out = id;
+        if (id < 0) {
+            out = maxId + id + 1;
+        }
+        if (out < 0) {
+            out = 0;
+        } else if (out > maxId) {
+            out = maxId;
+        }
+        return out;
+    }
+    
+    private static int parseInteger(String s) throws IllegalArgumentException {
+        try {
+            return Integer.parseInt(s);
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException();
+        }
+     }
+
+     public static void complete(LineReader reader, PrintStream out, PrintStream err,
                                 Map<String, List<CompletionData>> completions,
                                 String[] argv) {
         final String[] usage = {
