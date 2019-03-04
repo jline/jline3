@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -166,6 +167,7 @@ public class Commands {
         final String[] usage = {
                 "history -  list history of commands",
                 "Usage: history [-dnrfEi] [-m match] [first] [last]",
+                "       history -ARWI [filename]",
                 "       history --clear",
                 "       history --save",
                 "  -? --help                       Displays command help",
@@ -179,6 +181,12 @@ public class Commands {
                 "  -i                              Print full time-date stamps in ISO8601 format",
                 "  -n                              Suppresses command numbers",
                 "  -r                              Reverses the order of the commands",
+                "  -A                              Appends the history out to the given file",
+                "  -R                              Reads the history from the given file",
+                "  -W                              Writes the history out to the given file",
+                "  -I                              If added to -R, only the events that are not contained within the internal list are added",
+                "                                  If added to -W/A, only the events that are new since the last incremental operation to",
+                "                                  the file are added",
                 "  [first] [last]                  These optional arguments are numbers. A negative number is",
                 "                                  used as an offset to the current history event number"};
         Options opt = Options.compile(usage).parse(argv);
@@ -188,13 +196,25 @@ public class Commands {
             return;
         }
         History history = reader.getHistory();
+        boolean done = true;
+        boolean increment = opt.isSet("I") ? true : false;        
         if (opt.isSet("clear")) {
             history.purge();
-        }
-        if (opt.isSet("save")) {
+        } else if (opt.isSet("save")) {
             history.save();
+        } else if (opt.isSet("A")) {
+            Path file = opt.args().size() > 0 ? Paths.get(opt.args().get(0)) : null;
+            history.append(file, increment);
+        } else if (opt.isSet("R")) {
+            Path file = opt.args().size() > 0 ? Paths.get(opt.args().get(0)) : null;
+            history.read(file, increment);
+        } else if (opt.isSet("W")) {
+            Path file = opt.args().size() > 0 ? Paths.get(opt.args().get(0)) : null;
+            history.write(file, increment);
+        } else {
+            done = false;
         }
-        if (opt.isSet("clear") || opt.isSet("save")) {
+        if (done) {
             return;
         }
         int argId = 0;
