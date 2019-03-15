@@ -4750,7 +4750,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
     @SuppressWarnings("unchecked")
     protected void toColumns(Object items, int width, int maxWidth, AttributedStringBuilder sb, Candidate selection, String completed, boolean rowsFirst, int[] out) {
-        if (maxWidth <= 0) {
+        if (maxWidth <= 0 || width <= 0) {
             return;
         }
         // This is a group
