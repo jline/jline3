@@ -209,18 +209,20 @@ public class DefaultParser implements Parser {
             rawWordLength = rawWordCursor;
         }
 
-        if (eofOnEscapedNewLine && isEscapeChar(line, line.length() - 1) && context != ParseContext.COMPLETE) {
-            throw new EOFError(-1, -1, "Escaped new line", "newline");
-        }
-        if (eofOnUnclosedQuote && quoteStart >= 0 && context != ParseContext.COMPLETE) {
-            throw new EOFError(-1, -1, "Missing closing quote", line.charAt(quoteStart) == '\''
-                    ? "quote" : "dquote");
-        }
-        if (bracketChecker.isOpeningBracketMissing() && context != ParseContext.COMPLETE) {
-            throw new EOFError(-1, -1, "Missing opening bracket", "missing: " + bracketChecker.getMissingOpeningBracket());
-        }
-        if (bracketChecker.isClosingBracketMissing() && context != ParseContext.COMPLETE) {
-            throw new EOFError(-1, -1, "Missing closing brackets", "add: " + bracketChecker.getMissingClosingBrackets());
+        if (context != ParseContext.COMPLETE) {
+            if (eofOnEscapedNewLine && isEscapeChar(line, line.length() - 1)) {
+                throw new EOFError(-1, -1, "Escaped new line", "newline");
+            }
+            if (eofOnUnclosedQuote && quoteStart >= 0) {
+                throw new EOFError(-1, -1, "Missing closing quote", line.charAt(quoteStart) == '\''
+                        ? "quote" : "dquote");
+            }
+            if (bracketChecker.isOpeningBracketMissing()) {
+                throw new EOFError(-1, -1, "Missing opening bracket", "missing: " + bracketChecker.getMissingOpeningBracket());
+            }
+            if (bracketChecker.isClosingBracketMissing()) {
+                throw new EOFError(-1, -1, "Missing closing brackets", "add: " + bracketChecker.getMissingClosingBrackets());
+            }
         }
 
         String openingQuote = quotedWord ? line.substring(quoteStart, quoteStart + 1) : null;
