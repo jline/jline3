@@ -153,4 +153,12 @@ public class CompletionTest extends ReaderTestSupport {
         assertLine("a", new TestBuffer("a\t\n\n"));
     }
 
+    @Test
+    public void testParserEofOnEscapedNewLine() {
+        DefaultParser parser = new DefaultParser();
+        parser.setEofOnEscapedNewLine(true);
+        reader.setParser(parser);
+
+        assertLine("test ", new TestBuffer("test \\\t\n\n"));
+    }
 }
