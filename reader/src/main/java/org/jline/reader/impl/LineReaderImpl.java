@@ -2024,12 +2024,11 @@ public class LineReaderImpl implements LineReader, Flushable
 
     private void removeIndentation(){
         int indent = getInt(INDENTATION, DEFAULT_INDENTATION);
-        if (indent > 0 && buf.cursor() == buf.length()) {
+        if (indent > 0) {
             buf.move(-1);
             for (int i = 0; i < indent; i++) {
                 buf.move(-1);
-                int c = buf.currChar();
-                if (c == ' ') {
+                if (buf.currChar() == ' ') {
                     buf.delete();
                 } else {
                     break;
@@ -2805,7 +2804,14 @@ public class LineReaderImpl implements LineReader, Flushable
         try {
             parsedLine = parser.parse(buf.toString(), buf.cursor(), ParseContext.ACCEPT_LINE);
         } catch (EOFError e) {
-            buf.write("\n");
+            int indent = getInt(INDENTATION, DEFAULT_INDENTATION)*e.getOpenBrackets();
+            StringBuilder sb = new StringBuilder("\n");
+            if (indent > 0) {
+                for (int i = 0; i < indent; i++) {
+                    sb.append(' ');
+                }
+            }
+            buf.write(sb.toString());
             return true;
         } catch (SyntaxError e) {
             // do nothing
@@ -3850,32 +3856,17 @@ public class LineReaderImpl implements LineReader, Flushable
         AttributedStringBuilder buf = new AttributedStringBuilder();
         int width = 0;
         List<String> missings = new ArrayList<>();
-        String indentation = "";
-        int indent = getInt(INDENTATION, DEFAULT_INDENTATION);
-        if (lines.get(lines.size() - 1).length() != 0 || this.buf.cursor() != this.buf.length()) {
-            indent = 0;
-        }
-        if (computePrompts && (secondaryPromptPattern.contains("%P") || indent > 0)) {
+        if (computePrompts && secondaryPromptPattern.contains("%P")) {
             width = prompt.columnLength();
             for (int line = 0; line < lines.size() - 1; line++) {
                 AttributedString prompt;
                 buf.append(lines.get(line)).append("\n");
                 String missing = "";
-                boolean calculateIndention = indent > 0 && line == lines.size() - 2;
-                if (needsMessage || calculateIndention) {
+                if (needsMessage) {
                     try {
                         parser.parse(buf.toString(), buf.length(), ParseContext.SECONDARY_PROMPT);
                     } catch (EOFError e) {
-                        if (needsMessage) {
-                            missing = e.getMissing();
-                        }
-                        if (calculateIndention && e.getOpenBrackets() > 0) {
-                            StringBuilder sbldr = new StringBuilder();
-                            for (int i = 0; i < indent*e.getOpenBrackets(); i++) {
-                                sbldr.append(' ');
-                            }
-                            indentation = sbldr.toString();
-                        }
+                        missing = e.getMissing();
                     } catch (SyntaxError e) {
                         // Ignore
                     }
@@ -3885,9 +3876,6 @@ public class LineReaderImpl implements LineReader, Flushable
                 width = Math.max(width, prompt.columnLength());
             }
             buf.setLength(0);
-            if (!secondaryPromptPattern.contains("%P")) {
-                width = 0;
-            }
         }
         int line = 0;
         while (line < lines.size() - 1) {
@@ -3917,15 +3905,8 @@ public class LineReaderImpl implements LineReader, Flushable
             sb.append(prompt);
             line++;
         }
-        if (indentation.length() > 0) {
-            sb.append(indentation).append(lines.get(line));
-            buf.append(indentation).append(lines.get(line));
-            setBuffer(buf.toString());
-            endOfLine();
-        } else {
-            sb.append(lines.get(line));
-            buf.append(lines.get(line));            
-        }
+        sb.append(lines.get(line));
+        buf.append(lines.get(line));
         return sb.toAttributedString();
     }
 

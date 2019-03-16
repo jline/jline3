@@ -144,7 +144,7 @@ public class DefaultParser implements Parser {
         int rawWordCursor = -1;
         int rawWordLength = -1;
         int rawWordStart = 0;
-        BracketChecker bracketChecker = new BracketChecker();
+        BracketChecker bracketChecker = new BracketChecker(cursor);
         boolean quotedWord = false;
 
         for (int i = 0; (line != null) && (i < line.length()); i++) {
@@ -349,8 +349,12 @@ public class DefaultParser implements Parser {
     private class BracketChecker {
         private int missingOpeningBracket = -1;
         private List<Integer> nested = new ArrayList<>();
+        private int openBrackets = 0;
+        private int cursor;
         
-        public BracketChecker(){}
+        public BracketChecker(int cursor){
+            this.cursor = cursor;
+        }
         
         public void check(final CharSequence buffer, final int pos){
             if (openingBrackets == null || pos < 0) {
@@ -369,6 +373,9 @@ public class DefaultParser implements Parser {
                     }
                 }
             }            
+            if (cursor > pos) {
+                openBrackets = nested.size();
+            }
         }
         
         public boolean isOpeningBracketMissing(){
@@ -398,7 +405,7 @@ public class DefaultParser implements Parser {
         }
         
         public int getOpenBrackets(){
-            return nested.size();
+            return openBrackets;
         }
         
         private int bracketId(final char[] brackets, final CharSequence buffer, final int pos){
