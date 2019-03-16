@@ -19,6 +19,7 @@ import org.jline.reader.impl.completer.AggregateCompleter;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
+import org.jline.terminal.Size;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -144,4 +145,20 @@ public class CompletionTest extends ReaderTestSupport {
         assertLine("ab_helloWorld ", new TestBuffer("a\t\t\n\n"));
     }
 
+    @Test
+    public void testDumbTerminalNoSizeComplete() {
+        terminal.setSize(new Size());
+        reader.setCompleter(new StringsCompleter(Arrays.asList("ae_helloWorld", "ad_helloWorld", "ac_helloWorld", "ab_helloWorld", "aa_helloWorld")));
+
+        assertLine("a", new TestBuffer("a\t\n\n"));
+    }
+
+    @Test
+    public void testParserEofOnEscapedNewLine() {
+        DefaultParser parser = new DefaultParser();
+        parser.setEofOnEscapedNewLine(true);
+        reader.setParser(parser);
+
+        assertLine("test ", new TestBuffer("test \\\t\n\n"));
+    }
 }

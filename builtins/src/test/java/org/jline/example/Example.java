@@ -17,6 +17,7 @@ import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.jline.builtins.Commands;
 import org.jline.builtins.Completers;
 import org.jline.builtins.Completers.TreeCompleter;
 import org.jline.keymap.KeyMap;
@@ -134,7 +135,7 @@ public class Example
                     case "brackets":
                         prompt = "long-prompt> ";
                         DefaultParser p2 = new DefaultParser();
-                        p2.eofOnUnclosedBracket(Bracket.CURLY,Bracket.ROUND,Bracket.SQUARE);
+                        p2.setEofOnUnclosedBracket(Bracket.CURLY, Bracket.ROUND, Bracket.SQUARE);
                         parser = p2;
                         break label;
                     case "foo":
@@ -306,6 +307,7 @@ public class Example
                     break;
                 }
                 ParsedLine pl = reader.getParser().parse(line, 0);
+                String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
                 if ("set".equals(pl.word())) {
                     if (pl.words().size() == 3) {
                         reader.setVariable(pl.words().get(1), pl.words().get(2));
@@ -380,6 +382,9 @@ public class Example
                 }
                 else if ("sleep".equals(pl.word())) {
                     Thread.sleep(3000);
+                }
+                else if ("history".equals(pl.word())) {
+                    Commands.history(reader, System.out, System.err, argv);
                 }
             }
         }

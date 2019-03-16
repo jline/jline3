@@ -95,7 +95,10 @@ public interface LineReader {
     String CALLBACK_FINISH = "callback-finish";
     String CALLBACK_KEYMAP = "callback-keymap";
 
+    String ACCEPT_AND_INFER_NEXT_HISTORY = "accept-and-infer-next-history";
+    String ACCEPT_AND_HOLD = "accept-and-hold";
     String ACCEPT_LINE = "accept-line";
+    String ACCEPT_LINE_AND_DOWN_HISTORY = "accept-line-and-down-history";
     String ARGUMENT_BASE = "argument-base";
     String BACKWARD_CHAR = "backward-char";
     String BACKWARD_DELETE_CHAR = "backward-delete-char";

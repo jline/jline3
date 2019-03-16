@@ -241,7 +241,12 @@ public class LineReaderImpl implements LineReader, Flushable
     protected String keyMap;
 
     protected int smallTerminalOffset = 0;
-    
+    /*
+     * accept-and-infer-next-history, accept-and-hold & accept-line-and-down-history
+     */
+    protected boolean nextCommandFromHistory = false;
+    protected int nextHistoryId = -1;
+
     public LineReaderImpl(Terminal terminal) throws IOException {
         this(terminal, null, null);
     }
@@ -496,6 +501,17 @@ public class LineReaderImpl implements LineReader, Flushable
             if (buffer != null) {
                 buf.write(buffer);
             }
+            if (nextCommandFromHistory && nextHistoryId > 0) {
+                if (history.size() > nextHistoryId) {
+                    history.moveTo(nextHistoryId);
+                } else {
+                    history.moveTo(history.last());
+                }
+                buf.write(history.current());
+            } else {
+                nextHistoryId = -1;
+            }
+            nextCommandFromHistory = false;
             undo.clear();
             parsedLine = null;
             keyMap = MAIN;
@@ -2733,6 +2749,42 @@ public class LineReaderImpl implements LineReader, Flushable
         return acceptLine();
     }
 
+    protected boolean acceptAndHold() {
+        nextCommandFromHistory = false;
+        acceptLine();
+        if (!buf.toString().isEmpty()) {
+            nextHistoryId = Integer.MAX_VALUE;
+            nextCommandFromHistory = true;
+        }
+        return nextCommandFromHistory;
+    }
+
+    protected boolean acceptLineAndDownHistory() {
+        nextCommandFromHistory = false;
+        acceptLine();
+        if (nextHistoryId < 0) {
+            nextHistoryId = history.index();
+        }
+        if (history.size() > nextHistoryId + 1) {
+            nextHistoryId++;
+            nextCommandFromHistory = true;
+        }
+        return nextCommandFromHistory;
+    }
+    
+    protected boolean acceptAndInferNextHistory() {
+        nextCommandFromHistory = false;
+        acceptLine();
+        if (!buf.toString().isEmpty()) {
+            nextHistoryId = searchBackwards(buf.toString(), history.last());
+            if (nextHistoryId >= 0 && history.size() > nextHistoryId + 1) {
+                nextHistoryId++;
+                nextCommandFromHistory = true;            
+            }
+        }
+        return nextCommandFromHistory;
+    }
+
     protected boolean acceptLine() {
         parsedLine = null;
         if (!isSet(Option.DISABLE_EVENT_EXPANSION)) {
@@ -3366,7 +3418,10 @@ public class LineReaderImpl implements LineReader, Flushable
 
     protected Map<String, Widget> builtinWidgets() {
         Map<String, Widget> widgets = new HashMap<>();
+        addBuiltinWidget(widgets, ACCEPT_AND_INFER_NEXT_HISTORY, this::acceptAndInferNextHistory);
+        addBuiltinWidget(widgets, ACCEPT_AND_HOLD, this::acceptAndHold);
         addBuiltinWidget(widgets, ACCEPT_LINE, this::acceptLine);
+        addBuiltinWidget(widgets, ACCEPT_LINE_AND_DOWN_HISTORY, this::acceptLineAndDownHistory);
         addBuiltinWidget(widgets, ARGUMENT_BASE, this::argumentBase);
         addBuiltinWidget(widgets, BACKWARD_CHAR, this::backwardChar);
         addBuiltinWidget(widgets, BACKWARD_DELETE_CHAR, this::backwardDeleteChar);
@@ -4796,7 +4851,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
     @SuppressWarnings("unchecked")
     protected void toColumns(Object items, int width, int maxWidth, AttributedStringBuilder sb, Candidate selection, String completed, boolean rowsFirst, int[] out) {
-        if (maxWidth <= 0) {
+        if (maxWidth <= 0 || width <= 0) {
             return;
         }
         // This is a group
@@ -5445,6 +5500,7 @@ public class LineReaderImpl implements LineReader, Flushable
         bind(emacs, CLEAR_SCREEN,                           ctrl('L'));
         bind(emacs, ACCEPT_LINE,                            ctrl('M'));
         bind(emacs, DOWN_LINE_OR_HISTORY,                   ctrl('N'));
+        bind(emacs, ACCEPT_LINE_AND_DOWN_HISTORY,           ctrl('O'));
         bind(emacs, UP_LINE_OR_HISTORY,                     ctrl('P'));
         bind(emacs, HISTORY_INCREMENTAL_SEARCH_BACKWARD,    ctrl('R'));
         bind(emacs, HISTORY_INCREMENTAL_SEARCH_FORWARD,     ctrl('S'));
@@ -5488,6 +5544,7 @@ public class LineReaderImpl implements LineReader, Flushable
         bind(emacs, END_OF_HISTORY,                         alt('>'));
         bind(emacs, LIST_CHOICES,                           alt('?'));
         bind(emacs, DO_LOWERCASE_VERSION,                   range("^[A-^[Z"));
+        bind(emacs, ACCEPT_AND_HOLD,                        alt('a'));
         bind(emacs, BACKWARD_WORD,                          alt('b'));
         bind(emacs, CAPITALIZE_WORD,                        alt('c'));
         bind(emacs, KILL_WORD,                              alt('d'));
