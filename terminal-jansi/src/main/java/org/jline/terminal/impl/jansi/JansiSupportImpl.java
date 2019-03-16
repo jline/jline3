@@ -20,7 +20,9 @@ import org.jline.terminal.spi.JansiSupport;
 import org.jline.terminal.spi.Pty;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -31,7 +33,19 @@ public class JansiSupportImpl implements JansiSupport {
     static {
         int major = 0, minor = 0;
         try {
-            String v = Ansi.class.getPackage().getImplementationVersion();
+            String v = null;
+            try (InputStream is = Ansi.class.getResourceAsStream("jansi.properties")) {
+                if (is != null) {
+                    Properties props = new Properties();
+                    props.load(is);
+                    v = props.getProperty("version");
+                }
+            } catch (IOException e) {
+                // ignore
+            }
+            if (v == null) {
+                v = Ansi.class.getPackage().getImplementationVersion();
+            }
             if (v != null) {
                 Matcher m = Pattern.compile("([0-9]+)\\.([0-9]+)([\\.-]\\S+)?").matcher(v);
                 if (m.matches()) {

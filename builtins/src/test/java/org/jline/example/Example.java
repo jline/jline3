@@ -145,7 +145,7 @@ public class Example
                     case "brackets":
                         prompt = "long-prompt> ";
                         DefaultParser p2 = new DefaultParser();
-                        p2.eofOnUnclosedBracket(Bracket.CURLY,Bracket.ROUND,Bracket.SQUARE);
+                        p2.setEofOnUnclosedBracket(Bracket.CURLY, Bracket.ROUND, Bracket.SQUARE);
                         parser = p2;
                         break label;
                     case "foo":
@@ -316,8 +316,8 @@ public class Example
                 if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) {
                     break;
                 }
-                ParsedLine pl = reader.getParser().parse(line, 0);                
-                String[] argv = pl.words().toArray(new String[0]);
+                ParsedLine pl = reader.getParser().parse(line, 0);
+                String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
                 if ("set".equals(pl.word())) {
                     if (pl.words().size() == 3) {
                         reader.setVariable(pl.words().get(1), pl.words().get(2));
