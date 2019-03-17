@@ -35,6 +35,7 @@ import java.util.function.Supplier;
 
 import org.jline.builtins.Completers.CompletionData;
 import org.jline.builtins.Options;
+import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.Source.StdInSource;
 import org.jline.builtins.Source.URLSource;
 import org.jline.keymap.KeyMap;
@@ -64,8 +65,7 @@ public class Commands {
         };
         Options opt = Options.compile(usage).parse(argv);
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
         // Tmux with no args
         if (argv.length == 0) {
@@ -101,8 +101,7 @@ public class Commands {
         };
         Options opt = Options.compile(usage).parse(argv);
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
         Nano edit = new Nano(terminal, currentDir);
         edit.open(opt.args());
@@ -111,7 +110,7 @@ public class Commands {
 
     public static void less(Terminal terminal, InputStream in, PrintStream out, PrintStream err,
                             Path currentDir,
-                            String[] argv) throws IOException, InterruptedException {
+                            String[] argv) throws Exception {
         final String[] usage = {
                 "less -  file pager",
                 "Usage: less [OPTIONS] [FILES]",
@@ -130,8 +129,7 @@ public class Commands {
         Options opt = Options.compile(usage).parse(argv);
 
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
 
         Less less = new Less(terminal);
@@ -161,7 +159,7 @@ public class Commands {
     }
 
     public static void history(LineReader reader, PrintStream out, PrintStream err,
-                               String[] argv) throws IOException, IllegalArgumentException {
+                               String[] argv) throws Exception {
         final String[] usage = {
                 "history -  list history of commands",
                 "Usage: history [-dnrfEi] [-m match] [first] [last]",
@@ -174,24 +172,23 @@ public class Commands {
                 "  -m match                        If option -m is present the first argument is taken as a pattern",
                 "                                  and only the history events matching the pattern will be shown",
                 "  -d                              Print timestamps for each event",
-                "  -f                              Print full time-date stamps in the US format",
-                "  -E                              Print full time-date stamps in the European format",
-                "  -i                              Print full time-date stamps in ISO8601 format",
+                "  -f                              Print full time date stamps in the US format",
+                "  -E                              Print full time date stamps in the European format",
+                "  -i                              Print full time date stamps in ISO8601 format",
                 "  -n                              Suppresses command numbers",
                 "  -r                              Reverses the order of the commands",
                 "  -A                              Appends the history out to the given file",
                 "  -R                              Reads the history from the given file",
                 "  -W                              Writes the history out to the given file",
                 "  -I                              If added to -R, only the events that are not contained within the internal list are added",
-                "                                  If added to -W/A, only the events that are new since the last incremental operation to",
-                "                                  the file are added",
+                "                                  If added to -W or -A, only the events that are new since the last incremental operation",
+                "                                  to the file are added",
                 "  [first] [last]                  These optional arguments are numbers. A negative number is",
                 "                                  used as an offset to the current history event number"};
         Options opt = Options.compile(usage).parse(argv);
 
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
         History history = reader.getHistory();
         boolean done = true;
@@ -298,7 +295,7 @@ public class Commands {
 
      public static void complete(LineReader reader, PrintStream out, PrintStream err,
                                 Map<String, List<CompletionData>> completions,
-                                String[] argv) {
+                                String[] argv) throws HelpException {
         final String[] usage = {
                 "complete -  edit command specific tab-completions",
                 "Usage: complete",
@@ -315,8 +312,7 @@ public class Commands {
         Options opt = Options.compile(usage).parse(argv);
 
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
 
         String command = opt.get("command");
@@ -370,8 +366,7 @@ public class Commands {
         };
         Options opt = Options.compile(usage).parse(argv);
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
 
         int actions = (opt.isSet("N") ? 1 : 0)
@@ -435,7 +430,7 @@ public class Commands {
     public static void keymap(LineReader reader,
                               PrintStream out,
                               PrintStream err,
-                              String[] argv) {
+                              String[] argv) throws HelpException {
         final String[] usage = {
                 "keymap -  manipulate keymaps",
                 "Usage: keymap [options] -l [-L] [keymap ...]",
@@ -466,8 +461,7 @@ public class Commands {
         };
         Options opt = Options.compile(usage).parse(argv);
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
 
         Map<String, KeyMap<Binding>> keyMaps = reader.getKeyMaps();
@@ -782,7 +776,7 @@ public class Commands {
     public static void setopt(LineReader reader,
                               PrintStream out,
                               PrintStream err,
-                              String[] argv) {
+                              String[] argv) throws HelpException {
         final String[] usage = {
                 "setopt -  set options",
                 "Usage: setopt [-m] option ...",
@@ -792,8 +786,7 @@ public class Commands {
         };
         Options opt = Options.compile(usage).parse(argv);
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
         if (opt.args().isEmpty()) {
             for (Option option : Option.values()) {
@@ -811,7 +804,7 @@ public class Commands {
     public static void unsetopt(LineReader reader,
                                 PrintStream out,
                                 PrintStream err,
-                                String[] argv) {
+                                String[] argv) throws HelpException {
         final String[] usage = {
                 "unsetopt -  unset options",
                 "Usage: unsetopt [-m] option ...",
@@ -821,8 +814,7 @@ public class Commands {
         };
         Options opt = Options.compile(usage).parse(argv);
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
         if (opt.args().isEmpty()) {
             for (Option option : Option.values()) {
