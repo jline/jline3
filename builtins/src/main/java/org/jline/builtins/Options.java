@@ -523,20 +523,24 @@ public class Options {
         private final Pattern patternOption = Pattern.compile("(\\s|\\[)(-\\?|[-]{1,2}[A-Za-z-]+\\b){1}");
         private final String title = "Usage";
         private final String ansiReset = "\033[0m";
-        private String ansi4title;
-        private String ansi4command;
-        private String ansi4argument;
-        private String ansi4option;
+        private String ansi4title = "";
+        private String ansi4command = "";
+        private String ansi4argument = "";
+        private String ansi4option= "";
         private boolean color = true;
         private Terminal terminal;
         
         public HelpPrinter() {
-        	this(null);
+            this(null);
         }
     
         public HelpPrinter(Terminal terminal) {
             this.terminal = terminal;
-            setColors("ti=1;34:co=1:ar=3:op=33");
+            if (ansiSupported()) {
+                setColors("ti=1;34:co=1:ar=3:op=33");
+            } else {
+                this.color = false;
+            }
         }
 
         public void setColor(boolean color) {
@@ -584,6 +588,11 @@ public class Options {
          
         }
 
+        private boolean ansiSupported () {
+            return (new AttributedString("HP", AttributedStyle.DEFAULT.foreground(AttributedStyle.RED))
+                                                              .toAnsi(terminal).split("HP").length > 0);
+        }
+        
         private String styleToAnsiCode(AttributedStyle style) {
             String[] as = new AttributedString("HP", style).toAnsi(terminal).split("HP");
             return as.length > 0 ? as[0] : ansiReset;
