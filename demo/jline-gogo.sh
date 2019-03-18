@@ -53,6 +53,7 @@ while [ "${1}" != "" ]; do
             shift
             ;;
         'ssh' | 'telnet' | 'remote')
+            cp=${cp}$(find ${TARGETDIR}/lib -name "sshd-common-*.jar" -exec printf :{} ';')
             cp=${cp}$(find ${TARGETDIR}/lib -name "sshd-core-*.jar" -exec printf :{} ';')
             cp=${cp}$(find ${TARGETDIR}/lib -name "slf4j-api-*.jar" -exec printf :{} ';')
             cp=${cp}$(find ${TARGETDIR}/lib -name "slf4j-jdk14-*.jar" -exec printf :{} ';')
