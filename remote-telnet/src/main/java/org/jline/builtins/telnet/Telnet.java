@@ -15,6 +15,7 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 
+import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.Options;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
@@ -48,7 +49,7 @@ public class Telnet {
         this.provider = provider;
     }
 
-    public void telnetd(String[] argv) throws IOException {
+    public void telnetd(String[] argv) throws Exception {
         final String[] usage = {"telnetd - start simple telnet server",
                 "Usage: telnetd [-i ip] [-p port] start | stop | status",
                 "  -i --ip=INTERFACE        listen interface (default=127.0.0.1)",
@@ -59,8 +60,7 @@ public class Telnet {
         List<String> args = opt.args();
 
         if (opt.isSet("help") || args.isEmpty()) {
-            opt.usage(System.err);
-            return;
+            throw new HelpException(opt.usage());
         }
 
         String command = args.get(0);

@@ -29,6 +29,7 @@ import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
 import org.apache.sshd.server.scp.ScpCommandFactory;
 import org.apache.sshd.server.subsystem.sftp.SftpSubsystemFactory;
 import org.jline.builtins.Options;
+import org.jline.builtins.Options.HelpException;
 import org.jline.reader.LineReader;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
@@ -124,8 +125,7 @@ public class Ssh {
         List<String> args = opt.args();
 
         if (opt.isSet("help") || args.isEmpty()) {
-            opt.usage(stderr);
-            return;
+            throw new HelpException(opt.usage());
         }
 
         String username = user;
@@ -300,7 +300,7 @@ public class Ssh {
         return session;
     }
 
-    public void sshd(PrintStream stdout, PrintStream stderr, String[] argv) throws IOException {
+    public void sshd(PrintStream stdout, PrintStream stderr, String[] argv) throws Exception {
         final String[] usage = {"sshd - start an ssh server",
                 "Usage: sshd [-i ip] [-p port] start | stop | status",
                 "  -i --ip=INTERFACE        listen interface (default=127.0.0.1)",
@@ -311,8 +311,7 @@ public class Ssh {
         List<String> args = opt.args();
 
         if (opt.isSet("help") || args.isEmpty()) {
-            opt.usage(stderr);
-            return;
+            throw new HelpException(opt.usage());
         }
 
         String command = args.get(0);

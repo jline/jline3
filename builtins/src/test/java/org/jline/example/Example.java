@@ -9,6 +9,10 @@
 package org.jline.example;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -16,10 +20,17 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.jline.builtins.Commands;
 import org.jline.builtins.Completers;
+import org.jline.builtins.Completers.CompletionData;
 import org.jline.builtins.Completers.TreeCompleter;
+import org.jline.builtins.Options.HelpPrinter;
+import org.jline.builtins.Options.HelpException;
+import org.jline.builtins.TTop;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.impl.DefaultParser;
@@ -231,6 +242,9 @@ public class Example
             }
 
             Terminal terminal = builder.build();
+            HelpPrinter helpPrinter = new HelpPrinter(terminal);
+            helpPrinter.setColors("ti=1;34:co=1:ar=3:op=33");
+//            helpPrinter.setColor4title(AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN));
 
             LineReader reader = LineReaderBuilder.builder()
                     .terminal(terminal)
@@ -307,83 +321,89 @@ public class Example
                 }
                 ParsedLine pl = reader.getParser().parse(line, 0);
                 String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
-                if ("set".equals(pl.word())) {
-                    if (pl.words().size() == 3) {
-                        reader.setVariable(pl.words().get(1), pl.words().get(2));
-                    }
-                }
-                else if ("tput".equals(pl.word())) {
-                    if (pl.words().size() == 2) {
-                        Capability vcap = Capability.byName(pl.words().get(1));
-                        if (vcap != null) {
-                            terminal.puts(vcap);
-                        } else {
-                            terminal.writer().println("Unknown capability");
+                try {
+                    if ("set".equals(pl.word())) {
+                        if (pl.words().size() == 3) {
+                            reader.setVariable(pl.words().get(1), pl.words().get(2));
                         }
                     }
-                }
-                else if ("testkey".equals(pl.word())) {
-                    terminal.writer().write("Input the key event(Enter to complete): ");
-                    terminal.writer().flush();
-                    StringBuilder sb = new StringBuilder();
-                    while (true) {
-                        int c = ((LineReaderImpl) reader).readCharacter();
-                        if (c == 10 || c == 13) break;
-                        sb.append(new String(Character.toChars(c)));
-                    }
-                    terminal.writer().println(KeyMap.display(sb.toString()));
-                    terminal.writer().flush();
-                }
-                else if ("bindkey".equals(pl.word())) {
-                    if (pl.words().size() == 1) {
-                        StringBuilder sb = new StringBuilder();
-                        Map<String, Binding> bound = reader.getKeys().getBoundKeys();
-                        for (Map.Entry<String, Binding> entry : bound.entrySet()) {
-                            sb.append("\"");
-                            entry.getKey().chars().forEachOrdered(c -> {
-                                if (c < 32) {
-                                    sb.append('^');
-                                    sb.append((char) (c + 'A' - 1));
-                                } else {
-                                    sb.append((char) c);
-                                }
-                            });
-                            sb.append("\" ");
-                            if (entry.getValue() instanceof Macro) {
-                                sb.append("\"");
-                                ((Macro) entry.getValue()).getSequence().chars().forEachOrdered(c -> {
-                                    if (c < 32) {
-                                        sb.append('^');
-                                        sb.append((char) (c + 'A' - 1));
-                                    } else {
-                                        sb.append((char) c);
-                                    }
-                                });
-                                sb.append("\"");
-                            } else if (entry.getValue() instanceof Reference) {
-                                sb.append(((Reference) entry.getValue()).name().toLowerCase().replace('_', '-'));
+                    else if ("tput".equals(pl.word())) {
+                        if (pl.words().size() == 2) {
+                            Capability vcap = Capability.byName(pl.words().get(1));
+                            if (vcap != null) {
+                                terminal.puts(vcap);
                             } else {
-                                sb.append(entry.getValue().toString());
+                                terminal.writer().println("Unknown capability");
                             }
-                            sb.append("\n");
                         }
-                        terminal.writer().print(sb.toString());
+                    }
+                    else if ("testkey".equals(pl.word())) {
+                        terminal.writer().write("Input the key event(Enter to complete): ");
+                        terminal.writer().flush();
+                        StringBuilder sb = new StringBuilder();
+                        while (true) {
+                            int c = ((LineReaderImpl) reader).readCharacter();
+                            if (c == 10 || c == 13) break;
+                            sb.append(new String(Character.toChars(c)));
+                        }
+                        terminal.writer().println(KeyMap.display(sb.toString()));
+                        terminal.writer().flush();
+                    }
+                    else if ("cls".equals(pl.word())) {
+                        terminal.puts(Capability.clear_screen);
                         terminal.flush();
-                    } else if (pl.words().size() == 3) {
-                        reader.getKeys().bind(
-                                new Reference(pl.words().get(2)), KeyMap.translate(pl.words().get(1))
-                        );
+                    }
+                    else if ("sleep".equals(pl.word())) {
+                        Thread.sleep(3000);
+                    }
+                    //
+                    // builtin commands are added in order to test HelpPrinter class
+                    //
+                    else if ("tmux".equals(pl.word())) {
+                        Commands.tmux(terminal, System.out, System.err,
+                                null, //Supplier<Object> getter,   
+                                null, //Consumer<Object> setter,
+                                null, //Consumer<Terminal> runner,
+                                argv);
+                    }
+                    else if ("nano".equals(pl.word())) {
+                        Commands.nano(terminal, System.out, System.err,
+                                Paths.get(""),
+                                argv);
+                    }
+                    else if ("less".equals(pl.word())) {
+                        Commands.less(terminal, System.in, System.out, System.err,
+                                Paths.get(""),
+                                argv);
+                    }
+                    else if ("history".equals(pl.word())) {
+                        Commands.history(reader, System.out, System.err, argv);
+                    }
+                    else if ("complete".equals(pl.word())) {
+                        Commands.complete(reader, System.out, System.err,
+                                null, // Map<String, List<CompletionData>> completions,
+                                argv);
+                    }
+                    else if ("widget".equals(pl.word())) {
+                        Commands.widget(reader, System.out, System.err,
+                                null, //Function<String, Widget> widgetCreator,
+                                argv);
+                    }
+                    else if ("keymap".equals(pl.word())) {
+                        Commands.keymap(reader, System.out, System.err, argv);
+                    }
+                    else if ("setopt".equals(pl.word())) {
+                        Commands.setopt(reader, System.out, System.err, argv);
+                    }
+                    else if ("unsetopt".equals(pl.word())) {
+                        Commands.unsetopt(reader, System.out, System.err, argv);
+                    }
+                    else if ("ttop".equals(pl.word())) {
+                        TTop.ttop(terminal, System.out, System.err, argv);
                     }
                 }
-                else if ("cls".equals(pl.word())) {
-                    terminal.puts(Capability.clear_screen);
-                    terminal.flush();
-                }
-                else if ("sleep".equals(pl.word())) {
-                    Thread.sleep(3000);
-                }
-                else if ("history".equals(pl.word())) {
-                    Commands.history(reader, System.out, System.err, argv);
+                catch (HelpException e) {
+                    helpPrinter.print(System.err, e.getMessage());
                 }
             }
         }
