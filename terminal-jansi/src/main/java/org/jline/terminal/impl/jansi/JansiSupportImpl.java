@@ -60,16 +60,28 @@ public class JansiSupportImpl implements JansiSupport {
         JANSI_MINOR_VERSION = minor;
     }
 
+    public static int getJansiMajorVersion() {
+        return JANSI_MAJOR_VERSION;
+    }
+
+    public static int getJansiMinorVersion() {
+        return JANSI_MINOR_VERSION;
+    }
+
+    public static boolean isAtLeast(int major, int minor) {
+        return JANSI_MAJOR_VERSION > major || JANSI_MAJOR_VERSION == major && JANSI_MINOR_VERSION >= minor;
+    }
+
     @Override
     public Pty current() throws IOException {
         String osName = System.getProperty("os.name");
         if (osName.startsWith("Linux")) {
-            if (JANSI_MAJOR_VERSION > 1 || JANSI_MAJOR_VERSION == 1 && JANSI_MINOR_VERSION >= 16) {
+            if (isAtLeast(1, 16)) {
                 return LinuxNativePty.current();
             }
         }
         else if (osName.startsWith("Mac") || osName.startsWith("Darwin")) {
-            if (JANSI_MAJOR_VERSION > 1 || JANSI_MAJOR_VERSION == 1 && JANSI_MINOR_VERSION >= 12) {
+            if (isAtLeast(1, 12)) {
                 return OsXNativePty.current();
             }
         }
@@ -78,7 +90,7 @@ public class JansiSupportImpl implements JansiSupport {
             // return SolarisNativePty.current();
         }
         else if (osName.startsWith("FreeBSD")) {
-            if (JANSI_MAJOR_VERSION > 1 || JANSI_MAJOR_VERSION == 1 && JANSI_MINOR_VERSION >= 16) {
+            if (isAtLeast(1, 16)) {
                 return FreeBsdNativePty.current();
             }
         }
@@ -87,7 +99,7 @@ public class JansiSupportImpl implements JansiSupport {
 
     @Override
     public Pty open(Attributes attributes, Size size) throws IOException {
-        if (JANSI_MAJOR_VERSION > 1 || JANSI_MAJOR_VERSION == 1 && JANSI_MINOR_VERSION >= 16) {
+        if (isAtLeast(1, 16)) {
             String osName = System.getProperty("os.name");
             if (osName.startsWith("Linux")) {
                 return LinuxNativePty.open(attributes, size);
@@ -113,9 +125,9 @@ public class JansiSupportImpl implements JansiSupport {
 
     @Override
     public Terminal winSysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, Terminal.SignalHandler signalHandler, boolean paused) throws IOException {
-        if (JANSI_MAJOR_VERSION > 1 || JANSI_MAJOR_VERSION == 1 && JANSI_MINOR_VERSION >= 12) {
+        if (isAtLeast(1, 12)) {
             JansiWinSysTerminal terminal = JansiWinSysTerminal.createTerminal(name, type, ansiPassThrough, encoding, codepage, nativeSignals, signalHandler, paused);
-            if (JANSI_MAJOR_VERSION == 1 && JANSI_MINOR_VERSION < 16) {
+            if (!isAtLeast(1, 16)) {
                 terminal.disableScrolling();
             }
             return terminal;
