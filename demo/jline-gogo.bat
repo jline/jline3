@@ -54,6 +54,8 @@ set "logconf=%DIRNAME%etc\logging.properties"
 :EXECUTE_SSH
     for %%G in (sshd-common-*.jar) do call:APPEND_TO_CLASSPATH %%G
     for %%G in (sshd-core-*.jar) do call:APPEND_TO_CLASSPATH %%G
+    for %%G in (sshd-scp-*.jar) do call:APPEND_TO_CLASSPATH %%G
+    for %%G in (sshd-sftp-*.jar) do call:APPEND_TO_CLASSPATH %%G
     for %%G in (slf4j-api-*.jar) do call:APPEND_TO_CLASSPATH %%G
     for %%G in (slf4j-jdk14-*.jar) do call:APPEND_TO_CLASSPATH %%G
     shift
