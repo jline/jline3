@@ -39,11 +39,9 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import org.jline.terminal.Terminal;
-import org.jline.utils.AttributedStyle;
 import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.StyleResolver;
 
 /**
@@ -69,8 +67,8 @@ public class Options {
     private static final int GROUP_LONG_OPT_2 = 5;
     private static final int GROUP_DEFAULT = 6;
 
-    private final Pattern parser = Pattern.compile(regex);
-    private final Pattern uname = Pattern.compile("^Usage:\\s+(\\w+)");
+    private static final Pattern parser = Pattern.compile(regex);
+    private static final Pattern uname = Pattern.compile("^Usage:\\s+(\\w+)");
 
     private final Map<String, Boolean> unmodifiableOptSet;
     private final Map<String, Object> unmodifiableOptArg;
@@ -515,150 +513,82 @@ public class Options {
         return "isSet" + optSet + "\nArg" + optArg + "\nargs" + xargs;
     }
 
-    public static class HelpPrinter {
-        private final List<String> names = Arrays.asList("ti", "co", "ar", "op");
-        private final Pattern patternCommand  = Pattern.compile("(^\\s*)([a-z]+[a-z-]*){1}\\b");
-        private final Pattern patternArgument = Pattern.compile("(\\[|\\s|=)([A-Za-z]+[A-Za-z_-]*){1}\\b");
-        private final Pattern patternArgumentInComment = Pattern.compile("(\\s)([a-z]+[-]+[a-z]+|[A-Z_]{2,}){1}(\\s)");
-        private final Pattern patternOption = Pattern.compile("(\\s|\\[)(-\\?|[-]{1,2}[A-Za-z-]+\\b){1}");
-        private final String title = "Usage";
-        private final String ansiReset = "\033[0m";
-        private String ansi4title = "";
-        private String ansi4command = "";
-        private String ansi4argument = "";
-        private String ansi4option= "";
-        private boolean color = true;
-        private Terminal terminal;
-        
-        public HelpPrinter() {
-            this(null);
-        }
-    
-        public HelpPrinter(Terminal terminal) {
-            this.terminal = terminal;
-            if (ansiSupported()) {
-                setColors("ti=1;34:co=1:ar=3:op=33");
-            } else {
-                this.color = false;
-            }
-        }
-
-        public void setColor(boolean color) {
-            this.color = color;
-        }
-        
-        public void setColor4title(AttributedStyle style) {
-            this.ansi4title = styleToAnsiCode(style);
-        }
-        
-        public void setColor4command(AttributedStyle style) {
-            this.ansi4command = styleToAnsiCode(style);
-        }
-        
-        public void setColor4argument(AttributedStyle style) {
-            this.ansi4argument = styleToAnsiCode(style);
-        }
-        
-        public void setColor4option(AttributedStyle style) {
-            this.ansi4option = styleToAnsiCode(style);
-        }
-        
-        public void setColors (Map<String, String> colors) {
-            for (String n: names) {
-                if (colors.containsKey(n)) {
-                    AttributedStyle s = new StyleResolver(colors::get).resolve(colors.get(n));
-                    if (n.equals("ti")) {
-                        setColor4title(s);
-                    } else if (n.equals("co")) {
-                        setColor4command(s);                        
-                    } else if (n.equals("ar")) {
-                        setColor4argument(s);
-                    } else if (n.equals("op")) {
-                        setColor4option(s);
-                    }
-                }                
-            }
-        }
-        
-        public void setColors (String str) {
-            String sep = str.matches("[a-z]{2}=[0-9]*(;[0-9]+)*(:[a-z]{2}=[0-9]*(;[0-9]+)*)*") ? ":" : " ";
-            setColors(Arrays.stream(str.split(sep))
-                       .collect(Collectors.toMap(s -> s.substring(0, s.indexOf('=')),
-                                                 s -> s.substring(s.indexOf('=') + 1))));
-         
-        }
-
-        private boolean ansiSupported () {
-            return (new AttributedString("HP", AttributedStyle.DEFAULT.foreground(AttributedStyle.RED))
-                                                              .toAnsi(terminal).split("HP").length > 0);
-        }
-        
-        private String styleToAnsiCode(AttributedStyle style) {
-            String[] as = new AttributedString("HP", style).toAnsi(terminal).split("HP");
-            return as.length > 0 ? as[0] : ansiReset;
-        }
-        
-        public void print(PrintStream err, String msg) {
-            if (color) {
-                String[] p = msg.split(title + ":", 2);
-                if (p.length == 2) {
-                    err.print(highlightCommand(p[0]));
-                    err.print(ansi4title + title + ansiReset + ":");
-                    for (String line: p[1].split("\n")) {
-                        int ind = line.lastIndexOf("  ");
-                        if (ind > 20) {
-                            line = highlightSyntax(line.substring(0, ind)) + highlightComment(line.substring(ind + 1, line.length()));
-                        } else {
-                            line = highlightSyntax(line);
-                        }
-                        err.println(line);
-                    }                    
-                } else {
-                    err.print(msg);                    
-                }
-            } else {
-                err.print(msg);
-            }
-        }
-        
-        private String highlightCommand(String command) {
-            Matcher matcher = patternCommand.matcher(command);
-            if (matcher.find()) {
-                command = matcher.replaceAll("$1" + ansi4command + "$2" + ansiReset);
-            }
-            return command;
-        }
-        
-        private String highlightSyntax(String syntax) {
-            syntax = highlightCommand(syntax);
-            Matcher matcher = patternArgument.matcher(syntax);
-            if (matcher.find()) {
-                syntax = matcher.replaceAll("$1" + ansi4argument + "$2" + ansiReset);
-            }
-            matcher = patternOption.matcher(syntax);
-            if (matcher.find()) {
-                syntax = matcher.replaceAll("$1" + ansi4option + "$2" + ansiReset);
-            }
-            return syntax;
-        }
-        
-        private String highlightComment(String comment) {
-            Matcher matcher = patternOption.matcher(comment);
-            if (matcher.find()) {
-                comment = matcher.replaceAll("$1" + ansi4option + "$2" + ansiReset);
-            }
-            matcher = patternArgumentInComment.matcher(comment);
-            if (matcher.find()) {
-                comment = matcher.replaceAll("$1" + ansi4argument + "$2" + ansiReset + "$3");
-            }
-            return comment;
-        }
-    }
-
+    /**
+     * Exception thrown when using the <code>--help</code> option on a built-in command.
+     * It can be highlighted using the {@link #highlight(String, StyleResolver)} method and then printed
+     * to the {@link org.jline.terminal.Terminal}.
+     */
     @SuppressWarnings("serial")
     public static class HelpException extends Exception {
+
         public HelpException(String message) {
             super(message);
+        }
+
+        public static final String DEFAULT_COLORS = "ti=1;34:co=1:ar=3:op=33";
+
+        public static StyleResolver defaultStyle() {
+            return style(DEFAULT_COLORS);
+        }
+
+        public static StyleResolver style(String str) {
+            Map<String, String> colors = Arrays.stream(str.split(":"))
+                    .collect(Collectors.toMap(s -> s.substring(0, s.indexOf('=')),
+                            s -> s.substring(s.indexOf('=') + 1)));
+            return new StyleResolver(colors::get);
+        }
+
+        public static AttributedString highlight(String msg, StyleResolver resolver) {
+            Matcher tm = Pattern.compile("(^|\\n)(Usage:)").matcher(msg);
+            if (tm.find()) {
+                AttributedStringBuilder asb = new AttributedStringBuilder(msg.length());
+                // Command
+                AttributedStringBuilder acommand = new AttributedStringBuilder()
+                        .append(msg.substring(0, tm.start(2)))
+                        .styleMatches(Pattern.compile("(?:^\\s*)([a-z]+[a-z-]*){1}\\b"),
+                                Collections.singletonList(resolver.resolve(".co")));
+                asb.append(acommand);
+                // Title
+                asb.styled(resolver.resolve(".ti"), "Usage").append(":");
+                // Syntax
+                for (String line : msg.substring(tm.end(2)).split("\n")) {
+                    int ind = line.lastIndexOf("  ");
+                    String syntax, comment;
+                    if (ind > 20) {
+                        syntax = line.substring(0, ind);
+                        comment = line.substring(ind + 1);
+                    } else {
+                        syntax = line;
+                        comment = "";
+
+                    }
+                    AttributedStringBuilder asyntax = new AttributedStringBuilder().append(syntax);
+                    // command
+                    asyntax.styleMatches(Pattern.compile("(?:^)(?:\\s*)([a-z]+[a-z-]*){1}\\b"),
+                            Collections.singletonList(resolver.resolve(".co")));
+                    // argument
+                    asyntax.styleMatches(Pattern.compile("(?:\\[|\\s|=)([A-Za-z]+[A-Za-z_-]*){1}\\b"),
+                            Collections.singletonList(resolver.resolve(".ar")));
+                    // option
+                    asyntax.styleMatches(Pattern.compile("(?:\\s|\\[)(-\\?|[-]{1,2}[A-Za-z-]+\\b){1}"),
+                            Collections.singletonList(resolver.resolve(".op")));
+                    asb.append(asyntax);
+
+                    AttributedStringBuilder acomment = new AttributedStringBuilder().append(comment);
+                    // option
+                    acomment.styleMatches(Pattern.compile("(?:\\s|\\[)(-\\?|[-]{1,2}[A-Za-z-]+\\b){1}"),
+                            Collections.singletonList(resolver.resolve(".op")));
+                    // argument in comment
+                    acomment.styleMatches(Pattern.compile("(?:\\s)([a-z]+[-]+[a-z]+|[A-Z_]{2,}){1}(?:\\s)"),
+                            Collections.singletonList(resolver.resolve(".ar")));
+                    asb.append(acomment);
+
+                    asb.append("\n");
+                }
+                return asb.toAttributedString();
+            } else {
+                return AttributedString.fromAnsi(msg);
+            }
         }
     }
 

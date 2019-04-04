@@ -9,9 +9,6 @@
 package org.jline.example;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintStream;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -28,7 +25,6 @@ import org.jline.builtins.Commands;
 import org.jline.builtins.Completers;
 import org.jline.builtins.Completers.CompletionData;
 import org.jline.builtins.Completers.TreeCompleter;
-import org.jline.builtins.Options.HelpPrinter;
 import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.TTop;
 import org.jline.keymap.KeyMap;
@@ -242,9 +238,6 @@ public class Example
             }
 
             Terminal terminal = builder.build();
-            HelpPrinter helpPrinter = new HelpPrinter(terminal);
-            helpPrinter.setColors("ti=1;34:co=1:ar=3:op=33");
-//            helpPrinter.setColor4title(AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN));
 
             LineReader reader = LineReaderBuilder.builder()
                     .terminal(terminal)
@@ -403,7 +396,7 @@ public class Example
                     }
                 }
                 catch (HelpException e) {
-                    helpPrinter.print(System.err, e.getMessage());
+                    HelpException.highlight(e.getMessage(), HelpException.defaultStyle()).print(terminal);
                 }
             }
         }
