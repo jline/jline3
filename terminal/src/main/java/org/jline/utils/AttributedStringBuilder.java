@@ -9,6 +9,7 @@
 package org.jline.utils;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -388,6 +389,19 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
         while (matcher.find()) {
             for (int i = matcher.start(); i < matcher.end(); i++) {
                 style[i] = (style[i] & ~s.getMask()) | s.getStyle();
+            }
+        }
+        return this;
+    }
+
+    public AttributedStringBuilder styleMatches(Pattern pattern, List<AttributedStyle> styles) {
+        Matcher matcher = pattern.matcher(this);
+        while (matcher.find()) {
+            for (int group = 0; group < matcher.groupCount(); group++) {
+                AttributedStyle s = styles.get(group);
+                for (int i = matcher.start(group + 1); i < matcher.end(group + 1); i++) {
+                    style[i] = (style[i] & ~s.getMask()) | s.getStyle();
+                }
             }
         }
         return this;
