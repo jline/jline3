@@ -82,6 +82,7 @@ public class Status {
             }
         }
         terminal.puts(Capability.save_cursor);
+        terminal.puts(Capability.cursor_address, rows - lines.size(), 0);
         terminal.puts(Capability.clr_eos);
         for (int i = 0; i < lines.size(); i++) {
             terminal.puts(Capability.cursor_address, rows - lines.size() + i, 0);

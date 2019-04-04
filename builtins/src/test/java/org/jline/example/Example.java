@@ -18,12 +18,9 @@ import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 import org.jline.builtins.Commands;
 import org.jline.builtins.Completers;
-import org.jline.builtins.Completers.CompletionData;
 import org.jline.builtins.Completers.TreeCompleter;
 import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.TTop;
@@ -42,6 +39,7 @@ import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 import org.jline.utils.InfoCmp.Capability;
+import org.jline.utils.Status;
 
 import static java.time.temporal.ChronoField.HOUR_OF_DAY;
 import static java.time.temporal.ChronoField.MINUTE_OF_HOUR;
@@ -91,6 +89,7 @@ public class Example
             int mouse = 0;
             Completer completer = null;
             Parser parser = null;
+            List<Consumer<LineReader>> callbacks = new ArrayList<>();
 
             int index = 0;
             label:
@@ -144,6 +143,25 @@ public class Example
                         DefaultParser p2 = new DefaultParser();
                         p2.setEofOnUnclosedBracket(Bracket.CURLY, Bracket.ROUND, Bracket.SQUARE);
                         parser = p2;
+                        break label;
+                    case "status":
+                        completer = new StringsCompleter("foo", "bar", "baz");
+                        callbacks.add(reader -> {
+                            new Thread(() -> {
+                                int counter = 0;
+                                while (true) {
+                                    try {
+                                        Thread.sleep(1000);
+                                        Status status = Status.getStatus(reader.getTerminal());
+                                        counter++;
+                                        status.update(Arrays.asList(new AttributedStringBuilder().append("counter: " + counter).toAttributedString()));
+                                        ((LineReaderImpl) reader).redisplay();
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            }).start();
+                        });
                         break label;
                     case "foo":
                         completer = new ArgumentCompleter(
@@ -278,6 +296,7 @@ public class Example
                     });
                 }
             }
+            callbacks.forEach(c -> c.accept(reader));
 
             while (true) {
                 String line = null;

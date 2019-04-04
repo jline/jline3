@@ -17,6 +17,8 @@ import java.time.Instant;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -212,6 +214,10 @@ public class LineReaderImpl implements LineReader, Flushable
     protected UndoTree<Buffer> undo = new UndoTree<>(this::setBuffer);
     protected boolean isUndo;
 
+    /**
+     * State lock
+     */
+    protected final ReentrantLock lock = new ReentrantLock();
     /*
      * Current internal state of the line reader
      */
@@ -521,7 +527,9 @@ public class LineReaderImpl implements LineReader, Flushable
                 history.attach(this);
             }
 
-            synchronized (this) {
+            try {
+                lock.lock();
+
                 this.reading = true;
 
                 previousIntrHandler = terminal.handle(Signal.INT, signal -> readLineThread.interrupt());
@@ -565,6 +573,8 @@ public class LineReaderImpl implements LineReader, Flushable
                 // Draw initial prompt
                 redrawLine();
                 redisplay();
+            } finally {
+                lock.unlock();
             }
 
             while (true) {
@@ -596,7 +606,8 @@ public class LineReaderImpl implements LineReader, Flushable
                     regionActive = RegionType.NONE;
                 }
 
-                synchronized (this) {
+                try {
+                    lock.lock();
                     // Get executable widget
                     Buffer copy = buf.copy();
                     Widget w = getWidget(o);
@@ -628,6 +639,8 @@ public class LineReaderImpl implements LineReader, Flushable
                     if (!dumb) {
                         redisplay();
                     }
+                } finally {
+                    lock.unlock();
                 }
             }
         } catch (IOError e) {
@@ -638,7 +651,9 @@ public class LineReaderImpl implements LineReader, Flushable
             }
         }
         finally {
-            synchronized (this) {
+            try {
+                lock.lock();
+
                 this.reading = false;
 
                 cleanup();
@@ -654,26 +669,34 @@ public class LineReaderImpl implements LineReader, Flushable
                 if (previousContHandler != null) {
                     terminal.handle(Signal.CONT, previousContHandler);
                 }
+            } finally {
+                lock.unlock();
             }
             startedReading.set(false);
         }
     }
 
     @Override
-    public synchronized void printAbove(String str) {
-        boolean reading = this.reading;
-        if (reading) {
-            display.update(Collections.emptyList(), 0);
+    public void printAbove(String str) {
+        try {
+            lock.lock();
+
+            boolean reading = this.reading;
+            if (reading) {
+                display.update(Collections.emptyList(), 0);
+            }
+            if (str.endsWith("\n")) {
+                terminal.writer().print(str);
+            } else {
+                terminal.writer().println(str);
+            }
+            if (reading) {
+                redisplay(false);
+            }
+            terminal.flush();
+        } finally {
+            lock.unlock();
         }
-        if (str.endsWith("\n")) {
-            terminal.writer().print(str);
-        } else {
-            terminal.writer().println(str);
-        }
-        if (reading) {
-            redisplay(false);
-        }
-        terminal.flush();
     }
 
     @Override
@@ -682,8 +705,13 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     @Override
-    public synchronized boolean isReading() {
-        return reading;
+    public boolean isReading() {
+        try {
+            lock.lock();
+            return reading;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /* Make sure we position the cursor on column 0 */
@@ -723,22 +751,27 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     @Override
-    public synchronized void callWidget(String name) {
-        if (!reading) {
-            throw new IllegalStateException("Widgets can only be called during a `readLine` call");
-        }
+    public void callWidget(String name) {
         try {
-            Widget w;
-            if (name.startsWith(".")) {
-                w = builtinWidgets.get(name.substring(1));
-            } else {
-                w = widgets.get(name);
+            lock.lock();
+            if (!reading) {
+                throw new IllegalStateException("Widgets can only be called during a `readLine` call");
             }
-            if (w != null) {
-                w.apply();
+            try {
+                Widget w;
+                if (name.startsWith(".")) {
+                    w = builtinWidgets.get(name.substring(1));
+                } else {
+                    w = widgets.get(name);
+                }
+                if (w != null) {
+                    w.apply();
+                }
+            } catch (Throwable t) {
+                Log.debug("Error executing widget '", name, "'", t);
             }
-        } catch (Throwable t) {
-            Log.debug("Error executing widget '", name, "'", t);
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -778,11 +811,33 @@ public class LineReaderImpl implements LineReader, Flushable
      * @return the character, or -1 if an EOF is received.
      */
     public int readCharacter() {
-        return bindingReader.readCharacter();
+        if (lock.isHeldByCurrentThread()) {
+            try {
+                lock.unlock();
+                return bindingReader.readCharacter();
+            } finally {
+                lock.lock();
+            }
+        } else {
+            return bindingReader.readCharacter();
+        }
     }
 
     public int peekCharacter(long timeout) {
         return bindingReader.peekCharacter(timeout);
+    }
+
+    protected <T> T doReadBinding(KeyMap<T> keys, KeyMap<T> local) {
+        if (lock.isHeldByCurrentThread()) {
+            try {
+                lock.unlock();
+                return bindingReader.readBinding(keys, local);
+            } finally {
+                lock.lock();
+            }
+        } else {
+            return bindingReader.readBinding(keys, local);
+        }
     }
 
     /**
@@ -801,7 +856,7 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     public Binding readBinding(KeyMap<Binding> keys, KeyMap<Binding> local) {
-        Binding o = bindingReader.readBinding(keys, local);
+        Binding o = doReadBinding(keys, local);
         /*
          * The kill ring keeps record of whether or not the
          * previous command was a yank or a kill. We reset
@@ -1921,7 +1976,7 @@ public class LineReaderImpl implements LineReader, Flushable
         while (true) {
             post = () -> new AttributedString(searchPrompt + searchBuffer.toString() + "_");
             redisplay();
-            Binding b = bindingReader.readBinding(keyMap);
+            Binding b = doReadBinding(keyMap, null);
             if (b instanceof Reference) {
                 String func = ((Reference) b).name();
                 switch (func) {
@@ -2318,7 +2373,7 @@ public class LineReaderImpl implements LineReader, Flushable
         } else {
             viMoveMode = mode;
             mark = -1;
-            Binding b = bindingReader.readBinding(getKeys(), keyMaps.get(VIOPP));
+            Binding b = doReadBinding(getKeys(), keyMaps.get(VIOPP));
             if (b == null || new Reference(SEND_BREAK).equals(b)) {
                 viMoveMode = ViMoveMode.NORMAL;
                 mark = oldMark;
@@ -3568,104 +3623,110 @@ public class LineReaderImpl implements LineReader, Flushable
         return true;
     }
 
-    protected synchronized void redisplay(boolean flush) {
-        if (skipRedisplay) {
-            skipRedisplay = false;
-            return;
-        }
+    protected void redisplay(boolean flush) {
+        try {
+            lock.lock();
 
-        Status status = Status.getStatus(terminal, false);
-        if (status != null) {
-            status.redraw();
-        }
-
-        if (size.getRows() > 0 && size.getRows() < MIN_ROWS) {
-            AttributedStringBuilder sb = new AttributedStringBuilder().tabs(TAB_WIDTH);
-
-            sb.append(prompt);
-            concat(getHighlightedBuffer(buf.toString()).columnSplitLength(Integer.MAX_VALUE), sb);
-            AttributedString full = sb.toAttributedString();
-
-            sb.setLength(0);
-            sb.append(prompt);
-            String line = buf.upToCursor();
-            if(maskingCallback != null) {
-                line = maskingCallback.display(line);
+            if (skipRedisplay) {
+                skipRedisplay = false;
+                return;
             }
-            
-            concat(new AttributedString(line).columnSplitLength(Integer.MAX_VALUE), sb);
-            AttributedString toCursor = sb.toAttributedString();
 
-            int w = WCWidth.wcwidth('…');
-            int width = size.getColumns();
-            int cursor = toCursor.columnLength();
-            int inc = width /2 + 1;
-            while (cursor <= smallTerminalOffset + w) {
-                smallTerminalOffset -= inc;
+            Status status = Status.getStatus(terminal, false);
+            if (status != null) {
+                status.redraw();
             }
-            while (cursor >= smallTerminalOffset + width - w) {
-                smallTerminalOffset += inc;
-            }
-            if (smallTerminalOffset > 0) {
+
+            if (size.getRows() > 0 && size.getRows() < MIN_ROWS) {
+                AttributedStringBuilder sb = new AttributedStringBuilder().tabs(TAB_WIDTH);
+
+                sb.append(prompt);
+                concat(getHighlightedBuffer(buf.toString()).columnSplitLength(Integer.MAX_VALUE), sb);
+                AttributedString full = sb.toAttributedString();
+
                 sb.setLength(0);
-                sb.append("…");
-                sb.append(full.columnSubSequence(smallTerminalOffset + w, Integer.MAX_VALUE));
-                full = sb.toAttributedString();
+                sb.append(prompt);
+                String line = buf.upToCursor();
+                if (maskingCallback != null) {
+                    line = maskingCallback.display(line);
+                }
+
+                concat(new AttributedString(line).columnSplitLength(Integer.MAX_VALUE), sb);
+                AttributedString toCursor = sb.toAttributedString();
+
+                int w = WCWidth.wcwidth('…');
+                int width = size.getColumns();
+                int cursor = toCursor.columnLength();
+                int inc = width / 2 + 1;
+                while (cursor <= smallTerminalOffset + w) {
+                    smallTerminalOffset -= inc;
+                }
+                while (cursor >= smallTerminalOffset + width - w) {
+                    smallTerminalOffset += inc;
+                }
+                if (smallTerminalOffset > 0) {
+                    sb.setLength(0);
+                    sb.append("…");
+                    sb.append(full.columnSubSequence(smallTerminalOffset + w, Integer.MAX_VALUE));
+                    full = sb.toAttributedString();
+                }
+                int length = full.columnLength();
+                if (length >= smallTerminalOffset + width) {
+                    sb.setLength(0);
+                    sb.append(full.columnSubSequence(0, width - w));
+                    sb.append("…");
+                    full = sb.toAttributedString();
+                }
+
+                display.update(Collections.singletonList(full), cursor - smallTerminalOffset, flush);
+                return;
             }
-            int length = full.columnLength();
-            if (length >= smallTerminalOffset + width) {
-                sb.setLength(0);
-                sb.append(full.columnSubSequence(0, width - w));
-                sb.append("…");
-                full = sb.toAttributedString();
+
+            List<AttributedString> secondaryPrompts = new ArrayList<>();
+            AttributedString full = getDisplayedBufferWithPrompts(secondaryPrompts);
+
+            List<AttributedString> newLines;
+            if (size.getColumns() <= 0) {
+                newLines = new ArrayList<>();
+                newLines.add(full);
+            } else {
+                newLines = full.columnSplitLength(size.getColumns(), true, display.delayLineWrap());
             }
 
-            display.update(Collections.singletonList(full), cursor - smallTerminalOffset, flush);
-            return;
-        }
-
-        List<AttributedString> secondaryPrompts = new ArrayList<>();
-        AttributedString full = getDisplayedBufferWithPrompts(secondaryPrompts);
-
-        List<AttributedString> newLines;
-        if (size.getColumns() <= 0) {
-            newLines = new ArrayList<>();
-            newLines.add(full);
-        } else {
-            newLines = full.columnSplitLength(size.getColumns(), true, display.delayLineWrap());
-        }
-
-        List<AttributedString> rightPromptLines;
-        if (rightPrompt.length() == 0 || size.getColumns() <= 0) {
-            rightPromptLines = new ArrayList<>();
-        } else {
-            rightPromptLines = rightPrompt.columnSplitLength(size.getColumns());
-        }
-        while (newLines.size() < rightPromptLines.size()) {
-            newLines.add(new AttributedString(""));
-        }
-        for (int i = 0; i < rightPromptLines.size(); i++) {
-            AttributedString line = rightPromptLines.get(i);
-            newLines.set(i, addRightPrompt(line, newLines.get(i)));
-        }
-
-        int cursorPos = -1;
-        if (size.getColumns() > 0) {
-            AttributedStringBuilder sb = new AttributedStringBuilder().tabs(TAB_WIDTH);
-            sb.append(prompt);
-            String buffer = buf.upToCursor();
-            if (maskingCallback != null) {
-                buffer = maskingCallback.display(buffer);
+            List<AttributedString> rightPromptLines;
+            if (rightPrompt.length() == 0 || size.getColumns() <= 0) {
+                rightPromptLines = new ArrayList<>();
+            } else {
+                rightPromptLines = rightPrompt.columnSplitLength(size.getColumns());
             }
-            sb.append(insertSecondaryPrompts(new AttributedString(buffer), secondaryPrompts, false));
-            List<AttributedString> promptLines = sb.columnSplitLength(size.getColumns(), false, display.delayLineWrap());
-            if (!promptLines.isEmpty()) {
-                cursorPos = size.cursorPos(promptLines.size() - 1,
-                                           promptLines.get(promptLines.size() - 1).columnLength());
+            while (newLines.size() < rightPromptLines.size()) {
+                newLines.add(new AttributedString(""));
             }
-        }
+            for (int i = 0; i < rightPromptLines.size(); i++) {
+                AttributedString line = rightPromptLines.get(i);
+                newLines.set(i, addRightPrompt(line, newLines.get(i)));
+            }
 
-        display.update(newLines, cursorPos, flush);
+            int cursorPos = -1;
+            if (size.getColumns() > 0) {
+                AttributedStringBuilder sb = new AttributedStringBuilder().tabs(TAB_WIDTH);
+                sb.append(prompt);
+                String buffer = buf.upToCursor();
+                if (maskingCallback != null) {
+                    buffer = maskingCallback.display(buffer);
+                }
+                sb.append(insertSecondaryPrompts(new AttributedString(buffer), secondaryPrompts, false));
+                List<AttributedString> promptLines = sb.columnSplitLength(size.getColumns(), false, display.delayLineWrap());
+                if (!promptLines.isEmpty()) {
+                    cursorPos = size.cursorPos(promptLines.size() - 1,
+                            promptLines.get(promptLines.size() - 1).columnLength());
+                }
+            }
+
+            display.update(newLines, cursorPos, flush);
+        } finally {
+            lock.unlock();
+        }
     }
 
     private void concat(List<AttributedString> lines, AttributedStringBuilder sb) {
@@ -4660,7 +4721,7 @@ public class LineReaderImpl implements LineReader, Flushable
             }
             redisplay();
             // TODO: use a different keyMap ?
-            Binding b = bindingReader.readBinding(getKeys());
+            Binding b = doReadBinding(getKeys(), null);
             if (b instanceof Reference) {
                 String name = ((Reference) b).name();
                 if (BACKWARD_DELETE_CHAR.equals(name) || VI_BACKWARD_DELETE_CHAR.equals(name)) {
@@ -5264,7 +5325,7 @@ public class LineReaderImpl implements LineReader, Flushable
         keyMap.bind(END_PASTE, BRACKETED_PASTE_END);
         StringBuilder sb = new StringBuilder();
         while (true) {
-            Object b = bindingReader.readBinding(keyMap);
+            Object b = doReadBinding(keyMap, null);
             if (b == END_PASTE) {
                 break;
             }
