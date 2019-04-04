@@ -38,6 +38,14 @@ public abstract class AttributedCharSequence implements CharSequence {
     // cache the value here as we can't afford to get it each time
     static final boolean DISABLE_ALTERNATE_CHARSET = Boolean.getBoolean(PROP_DISABLE_ALTERNATE_CHARSET);
 
+    public void print(Terminal terminal) {
+        terminal.writer().print(toAnsi(terminal));
+    }
+
+    public void println(Terminal terminal) {
+        terminal.writer().println(toAnsi(terminal));
+    }
+
     public String toAnsi() {
         return toAnsi(null);
     }

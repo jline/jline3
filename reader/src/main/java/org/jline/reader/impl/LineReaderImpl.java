@@ -718,7 +718,7 @@ public class LineReaderImpl implements LineReader, Flushable
             sb.append(" ");
             sb.append(KeyMap.key(terminal, Capability.carriage_return));
         }
-        print(sb.toAnsi(terminal));
+        sb.print(terminal);
         return true;
     }
 

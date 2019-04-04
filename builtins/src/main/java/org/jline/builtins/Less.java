@@ -611,7 +611,7 @@ public class Less {
         }
         if (oneScreen) {
             if (fitOnOneScreen) {
-                newLines.forEach(l -> terminal.writer().println(l.toAnsi(terminal)));
+                newLines.forEach(l -> l.println(terminal));
             }
             return fitOnOneScreen;
         }

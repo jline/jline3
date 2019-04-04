@@ -484,7 +484,7 @@ public class Display {
     }
 
     void rawPrint(AttributedString str) {
-        terminal.writer().write(str.toAnsi(terminal));
+        str.print(terminal);
     }
 
     public int wcwidth(String str) {

@@ -85,7 +85,7 @@ public class Status {
         terminal.puts(Capability.clr_eos);
         for (int i = 0; i < lines.size(); i++) {
             terminal.puts(Capability.cursor_address, rows - lines.size() + i, 0);
-            terminal.writer().write(lines.get(i).columnSubSequence(0, columns).toAnsi(terminal));
+            lines.get(i).columnSubSequence(0, columns).print(terminal);
         }
         terminal.puts(Capability.change_scroll_region, 0, rows - 1 - lines.size());
         terminal.puts(Capability.restore_cursor);
