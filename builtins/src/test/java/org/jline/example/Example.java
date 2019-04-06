@@ -128,9 +128,7 @@ public class Example
             Parser parser = null;
             List<Consumer<LineReader>> callbacks = new ArrayList<>();
 
-            boolean forExit = false;
-            int index;
-            for (index=0; index < args.length; index++) {
+            for (int index=0; index < args.length; index++) {
                 switch (args[index]) {
                     /* SANDBOX JANSI
                     case "-posix":
