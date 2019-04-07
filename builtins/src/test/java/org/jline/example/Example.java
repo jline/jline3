@@ -55,20 +55,20 @@ public class Example
               , "    -system          terminalBuilder.system(false)"
               , "    +system          terminalBuilder.system(true)"
               , "  Completors:"
-              , "    argumet          a argument completor"
+              , "    argumet          an argument completor"
               , "    files            a completor that completes file names"
               , "    none             no completors"
               , "    param            a paramenter completer using Java functional interface"
               , "    regexp           a regex completer"
               , "    simple           a string completor that completes \"foo\", \"bar\" and \"baz\""
               , "    tree             a tree completer"
-              , "  Multiline"
+              , "  Multiline:"
               , "    brackets         eof on unclosed bracket"
               , "    quotes           eof on unclosed quotes"
-              , "  Mouse"
+              , "  Mouse:"
               , "    mouse            enable mouse"
               , "    mousetrack       enable tracking mouse"
-              , "  Miscellaneous"
+              , "  Miscellaneous:"
               , "    color            colored left and right prompts"
               , "    status           multi-thread test of jline status line"
               , "    timer            widget 'Hello world'"
@@ -82,22 +82,26 @@ public class Example
     
     public static void help() {
         String[] help = {
-            "  List of available builtin commands:"
-          , "    cls        clear screen"
+            "List of available commands:"
+          , "  Builtin:"
           , "    complete   UNAVAILABLE"
           , "    history    list history of commands"
           , "    keymap     manipulate keymaps"
           , "    less       file pager"
           , "    nano       nano editor"
-          , "    set        set lineReader varible"
           , "    setopt     set options"
-          , "    sleep      sleep 3 seconds"
-          , "    testkey    display key events"
           , "    tmux       UNAVAILABLE"
-          , "    tput       set terminal capability"
           , "    ttop       display and update sorted information about threads"
           , "    unsetopt   unset options"
           , "    widget     UNAVAILABLE"
+          , "  Example:"
+          , "    cls        clear screen"
+          , "    help       list available commands"
+          , "    exit       exit from example app"
+          , "    set        set lineReader variable"
+          , "    sleep      sleep 3 seconds"
+          , "    testkey    display key events"
+          , "    tput       set terminal capability"
           , "  Additional help:"
           , "    <command> --help"};
         for (String u: help) {
@@ -287,8 +291,8 @@ public class Example
             }
           
             Terminal terminal = builder.build();          
-            System.out.println("Build terminal "+terminal.getName()+": "+terminal.getType());
-            System.out.println("\nhelp: list available builtin commands");
+            System.out.println(terminal.getName()+": "+terminal.getType());
+            System.out.println("\nhelp: list available commands");
             LineReader reader = LineReaderBuilder.builder()
                     .terminal(terminal)
                     .completer(completer)
@@ -369,6 +373,8 @@ public class Example
                     if ("set".equals(pl.word())) {
                         if (pl.words().size() == 3) {
                             reader.setVariable(pl.words().get(1), pl.words().get(2));
+                        } else {
+                            terminal.writer().println("Usage: set <name> <value>");
                         }
                     }
                     else if ("tput".equals(pl.word())) {
@@ -379,6 +385,8 @@ public class Example
                             } else {
                                 terminal.writer().println("Unknown capability");
                             }
+                        } else {
+                            terminal.writer().println("Usage: tput <capability>");
                         }
                     }
                     else if ("testkey".equals(pl.word())) {
