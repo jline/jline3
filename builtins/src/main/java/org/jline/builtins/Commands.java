@@ -96,14 +96,17 @@ public class Commands {
                             String[] argv) throws Exception {
         final String[] usage = {
                 "nano -  edit files",
-                "Usage: nano [FILES]",
-                "  -? --help                    Show help",
+                "Usage: nano [OPTIONS] [FILES]",
+                "  -? --help                    Show help", 
+                "  -R --restricted              Restricted mode: don't allow suspending; don't allow a file to be appended to,",
+                "                               prepended to, or saved under a different name if it already has one;",
+                "                               and don't use backup files."               
         };
         Options opt = Options.compile(usage).parse(argv);
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
-        Nano edit = new Nano(terminal, currentDir);
+        Nano edit = new Nano(terminal, currentDir, opt);
         edit.open(opt.args());
         edit.run();
     }

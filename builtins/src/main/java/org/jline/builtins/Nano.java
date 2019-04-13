@@ -70,6 +70,8 @@ public class Nano {
     protected final BindingReader bindingReader;
     protected final Size size;
     protected final Path root;
+    protected final boolean restricted;
+    protected final int vsusp;
 
     // Keys
     protected KeyMap<Operation> keys;
@@ -941,11 +943,17 @@ public class Nano {
     }
 
     public Nano(Terminal terminal, Path root) {
+        this(terminal, root, null);
+    }
+
+    public Nano(Terminal terminal, Path root, Options opts) {
         this.terminal = terminal;
         this.root = root;
         this.display = new Display(terminal, true);
         this.bindingReader = new BindingReader(terminal.reader());
         this.size = new Size();
+        this.restricted = opts!=null ? opts.isSet("restricted") : false;
+        this.vsusp = terminal.getAttributes().getControlChar(ControlChar.VSUSP);
         bindKeys();
     }
 
@@ -972,6 +980,9 @@ public class Nano {
         newAttr.setControlChar(ControlChar.VMIN, 1);
         newAttr.setControlChar(ControlChar.VTIME, 0);
         newAttr.setControlChar(ControlChar.VINTR, 0);
+        if (restricted) {
+            newAttr.setControlChar(ControlChar.VSUSP, 0);
+        }
         terminal.setAttributes(newAttr);
         terminal.puts(Capability.enter_ca_mode);
         terminal.puts(Capability.keypad_xmit);
@@ -1109,6 +1120,9 @@ public class Nano {
                     case MOUSE_EVENT:
                         mouseEvent();
                         break;
+                    case TOGGLE_SUSPENSION:
+                        toggleSuspension();
+                        break;
                     default:
                         setMessage("Unsupported " + op.name().toLowerCase().replace('_', '-'));
                         break;
@@ -1129,25 +1143,28 @@ public class Nano {
 
     boolean write() throws IOException {
         KeyMap<Operation> writeKeyMap = new KeyMap<>();
-        writeKeyMap.setUnicode(Operation.INSERT);
-        for (char i = 32; i < 256; i++) {
-            writeKeyMap.bind(Operation.INSERT, Character.toString(i));
+        if (!restricted) {
+            writeKeyMap.setUnicode(Operation.INSERT);
+            for (char i = 32; i < 256; i++) {
+                writeKeyMap.bind(Operation.INSERT, Character.toString(i));
+            }
+            for (char i = 'A'; i <= 'Z'; i++) {
+                writeKeyMap.bind(Operation.DO_LOWER_CASE, alt(i));
+            }
+            writeKeyMap.bind(Operation.BACKSPACE, del());
+            writeKeyMap.bind(Operation.APPEND_MODE, alt('a'));
+            writeKeyMap.bind(Operation.PREPEND_MODE, alt('p'));
+            writeKeyMap.bind(Operation.BACKUP, alt('b'));
+            writeKeyMap.bind(Operation.TO_FILES, ctrl('T'));
         }
-        for (char i = 'A'; i <= 'Z'; i++) {
-            writeKeyMap.bind(Operation.DO_LOWER_CASE, alt(i));
-        }
-        writeKeyMap.bind(Operation.BACKSPACE, del());
         writeKeyMap.bind(Operation.MAC_FORMAT, alt('m'));
         writeKeyMap.bind(Operation.DOS_FORMAT, alt('d'));
-        writeKeyMap.bind(Operation.APPEND_MODE, alt('a'));
-        writeKeyMap.bind(Operation.PREPEND_MODE, alt('p'));
-        writeKeyMap.bind(Operation.BACKUP, alt('b'));
-        writeKeyMap.bind(Operation.TO_FILES, ctrl('T'));
         writeKeyMap.bind(Operation.ACCEPT, "\r");
         writeKeyMap.bind(Operation.CANCEL, ctrl('C'));
         writeKeyMap.bind(Operation.HELP, ctrl('G'), key(terminal, Capability.key_f1));
         writeKeyMap.bind(Operation.MOUSE_EVENT, key(terminal, Capability.key_mouse));
-
+        writeKeyMap.bind(Operation.TOGGLE_SUSPENSION, alt('z'));
+        
         editMessage = getWriteMessage();
         editBuffer.setLength(0);
         editBuffer.append(buffer.file == null ? "" : buffer.file);
@@ -1195,6 +1212,9 @@ public class Nano {
                 case MOUSE_EVENT:
                     mouseEvent();
                     break;
+                case TOGGLE_SUSPENSION:
+                    toggleSuspension();
+                    break;
             }
             editMessage = getWriteMessage();
             display();
@@ -1213,9 +1233,9 @@ public class Nano {
     }
 
     private boolean save(String name) throws IOException {
-        Path orgPath = buffer.file != null ? root.resolve(buffer.file) : null;
-        Path newPath = root.resolve(name);
-        boolean isSame = orgPath != null && Files.isSameFile(orgPath, newPath);
+        Path orgPath = buffer.file != null ? root.resolve(new File(buffer.file).getCanonicalPath()) : null;
+        Path newPath = root.resolve(new File(name).getCanonicalPath());
+        boolean isSame = orgPath != null && Files.exists(newPath) && Files.isSameFile(orgPath, newPath);
         if (!isSame && Files.exists(Paths.get(name))) {
             Operation op = getYNC("File exists, OVERWRITE ? ");
             if (op != Operation.YES) {
@@ -1399,6 +1419,9 @@ public class Nano {
                 case MOUSE_EVENT:
                     mouseEvent();
                     break;
+                case TOGGLE_SUSPENSION:
+                    toggleSuspension();
+                    break;
             }
             editMessage = getReadMessage();
             display();
@@ -1428,13 +1451,15 @@ public class Nano {
     private LinkedHashMap<String, String> writeShortcuts() {
         LinkedHashMap<String, String> s = new LinkedHashMap<>();
         s.put("^G", "Get Help");
-        s.put("^T", "To Files");
         s.put("M-M", "Mac Format");
-        s.put("M-P", "Prepend");
         s.put("^C", "Cancel");
         s.put("M-D", "DOS Format");
-        s.put("M-A", "Append");
-        s.put("M-B", "Backup File");
+        if (!restricted) {
+            s.put("^T", "To Files");
+            s.put("M-P", "Prepend");
+            s.put("M-A", "Append");
+            s.put("M-B", "Backup File");
+        }
         return s;
     }
 
@@ -1535,7 +1560,10 @@ public class Nano {
                     case MOUSE_EVENT:
                         mouseEvent();
                         break;
-                }
+                    case TOGGLE_SUSPENSION:
+                        toggleSuspension();
+                        break;
+               }
                 display();
             }
         } finally {
@@ -1611,6 +1639,9 @@ public class Nano {
                         return;
                     case MOUSE_EVENT:
                         mouseEvent();
+                        break;
+                    case TOGGLE_SUSPENSION:
+                        toggleSuspension();
                         break;
                 }
                 editMessage = getSearchMessage();
@@ -1821,11 +1852,27 @@ public class Nano {
             }
         }
     }
+    
+    void toggleSuspension(){
+        if (restricted) {
+            setMessage("This function is disabled in restricted mode");
+        } else {
+            Attributes attrs = terminal.getAttributes();
+            int toggle = vsusp;
+            String message = "enabled";
+            if (attrs.getControlChar(ControlChar.VSUSP) > 0) {
+                toggle = 0;
+                message = "disabled";
+            }
+            attrs.setControlChar(ControlChar.VSUSP, toggle);
+            terminal.setAttributes(attrs);
+            setMessage("Suspension " + message);
+        }
+    }
 
     public String getTitle() {
         return title;
     }
-
 
     void resetDisplay() {
         display.clear();
@@ -2029,6 +2076,8 @@ public class Nano {
         keys.bind(Operation.LEFT, key(terminal, Capability.key_left));
 
         keys.bind(Operation.MOUSE_EVENT, key(terminal, Capability.key_mouse));
+        
+        keys.bind(Operation.TOGGLE_SUSPENSION, alt('z'));
     }
 
     protected enum Operation {
@@ -2115,7 +2164,9 @@ public class Nano {
         TABS_TO_SPACE,
         UNCUT,
 
-        MOUSE_EVENT
+        MOUSE_EVENT,
+ 
+        TOGGLE_SUSPENSION
     }
 
 }
