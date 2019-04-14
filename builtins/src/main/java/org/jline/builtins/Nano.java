@@ -1164,20 +1164,33 @@ public class Nano {
         writeKeyMap.bind(Operation.HELP, ctrl('G'), key(terminal, Capability.key_f1));
         writeKeyMap.bind(Operation.MOUSE_EVENT, key(terminal, Capability.key_mouse));
         writeKeyMap.bind(Operation.TOGGLE_SUSPENSION, alt('z'));
-        
+        writeKeyMap.bind(Operation.RIGHT, key(terminal, Capability.key_right));
+        writeKeyMap.bind(Operation.LEFT, key(terminal, Capability.key_left));
+      
         editMessage = getWriteMessage();
         editBuffer.setLength(0);
         editBuffer.append(buffer.file == null ? "" : buffer.file);
+        int curPos = editBuffer.length();
         this.shortcuts = writeShortcuts();
-        display();
+        display(curPos);
         while (true) {
             switch (readOperation(writeKeyMap)) {
                 case INSERT:
-                    editBuffer.append(bindingReader.getLastBinding());
+                    editBuffer.insert(curPos++, bindingReader.getLastBinding());
                     break;
                 case BACKSPACE:
-                    if (editBuffer.length() > 0) {
-                        editBuffer.setLength(editBuffer.length() - 1);
+                    if (curPos > 0) {
+                        editBuffer.deleteCharAt(--curPos);
+                    }
+                    break;
+                case LEFT:
+                    if (curPos > 0) {
+                        curPos--;
+                    }
+                    break;
+                case RIGHT:
+                    if (curPos < editBuffer.length()) {
+                        curPos++;
                     }
                     break;
                 case CANCEL:
@@ -1217,7 +1230,7 @@ public class Nano {
                     break;
             }
             editMessage = getWriteMessage();
-            display();
+            display(curPos);
         }
     }
 
@@ -1235,14 +1248,15 @@ public class Nano {
     private boolean save(String name) throws IOException {
         Path orgPath = buffer.file != null ? root.resolve(new File(buffer.file).getCanonicalPath()) : null;
         Path newPath = root.resolve(new File(name).getCanonicalPath());
-        boolean isSame = orgPath != null && Files.exists(newPath) && Files.isSameFile(orgPath, newPath);
-        if (!isSame && Files.exists(Paths.get(name))) {
+        boolean isSame = orgPath != null && Files.exists(orgPath) && Files.exists(newPath) && Files.isSameFile(orgPath, newPath);
+        if (!isSame && Files.exists(Paths.get(name)) && writeMode == WriteMode.WRITE) {
             Operation op = getYNC("File exists, OVERWRITE ? ");
             if (op != Operation.YES) {
                 return false;
             }
+        } else if (!Files.exists(newPath)) {
+            newPath.toFile().createNewFile();
         }
-        // TODO: support backup / prepend / append
         Path t = Files.createTempFile(newPath.getParent(), "jline-", ".temp");
         try (OutputStream os = Files.newOutputStream(t, StandardOpenOption.WRITE,
                                                         StandardOpenOption.TRUNCATE_EXISTING,
@@ -1254,20 +1268,18 @@ public class Nano {
             }
             Writer w = new OutputStreamWriter(os, buffer.charset);
             for (int i = 0; i < buffer.lines.size(); i++) {
-                if (i > 0) {
-                    switch (buffer.format) {
-                        case UNIX:
-                            w.write("\n");
-                            break;
-                        case DOS:
-                            w.write("\r\n");
-                            break;
-                        case MAC:
-                            w.write("\r");
-                            break;
-                    }
-                }
                 w.write(buffer.lines.get(i));
+                switch (buffer.format) {
+                    case UNIX:
+                        w.write("\n");
+                        break;
+                    case DOS:
+                        w.write("\r\n");
+                        break;
+                    case MAC:
+                        w.write("\r");
+                        break;
+                }
             }
             w.flush();
             if (writeMode == WriteMode.PREPEND) {
@@ -1279,8 +1291,10 @@ public class Nano {
                 Files.move(newPath, newPath.resolveSibling(newPath.getFileName().toString() + "~"), StandardCopyOption.REPLACE_EXISTING);
             }
             Files.move(t, newPath, StandardCopyOption.REPLACE_EXISTING);
-            buffer.file = name;
-            buffer.dirty = false;
+            if (writeMode == WriteMode.WRITE) {
+                buffer.file = name;
+                buffer.dirty = false;
+            }
             setMessage("Wrote " + buffer.lines.size() + " lines");
             return true;
         } catch (IOException e) {
@@ -1288,6 +1302,7 @@ public class Nano {
             return false;
         } finally {
             Files.deleteIfExists(t);
+            writeMode = WriteMode.WRITE;
         }
     }
 
@@ -1363,21 +1378,34 @@ public class Nano {
         readKeyMap.bind(Operation.CANCEL, ctrl('C'));
         readKeyMap.bind(Operation.HELP, ctrl('G'), key(terminal, Capability.key_f1));
         readKeyMap.bind(Operation.MOUSE_EVENT, key(terminal, Capability.key_mouse));
+        readKeyMap.bind(Operation.RIGHT, key(terminal, Capability.key_right));
+        readKeyMap.bind(Operation.LEFT, key(terminal, Capability.key_left));
 
         editMessage = getReadMessage();
         editBuffer.setLength(0);
+        int curPos = editBuffer.length();
         this.shortcuts = readShortcuts();
-        display();
+        display(curPos);
         while (true) {
             switch (readOperation(readKeyMap)) {
                 case INSERT:
-                    editBuffer.append(bindingReader.getLastBinding());
+                    editBuffer.insert(curPos++, bindingReader.getLastBinding());
                     break;
                 case BACKSPACE:
-                    if (editBuffer.length() > 0) {
-                        editBuffer.setLength(editBuffer.length() - 1);
+                    if (curPos > 0) {
+                        editBuffer.deleteCharAt(--curPos);
                     }
                     break;
+                case LEFT:
+                    if (curPos > 0) {
+                        curPos--;
+                    }
+                    break;
+                case RIGHT:
+                    if (curPos < editBuffer.length()) {
+                        curPos++;
+                    }
+                    break;            
                 case CANCEL:
                     editMessage = null;
                     this.shortcuts = standardShortcuts();
@@ -1424,7 +1452,7 @@ public class Nano {
                     break;
             }
             editMessage = getReadMessage();
-            display();
+            display(curPos);
         }
     }
 
@@ -1856,6 +1884,8 @@ public class Nano {
     void toggleSuspension(){
         if (restricted) {
             setMessage("This function is disabled in restricted mode");
+        } else if (vsusp < 0) {
+            setMessage("This function is disabled");
         } else {
             Attributes attrs = terminal.getAttributes();
             int toggle = vsusp;
@@ -1883,6 +1913,10 @@ public class Nano {
     }
 
     synchronized void display() {
+        display(null);
+    }
+    
+    synchronized void display(final Integer editCursor) {
         if (nbBindings > 0) {
             if (--nbBindings == 0) {
                 message = null;
@@ -1900,7 +1934,8 @@ public class Nano {
         // Compute cursor position
         int cursor;
         if (editMessage != null) {
-            cursor = editMessage.length() + editBuffer.length();
+            int crsr = editCursor != null ? editCursor : editBuffer.length();
+            cursor = editMessage.length() + crsr;
             cursor = size.cursorPos(size.getRows() - footer.size(), cursor);
         } else {
             cursor = size.cursorPos(header.size(),
