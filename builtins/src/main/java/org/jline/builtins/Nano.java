@@ -107,7 +107,8 @@ public class Nano {
     protected boolean searchRegexp;
     protected boolean searchBackwards;
     protected String searchTerm;
-
+    protected List<String> searchTerms = new ArrayList<>();
+    protected int searchTermId = -1;
     protected WriteMode writeMode = WriteMode.WRITE;
     protected boolean writeBackup;
 
@@ -1607,10 +1608,14 @@ public class Nano {
     void search() throws IOException {
         KeyMap<Operation> searchKeyMap = new KeyMap<>();
         searchKeyMap.setUnicode(Operation.INSERT);
-        searchKeyMap.setNomatch(Operation.INSERT);
+//        searchKeyMap.setNomatch(Operation.INSERT);
+        for (char i = 32; i < 256; i++) {
+            searchKeyMap.bind(Operation.INSERT, Character.toString(i));
+        }
         for (char i = 'A'; i <= 'Z'; i++) {
             searchKeyMap.bind(Operation.DO_LOWER_CASE, alt(i));
         }
+        searchKeyMap.bind(Operation.BACKSPACE, del());
         searchKeyMap.bind(Operation.CASE_SENSITIVE, alt('c'));
         searchKeyMap.bind(Operation.BACKWARDS, alt('b'));
         searchKeyMap.bind(Operation.REGEXP, alt('r'));
@@ -1619,16 +1624,63 @@ public class Nano {
         searchKeyMap.bind(Operation.FIRST_LINE, ctrl('Y'));
         searchKeyMap.bind(Operation.LAST_LINE, ctrl('V'));
         searchKeyMap.bind(Operation.MOUSE_EVENT, key(terminal, Capability.key_mouse));
+        searchKeyMap.bind(Operation.RIGHT, key(terminal, Capability.key_right));
+        searchKeyMap.bind(Operation.LEFT, key(terminal, Capability.key_left));
+        searchKeyMap.bind(Operation.UP, key(terminal, Capability.key_up));
+        searchKeyMap.bind(Operation.DOWN, key(terminal, Capability.key_down));
 
         editMessage = getSearchMessage();
         editBuffer.setLength(0);
+        String currentBuffer = "";
+        int curPos = editBuffer.length();
         this.shortcuts = searchShortcuts();
-        display();
+        display(curPos);
         try {
             while (true) {
                 switch (readOperation(searchKeyMap)) {
                     case INSERT:
-                        editBuffer.append(bindingReader.getLastBinding());
+                        editBuffer.insert(curPos++, bindingReader.getLastBinding());
+                        break;
+                    case BACKSPACE:
+                        if (curPos > 0) {
+                            editBuffer.deleteCharAt(--curPos);
+                        }
+                        break;
+                    case LEFT:
+                        if (curPos > 0) {
+                            curPos--;
+                        }
+                        break;
+                    case RIGHT:
+                        if (curPos < editBuffer.length()) {
+                            curPos++;
+                        }
+                        break;
+                    case UP:
+                        searchTermId++;
+                        if (searchTermId >= 0 && searchTermId < searchTerms.size()) {
+                            if (searchTermId == 0) {
+                                currentBuffer = editBuffer.toString();
+                            }
+                            editBuffer.setLength(0);
+                            editBuffer.append(searchTerms.get(searchTermId));
+                            curPos = editBuffer.length();
+                        } else if (searchTermId >= searchTerms.size()) {
+                            searchTermId = searchTerms.size() - 1;
+                        }
+                        break;
+                    case DOWN:
+                        if (searchTerms.size() > 0) {
+                            searchTermId--;
+                            editBuffer.setLength(0);
+                            if (searchTermId < 0) {
+                                searchTermId = -1;
+                                editBuffer.append(currentBuffer);                                    
+                            } else {
+                                editBuffer.append(searchTerms.get(searchTermId));
+                            }
+                            curPos = editBuffer.length();
+                        }
                         break;
                     case CASE_SENSITIVE:
                         searchCaseSensitive = !searchCaseSensitive;
@@ -1641,11 +1693,6 @@ public class Nano {
                         break;
                     case CANCEL:
                         return;
-                    case BACKSPACE:
-                        if (editBuffer.length() > 0) {
-                            editBuffer.setLength(editBuffer.length() - 1);
-                        }
-                        break;
                     case ACCEPT:
                         if (editBuffer.length() > 0) {
                             searchTerm = editBuffer.toString();
@@ -1653,6 +1700,10 @@ public class Nano {
                         if (searchTerm == null || searchTerm.isEmpty()) {
                             setMessage("Cancelled");
                         } else {
+                            if (!searchTerms.contains(searchTerm)) {
+                                searchTerms.add(searchTerm);
+                            }
+                            searchTermId = -1;
                             buffer.nextSearch();
                         }
                         return;
@@ -1673,7 +1724,7 @@ public class Nano {
                         break;
                 }
                 editMessage = getSearchMessage();
-                display();
+                display(curPos);
             }
         } finally {
             this.shortcuts = standardShortcuts();
