@@ -223,8 +223,8 @@ public class Commands {
         }
         int firstId = opt.args().size() > argId ? parseInteger(opt.args().get(argId++)) : -17;
         int lastId  = opt.args().size() > argId ? parseInteger(opt.args().get(argId++)) : -1;
-        firstId = historyId(firstId, history.size() - 1);
-        lastId  = historyId(lastId, history.size() - 1);
+        firstId = historyId(firstId, history.first(), history.last());
+        lastId  = historyId(lastId, history.first(), history.last());
         if (firstId > lastId) {
             throw new IllegalArgumentException();
         }
@@ -272,13 +272,13 @@ public class Commands {
         }
     }
 
-    private static int historyId(int id, int maxId) {
+    private static int historyId(int id, int minId, int maxId) {
         int out = id;
         if (id < 0) {
             out = maxId + id + 1;
         }
-        if (out < 0) {
-            out = 0;
+        if (out < minId) {
+            out = minId;
         } else if (out > maxId) {
             out = maxId;
         }
