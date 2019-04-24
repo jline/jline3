@@ -222,7 +222,7 @@ public class ShellFactoryImpl implements Factory<Command> {
                     terminal.raise(Terminal.Signal.WINCH);
                 }, Signal.WINCH);
 
-                shell.accept(new Ssh.ShellParams(env.getEnv(), terminal, this::destroy));
+                shell.accept(new Ssh.ShellParams(env.getEnv(), session, terminal, this::destroy));
             } catch (Throwable t) {
                 t.printStackTrace();
             }
