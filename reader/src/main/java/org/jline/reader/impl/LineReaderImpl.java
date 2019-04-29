@@ -163,8 +163,8 @@ public class LineReaderImpl implements LineReader, Flushable
 
     protected final Size size = new Size();
 
-    protected AttributedString prompt;
-    protected AttributedString rightPrompt;
+    protected AttributedString prompt = AttributedString.EMPTY;
+    protected AttributedString rightPrompt = AttributedString.EMPTY;
 
     protected MaskingCallback maskingCallback;
 
@@ -279,6 +279,7 @@ public class LineReaderImpl implements LineReader, Flushable
         builtinWidgets = builtinWidgets();
         widgets = new HashMap<>(builtinWidgets);
         bindingReader = new BindingReader(terminal.reader());
+        doDisplay();
     }
 
     public Terminal getTerminal() {
@@ -537,18 +538,7 @@ public class LineReaderImpl implements LineReader, Flushable
                 previousContHandler = terminal.handle(Signal.CONT, this::handleSignal);
                 originalAttributes = terminal.enterRawMode();
 
-                // Cache terminal size for the duration of the call to readLine()
-                // It will eventually be updated with WINCH signals
-                size.copy(terminal.getBufferSize());
-
-                display = new Display(terminal, false);
-                if (size.getRows() == 0 || size.getColumns() == 0) {
-                    display.resize(1, Integer.MAX_VALUE);
-                } else {
-                    display.resize(size.getRows(), size.getColumns());
-                }
-                if (isSet(Option.DELAY_LINE_WRAP))
-                    display.setDelayLineWrap(true);
+                doDisplay();
 
                 // Move into application mode
                 if (!dumb) {
@@ -674,6 +664,21 @@ public class LineReaderImpl implements LineReader, Flushable
             }
             startedReading.set(false);
         }
+    }
+
+    private void doDisplay(){
+        // Cache terminal size for the duration of the call to readLine()
+        // It will eventually be updated with WINCH signals
+        size.copy(terminal.getBufferSize());
+
+        display = new Display(terminal, false);
+        if (size.getRows() == 0 || size.getColumns() == 0) {
+            display.resize(1, Integer.MAX_VALUE);
+        } else {
+            display.resize(size.getRows(), size.getColumns());
+        }
+        if (isSet(Option.DELAY_LINE_WRAP))
+            display.setDelayLineWrap(true);
     }
 
     @Override

@@ -151,11 +151,11 @@ public class Example
                                 int counter = 0;
                                 while (true) {
                                     try {
-                                        Thread.sleep(1000);
                                         Status status = Status.getStatus(reader.getTerminal());
                                         counter++;
                                         status.update(Arrays.asList(new AttributedStringBuilder().append("counter: " + counter).toAttributedString()));
                                         ((LineReaderImpl) reader).redisplay();
+                                        Thread.sleep(1000);
                                     } catch (InterruptedException e) {
                                         e.printStackTrace();
                                     }
@@ -297,7 +297,9 @@ public class Example
                 }
             }
             callbacks.forEach(c -> c.accept(reader));
-
+            if (!callbacks.isEmpty()) {
+                Thread.sleep(2000);
+            }
             while (true) {
                 String line = null;
                 try {
