@@ -1021,8 +1021,13 @@ public class LineReaderImpl implements LineReader, Flushable
 
     protected void handleSignal(Signal signal) {
         if (signal == Signal.WINCH) {
+            Status status = Status.getStatus(terminal, false);
+            if (status != null) {
+                status.hardReset();
+            }
             size.copy(terminal.getBufferSize());
             display.resize(size.getRows(), size.getColumns());
+            redrawLine();
             redisplay();
         }
         else if (signal == Signal.CONT) {
@@ -1034,7 +1039,7 @@ public class LineReaderImpl implements LineReader, Flushable
             redisplay();
         }
     }
-
+    
     @SuppressWarnings("unchecked")
     protected Widget getWidget(Object binding) {
         Widget w;
