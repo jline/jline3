@@ -27,6 +27,7 @@ import org.apache.sshd.common.util.io.NoCloseOutputStream;
 import org.apache.sshd.server.SshServer;
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
 import org.apache.sshd.server.scp.ScpCommandFactory;
+import org.apache.sshd.server.session.ServerSession;
 import org.apache.sshd.server.subsystem.sftp.SftpSubsystemFactory;
 import org.jline.builtins.Options;
 import org.jline.builtins.Options.HelpException;
@@ -43,13 +44,18 @@ public class Ssh {
         private final Map<String, String> env;
         private final Terminal terminal;
         private final Runnable closer;
-        public ShellParams(Map<String, String> env, Terminal terminal, Runnable closer) {
+        private final ServerSession session;
+        public ShellParams(Map<String, String> env, ServerSession session, Terminal terminal, Runnable closer) {
             this.env = env;
+            this.session = session;
             this.terminal = terminal;
             this.closer = closer;
         }
         public Map<String, String> getEnv() {
             return env;
+        }
+        public ServerSession getSession() {
+            return session;
         }
         public Terminal getTerminal() {
             return terminal;
@@ -62,11 +68,13 @@ public class Ssh {
     public static class ExecuteParams {
         private final String command;
         private final Map<String, String> env;
+        private final ServerSession session;
         private final InputStream in;
         private final OutputStream out;
         private final OutputStream err;
-        public ExecuteParams(String command, Map<String, String> env, InputStream in, OutputStream out, OutputStream err) {
+        public ExecuteParams(String command, Map<String, String> env, ServerSession session, InputStream in, OutputStream out, OutputStream err) {
             this.command = command;
+            this.session = session;
             this.env = env;
             this.in = in;
             this.out = out;
@@ -77,6 +85,9 @@ public class Ssh {
         }
         public Map<String, String> getEnv() {
             return env;
+        }
+        public ServerSession getSession() {
+            return session;
         }
         public InputStream getIn() {
             return in;
