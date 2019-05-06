@@ -70,6 +70,8 @@ public class Nano {
     protected final BindingReader bindingReader;
     protected final Size size;
     protected final Path root;
+    protected final boolean restricted;
+    protected final int vsusp;
 
     // Keys
     protected KeyMap<Operation> keys;
@@ -105,7 +107,8 @@ public class Nano {
     protected boolean searchRegexp;
     protected boolean searchBackwards;
     protected String searchTerm;
-
+    protected List<String> searchTerms = new ArrayList<>();
+    protected int searchTermId = -1;
     protected WriteMode writeMode = WriteMode.WRITE;
     protected boolean writeBackup;
 
@@ -941,11 +944,17 @@ public class Nano {
     }
 
     public Nano(Terminal terminal, Path root) {
+        this(terminal, root, null);
+    }
+
+    public Nano(Terminal terminal, Path root, Options opts) {
         this.terminal = terminal;
         this.root = root;
         this.display = new Display(terminal, true);
         this.bindingReader = new BindingReader(terminal.reader());
         this.size = new Size();
+        this.restricted = opts != null && opts.isSet("restricted");
+        this.vsusp = terminal.getAttributes().getControlChar(ControlChar.VSUSP);
         bindKeys();
     }
 
@@ -972,6 +981,9 @@ public class Nano {
         newAttr.setControlChar(ControlChar.VMIN, 1);
         newAttr.setControlChar(ControlChar.VTIME, 0);
         newAttr.setControlChar(ControlChar.VINTR, 0);
+        if (restricted) {
+            newAttr.setControlChar(ControlChar.VSUSP, 0);
+        }
         terminal.setAttributes(newAttr);
         terminal.puts(Capability.enter_ca_mode);
         terminal.puts(Capability.keypad_xmit);
@@ -1109,6 +1121,9 @@ public class Nano {
                     case MOUSE_EVENT:
                         mouseEvent();
                         break;
+                    case TOGGLE_SUSPENSION:
+                        toggleSuspension();
+                        break;
                     default:
                         setMessage("Unsupported " + op.name().toLowerCase().replace('_', '-'));
                         break;
@@ -1129,38 +1144,54 @@ public class Nano {
 
     boolean write() throws IOException {
         KeyMap<Operation> writeKeyMap = new KeyMap<>();
-        writeKeyMap.setUnicode(Operation.INSERT);
-        for (char i = 32; i < 256; i++) {
-            writeKeyMap.bind(Operation.INSERT, Character.toString(i));
+        if (!restricted) {
+            writeKeyMap.setUnicode(Operation.INSERT);
+            for (char i = 32; i < 256; i++) {
+                writeKeyMap.bind(Operation.INSERT, Character.toString(i));
+            }
+            for (char i = 'A'; i <= 'Z'; i++) {
+                writeKeyMap.bind(Operation.DO_LOWER_CASE, alt(i));
+            }
+            writeKeyMap.bind(Operation.BACKSPACE, del());
+            writeKeyMap.bind(Operation.APPEND_MODE, alt('a'));
+            writeKeyMap.bind(Operation.PREPEND_MODE, alt('p'));
+            writeKeyMap.bind(Operation.BACKUP, alt('b'));
+            writeKeyMap.bind(Operation.TO_FILES, ctrl('T'));
         }
-        for (char i = 'A'; i <= 'Z'; i++) {
-            writeKeyMap.bind(Operation.DO_LOWER_CASE, alt(i));
-        }
-        writeKeyMap.bind(Operation.BACKSPACE, del());
         writeKeyMap.bind(Operation.MAC_FORMAT, alt('m'));
         writeKeyMap.bind(Operation.DOS_FORMAT, alt('d'));
-        writeKeyMap.bind(Operation.APPEND_MODE, alt('a'));
-        writeKeyMap.bind(Operation.PREPEND_MODE, alt('p'));
-        writeKeyMap.bind(Operation.BACKUP, alt('b'));
-        writeKeyMap.bind(Operation.TO_FILES, ctrl('T'));
         writeKeyMap.bind(Operation.ACCEPT, "\r");
         writeKeyMap.bind(Operation.CANCEL, ctrl('C'));
         writeKeyMap.bind(Operation.HELP, ctrl('G'), key(terminal, Capability.key_f1));
         writeKeyMap.bind(Operation.MOUSE_EVENT, key(terminal, Capability.key_mouse));
-
+        writeKeyMap.bind(Operation.TOGGLE_SUSPENSION, alt('z'));
+        writeKeyMap.bind(Operation.RIGHT, key(terminal, Capability.key_right));
+        writeKeyMap.bind(Operation.LEFT, key(terminal, Capability.key_left));
+      
         editMessage = getWriteMessage();
         editBuffer.setLength(0);
         editBuffer.append(buffer.file == null ? "" : buffer.file);
+        int curPos = editBuffer.length();
         this.shortcuts = writeShortcuts();
-        display();
+        display(curPos);
         while (true) {
             switch (readOperation(writeKeyMap)) {
                 case INSERT:
-                    editBuffer.append(bindingReader.getLastBinding());
+                    editBuffer.insert(curPos++, bindingReader.getLastBinding());
                     break;
                 case BACKSPACE:
-                    if (editBuffer.length() > 0) {
-                        editBuffer.setLength(editBuffer.length() - 1);
+                    if (curPos > 0) {
+                        editBuffer.deleteCharAt(--curPos);
+                    }
+                    break;
+                case LEFT:
+                    if (curPos > 0) {
+                        curPos--;
+                    }
+                    break;
+                case RIGHT:
+                    if (curPos < editBuffer.length()) {
+                        curPos++;
                     }
                     break;
                 case CANCEL:
@@ -1195,9 +1226,12 @@ public class Nano {
                 case MOUSE_EVENT:
                     mouseEvent();
                     break;
+                case TOGGLE_SUSPENSION:
+                    toggleSuspension();
+                    break;
             }
             editMessage = getWriteMessage();
-            display();
+            display(curPos);
         }
     }
 
@@ -1213,16 +1247,17 @@ public class Nano {
     }
 
     private boolean save(String name) throws IOException {
-        Path orgPath = buffer.file != null ? root.resolve(buffer.file) : null;
-        Path newPath = root.resolve(name);
-        boolean isSame = orgPath != null && Files.isSameFile(orgPath, newPath);
-        if (!isSame && Files.exists(Paths.get(name))) {
+        Path orgPath = buffer.file != null ? root.resolve(new File(buffer.file).getCanonicalPath()) : null;
+        Path newPath = root.resolve(new File(name).getCanonicalPath());
+        boolean isSame = orgPath != null && Files.exists(orgPath) && Files.exists(newPath) && Files.isSameFile(orgPath, newPath);
+        if (!isSame && Files.exists(Paths.get(name)) && writeMode == WriteMode.WRITE) {
             Operation op = getYNC("File exists, OVERWRITE ? ");
             if (op != Operation.YES) {
                 return false;
             }
+        } else if (!Files.exists(newPath)) {
+            newPath.toFile().createNewFile();
         }
-        // TODO: support backup / prepend / append
         Path t = Files.createTempFile(newPath.getParent(), "jline-", ".temp");
         try (OutputStream os = Files.newOutputStream(t, StandardOpenOption.WRITE,
                                                         StandardOpenOption.TRUNCATE_EXISTING,
@@ -1234,20 +1269,18 @@ public class Nano {
             }
             Writer w = new OutputStreamWriter(os, buffer.charset);
             for (int i = 0; i < buffer.lines.size(); i++) {
-                if (i > 0) {
-                    switch (buffer.format) {
-                        case UNIX:
-                            w.write("\n");
-                            break;
-                        case DOS:
-                            w.write("\r\n");
-                            break;
-                        case MAC:
-                            w.write("\r");
-                            break;
-                    }
-                }
                 w.write(buffer.lines.get(i));
+                switch (buffer.format) {
+                    case UNIX:
+                        w.write("\n");
+                        break;
+                    case DOS:
+                        w.write("\r\n");
+                        break;
+                    case MAC:
+                        w.write("\r");
+                        break;
+                }
             }
             w.flush();
             if (writeMode == WriteMode.PREPEND) {
@@ -1259,8 +1292,10 @@ public class Nano {
                 Files.move(newPath, newPath.resolveSibling(newPath.getFileName().toString() + "~"), StandardCopyOption.REPLACE_EXISTING);
             }
             Files.move(t, newPath, StandardCopyOption.REPLACE_EXISTING);
-            buffer.file = name;
-            buffer.dirty = false;
+            if (writeMode == WriteMode.WRITE) {
+                buffer.file = name;
+                buffer.dirty = false;
+            }
             setMessage("Wrote " + buffer.lines.size() + " lines");
             return true;
         } catch (IOException e) {
@@ -1268,6 +1303,7 @@ public class Nano {
             return false;
         } finally {
             Files.deleteIfExists(t);
+            writeMode = WriteMode.WRITE;
         }
     }
 
@@ -1343,21 +1379,34 @@ public class Nano {
         readKeyMap.bind(Operation.CANCEL, ctrl('C'));
         readKeyMap.bind(Operation.HELP, ctrl('G'), key(terminal, Capability.key_f1));
         readKeyMap.bind(Operation.MOUSE_EVENT, key(terminal, Capability.key_mouse));
+        readKeyMap.bind(Operation.RIGHT, key(terminal, Capability.key_right));
+        readKeyMap.bind(Operation.LEFT, key(terminal, Capability.key_left));
 
         editMessage = getReadMessage();
         editBuffer.setLength(0);
+        int curPos = editBuffer.length();
         this.shortcuts = readShortcuts();
-        display();
+        display(curPos);
         while (true) {
             switch (readOperation(readKeyMap)) {
                 case INSERT:
-                    editBuffer.append(bindingReader.getLastBinding());
+                    editBuffer.insert(curPos++, bindingReader.getLastBinding());
                     break;
                 case BACKSPACE:
-                    if (editBuffer.length() > 0) {
-                        editBuffer.setLength(editBuffer.length() - 1);
+                    if (curPos > 0) {
+                        editBuffer.deleteCharAt(--curPos);
                     }
                     break;
+                case LEFT:
+                    if (curPos > 0) {
+                        curPos--;
+                    }
+                    break;
+                case RIGHT:
+                    if (curPos < editBuffer.length()) {
+                        curPos++;
+                    }
+                    break;            
                 case CANCEL:
                     editMessage = null;
                     this.shortcuts = standardShortcuts();
@@ -1399,9 +1448,12 @@ public class Nano {
                 case MOUSE_EVENT:
                     mouseEvent();
                     break;
+                case TOGGLE_SUSPENSION:
+                    toggleSuspension();
+                    break;
             }
             editMessage = getReadMessage();
-            display();
+            display(curPos);
         }
     }
 
@@ -1428,13 +1480,15 @@ public class Nano {
     private LinkedHashMap<String, String> writeShortcuts() {
         LinkedHashMap<String, String> s = new LinkedHashMap<>();
         s.put("^G", "Get Help");
-        s.put("^T", "To Files");
         s.put("M-M", "Mac Format");
-        s.put("M-P", "Prepend");
         s.put("^C", "Cancel");
         s.put("M-D", "DOS Format");
-        s.put("M-A", "Append");
-        s.put("M-B", "Backup File");
+        if (!restricted) {
+            s.put("^T", "To Files");
+            s.put("M-P", "Prepend");
+            s.put("M-A", "Append");
+            s.put("M-B", "Backup File");
+        }
         return s;
     }
 
@@ -1535,7 +1589,10 @@ public class Nano {
                     case MOUSE_EVENT:
                         mouseEvent();
                         break;
-                }
+                    case TOGGLE_SUSPENSION:
+                        toggleSuspension();
+                        break;
+               }
                 display();
             }
         } finally {
@@ -1551,10 +1608,14 @@ public class Nano {
     void search() throws IOException {
         KeyMap<Operation> searchKeyMap = new KeyMap<>();
         searchKeyMap.setUnicode(Operation.INSERT);
-        searchKeyMap.setNomatch(Operation.INSERT);
+//        searchKeyMap.setNomatch(Operation.INSERT);
+        for (char i = 32; i < 256; i++) {
+            searchKeyMap.bind(Operation.INSERT, Character.toString(i));
+        }
         for (char i = 'A'; i <= 'Z'; i++) {
             searchKeyMap.bind(Operation.DO_LOWER_CASE, alt(i));
         }
+        searchKeyMap.bind(Operation.BACKSPACE, del());
         searchKeyMap.bind(Operation.CASE_SENSITIVE, alt('c'));
         searchKeyMap.bind(Operation.BACKWARDS, alt('b'));
         searchKeyMap.bind(Operation.REGEXP, alt('r'));
@@ -1563,16 +1624,63 @@ public class Nano {
         searchKeyMap.bind(Operation.FIRST_LINE, ctrl('Y'));
         searchKeyMap.bind(Operation.LAST_LINE, ctrl('V'));
         searchKeyMap.bind(Operation.MOUSE_EVENT, key(terminal, Capability.key_mouse));
+        searchKeyMap.bind(Operation.RIGHT, key(terminal, Capability.key_right));
+        searchKeyMap.bind(Operation.LEFT, key(terminal, Capability.key_left));
+        searchKeyMap.bind(Operation.UP, key(terminal, Capability.key_up));
+        searchKeyMap.bind(Operation.DOWN, key(terminal, Capability.key_down));
 
         editMessage = getSearchMessage();
         editBuffer.setLength(0);
+        String currentBuffer = "";
+        int curPos = editBuffer.length();
         this.shortcuts = searchShortcuts();
-        display();
+        display(curPos);
         try {
             while (true) {
                 switch (readOperation(searchKeyMap)) {
                     case INSERT:
-                        editBuffer.append(bindingReader.getLastBinding());
+                        editBuffer.insert(curPos++, bindingReader.getLastBinding());
+                        break;
+                    case BACKSPACE:
+                        if (curPos > 0) {
+                            editBuffer.deleteCharAt(--curPos);
+                        }
+                        break;
+                    case LEFT:
+                        if (curPos > 0) {
+                            curPos--;
+                        }
+                        break;
+                    case RIGHT:
+                        if (curPos < editBuffer.length()) {
+                            curPos++;
+                        }
+                        break;
+                    case UP:
+                        searchTermId++;
+                        if (searchTermId >= 0 && searchTermId < searchTerms.size()) {
+                            if (searchTermId == 0) {
+                                currentBuffer = editBuffer.toString();
+                            }
+                            editBuffer.setLength(0);
+                            editBuffer.append(searchTerms.get(searchTermId));
+                            curPos = editBuffer.length();
+                        } else if (searchTermId >= searchTerms.size()) {
+                            searchTermId = searchTerms.size() - 1;
+                        }
+                        break;
+                    case DOWN:
+                        if (searchTerms.size() > 0) {
+                            searchTermId--;
+                            editBuffer.setLength(0);
+                            if (searchTermId < 0) {
+                                searchTermId = -1;
+                                editBuffer.append(currentBuffer);                                    
+                            } else {
+                                editBuffer.append(searchTerms.get(searchTermId));
+                            }
+                            curPos = editBuffer.length();
+                        }
                         break;
                     case CASE_SENSITIVE:
                         searchCaseSensitive = !searchCaseSensitive;
@@ -1585,11 +1693,6 @@ public class Nano {
                         break;
                     case CANCEL:
                         return;
-                    case BACKSPACE:
-                        if (editBuffer.length() > 0) {
-                            editBuffer.setLength(editBuffer.length() - 1);
-                        }
-                        break;
                     case ACCEPT:
                         if (editBuffer.length() > 0) {
                             searchTerm = editBuffer.toString();
@@ -1597,6 +1700,10 @@ public class Nano {
                         if (searchTerm == null || searchTerm.isEmpty()) {
                             setMessage("Cancelled");
                         } else {
+                            if (!searchTerms.contains(searchTerm)) {
+                                searchTerms.add(searchTerm);
+                            }
+                            searchTermId = -1;
                             buffer.nextSearch();
                         }
                         return;
@@ -1612,9 +1719,12 @@ public class Nano {
                     case MOUSE_EVENT:
                         mouseEvent();
                         break;
+                    case TOGGLE_SUSPENSION:
+                        toggleSuspension();
+                        break;
                 }
                 editMessage = getSearchMessage();
-                display();
+                display(curPos);
             }
         } finally {
             this.shortcuts = standardShortcuts();
@@ -1821,11 +1931,29 @@ public class Nano {
             }
         }
     }
+    
+    void toggleSuspension(){
+        if (restricted) {
+            setMessage("This function is disabled in restricted mode");
+        } else if (vsusp < 0) {
+            setMessage("This function is disabled");
+        } else {
+            Attributes attrs = terminal.getAttributes();
+            int toggle = vsusp;
+            String message = "enabled";
+            if (attrs.getControlChar(ControlChar.VSUSP) > 0) {
+                toggle = 0;
+                message = "disabled";
+            }
+            attrs.setControlChar(ControlChar.VSUSP, toggle);
+            terminal.setAttributes(attrs);
+            setMessage("Suspension " + message);
+        }
+    }
 
     public String getTitle() {
         return title;
     }
-
 
     void resetDisplay() {
         display.clear();
@@ -1836,6 +1964,10 @@ public class Nano {
     }
 
     synchronized void display() {
+        display(null);
+    }
+    
+    synchronized void display(final Integer editCursor) {
         if (nbBindings > 0) {
             if (--nbBindings == 0) {
                 message = null;
@@ -1853,7 +1985,8 @@ public class Nano {
         // Compute cursor position
         int cursor;
         if (editMessage != null) {
-            cursor = editMessage.length() + editBuffer.length();
+            int crsr = editCursor != null ? editCursor : editBuffer.length();
+            cursor = editMessage.length() + crsr;
             cursor = size.cursorPos(size.getRows() - footer.size(), cursor);
         } else {
             cursor = size.cursorPos(header.size(),
@@ -2029,6 +2162,8 @@ public class Nano {
         keys.bind(Operation.LEFT, key(terminal, Capability.key_left));
 
         keys.bind(Operation.MOUSE_EVENT, key(terminal, Capability.key_mouse));
+        
+        keys.bind(Operation.TOGGLE_SUSPENSION, alt('z'));
     }
 
     protected enum Operation {
@@ -2115,7 +2250,9 @@ public class Nano {
         TABS_TO_SPACE,
         UNCUT,
 
-        MOUSE_EVENT
+        MOUSE_EVENT,
+ 
+        TOGGLE_SUSPENSION
     }
 
 }
