@@ -49,24 +49,65 @@ import static org.jline.builtins.Completers.TreeCompleter.node;
 public class Example
 {
     public static void usage() {
-        System.out.println("Usage: java " + Example.class.getName()
-            + " [none/simple/files/dictionary [trigger mask]]");
-        System.out.println("  none - no completors");
-        System.out.println("  simple - a simple completor that comples "
-            + "\"foo\", \"bar\", and \"baz\"");
-        System.out
-            .println("  files - a completor that comples " + "file names");
-        System.out.println("  classes - a completor that comples "
-            + "java class names");
-        System.out
-            .println("  trigger - a special word which causes it to assume "
-                + "the next line is a password");
-        System.out.println("  mask - is the character to print in place of "
-            + "the actual password character");
-        System.out.println("  color - colored prompt and feedback");
-        System.out.println("\n  E.g - java Example simple su '*'\n"
-            + "will use the simple completor with 'su' triggering\n"
-            + "the use of '*' as a password mask.");
+        String[] usage = {
+                "Usage: java " + Example.class.getName() + " [cases... [trigger mask]]"
+              , "  Terminal:"
+              , "    -system          terminalBuilder.system(false)"
+              , "    +system          terminalBuilder.system(true)"
+              , "  Completors:"
+              , "    argumet          an argument completor"
+              , "    files            a completor that completes file names"
+              , "    none             no completors"
+              , "    param            a paramenter completer using Java functional interface"
+              , "    regexp           a regex completer"
+              , "    simple           a string completor that completes \"foo\", \"bar\" and \"baz\""
+              , "    tree             a tree completer"
+              , "  Multiline:"
+              , "    brackets         eof on unclosed bracket"
+              , "    quotes           eof on unclosed quotes"
+              , "  Mouse:"
+              , "    mouse            enable mouse"
+              , "    mousetrack       enable tracking mouse"
+              , "  Miscellaneous:"
+              , "    color            colored left and right prompts"
+              , "    status           multi-thread test of jline status line"
+              , "    timer            widget 'Hello world'"
+              , "    <trigger> <mask> password mask"
+              , "  Example:"
+              , "    java " + Example.class.getName() + " simple su '*'"};
+        for (String u: usage) {
+            System.out.println(u);
+        }
+    }
+    
+    public static void help() {
+        String[] help = {
+            "List of available commands:"
+          , "  Builtin:"
+          , "    complete   UNAVAILABLE"
+          , "    history    list history of commands"
+          , "    keymap     manipulate keymaps"
+          , "    less       file pager"
+          , "    nano       nano editor"
+          , "    setopt     set options"
+          , "    tmux       UNAVAILABLE"
+          , "    ttop       display and update sorted information about threads"
+          , "    unsetopt   unset options"
+          , "    widget     UNAVAILABLE"
+          , "  Example:"
+          , "    cls        clear screen"
+          , "    help       list available commands"
+          , "    exit       exit from example app"
+          , "    set        set lineReader variable"
+          , "    sleep      sleep 3 seconds"
+          , "    testkey    display key events"
+          , "    tput       set terminal capability"
+          , "  Additional help:"
+          , "    <command> --help"};
+        for (String u: help) {
+            System.out.println(u);
+        }
+        
     }
 
     public static void main(String[] args) throws IOException {
@@ -79,7 +120,7 @@ public class Example
             boolean timer = false;
 
             TerminalBuilder builder = TerminalBuilder.builder();
-
+  
             if ((args == null) || (args.length == 0)) {
                 usage();
 
@@ -91,59 +132,50 @@ public class Example
             Parser parser = null;
             List<Consumer<LineReader>> callbacks = new ArrayList<>();
 
-            int index = 0;
-            label:
-            while (args.length > index) {
+            for (int index=0; index < args.length; index++) {
                 switch (args[index]) {
                     /* SANDBOX JANSI
                     case "-posix":
                         builder.posix(false);
-                        index++;
                         break;
                     case "+posix":
                         builder.posix(true);
-                        index++;
                         break;
                     case "-native-pty":
                         builder.nativePty(false);
-                        index++;
                         break;
                     case "+native-pty":
                         builder.nativePty(true);
-                        index++;
                         break;
                     */
                     case "timer":
                         timer = true;
-                        index++;
                         break;
                     case "-system":
-                        builder.system(false);
-                        index++;
+                        builder.system(false).streams(System.in, System.out);
                         break;
                     case "+system":
                         builder.system(true);
-                        index++;
                         break;
                     case "none":
-                        break label;
+                        break;
                     case "files":
                         completer = new Completers.FileNameCompleter();
-                        break label;
+                        break;
                     case "simple":
                         completer = new StringsCompleter("foo", "bar", "baz");
-                        break label;
+                        break;
                     case "quotes":
                         DefaultParser p = new DefaultParser();
                         p.setEofOnUnclosedQuote(true);
                         parser = p;
-                        break label;
+                        break;
                     case "brackets":
                         prompt = "long-prompt> ";
                         DefaultParser p2 = new DefaultParser();
                         p2.setEofOnUnclosedBracket(Bracket.CURLY, Bracket.ROUND, Bracket.SQUARE);
                         parser = p2;
-                        break label;
+                        break;
                     case "status":
                         completer = new StringsCompleter("foo", "bar", "baz");
                         callbacks.add(reader -> {
@@ -162,8 +194,8 @@ public class Example
                                 }
                             }).start();
                         });
-                        break label;
-                    case "foo":
+                        break;
+                    case "argument":
                         completer = new ArgumentCompleter(
                                 new StringsCompleter("foo11", "foo12", "foo13"),
                                 new StringsCompleter("foo21", "foo22", "foo23"),
@@ -173,7 +205,7 @@ public class Example
                                         candidates.add(new Candidate("", "", null, "frequency in MHz", null, null, false));
                                     }
                                 });
-                        break label;
+                        break;
                     case "param":
                         completer = (reader, line, candidates) -> {
                             if (line.wordIndex() == 0) {
@@ -195,7 +227,7 @@ public class Example
                                 }
                             }
                         };
-                        break label;
+                        break;
                     case "tree":
                         completer = new TreeCompleter(
                            node("Command1",
@@ -203,7 +235,7 @@ public class Example
                                         node("Param1", "Param2")),
                                    node("Option2"),
                                    node("Option3")));
-                        break label;
+                        break;
                     case "regexp":
                         Map<String, Completer> comp = new HashMap<>();
                         comp.put("C1", new StringsCompleter("cmd1"));
@@ -213,7 +245,7 @@ public class Example
                         comp.put("C21", new StringsCompleter("--opt21", "--opt22"));
                         comp.put("C22", new StringsCompleter("arg21", "arg22", "arg23"));
                         completer = new Completers.RegexCompleter("C1 C11* C12+ | C2 C21* C22+", comp::get);
-                        break label;
+                        break;
                     case "color":
                         color = true;
                         prompt = new AttributedStringBuilder()
@@ -237,26 +269,30 @@ public class Example
                                                 .toFormatter()))
                                 .toAnsi();
                         completer = new StringsCompleter("\u001B[1mfoo\u001B[0m", "bar", "\u001B[32mbaz\u001B[0m", "foobar");
-                        break label;
+                        break;
                     case "mouse":
                         mouse = 1;
-                        break label;
+                        break;
                     case "mousetrack":
                         mouse = 2;
-                        break label;
+                        break;
                     default:
-                        usage();
-                        return;
+                        if (index==0) {
+                            usage();
+                            return;
+                        } else if (args.length == index + 2) {
+                            mask = args[index+1].charAt(0);
+                            trigger = args[index];
+                            index = args.length;
+                        } else {
+                            System.out.println("Bad test case: " + args[index]);
+                        }
                 }
             }
-
-            if (args.length == index + 2) {
-                mask = args[index+1].charAt(0);
-                trigger = args[index];
-            }
-
-            Terminal terminal = builder.build();
-
+          
+            Terminal terminal = builder.build();          
+            System.out.println(terminal.getName()+": "+terminal.getType());
+            System.out.println("\nhelp: list available commands");
             LineReader reader = LineReaderBuilder.builder()
                     .terminal(terminal)
                     .completer(completer)
@@ -339,6 +375,8 @@ public class Example
                     if ("set".equals(pl.word())) {
                         if (pl.words().size() == 3) {
                             reader.setVariable(pl.words().get(1), pl.words().get(2));
+                        } else {
+                            terminal.writer().println("Usage: set <name> <value>");
                         }
                     }
                     else if ("tput".equals(pl.word())) {
@@ -349,6 +387,8 @@ public class Example
                             } else {
                                 terminal.writer().println("Unknown capability");
                             }
+                        } else {
+                            terminal.writer().println("Usage: tput <capability>");
                         }
                     }
                     else if ("testkey".equals(pl.word())) {
@@ -414,6 +454,9 @@ public class Example
                     }
                     else if ("ttop".equals(pl.word())) {
                         TTop.ttop(terminal, System.out, System.err, argv);
+                    }
+                    else if ("help".equals(pl.word()) || "?".equals(pl.word())) {
+                        help();
                     }
                 }
                 catch (HelpException e) {
