@@ -67,7 +67,7 @@ public class ShellCommand implements Command, SessionAware {
     private void run() {
         int exitStatus = 0;
         try {
-            execute.accept(new Ssh.ExecuteParams(command, env.getEnv(), in, out, err));
+            execute.accept(new Ssh.ExecuteParams(command, env.getEnv(), session, in, out, err));
         } catch (RuntimeException e) {
             exitStatus = 1;
             LOGGER.log(Level.SEVERE, "Unable to start shell", e);
