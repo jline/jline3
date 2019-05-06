@@ -1044,7 +1044,7 @@ public class LineReaderImpl implements LineReader, Flushable
             redisplay();
         }
     }
-    
+
     @SuppressWarnings("unchecked")
     protected Widget getWidget(Object binding) {
         Widget w;
