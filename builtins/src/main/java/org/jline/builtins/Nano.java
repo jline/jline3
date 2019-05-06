@@ -953,7 +953,7 @@ public class Nano {
         this.display = new Display(terminal, true);
         this.bindingReader = new BindingReader(terminal.reader());
         this.size = new Size();
-        this.restricted = opts!=null ? opts.isSet("restricted") : false;
+        this.restricted = opts != null && opts.isSet("restricted");
         this.vsusp = terminal.getAttributes().getControlChar(ControlChar.VSUSP);
         bindKeys();
     }
