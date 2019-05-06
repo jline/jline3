@@ -4183,113 +4183,117 @@ public class LineReaderImpl implements LineReader, Flushable
         if (matching.isEmpty()) {
             return false;
         }
+        size.copy(terminal.getSize());
+        try {
+            // If we only need to display the list, do it now
+            if (lst == CompletionType.List) {
+                List<Candidate> possible = matching.entrySet().stream()
+                        .flatMap(e -> e.getValue().stream())
+                        .collect(Collectors.toList());
+                doList(possible, line.word(), false, line::escape);
+                return !possible.isEmpty();
+            }
 
-        // If we only need to display the list, do it now
-        if (lst == CompletionType.List) {
+            // Check if there's a single possible match
+            Candidate completion = null;
+            // If there's a single possible completion
+            if (matching.size() == 1) {
+                completion = matching.values().stream().flatMap(Collection::stream)
+                        .findFirst().orElse(null);
+            }
+            // Or if RECOGNIZE_EXACT is set, try to find an exact match
+            else if (isSet(Option.RECOGNIZE_EXACT)) {
+                completion = matching.values().stream().flatMap(Collection::stream)
+                        .filter(Candidate::complete)
+                        .filter(c -> exact.test(c.value()))
+                        .findFirst().orElse(null);
+            }
+            // Complete and exit
+            if (completion != null && !completion.value().isEmpty()) {
+                if (prefix) {
+                    buf.backspace(line.rawWordCursor());
+                } else {
+                    buf.move(line.rawWordLength() - line.rawWordCursor());
+                    buf.backspace(line.rawWordLength());
+                }
+                buf.write(line.escape(completion.value(), completion.complete()));
+                if (completion.complete()) {
+                    if (buf.currChar() != ' ') {
+                        buf.write(" ");
+                    } else {
+                        buf.move(1);
+                    }
+                }
+                if (completion.suffix() != null) {
+                    redisplay();
+                    Binding op = readBinding(getKeys());
+                    if (op != null) {
+                        String chars = getString(REMOVE_SUFFIX_CHARS, DEFAULT_REMOVE_SUFFIX_CHARS);
+                        String ref = op instanceof Reference ? ((Reference) op).name() : null;
+                        if (SELF_INSERT.equals(ref) && chars.indexOf(getLastBinding().charAt(0)) >= 0
+                                || ACCEPT_LINE.equals(ref)) {
+                            buf.backspace(completion.suffix().length());
+                            if (getLastBinding().charAt(0) != ' ') {
+                                buf.write(' ');
+                            }
+                        }
+                        pushBackBinding(true);
+                    }
+                }
+                return true;
+            }
+
             List<Candidate> possible = matching.entrySet().stream()
                     .flatMap(e -> e.getValue().stream())
                     .collect(Collectors.toList());
-            doList(possible, line.word(), false, line::escape);
-            return !possible.isEmpty();
-        }
 
-        // Check if there's a single possible match
-        Candidate completion = null;
-        // If there's a single possible completion
-        if (matching.size() == 1) {
-            completion = matching.values().stream().flatMap(Collection::stream)
-                    .findFirst().orElse(null);
-        }
-        // Or if RECOGNIZE_EXACT is set, try to find an exact match
-        else if (isSet(Option.RECOGNIZE_EXACT)) {
-            completion = matching.values().stream().flatMap(Collection::stream)
-                    .filter(Candidate::complete)
-                    .filter(c -> exact.test(c.value()))
-                    .findFirst().orElse(null);
-        }
-        // Complete and exit
-        if (completion != null && !completion.value().isEmpty()) {
+            if (useMenu) {
+                buf.move(line.word().length() - line.wordCursor());
+                buf.backspace(line.word().length());
+                doMenu(possible, line.word(), line::escape);
+                return true;
+            }
+
+            // Find current word and move to end
+            String current;
             if (prefix) {
-                buf.backspace(line.rawWordCursor());
+                current = line.word().substring(0, line.wordCursor());
             } else {
+                current = line.word();
                 buf.move(line.rawWordLength() - line.rawWordCursor());
+            }
+            // Now, we need to find the unambiguous completion
+            // TODO: need to find common suffix
+            String commonPrefix = null;
+            for (String key : matching.keySet()) {
+                commonPrefix = commonPrefix == null ? key : getCommonStart(commonPrefix, key, caseInsensitive);
+            }
+            boolean hasUnambiguous = commonPrefix.startsWith(current) && !commonPrefix.equals(current);
+
+            if (hasUnambiguous) {
                 buf.backspace(line.rawWordLength());
-            }
-            buf.write(line.escape(completion.value(), completion.complete()));
-            if (completion.complete()) {
-                if (buf.currChar() != ' ') {
-                    buf.write(" ");
-                } else {
-                    buf.move(1);
-                }
-            }
-            if (completion.suffix() != null) {
-                redisplay();
-                Binding op = readBinding(getKeys());
-                if (op != null) {
-                    String chars = getString(REMOVE_SUFFIX_CHARS, DEFAULT_REMOVE_SUFFIX_CHARS);
-                    String ref = op instanceof Reference ? ((Reference) op).name() : null;
-                    if (SELF_INSERT.equals(ref) && chars.indexOf(getLastBinding().charAt(0)) >= 0
-                            || ACCEPT_LINE.equals(ref)) {
-                        buf.backspace(completion.suffix().length());
-                        if (getLastBinding().charAt(0) != ' ') {
-                            buf.write(' ');
-                        }
+                buf.write(line.escape(commonPrefix, false));
+                current = commonPrefix;
+                if ((!isSet(Option.AUTO_LIST) && isSet(Option.AUTO_MENU))
+                        || (isSet(Option.AUTO_LIST) && isSet(Option.LIST_AMBIGUOUS))) {
+                    if (!nextBindingIsComplete()) {
+                        return true;
                     }
-                    pushBackBinding(true);
                 }
             }
-            return true;
-        }
-
-        List<Candidate> possible = matching.entrySet().stream()
-                .flatMap(e -> e.getValue().stream())
-                .collect(Collectors.toList());
-
-        if (useMenu) {
-            buf.move(line.word().length() - line.wordCursor());
-            buf.backspace(line.word().length());
-            doMenu(possible, line.word(), line::escape);
-            return true;
-        }
-
-        // Find current word and move to end
-        String current;
-        if (prefix) {
-            current = line.word().substring(0, line.wordCursor());
-        } else {
-            current = line.word();
-            buf.move(line.rawWordLength() - line.rawWordCursor());
-        }
-        // Now, we need to find the unambiguous completion
-        // TODO: need to find common suffix
-        String commonPrefix = null;
-        for (String key : matching.keySet()) {
-            commonPrefix = commonPrefix == null ? key : getCommonStart(commonPrefix, key, caseInsensitive);
-        }
-        boolean hasUnambiguous = commonPrefix.startsWith(current) && !commonPrefix.equals(current);
-
-        if (hasUnambiguous) {
-            buf.backspace(line.rawWordLength());
-            buf.write(line.escape(commonPrefix, false));
-            current = commonPrefix;
-            if ((!isSet(Option.AUTO_LIST) && isSet(Option.AUTO_MENU))
-                    || (isSet(Option.AUTO_LIST) && isSet(Option.LIST_AMBIGUOUS))) {
-                if (!nextBindingIsComplete()) {
+            if (isSet(Option.AUTO_LIST)) {
+                if (!doList(possible, current, true, line::escape)) {
                     return true;
                 }
             }
-        }
-        if (isSet(Option.AUTO_LIST)) {
-            if (!doList(possible, current, true, line::escape)) {
-                return true;
+            if (isSet(Option.AUTO_MENU)) {
+                buf.backspace(current.length());
+                doMenu(possible, line.word(), line::escape);
             }
+            return true;
+        } finally {
+            size.copy(terminal.getBufferSize());
         }
-        if (isSet(Option.AUTO_MENU)) {
-            buf.backspace(current.length());
-            doMenu(possible, line.word(), line::escape);
-        }
-        return true;
     }
 
     private CompletingParsedLine wrap(ParsedLine line) {
