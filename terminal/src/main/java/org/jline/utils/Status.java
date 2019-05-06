@@ -61,6 +61,12 @@ public class Status {
         this.force = true;
     }
 
+    public void hardReset() {
+        List<AttributedString> lines = new ArrayList<>(oldLines);
+        update(null);
+        update(lines);
+    }
+
     public void redraw() {
         update(oldLines);
     }
