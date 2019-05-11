@@ -462,6 +462,9 @@ public class Example
                 catch (HelpException e) {
                     HelpException.highlight(e.getMessage(), HelpException.defaultStyle()).print(terminal);
                 }
+                catch (IllegalArgumentException e) {
+                    System.out.println(e.getMessage());
+                }
             }
         }
         catch (Throwable t) {
