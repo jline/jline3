@@ -218,12 +218,17 @@ public class Commands {
         }
         int argId = 0;
         Pattern pattern = null;
-        if (opt.isSet("m")) {
-            if (opt.args().size() == 0) {
-                throw new IllegalArgumentException();
+        if (opt.isSet("m") && opt.args().size() > 0) {
+            StringBuilder sb = new StringBuilder();
+            char prev = '0';
+            for (char c: opt.args().get(argId++).toCharArray()) {
+                if (c == '*' && prev != '\\' && prev != '.') {
+                    sb.append('.');
+                }
+                sb.append(c);
+                prev = c;
             }
-            String sp = opt.args().get(argId++);
-            pattern = Pattern.compile(sp.toString());
+            pattern = Pattern.compile(sb.toString());
         }
         int firstId = opt.args().size() > argId ? retrieveHistoryId(history, opt.args().get(argId++)) : -17;
         int lastId  = opt.args().size() > argId ? retrieveHistoryId(history, opt.args().get(argId++)) : -1;
