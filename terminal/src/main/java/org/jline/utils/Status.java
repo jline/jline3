@@ -100,4 +100,8 @@ public class Status {
         oldLines = new ArrayList<>(lines);
         force = false;
     }
+
+    public int size() {
+        return oldLines.size();
+    }
 }
