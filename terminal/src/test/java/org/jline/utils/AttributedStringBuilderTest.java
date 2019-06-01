@@ -8,6 +8,9 @@
  */
 package org.jline.utils;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -28,6 +31,15 @@ public class AttributedStringBuilderTest {
         sb = new AttributedStringBuilder().tabs(5);
         sb.append("hello\tWorld");
         assertEquals(TAB_SIZE_ERR_MSG, "hello     World", sb.toString());
+
+        sb = new AttributedStringBuilder().tabs(Arrays.asList(5));
+        sb.append("hello\tWorld");
+        assertEquals(TAB_SIZE_ERR_MSG, "hello     World", sb.toString());
+
+        sb = new AttributedStringBuilder().tabs(Arrays.asList(6,13));
+        sb.append("one\ttwo\tthree\tfour");
+        assertEquals(TAB_SIZE_ERR_MSG, "one   two    three  four", sb.toString());
+        
     }
 
     /**

@@ -56,8 +56,8 @@ public class Less {
     public boolean ignoreCaseAlways;
     public boolean noKeypad;
     public boolean noInit;
-    public int tabs = 4;
-
+    
+    protected List<Integer> tabs = Arrays.asList(4);
     protected final Terminal terminal;
     protected final Display display;
     protected final BindingReader bindingReader;
@@ -93,6 +93,11 @@ public class Less {
         this.terminal = terminal;
         this.display = new Display(terminal, true);
         this.bindingReader = new BindingReader(terminal.reader());
+    }
+
+    public Less tabs(List<Integer> tabs) {
+        this.tabs = tabs;
+        return this;
     }
 
     public void handle(Signal signal) {

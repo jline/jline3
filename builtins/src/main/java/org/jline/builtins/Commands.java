@@ -125,7 +125,7 @@ public class Commands {
                 "  -S --chop-long-lines         Do not fold long lines",
                 "  -i --ignore-case             Search ignores lowercase case",
                 "  -I --IGNORE-CASE             Search ignores all case",
-                "  -x --tabs                    Set tab stops",
+                "  -x --tabs=N[,...]            Set tab stops",
                 "  -N --LINE-NUMBERS            Display line number for each line"
         };
 
@@ -135,7 +135,13 @@ public class Commands {
             throw new HelpException(opt.usage());
         }
 
-        Less less = new Less(terminal);
+        List<Integer> tabs = new ArrayList<>();
+        if (opt.isSet("tabs")) {
+            for (String s: opt.get("tabs").split(",")) {
+                tabs.add(parseInteger(s));
+            }
+        }
+        Less less = new Less(terminal).tabs(tabs);
         less.quitAtFirstEof = opt.isSet("QUIT-AT-EOF");
         less.quitAtSecondEof = opt.isSet("quit-at-eof");
         less.quiet = opt.isSet("quiet");
@@ -143,9 +149,6 @@ public class Commands {
         less.chopLongLines = opt.isSet("chop-long-lines");
         less.ignoreCaseAlways = opt.isSet("IGNORE-CASE");
         less.ignoreCaseCond = opt.isSet("ignore-case");
-        if (opt.isSet("tabs")) {
-            less.tabs = opt.getNumber("tabs");
-        }
         less.printLineNumbers = opt.isSet("LINE-NUMBERS");
         List<Source> sources = new ArrayList<>();
         if (opt.args().isEmpty()) {

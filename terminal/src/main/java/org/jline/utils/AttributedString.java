@@ -10,6 +10,7 @@ package org.jline.utils;
 
 import java.security.InvalidParameterException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -107,6 +108,17 @@ public class AttributedString extends AttributedCharSequence {
                 .toAttributedString();
     }
 
+    public static AttributedString fromAnsi(String ansi, List<Integer> tabs) {
+        if (ansi == null) {
+            return null;
+        }
+        return new AttributedStringBuilder(ansi.length())
+                .tabs(tabs)
+                .ansiAppend(ansi)
+                .toAttributedString();
+    }
+    
+    
     public static String stripAnsi(String ansi) {
         if (ansi == null) {
             return null;
