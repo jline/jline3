@@ -375,14 +375,10 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
      * @return this
      */
     public AttributedStringBuilder tabs(int tabsize) {
-        if (length > 0) {
-            throw new IllegalStateException("Cannot change tab size after appending text");
-        }
         if (tabsize < 0) {
             throw new IllegalArgumentException("Tab size must be non negative");
         }
-        this.tabs = new TabStops(tabsize);
-        return this;
+        return tabs(Arrays.asList(tabsize));
     }
 
     public AttributedStringBuilder tabs(List<Integer> tabs) {
@@ -429,7 +425,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
             this.tabs = tabs;
             int p = 0;
             for (int s: tabs) {
-                if (s < p) {
+                if (s <= p) {
                     continue;
                 }
                 lastStop = s;
@@ -439,7 +435,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
         }
 
         boolean defined() {
-            return lastSize != 0;
+            return lastSize > 0;
         }
 
         int spaces(int lastLineLength) {

@@ -36,6 +36,7 @@ import org.jline.utils.AttributedStyle;
 import org.jline.utils.Display;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.NonBlockingReader;
+import org.jline.utils.Status;
 
 import static org.jline.keymap.KeyMap.alt;
 import static org.jline.keymap.KeyMap.ctrl;
@@ -124,6 +125,7 @@ public class Less {
         openSource();
 
         try {
+        	Status.getStatus(terminal).suspend();
             size.copy(terminal.getSize());
 
             if (quitIfOneScreen && sources.size() == 1) {
@@ -406,6 +408,7 @@ public class Less {
             }
         } finally {
             reader.close();
+            Status.getStatus(terminal).restore();
         }
     }
 

@@ -99,13 +99,7 @@ public class AttributedString extends AttributedCharSequence {
     }
 
     public static AttributedString fromAnsi(String ansi, int tabs) {
-        if (ansi == null) {
-            return null;
-        }
-        return new AttributedStringBuilder(ansi.length())
-                .tabs(tabs)
-                .ansiAppend(ansi)
-                .toAttributedString();
+    	return fromAnsi(ansi, Arrays.asList(tabs));
     }
 
     public static AttributedString fromAnsi(String ansi, List<Integer> tabs) {
