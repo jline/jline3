@@ -112,7 +112,6 @@ public class AttributedString extends AttributedCharSequence {
                 .toAttributedString();
     }
     
-    
     public static String stripAnsi(String ansi) {
         if (ansi == null) {
             return null;

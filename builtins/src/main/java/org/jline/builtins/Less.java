@@ -123,9 +123,12 @@ public class Less {
 
         sourceIdx = 0;
         openSource();
+        Status status = Status.getStatus(terminal, false);
 
         try {
-        	Status.getStatus(terminal).suspend();
+            if (status != null) {
+                status.suspend();
+            }
             size.copy(terminal.getSize());
 
             if (quitIfOneScreen && sources.size() == 1) {
@@ -408,7 +411,9 @@ public class Less {
             }
         } finally {
             reader.close();
-            Status.getStatus(terminal).restore();
+            if (status != null) {
+                status.restore();
+            }
         }
     }
 
