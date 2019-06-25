@@ -877,7 +877,7 @@ public class Posix {
                 "watch - watches & refreshes the output of a command",
                 "Usage: watch [OPTIONS] COMMAND",
                 "  -? --help                    Show help",
-                "  -n --interval                Interval between executions of the command in seconds",
+                "  -n --interval=SECONDS        Interval between executions of the command in seconds",
                 "  -a --append                  The output should be appended but not clear the console"
         };
 
