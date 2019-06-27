@@ -74,8 +74,16 @@ public final class Curses {
             switch (ch) {
                 case '\\':
                     ch = str.charAt(index++);
-                    if (ch >= '0' && ch <= '9') {
-                        throw new UnsupportedOperationException(); // todo
+                    if (ch >= '0' && ch <= '7') {
+                        int val = ch - '0';
+                        for (int i = 0; i < 2; i++) {
+                            ch = str.charAt(index++);
+                            if (ch < '0' || ch > '7') {
+                                throw new IllegalStateException();
+                            }
+                            val = val * 8 + (ch - '0');
+                        }
+                        out.append((char) val);
                     } else {
                         switch (ch) {
                             case 'e':

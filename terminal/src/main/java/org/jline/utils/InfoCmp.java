@@ -578,6 +578,8 @@ public final class InfoCmp {
                     int iVal;
                     if (val.startsWith("0x")) {
                         iVal = Integer.parseInt(val.substring(2), 16);
+                    } else if (val.startsWith("0")) {
+                        iVal = Integer.parseInt(val.substring(1), 8);
                     } else {
                         iVal = Integer.parseInt(val);
                     }
