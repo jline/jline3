@@ -109,4 +109,28 @@ public interface Source {
         }
 
     }
+
+    class ResourceSource implements Source {
+        final String resource;
+        final String name;
+
+        public ResourceSource(String resource) {
+            this(resource, resource);
+        }
+
+        public ResourceSource(String resource, String name) {
+            this.resource = Objects.requireNonNull(resource);
+            this.name = name;
+        }
+
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public InputStream read() throws IOException {
+            return getClass().getResourceAsStream(resource);
+        }
+    }
 }

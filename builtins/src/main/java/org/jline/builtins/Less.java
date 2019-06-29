@@ -23,6 +23,7 @@ import java.util.TreeMap;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import org.jline.builtins.Source.ResourceSource;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
 import org.jline.terminal.Attributes;
@@ -113,15 +114,16 @@ public class Less {
         if (sources == null || sources.isEmpty()) {
             throw new IllegalArgumentException("No sources");
         }
+        sources.add(0, new ResourceSource("less-help.txt", "HELP -- Press SPACE for more, or q when done"));
         this.sources = sources;
 
-        sourceIdx = 0;
+        sourceIdx = 1;
         openSource();
 
         try {
             size.copy(terminal.getSize());
 
-            if (quitIfOneScreen && sources.size() == 1) {
+            if (quitIfOneScreen && sources.size() == 2) {
                 if (display(true)) {
                     return;
                 }
@@ -363,12 +365,15 @@ public class Less {
                                 }
                                 break;
                             case PREV_FILE:
-                                if (sourceIdx > 0) {
+                                if (sourceIdx > 1) {
                                     sourceIdx--;
                                     openSource();
                                 } else {
                                     message = "No previous file";
                                 }
+                                break;
+                            case HELP:
+                                help();
                                 break;
                         }
                         buffer.setLength(0);
@@ -404,16 +409,56 @@ public class Less {
         }
     }
 
+    private void help() throws IOException {
+        int saveSourceIdx = sourceIdx;
+        int saveFirstLineToDisplay = firstLineToDisplay;
+        int saveFirstColumnToDisplay = firstColumnToDisplay;
+        int saveOffsetInLine = offsetInLine;
+        boolean savePrintLineNumbers = printLineNumbers;
+
+        printLineNumbers = false;
+        sourceIdx = 0;
+        try {
+            openSource();
+            Operation op = null;
+            do {
+                checkInterrupted();
+
+                op = bindingReader.readBinding(keys, null, false);
+                if (op != null) {
+                    switch (op) {
+                    case FORWARD_ONE_WINDOW_OR_LINES:
+                        moveForward(getStrictPositiveNumberInBuffer(window));
+                        break;
+                    case BACKWARD_ONE_WINDOW_OR_LINES:
+                        moveBackward(getStrictPositiveNumberInBuffer(window));
+                        break;               
+                    }
+                }
+                display(false);
+            } while (op != Operation.EXIT);
+        } catch (IOException|InterruptedException exp) {
+            // Do nothing
+        } finally {
+            sourceIdx = saveSourceIdx;
+            openSource();
+            firstLineToDisplay = saveFirstLineToDisplay;
+            firstColumnToDisplay = saveFirstColumnToDisplay;
+            offsetInLine = saveOffsetInLine;
+            printLineNumbers = savePrintLineNumbers;
+        }
+    }
+    
     protected void openSource() throws IOException {
         if (reader != null) {
             reader.close();
         }
         Source source = sources.get(sourceIdx);
         InputStream in = source.read();
-        if (sources.size() == 1) {
+        if (sources.size() == 2 || sourceIdx == 0) {
             message = source.getName();
         } else {
-            message = source.getName() + " (file " + (sourceIdx + 1) + " of " + sources.size() + ")";
+            message = source.getName() + " (file " + sourceIdx + " of " + (sources.size() - 1)+ ")";
         }
         reader = new BufferedReader(new InputStreamReader(new InterruptibleInputStream(in)));
         firstLineInMemory = 0;
@@ -531,7 +576,7 @@ public class Less {
 
     private void eof() {
         nbEof++;
-        if (sourceIdx < sources.size() - 1) {
+        if (sourceIdx > 0 && sourceIdx < sources.size() - 1) {
             message = "(END) - Next: " + sources.get(sourceIdx + 1).getName();
         } else {
             message = "(END)";
