@@ -294,17 +294,19 @@ public class Less {
                                 moveBackward(getStrictPositiveNumberInBuffer(window));
                                 break;
                             case BACKWARD_HALF_WINDOW_AND_SET:
-                                halfWindow = getStrictPositiveNumberInBuffer(halfWindow);
+                                halfWindow  = getStrictPositiveNumberInBuffer(halfWindow);
                                 moveBackward(halfWindow);
                                 break;
                             case GO_TO_FIRST_LINE_OR_N:
-                                // TODO: handle number
-                                firstLineToDisplay = firstLineInMemory;
-                                offsetInLine = 0;
+                                moveTo(getStrictPositiveNumberInBuffer(1) - 1);
                                 break;
                             case GO_TO_LAST_LINE_OR_N:
-                                // TODO: handle number
-                                moveForward(Integer.MAX_VALUE);
+                                int lineNum = getStrictPositiveNumberInBuffer(0) - 1;
+                                if (lineNum < 0) {
+                                    moveForward(Integer.MAX_VALUE);
+                                } else {
+                                    moveTo(lineNum);
+                                }
                                 break;
                             case LEFT_ONE_HALF_SCREEN:
                                 firstColumnToDisplay = Math.max(0, firstColumnToDisplay - size.getColumns() / 2);
@@ -357,16 +359,18 @@ public class Less {
                                 message = ignoreCaseAlways ? "Ignore case in searches and in patterns" : "Case is significant in searches";
                                 break;
                             case NEXT_FILE:
-                                if (sourceIdx < sources.size() - 1) {
-                                    sourceIdx++;
+                                int next = getStrictPositiveNumberInBuffer(1);
+                                if (sourceIdx < sources.size() - next) {
+                                    sourceIdx += next;
                                     openSource();
                                 } else {
                                     message = "No next file";
                                 }
                                 break;
                             case PREV_FILE:
-                                if (sourceIdx > 1) {
-                                    sourceIdx--;
+                                int prev = getStrictPositiveNumberInBuffer(1);
+                                if (sourceIdx > prev) {
+                                    sourceIdx -= prev;
                                     openSource();
                                 } else {
                                     message = "No previous file";
@@ -420,6 +424,7 @@ public class Less {
         sourceIdx = 0;
         try {
             openSource();
+            display(false);
             Operation op = null;
             do {
                 checkInterrupted();
@@ -468,6 +473,19 @@ public class Less {
         offsetInLine = 0;
     }
 
+    void moveTo(int lineNum) throws IOException {
+        AttributedString line = getLine(lineNum);
+        if (line != null){
+            if (firstLineInMemory > lineNum) {
+                openSource();
+            }
+            firstLineToDisplay = lineNum;
+            offsetInLine = 0;
+        } else {
+            message = "Cannot seek to line number " + (lineNum + 1);
+        }
+    }
+    
     private void moveToNextMatch() throws IOException {
         Pattern compiled = getPattern();
         if (compiled != null) {
