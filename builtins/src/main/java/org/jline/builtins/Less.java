@@ -294,7 +294,7 @@ public class Less {
                                 moveBackward(getStrictPositiveNumberInBuffer(window));
                                 break;
                             case BACKWARD_HALF_WINDOW_AND_SET:
-                                halfWindow  = getStrictPositiveNumberInBuffer(halfWindow);
+                                halfWindow = getStrictPositiveNumberInBuffer(halfWindow);
                                 moveBackward(halfWindow);
                                 break;
                             case GO_TO_FIRST_LINE_OR_N:
@@ -631,6 +631,7 @@ public class Less {
         AttributedString curLine = null;
         Pattern compiled = getPattern();
         boolean fitOnOneScreen = false;
+        boolean eof = false;
         for (int terminalLine = 0; terminalLine < height - 1; terminalLine++) {
             if (curLine == null) {
                 curLine = getLine(inputLine++);
@@ -639,7 +640,8 @@ public class Less {
                         fitOnOneScreen = true;
                         break;
                     }
-                    curLine = new AttributedString("");
+                    eof = true;
+                    curLine = new AttributedString("~");
                 }
                 if (compiled != null) {
                     curLine = curLine.styleMatches(compiled, AttributedStyle.DEFAULT.inverse());
@@ -663,7 +665,7 @@ public class Less {
                     curLine = null;
                 }
             }
-            if (printLineNumbers) {
+            if (printLineNumbers && !eof) {
                 AttributedStringBuilder sb = new AttributedStringBuilder();
                 sb.append(String.format("%7d ", inputLine));
                 sb.append(toDisplay);
