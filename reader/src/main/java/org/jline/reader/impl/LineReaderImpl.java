@@ -3838,26 +3838,26 @@ public class LineReaderImpl implements LineReader, Flushable
                 decode: while (true) {
                     ch = pattern.charAt(i++);
                     switch (ch) {
-                       case '{':
-                       case '}':
-                           String str = sb.toString();
-                           AttributedString astr;
-                           if (!isHidden) {
-                               astr = AttributedString.fromAnsi(str);
-                               cols += astr.columnLength();
-                           } else {
-                               astr = new AttributedString(str, AttributedStyle.HIDDEN);
-                           }
-                           if (padPartIndex == parts.size()) {
-                               padPartString = sb;
-                               if (i < plen) {
-                                   sb = new StringBuilder();
-                               }
-                           } else {
-                               sb.setLength(0);
-                           }
-                           parts.add(astr);
-                           isHidden = ch == '{';
+                        case '{':
+                        case '}':
+                            String str = sb.toString();
+                            AttributedString astr;
+                            if (!isHidden) {
+                                astr = AttributedString.fromAnsi(str);
+                                cols += astr.columnLength();
+                            } else {
+                                astr = new AttributedString(str, AttributedStyle.HIDDEN);
+                            }
+                            if (padPartIndex == parts.size()) {
+                                padPartString = sb;
+                                if (i < plen) {
+                                    sb = new StringBuilder();
+                                }
+                            } else {
+                                sb.setLength(0);
+                            }
+                            parts.add(astr);
+                            isHidden = ch == '{';
                             break decode;
                         case '%':
                             sb.append(ch);
