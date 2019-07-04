@@ -3737,8 +3737,8 @@ public class LineReaderImpl implements LineReader, Flushable
                 }
             }
 
-            List<AttributedString> newLinesToDisplay = new ArrayList<>();           
-            int displaySize = size.getRows() - Status.getStatus(terminal).size();
+            List<AttributedString> newLinesToDisplay = new ArrayList<>();
+            int displaySize = size.getRows() - (status != null ? status.size() : 0);
             if (newLines.size() > displaySize) {
                 StringBuilder sb = new StringBuilder(">....");
                 // blanks are needed when displaying command completion candidate list
