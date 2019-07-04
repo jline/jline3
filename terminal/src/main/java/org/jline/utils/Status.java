@@ -134,4 +134,8 @@ public class Status {
         linesToRestore = Collections.emptyList();
     }
 
+    public int size() {
+        return oldLines.size();
+    }
+
 }

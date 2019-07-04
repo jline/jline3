@@ -3718,6 +3718,8 @@ public class LineReaderImpl implements LineReader, Flushable
             }
 
             int cursorPos = -1;
+            int cursorNewLinesId = -1;
+            int cursorColPos = -1;
             if (size.getColumns() > 0) {
                 AttributedStringBuilder sb = new AttributedStringBuilder().tabs(TAB_WIDTH);
                 sb.append(prompt);
@@ -3728,12 +3730,47 @@ public class LineReaderImpl implements LineReader, Flushable
                 sb.append(insertSecondaryPrompts(new AttributedString(buffer), secondaryPrompts, false));
                 List<AttributedString> promptLines = sb.columnSplitLength(size.getColumns(), false, display.delayLineWrap());
                 if (!promptLines.isEmpty()) {
+                    cursorNewLinesId = promptLines.size() - 1;
+                    cursorColPos = promptLines.get(promptLines.size() - 1).columnLength();
                     cursorPos = size.cursorPos(promptLines.size() - 1,
                             promptLines.get(promptLines.size() - 1).columnLength());
                 }
             }
 
-            display.update(newLines, cursorPos, flush);
+            List<AttributedString> newLinesToDisplay = new ArrayList<>();           
+            int displaySize = size.getRows() - Status.getStatus(terminal).size();
+            if (newLines.size() > displaySize) {
+                StringBuilder sb = new StringBuilder(">....");
+                // blanks are needed when displaying command completion candidate list
+                for (int i = sb.toString().length(); i < size.getColumns(); i++) {
+                    sb.append(" ");
+                }
+                AttributedString partialCommandInfo = new AttributedString(sb.toString());
+                int lineId = newLines.size() - displaySize + 1;
+                int endId = displaySize;
+                int startId = 1;
+                if (lineId  > cursorNewLinesId) {
+                    lineId = cursorNewLinesId;
+                    endId = displaySize - 1;
+                    startId = 0;
+                } else {
+                    newLinesToDisplay.add(partialCommandInfo);
+                }
+                int cursorRowPos = 0;
+                for (int i = startId; i < endId; i++) {
+                    if (cursorNewLinesId == lineId) {
+                        cursorRowPos = i;
+                    }
+                    newLinesToDisplay.add(newLines.get(lineId++));
+                }
+                if (startId == 0) {
+                    newLinesToDisplay.add(partialCommandInfo);                    
+                }
+                cursorPos = size.cursorPos(cursorRowPos, cursorColPos);
+            } else {
+                newLinesToDisplay = newLines;
+            }
+            display.update(newLinesToDisplay, cursorPos, flush);
         } finally {
             lock.unlock();
         }
