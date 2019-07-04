@@ -16,7 +16,7 @@
     <parent>
         <groupId>org.jline</groupId>
         <artifactId>jline-parent</artifactId>
-        <version>3.12.0</version>
+        <version>3.12.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>jline-style</artifactId>
