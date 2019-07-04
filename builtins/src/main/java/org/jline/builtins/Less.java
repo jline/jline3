@@ -23,6 +23,7 @@ import java.util.TreeMap;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import org.jline.builtins.Source.ResourceSource;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
 import org.jline.terminal.Attributes;
@@ -113,15 +114,16 @@ public class Less {
         if (sources == null || sources.isEmpty()) {
             throw new IllegalArgumentException("No sources");
         }
+        sources.add(0, new ResourceSource("less-help.txt", "HELP -- Press SPACE for more, or q when done"));
         this.sources = sources;
 
-        sourceIdx = 0;
+        sourceIdx = 1;
         openSource();
 
         try {
             size.copy(terminal.getSize());
 
-            if (quitIfOneScreen && sources.size() == 1) {
+            if (quitIfOneScreen && sources.size() == 2) {
                 if (display(true)) {
                     return;
                 }
@@ -296,13 +298,15 @@ public class Less {
                                 moveBackward(halfWindow);
                                 break;
                             case GO_TO_FIRST_LINE_OR_N:
-                                // TODO: handle number
-                                firstLineToDisplay = firstLineInMemory;
-                                offsetInLine = 0;
+                                moveTo(getStrictPositiveNumberInBuffer(1) - 1);
                                 break;
                             case GO_TO_LAST_LINE_OR_N:
-                                // TODO: handle number
-                                moveForward(Integer.MAX_VALUE);
+                                int lineNum = getStrictPositiveNumberInBuffer(0) - 1;
+                                if (lineNum < 0) {
+                                    moveForward(Integer.MAX_VALUE);
+                                } else {
+                                    moveTo(lineNum);
+                                }
                                 break;
                             case LEFT_ONE_HALF_SCREEN:
                                 firstColumnToDisplay = Math.max(0, firstColumnToDisplay - size.getColumns() / 2);
@@ -355,20 +359,25 @@ public class Less {
                                 message = ignoreCaseAlways ? "Ignore case in searches and in patterns" : "Case is significant in searches";
                                 break;
                             case NEXT_FILE:
-                                if (sourceIdx < sources.size() - 1) {
-                                    sourceIdx++;
+                                int next = getStrictPositiveNumberInBuffer(1);
+                                if (sourceIdx < sources.size() - next) {
+                                    sourceIdx += next;
                                     openSource();
                                 } else {
                                     message = "No next file";
                                 }
                                 break;
                             case PREV_FILE:
-                                if (sourceIdx > 0) {
-                                    sourceIdx--;
+                                int prev = getStrictPositiveNumberInBuffer(1);
+                                if (sourceIdx > prev) {
+                                    sourceIdx -= prev;
                                     openSource();
                                 } else {
                                     message = "No previous file";
                                 }
+                                break;
+                            case HELP:
+                                help();
                                 break;
                         }
                         buffer.setLength(0);
@@ -404,16 +413,57 @@ public class Less {
         }
     }
 
+    private void help() throws IOException {
+        int saveSourceIdx = sourceIdx;
+        int saveFirstLineToDisplay = firstLineToDisplay;
+        int saveFirstColumnToDisplay = firstColumnToDisplay;
+        int saveOffsetInLine = offsetInLine;
+        boolean savePrintLineNumbers = printLineNumbers;
+
+        printLineNumbers = false;
+        sourceIdx = 0;
+        try {
+            openSource();
+            display(false);
+            Operation op = null;
+            do {
+                checkInterrupted();
+
+                op = bindingReader.readBinding(keys, null, false);
+                if (op != null) {
+                    switch (op) {
+                    case FORWARD_ONE_WINDOW_OR_LINES:
+                        moveForward(getStrictPositiveNumberInBuffer(window));
+                        break;
+                    case BACKWARD_ONE_WINDOW_OR_LINES:
+                        moveBackward(getStrictPositiveNumberInBuffer(window));
+                        break;               
+                    }
+                }
+                display(false);
+            } while (op != Operation.EXIT);
+        } catch (IOException|InterruptedException exp) {
+            // Do nothing
+        } finally {
+            sourceIdx = saveSourceIdx;
+            openSource();
+            firstLineToDisplay = saveFirstLineToDisplay;
+            firstColumnToDisplay = saveFirstColumnToDisplay;
+            offsetInLine = saveOffsetInLine;
+            printLineNumbers = savePrintLineNumbers;
+        }
+    }
+    
     protected void openSource() throws IOException {
         if (reader != null) {
             reader.close();
         }
         Source source = sources.get(sourceIdx);
         InputStream in = source.read();
-        if (sources.size() == 1) {
+        if (sources.size() == 2 || sourceIdx == 0) {
             message = source.getName();
         } else {
-            message = source.getName() + " (file " + (sourceIdx + 1) + " of " + sources.size() + ")";
+            message = source.getName() + " (file " + sourceIdx + " of " + (sources.size() - 1)+ ")";
         }
         reader = new BufferedReader(new InputStreamReader(new InterruptibleInputStream(in)));
         firstLineInMemory = 0;
@@ -423,6 +473,19 @@ public class Less {
         offsetInLine = 0;
     }
 
+    void moveTo(int lineNum) throws IOException {
+        AttributedString line = getLine(lineNum);
+        if (line != null){
+            if (firstLineInMemory > lineNum) {
+                openSource();
+            }
+            firstLineToDisplay = lineNum;
+            offsetInLine = 0;
+        } else {
+            message = "Cannot seek to line number " + (lineNum + 1);
+        }
+    }
+    
     private void moveToNextMatch() throws IOException {
         Pattern compiled = getPattern();
         if (compiled != null) {
@@ -531,7 +594,7 @@ public class Less {
 
     private void eof() {
         nbEof++;
-        if (sourceIdx < sources.size() - 1) {
+        if (sourceIdx > 0 && sourceIdx < sources.size() - 1) {
             message = "(END) - Next: " + sources.get(sourceIdx + 1).getName();
         } else {
             message = "(END)";
@@ -568,6 +631,7 @@ public class Less {
         AttributedString curLine = null;
         Pattern compiled = getPattern();
         boolean fitOnOneScreen = false;
+        boolean eof = false;
         for (int terminalLine = 0; terminalLine < height - 1; terminalLine++) {
             if (curLine == null) {
                 curLine = getLine(inputLine++);
@@ -576,7 +640,8 @@ public class Less {
                         fitOnOneScreen = true;
                         break;
                     }
-                    curLine = new AttributedString("");
+                    eof = true;
+                    curLine = new AttributedString("~");
                 }
                 if (compiled != null) {
                     curLine = curLine.styleMatches(compiled, AttributedStyle.DEFAULT.inverse());
@@ -600,7 +665,7 @@ public class Less {
                     curLine = null;
                 }
             }
-            if (printLineNumbers) {
+            if (printLineNumbers && !eof) {
                 AttributedStringBuilder sb = new AttributedStringBuilder();
                 sb.append(String.format("%7d ", inputLine));
                 sb.append(toDisplay);
