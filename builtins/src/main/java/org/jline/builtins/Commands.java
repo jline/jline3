@@ -300,7 +300,15 @@ public class Commands {
         }
         return out;
     }
-    
+
+    private static int parseInteger(String s) throws IllegalArgumentException {
+        try {
+            return Integer.parseInt(s);
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("error parsing number: " + s);
+        }
+    }
+
     private static int retrieveHistoryId(History history, String s) throws IllegalArgumentException {
         try {
             return Integer.parseInt(s);
@@ -314,9 +322,9 @@ public class Commands {
             }
             throw new IllegalArgumentException("history: event not found: " + s);
         }
-     }
+    }
 
-     public static void complete(LineReader reader, PrintStream out, PrintStream err,
+    public static void complete(LineReader reader, PrintStream out, PrintStream err,
                                 Map<String, List<CompletionData>> completions,
                                 String[] argv) throws HelpException {
         final String[] usage = {
