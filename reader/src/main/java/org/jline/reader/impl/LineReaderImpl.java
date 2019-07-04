@@ -690,7 +690,7 @@ public class LineReaderImpl implements LineReader, Flushable
             if (reading) {
                 display.update(Collections.emptyList(), 0);
             }
-            if (str.endsWith("\n")) {
+            if (str.endsWith("\n") || str.endsWith("\n\033[m") || str.endsWith("\n\033[0m")) {
                 terminal.writer().print(str);
             } else {
                 terminal.writer().println(str);
