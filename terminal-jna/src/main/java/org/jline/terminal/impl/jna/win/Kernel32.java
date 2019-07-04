@@ -19,7 +19,7 @@ import com.sun.jna.win32.W32APIOptions;
 
 interface Kernel32 extends StdCallLibrary {
 
-    Kernel32 INSTANCE = (Kernel32) Native.loadLibrary("kernel32", Kernel32.class, W32APIOptions.UNICODE_OPTIONS);
+    Kernel32 INSTANCE = Native.load("kernel32", Kernel32.class, W32APIOptions.UNICODE_OPTIONS);
 
     Pointer INVALID_HANDLE_VALUE = Pointer.createConstant(-1L);
 

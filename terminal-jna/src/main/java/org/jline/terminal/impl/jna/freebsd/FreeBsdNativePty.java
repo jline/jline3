@@ -26,13 +26,13 @@ import static org.jline.terminal.impl.jna.freebsd.CLibrary.winsize;
 
 public class FreeBsdNativePty extends JnaNativePty {
 
-    private static final CLibrary C_LIBRARY = (CLibrary) Native.loadLibrary(Platform.C_LIBRARY_NAME, CLibrary.class);
+    private static final CLibrary C_LIBRARY = Native.load(Platform.C_LIBRARY_NAME, CLibrary.class);
 
     public interface UtilLibrary extends com.sun.jna.Library {
 
         void openpty(int[] master, int[] slave, byte[] name, CLibrary.termios t, CLibrary.winsize s) throws LastErrorException;
 
-        UtilLibrary INSTANCE = (UtilLibrary) Native.loadLibrary("util", UtilLibrary.class);
+        UtilLibrary INSTANCE = Native.load("util", UtilLibrary.class);
     }
 
     public static FreeBsdNativePty current() throws IOException {
