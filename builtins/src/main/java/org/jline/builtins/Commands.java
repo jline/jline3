@@ -189,8 +189,9 @@ public class Commands {
                 "  -I                              If added to -R, only the events that are not contained within the internal list are added",
                 "                                  If added to -W or -A, only the events that are new since the last incremental operation",
                 "                                  to the file are added",
-                "  [first] [last]                  These optional arguments are numbers. A negative number is",
-                "                                  used as an offset to the current history event number"};
+                "  [first] [last]                  These optional arguments may be specified as a number or as a string. A negative number",
+                "                                  is used as an offset to the current history event number. A string specifies the most", 
+                "                                  recent event beginning with the given string."};
         Options opt = Options.compile(usage).parse(argv);
 
         if (opt.isSet("help")) {
@@ -198,7 +199,7 @@ public class Commands {
         }
         History history = reader.getHistory();
         boolean done = true;
-        boolean increment = opt.isSet("I") ? true : false;        
+        boolean increment = opt.isSet("I");        
         if (opt.isSet("clear")) {
             history.purge();
         } else if (opt.isSet("save")) {
@@ -220,25 +221,34 @@ public class Commands {
         }
         int argId = 0;
         Pattern pattern = null;
-        if (opt.isSet("m")) {
-            if (opt.args().size() == 0) {
-                throw new IllegalArgumentException();
+        if (opt.isSet("m") && opt.args().size() > 0) {
+            StringBuilder sb = new StringBuilder();
+            char prev = '0';
+            for (char c: opt.args().get(argId++).toCharArray()) {
+                if (c == '*' && prev != '\\' && prev != '.') {
+                    sb.append('.');
+                }
+                sb.append(c);
+                prev = c;
             }
-            String sp = opt.args().get(argId++);
-            pattern = Pattern.compile(sp.toString());
+            pattern = Pattern.compile(sb.toString());
         }
-        int firstId = opt.args().size() > argId ? parseInteger(opt.args().get(argId++)) : -17;
-        int lastId  = opt.args().size() > argId ? parseInteger(opt.args().get(argId++)) : -1;
+        int firstId = opt.args().size() > argId ? retrieveHistoryId(history, opt.args().get(argId++)) : -17;
+        int lastId  = opt.args().size() > argId ? retrieveHistoryId(history, opt.args().get(argId++)) : -1;
         firstId = historyId(firstId, history.first(), history.last());
         lastId  = historyId(lastId, history.first(), history.last());
+        boolean reverse = opt.isSet("r");
         if (firstId > lastId) {
-            throw new IllegalArgumentException();
+            int tmpId = firstId;
+            firstId = lastId;
+            lastId = tmpId;
+            reverse = !reverse;
         }
         int tot = lastId - firstId + 1;
         int listed = 0;
         final Highlighter highlighter = reader.getHighlighter();
         Iterator<History.Entry> iter = null;
-        if (opt.isSet("r")) {
+        if (reverse) {
             iter =  history.reverseIterator(lastId);
         } else {
             iter =  history.iterator(firstId);
@@ -291,11 +301,18 @@ public class Commands {
         return out;
     }
     
-    private static int parseInteger(String s) throws IllegalArgumentException {
+    private static int retrieveHistoryId(History history, String s) throws IllegalArgumentException {
         try {
             return Integer.parseInt(s);
         } catch (NumberFormatException ex) {
-            throw new IllegalArgumentException();
+            Iterator<History.Entry> iter = history.iterator();
+            while (iter.hasNext()) {
+                History.Entry entry = iter.next();
+                if (entry.line().startsWith(s)) {
+                    return entry.index();
+                }
+            }
+            throw new IllegalArgumentException("history: event not found: " + s);
         }
      }
 
