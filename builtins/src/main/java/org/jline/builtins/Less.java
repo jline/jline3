@@ -37,6 +37,7 @@ import org.jline.utils.AttributedStyle;
 import org.jline.utils.Display;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.NonBlockingReader;
+import org.jline.utils.Status;
 
 import static org.jline.keymap.KeyMap.alt;
 import static org.jline.keymap.KeyMap.ctrl;
@@ -57,8 +58,8 @@ public class Less {
     public boolean ignoreCaseAlways;
     public boolean noKeypad;
     public boolean noInit;
-    public int tabs = 4;
-
+    
+    protected List<Integer> tabs = Arrays.asList(4);
     protected final Terminal terminal;
     protected final Display display;
     protected final BindingReader bindingReader;
@@ -96,6 +97,11 @@ public class Less {
         this.bindingReader = new BindingReader(terminal.reader());
     }
 
+    public Less tabs(List<Integer> tabs) {
+        this.tabs = tabs;
+        return this;
+    }
+
     public void handle(Signal signal) {
         size.copy(terminal.getSize());
         try {
@@ -119,8 +125,12 @@ public class Less {
 
         sourceIdx = 1;
         openSource();
+        Status status = Status.getStatus(terminal, false);
 
         try {
+            if (status != null) {
+                status.suspend();
+            }
             size.copy(terminal.getSize());
 
             if (quitIfOneScreen && sources.size() == 2) {
@@ -410,6 +420,9 @@ public class Less {
             }
         } finally {
             reader.close();
+            if (status != null) {
+                status.restore();
+            }
         }
     }
 

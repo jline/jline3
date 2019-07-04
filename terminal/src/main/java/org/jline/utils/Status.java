@@ -24,9 +24,11 @@ public class Status {
     protected final AbstractTerminal terminal;
     protected final boolean supported;
     protected List<AttributedString> oldLines = Collections.emptyList();
+    protected List<AttributedString> linesToRestore = Collections.emptyList();
     protected int rows;
     protected int columns;
     protected boolean force;
+    protected boolean suspended = false;
 
     public static Status getStatus(Terminal terminal) {
         return getStatus(terminal, true);
@@ -62,20 +64,33 @@ public class Status {
     }
 
     public void hardReset() {
+        if (suspended) {
+            return;
+        }
         List<AttributedString> lines = new ArrayList<>(oldLines);
         update(null);
         update(lines);
     }
 
     public void redraw() {
+        if (suspended) {
+            return;
+        }
         update(oldLines);
     }
 
     public void update(List<AttributedString> lines) {
+        if (!supported) {
+            return;
+        }
         if (lines == null) {
             lines = Collections.emptyList();
         }
-        if (!supported || (oldLines.equals(lines) && !force)) {
+        if (suspended) {
+            linesToRestore = new ArrayList<>(lines);
+            return;
+        }
+        if (oldLines.equals(lines) && !force) {
             return;
         }
         int nb = lines.size() - oldLines.size();
@@ -100,4 +115,23 @@ public class Status {
         oldLines = new ArrayList<>(lines);
         force = false;
     }
+
+    public void suspend() {
+        if (suspended) {
+            return;
+        }
+        linesToRestore = new ArrayList<>(oldLines);
+        update(null);
+        suspended = true;
+    }
+
+    public void restore() {
+        if (!suspended) {
+            return;
+        }        
+        suspended = false;
+        update(linesToRestore);
+        linesToRestore = Collections.emptyList();
+    }
+
 }

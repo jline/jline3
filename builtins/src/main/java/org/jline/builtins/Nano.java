@@ -53,6 +53,7 @@ import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 import org.jline.utils.Display;
+import org.jline.utils.Status;
 import org.jline.utils.InfoCmp.Capability;
 import org.mozilla.universalchardet.UniversalDetector;
 
@@ -994,8 +995,12 @@ public class Nano {
         this.shortcuts = standardShortcuts();
 
         SignalHandler prevHandler = null;
+        Status status = Status.getStatus(terminal, false);
         try {
             size.copy(terminal.getSize());
+            if (status != null) {
+                status.suspend();
+            }
             buffer.open();
             if (buffer.file != null) {
                 setMessage("Read " + buffer.lines.size() + " lines");
@@ -1139,7 +1144,10 @@ public class Nano {
             terminal.flush();
             terminal.setAttributes(attributes);
             terminal.handle(Signal.WINCH, prevHandler);
-        }
+            if (status != null) {
+                status.restore();
+            }
+       }
     }
 
     boolean write() throws IOException {

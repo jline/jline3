@@ -942,7 +942,7 @@ public class Posix {
                 "  -S --chop-long-lines         Do not fold long lines",
                 "  -i --ignore-case             Search ignores lowercase case",
                 "  -I --IGNORE-CASE             Search ignores all case",
-                "  -x --tabs                    Set tab stops",
+                "  -x --tabs=N[,...]            Set tab stops",
                 "  -N --LINE-NUMBERS            Display line number for each line",
                 "     --no-init                 Disable terminal initialization",
                 "     --no-keypad               Disable keypad handling"
@@ -978,7 +978,13 @@ public class Posix {
             return;
         }
 
-        Less less = new Less(Shell.getTerminal(session));
+        List<Integer> tabs = new ArrayList<>();
+        if (opt.isSet("tabs")) {
+            for (String s: opt.get("tabs").split(",")) {
+                tabs.add(parseInteger(s));
+            }
+        }
+        Less less = new Less(Shell.getTerminal(session)).tabs(tabs);
         less.quitAtFirstEof = opt.isSet("QUIT-AT-EOF");
         less.quitAtSecondEof = opt.isSet("quit-at-eof");
         less.quiet = opt.isSet("quiet");
@@ -986,9 +992,6 @@ public class Posix {
         less.chopLongLines = opt.isSet("chop-long-lines");
         less.ignoreCaseAlways = opt.isSet("IGNORE-CASE");
         less.ignoreCaseCond = opt.isSet("ignore-case");
-        if (opt.isSet("tabs")) {
-            less.tabs = opt.getNumber("tabs");
-        }
         less.printLineNumbers = opt.isSet("LINE-NUMBERS");
         if (hasExtendedOptions) {
             Less.class.getField("quitIfOneScreen").set(less, opt.isSet("quit-if-one-screen"));
@@ -996,6 +999,14 @@ public class Posix {
             Less.class.getField("noKeypad").set(less, opt.isSet("no-keypad"));
         }
         less.run(sources);
+    }
+
+    private int parseInteger(String s) throws IllegalArgumentException {
+        try {
+            return Integer.parseInt(s);
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException();
+        }
     }
 
     protected void sort(CommandSession session, Process process, String[] argv) throws Exception {
