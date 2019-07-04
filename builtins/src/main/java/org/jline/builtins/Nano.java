@@ -995,12 +995,12 @@ public class Nano {
 
         SignalHandler prevHandler = null;
         try {
+            size.copy(terminal.getSize());
             buffer.open();
             if (buffer.file != null) {
                 setMessage("Read " + buffer.lines.size() + " lines");
             }
 
-            size.copy(terminal.getSize());
             display.clear();
             display.reset();
             display.resize(size.getRows(), size.getColumns());
