@@ -481,8 +481,7 @@ public class LineReaderImpl implements LineReader, Flushable
         SignalHandler previousWinchHandler = null;
         SignalHandler previousContHandler = null;
         Attributes originalAttributes = null;
-        boolean dumb = Terminal.TYPE_DUMB.equals(terminal.getType())
-                    || Terminal.TYPE_DUMB_COLOR.equals(terminal.getType());
+        boolean dumb = isTerminalDumb();
         try {
 
             this.maskingCallback = maskingCallback;
@@ -664,6 +663,11 @@ public class LineReaderImpl implements LineReader, Flushable
             }
             startedReading.set(false);
         }
+    }
+    
+    private boolean isTerminalDumb(){
+        return Terminal.TYPE_DUMB.equals(terminal.getType())
+                || Terminal.TYPE_DUMB_COLOR.equals(terminal.getType());
     }
 
     private void doDisplay(){
@@ -3732,14 +3736,13 @@ public class LineReaderImpl implements LineReader, Flushable
                 if (!promptLines.isEmpty()) {
                     cursorNewLinesId = promptLines.size() - 1;
                     cursorColPos = promptLines.get(promptLines.size() - 1).columnLength();
-                    cursorPos = size.cursorPos(promptLines.size() - 1,
-                            promptLines.get(promptLines.size() - 1).columnLength());
+                    cursorPos = size.cursorPos(cursorNewLinesId, cursorColPos);
                 }
             }
 
             List<AttributedString> newLinesToDisplay = new ArrayList<>();
             int displaySize = size.getRows() - (status != null ? status.size() : 0);
-            if (newLines.size() > displaySize) {
+            if (newLines.size() > displaySize && !isTerminalDumb()) {
                 StringBuilder sb = new StringBuilder(">....");
                 // blanks are needed when displaying command completion candidate list
                 for (int i = sb.toString().length(); i < size.getColumns(); i++) {
