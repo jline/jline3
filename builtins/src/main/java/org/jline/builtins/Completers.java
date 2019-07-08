@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.jline.reader.Candidate;
 import org.jline.reader.LineReader;
@@ -217,19 +218,23 @@ public class Completers {
 
     public static class DirectoriesCompleter extends FileNameCompleter {
 
-        private final Path currentDir;
+        private final Supplier<Path> currentDir;
 
         public DirectoriesCompleter(File currentDir) {
             this(currentDir.toPath());
         }
 
         public DirectoriesCompleter(Path currentDir) {
+            this.currentDir = () -> currentDir;
+        }
+
+        public DirectoriesCompleter(Supplier<Path> currentDir) {
             this.currentDir = currentDir;
         }
 
         @Override
         protected Path getUserDir() {
-            return currentDir;
+            return currentDir.get();
         }
 
         @Override
@@ -240,19 +245,23 @@ public class Completers {
 
     public static class FilesCompleter extends FileNameCompleter {
 
-        private final Path currentDir;
+        private final Supplier<Path> currentDir;
 
         public FilesCompleter(File currentDir) {
             this(currentDir.toPath());
         }
 
         public FilesCompleter(Path currentDir) {
+            this.currentDir = () -> currentDir;
+        }
+
+        public FilesCompleter(Supplier<Path> currentDir) {
             this.currentDir = currentDir;
         }
 
         @Override
         protected Path getUserDir() {
-            return currentDir;
+            return currentDir.get();
         }
     }
 
