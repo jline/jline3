@@ -164,7 +164,7 @@ public class Commands {
         less.run(sources);
     }
 
-    public static void history(LineReader reader, PrintStream out, PrintStream err,
+    public static void history(LineReader reader, PrintStream out, PrintStream err, Path currentDir,
                                String[] argv) throws Exception {
         final String[] usage = {
                 "history -  list history of commands",
@@ -205,13 +205,13 @@ public class Commands {
         } else if (opt.isSet("save")) {
             history.save();
         } else if (opt.isSet("A")) {
-            Path file = opt.args().size() > 0 ? Paths.get(opt.args().get(0)) : null;
+            Path file = opt.args().size() > 0 ? currentDir.resolve(opt.args().get(0)) : null;
             history.append(file, increment);
         } else if (opt.isSet("R")) {
-            Path file = opt.args().size() > 0 ? Paths.get(opt.args().get(0)) : null;
+            Path file = opt.args().size() > 0 ? currentDir.resolve(opt.args().get(0)) : null;
             history.read(file, increment);
         } else if (opt.isSet("W")) {
-            Path file = opt.args().size() > 0 ? Paths.get(opt.args().get(0)) : null;
+            Path file = opt.args().size() > 0 ? currentDir.resolve(opt.args().get(0)) : null;
             history.write(file, increment);
         } else {
             done = false;
@@ -231,7 +231,7 @@ public class Commands {
                 sb.append(c);
                 prev = c;
             }
-            pattern = Pattern.compile(sb.toString());
+            pattern = Pattern.compile(sb.toString(), Pattern.DOTALL);
         }
         int firstId = opt.args().size() > argId ? retrieveHistoryId(history, opt.args().get(argId++)) : -17;
         int lastId  = opt.args().size() > argId ? retrieveHistoryId(history, opt.args().get(argId++)) : -1;
