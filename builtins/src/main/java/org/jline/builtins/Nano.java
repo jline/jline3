@@ -19,8 +19,10 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
@@ -965,7 +967,13 @@ public class Nano {
 
     public void open(List<String> files) throws IOException {
         for (String file : files) {
-            buffers.add(new Buffer(file));
+            if (file.contains("*") || file.contains("?")) {
+                PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:"+file);
+                Files.find(root, Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
+                     .forEach(p -> buffers.add(new Buffer(p.toString())));
+            } else {
+                buffers.add(new Buffer(file));
+            }
         }
     }
 
