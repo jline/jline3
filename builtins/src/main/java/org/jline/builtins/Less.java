@@ -180,6 +180,7 @@ public class Less {
                 options.put("--IGNORE-CASE", Operation.OPT_IGNORE_CASE_ALWAYS);
 
                 Operation op;
+                boolean forward = true;
                 do {
                     checkInterrupted();
 
@@ -228,33 +229,7 @@ public class Less {
                     // Pattern edition
                     //
                     else if (buffer.length() > 0 && (buffer.charAt(0) == '/' || buffer.charAt(0) == '?')) {
-                        int c = terminal.reader().read();
-                        message = null;
-                        if (c == '\r') {
-                            try {
-                                pattern = buffer.toString().substring(1);
-                                getPattern();
-                                if (buffer.charAt(0) == '/') {
-                                    moveToNextMatch();
-                                } else {
-                                    moveToPreviousMatch();
-                                }
-                                buffer.setLength(0);
-                            } catch (PatternSyntaxException e) {
-                                String str = e.getMessage();
-                                if (str.indexOf('\n') > 0) {
-                                    str = str.substring(0, str.indexOf('\n'));
-                                }
-                                pattern = null;
-                                buffer.setLength(0);
-                                message = "Invalid pattern: " + str + " (Press a key)";
-                                display(false);
-                                terminal.reader().read();
-                                message = null;
-                            }
-                        } else {
-                            buffer.append((char) c);
-                        }
+                        forward = search();
                     }
                     //
                     // Command reading
@@ -326,11 +301,19 @@ public class Less {
                                 break;
                             case REPEAT_SEARCH_BACKWARD:
                             case REPEAT_SEARCH_BACKWARD_SPAN_FILES:
-                                moveToPreviousMatch();
+                                if (forward) {
+                                    moveToPreviousMatch();
+                                } else {
+                                    moveToNextMatch();
+                                }
                                 break;
                             case REPEAT_SEARCH_FORWARD:
                             case REPEAT_SEARCH_FORWARD_SPAN_FILES:
-                                moveToNextMatch();
+                                if (forward) {
+                                    moveToNextMatch();
+                                } else {
+                                    moveToPreviousMatch();
+                                }
                                 break;
                             case UNDO_SEARCH:
                                 pattern = null;
@@ -426,6 +409,49 @@ public class Less {
         }
     }
 
+    private boolean search() throws IOException, InterruptedException {
+        // TODO add edit line key bindings
+        boolean forward = true;
+        while (true) {
+            checkInterrupted();
+            int c = terminal.reader().read();
+            message = null;
+            if (c == '\r') {
+                try {
+                    pattern = buffer.toString().substring(1);
+                    getPattern();
+                    if (buffer.charAt(0) == '/') {
+                        moveToNextMatch();
+                    } else {
+                        if (lines.size() - firstLineToDisplay <= size.getRows() ) {
+                            firstLineToDisplay = lines.size();
+                        } else {
+                            moveForward(size.getRows() - 1);
+                        }
+                        moveToPreviousMatch();
+                        forward = false;
+                    }
+                    buffer.setLength(0);
+                } catch (PatternSyntaxException e) {
+                    String str = e.getMessage();
+                    if (str.indexOf('\n') > 0) {
+                        str = str.substring(0, str.indexOf('\n'));
+                    }
+                    pattern = null;
+                    buffer.setLength(0);
+                    message = "Invalid pattern: " + str + " (Press a key)";
+                    display(false);
+                    terminal.reader().read();
+                    message = null;
+                }
+                return forward;
+            } else {
+                buffer.append((char) c);
+            }
+            display(false);
+        }
+    }
+    
     private void help() throws IOException {
         int saveSourceIdx = sourceIdx;
         int saveFirstLineToDisplay = firstLineToDisplay;
@@ -450,7 +476,7 @@ public class Less {
                         break;
                     case BACKWARD_ONE_WINDOW_OR_LINES:
                         moveBackward(getStrictPositiveNumberInBuffer(window));
-                        break;               
+                        break;
                     }
                 }
                 display(false);
@@ -764,8 +790,10 @@ public class Less {
         map.bind(Operation.RIGHT_ONE_HALF_SCREEN, alt(')'), key(terminal, Capability.key_right));
         map.bind(Operation.LEFT_ONE_HALF_SCREEN, alt('('), key(terminal, Capability.key_left));
         map.bind(Operation.FORWARD_FOREVER, "F");
-        map.bind(Operation.REPEAT_SEARCH_FORWARD, "n", "N");
-        map.bind(Operation.REPEAT_SEARCH_FORWARD_SPAN_FILES, alt('n'), alt('N'));
+        map.bind(Operation.REPEAT_SEARCH_FORWARD, "n");
+        map.bind(Operation.REPEAT_SEARCH_BACKWARD, "N");
+        map.bind(Operation.REPEAT_SEARCH_FORWARD_SPAN_FILES, alt('n'));
+        map.bind(Operation.REPEAT_SEARCH_BACKWARD_SPAN_FILES, alt('N'));
         map.bind(Operation.UNDO_SEARCH, alt('u'));
         map.bind(Operation.GO_TO_FIRST_LINE_OR_N, "g", "<", alt('<'));
         map.bind(Operation.GO_TO_LAST_LINE_OR_N, "G", ">", alt('>'));

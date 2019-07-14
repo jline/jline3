@@ -33,8 +33,10 @@
 
   /pattern          *  Search forward for (N-th) matching line.
   ?pattern          *  Search backward for (N-th) matching line.
-  n  N              *  Repeat previous search (for N-th occurrence).
-  ESC-n  ESC-N      *  Repeat previous search, spanning files.
+  n                 *  Repeat previous search (for N-th occurrence).
+  N                 *  Repeat previous search in reverse direction.
+  ESC-n             *  Repeat previous search, spanning files.
+  ESC-N             *  Repeat previous search, reverse dir. & spanning files.
   ESC-u                Undo (toggle) search highlighting.
  ---------------------------------------------------------------------------
 
