@@ -1324,8 +1324,8 @@ public class Posix {
             opt.args().forEach(s -> expanded.add(currentDir.resolve(s)));
         }
         boolean listAll = opt.isSet("a");
-		Predicate<Path> filter = p -> listAll || p.getFileName().toString().equals(".")
-				|| p.getFileName().toString().equals("..") || !p.getFileName().toString().startsWith(".");
+        Predicate<Path> filter = p -> listAll || p.getFileName().toString().equals(".")
+                || p.getFileName().toString().equals("..") || !p.getFileName().toString().startsWith(".");
         List<PathEntry> all = expanded.stream()
                 .filter(filter)
                 .map(p -> new PathEntry(p, currentDir))
@@ -2153,6 +2153,11 @@ public class Posix {
         @Override
         public InputStream read() {
             return process.in();
+        }
+
+        @Override
+        public Long lines() {
+            return null;
         }
     }
 }

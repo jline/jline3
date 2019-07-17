@@ -45,6 +45,9 @@
 
   :n                *  Examine the (N-th) next file from the command line.
   :p                *  Examine the (N-th) previous file from the command line.
+  :x                *  Examine the first (or N-th) file from the command line.
+  :d                   Delete the current file from the command line list.
+  =  ^G  :f            Print current file name.
  ---------------------------------------------------------------------------
 
                     MISCELLANEOUS COMMANDS

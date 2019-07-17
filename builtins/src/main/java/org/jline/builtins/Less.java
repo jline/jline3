@@ -46,6 +46,7 @@ import static org.jline.keymap.KeyMap.key;
 public class Less {
 
     private static final int ESCAPE = 27;
+    private static final String MESSAGE_FILE_INFO = "FILE_INFO";
 
     public boolean quitAtSecondEof;
     public boolean quitAtFirstEof;
@@ -370,6 +371,27 @@ public class Less {
                                     message = "No previous file";
                                 }
                                 break;
+                            case GOTO_FILE:
+                                int tofile = getStrictPositiveNumberInBuffer(1);
+                                if (tofile < sources.size()) {
+                                    sourceIdx = tofile;
+                                    openSource();
+                                } else {
+                                    message = "No such file";
+                                }
+                                break;
+                            case INFO_FILE:
+                                message = MESSAGE_FILE_INFO;
+                                break;
+                            case DELETE_FILE:
+                                if (sources.size() > 2) {
+                                    sources.remove(sourceIdx);
+                                    if (sourceIdx >= sources.size()) {
+                                        sourceIdx = sources.size() - 1; 
+                                    }
+                                    openSource();
+                                }
+                                break;
                             case HELP:
                                 help();
                                 break;
@@ -443,7 +465,11 @@ public class Less {
                     if (str.indexOf('\n') > 0) {
                         str = str.substring(0, str.indexOf('\n'));
                     }
-                    pattern = null;
+                    if (buffer.charAt(0) == '&') {
+                        displayPattern = null;
+                    } else {
+                        pattern = null;
+                    }
                     buffer.setLength(0);
                     message = "Invalid pattern: " + str + " (Press a key)";
                     display(false);
@@ -622,10 +648,7 @@ public class Less {
             }
             Pair<Integer, AttributedString> nextLine = nextLine2display(firstLineToDisplay, dpCompiled);
             AttributedString line = nextLine.getV();
-            if (line == null) {
-                eof();
-                return;
-            } else if (doOffsets && line.columnLength() > width + offsetInLine) {
+            if (doOffsets && line.columnLength() > width + offsetInLine) {
                 offsetInLine += width;
             } else {
                 offsetInLine = 0;
@@ -770,6 +793,14 @@ public class Less {
             return fitOnOneScreen;
         }
         AttributedStringBuilder msg = new AttributedStringBuilder();
+        if (MESSAGE_FILE_INFO.equals(message)){
+            Source source = sources.get(sourceIdx);
+            Long allLines = source.lines();
+            message = source.getName() 
+                    + (sources.size() > 2 ? " (file " + sourceIdx + " of " + (sources.size() - 1) + ")" : "")
+                    + " lines " + (firstLineToDisplay + 1) + "-" + inputLine + "/" + (allLines != null ? allLines : lines.size())
+                    + (eof ? " (END)" : "");
+        }
         if (buffer.length() > 0) {
             msg.append(" ").append(buffer);
         } else if (bindingReader.getCurrentBuffer().length() > 0
@@ -856,6 +887,9 @@ public class Less {
         map.bind(Operation.GO_TO_LAST_LINE_OR_N, "G", ">", alt('>'));
         map.bind(Operation.NEXT_FILE, ":n");
         map.bind(Operation.PREV_FILE, ":p");
+        map.bind(Operation.GOTO_FILE, ":x");
+        map.bind(Operation.INFO_FILE, "=", ":f", ctrl('G'));
+        map.bind(Operation.DELETE_FILE, ":d");
         "-/0123456789?&".chars().forEach(c -> map.bind(Operation.CHAR, Character.toString((char) c)));
     }
 
@@ -910,6 +944,9 @@ public class Less {
         // Files
         NEXT_FILE,
         PREV_FILE,
+        GOTO_FILE,
+        INFO_FILE,
+        DELETE_FILE,
         
         // 
         CHAR
