@@ -41,6 +41,7 @@ import org.jline.utils.Status;
 
 import static org.jline.keymap.KeyMap.alt;
 import static org.jline.keymap.KeyMap.ctrl;
+import static org.jline.keymap.KeyMap.del;
 import static org.jline.keymap.KeyMap.key;
 
 public class Less {
@@ -87,6 +88,8 @@ public class Less {
 
     protected int nbEof;
 
+    protected List<String> patterns = new ArrayList<String>();
+    protected int patternId = -1;
     protected String pattern;
     protected String displayPattern;
 
@@ -433,21 +436,146 @@ public class Less {
     }
 
     private boolean search() throws IOException, InterruptedException {
-        // TODO add edit line key bindings
+        KeyMap<Operation> searchKeyMap = new KeyMap<>();
+        searchKeyMap.setUnicode(Operation.INSERT);
+        for (char i = 32; i < 256; i++) {
+            searchKeyMap.bind(Operation.INSERT, Character.toString(i));
+        }
+        searchKeyMap.bind(Operation.RIGHT, key(terminal, Capability.key_right), alt('l'));
+        searchKeyMap.bind(Operation.LEFT, key(terminal, Capability.key_left), alt('h'));
+        searchKeyMap.bind(Operation.NEXT_WORD, alt('w'));
+        searchKeyMap.bind(Operation.PREV_WORD, alt('b'));
+        searchKeyMap.bind(Operation.HOME, key(terminal, Capability.key_home), alt('0'));
+        searchKeyMap.bind(Operation.END, key(terminal, Capability.key_end), alt('$'));
+        searchKeyMap.bind(Operation.BACKSPACE, del());
+        searchKeyMap.bind(Operation.DELETE, alt('x'));         
+        searchKeyMap.bind(Operation.DELETE_WORD, alt('X'));
+        searchKeyMap.bind(Operation.DELETE_LINE, ctrl('U'));
+        searchKeyMap.bind(Operation.UP, key(terminal, Capability.key_up), alt('k'));
+        searchKeyMap.bind(Operation.DOWN, key(terminal, Capability.key_down), alt('j'));        
+        searchKeyMap.bind(Operation.ACCEPT, "\r");
+
         boolean forward = true;
+        message = null;
+        int curPos = buffer.length();
+        final int begPos = curPos;
+        final char type = buffer.charAt(0);
+        String currentBuffer = "";
         while (true) {
             checkInterrupted();
-            int c = terminal.reader().read();
-            message = null;
-            if (c == '\r') {
+            switch (bindingReader.readBinding(searchKeyMap)) {
+            case INSERT:
+                buffer.insert(curPos++, bindingReader.getLastBinding());
+                break;
+            case BACKSPACE:
+                if (curPos > begPos) {
+                    buffer.deleteCharAt(--curPos);
+                }
+                break;
+            case NEXT_WORD:
+                int newPos = buffer.length();
+                for (int i = curPos; i < buffer.length(); i++) {
+                    if (buffer.charAt(i) == ' ') {
+                        newPos = i + 1;
+                        break;
+                    }
+                }
+                curPos = newPos;
+                break;
+            case PREV_WORD:
+                newPos = begPos;
+                for (int i = curPos - 2; i > begPos; i--) {
+                    if (buffer.charAt(i) == ' ') {
+                        newPos = i + 1;
+                        break;
+                    }
+                }
+                curPos = newPos;
+                break;
+            case HOME:
+                curPos = begPos;
+                break;
+            case END:
+                curPos = buffer.length();
+                break;
+            case DELETE:
+                if (curPos >= begPos && curPos < buffer.length()) {
+                    buffer.deleteCharAt(curPos);
+                }
+                break;
+            case DELETE_WORD:
+                while (true) {
+                    if(curPos < buffer.length() && buffer.charAt(curPos) != ' '){
+                        buffer.deleteCharAt(curPos);
+                    } else {
+                        break;
+                    }
+                }
+                while (true) {
+                    if(curPos - 1 >= begPos) {
+                        if (buffer.charAt(curPos - 1) != ' ') {
+                            buffer.deleteCharAt(--curPos);
+                        } else {
+                            buffer.deleteCharAt(--curPos);
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                break;
+            case DELETE_LINE:
+                buffer.setLength(1);
+                curPos = 1;
+                break;
+            case LEFT:
+                if (curPos > begPos) {
+                    curPos--;
+                }
+                break;
+            case RIGHT:
+                if (curPos < buffer.length()) {
+                    curPos++;
+                }
+                break;
+            case UP:
+                patternId++;
+                if (patternId >= 0 && patternId < patterns.size()) {
+                    if (patternId == 0) {
+                        currentBuffer = buffer.toString();
+                    }
+                    buffer.setLength(0);
+                    buffer.append(type);
+                    buffer.append(patterns.get(patternId));
+                    curPos = buffer.length();
+                } else if (patternId >= patterns.size()) {
+                    patternId = patterns.size() - 1;
+                }
+                break;
+            case DOWN:
+                if (patterns.size() > 0) {
+                    patternId--;
+                    buffer.setLength(0);
+                    if (patternId < 0) {
+                        patternId = -1;
+                        buffer.append(currentBuffer);                                    
+                    } else {
+                        buffer.append(type);
+                        buffer.append(patterns.get(patternId));
+                    }
+                    curPos = buffer.length();
+                }
+                break;
+            case ACCEPT:
                 try {
-                    if (buffer.charAt(0) == '&') {
-                        displayPattern = buffer.length() > 1 ? buffer.toString().substring(1) : null;
+                    String _pattern = buffer.toString().substring(1);
+                    if (type == '&') {
+                        displayPattern = _pattern.length() > 0 ? _pattern : null;
                         getPattern(true);
                     } else {
-                        pattern = buffer.toString().substring(1);
+                        pattern = _pattern;
                         getPattern();
-                        if (buffer.charAt(0) == '/') {
+                        if (type == '/') {
                             moveToNextMatch();
                         } else {
                             if (lines.size() - firstLineToDisplay <= size.getRows() ) {
@@ -459,13 +587,17 @@ public class Less {
                             forward = false;
                         }
                     }
+                    if (_pattern.length() > 0 && !patterns.contains(_pattern)) {
+                        patterns.add(_pattern);
+                    }
+                    patternId = -1;
                     buffer.setLength(0);
                 } catch (PatternSyntaxException e) {
                     String str = e.getMessage();
                     if (str.indexOf('\n') > 0) {
                         str = str.substring(0, str.indexOf('\n'));
                     }
-                    if (buffer.charAt(0) == '&') {
+                    if (type == '&') {
                         displayPattern = null;
                     } else {
                         pattern = null;
@@ -477,10 +609,8 @@ public class Less {
                     message = null;
                 }
                 return forward;
-            } else {
-                buffer.append((char) c);
             }
-            display(false);
+            display(false, curPos);
         }
     }
     
@@ -733,6 +863,10 @@ public class Less {
     }
     
     synchronized boolean display(boolean oneScreen) throws IOException {
+        return display(oneScreen, null);
+    }
+    
+    synchronized boolean display(boolean oneScreen, Integer curPos) throws IOException {
         List<AttributedString> newLines = new ArrayList<>();
         int width = size.getColumns() - (printLineNumbers ? 8 : 0);
         int height = size.getRows();
@@ -818,7 +952,11 @@ public class Less {
         newLines.add(msg.toAttributedString());
 
         display.resize(size.getRows(), size.getColumns());
-        display.update(newLines, -1);
+        if (curPos == null) {
+            display.update(newLines, -1);
+        } else {
+            display.update(newLines, size.cursorPos(size.getRows() - 1, curPos + 1));            
+        }
         return false;
     }
 
@@ -949,8 +1087,23 @@ public class Less {
         DELETE_FILE,
         
         // 
-        CHAR
+        CHAR,
 
+        // Edit pattern
+        INSERT,
+        RIGHT,
+        LEFT,
+        NEXT_WORD,
+        PREV_WORD,
+        HOME,
+        END,
+        BACKSPACE,
+        DELETE,
+        DELETE_WORD,
+        DELETE_LINE,
+        ACCEPT,
+        UP,
+        DOWN
     }
 
     static class InterruptibleInputStream extends FilterInputStream {
