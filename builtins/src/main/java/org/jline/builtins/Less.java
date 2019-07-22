@@ -244,7 +244,7 @@ public class Less {
                         if (obj == Operation.CHAR) {
                             char c = bindingReader.getLastBinding().charAt(0);
                             // Enter option mode or pattern edit mode
-                            if (c == '-' || c == '/' || c == '?') {
+                            if (c == '-' || c == '/' || c == '?' || c == '&') {
                                 buffer.setLength(0);
                             }
                             buffer.append(c);
@@ -297,6 +297,12 @@ public class Less {
                                 } else {
                                     moveTo(lineNum);
                                 }
+                                break;
+                            case HOME:
+                                moveTo(0);
+                                break;
+                            case END:
+                                moveForward(Integer.MAX_VALUE);
                                 break;
                             case LEFT_ONE_HALF_SCREEN:
                                 firstColumnToDisplay = Math.max(0, firstColumnToDisplay - size.getColumns() / 2);
@@ -749,6 +755,15 @@ public class Less {
         int width = size.getColumns() - (printLineNumbers ? 8 : 0);
         int height = size.getRows();
         boolean doOffsets = firstColumnToDisplay == 0 && !chopLongLines;
+        if (lines == Integer.MAX_VALUE) {
+            Long allLines = sources.get(sourceIdx).lines();
+            if (allLines != null) {
+                firstLineToDisplay = (int)(long)allLines;
+                for (int l = 0; l < height - 1; l++) {
+                    firstLineToDisplay = prevLine2display(firstLineToDisplay, dpCompiled).getU();
+                }
+            }
+        }
         while (--lines >= 0) {
             int lastLineToDisplay = firstLineToDisplay;
             if (!doOffsets) {
@@ -1023,6 +1038,8 @@ public class Less {
         map.bind(Operation.UNDO_SEARCH, alt('u'));
         map.bind(Operation.GO_TO_FIRST_LINE_OR_N, "g", "<", alt('<'));
         map.bind(Operation.GO_TO_LAST_LINE_OR_N, "G", ">", alt('>'));
+        map.bind(Operation.HOME, key(terminal, Capability.key_home));
+        map.bind(Operation.END, key(terminal, Capability.key_end));
         map.bind(Operation.NEXT_FILE, ":n");
         map.bind(Operation.PREV_FILE, ":p");
         map.bind(Operation.GOTO_FILE, ":x");
