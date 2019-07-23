@@ -11,7 +11,11 @@ package org.jline.builtins;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.net.MalformedURLException;
+import java.nio.file.Files;
+import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -157,11 +161,25 @@ public class Commands {
         for (String arg : opt.args()) {
             if ("-".equals(arg)) {
                 sources.add(new StdInSource(in));
+            } else if (arg.contains("*") || arg.contains("?")) {
+                PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:"+arg);
+                Files.find(currentDir, Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
+                     .forEach(p -> sources.add(doUrlSource(currentDir, p)));
             } else {
                 sources.add(new URLSource(currentDir.resolve(arg).toUri().toURL(), arg));
             }
         }
         less.run(sources);
+    }
+
+    private static Source doUrlSource(Path currentDir, Path file) {
+        Source out = null;
+        try {
+            out = new URLSource(currentDir.resolve(file).toUri().toURL(), file.toString());
+        } catch (MalformedURLException exp) {
+            throw new IllegalArgumentException(exp.getMessage());
+        }
+        return out;
     }
 
     public static void history(LineReader reader, PrintStream out, PrintStream err, Path currentDir,
