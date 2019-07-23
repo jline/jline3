@@ -1255,8 +1255,8 @@ public class Nano {
     }
 
     private boolean save(String name) throws IOException {
-        Path orgPath = buffer.file != null ? root.resolve(new File(buffer.file).getCanonicalPath()) : null;
-        Path newPath = root.resolve(new File(name).getCanonicalPath());
+        Path orgPath = buffer.file != null ? root.resolve(buffer.file) : null;
+        Path newPath = root.resolve(name);
         boolean isSame = orgPath != null && Files.exists(orgPath) && Files.exists(newPath) && Files.isSameFile(orgPath, newPath);
         if (!isSame && Files.exists(Paths.get(name)) && writeMode == WriteMode.WRITE) {
             Operation op = getYNC("File exists, OVERWRITE ? ");
@@ -1266,7 +1266,7 @@ public class Nano {
         } else if (!Files.exists(newPath)) {
             newPath.toFile().createNewFile();
         }
-        Path t = Files.createTempFile(newPath.getParent(), "jline-", ".temp");
+        Path t = Files.createTempFile("jline-", ".temp");
         try (OutputStream os = Files.newOutputStream(t, StandardOpenOption.WRITE,
                                                         StandardOpenOption.TRUNCATE_EXISTING,
                                                         StandardOpenOption.CREATE)) {
