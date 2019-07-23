@@ -19,6 +19,7 @@ import org.junit.Test;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import static org.junit.Assert.assertEquals;
 
@@ -57,7 +58,7 @@ public class CommandsTest {
             lineReader.setVariable(LineReader.HISTORY_FILE_SIZE, maxLines);
             lineReader.getHistory().save();
             PrintStream out = new PrintStream(os, false);
-            Commands.history(lineReader, out, out, new String[] {"-d"});
+            Commands.history(lineReader, out, out, Paths.get(""), new String[] {"-d"});
             assertEquals(maxLines + 1,
                     os.toString("UTF8").split("\\s+\\d{2}:\\d{2}:\\d{2}\\s+").length);
         } catch (Exception e) {

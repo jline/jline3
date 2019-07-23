@@ -431,7 +431,7 @@ public class Example
                                 argv);
                     }
                     else if ("history".equals(pl.word())) {
-                        Commands.history(reader, System.out, System.err, argv);
+                        Commands.history(reader, System.out, System.err, Paths.get(""),argv);
                     }
                     else if ("complete".equals(pl.word())) {
                         Commands.complete(reader, System.out, System.err,
