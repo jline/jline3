@@ -41,11 +41,13 @@ import org.jline.utils.Status;
 
 import static org.jline.keymap.KeyMap.alt;
 import static org.jline.keymap.KeyMap.ctrl;
+import static org.jline.keymap.KeyMap.del;
 import static org.jline.keymap.KeyMap.key;
 
 public class Less {
 
     private static final int ESCAPE = 27;
+    private static final String MESSAGE_FILE_INFO = "FILE_INFO";
 
     public boolean quitAtSecondEof;
     public boolean quitAtFirstEof;
@@ -86,7 +88,10 @@ public class Less {
 
     protected int nbEof;
 
+    protected List<String> patterns = new ArrayList<String>();
+    protected int patternId = -1;
     protected String pattern;
+    protected String displayPattern;
 
     protected final Size size = new Size();
 
@@ -180,6 +185,7 @@ public class Less {
                 options.put("--IGNORE-CASE", Operation.OPT_IGNORE_CASE_ALWAYS);
 
                 Operation op;
+                boolean forward = true;
                 do {
                     checkInterrupted();
 
@@ -227,34 +233,8 @@ public class Less {
                     //
                     // Pattern edition
                     //
-                    else if (buffer.length() > 0 && (buffer.charAt(0) == '/' || buffer.charAt(0) == '?')) {
-                        int c = terminal.reader().read();
-                        message = null;
-                        if (c == '\r') {
-                            try {
-                                pattern = buffer.toString().substring(1);
-                                getPattern();
-                                if (buffer.charAt(0) == '/') {
-                                    moveToNextMatch();
-                                } else {
-                                    moveToPreviousMatch();
-                                }
-                                buffer.setLength(0);
-                            } catch (PatternSyntaxException e) {
-                                String str = e.getMessage();
-                                if (str.indexOf('\n') > 0) {
-                                    str = str.substring(0, str.indexOf('\n'));
-                                }
-                                pattern = null;
-                                buffer.setLength(0);
-                                message = "Invalid pattern: " + str + " (Press a key)";
-                                display(false);
-                                terminal.reader().read();
-                                message = null;
-                            }
-                        } else {
-                            buffer.append((char) c);
-                        }
+                    else if (buffer.length() > 0 && (buffer.charAt(0) == '/' || buffer.charAt(0) == '?' || buffer.charAt(0) == '&')) {
+                        forward = search();
                     }
                     //
                     // Command reading
@@ -264,7 +244,7 @@ public class Less {
                         if (obj == Operation.CHAR) {
                             char c = bindingReader.getLastBinding().charAt(0);
                             // Enter option mode or pattern edit mode
-                            if (c == '-' || c == '/' || c == '?') {
+                            if (c == '-' || c == '/' || c == '?' || c == '&') {
                                 buffer.setLength(0);
                             }
                             buffer.append(c);
@@ -318,6 +298,12 @@ public class Less {
                                     moveTo(lineNum);
                                 }
                                 break;
+                            case HOME:
+                                moveTo(0);
+                                break;
+                            case END:
+                                moveForward(Integer.MAX_VALUE);
+                                break;
                             case LEFT_ONE_HALF_SCREEN:
                                 firstColumnToDisplay = Math.max(0, firstColumnToDisplay - size.getColumns() / 2);
                                 break;
@@ -326,11 +312,19 @@ public class Less {
                                 break;
                             case REPEAT_SEARCH_BACKWARD:
                             case REPEAT_SEARCH_BACKWARD_SPAN_FILES:
-                                moveToPreviousMatch();
+                                if (forward) {
+                                    moveToPreviousMatch();
+                                } else {
+                                    moveToNextMatch();
+                                }
                                 break;
                             case REPEAT_SEARCH_FORWARD:
                             case REPEAT_SEARCH_FORWARD_SPAN_FILES:
-                                moveToNextMatch();
+                                if (forward) {
+                                    moveToNextMatch();
+                                } else {
+                                    moveToPreviousMatch();
+                                }
                                 break;
                             case UNDO_SEARCH:
                                 pattern = null;
@@ -386,6 +380,27 @@ public class Less {
                                     message = "No previous file";
                                 }
                                 break;
+                            case GOTO_FILE:
+                                int tofile = getStrictPositiveNumberInBuffer(1);
+                                if (tofile < sources.size()) {
+                                    sourceIdx = tofile;
+                                    openSource();
+                                } else {
+                                    message = "No such file";
+                                }
+                                break;
+                            case INFO_FILE:
+                                message = MESSAGE_FILE_INFO;
+                                break;
+                            case DELETE_FILE:
+                                if (sources.size() > 2) {
+                                    sources.remove(sourceIdx);
+                                    if (sourceIdx >= sources.size()) {
+                                        sourceIdx = sources.size() - 1; 
+                                    }
+                                    openSource();
+                                }
+                                break;
                             case HELP:
                                 help();
                                 break;
@@ -426,6 +441,185 @@ public class Less {
         }
     }
 
+    private boolean search() throws IOException, InterruptedException {
+        KeyMap<Operation> searchKeyMap = new KeyMap<>();
+        searchKeyMap.setUnicode(Operation.INSERT);
+        for (char i = 32; i < 256; i++) {
+            searchKeyMap.bind(Operation.INSERT, Character.toString(i));
+        }
+        searchKeyMap.bind(Operation.RIGHT, key(terminal, Capability.key_right), alt('l'));
+        searchKeyMap.bind(Operation.LEFT, key(terminal, Capability.key_left), alt('h'));
+        searchKeyMap.bind(Operation.NEXT_WORD, alt('w'));
+        searchKeyMap.bind(Operation.PREV_WORD, alt('b'));
+        searchKeyMap.bind(Operation.HOME, key(terminal, Capability.key_home), alt('0'));
+        searchKeyMap.bind(Operation.END, key(terminal, Capability.key_end), alt('$'));
+        searchKeyMap.bind(Operation.BACKSPACE, del());
+        searchKeyMap.bind(Operation.DELETE, alt('x'));         
+        searchKeyMap.bind(Operation.DELETE_WORD, alt('X'));
+        searchKeyMap.bind(Operation.DELETE_LINE, ctrl('U'));
+        searchKeyMap.bind(Operation.UP, key(terminal, Capability.key_up), alt('k'));
+        searchKeyMap.bind(Operation.DOWN, key(terminal, Capability.key_down), alt('j'));        
+        searchKeyMap.bind(Operation.ACCEPT, "\r");
+
+        boolean forward = true;
+        message = null;
+        int curPos = buffer.length();
+        final int begPos = curPos;
+        final char type = buffer.charAt(0);
+        String currentBuffer = "";
+        while (true) {
+            checkInterrupted();
+            switch (bindingReader.readBinding(searchKeyMap)) {
+            case INSERT:
+                buffer.insert(curPos++, bindingReader.getLastBinding());
+                break;
+            case BACKSPACE:
+                if (curPos > begPos) {
+                    buffer.deleteCharAt(--curPos);
+                }
+                break;
+            case NEXT_WORD:
+                int newPos = buffer.length();
+                for (int i = curPos; i < buffer.length(); i++) {
+                    if (buffer.charAt(i) == ' ') {
+                        newPos = i + 1;
+                        break;
+                    }
+                }
+                curPos = newPos;
+                break;
+            case PREV_WORD:
+                newPos = begPos;
+                for (int i = curPos - 2; i > begPos; i--) {
+                    if (buffer.charAt(i) == ' ') {
+                        newPos = i + 1;
+                        break;
+                    }
+                }
+                curPos = newPos;
+                break;
+            case HOME:
+                curPos = begPos;
+                break;
+            case END:
+                curPos = buffer.length();
+                break;
+            case DELETE:
+                if (curPos >= begPos && curPos < buffer.length()) {
+                    buffer.deleteCharAt(curPos);
+                }
+                break;
+            case DELETE_WORD:
+                while (true) {
+                    if(curPos < buffer.length() && buffer.charAt(curPos) != ' '){
+                        buffer.deleteCharAt(curPos);
+                    } else {
+                        break;
+                    }
+                }
+                while (true) {
+                    if(curPos - 1 >= begPos) {
+                        if (buffer.charAt(curPos - 1) != ' ') {
+                            buffer.deleteCharAt(--curPos);
+                        } else {
+                            buffer.deleteCharAt(--curPos);
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                break;
+            case DELETE_LINE:
+                buffer.setLength(1);
+                curPos = 1;
+                break;
+            case LEFT:
+                if (curPos > begPos) {
+                    curPos--;
+                }
+                break;
+            case RIGHT:
+                if (curPos < buffer.length()) {
+                    curPos++;
+                }
+                break;
+            case UP:
+                patternId++;
+                if (patternId >= 0 && patternId < patterns.size()) {
+                    if (patternId == 0) {
+                        currentBuffer = buffer.toString();
+                    }
+                    buffer.setLength(0);
+                    buffer.append(type);
+                    buffer.append(patterns.get(patternId));
+                    curPos = buffer.length();
+                } else if (patternId >= patterns.size()) {
+                    patternId = patterns.size() - 1;
+                }
+                break;
+            case DOWN:
+                if (patterns.size() > 0) {
+                    patternId--;
+                    buffer.setLength(0);
+                    if (patternId < 0) {
+                        patternId = -1;
+                        buffer.append(currentBuffer);                                    
+                    } else {
+                        buffer.append(type);
+                        buffer.append(patterns.get(patternId));
+                    }
+                    curPos = buffer.length();
+                }
+                break;
+            case ACCEPT:
+                try {
+                    String _pattern = buffer.toString().substring(1);
+                    if (type == '&') {
+                        displayPattern = _pattern.length() > 0 ? _pattern : null;
+                        getPattern(true);
+                    } else {
+                        pattern = _pattern;
+                        getPattern();
+                        if (type == '/') {
+                            moveToNextMatch();
+                        } else {
+                            if (lines.size() - firstLineToDisplay <= size.getRows() ) {
+                                firstLineToDisplay = lines.size();
+                            } else {
+                                moveForward(size.getRows() - 1);
+                            }
+                            moveToPreviousMatch();
+                            forward = false;
+                        }
+                    }
+                    if (_pattern.length() > 0 && !patterns.contains(_pattern)) {
+                        patterns.add(_pattern);
+                    }
+                    patternId = -1;
+                    buffer.setLength(0);
+                } catch (PatternSyntaxException e) {
+                    String str = e.getMessage();
+                    if (str.indexOf('\n') > 0) {
+                        str = str.substring(0, str.indexOf('\n'));
+                    }
+                    if (type == '&') {
+                        displayPattern = null;
+                    } else {
+                        pattern = null;
+                    }
+                    buffer.setLength(0);
+                    message = "Invalid pattern: " + str + " (Press a key)";
+                    display(false);
+                    terminal.reader().read();
+                    message = null;
+                }
+                return forward;
+            }
+            display(false, curPos);
+        }
+    }
+    
     private void help() throws IOException {
         int saveSourceIdx = sourceIdx;
         int saveFirstLineToDisplay = firstLineToDisplay;
@@ -450,7 +644,7 @@ public class Less {
                         break;
                     case BACKWARD_ONE_WINDOW_OR_LINES:
                         moveBackward(getStrictPositiveNumberInBuffer(window));
-                        break;               
+                        break;
                     }
                 }
                 display(false);
@@ -501,11 +695,14 @@ public class Less {
     
     private void moveToNextMatch() throws IOException {
         Pattern compiled = getPattern();
+        Pattern dpCompiled = getPattern(true);
         if (compiled != null) {
             for (int lineNumber = firstLineToDisplay + 1; ; lineNumber++) {
                 AttributedString line = getLine(lineNumber);
                 if (line == null) {
                     break;
+                } else if (!toBeDisplayed(line, dpCompiled)) {
+                    continue;
                 } else if (compiled.matcher(line).find()) {
                     firstLineToDisplay = lineNumber;
                     offsetInLine = 0;
@@ -518,11 +715,14 @@ public class Less {
 
     private void moveToPreviousMatch() throws IOException {
         Pattern compiled = getPattern();
+        Pattern dpCompiled = getPattern(true);
         if (compiled != null) {
             for (int lineNumber = firstLineToDisplay - 1; lineNumber >= firstLineInMemory; lineNumber--) {
                 AttributedString line = getLine(lineNumber);
                 if (line == null) {
                     break;
+                } else if (!toBeDisplayed(line, dpCompiled)) {
+                    continue;
                 } else if (compiled.matcher(line).find()) {
                     firstLineToDisplay = lineNumber;
                     offsetInLine = 0;
@@ -551,25 +751,39 @@ public class Less {
     }
 
     void moveForward(int lines) throws IOException {
+        Pattern dpCompiled = getPattern(true);
         int width = size.getColumns() - (printLineNumbers ? 8 : 0);
         int height = size.getRows();
+        boolean doOffsets = firstColumnToDisplay == 0 && !chopLongLines;
+        if (lines == Integer.MAX_VALUE) {
+            Long allLines = sources.get(sourceIdx).lines();
+            if (allLines != null) {
+                firstLineToDisplay = (int)(long)allLines;
+                for (int l = 0; l < height - 1; l++) {
+                    firstLineToDisplay = prevLine2display(firstLineToDisplay, dpCompiled).getU();
+                }
+            }
+        }
         while (--lines >= 0) {
-
             int lastLineToDisplay = firstLineToDisplay;
-            if (firstColumnToDisplay > 0 || chopLongLines) {
-                lastLineToDisplay += height - 1;
+            if (!doOffsets) {
+                for (int l = 0; l < height - 1; l++) {
+                    lastLineToDisplay = nextLine2display(lastLineToDisplay, dpCompiled).getU();
+                }
             } else {
                 int off = offsetInLine;
                 for (int l = 0; l < height - 1; l++) {
-                    AttributedString line = getLine(lastLineToDisplay);
+                    Pair<Integer, AttributedString> nextLine = nextLine2display(lastLineToDisplay, dpCompiled);
+                    AttributedString line = nextLine.getV();
                     if (line == null) {
+                        lastLineToDisplay = nextLine.getU();
                         break;
                     }
                     if (line.columnLength() > off + width) {
                         off += width;
                     } else {
                         off = 0;
-                        lastLineToDisplay++;
+                        lastLineToDisplay = nextLine.getU();
                     }
                 }
             }
@@ -577,27 +791,31 @@ public class Less {
                 eof();
                 return;
             }
-
-            AttributedString line = getLine(firstLineToDisplay);
-            if (line.columnLength() > width + offsetInLine) {
+            Pair<Integer, AttributedString> nextLine = nextLine2display(firstLineToDisplay, dpCompiled);
+            AttributedString line = nextLine.getV();
+            if (doOffsets && line.columnLength() > width + offsetInLine) {
                 offsetInLine += width;
             } else {
                 offsetInLine = 0;
-                firstLineToDisplay++;
+                firstLineToDisplay = nextLine.getU();
             }
         }
     }
 
     void moveBackward(int lines) throws IOException {
+        Pattern dpCompiled = getPattern(true);
         int width = size.getColumns() - (printLineNumbers ? 8 : 0);
         while (--lines >= 0) {
             if (offsetInLine > 0) {
                 offsetInLine = Math.max(0, offsetInLine - width);
             } else if (firstLineInMemory < firstLineToDisplay) {
-                firstLineToDisplay--;
-                AttributedString line = getLine(firstLineToDisplay);
-                int length = line.columnLength();
-                offsetInLine = length - length % width;
+                Pair<Integer, AttributedString> prevLine = prevLine2display(firstLineToDisplay, dpCompiled);
+                firstLineToDisplay = prevLine.getU();
+                AttributedString line = prevLine.getV();
+                if (line != null && firstColumnToDisplay == 0 && !chopLongLines) {
+                    int length = line.columnLength();
+                    offsetInLine = length - length % width;
+                }
             } else {
                 bof();
                 return;
@@ -635,19 +853,49 @@ public class Less {
             buffer.setLength(0);
         }
     }
+    
+    private Pair<Integer, AttributedString> nextLine2display(int line, Pattern dpCompiled) throws IOException {
+        AttributedString curLine = null;
+        do {
+            curLine = getLine(line++);
+        } while (!toBeDisplayed(curLine, dpCompiled));
+        return new Pair<>(line, curLine);
+    }
+    
+    private Pair<Integer, AttributedString> prevLine2display(int line, Pattern dpCompiled) throws IOException {
+        AttributedString curLine = null;
+        do {
+            curLine = getLine(line--);
+        } while (line > 0 && !toBeDisplayed(curLine, dpCompiled));
+        if (line == 0 && !toBeDisplayed(curLine, dpCompiled)) {
+            curLine = null;
+        }
+        return new Pair<>(line, curLine);
+    }
 
+    private boolean toBeDisplayed(AttributedString curLine, Pattern dpCompiled) {
+        return curLine == null || dpCompiled == null || sourceIdx == 0 || dpCompiled.matcher(curLine).find();
+    }
+    
     synchronized boolean display(boolean oneScreen) throws IOException {
+        return display(oneScreen, null);
+    }
+    
+    synchronized boolean display(boolean oneScreen, Integer curPos) throws IOException {
         List<AttributedString> newLines = new ArrayList<>();
         int width = size.getColumns() - (printLineNumbers ? 8 : 0);
         int height = size.getRows();
         int inputLine = firstLineToDisplay;
         AttributedString curLine = null;
         Pattern compiled = getPattern();
+        Pattern dpCompiled = getPattern(true);
         boolean fitOnOneScreen = false;
         boolean eof = false;
         for (int terminalLine = 0; terminalLine < height - 1; terminalLine++) {
             if (curLine == null) {
-                curLine = getLine(inputLine++);
+                Pair<Integer, AttributedString> nextLine = nextLine2display(inputLine, dpCompiled);
+                inputLine = nextLine.getU();
+                curLine = nextLine.getV();
                 if (curLine == null) {
                     if (oneScreen) {
                         fitOnOneScreen = true;
@@ -694,6 +942,14 @@ public class Less {
             return fitOnOneScreen;
         }
         AttributedStringBuilder msg = new AttributedStringBuilder();
+        if (MESSAGE_FILE_INFO.equals(message)){
+            Source source = sources.get(sourceIdx);
+            Long allLines = source.lines();
+            message = source.getName() 
+                    + (sources.size() > 2 ? " (file " + sourceIdx + " of " + (sources.size() - 1) + ")" : "")
+                    + " lines " + (firstLineToDisplay + 1) + "-" + inputLine + "/" + (allLines != null ? allLines : lines.size())
+                    + (eof ? " (END)" : "");
+        }
         if (buffer.length() > 0) {
             msg.append(" ").append(buffer);
         } else if (bindingReader.getCurrentBuffer().length() > 0
@@ -703,21 +959,32 @@ public class Less {
             msg.style(AttributedStyle.INVERSE);
             msg.append(message);
             msg.style(AttributedStyle.INVERSE.inverseOff());
+        } else if (displayPattern != null) {
+            msg.append("&");
         } else {
             msg.append(":");
         }
         newLines.add(msg.toAttributedString());
 
         display.resize(size.getRows(), size.getColumns());
-        display.update(newLines, -1);
+        if (curPos == null) {
+            display.update(newLines, -1);
+        } else {
+            display.update(newLines, size.cursorPos(size.getRows() - 1, curPos + 1));            
+        }
         return false;
     }
 
     private Pattern getPattern() {
+        return getPattern(false);
+    }
+
+    private Pattern getPattern(boolean doDisplayPattern) {
         Pattern compiled = null;
-        if (pattern != null) {
-            boolean insensitive = ignoreCaseAlways || ignoreCaseCond && pattern.toLowerCase().equals(pattern);
-            compiled = Pattern.compile("(" + pattern + ")", insensitive ? Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE : 0);
+        String _pattern = doDisplayPattern ? displayPattern : pattern;
+        if (_pattern != null) {
+            boolean insensitive = ignoreCaseAlways || ignoreCaseCond && _pattern.toLowerCase().equals(_pattern);
+            compiled = Pattern.compile("(" + _pattern + ")", insensitive ? Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE : 0);
         }
         return compiled;
     }
@@ -764,14 +1031,21 @@ public class Less {
         map.bind(Operation.RIGHT_ONE_HALF_SCREEN, alt(')'), key(terminal, Capability.key_right));
         map.bind(Operation.LEFT_ONE_HALF_SCREEN, alt('('), key(terminal, Capability.key_left));
         map.bind(Operation.FORWARD_FOREVER, "F");
-        map.bind(Operation.REPEAT_SEARCH_FORWARD, "n", "N");
-        map.bind(Operation.REPEAT_SEARCH_FORWARD_SPAN_FILES, alt('n'), alt('N'));
+        map.bind(Operation.REPEAT_SEARCH_FORWARD, "n");
+        map.bind(Operation.REPEAT_SEARCH_BACKWARD, "N");
+        map.bind(Operation.REPEAT_SEARCH_FORWARD_SPAN_FILES, alt('n'));
+        map.bind(Operation.REPEAT_SEARCH_BACKWARD_SPAN_FILES, alt('N'));
         map.bind(Operation.UNDO_SEARCH, alt('u'));
         map.bind(Operation.GO_TO_FIRST_LINE_OR_N, "g", "<", alt('<'));
         map.bind(Operation.GO_TO_LAST_LINE_OR_N, "G", ">", alt('>'));
+        map.bind(Operation.HOME, key(terminal, Capability.key_home));
+        map.bind(Operation.END, key(terminal, Capability.key_end));
         map.bind(Operation.NEXT_FILE, ":n");
         map.bind(Operation.PREV_FILE, ":p");
-        "-/0123456789?".chars().forEach(c -> map.bind(Operation.CHAR, Character.toString((char) c)));
+        map.bind(Operation.GOTO_FILE, ":x");
+        map.bind(Operation.INFO_FILE, "=", ":f", ctrl('G'));
+        map.bind(Operation.DELETE_FILE, ":d");
+        "-/0123456789?&".chars().forEach(c -> map.bind(Operation.CHAR, Character.toString((char) c)));
     }
 
     protected enum Operation {
@@ -825,10 +1099,28 @@ public class Less {
         // Files
         NEXT_FILE,
         PREV_FILE,
+        GOTO_FILE,
+        INFO_FILE,
+        DELETE_FILE,
         
         // 
-        CHAR
+        CHAR,
 
+        // Edit pattern
+        INSERT,
+        RIGHT,
+        LEFT,
+        NEXT_WORD,
+        PREV_WORD,
+        HOME,
+        END,
+        BACKSPACE,
+        DELETE,
+        DELETE_WORD,
+        DELETE_LINE,
+        ACCEPT,
+        UP,
+        DOWN
     }
 
     static class InterruptibleInputStream extends FilterInputStream {
@@ -842,6 +1134,20 @@ public class Less {
                 throw new InterruptedIOException();
             }
             return super.read(b, off, len);
+        }
+    }
+
+    static class Pair<U,V> {
+        final U u; final V v;
+        public Pair(U u, V v) {
+            this.u = u;
+            this.v = v;
+        }
+        public U getU() {
+            return u;
+        }
+        public V getV() {
+            return v;
         }
     }
 

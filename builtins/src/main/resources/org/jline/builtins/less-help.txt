@@ -31,17 +31,23 @@
 
                           SEARCHING
 
-  /pattern          *  Search forward for (N-th) matching line.
-  ?pattern          *  Search backward for (N-th) matching line.
-  n  N              *  Repeat previous search (for N-th occurrence).
-  ESC-n  ESC-N      *  Repeat previous search, spanning files.
+  /pattern             Search forward for (N-th) matching line.
+  ?pattern             Search backward for (N-th) matching line.
+  n                    Repeat previous search (for N-th occurrence).
+  N                    Repeat previous search in reverse direction.
+  ESC-n                Repeat previous search, spanning files.
+  ESC-N                Repeat previous search, reverse dir. & spanning files.
   ESC-u                Undo (toggle) search highlighting.
+  &pattern             Display only matching lines
  ---------------------------------------------------------------------------
 
                         CHANGING FILES
 
   :n                *  Examine the (N-th) next file from the command line.
   :p                *  Examine the (N-th) previous file from the command line.
+  :x                *  Examine the first (or N-th) file from the command line.
+  :d                   Delete the current file from the command line list.
+  =  ^G  :f            Print current file name.
  ---------------------------------------------------------------------------
 
                     MISCELLANEOUS COMMANDS
@@ -75,3 +81,22 @@
                   Chop (truncate) long lines rather than wrapping.
   -x [N[,...]]  --tabs=[N[,...]]
                   Set tab stops (from command line).
+
+ ---------------------------------------------------------------------------
+
+                         PATTERN EDITING
+
+             These keys can be used to edit pattern
+
+ RightArrow ... ESC-l ... Move cursor right one character.
+ LeftArrow .... ESC-h ... Move cursor left one character.
+ .............. ESC-w ... Move cursor right one word.
+ .............. ESC-b ... Move cursor left one word.
+ HOME ......... ESC-0 ... Move cursor to start of line.
+ END .......... ESC-$ ... Move cursor to end of line.
+ BACKSPACE .............. Delete char to left of cursor.
+ DELETE ....... ESC-x ... Delete char under cursor.
+ .............. ESC-X ... Delete word under cursor.
+ ctrl-U ................. Delete entire line.
+ UpArrow ...... ESC-k ... Retrieve previous pattern.
+ DownArrow .... ESC-j ... Retrieve next pattern.

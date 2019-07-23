@@ -23,6 +23,8 @@ public interface Source {
 
     InputStream read() throws IOException;
 
+    Long lines();
+
     class URLSource implements Source {
         final URL url;
         final String name;
@@ -42,6 +44,15 @@ public interface Source {
             return url.openStream();
         }
 
+        @Override
+        public Long lines() {
+            Long out = null;
+            try {
+                out = Files.lines(new File(url.toURI()).toPath()).count();
+            } catch (Exception e) {                
+            }
+            return out;
+        }
     }
 
     class PathSource implements Source {
@@ -67,6 +78,15 @@ public interface Source {
             return Files.newInputStream(path);
         }
 
+        @Override
+        public Long lines() {
+            Long out = null;
+            try {
+                out = Files.lines(path).count();
+            } catch (Exception e) {                
+            }
+            return out;
+        }
     }
 
     class InputStreamSource implements Source {
@@ -95,6 +115,11 @@ public interface Source {
         @Override
         public InputStream read() throws IOException {
             return in;
+        }
+
+        @Override
+        public Long lines() {
+            return null;
         }
     }
 
@@ -131,6 +156,11 @@ public interface Source {
         @Override
         public InputStream read() throws IOException {
             return getClass().getResourceAsStream(resource);
+        }
+
+        @Override
+        public Long lines() {
+            return null;
         }
     }
 }
