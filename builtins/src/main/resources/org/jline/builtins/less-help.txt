@@ -43,6 +43,8 @@
 
                         CHANGING FILES
 
+  :e [file]            Examine a new file.
+  ^X^V                 Same as :e.
   :n                *  Examine the (N-th) next file from the command line.
   :p                *  Examine the (N-th) previous file from the command line.
   :x                *  Examine the first (or N-th) file from the command line.

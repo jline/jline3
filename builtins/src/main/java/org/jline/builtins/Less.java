@@ -9,11 +9,16 @@
 package org.jline.builtins;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -24,6 +29,7 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 import org.jline.builtins.Source.ResourceSource;
+import org.jline.builtins.Source.URLSource;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
 import org.jline.terminal.Attributes;
@@ -65,6 +71,7 @@ public class Less {
     protected final Terminal terminal;
     protected final Display display;
     protected final BindingReader bindingReader;
+    protected final Path currentDir;
 
     protected List<Source> sources;
     protected int sourceIdx;
@@ -96,10 +103,11 @@ public class Less {
     protected final Size size = new Size();
 
 
-    public Less(Terminal terminal) {
+    public Less(Terminal terminal, Path currentDir) {
         this.terminal = terminal;
         this.display = new Display(terminal, true);
         this.bindingReader = new BindingReader(terminal.reader());
+        this.currentDir = currentDir;
     }
 
     public Less tabs(List<Integer> tabs) {
@@ -248,6 +256,10 @@ public class Less {
                                 buffer.setLength(0);
                             }
                             buffer.append(c);
+                        } else if (obj == Operation.BACKSPACE) {
+                            if (buffer.length() > 0) {
+                                buffer.deleteCharAt(buffer.length() - 1);
+                            }
                         } else {
                             op = obj;
                         }
@@ -362,11 +374,20 @@ public class Less {
                                 ignoreCaseCond = false;
                                 message = ignoreCaseAlways ? "Ignore case in searches and in patterns" : "Case is significant in searches";
                                 break;
+                            case ADD_FILE:
+                                addFile();
+                                break;
                             case NEXT_FILE:
                                 int next = getStrictPositiveNumberInBuffer(1);
                                 if (sourceIdx < sources.size() - next) {
+                                    SavedSourcePositions ssp = new SavedSourcePositions();
                                     sourceIdx += next;
-                                    openSource();
+                                    String newSource = sources.get(sourceIdx).getName();
+                                    try {
+                                        openSource();
+                                    } catch (FileNotFoundException exp) {
+                                        ssp.restore(newSource);
+                                    }
                                 } else {
                                     message = "No next file";
                                 }
@@ -374,8 +395,14 @@ public class Less {
                             case PREV_FILE:
                                 int prev = getStrictPositiveNumberInBuffer(1);
                                 if (sourceIdx > prev) {
+                                    SavedSourcePositions ssp = new SavedSourcePositions(-1);
                                     sourceIdx -= prev;
-                                    openSource();
+                                    String newSource = sources.get(sourceIdx).getName();
+                                    try {
+                                        openSource();
+                                    } catch (FileNotFoundException exp) {
+                                        ssp.restore(newSource);
+                                    }
                                 } else {
                                     message = "No previous file";
                                 }
@@ -383,8 +410,14 @@ public class Less {
                             case GOTO_FILE:
                                 int tofile = getStrictPositiveNumberInBuffer(1);
                                 if (tofile < sources.size()) {
+                                    SavedSourcePositions ssp = new SavedSourcePositions(tofile < sourceIdx ? -1 : 0);                                    
                                     sourceIdx = tofile;
-                                    openSource();
+                                    String newSource = sources.get(sourceIdx).getName();
+                                    try {
+                                        openSource();
+                                    } catch (FileNotFoundException exp) {
+                                        ssp.restore(newSource);
+                                    }
                                 } else {
                                     message = "No such file";
                                 }
@@ -434,47 +467,29 @@ public class Less {
                 terminal.writer().flush();
             }
         } finally {
-            reader.close();
+            if (reader != null) {
+                reader.close();
+            }
             if (status != null) {
                 status.restore();
             }
         }
     }
 
-    private boolean search() throws IOException, InterruptedException {
-        KeyMap<Operation> searchKeyMap = new KeyMap<>();
-        searchKeyMap.setUnicode(Operation.INSERT);
-        for (char i = 32; i < 256; i++) {
-            searchKeyMap.bind(Operation.INSERT, Character.toString(i));
-        }
-        searchKeyMap.bind(Operation.RIGHT, key(terminal, Capability.key_right), alt('l'));
-        searchKeyMap.bind(Operation.LEFT, key(terminal, Capability.key_left), alt('h'));
-        searchKeyMap.bind(Operation.NEXT_WORD, alt('w'));
-        searchKeyMap.bind(Operation.PREV_WORD, alt('b'));
-        searchKeyMap.bind(Operation.HOME, key(terminal, Capability.key_home), alt('0'));
-        searchKeyMap.bind(Operation.END, key(terminal, Capability.key_end), alt('$'));
-        searchKeyMap.bind(Operation.BACKSPACE, del());
-        searchKeyMap.bind(Operation.DELETE, alt('x'));         
-        searchKeyMap.bind(Operation.DELETE_WORD, alt('X'));
-        searchKeyMap.bind(Operation.DELETE_LINE, ctrl('U'));
-        searchKeyMap.bind(Operation.UP, key(terminal, Capability.key_up), alt('k'));
-        searchKeyMap.bind(Operation.DOWN, key(terminal, Capability.key_down), alt('j'));        
-        searchKeyMap.bind(Operation.ACCEPT, "\r");
+    private class LineEditor {
+        private int begPos;
 
-        boolean forward = true;
-        message = null;
-        int curPos = buffer.length();
-        final int begPos = curPos;
-        final char type = buffer.charAt(0);
-        String currentBuffer = "";
-        while (true) {
-            checkInterrupted();
-            switch (bindingReader.readBinding(searchKeyMap)) {
+        public LineEditor(int begPos) {
+            this.begPos = begPos;
+        }
+
+        public int editBuffer(Operation op, int curPos) {
+            switch (op) {
             case INSERT:
                 buffer.insert(curPos++, bindingReader.getLastBinding());
                 break;
             case BACKSPACE:
-                if (curPos > begPos) {
+                if (curPos > begPos - 1) {
                     buffer.deleteCharAt(--curPos);
                 }
                 break;
@@ -531,7 +546,7 @@ public class Less {
                 }
                 break;
             case DELETE_LINE:
-                buffer.setLength(1);
+                buffer.setLength(begPos);
                 curPos = 1;
                 break;
             case LEFT:
@@ -544,6 +559,133 @@ public class Less {
                     curPos++;
                 }
                 break;
+            }
+            return curPos;
+        }
+    }
+    
+    private class SavedSourcePositions {
+        int saveSourceIdx;
+        int saveFirstLineToDisplay;
+        int saveFirstColumnToDisplay;
+        int saveOffsetInLine;
+        boolean savePrintLineNumbers;
+        
+        public SavedSourcePositions (){
+            this(0);
+        }
+        public SavedSourcePositions (int dec){
+            saveSourceIdx = sourceIdx + dec;
+            saveFirstLineToDisplay = firstLineToDisplay;
+            saveFirstColumnToDisplay = firstColumnToDisplay;
+            saveOffsetInLine = offsetInLine;
+            savePrintLineNumbers = printLineNumbers;
+        }
+        
+        public void restore(String failingSource) throws IOException {
+            sourceIdx = saveSourceIdx;
+            openSource();
+            firstLineToDisplay = saveFirstLineToDisplay;
+            firstColumnToDisplay = saveFirstColumnToDisplay;
+            offsetInLine = saveOffsetInLine;
+            printLineNumbers = savePrintLineNumbers;
+            if (failingSource != null) {
+                message = failingSource + " not found!";
+            }
+        }      
+    }
+
+    private void addSource(String file) throws IOException {
+        if (file.contains("*") || file.contains("?")) {
+            PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:"+file);
+            Files.find(currentDir, Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
+                 .forEach(p -> sources.add(Commands.doUrlSource(currentDir, p)));
+        } else {
+            sources.add(new URLSource(currentDir.resolve(file).toUri().toURL(), file));
+        }
+        sourceIdx = sources.size() - 1;
+    }
+    
+    private void addFile() throws IOException, InterruptedException {
+        KeyMap<Operation> fileKeyMap = new KeyMap<>();
+        fileKeyMap.setUnicode(Operation.INSERT);
+        for (char i = 32; i < 256; i++) {
+            fileKeyMap.bind(Operation.INSERT, Character.toString(i));
+        }
+        fileKeyMap.bind(Operation.RIGHT, key(terminal, Capability.key_right), alt('l'));
+        fileKeyMap.bind(Operation.LEFT, key(terminal, Capability.key_left), alt('h'));
+        fileKeyMap.bind(Operation.HOME, key(terminal, Capability.key_home), alt('0'));
+        fileKeyMap.bind(Operation.END, key(terminal, Capability.key_end), alt('$'));
+        fileKeyMap.bind(Operation.BACKSPACE, del());
+        fileKeyMap.bind(Operation.DELETE, alt('x'));         
+        fileKeyMap.bind(Operation.DELETE_WORD, alt('X'));
+        fileKeyMap.bind(Operation.DELETE_LINE, ctrl('U'));
+        fileKeyMap.bind(Operation.ACCEPT, "\r");
+
+        SavedSourcePositions ssp = new SavedSourcePositions();
+        message = null;
+        buffer.append("Examine: ");
+        int curPos = buffer.length();
+        final int begPos = curPos;
+        display(false, curPos);
+        LineEditor lineEditor = new LineEditor(begPos);
+        while (true) {
+            checkInterrupted();
+            Operation op = null;
+            switch (op=bindingReader.readBinding(fileKeyMap)) {
+            case ACCEPT:
+                String name = buffer.toString().substring(begPos);
+                addSource(name);
+                try {
+                    openSource();
+                } catch (Exception exp) {
+                    ssp.restore(name);
+                }
+                return;
+            default:
+                curPos = lineEditor.editBuffer(op, curPos);
+                break;
+            }
+            if (curPos > begPos) {
+                display(false, curPos);
+            } else {
+                buffer.setLength(0);
+                return;
+            }
+        }
+    }
+
+    private boolean search() throws IOException, InterruptedException {
+        KeyMap<Operation> searchKeyMap = new KeyMap<>();
+        searchKeyMap.setUnicode(Operation.INSERT);
+        for (char i = 32; i < 256; i++) {
+            searchKeyMap.bind(Operation.INSERT, Character.toString(i));
+        }
+        searchKeyMap.bind(Operation.RIGHT, key(terminal, Capability.key_right), alt('l'));
+        searchKeyMap.bind(Operation.LEFT, key(terminal, Capability.key_left), alt('h'));
+        searchKeyMap.bind(Operation.NEXT_WORD, alt('w'));
+        searchKeyMap.bind(Operation.PREV_WORD, alt('b'));
+        searchKeyMap.bind(Operation.HOME, key(terminal, Capability.key_home), alt('0'));
+        searchKeyMap.bind(Operation.END, key(terminal, Capability.key_end), alt('$'));
+        searchKeyMap.bind(Operation.BACKSPACE, del());
+        searchKeyMap.bind(Operation.DELETE, alt('x'));         
+        searchKeyMap.bind(Operation.DELETE_WORD, alt('X'));
+        searchKeyMap.bind(Operation.DELETE_LINE, ctrl('U'));
+        searchKeyMap.bind(Operation.UP, key(terminal, Capability.key_up), alt('k'));
+        searchKeyMap.bind(Operation.DOWN, key(terminal, Capability.key_down), alt('j'));        
+        searchKeyMap.bind(Operation.ACCEPT, "\r");
+
+        boolean forward = true;
+        message = null;
+        int curPos = buffer.length();
+        final int begPos = curPos;
+        final char type = buffer.charAt(0);
+        String currentBuffer = "";
+        LineEditor lineEditor = new LineEditor(begPos);
+        while (true) {
+            checkInterrupted();
+            Operation op = null;
+            switch (op=bindingReader.readBinding(searchKeyMap)) {
             case UP:
                 patternId++;
                 if (patternId >= 0 && patternId < patterns.size()) {
@@ -615,18 +757,21 @@ public class Less {
                     message = null;
                 }
                 return forward;
+            default:
+                curPos = lineEditor.editBuffer(op, curPos);
+                break;
             }
-            display(false, curPos);
+            if (curPos < begPos) {
+                buffer.setLength(0);
+                return forward;
+            } else {
+                display(false, curPos);
+            }
         }
     }
     
     private void help() throws IOException {
-        int saveSourceIdx = sourceIdx;
-        int saveFirstLineToDisplay = firstLineToDisplay;
-        int saveFirstColumnToDisplay = firstColumnToDisplay;
-        int saveOffsetInLine = offsetInLine;
-        boolean savePrintLineNumbers = printLineNumbers;
-
+        SavedSourcePositions ssp = new SavedSourcePositions();
         printLineNumbers = false;
         sourceIdx = 0;
         try {
@@ -652,32 +797,64 @@ public class Less {
         } catch (IOException|InterruptedException exp) {
             // Do nothing
         } finally {
-            sourceIdx = saveSourceIdx;
-            openSource();
-            firstLineToDisplay = saveFirstLineToDisplay;
-            firstColumnToDisplay = saveFirstColumnToDisplay;
-            offsetInLine = saveOffsetInLine;
-            printLineNumbers = savePrintLineNumbers;
+            ssp.restore(null);
         }
     }
     
     protected void openSource() throws IOException {
+        boolean firstOpening = true;
         if (reader != null) {
             reader.close();
+            firstOpening = false;
         }
-        Source source = sources.get(sourceIdx);
-        InputStream in = source.read();
-        if (sources.size() == 2 || sourceIdx == 0) {
-            message = source.getName();
-        } else {
-            message = source.getName() + " (file " + sourceIdx + " of " + (sources.size() - 1)+ ")";
+        boolean open = false;
+        boolean displayMessage = false; 
+        do {
+            Source source = sources.get(sourceIdx);
+            try {
+                InputStream in = source.read();
+                if (sources.size() == 2 || sourceIdx == 0) {
+                    message = source.getName();
+                } else {
+                    message = source.getName() + " (file " + sourceIdx + " of "
+                            + (sources.size() - 1) + ")";
+                }
+                reader = new BufferedReader(new InputStreamReader(
+                        new InterruptibleInputStream(in)));
+                firstLineInMemory = 0;
+                lines = new ArrayList<>();
+                firstLineToDisplay = 0;
+                firstColumnToDisplay = 0;
+                offsetInLine = 0;
+                open = true;
+                if (displayMessage) {
+                    AttributedStringBuilder asb = new AttributedStringBuilder();
+                    asb.style(AttributedStyle.INVERSE);
+                    asb.append(source.getName() + " (press RETURN)");
+                    asb.toAttributedString().println(terminal);
+                    terminal.writer().flush();
+                    terminal.reader().read();
+                }
+            } catch (FileNotFoundException exp) {
+                sources.remove(sourceIdx);
+                if (sourceIdx > sources.size() - 1) {
+                    sourceIdx = sources.size() - 1;
+                }
+                if (!firstOpening) {
+                    throw exp;
+                } else {
+                    AttributedStringBuilder asb = new AttributedStringBuilder();
+                    asb.append(source.getName() + " not found!");
+                    asb.toAttributedString().println(terminal);
+                    terminal.writer().flush();
+                    open = false;
+                    displayMessage = true;
+                }
+            }
+        } while (!open && sourceIdx > 0);
+        if (!open) {
+            throw new FileNotFoundException(); 
         }
-        reader = new BufferedReader(new InputStreamReader(new InterruptibleInputStream(in)));
-        firstLineInMemory = 0;
-        lines = new ArrayList<>();
-        firstLineToDisplay = 0;
-        firstColumnToDisplay = 0;
-        offsetInLine = 0;
     }
 
     void moveTo(int lineNum) throws IOException {
@@ -1040,11 +1217,13 @@ public class Less {
         map.bind(Operation.GO_TO_LAST_LINE_OR_N, "G", ">", alt('>'));
         map.bind(Operation.HOME, key(terminal, Capability.key_home));
         map.bind(Operation.END, key(terminal, Capability.key_end));
+        map.bind(Operation.ADD_FILE, ":e", ctrl('X') + ctrl('V'));
         map.bind(Operation.NEXT_FILE, ":n");
         map.bind(Operation.PREV_FILE, ":p");
         map.bind(Operation.GOTO_FILE, ":x");
         map.bind(Operation.INFO_FILE, "=", ":f", ctrl('G'));
         map.bind(Operation.DELETE_FILE, ":d");
+        map.bind(Operation.BACKSPACE, del());
         "-/0123456789?&".chars().forEach(c -> map.bind(Operation.CHAR, Character.toString((char) c)));
     }
 
@@ -1097,6 +1276,7 @@ public class Less {
         OPT_IGNORE_CASE_ALWAYS,
 
         // Files
+        ADD_FILE,
         NEXT_FILE,
         PREV_FILE,
         GOTO_FILE,

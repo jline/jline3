@@ -145,7 +145,7 @@ public class Commands {
                 tabs.add(parseInteger(s));
             }
         }
-        Less less = new Less(terminal).tabs(tabs);
+        Less less = new Less(terminal, currentDir).tabs(tabs);
         less.quitAtFirstEof = opt.isSet("QUIT-AT-EOF");
         less.quitAtSecondEof = opt.isSet("quit-at-eof");
         less.quiet = opt.isSet("quiet");
@@ -172,7 +172,7 @@ public class Commands {
         less.run(sources);
     }
 
-    private static Source doUrlSource(Path currentDir, Path file) {
+    protected static Source doUrlSource(Path currentDir, Path file) {
         Source out = null;
         try {
             out = new URLSource(currentDir.resolve(file).toUri().toURL(), file.toString());
