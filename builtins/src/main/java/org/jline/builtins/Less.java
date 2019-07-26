@@ -434,6 +434,15 @@ public class Less {
                                     openSource();
                                 }
                                 break;
+                            case REPAINT:
+                                size.copy(terminal.getSize());
+                                display.clear();
+                                break;
+                            case REPAINT_AND_DISCARD:
+                                message = null;
+                                size.copy(terminal.getSize());
+                                display.clear();
+                                break;
                             case HELP:
                                 help();
                                 break;
@@ -780,7 +789,6 @@ public class Less {
             Operation op = null;
             do {
                 checkInterrupted();
-
                 op = bindingReader.readBinding(keys, null, false);
                 if (op != null) {
                     switch (op) {
@@ -800,12 +808,12 @@ public class Less {
             ssp.restore(null);
         }
     }
-    
+     
     protected void openSource() throws IOException {
-        boolean firstOpening = true;
+        boolean wasOpen = false;
         if (reader != null) {
             reader.close();
-            firstOpening = false;
+            wasOpen = true;
         }
         boolean open = false;
         boolean displayMessage = false; 
@@ -826,6 +834,7 @@ public class Less {
                 firstLineToDisplay = 0;
                 firstColumnToDisplay = 0;
                 offsetInLine = 0;
+                display.clear();
                 open = true;
                 if (displayMessage) {
                     AttributedStringBuilder asb = new AttributedStringBuilder();
@@ -840,7 +849,7 @@ public class Less {
                 if (sourceIdx > sources.size() - 1) {
                     sourceIdx = sources.size() - 1;
                 }
-                if (!firstOpening) {
+                if (wasOpen) {
                     throw exp;
                 } else {
                     AttributedStringBuilder asb = new AttributedStringBuilder();
@@ -1208,6 +1217,8 @@ public class Less {
         map.bind(Operation.RIGHT_ONE_HALF_SCREEN, alt(')'), key(terminal, Capability.key_right));
         map.bind(Operation.LEFT_ONE_HALF_SCREEN, alt('('), key(terminal, Capability.key_left));
         map.bind(Operation.FORWARD_FOREVER, "F");
+        map.bind(Operation.REPAINT, "r", ctrl('R'), ctrl('L'));
+        map.bind(Operation.REPAINT_AND_DISCARD, "R");        
         map.bind(Operation.REPEAT_SEARCH_FORWARD, "n");
         map.bind(Operation.REPEAT_SEARCH_BACKWARD, "N");
         map.bind(Operation.REPEAT_SEARCH_FORWARD_SPAN_FILES, alt('n'));
