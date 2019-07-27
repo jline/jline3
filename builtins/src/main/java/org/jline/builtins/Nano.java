@@ -114,6 +114,7 @@ public class Nano {
     protected int searchTermId = -1;
     protected WriteMode writeMode = WriteMode.WRITE;
     protected boolean writeBackup;
+    protected List<String> cutbuffer = new ArrayList<>();
 
     protected boolean readNewBuffer = true;
 
@@ -717,6 +718,14 @@ public class Nano {
             cursorDown(y);
         }
 
+        public void gotoLine(int x, int y) {
+            if (printLineNumbers) {
+                x = Math.max(x - 8, 0);
+            }
+            line = y < lines.size() ? y : lines.size() - 1;
+            ensureCursorVisible();
+        }
+
         public int getDisplayedCursor() {
             int rwidth = size.getColumns() + 1;
             int cursor = (printLineNumbers ? 8 : 0);
@@ -940,6 +949,33 @@ public class Nano {
         private int length(String line, int tabs) {
             return new AttributedStringBuilder().tabs(tabs).append(line).columnLength();
         }
+
+        void copy() {
+            cutbuffer.add(lines.get(line));
+            gotoLine(0, line + 1);
+        }
+
+        void cut() {
+            if (lines.size() > 1) {
+                cutbuffer.add(lines.get(line));
+                lines.remove(line);
+                if (line > lines.size() - 1) {
+                    line--;
+                }
+                display.clear();
+                computeAllOffsets();
+                dirty = true;
+            }
+        }
+
+        void uncut() {
+            lines.addAll(line, cutbuffer);
+            cutbuffer = new ArrayList<>();
+            display.clear();
+            computeAllOffsets();
+            dirty = true;
+        }
+
     }
 
     public Nano(Terminal terminal, File root) {
@@ -1136,6 +1172,15 @@ public class Nano {
                         break;
                     case TOGGLE_SUSPENSION:
                         toggleSuspension();
+                        break;
+                    case COPY:
+                        buffer.copy();
+                        break;
+                    case CUT:
+                        buffer.cut();
+                        break;
+                    case UNCUT:
+                        buffer.uncut();
                         break;
                     default:
                         setMessage("Unsupported " + op.name().toLowerCase().replace('_', '-'));
