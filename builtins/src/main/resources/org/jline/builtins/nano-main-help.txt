@@ -29,15 +29,15 @@ M-^             (M-6)   Copy the current line and store it in the cutbuffer
 M-}                     Indent the current line
 M-{                     Unindent the current line
 
-^F                      Move forward one character
-^B                      Move back one character
+^F      (Right)         Move forward one character
+^B      (Left)          Move back one character
 ^Space                  Move forward one word
 M-Space                 Move back one word
-^P                      Move to the previous line
-^N                      Move to the next line
+^P      (Up)            Move to the previous line
+^N      (Down)          Move to the next line
 
-^A                      Move to the beginning of the current line
-^E                      Move to the end of the current line
+^A      (Home)          Move to the beginning of the current line
+^E      (End)           Move to the end of the current line
 M-(             (M-9)   Move to the beginning of the current paragraph
 M-)             (M-0)   Move to the end of the current paragraph
 M-\             (M-|)   Move to the first line of the file
@@ -77,5 +77,5 @@ M-Q                     Conversion of typed tabs to spaces enable/disable
 M-B                     Backup files enable/disable
 M-F                     Multiple file buffers enable/disable
 M-M                     Mouse support enable/disable
-M-N                     No conversion from DOS/Mac format enable/disable
+M-N                     Line numbers enable/disable
 M-Z                     Suspension enable/disable

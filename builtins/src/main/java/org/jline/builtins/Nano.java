@@ -115,6 +115,7 @@ public class Nano {
     protected WriteMode writeMode = WriteMode.WRITE;
     protected boolean writeBackup;
     protected List<String> cutbuffer = new ArrayList<>();
+    protected boolean cut2end = false;
 
     protected boolean readNewBuffer = true;
 
@@ -145,6 +146,7 @@ public class Nano {
         int offsetInLine;
         int column;
         int wantedColumn;
+        boolean uncut = false;
 
         boolean dirty;
 
@@ -355,6 +357,15 @@ public class Nano {
         }
 
         boolean moveRight(int chars) {
+            return moveRight(chars, false);
+        }
+
+        boolean moveRight(int chars, boolean fromBeginning) {
+            if (fromBeginning) {
+                offsetInLine = 0;
+                column = 0;
+                chars = chars <= length(getLine(line), tabs) ? chars : length(getLine(line), tabs);
+            }
             boolean ret = true;
             while (--chars >= 0) {
                 int len = length(getLine(line), tabs);
@@ -797,10 +808,7 @@ public class Nano {
 
         public void endOfLine() {
             int x = length(lines.get(line), tabs);
-            offsetInLine = 0;
-            offsetInLineToDisplay = 0;
-            column = 0;
-            moveRight(x);
+            moveRight(x, true);
         }
 
         public void prevPage() {
@@ -961,29 +969,92 @@ public class Nano {
         }
 
         void copy() {
-            cutbuffer.add(lines.get(line));
-            gotoLine(0, line + 1);
-        }
-
-        void cut() {
-            if (lines.size() > 1) {
+            if (uncut || cut2end) {
+                cutbuffer = new ArrayList<>();
+            }
+            if (cut2end) {
+                String l = lines.get(line);
+                int col = offsetInLine + column;
+                cutbuffer.add(l.substring(col));
+                moveRight(l.substring(col).length());
+            } else {
                 cutbuffer.add(lines.get(line));
-                lines.remove(line);
-                if (line > lines.size() - 1) {
-                    line--;
+                cursorDown(1);
+            }
+            uncut = false;
+        }
+        
+        void cut() {
+            cut(false);
+        }
+        
+        void cut(boolean toEnd) {
+            if (lines.size() > 1) {
+                if (uncut || cut2end || toEnd) {
+                    cutbuffer = new ArrayList<>();
+                }
+                if (cut2end || toEnd) {
+                    String l = lines.get(line);
+                    int col = offsetInLine + column;
+                    cutbuffer.add(l.substring(col));
+                    lines.set(line, l.substring(0, col));
+                    if (toEnd) {
+                        line++;
+                        while (true) {
+                            cutbuffer.add(lines.get(line));
+                            lines.remove(line);
+                            if (line > lines.size() - 1) {
+                                line--;
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    cutbuffer.add(lines.get(line));
+                    lines.remove(line);
+                    if (line > lines.size() - 1) {
+                        line--;
+                    }
                 }
                 display.clear();
                 computeAllOffsets();
                 dirty = true;
+                uncut = false;
             }
         }
 
         void uncut() {
-            lines.addAll(line, cutbuffer);
-            cutbuffer = new ArrayList<>();
+            if (cutbuffer.isEmpty()) {
+                return;
+            }
+            String l = lines.get(line);
+            int col = offsetInLine + column;
+            if (cut2end) {
+                lines.set(line, l.substring(0, col) + cutbuffer.get(0) + l.substring(col));
+                computeAllOffsets();
+                moveRight(col + cutbuffer.get(0).length(), true);
+            } else if (col == 0) {
+                lines.addAll(line, cutbuffer);
+                computeAllOffsets();
+                cursorDown(cutbuffer.size());
+                ensureCursorVisible();
+            } else {
+                if (cutbuffer.size() == 1) {
+                    lines.set(line, l.substring(0, col) + cutbuffer.get(0) + l.substring(col));
+                } else {
+                    lines.set(line++, l.substring(0, col) + cutbuffer.get(0));
+                    lines.add(line, cutbuffer.get(cutbuffer.size() - 1) + l.substring(col));
+                    for (int i = cutbuffer.size() - 2; i > 0 ; i--) {
+                        lines.add(line, cutbuffer.get(i));
+                    }
+                }
+                computeAllOffsets();
+                cursorDown(cutbuffer.size() - 1);
+                ensureCursorVisible();
+            }
             display.clear();
-            computeAllOffsets();
             dirty = true;
+            uncut = true;
         }
 
     }
@@ -1194,6 +1265,13 @@ public class Nano {
                         break;
                     case GOTO:
                         gotoLine();
+                        break;
+                    case CUT_TO_END_TOGGLE:
+                        cut2end = !cut2end;
+                        setMessage("Cut to end " + (cut2end ? "enabled" : "disabled"));
+                        break;
+                    case CUT_TO_END:
+                        buffer.cut(true);
                         break;
                     default:
                         setMessage("Unsupported " + op.name().toLowerCase().replace('_', '-'));
