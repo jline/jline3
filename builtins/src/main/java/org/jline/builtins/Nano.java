@@ -719,11 +719,15 @@ public class Nano {
         }
 
         public void gotoLine(int x, int y) {
-            if (printLineNumbers) {
-                x = Math.max(x - 8, 0);
-            }
             line = y < lines.size() ? y : lines.size() - 1;
+            x = x <= lines.get(line).length() ? x : lines.get(line).length(); 
+            firstLineToDisplay = line > 0 ? line - 1 : line;
+            offsetInLine = 0;
+            offsetInLineToDisplay = 0;
+            column = 0;
+            moveRight(x);
             ensureCursorVisible();
+            curPos();
         }
 
         public int getDisplayedCursor() {
@@ -1182,6 +1186,9 @@ public class Nano {
                     case UNCUT:
                         buffer.uncut();
                         break;
+                    case GOTO:
+                        gotoLine();
+                        break;
                     default:
                         setMessage("Unsupported " + op.name().toLowerCase().replace('_', '-'));
                         break;
@@ -1203,6 +1210,30 @@ public class Nano {
        }
     }
 
+    private int editInputBuffer(Operation operation, int curPos) {
+        switch (operation) {
+        case INSERT:
+            editBuffer.insert(curPos++, bindingReader.getLastBinding());
+            break;
+        case BACKSPACE:
+            if (curPos > 0) {
+                editBuffer.deleteCharAt(--curPos);
+            }
+            break;
+        case LEFT:
+            if (curPos > 0) {
+                curPos--;
+            }
+            break;
+        case RIGHT:
+            if (curPos < editBuffer.length()) {
+                curPos++;
+            }
+            break;        
+        }
+        return curPos;
+    }
+    
     boolean write() throws IOException {
         KeyMap<Operation> writeKeyMap = new KeyMap<>();
         if (!restricted) {
@@ -1236,25 +1267,8 @@ public class Nano {
         this.shortcuts = writeShortcuts();
         display(curPos);
         while (true) {
-            switch (readOperation(writeKeyMap)) {
-                case INSERT:
-                    editBuffer.insert(curPos++, bindingReader.getLastBinding());
-                    break;
-                case BACKSPACE:
-                    if (curPos > 0) {
-                        editBuffer.deleteCharAt(--curPos);
-                    }
-                    break;
-                case LEFT:
-                    if (curPos > 0) {
-                        curPos--;
-                    }
-                    break;
-                case RIGHT:
-                    if (curPos < editBuffer.length()) {
-                        curPos++;
-                    }
-                    break;
+            Operation op = readOperation(writeKeyMap);
+            switch (op) {
                 case CANCEL:
                     editMessage = null;
                     this.shortcuts = standardShortcuts();
@@ -1289,6 +1303,9 @@ public class Nano {
                     break;
                 case TOGGLE_SUSPENSION:
                     toggleSuspension();
+                    break;
+                default:
+                    curPos = editInputBuffer(op, curPos);
                     break;
             }
             editMessage = getWriteMessage();
@@ -1449,25 +1466,8 @@ public class Nano {
         this.shortcuts = readShortcuts();
         display(curPos);
         while (true) {
-            switch (readOperation(readKeyMap)) {
-                case INSERT:
-                    editBuffer.insert(curPos++, bindingReader.getLastBinding());
-                    break;
-                case BACKSPACE:
-                    if (curPos > 0) {
-                        editBuffer.deleteCharAt(--curPos);
-                    }
-                    break;
-                case LEFT:
-                    if (curPos > 0) {
-                        curPos--;
-                    }
-                    break;
-                case RIGHT:
-                    if (curPos < editBuffer.length()) {
-                        curPos++;
-                    }
-                    break;            
+            Operation op = readOperation(readKeyMap);
+            switch (op) {
                 case CANCEL:
                     editMessage = null;
                     this.shortcuts = standardShortcuts();
@@ -1509,8 +1509,8 @@ public class Nano {
                 case MOUSE_EVENT:
                     mouseEvent();
                     break;
-                case TOGGLE_SUSPENSION:
-                    toggleSuspension();
+                default:
+                    curPos = editInputBuffer(op, curPos);
                     break;
             }
             editMessage = getReadMessage();
@@ -1526,6 +1526,89 @@ public class Nano {
         }
         sb.append(" [from ./]: ");
         return sb.toString();
+    }
+
+    void gotoLine() throws IOException {
+        KeyMap<Operation> readKeyMap = new KeyMap<>();
+        readKeyMap.setUnicode(Operation.INSERT);
+        for (char i = 32; i < 256; i++) {
+            readKeyMap.bind(Operation.INSERT, Character.toString(i));
+        }
+        readKeyMap.bind(Operation.BACKSPACE, del());
+        readKeyMap.bind(Operation.ACCEPT, "\r");
+        readKeyMap.bind(Operation.HELP, ctrl('G'), key(terminal, Capability.key_f1));
+        readKeyMap.bind(Operation.CANCEL, ctrl('C'));
+        readKeyMap.bind(Operation.RIGHT, key(terminal, Capability.key_right));
+        readKeyMap.bind(Operation.LEFT, key(terminal, Capability.key_left));
+        readKeyMap.bind(Operation.FIRST_LINE, ctrl('Y'));
+        readKeyMap.bind(Operation.LAST_LINE, ctrl('V'));
+        readKeyMap.bind(Operation.SEARCH, ctrl('T'));
+
+        editMessage = "Enter line number, column number: "; 
+        editBuffer.setLength(0);
+        int curPos = editBuffer.length();
+        this.shortcuts = gotoShortcuts();
+        display(curPos);
+        while (true) {
+            Operation op = readOperation(readKeyMap);
+            switch (op) {
+                case CANCEL:
+                    editMessage = null;
+                    this.shortcuts = standardShortcuts();
+                    return;
+                case FIRST_LINE:
+                    editMessage = null;
+                    buffer.firstLine();
+                    this.shortcuts = standardShortcuts();
+                    return;
+                case LAST_LINE:
+                    editMessage = null;
+                    buffer.lastLine();
+                    this.shortcuts = standardShortcuts();
+                    return;
+                case SEARCH:
+                    search();
+                    return;
+                case ACCEPT:
+                    editMessage = null;
+                    String[] pos = editBuffer.toString().split(",", 2);
+                    int[] args = { 0, 0 };
+                    try {
+                        for(int i = 0; i < pos.length; i++) {
+                            if (pos[i].trim().length() > 0) {
+                                args[i] = Integer.parseInt(pos[i]) - 1;
+                                if (args[i] < 0) {
+                                    throw new NumberFormatException();
+                                }
+                            }
+                        }
+                        buffer.gotoLine(args[1], args[0]);
+                    } catch (NumberFormatException ex) {
+                        setMessage("Invalid line or column number");
+                    } catch (Exception ex) {
+                        setMessage("Internal error: " + ex.getMessage());
+                    }
+                    this.shortcuts = standardShortcuts();
+                    return;
+                case HELP:
+                    help("nano-goto-help.txt");
+                    break;
+                default:
+                    curPos = editInputBuffer(op, curPos);
+                    break;
+            }
+            display(curPos);
+        }
+    }
+
+    private LinkedHashMap<String, String> gotoShortcuts() {
+        LinkedHashMap<String, String> shortcuts = new LinkedHashMap<>();
+        shortcuts.put("^G", "Get Help");
+        shortcuts.put("^Y", "First Line");
+        shortcuts.put("^T", "Go To Text");
+        shortcuts.put("^C", "Cancel");
+        shortcuts.put("^V", "Last Line");
+        return shortcuts;
     }
 
     private LinkedHashMap<String, String> readShortcuts() {
@@ -1698,25 +1781,8 @@ public class Nano {
         display(curPos);
         try {
             while (true) {
-                switch (readOperation(searchKeyMap)) {
-                    case INSERT:
-                        editBuffer.insert(curPos++, bindingReader.getLastBinding());
-                        break;
-                    case BACKSPACE:
-                        if (curPos > 0) {
-                            editBuffer.deleteCharAt(--curPos);
-                        }
-                        break;
-                    case LEFT:
-                        if (curPos > 0) {
-                            curPos--;
-                        }
-                        break;
-                    case RIGHT:
-                        if (curPos < editBuffer.length()) {
-                            curPos++;
-                        }
-                        break;
+                Operation op = readOperation(searchKeyMap);
+                switch (op) {
                     case UP:
                         searchTermId++;
                         if (searchTermId >= 0 && searchTermId < searchTerms.size()) {
@@ -1783,7 +1849,10 @@ public class Nano {
                     case TOGGLE_SUSPENSION:
                         toggleSuspension();
                         break;
-                }
+                    default:
+                        curPos = editInputBuffer(op, curPos);
+                        break;
+               }
                 editMessage = getSearchMessage();
                 display(curPos);
             }
@@ -2160,7 +2229,7 @@ public class Nano {
         keys.bind(Operation.MARK, ctrl('^'), key(terminal, Capability.key_f15), alt('a'));
         keys.bind(Operation.NEXT_SEARCH, key(terminal, Capability.key_f16), alt('w'));
 
-        keys.bind(Operation.COPY, alt('^'));
+        keys.bind(Operation.COPY, alt('^'), alt('6'));
         keys.bind(Operation.INDENT, alt('}'));
         keys.bind(Operation.UNINDENT, alt('{'));
 
