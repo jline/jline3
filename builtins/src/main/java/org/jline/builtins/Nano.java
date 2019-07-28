@@ -720,13 +720,12 @@ public class Nano {
 
         public void gotoLine(int x, int y) {
             line = y < lines.size() ? y : lines.size() - 1;
-            x = x <= lines.get(line).length() ? x : lines.get(line).length(); 
+            x = x <= length(lines.get(line), tabs) ? x : length(lines.get(line), tabs); 
             firstLineToDisplay = line > 0 ? line - 1 : line;
             offsetInLine = 0;
             offsetInLineToDisplay = 0;
             column = 0;
             moveRight(x);
-            ensureCursorVisible();
             curPos();
         }
 
@@ -793,14 +792,15 @@ public class Nano {
         public void beginningOfLine() {
             column = offsetInLine = 0;
             wantedColumn = 0;
+            ensureCursorVisible();
         }
 
         public void endOfLine() {
-            column = length(lines.get(line), tabs);
-            int width = size.getColumns() - (printLineNumbers ? 8 : 0);
-            offsetInLine = (column / width) * (width - 1);
-            column = column - offsetInLine;
-            wantedColumn = column;
+            int x = length(lines.get(line), tabs);
+            offsetInLine = 0;
+            offsetInLineToDisplay = 0;
+            column = 0;
+            moveRight(x);
         }
 
         public void prevPage() {
@@ -2138,7 +2138,7 @@ public class Nano {
             }
             sb.append('\n');
             footer.add(sb.toAttributedString());
-        } else if (message != null || constantCursor) {
+        } else if (constantCursor) {
             int rwidth = size.getColumns();
             String text = "[ " + (message == null ? computeCurPos() : message) + " ]";
             int len = text.length();
@@ -2240,8 +2240,8 @@ public class Nano {
         keys.bind(Operation.UP, ctrl('P'));
         keys.bind(Operation.DOWN, ctrl('N'));
 
-        keys.bind(Operation.BEGINNING_OF_LINE, ctrl('A'));
-        keys.bind(Operation.END_OF_LINE, ctrl('E'));
+        keys.bind(Operation.BEGINNING_OF_LINE, ctrl('A'), key(terminal, Capability.key_home));
+        keys.bind(Operation.END_OF_LINE, ctrl('E'), key(terminal, Capability.key_end));
         keys.bind(Operation.BEGINNING_OF_PARAGRAPH, alt('('), alt('9'));
         keys.bind(Operation.END_OF_PARAGRAPH, alt(')'), alt('0'));
         keys.bind(Operation.FIRST_LINE, alt('\\'), alt('|'));
