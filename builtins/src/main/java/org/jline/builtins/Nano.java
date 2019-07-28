@@ -806,11 +806,17 @@ public class Nano {
         public void prevPage() {
             int height = size.getRows() - computeHeader().size() - computeFooter().size();
             scrollUp(height - 2);
+            column = 0;
+            firstLineToDisplay = line;
+            offsetInLineToDisplay = offsetInLine;
         }
 
         public void nextPage() {
             int height = size.getRows() - computeHeader().size() - computeFooter().size();
             scrollDown(height - 2);
+            column = 0;
+            firstLineToDisplay = line;
+            offsetInLineToDisplay = offsetInLine;
         }
 
         public void scrollUp(int lines) {
