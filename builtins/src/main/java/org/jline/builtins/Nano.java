@@ -2138,7 +2138,7 @@ public class Nano {
             }
             sb.append('\n');
             footer.add(sb.toAttributedString());
-        } else if (constantCursor) {
+        } else if (message!= null || constantCursor) {
             int rwidth = size.getColumns();
             String text = "[ " + (message == null ? computeCurPos() : message) + " ]";
             int len = text.length();
