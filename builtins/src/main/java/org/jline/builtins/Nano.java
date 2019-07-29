@@ -275,22 +275,24 @@ public class Nano {
             int width = size.getColumns() - (printLineNumbers ? 8 : 0);
             LinkedList<Integer> offsets = new LinkedList<>();
             offsets.add(0);
-            int last = 0;
-            int prevword = 0;
-            boolean inspace = false;
-            for (int i = 0; i < text.length(); i++) {
-                if (isBreakable(text.charAt(i))) {
-                    inspace = true;
-                } else if (inspace) {
-                    prevword = i;
-                    inspace = false;
-                }
-                if (i == last + width - 1) {
-                    if (prevword == last) {
+            if (wrapping) {
+                int last = 0;
+                int prevword = 0;
+                boolean inspace = false;
+                for (int i = 0; i < text.length(); i++) {
+                    if (isBreakable(text.charAt(i))) {
+                        inspace = true;
+                    } else if (inspace) {
                         prevword = i;
+                        inspace = false;
                     }
-                    offsets.add(prevword);
-                    last = prevword;
+                    if (i == last + width - 1) {
+                        if (prevword == last) {
+                            prevword = i;
+                        }
+                        offsets.add(prevword);
+                        last = prevword;
+                    }
                 }
             }
             return offsets;
@@ -346,7 +348,7 @@ public class Nano {
                     moveToChar(offsetInLine + column - 1);
                 } else if (line > 0) {
                     line--;
-                    moveToChar(length(getLine(line), tabs));
+                    moveToChar(wrapping ? length(getLine(line), tabs) : Math.min(length(getLine(line), tabs), width()));
                 } else {
                     bof();
                     ret = false;
@@ -361,7 +363,11 @@ public class Nano {
         boolean moveRight(int chars) {
             return moveRight(chars, false);
         }
-
+        
+        int width() {
+            return size.getColumns() - (printLineNumbers ? 8 : 0) - (wrapping ? 0 : 2);
+        }
+        
         boolean moveRight(int chars, boolean fromBeginning) {
             if (fromBeginning) {
                 offsetInLine = 0;
@@ -370,7 +376,7 @@ public class Nano {
             }
             boolean ret = true;
             while (--chars >= 0) {
-                int len = length(getLine(line), tabs);
+                int len = wrapping ? length(getLine(line), tabs) : Math.min(length(getLine(line), tabs), width());
                 if (offsetInLine + column + 1 <= len) {
                     moveToChar(offsetInLine + column + 1);
                 } else if (getLine(line + 1) != null) {
@@ -671,59 +677,57 @@ public class Nano {
 
         void highlightDisplayedLine(int curLine, int curOffset, int nextOffset, AttributedStringBuilder line){
             AttributedString disp = new AttributedString(getLine(curLine));
-            if (mark) {
-                if (getMarkStart()[0] == getMarkEnd()[0]) {
-                    if (curLine == getMarkStart()[0]) {
-                        if (getMarkStart()[1] > nextOffset) {
-                            line.append(disp.columnSubSequence(curOffset, nextOffset));
-                        } else if (getMarkStart()[1] <  curOffset) {
-                            if (getMarkEnd()[1] > nextOffset) {
-                                line.append(disp.columnSubSequence(curOffset, nextOffset), AttributedStyle.INVERSE);
-                            } else if (getMarkEnd()[1] > curOffset) {
-                                line.append(disp.columnSubSequence(curOffset, getMarkEnd()[1]), AttributedStyle.INVERSE);
-                                line.append(disp.columnSubSequence(getMarkEnd()[1], nextOffset));
-                            } else {
-                                line.append(disp.columnSubSequence(curOffset, nextOffset));
-                            }
-                        } else {
-                            line.append(disp.columnSubSequence(curOffset, getMarkStart()[1]));
-                            if (getMarkEnd()[1] > nextOffset) {
-                                line.append(disp.columnSubSequence(getMarkStart()[1], nextOffset), AttributedStyle.INVERSE);
-                            } else {
-                                line.append(disp.columnSubSequence(getMarkStart()[1], getMarkEnd()[1]), AttributedStyle.INVERSE);
-                                line.append(disp.columnSubSequence(getMarkEnd()[1], nextOffset));
-                            } 
-                        }
-                    } else {
+            if (!mark) {
+                line.append(disp.columnSubSequence(curOffset, nextOffset));
+            } else if (getMarkStart()[0] == getMarkEnd()[0]) {
+                if (curLine == getMarkStart()[0]) {
+                    if (getMarkStart()[1] > nextOffset) {
                         line.append(disp.columnSubSequence(curOffset, nextOffset));
-                    }
-                } else {
-                    if (curLine > getMarkStart()[0] && curLine < getMarkEnd()[0]) {
-                        line.append(disp.columnSubSequence(curOffset, nextOffset), AttributedStyle.INVERSE);
-                    } else if (curLine == getMarkStart()[0]) {
-                        if (getMarkStart()[1] > nextOffset) {
-                            line.append(disp.columnSubSequence(curOffset, nextOffset));
-                        } else if (getMarkStart()[1] < curOffset) {
+                    } else if (getMarkStart()[1] <  curOffset) {
+                        if (getMarkEnd()[1] > nextOffset) {
                             line.append(disp.columnSubSequence(curOffset, nextOffset), AttributedStyle.INVERSE);
-                        } else {
-                            line.append(disp.columnSubSequence(curOffset, getMarkStart()[1]));
-                            line.append(disp.columnSubSequence(getMarkStart()[1], nextOffset), AttributedStyle.INVERSE);
-                        }
-                    } else if (curLine == getMarkEnd()[0]) {
-                        if (getMarkEnd()[1] < curOffset) {
-                            line.append(disp.columnSubSequence(curOffset, nextOffset));
-                        } else if (getMarkEnd()[1] > nextOffset) {
-                            line.append(disp.columnSubSequence(curOffset, nextOffset), AttributedStyle.INVERSE);
-                        } else {
+                        } else if (getMarkEnd()[1] > curOffset) {
                             line.append(disp.columnSubSequence(curOffset, getMarkEnd()[1]), AttributedStyle.INVERSE);
                             line.append(disp.columnSubSequence(getMarkEnd()[1], nextOffset));
+                        } else {
+                            line.append(disp.columnSubSequence(curOffset, nextOffset));
                         }
                     } else {
-                        line.append(disp.columnSubSequence(curOffset, nextOffset));
+                        line.append(disp.columnSubSequence(curOffset, getMarkStart()[1]));
+                        if (getMarkEnd()[1] > nextOffset) {
+                            line.append(disp.columnSubSequence(getMarkStart()[1], nextOffset), AttributedStyle.INVERSE);
+                        } else {
+                            line.append(disp.columnSubSequence(getMarkStart()[1], getMarkEnd()[1]), AttributedStyle.INVERSE);
+                            line.append(disp.columnSubSequence(getMarkEnd()[1], nextOffset));
+                        } 
                     }
+                } else {
+                    line.append(disp.columnSubSequence(curOffset, nextOffset));
                 }
             } else {
-                line.append(disp.columnSubSequence(curOffset, nextOffset));
+                if (curLine > getMarkStart()[0] && curLine < getMarkEnd()[0]) {
+                    line.append(disp.columnSubSequence(curOffset, nextOffset), AttributedStyle.INVERSE);
+                } else if (curLine == getMarkStart()[0]) {
+                    if (getMarkStart()[1] > nextOffset) {
+                        line.append(disp.columnSubSequence(curOffset, nextOffset));
+                    } else if (getMarkStart()[1] < curOffset) {
+                        line.append(disp.columnSubSequence(curOffset, nextOffset), AttributedStyle.INVERSE);
+                    } else {
+                        line.append(disp.columnSubSequence(curOffset, getMarkStart()[1]));
+                        line.append(disp.columnSubSequence(getMarkStart()[1], nextOffset), AttributedStyle.INVERSE);
+                    }
+                } else if (curLine == getMarkEnd()[0]) {
+                    if (getMarkEnd()[1] < curOffset) {
+                        line.append(disp.columnSubSequence(curOffset, nextOffset));
+                    } else if (getMarkEnd()[1] > nextOffset) {
+                        line.append(disp.columnSubSequence(curOffset, nextOffset), AttributedStyle.INVERSE);
+                    } else {
+                        line.append(disp.columnSubSequence(curOffset, getMarkEnd()[1]), AttributedStyle.INVERSE);
+                        line.append(disp.columnSubSequence(getMarkEnd()[1], nextOffset));
+                    }
+                } else {
+                    line.append(disp.columnSubSequence(curOffset, nextOffset));
+                }
             }
         }
 
@@ -753,14 +757,13 @@ public class Nano {
                 if (curLine >= lines.size()) {
                     // Nothing to do
                 } else if (firstColumnToDisplay > 0 || !wrapping) {
-                    // TODO highlight marked lines
                     AttributedString disp = new AttributedString(getLine(curLine));
-                    disp = disp.columnSubSequence(firstColumnToDisplay, Integer.MAX_VALUE);
-                    if (disp.columnLength() >= width) {
-                        line.append(disp.columnSubSequence(0, width - cut.columnLength()));
+                    if (disp.columnLength() - firstColumnToDisplay >= width) {
+                        highlightDisplayedLine(curLine, firstColumnToDisplay
+                            , firstColumnToDisplay + width - cut.columnLength(), line);
                         line.append(cut);
                     } else {
-                        line.append(disp);
+                        highlightDisplayedLine(curLine, firstColumnToDisplay, Integer.MAX_VALUE, line);
                     }
                     curLine++;
                 } else {
@@ -2269,6 +2272,7 @@ public class Nano {
 
     void wrap() {
         wrapping = !wrapping;
+        buffer.computeAllOffsets();
         resetDisplay();
         setMessage("Lines wrapping " + (wrapping ? "enabled" : "disabled"));
     }
@@ -2528,8 +2532,7 @@ public class Nano {
         keys.bind(Operation.SMART_HOME_KEY, alt('h'));
         keys.bind(Operation.AUTO_INDENT, alt('i'));
         keys.bind(Operation.CUT_TO_END_TOGGLE, alt('k'));
-        // TODO: reenable wrapping after fixing #120
-        // keys.bind(Operation.WRAP, alt('l'));
+        keys.bind(Operation.WRAP, alt('l'));
         keys.bind(Operation.TABS_TO_SPACE, alt('q'));
 
         keys.bind(Operation.BACKUP, alt('b'));
