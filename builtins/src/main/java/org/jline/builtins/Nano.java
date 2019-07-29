@@ -116,6 +116,7 @@ public class Nano {
     protected boolean writeBackup;
     protected List<String> cutbuffer = new ArrayList<>();
     protected boolean cut2end = false;
+    protected boolean mark = false;
 
     protected boolean readNewBuffer = true;
 
@@ -147,6 +148,7 @@ public class Nano {
         int column;
         int wantedColumn;
         boolean uncut = false;
+        int[] markPos = {-1, -1}; // line, offsetInLine + column
 
         boolean dirty;
 
@@ -667,6 +669,64 @@ public class Nano {
             }
         }
 
+        void highlightDisplayedLine(int curLine, int curOffset, int nextOffset, AttributedStringBuilder line){
+            AttributedString disp = new AttributedString(getLine(curLine));
+            if (mark) {
+                if (getMarkStart()[0] == getMarkEnd()[0]) {
+                    if (curLine == getMarkStart()[0]) {
+                        if (getMarkStart()[1] > nextOffset) {
+                            line.append(disp.columnSubSequence(curOffset, nextOffset));
+                        } else if (getMarkStart()[1] <  curOffset) {
+                            if (getMarkEnd()[1] > nextOffset) {
+                                line.append(disp.columnSubSequence(curOffset, nextOffset), AttributedStyle.INVERSE);
+                            } else if (getMarkEnd()[1] > curOffset) {
+                                line.append(disp.columnSubSequence(curOffset, getMarkEnd()[1]), AttributedStyle.INVERSE);
+                                line.append(disp.columnSubSequence(getMarkEnd()[1], nextOffset));
+                            } else {
+                                line.append(disp.columnSubSequence(curOffset, nextOffset));
+                            }
+                        } else {
+                            line.append(disp.columnSubSequence(curOffset, getMarkStart()[1]));
+                            if (getMarkEnd()[1] > nextOffset) {
+                                line.append(disp.columnSubSequence(getMarkStart()[1], nextOffset), AttributedStyle.INVERSE);
+                            } else {
+                                line.append(disp.columnSubSequence(getMarkStart()[1], getMarkEnd()[1]), AttributedStyle.INVERSE);
+                                line.append(disp.columnSubSequence(getMarkEnd()[1], nextOffset));
+                            } 
+                        }
+                    } else {
+                        line.append(disp.columnSubSequence(curOffset, nextOffset));
+                    }
+                } else {
+                    if (curLine > getMarkStart()[0] && curLine < getMarkEnd()[0]) {
+                        line.append(disp.columnSubSequence(curOffset, nextOffset), AttributedStyle.INVERSE);
+                    } else if (curLine == getMarkStart()[0]) {
+                        if (getMarkStart()[1] > nextOffset) {
+                            line.append(disp.columnSubSequence(curOffset, nextOffset));
+                        } else if (getMarkStart()[1] < curOffset) {
+                            line.append(disp.columnSubSequence(curOffset, nextOffset), AttributedStyle.INVERSE);
+                        } else {
+                            line.append(disp.columnSubSequence(curOffset, getMarkStart()[1]));
+                            line.append(disp.columnSubSequence(getMarkStart()[1], nextOffset), AttributedStyle.INVERSE);
+                        }
+                    } else if (curLine == getMarkEnd()[0]) {
+                        if (getMarkEnd()[1] < curOffset) {
+                            line.append(disp.columnSubSequence(curOffset, nextOffset));
+                        } else if (getMarkEnd()[1] > nextOffset) {
+                            line.append(disp.columnSubSequence(curOffset, nextOffset), AttributedStyle.INVERSE);
+                        } else {
+                            line.append(disp.columnSubSequence(curOffset, getMarkEnd()[1]), AttributedStyle.INVERSE);
+                            line.append(disp.columnSubSequence(getMarkEnd()[1], nextOffset));
+                        }
+                    } else {
+                        line.append(disp.columnSubSequence(curOffset, nextOffset));
+                    }
+                }
+            } else {
+                line.append(disp.columnSubSequence(curOffset, nextOffset));
+            }
+        }
+
         List<AttributedString> getDisplayedLines(int nbLines) {
             AttributedStyle s = AttributedStyle.DEFAULT.foreground(AttributedStyle.BLACK + AttributedStyle.BRIGHT);
             AttributedString cut = new AttributedString("…", s);
@@ -693,6 +753,7 @@ public class Nano {
                 if (curLine >= lines.size()) {
                     // Nothing to do
                 } else if (firstColumnToDisplay > 0 || !wrapping) {
+                    // TODO highlight marked lines
                     AttributedString disp = new AttributedString(getLine(curLine));
                     disp = disp.columnSubSequence(firstColumnToDisplay, Integer.MAX_VALUE);
                     if (disp.columnLength() >= width) {
@@ -705,13 +766,11 @@ public class Nano {
                 } else {
                     Optional<Integer> nextOffset = nextLineOffset(curLine, curOffset);
                     if (nextOffset.isPresent()) {
-                        AttributedString disp = new AttributedString(getLine(curLine));
-                        line.append(disp.columnSubSequence(curOffset, nextOffset.get()));
+                        highlightDisplayedLine(curLine, curOffset, nextOffset.get(), line);
                         line.append(ret);
                         curOffset = nextOffset.get();
                     } else {
-                        AttributedString disp = new AttributedString(getLine(curLine));
-                        line.append(disp.columnSubSequence(curOffset, Integer.MAX_VALUE));
+                        highlightDisplayedLine(curLine, curOffset, Integer.MAX_VALUE, line);
                         curLine++;
                         curOffset = 0;
                     }
@@ -740,7 +799,6 @@ public class Nano {
             offsetInLineToDisplay = 0;
             column = 0;
             moveRight(x);
-            curPos();
         }
 
         public int getDisplayedCursor() {
@@ -970,10 +1028,29 @@ public class Nano {
         }
 
         void copy() {
-            if (uncut || cut2end) {
+            if (uncut || cut2end || mark) {
                 cutbuffer = new ArrayList<>();
             }
-            if (cut2end) {
+            if (mark) {
+                int[] s = getMarkStart();
+                int[] e = getMarkEnd();
+                if (s[0] == e[0]) {
+                    cutbuffer.add(lines.get(s[0]).substring(s[1], e[1]));
+                } else {
+                    if (s[1] != 0) {
+                        cutbuffer.add(lines.get(s[0]).substring(s[1]));
+                        s[0] = s[0] + 1;
+                    }
+                    for (int i = s[0]; i < e[0]; i++) {
+                        cutbuffer.add(lines.get(i));
+                    }
+                    if (e[1] != 0) {
+                        cutbuffer.add(lines.get(e[0]).substring(0, e[1]));
+                    }
+                }
+                mark = false;
+                mark();
+            } else if (cut2end) {
                 String l = lines.get(line);
                 int col = offsetInLine + column;
                 cutbuffer.add(l.substring(col));
@@ -991,10 +1068,46 @@ public class Nano {
         
         void cut(boolean toEnd) {
             if (lines.size() > 1) {
-                if (uncut || cut2end || toEnd) {
+                if (uncut || cut2end || toEnd || mark) {
                     cutbuffer = new ArrayList<>();
                 }
-                if (cut2end || toEnd) {
+                if (mark) {
+                    int[] s = getMarkStart();
+                    int[] e = getMarkEnd();
+                    if (s[0] == e[0]) {
+                        String l = lines.get(s[0]);
+                        int cols = s[1];
+                        int cole = e[1];
+                        cutbuffer.add(l.substring(cols, cole));
+                        lines.set(s[0], l.substring(0, cols) + l.substring(cole));
+                        computeAllOffsets();
+                        moveRight(cols, true);
+                    } else {
+                        int ls = s[0];
+                        int cs = s[1];
+                        if (s[1] != 0) {
+                            String l = lines.get(s[0]);
+                            int col = s[1];
+                            cutbuffer.add(l.substring(col));
+                            lines.set(s[0], l.substring(0, col));
+                            s[0] = s[0] + 1;
+                        }
+                        for (int i = s[0]; i < e[0]; i++) {
+                            cutbuffer.add(lines.get(s[0]));
+                            lines.remove(s[0]);
+                        }
+                        if (e[1] != 0) {
+                            String l = lines.get(s[0]);
+                            int col = e[1];
+                            cutbuffer.add(l.substring(0, col));
+                            lines.set(s[0], l.substring(col));
+                        }
+                        computeAllOffsets();
+                        gotoLine(cs, ls);
+                    }
+                    mark = false;
+                    mark();
+                } else if (cut2end || toEnd) {
                     String l = lines.get(line);
                     int col = offsetInLine + column;
                     cutbuffer.add(l.substring(col));
@@ -1013,6 +1126,7 @@ public class Nano {
                 } else {
                     cutbuffer.add(lines.get(line));
                     lines.remove(line);
+                    offsetInLine = 0;
                     if (line > lines.size() - 1) {
                         line--;
                     }
@@ -1037,27 +1151,73 @@ public class Nano {
             } else if (col == 0) {
                 lines.addAll(line, cutbuffer);
                 computeAllOffsets();
-                cursorDown(cutbuffer.size());
-                ensureCursorVisible();
+                if (cutbuffer.size() > 1) {
+                    gotoLine(cutbuffer.get(cutbuffer.size() - 1).length(), line + cutbuffer.size());
+                } else {
+                    moveRight(cutbuffer.get(0).length(), true);
+                }
             } else {
+                int gotol = line;
                 if (cutbuffer.size() == 1) {
                     lines.set(line, l.substring(0, col) + cutbuffer.get(0) + l.substring(col));
                 } else {
                     lines.set(line++, l.substring(0, col) + cutbuffer.get(0));
+                    gotol = line;
                     lines.add(line, cutbuffer.get(cutbuffer.size() - 1) + l.substring(col));
                     for (int i = cutbuffer.size() - 2; i > 0 ; i--) {
+                        gotol++;
                         lines.add(line, cutbuffer.get(i));
                     }
                 }
                 computeAllOffsets();
-                cursorDown(cutbuffer.size() - 1);
-                ensureCursorVisible();
+                if (cutbuffer.size() > 1) {
+                    gotoLine(cutbuffer.get(cutbuffer.size() - 1).length(), gotol);
+                } else {
+                    moveRight(col + cutbuffer.get(0).length(), true);
+                }
             }
             display.clear();
             dirty = true;
             uncut = true;
         }
 
+        void mark() {
+            if (mark) {
+                markPos[0] = line;
+                markPos[1] = offsetInLine + column;
+            } else {
+                markPos[0] = -1;
+                markPos[1] = -1;
+            }
+        }
+        
+        int[] getMarkStart() {
+            int[] out = {-1, -1};
+            if (!mark) {
+                return out;
+            }
+            if (markPos[0] > line || (markPos[0] == line && markPos[1] > offsetInLine + column) ) {
+                out[0] = line;
+                out[1] = offsetInLine + column;
+            } else {
+                out = markPos;
+            }
+            return out;
+        }
+
+        int[] getMarkEnd() {
+            int[] out = {-1, -1};
+            if (!mark) {
+                return out;
+            }
+            if (markPos[0] > line || (markPos[0] == line && markPos[1] > offsetInLine + column) ) {
+                out = markPos;
+            } else {
+                out[0] = line;
+                out[1] = offsetInLine + column;
+            }
+            return out;
+        }
     }
 
     public Nano(Terminal terminal, File root) {
@@ -1266,6 +1426,7 @@ public class Nano {
                         break;
                     case GOTO:
                         gotoLine();
+                        curPos();
                         break;
                     case CUT_TO_END_TOGGLE:
                         cut2end = !cut2end;
@@ -1273,6 +1434,11 @@ public class Nano {
                         break;
                     case CUT_TO_END:
                         buffer.cut(true);
+                        break;
+                    case MARK:
+                        mark = !mark;
+                        setMessage("Mark " + (mark ? "Set" : "Unset"));
+                        buffer.mark();
                         break;
                     default:
                         setMessage("Unsupported " + op.name().toLowerCase().replace('_', '-'));
