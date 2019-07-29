@@ -577,10 +577,13 @@ public class Nano {
         }
 
         void resetDisplay() {
-            int width = size.getColumns() - (printLineNumbers ? 8 : 0);
+// mrn 29/7/2019 same calculation as in endOfLine() & nextSearch() methods that were failing
+//               change also here although haven't seen an error
+//            int width = size.getColumns() - (printLineNumbers ? 8 : 0);
             column = offsetInLine + column;
-            offsetInLine = (column / width) * (width - 1);
-            column = column - offsetInLine;
+//            offsetInLine = (column / width) * (width - 1);
+//            column = column - offsetInLine;
+            moveRight(column, true);
         }
 
         String getLine(int line) {
@@ -901,10 +904,8 @@ public class Nano {
                     || (!searchBackwards && (newLine < line || (newLine == line && newPos < offsetInLine + column)))) {
                     setMessage("Search Wrapped");
                 }
-                int width = size.getColumns() - (printLineNumbers ? 8 : 0);
                 line = newLine;
-                column = newPos;
-                offsetInLine = (column / width) * (width - 1);
+                moveRight(newPos, true);
                 ensureCursorVisible();
             } else {
                 setMessage("\"" + searchTerm + "\" not found");
