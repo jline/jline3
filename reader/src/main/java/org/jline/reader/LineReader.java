@@ -57,7 +57,7 @@ import org.jline.utils.AttributedString;
  * Defaults to an empty string.
  * </dd>
  * <dt>{@code %}<var>n</var>{@code P}<var>c</var></dt>
- * <dd>Insert padding at this possion, repeating the following
+ * <dd>Insert padding at this position, repeating the following
  *   character <var>c</var> as needed to bring the total prompt
  *   column width as specified by the digits <var>n</var>.
  * </dd>
