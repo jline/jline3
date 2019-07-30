@@ -139,7 +139,7 @@ public class Nano {
         List<String> lines;
 
         int firstLineToDisplay;
-        int firstColumnToDisplay;
+        int firstColumnToDisplay = 0;
         int offsetInLineToDisplay;
 
         int line;
@@ -303,6 +303,13 @@ public class Nano {
         }
 
         void moveToChar(int pos) {
+            if (!wrapping) {
+                if (pos > column && pos - firstColumnToDisplay + 1 > width()) {
+                    firstColumnToDisplay = offsetInLine + column - 6;
+                } else if (pos < column && firstColumnToDisplay + 5 > pos) {
+                    firstColumnToDisplay = Math.max(0, firstColumnToDisplay - width() + 5);
+                }
+            }
             offsetInLine = prevLineOffset(line, pos + 1).get();
             column = pos - offsetInLine;
         }
@@ -348,7 +355,7 @@ public class Nano {
                     moveToChar(offsetInLine + column - 1);
                 } else if (line > 0) {
                     line--;
-                    moveToChar(wrapping ? length(getLine(line), tabs) : Math.min(length(getLine(line), tabs), width()));
+                    moveToChar(length(getLine(line), tabs));
                 } else {
                     bof();
                     ret = false;
@@ -365,22 +372,24 @@ public class Nano {
         }
         
         int width() {
-            return size.getColumns() - (printLineNumbers ? 8 : 0) - (wrapping ? 0 : 2);
+            return size.getColumns() - (printLineNumbers ? 8 : 0) - (wrapping ? 0 : 1) - (firstColumnToDisplay > 0 ? 1 : 0);
         }
         
         boolean moveRight(int chars, boolean fromBeginning) {
             if (fromBeginning) {
+                firstColumnToDisplay = 0;
                 offsetInLine = 0;
                 column = 0;
                 chars = chars <= length(getLine(line), tabs) ? chars : length(getLine(line), tabs);
             }
             boolean ret = true;
             while (--chars >= 0) {
-                int len = wrapping ? length(getLine(line), tabs) : Math.min(length(getLine(line), tabs), width());
+                int len =  length(getLine(line), tabs);
                 if (offsetInLine + column + 1 <= len) {
                     moveToChar(offsetInLine + column + 1);
                 } else if (getLine(line + 1) != null) {
                     line++;
+                    firstColumnToDisplay = 0;
                     offsetInLine = 0;
                     column = 0;
                 } else {
@@ -432,7 +441,7 @@ public class Nano {
             // Adjust cursor
             while (--lines >= 0) {
                 int lastLineToDisplay = firstLineToDisplay;
-                if (firstColumnToDisplay > 0 || !wrapping) {
+                if (!wrapping) {
                     lastLineToDisplay += height - 1;
                 } else {
                     int off = offsetInLineToDisplay;
@@ -477,8 +486,9 @@ public class Nano {
 
         private void cursorDown(int lines) {
             // Adjust cursor
+            firstColumnToDisplay = 0;
             while (--lines >= 0) {
-                if (firstColumnToDisplay > 0 || !wrapping) {
+                if (!wrapping) {
                     if (getLine(line + 1) != null) {
                         line++;
                         offsetInLine = 0;
@@ -508,8 +518,9 @@ public class Nano {
         }
 
         private void cursorUp(int lines) {
+            firstColumnToDisplay = 0;
             while (--lines >= 0) {
-                if (firstColumnToDisplay > 0 || !wrapping) {
+                if (!wrapping) {
                     if (line > 0) {
                         line--;
                         column = Math.min(length(getLine(line), tabs) - offsetInLine, wantedColumn);
@@ -550,7 +561,7 @@ public class Nano {
                 int off = offsetInLineToDisplay;
                 while (true) {
                     if (cur < line || off < offsetInLine) {
-                        if (firstColumnToDisplay > 0 || !wrapping) {
+                        if (!wrapping) {
                             cursor += rwidth;
                             cur++;
                         } else {
@@ -564,7 +575,12 @@ public class Nano {
                             }
                         }
                     } else if (cur == line) {
-                        cursor += column;
+                        if (!wrapping && column > firstColumnToDisplay + width()) {
+                            while (column > firstColumnToDisplay + width()) {
+                                firstColumnToDisplay += width();
+                            }
+                        }
+                        cursor += column - firstColumnToDisplay + (firstColumnToDisplay > 0 ? 1 : 0);
                         break;
                     } else {
                         throw new IllegalStateException();
@@ -756,14 +772,28 @@ public class Nano {
                 }
                 if (curLine >= lines.size()) {
                     // Nothing to do
-                } else if (firstColumnToDisplay > 0 || !wrapping) {
+                } else if (!wrapping) {
                     AttributedString disp = new AttributedString(getLine(curLine));
-                    if (disp.columnLength() - firstColumnToDisplay >= width) {
-                        highlightDisplayedLine(curLine, firstColumnToDisplay
-                            , firstColumnToDisplay + width - cut.columnLength(), line);
-                        line.append(cut);
+                    if (this.line == curLine) {
+                        int cutCount = 1;
+                        if (firstColumnToDisplay > 0) {
+                            line.append(cut);
+                            cutCount = 2;
+                        }
+                        if (disp.columnLength() - firstColumnToDisplay >= width - (cutCount - 1)*cut.columnLength()) {
+                            highlightDisplayedLine(curLine, firstColumnToDisplay
+                                , firstColumnToDisplay + width - cutCount*cut.columnLength(), line);
+                            line.append(cut);
+                        } else {
+                            highlightDisplayedLine(curLine, firstColumnToDisplay, disp.columnLength(), line);
+                        }
                     } else {
-                        highlightDisplayedLine(curLine, firstColumnToDisplay, Integer.MAX_VALUE, line);
+                        if (disp.columnLength() >= width) {
+                            highlightDisplayedLine(curLine, 0, width - cut.columnLength(), line);
+                            line.append(cut);
+                        } else {
+                            highlightDisplayedLine(curLine, 0, disp.columnLength(), line);
+                        }
                     }
                     curLine++;
                 } else {
@@ -811,7 +841,7 @@ public class Nano {
             int off = offsetInLineToDisplay;
             while (true) {
                 if (cur < line || off < offsetInLine) {
-                    if (firstColumnToDisplay > 0 || !wrapping) {
+                    if (!wrapping) {
                         cursor += rwidth;
                         cur++;
                     } else {
@@ -825,7 +855,12 @@ public class Nano {
                         }
                     }
                 } else if (cur == line) {
-                    cursor += column;
+                    if (!wrapping && column > firstColumnToDisplay + width()) {
+                        while (column > firstColumnToDisplay + width()) {
+                            firstColumnToDisplay += width();
+                        }
+                    }
+                    cursor += column - firstColumnToDisplay + (firstColumnToDisplay > 0 ? 1 : 0);
                     break;
                 } else {
                     throw new IllegalStateException();
@@ -967,7 +1002,6 @@ public class Nano {
                 }
                 line = newLine;
                 moveRight(newPos, true);
-                ensureCursorVisible();
             } else {
                 setMessage("\"" + searchTerm + "\" not found");
             }
