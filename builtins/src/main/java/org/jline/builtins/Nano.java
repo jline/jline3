@@ -261,6 +261,7 @@ public class Nano {
                 offsets.add(line, computeOffsets(ins.get(i)));
             }
             moveToChar(ins.get(ins.size() - 1).length() - (text.length() - pos));
+            ensureCursorVisible();
             dirty = true;
         }
 
@@ -345,6 +346,7 @@ public class Nano {
                     dirty = true;
                 }
             }
+            ensureCursorVisible();
             return true;
         }
 
