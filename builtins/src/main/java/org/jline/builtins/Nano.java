@@ -556,36 +556,7 @@ public class Nano {
             }
 
             while (true) {
-                int cursor = header.size() * size.getColumns() + (printLineNumbers ? 8 : 0);
-                int cur = firstLineToDisplay;
-                int off = offsetInLineToDisplay;
-                while (true) {
-                    if (cur < line || off < offsetInLine) {
-                        if (!wrapping) {
-                            cursor += rwidth;
-                            cur++;
-                        } else {
-                            cursor += rwidth;
-                            Optional<Integer> next = nextLineOffset(cur, off);
-                            if (next.isPresent()) {
-                                off = next.get();
-                            } else {
-                                cur++;
-                                off = 0;
-                            }
-                        }
-                    } else if (cur == line) {
-                        if (!wrapping && column > firstColumnToDisplay + width()) {
-                            while (column > firstColumnToDisplay + width()) {
-                                firstColumnToDisplay += width();
-                            }
-                        }
-                        cursor += column - firstColumnToDisplay + (firstColumnToDisplay > 0 ? 1 : 0);
-                        break;
-                    } else {
-                        throw new IllegalStateException();
-                    }
-                }
+                int cursor = computeCursorPosition(header.size() * size.getColumns() + (printLineNumbers ? 8 : 0), rwidth);
                 if (cursor >= (height + header.size()) * rwidth) {
                     moveDisplayDown(smoothScrolling ? 1 : height / 2);
                 } else {
@@ -835,8 +806,10 @@ public class Nano {
         }
 
         public int getDisplayedCursor() {
-            int rwidth = size.getColumns() + 1;
-            int cursor = (printLineNumbers ? 8 : 0);
+            return computeCursorPosition(printLineNumbers ? 8 : 0, size.getColumns() + 1);
+        }
+
+        private int computeCursorPosition(int cursor, int rwidth) {
             int cur = firstLineToDisplay;
             int off = offsetInLineToDisplay;
             while (true) {
