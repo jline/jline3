@@ -87,7 +87,7 @@ public class Nano {
     public boolean mouseSupport = false;
     public boolean oneMoreLine = true;
     public boolean constantCursor;
-    public int tabs = 4;
+    public int tabs = 1;   // tabs are not currently supported!
     public String brackets = "\"’)>]}";
     public String matchBrackets = "(<[{)>]}";
     public String punct = "!.?";
@@ -149,11 +149,13 @@ public class Nano {
         int wantedColumn;
         boolean uncut = false;
         int[] markPos = {-1, -1}; // line, offsetInLine + column
+        SyntaxHighlighter syntaxHighlighter;
 
         boolean dirty;
 
         protected Buffer(String file) {
             this.file = file;
+            this.syntaxHighlighter = doSyntaxHighlighter();
         }
 
         void open() throws IOException {
@@ -372,11 +374,11 @@ public class Nano {
         boolean moveRight(int chars) {
             return moveRight(chars, false);
         }
-        
+
         int width() {
             return size.getColumns() - (printLineNumbers ? 8 : 0) - (wrapping ? 0 : 1) - (firstColumnToDisplay > 0 ? 1 : 0);
         }
-        
+
         boolean moveRight(int chars, boolean fromBeginning) {
             if (fromBeginning) {
                 firstColumnToDisplay = 0;
@@ -665,7 +667,7 @@ public class Nano {
         }
 
         void highlightDisplayedLine(int curLine, int curOffset, int nextOffset, AttributedStringBuilder line){
-            AttributedString disp = new AttributedString(getLine(curLine));
+            AttributedString disp = syntaxHighlighter.highlightNextLine(new AttributedString(getLine(curLine)));
             if (!mark) {
                 line.append(disp.columnSubSequence(curOffset, nextOffset));
             } else if (getMarkStart()[0] == getMarkEnd()[0]) {
@@ -688,7 +690,7 @@ public class Nano {
                         } else {
                             line.append(disp.columnSubSequence(getMarkStart()[1], getMarkEnd()[1]), AttributedStyle.INVERSE);
                             line.append(disp.columnSubSequence(getMarkEnd()[1], nextOffset));
-                        } 
+                        }
                     }
                 } else {
                     line.append(disp.columnSubSequence(curOffset, nextOffset));
@@ -720,6 +722,53 @@ public class Nano {
             }
         }
 
+        /*
+         * Hardcoded syntax patterns... these should be read from config file
+         * Patterns could be get from
+         * https://github.com/scopatz/nanorc
+         * and converted prefibilmente automatically to java format when reading
+         * config
+         */
+        private SyntaxHighlighter doSyntaxHighlighter() {
+            AttributedStyle s = AttributedStyle.DEFAULT.foreground(AttributedStyle.BLACK + AttributedStyle.BRIGHT);
+            SyntaxHighlighter out = new SyntaxHighlighter();
+            if (file == null) {
+                // do nothing
+            } else if (file.endsWith(".java")) {
+                out.addRule(s.foreground(AttributedStyle.GREEN)
+                        , Pattern.compile("\\b(boolean|byte|char|double|float|int|long|new|short|this"
+                                        + "|transient|void)\\b"));
+                out.addRule(s.foreground(AttributedStyle.RED)
+                        , Pattern.compile("\\b(break|case|catch|continue|default|do|else|finally|for" 
+                                        + "|if|return|switch|throw|try|while)\\b"));
+                out.addRule(s.foreground(AttributedStyle.CYAN)
+                        , Pattern.compile("\\b(abstract|class|extends|final|implements|import|instanceof"
+                                        + "|interface|native|package|private|protected|public|static|strictfp"
+                                        + "|super|synchronized|throws|volatile)\\b"));
+                out.addRule(s.foreground(AttributedStyle.RED), Pattern.compile("\"[^\"]*\""));
+                out.addRule(s.foreground(AttributedStyle.YELLOW), Pattern.compile("\\b(true|false|null)\\b"));
+                out.addRule(s.foreground(AttributedStyle.YELLOW), Pattern.compile("\\b(([1-9][0-9]+)|0+)\\.[0-9]+\\b"));
+                out.addRule(s.foreground(AttributedStyle.YELLOW), Pattern.compile("\\b[1-9][0-9]*\\b"));
+                out.addRule(s.foreground(AttributedStyle.YELLOW), Pattern.compile("\\b0[0-7]*\\b"));
+                out.addRule(s.foreground(AttributedStyle.YELLOW), Pattern.compile("\\b0x[1-9a-f][0-9a-f]*\\b"));
+                out.addRule(s.foreground(AttributedStyle.BLUE), Pattern.compile("//.*"));
+                out.addRule(s.foreground(AttributedStyle.BLUE), Pattern.compile("/\\*"), Pattern.compile("\\*/"));
+                out.addRule(s.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT), Pattern.compile("/\\*\\*"), Pattern.compile("\\*/"));
+                out.addRule(s.background(AttributedStyle.GREEN), Pattern.compile("\\s+$"));
+            } else if (file.endsWith(".xml")) {
+                out.addRule(s.foreground(AttributedStyle.WHITE), Pattern.compile("^.+$"));
+                out.addRule(s.foreground(AttributedStyle.GREEN), Pattern.compile("<"), Pattern.compile(">"));
+                out.addRule(s.foreground(AttributedStyle.CYAN), Pattern.compile("<[^> ]+"));
+                out.addRule(s.foreground(AttributedStyle.MAGENTA), Pattern.compile("\"[^\"].*\""));
+                out.addRule(s.foreground(AttributedStyle.CYAN), Pattern.compile(">"));
+                out.addRule(s.foreground(AttributedStyle.YELLOW), Pattern.compile("<!DOCTYPE"), Pattern.compile("[/]?>"));
+                out.addRule(s.foreground(AttributedStyle.YELLOW), Pattern.compile("<!--"), Pattern.compile("-->"));
+                out.addRule(s.foreground(AttributedStyle.RED), Pattern.compile("&[^;]*;"));
+                out.addRule(s.background(AttributedStyle.GREEN), Pattern.compile("\\s+$"));
+            }
+            return out;
+        }
+
         List<AttributedString> getDisplayedLines(int nbLines) {
             AttributedStyle s = AttributedStyle.DEFAULT.foreground(AttributedStyle.BLACK + AttributedStyle.BRIGHT);
             AttributedString cut = new AttributedString("…", s);
@@ -731,6 +780,7 @@ public class Nano {
             int curLine = firstLineToDisplay;
             int curOffset = offsetInLineToDisplay;
             int prevLine = -1;
+            syntaxHighlighter.reset();
             for (int terminalLine = 0; terminalLine < nbLines; terminalLine++) {
                 AttributedStringBuilder line = new AttributedStringBuilder().tabs(tabs);
                 if (printLineNumbers && curLine < lines.size()) {
@@ -799,7 +849,7 @@ public class Nano {
 
         public void gotoLine(int x, int y) {
             line = y < lines.size() ? y : lines.size() - 1;
-            x = x <= length(lines.get(line), tabs) ? x : length(lines.get(line), tabs); 
+            x = x <= length(lines.get(line), tabs) ? x : length(lines.get(line), tabs);
             firstLineToDisplay = line > 0 ? line - 1 : line;
             offsetInLine = 0;
             offsetInLineToDisplay = 0;
@@ -1073,11 +1123,11 @@ public class Nano {
             }
             uncut = false;
         }
-        
+
         void cut() {
             cut(false);
         }
-        
+
         void cut(boolean toEnd) {
             if (lines.size() > 1) {
                 if (uncut || cut2end || toEnd || mark) {
@@ -1202,7 +1252,7 @@ public class Nano {
                 markPos[1] = -1;
             }
         }
-        
+
         int[] getMarkStart() {
             int[] out = {-1, -1};
             if (!mark) {
@@ -1229,6 +1279,139 @@ public class Nano {
                 out[1] = offsetInLine + column;
             }
             return out;
+        }
+    }
+
+    private static class SyntaxHighlighter {
+        private List<HighlightRule> rules = new ArrayList<>();
+        private int ruleStartId = 0;
+
+        public SyntaxHighlighter() {}
+
+        public void addRule(AttributedStyle style, Pattern pattern) {
+            rules.add(new HighlightRule(style, pattern));
+        }
+
+        public void addRule(AttributedStyle style, Pattern start, Pattern end) {
+            rules.add(new HighlightRule(style, start, end));
+        }
+
+        public void reset() {
+            ruleStartId = 0;
+        }
+
+        public boolean hasRules() {
+            return !rules.isEmpty();
+        }
+
+        public AttributedString highlightNextLine(String line) {
+            return highlightNextLine(new AttributedString(line));
+        }
+
+        public AttributedString highlightNextLine(AttributedString line) {
+            if (rules.isEmpty()) {
+                return line;
+            }
+            AttributedStringBuilder asb = new AttributedStringBuilder();
+            AttributedStyle as = new AttributedStyle(AttributedStyle.DEFAULT);
+            asb.append(line);
+            for (int i = ruleStartId; i < rules.size(); i++) {
+                HighlightRule rule = rules.get(i);
+                switch (rule.getType()) {
+                case PATTERN:
+                    asb.styleMatches(rule.getPattern(), rule.getStyle());
+                    break;
+                case START_END:
+                    boolean done = false;
+                    Matcher start = rule.getStart().matcher(asb.toAttributedString());
+                    Matcher end = rule.getEnd().matcher(asb.toAttributedString());
+                    while (!done) {
+                        AttributedStringBuilder a = new AttributedStringBuilder();
+                        AttributedString l = asb.toAttributedString();
+                        if (ruleStartId == i) { // first rule should never be type
+                                                // START_END or we will fail here!
+                            if (end.find()) {
+                                a.append(l.columnSubSequence(0, end.end()),rule.getStyle());
+                                a.append(asb.columnSubSequence(end.end(), asb.length()));
+                                asb = a;
+                                ruleStartId = 0;
+                            } else {
+                                asb = a.append(l, rule.getStyle());
+                                done = true;
+                            }
+                        } else {
+                            if (start.find()) {
+                                a.append(asb.columnSubSequence(0, start.start()));
+                                if (end.find()) {
+                                    a.append(asb.columnSubSequence(start.start(), end.end()), rule.getStyle());
+                                    a.append(asb.columnSubSequence(end.end(), asb.length()));
+                                } else {
+                                    ruleStartId = i;
+                                    a.append(asb.columnSubSequence(start.start(),asb.length()), rule.getStyle());
+                                    done = true;
+                                }
+                                asb = a;
+                            } else {
+                                done = true;
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+            return asb.toAttributedString();
+        }
+
+        private static class HighlightRule {
+            public enum RuleType {PATTERN, START_END};
+            private RuleType type;
+            private Pattern pattern;
+            private AttributedStyle style;
+            private Pattern start;
+            private Pattern end;
+
+            public HighlightRule(AttributedStyle style, Pattern pattern) {
+                 this.type = RuleType.PATTERN;
+                 this.pattern = pattern;
+                 this.style = style;
+            }
+
+            public HighlightRule(AttributedStyle style, Pattern start, Pattern end) {
+                 this.type = RuleType.START_END;
+                 this.style = style;
+                 this.start = start;
+                 this.end = end;
+            }
+
+            public RuleType getType() {
+                return type;
+            }
+
+            public AttributedStyle getStyle() {
+                return style;
+            }
+
+            public Pattern getPattern() {
+                if (type == RuleType.START_END) {
+                    throw new IllegalAccessError();
+                }
+                return pattern;
+            }
+
+            public Pattern getStart() {
+                if (type == RuleType.PATTERN) {
+                    throw new IllegalAccessError();
+                }
+                return start;
+            }
+
+            public Pattern getEnd() {
+                if (type == RuleType.PATTERN) {
+                    throw new IllegalAccessError();
+                }
+                return end;
+            }
+
         }
     }
 
@@ -1492,11 +1675,11 @@ public class Nano {
             if (curPos < editBuffer.length()) {
                 curPos++;
             }
-            break;        
+            break;
         }
         return curPos;
     }
-    
+
     boolean write() throws IOException {
         KeyMap<Operation> writeKeyMap = new KeyMap<>();
         if (!restricted) {
@@ -1522,7 +1705,7 @@ public class Nano {
         writeKeyMap.bind(Operation.TOGGLE_SUSPENSION, alt('z'));
         writeKeyMap.bind(Operation.RIGHT, key(terminal, Capability.key_right));
         writeKeyMap.bind(Operation.LEFT, key(terminal, Capability.key_left));
-      
+
         editMessage = getWriteMessage();
         editBuffer.setLength(0);
         editBuffer.append(buffer.file == null ? "" : buffer.file);
@@ -1807,7 +1990,7 @@ public class Nano {
         readKeyMap.bind(Operation.LAST_LINE, ctrl('V'));
         readKeyMap.bind(Operation.SEARCH, ctrl('T'));
 
-        editMessage = "Enter line number, column number: "; 
+        editMessage = "Enter line number, column number: ";
         editBuffer.setLength(0);
         int curPos = editBuffer.length();
         this.shortcuts = gotoShortcuts();
@@ -2065,7 +2248,7 @@ public class Nano {
                             editBuffer.setLength(0);
                             if (searchTermId < 0) {
                                 searchTermId = -1;
-                                editBuffer.append(currentBuffer);                                    
+                                editBuffer.append(currentBuffer);
                             } else {
                                 editBuffer.append(searchTerms.get(searchTermId));
                             }
@@ -2325,7 +2508,7 @@ public class Nano {
             }
         }
     }
-    
+
     void toggleSuspension(){
         if (restricted) {
             setMessage("This function is disabled in restricted mode");
@@ -2360,7 +2543,7 @@ public class Nano {
     synchronized void display() {
         display(null);
     }
-    
+
     synchronized void display(final Integer editCursor) {
         if (nbBindings > 0) {
             if (--nbBindings == 0) {
@@ -2553,9 +2736,7 @@ public class Nano {
         keys.bind(Operation.DOWN, key(terminal, Capability.key_down));
         keys.bind(Operation.RIGHT, key(terminal, Capability.key_right));
         keys.bind(Operation.LEFT, key(terminal, Capability.key_left));
-
         keys.bind(Operation.MOUSE_EVENT, key(terminal, Capability.key_mouse));
-        
         keys.bind(Operation.TOGGLE_SUSPENSION, alt('z'));
     }
 
@@ -2644,7 +2825,7 @@ public class Nano {
         UNCUT,
 
         MOUSE_EVENT,
- 
+
         TOGGLE_SUSPENSION
     }
 
