@@ -1300,10 +1300,6 @@ public class Nano {
             ruleStartId = 0;
         }
 
-        public boolean hasRules() {
-            return !rules.isEmpty();
-        }
-
         public AttributedString highlightNextLine(String line) {
             return highlightNextLine(new AttributedString(line));
         }
@@ -1327,18 +1323,17 @@ public class Nano {
                     Matcher end = rule.getEnd().matcher(asb.toAttributedString());
                     while (!done) {
                         AttributedStringBuilder a = new AttributedStringBuilder();
-                        AttributedString l = asb.toAttributedString();
                         if (ruleStartId == i) { // first rule should never be type
                                                 // START_END or we will fail here!
                             if (end.find()) {
-                                a.append(l.columnSubSequence(0, end.end()),rule.getStyle());
+                                a.append(asb.columnSubSequence(0, end.end()),rule.getStyle());
                                 a.append(asb.columnSubSequence(end.end(), asb.length()));
-                                asb = a;
                                 ruleStartId = 0;
                             } else {
-                                asb = a.append(l, rule.getStyle());
+                                a.append(asb, rule.getStyle());
                                 done = true;
                             }
+                            asb = a;
                         } else {
                             if (start.find()) {
                                 a.append(asb.columnSubSequence(0, start.start()));
