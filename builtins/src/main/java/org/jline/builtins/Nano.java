@@ -759,7 +759,7 @@ public class Nano {
                 out.addRule(s.foreground(AttributedStyle.WHITE), Pattern.compile("^.+$"));
                 out.addRule(s.foreground(AttributedStyle.GREEN), Pattern.compile("<"), Pattern.compile(">"));
                 out.addRule(s.foreground(AttributedStyle.CYAN), Pattern.compile("<[^> ]+"));
-                out.addRule(s.foreground(AttributedStyle.MAGENTA), Pattern.compile("\"[^\"].*\""));
+                out.addRule(s.foreground(AttributedStyle.MAGENTA), Pattern.compile("\"[^\"]*\""));
                 out.addRule(s.foreground(AttributedStyle.CYAN), Pattern.compile(">"));
                 out.addRule(s.foreground(AttributedStyle.YELLOW), Pattern.compile("<!DOCTYPE"), Pattern.compile("[/]?>"));
                 out.addRule(s.foreground(AttributedStyle.YELLOW), Pattern.compile("<!--"), Pattern.compile("-->"));
