@@ -3,6 +3,7 @@ package de.codeshelf.consoleui.prompt.reader;
 import jline.console.ConsoleReader;
 import jline.console.Operation;
 import jline.console.completer.Completer;
+import jline.internal.NonBlockingInputStream;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -16,6 +17,7 @@ import java.util.Stack;
  */
 public class ConsoleReaderImpl implements ReaderIF {
   ConsoleReader console;
+  NonBlockingInputStream in;
 
   private Set<SpecialKey> allowedSpecialKeys;
   private Set<Character> allowedPrintableKeys;
@@ -25,6 +27,7 @@ public class ConsoleReaderImpl implements ReaderIF {
     allowedSpecialKeys = new HashSet<SpecialKey>();
 
     console = new ConsoleReader();
+    in = (NonBlockingInputStream) console.getInput();
   }
 
   public void setAllowedSpecialKeys(Set<SpecialKey> allowedSpecialKeys) {
@@ -52,7 +55,7 @@ public class ConsoleReaderImpl implements ReaderIF {
     Stack<Character> pushBackChar = new Stack<Character>();
     try {
       while (true) {
-        int c = pushBackChar.isEmpty() ? console.readCharacter() : pushBackChar.pop ();
+        int c = pushBackChar.isEmpty() ? in.read() : pushBackChar.pop ();
         if (c == -1) {
             return null;
         }
@@ -84,8 +87,8 @@ public class ConsoleReaderImpl implements ReaderIF {
     } catch (IOException e) {
       e.printStackTrace();
     } finally {
-    	System.out.println("!!!!!!!!!!!!!! UPDTED");
-    	console.shutdown();
+//    	System.out.println("!!!!!!!!!!!!!! UPDTED");
+//    	console.shutdown();
     }
     return null;
   }
