@@ -1,15 +1,15 @@
 package de.codeshelf.consoleui.prompt.reader;
 
-import jline.console.ConsoleReader;
-import jline.console.Operation;
-import jline.console.completer.Completer;
-import jline.internal.NonBlockingInputStream;
-
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.Stack;
+
+import jline.console.ConsoleReader;
+import jline.console.Operation;
+import jline.console.completer.Completer;
 
 /**
  * User: Andreas Wegmann
@@ -80,7 +80,9 @@ public class ConsoleReaderImpl implements ReaderIF {
               sb = new StringBuilder();
             }
           }
+          return new ReaderInput(SpecialKey.NONE);
         }
+        if(Objects.isNull(op)) return new ReaderInput(SpecialKey.NONE);
       }
     } catch (IOException e) {
       e.printStackTrace();

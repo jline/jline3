@@ -13,6 +13,7 @@ import java.util.Set;
 public interface ReaderIF {
 
   public enum SpecialKey {
+	NONE,
     UP,
     DOWN,
     ENTER,
