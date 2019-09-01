@@ -4,12 +4,7 @@ buildscript {
       url 'https://plugins.gradle.org/m2/'
     }
   }
-  dependencies {
-    classpath 'net.researchgate:gradle-release:2.3.4'
-  }
 }
-
-apply plugin: 'net.researchgate.release'
 
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
@@ -17,7 +12,6 @@ apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'maven'
 apply plugin: 'signing'
-apply plugin: 'eclipse'
 
 repositories {
     mavenCentral()
@@ -26,11 +20,6 @@ repositories {
 compileJava {
   sourceCompatibility = 1.8
   targetCompatibility = 1.8
-}
-
-
-task wrapper(type: Wrapper) {
-  gradleVersion = '2.11'
 }
 
 
@@ -58,8 +47,8 @@ task sourcesJar(type: Jar) {
 // Fat-jar
 task fatJar(type: Jar, dependsOn: [':compileJava', ':processResources']) {
   from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-  from files(sourceSets.main.output.classesDir)
-  from files(sourceSets.main.resources)
+  from sourceSets.main.output.classesDirs
+  from sourceSets.main.output.resourcesDir
   baseName = project.name + '-all'
   manifest {
       attributes 'Implementation-Title': 'ConsoleUI',
