@@ -50,14 +50,14 @@ public class ExpandableChoicePrompt extends AbstractListablePrompt implements Pr
       System.out.println(ansi().eraseLine().cursorUp(2));
       System.out.print(renderMessagePrompt(expandableChoice.getMessage()) + " (" + promptString + ") ");
       System.out.flush();
-      renderHeight = 1;
+      renderHeight = 2;
     } else if (renderState == RenderState.FOLDED_ANSWERED) {
       System.out.println("");
       System.out.println(ansi().fg(Ansi.Color.CYAN).a(">> ").reset().a(chosenItem.getMessage()).eraseLine());
       System.out.print(ansi().cursorUp(2));
       System.out.print(renderMessagePrompt(expandableChoice.getMessage()) + " (" + promptString + ") ");
       System.out.flush();
-      renderHeight = 1;
+      renderHeight = 2;
     }
   }
 

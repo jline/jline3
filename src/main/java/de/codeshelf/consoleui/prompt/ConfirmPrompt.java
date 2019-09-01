@@ -56,7 +56,7 @@ public class ConfirmPrompt extends AbstractPrompt implements PromptIF<ConfirmCho
     }
 
     if (renderHeight == 0) {
-      renderHeight = 1;
+      renderHeight = 2;
     } else {
       System.out.println(ansi().cursorUp(renderHeight));
     }
@@ -106,7 +106,7 @@ public class ConfirmPrompt extends AbstractPrompt implements PromptIF<ConfirmCho
     System.out.print(renderMessagePrompt(this.confirmChoice.getMessage()) +
             itemRenderer.renderConfirmChoiceOptions(this.confirmChoice) + " " + ansi().reset().a(calcResultValue() + " ").eraseLine());
     System.out.flush();
-    renderHeight = 1;
+    renderHeight = 2;
   }
 
   /**

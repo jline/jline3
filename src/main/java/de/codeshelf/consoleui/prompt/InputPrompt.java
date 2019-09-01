@@ -38,10 +38,8 @@ public class InputPrompt extends AbstractPrompt implements PromptIF<InputValue,I
     }
 
     if (renderHeight == 0) {
-      renderHeight = 1;
-    } else {
-      System.out.println(ansi().cursorUp(renderHeight));
-    }
+      renderHeight = 2;
+    } 
 
     String prompt = renderMessagePrompt(this.inputElement.getMessage()) + itemRenderer.renderOptionalDefaultValue(this.inputElement);
     //System.out.print(prompt + itemRenderer.renderValue(this.inputElement));
