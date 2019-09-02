@@ -73,7 +73,6 @@ public class Nano {
     protected final BindingReader bindingReader;
     protected final Size size;
     protected final Path root;
-    protected final boolean restricted;
     protected final int vsusp;
 
     // Keys
@@ -109,6 +108,7 @@ public class Nano {
     protected boolean searchCaseSensitive;
     protected boolean searchRegexp;
     protected boolean searchBackwards;
+    protected boolean restricted;
     protected String searchTerm;
     protected List<String> searchTerms = new ArrayList<>();
     protected int searchTermId = -1;
@@ -1427,6 +1427,10 @@ public class Nano {
         this.restricted = opts != null && opts.isSet("restricted");
         this.vsusp = terminal.getAttributes().getControlChar(ControlChar.VSUSP);
         bindKeys();
+    }
+
+    public void setRestricted(boolean restricted) {
+        this.restricted = restricted;
     }
 
     public void open(String... files) throws IOException {

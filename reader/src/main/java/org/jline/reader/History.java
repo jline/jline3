@@ -133,6 +133,11 @@ public interface History extends Iterable<History.Entry>
             public Entry next() {
                 return it.previous();
             }
+            @Override
+            public void remove() {
+                it.remove();
+                resetIndex();
+            }
         };
     }
 
@@ -191,4 +196,9 @@ public interface History extends Iterable<History.Entry>
      * all of the other iterator.
      */
     void moveToEnd();
+    
+    /**
+     * Reset index after remove
+     */
+    void resetIndex();
 }

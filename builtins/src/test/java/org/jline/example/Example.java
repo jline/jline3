@@ -340,38 +340,28 @@ public class Example
                 String line = null;
                 try {
                     line = reader.readLine(prompt, rightPrompt, (MaskingCallback) null, null);
-                } catch (UserInterruptException e) {
-                    // Ignore
-                } catch (EndOfFileException e) {
-                    return;
-                }
-                if (line == null) {
-                    continue;
-                }
+                    line = line.trim();
 
-                line = line.trim();
-
-                if (color) {
-                    terminal.writer().println(
+                    if (color) {
+                        terminal.writer().println(
                             AttributedString.fromAnsi("\u001B[33m======>\u001B[0m\"" + line + "\"")
                                 .toAnsi(terminal));
 
-                } else {
-                    terminal.writer().println("======>\"" + line + "\"");
-                }
-                terminal.flush();
+                    } else {
+                        terminal.writer().println("======>\"" + line + "\"");
+                    }
+                    terminal.flush();
 
-                // If we input the special word then we will mask
-                // the next line.
-                if ((trigger != null) && (line.compareTo(trigger) == 0)) {
-                    line = reader.readLine("password> ", mask);
-                }
-                if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) {
-                    break;
-                }
-                ParsedLine pl = reader.getParser().parse(line, 0);
-                String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
-                try {
+                    // If we input the special word then we will mask
+                    // the next line.
+                    if ((trigger != null) && (line.compareTo(trigger) == 0)) {
+                        line = reader.readLine("password> ", mask);
+                    }
+                    if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) {
+                        break;
+                    }
+                    ParsedLine pl = reader.getParser().parse(line, 0);
+                    String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
                     if ("set".equals(pl.word())) {
                         if (pl.words().size() == 3) {
                             reader.setVariable(pl.words().get(1), pl.words().get(2));
@@ -410,9 +400,6 @@ public class Example
                     else if ("sleep".equals(pl.word())) {
                         Thread.sleep(3000);
                     }
-                    //
-                    // builtin commands are added in order to test HelpPrinter class
-                    //
                     else if ("tmux".equals(pl.word())) {
                         Commands.tmux(terminal, System.out, System.err,
                                 null, //Supplier<Object> getter,   
@@ -464,6 +451,12 @@ public class Example
                 }
                 catch (IllegalArgumentException e) {
                     System.out.println(e.getMessage());
+                }
+                catch (UserInterruptException e) {
+                    // Ignore
+                }
+                catch (EndOfFileException e) {
+                    return;
                 }
             }
         }

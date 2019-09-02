@@ -8,6 +8,10 @@
  */
 package org.jline.builtins;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -186,8 +190,9 @@ public class Commands {
                                String[] argv) throws Exception {
         final String[] usage = {
                 "history -  list history of commands",
-                "Usage: history [-dnrfEi] [-m match] [first] [last]",
+                "Usage: history [-dnrfEie] [-m match] [first] [last]",
                 "       history -ARWI [filename]",
+                "       history -s [old=new] [command]",
                 "       history --clear",
                 "       history --save",
                 "  -? --help                       Displays command help",
@@ -209,7 +214,9 @@ public class Commands {
                 "                                  to the file are added",
                 "  [first] [last]                  These optional arguments may be specified as a number or as a string. A negative number",
                 "                                  is used as an offset to the current history event number. A string specifies the most", 
-                "                                  recent event beginning with the given string."};
+                "                                  recent event beginning with the given string.",
+                "  -e                              Uses the nano editor to edit the commands before executing",
+                "  -s                              Re-executes the command without invoking an editor"};
         Options opt = Options.compile(usage).parse(argv);
 
         if (opt.isSet("help")) {
@@ -237,9 +244,11 @@ public class Commands {
         if (done) {
             return;
         }
-        int argId = 0;
+        ReExecute execute = new ReExecute(history, opt);
+        int argId = execute.getArgId();
+        
         Pattern pattern = null;
-        if (opt.isSet("m") && opt.args().size() > 0) {
+        if (opt.isSet("m") && opt.args().size() > argId) {
             StringBuilder sb = new StringBuilder();
             char prev = '0';
             for (char c: opt.args().get(argId++).toCharArray()) {
@@ -251,11 +260,11 @@ public class Commands {
             }
             pattern = Pattern.compile(sb.toString(), Pattern.DOTALL);
         }
+        boolean reverse = opt.isSet("r") || (opt.isSet("s") && opt.args().size() <= argId);
         int firstId = opt.args().size() > argId ? retrieveHistoryId(history, opt.args().get(argId++)) : -17;
         int lastId  = opt.args().size() > argId ? retrieveHistoryId(history, opt.args().get(argId++)) : -1;
         firstId = historyId(firstId, history.first(), history.last());
         lastId  = historyId(lastId, history.first(), history.last());
-        boolean reverse = opt.isSet("r");
         if (firstId > lastId) {
             int tmpId = firstId;
             firstId = lastId;
@@ -271,41 +280,132 @@ public class Commands {
         } else {
             iter =  history.iterator(firstId);
         }
+
         while (iter.hasNext() && listed < tot) {
             History.Entry entry = iter.next();
             listed++;
             if (pattern != null && !pattern.matcher(entry.line()).matches()) {
                 continue;
             }
-            AttributedStringBuilder sb = new AttributedStringBuilder();
-            if (!opt.isSet("n")) {
-                sb.append("  ");
-                sb.styled(AttributedStyle::bold, String.format("%3d", entry.index()));
-            }
-            if (opt.isSet("d") || opt.isSet("f") || opt.isSet("E") || opt.isSet("i")) {
-                sb.append("  ");
-                if (opt.isSet("d")) {
-                    LocalTime lt = LocalTime.from(entry.time().atZone(ZoneId.systemDefault()))
-                            .truncatedTo(ChronoUnit.SECONDS);
-                    DateTimeFormatter.ISO_LOCAL_TIME.formatTo(lt, sb);
+            if (execute.isExecute()) {
+                if (execute.isEdit()) {
+                    execute.addCommandInFile(entry.line());
                 } else {
-                    LocalDateTime lt = LocalDateTime.from(entry.time().atZone(ZoneId.systemDefault())
-                            .truncatedTo(ChronoUnit.MINUTES));
-                    String format = "yyyy-MM-dd hh:mm";
-                    if (opt.isSet("f")) {
-                        format = "MM/dd/yy hh:mm";
-                    } else if (opt.isSet("E")) {
-                        format = "dd.MM.yyyy hh:mm";
-                    }
-                    DateTimeFormatter.ofPattern(format).formatTo(lt, sb);
+                    execute.addCommandInBuffer(reader, entry.line());
+                    break;
                 }
+            } else {
+                AttributedStringBuilder sb = new AttributedStringBuilder();
+                if (!opt.isSet("n")) {
+                    sb.append("  ");
+                    sb.styled(AttributedStyle::bold, String.format("%3d", entry.index()));
+                }
+                if (opt.isSet("d") || opt.isSet("f") || opt.isSet("E") || opt.isSet("i")) {
+                    sb.append("  ");
+                    if (opt.isSet("d")) {
+                        LocalTime lt = LocalTime.from(entry.time().atZone(ZoneId.systemDefault()))
+                                .truncatedTo(ChronoUnit.SECONDS);
+                        DateTimeFormatter.ISO_LOCAL_TIME.formatTo(lt, sb);
+                    } else {
+                        LocalDateTime lt = LocalDateTime.from(entry.time().atZone(ZoneId.systemDefault())
+                                .truncatedTo(ChronoUnit.MINUTES));
+                        String format = "yyyy-MM-dd hh:mm";
+                        if (opt.isSet("f")) {
+                            format = "MM/dd/yy hh:mm";
+                        } else if (opt.isSet("E")) {
+                            format = "dd.MM.yyyy hh:mm";
+                        }
+                        DateTimeFormatter.ofPattern(format).formatTo(lt, sb);
+                    }
+                }
+                sb.append("  ");
+                sb.append(highlighter.highlight(reader, entry.line()));
+                out.println(sb.toAnsi(reader.getTerminal()));
             }
-            sb.append("  ");
-            sb.append(highlighter.highlight(reader, entry.line()));
-            out.println(sb.toAnsi(reader.getTerminal()));
         }
+        execute.editCommandsAndClose(reader);
     }
 
+    private static class ReExecute {
+        private final boolean execute;
+        private final boolean edit;
+        private String oldParam;
+        private String newParam;
+        private FileWriter cmdWriter;
+        private File cmdFile;
+        private int argId = 0;
+       
+        public ReExecute(History history, Options opt) throws IOException {
+            execute = opt.isSet("e") || opt.isSet("s");
+            edit = opt.isSet("e");
+            if (execute) {
+                Iterator<History.Entry> iter = history.reverseIterator(history.last());
+                if (iter.hasNext()) {
+                    iter.next();
+                    iter.remove();                
+                }
+                if (edit) {
+                    cmdFile = File.createTempFile("jline-history-", null);
+                    cmdWriter = new FileWriter(cmdFile);
+                } else if (opt.args().size() > 0 ) {
+                    String[] s = opt.args().get(argId).split("=");
+                    if (s.length == 2) {
+                        argId = argId + 1;
+                        oldParam = s[0];
+                        newParam = s[1];
+                    } 
+                }
+            }
+        }
+       
+        public int getArgId() {
+            return argId;
+        }
+       
+        public boolean isEdit() {
+            return edit;
+        }
+        
+        public boolean isExecute() {
+            return execute;
+        }
+
+        public void addCommandInFile(String command) throws IOException {
+            cmdWriter.write(command + "\n");
+        }
+        
+        public void addCommandInBuffer(LineReader reader, String command) {
+            reader.addCommandsInBuffer(Arrays.asList(replaceParam(command)));
+        }
+       
+        private String replaceParam(String command) {
+            String out = command;
+            if (oldParam != null && newParam != null) {
+                out = command.replaceAll(oldParam, newParam);
+            }
+            return out;
+        }
+       
+        public void editCommandsAndClose(LineReader reader) throws IOException {
+            if (edit) {
+                cmdWriter.close();
+                Nano editor = new Nano(reader.getTerminal(), new File(cmdFile.getParent()));
+                editor.setRestricted(true);
+                editor.open(Arrays.asList(cmdFile.getName()));
+                editor.run();
+                List<String> commands = new ArrayList<>();
+                BufferedReader br = new BufferedReader(new FileReader(cmdFile));
+                String line;
+                while ((line = br.readLine()) != null) {
+                    commands.add(line);
+                }
+                br.close();
+                reader.addCommandsInBuffer(commands);
+                cmdFile.delete();
+            }
+        }
+    }
+   
     private static int historyId(int id, int minId, int maxId) {
         int out = id;
         if (id < 0) {

@@ -9,6 +9,7 @@
 package org.jline.reader;
 
 import java.io.InputStream;
+import java.util.Collection;
 import java.util.Map;
 import java.util.function.IntConsumer;
 
@@ -654,5 +655,7 @@ public interface LineReader {
     RegionType getRegionActive();
 
     int getRegionMark();
+
+    void addCommandsInBuffer(Collection<String> commands);
 
 }

@@ -253,7 +253,11 @@ public class LineReaderImpl implements LineReader, Flushable
     protected boolean nextCommandFromHistory = false;
     protected int nextHistoryId = -1;
 
-
+    /*
+     * execute commands from history
+     */
+    protected List<String> commandsBuffer = new ArrayList<>();
+    
     public LineReaderImpl(Terminal terminal) throws IOException {
         this(terminal, null, null);
     }
@@ -471,7 +475,29 @@ public class LineReaderImpl implements LineReader, Flushable
         // prompt may be null
         // maskingCallback may be null
         // buffer may be null
-
+        if (!commandsBuffer.isEmpty()) {
+            String cmd = commandsBuffer.remove(0);
+            boolean done = false; 
+            do {
+                try {
+                    parser.parse(cmd, cmd.length() + 1, ParseContext.ACCEPT_LINE);
+                    done = true;
+                } catch (EOFError e) {
+                    if (commandsBuffer.isEmpty()) {
+                        throw new IllegalArgumentException("Incompleted command: \n" + cmd);
+                    }
+                    cmd += "\n";
+                    cmd += commandsBuffer.remove(0);
+                } catch (SyntaxError e) {
+                    done = true;
+                }
+            } while (!done);
+            AttributedStringBuilder sb = new AttributedStringBuilder();
+            sb.styled(AttributedStyle::bold, cmd);
+            sb.toAttributedString().println(terminal);
+            terminal.flush();
+            return finish(cmd);
+        }
         if (!startedReading.compareAndSet(false, true)) {
             throw new IllegalStateException();
         }
@@ -983,6 +1009,10 @@ public class LineReaderImpl implements LineReader, Flushable
         options.put(option, Boolean.FALSE);
     }
 
+    @Override
+    public void addCommandsInBuffer(Collection<String> commands) {
+        commandsBuffer.addAll(commands);        
+    }
 
 
     //
@@ -995,7 +1025,10 @@ public class LineReaderImpl implements LineReader, Flushable
      * @return the former contents of the buffer.
      */
     protected String finishBuffer() {
-        String str = buf.toString();
+        return finish(buf.toString());
+    }
+    
+    protected String finish(String str) {
         String historyLine = str;
 
         if (!isSet(Option.DISABLE_EVENT_EXPANSION)) {

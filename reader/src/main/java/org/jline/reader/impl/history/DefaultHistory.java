@@ -435,6 +435,10 @@ public class DefaultHistory implements History {
     public Spliterator<Entry> spliterator() {
         return items.spliterator();
     }
+    
+    public void resetIndex() {
+        index = index > items.size() ? items.size() : index;
+    }
 
     protected static class EntryImpl implements Entry {
 
