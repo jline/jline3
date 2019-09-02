@@ -14,7 +14,7 @@ branches:
     - master
 
 jdk:
-  - oraclejdk8
+  - openjdk8
 
 # FIXME: for now just complain; do not fail as the present license headers have inconsistent date ranges
 install: ./build ci-prepare -Dlicense.failIfMissing=false $MAVEN_OPTIONS
