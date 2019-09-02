@@ -86,7 +86,7 @@ public class Nano {
     public boolean mouseSupport = false;
     public boolean oneMoreLine = true;
     public boolean constantCursor;
-    public int tabs = 4;
+    public int tabs = 1;   // tabs are not currently supported!
     public String brackets = "\"’)>]}";
     public String matchBrackets = "(<[{)>]}";
     public String punct = "!.?";
@@ -114,6 +114,9 @@ public class Nano {
     protected int searchTermId = -1;
     protected WriteMode writeMode = WriteMode.WRITE;
     protected boolean writeBackup;
+    protected List<String> cutbuffer = new ArrayList<>();
+    protected boolean cut2end = false;
+    protected boolean mark = false;
 
     protected boolean readNewBuffer = true;
 
@@ -136,7 +139,7 @@ public class Nano {
         List<String> lines;
 
         int firstLineToDisplay;
-        int firstColumnToDisplay;
+        int firstColumnToDisplay = 0;
         int offsetInLineToDisplay;
 
         int line;
@@ -144,11 +147,15 @@ public class Nano {
         int offsetInLine;
         int column;
         int wantedColumn;
+        boolean uncut = false;
+        int[] markPos = {-1, -1}; // line, offsetInLine + column
+        SyntaxHighlighter syntaxHighlighter;
 
         boolean dirty;
 
         protected Buffer(String file) {
             this.file = file;
+            this.syntaxHighlighter = doSyntaxHighlighter();
         }
 
         void open() throws IOException {
@@ -256,6 +263,7 @@ public class Nano {
                 offsets.add(line, computeOffsets(ins.get(i)));
             }
             moveToChar(ins.get(ins.size() - 1).length() - (text.length() - pos));
+            ensureCursorVisible();
             dirty = true;
         }
 
@@ -270,22 +278,24 @@ public class Nano {
             int width = size.getColumns() - (printLineNumbers ? 8 : 0);
             LinkedList<Integer> offsets = new LinkedList<>();
             offsets.add(0);
-            int last = 0;
-            int prevword = 0;
-            boolean inspace = false;
-            for (int i = 0; i < text.length(); i++) {
-                if (isBreakable(text.charAt(i))) {
-                    inspace = true;
-                } else if (inspace) {
-                    prevword = i;
-                    inspace = false;
-                }
-                if (i == last + width - 1) {
-                    if (prevword == last) {
+            if (wrapping) {
+                int last = 0;
+                int prevword = 0;
+                boolean inspace = false;
+                for (int i = 0; i < text.length(); i++) {
+                    if (isBreakable(text.charAt(i))) {
+                        inspace = true;
+                    } else if (inspace) {
                         prevword = i;
+                        inspace = false;
                     }
-                    offsets.add(prevword);
-                    last = prevword;
+                    if (i == last + width - 1) {
+                        if (prevword == last) {
+                            prevword = i;
+                        }
+                        offsets.add(prevword);
+                        last = prevword;
+                    }
                 }
             }
             return offsets;
@@ -296,6 +306,13 @@ public class Nano {
         }
 
         void moveToChar(int pos) {
+            if (!wrapping) {
+                if (pos > column && pos - firstColumnToDisplay + 1 > width()) {
+                    firstColumnToDisplay = offsetInLine + column - 6;
+                } else if (pos < column && firstColumnToDisplay + 5 > pos) {
+                    firstColumnToDisplay = Math.max(0, firstColumnToDisplay - width() + 5);
+                }
+            }
             offsetInLine = prevLineOffset(line, pos + 1).get();
             column = pos - offsetInLine;
         }
@@ -331,6 +348,7 @@ public class Nano {
                     dirty = true;
                 }
             }
+            ensureCursorVisible();
             return true;
         }
 
@@ -354,13 +372,28 @@ public class Nano {
         }
 
         boolean moveRight(int chars) {
+            return moveRight(chars, false);
+        }
+
+        int width() {
+            return size.getColumns() - (printLineNumbers ? 8 : 0) - (wrapping ? 0 : 1) - (firstColumnToDisplay > 0 ? 1 : 0);
+        }
+
+        boolean moveRight(int chars, boolean fromBeginning) {
+            if (fromBeginning) {
+                firstColumnToDisplay = 0;
+                offsetInLine = 0;
+                column = 0;
+                chars = chars <= length(getLine(line), tabs) ? chars : length(getLine(line), tabs);
+            }
             boolean ret = true;
             while (--chars >= 0) {
-                int len = length(getLine(line), tabs);
+                int len =  length(getLine(line), tabs);
                 if (offsetInLine + column + 1 <= len) {
                     moveToChar(offsetInLine + column + 1);
                 } else if (getLine(line + 1) != null) {
                     line++;
+                    firstColumnToDisplay = 0;
                     offsetInLine = 0;
                     column = 0;
                 } else {
@@ -412,7 +445,7 @@ public class Nano {
             // Adjust cursor
             while (--lines >= 0) {
                 int lastLineToDisplay = firstLineToDisplay;
-                if (firstColumnToDisplay > 0 || !wrapping) {
+                if (!wrapping) {
                     lastLineToDisplay += height - 1;
                 } else {
                     int off = offsetInLineToDisplay;
@@ -457,8 +490,9 @@ public class Nano {
 
         private void cursorDown(int lines) {
             // Adjust cursor
+            firstColumnToDisplay = 0;
             while (--lines >= 0) {
-                if (firstColumnToDisplay > 0 || !wrapping) {
+                if (!wrapping) {
                     if (getLine(line + 1) != null) {
                         line++;
                         offsetInLine = 0;
@@ -488,8 +522,9 @@ public class Nano {
         }
 
         private void cursorUp(int lines) {
+            firstColumnToDisplay = 0;
             while (--lines >= 0) {
-                if (firstColumnToDisplay > 0 || !wrapping) {
+                if (!wrapping) {
                     if (line > 0) {
                         line--;
                         column = Math.min(length(getLine(line), tabs) - offsetInLine, wantedColumn);
@@ -525,31 +560,7 @@ public class Nano {
             }
 
             while (true) {
-                int cursor = header.size() * size.getColumns() + (printLineNumbers ? 8 : 0);
-                int cur = firstLineToDisplay;
-                int off = offsetInLineToDisplay;
-                while (true) {
-                    if (cur < line || off < offsetInLine) {
-                        if (firstColumnToDisplay > 0 || !wrapping) {
-                            cursor += rwidth;
-                            cur++;
-                        } else {
-                            cursor += rwidth;
-                            Optional<Integer> next = nextLineOffset(cur, off);
-                            if (next.isPresent()) {
-                                off = next.get();
-                            } else {
-                                cur++;
-                                off = 0;
-                            }
-                        }
-                    } else if (cur == line) {
-                        cursor += column;
-                        break;
-                    } else {
-                        throw new IllegalStateException();
-                    }
-                }
+                int cursor = computeCursorPosition(header.size() * size.getColumns() + (printLineNumbers ? 8 : 0), rwidth);
                 if (cursor >= (height + header.size()) * rwidth) {
                     moveDisplayDown(smoothScrolling ? 1 : height / 2);
                 } else {
@@ -565,10 +576,13 @@ public class Nano {
         }
 
         void resetDisplay() {
-            int width = size.getColumns() - (printLineNumbers ? 8 : 0);
+// mrn 29/7/2019 same calculation as in endOfLine() & nextSearch() methods that were failing
+//               change also here although haven't seen an error
+//            int width = size.getColumns() - (printLineNumbers ? 8 : 0);
             column = offsetInLine + column;
-            offsetInLine = (column / width) * (width - 1);
-            column = column - offsetInLine;
+//            offsetInLine = (column / width) * (width - 1);
+//            column = column - offsetInLine;
+            moveRight(column, true);
         }
 
         String getLine(int line) {
@@ -652,6 +666,109 @@ public class Nano {
             }
         }
 
+        void highlightDisplayedLine(int curLine, int curOffset, int nextOffset, AttributedStringBuilder line){
+            AttributedString disp = syntaxHighlighter.highlightNextLine(new AttributedString(getLine(curLine)));
+            if (!mark) {
+                line.append(disp.columnSubSequence(curOffset, nextOffset));
+            } else if (getMarkStart()[0] == getMarkEnd()[0]) {
+                if (curLine == getMarkStart()[0]) {
+                    if (getMarkStart()[1] > nextOffset) {
+                        line.append(disp.columnSubSequence(curOffset, nextOffset));
+                    } else if (getMarkStart()[1] <  curOffset) {
+                        if (getMarkEnd()[1] > nextOffset) {
+                            line.append(disp.columnSubSequence(curOffset, nextOffset), AttributedStyle.INVERSE);
+                        } else if (getMarkEnd()[1] > curOffset) {
+                            line.append(disp.columnSubSequence(curOffset, getMarkEnd()[1]), AttributedStyle.INVERSE);
+                            line.append(disp.columnSubSequence(getMarkEnd()[1], nextOffset));
+                        } else {
+                            line.append(disp.columnSubSequence(curOffset, nextOffset));
+                        }
+                    } else {
+                        line.append(disp.columnSubSequence(curOffset, getMarkStart()[1]));
+                        if (getMarkEnd()[1] > nextOffset) {
+                            line.append(disp.columnSubSequence(getMarkStart()[1], nextOffset), AttributedStyle.INVERSE);
+                        } else {
+                            line.append(disp.columnSubSequence(getMarkStart()[1], getMarkEnd()[1]), AttributedStyle.INVERSE);
+                            line.append(disp.columnSubSequence(getMarkEnd()[1], nextOffset));
+                        }
+                    }
+                } else {
+                    line.append(disp.columnSubSequence(curOffset, nextOffset));
+                }
+            } else {
+                if (curLine > getMarkStart()[0] && curLine < getMarkEnd()[0]) {
+                    line.append(disp.columnSubSequence(curOffset, nextOffset), AttributedStyle.INVERSE);
+                } else if (curLine == getMarkStart()[0]) {
+                    if (getMarkStart()[1] > nextOffset) {
+                        line.append(disp.columnSubSequence(curOffset, nextOffset));
+                    } else if (getMarkStart()[1] < curOffset) {
+                        line.append(disp.columnSubSequence(curOffset, nextOffset), AttributedStyle.INVERSE);
+                    } else {
+                        line.append(disp.columnSubSequence(curOffset, getMarkStart()[1]));
+                        line.append(disp.columnSubSequence(getMarkStart()[1], nextOffset), AttributedStyle.INVERSE);
+                    }
+                } else if (curLine == getMarkEnd()[0]) {
+                    if (getMarkEnd()[1] < curOffset) {
+                        line.append(disp.columnSubSequence(curOffset, nextOffset));
+                    } else if (getMarkEnd()[1] > nextOffset) {
+                        line.append(disp.columnSubSequence(curOffset, nextOffset), AttributedStyle.INVERSE);
+                    } else {
+                        line.append(disp.columnSubSequence(curOffset, getMarkEnd()[1]), AttributedStyle.INVERSE);
+                        line.append(disp.columnSubSequence(getMarkEnd()[1], nextOffset));
+                    }
+                } else {
+                    line.append(disp.columnSubSequence(curOffset, nextOffset));
+                }
+            }
+        }
+
+        /*
+         * Hardcoded syntax patterns... these should be read from config file
+         * Patterns could be get from
+         * https://github.com/scopatz/nanorc
+         * and converted prefibilmente automatically to java format when reading
+         * config
+         */
+        private SyntaxHighlighter doSyntaxHighlighter() {
+            AttributedStyle s = AttributedStyle.DEFAULT.foreground(AttributedStyle.BLACK + AttributedStyle.BRIGHT);
+            SyntaxHighlighter out = new SyntaxHighlighter();
+            if (file == null) {
+                // do nothing
+            } else if (file.endsWith(".java")) {
+                out.addRule(s.foreground(AttributedStyle.GREEN)
+                        , Pattern.compile("\\b(boolean|byte|char|double|float|int|long|new|short|this"
+                                        + "|transient|void)\\b"));
+                out.addRule(s.foreground(AttributedStyle.RED)
+                        , Pattern.compile("\\b(break|case|catch|continue|default|do|else|finally|for" 
+                                        + "|if|return|switch|throw|try|while)\\b"));
+                out.addRule(s.foreground(AttributedStyle.CYAN)
+                        , Pattern.compile("\\b(abstract|class|extends|final|implements|import|instanceof"
+                                        + "|interface|native|package|private|protected|public|static|strictfp"
+                                        + "|super|synchronized|throws|volatile)\\b"));
+                out.addRule(s.foreground(AttributedStyle.RED), Pattern.compile("\"[^\"]*\""));
+                out.addRule(s.foreground(AttributedStyle.YELLOW), Pattern.compile("\\b(true|false|null)\\b"));
+                out.addRule(s.foreground(AttributedStyle.YELLOW), Pattern.compile("\\b(([1-9][0-9]+)|0+)\\.[0-9]+\\b"));
+                out.addRule(s.foreground(AttributedStyle.YELLOW), Pattern.compile("\\b[1-9][0-9]*\\b"));
+                out.addRule(s.foreground(AttributedStyle.YELLOW), Pattern.compile("\\b0[0-7]*\\b"));
+                out.addRule(s.foreground(AttributedStyle.YELLOW), Pattern.compile("\\b0x[1-9a-f][0-9a-f]*\\b"));
+                out.addRule(s.foreground(AttributedStyle.BLUE), Pattern.compile("//.*"));
+                out.addRule(s.foreground(AttributedStyle.BLUE), Pattern.compile("/\\*"), Pattern.compile("\\*/"));
+                out.addRule(s.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT), Pattern.compile("/\\*\\*"), Pattern.compile("\\*/"));
+                out.addRule(s.background(AttributedStyle.GREEN), Pattern.compile("\\s+$"));
+            } else if (file.endsWith(".xml")) {
+                out.addRule(s.foreground(AttributedStyle.WHITE), Pattern.compile("^.+$"));
+                out.addRule(s.foreground(AttributedStyle.GREEN), Pattern.compile("<"), Pattern.compile(">"));
+                out.addRule(s.foreground(AttributedStyle.CYAN), Pattern.compile("<[^> ]+"));
+                out.addRule(s.foreground(AttributedStyle.MAGENTA), Pattern.compile("\"[^\"]*\""));
+                out.addRule(s.foreground(AttributedStyle.CYAN), Pattern.compile(">"));
+                out.addRule(s.foreground(AttributedStyle.YELLOW), Pattern.compile("<!DOCTYPE"), Pattern.compile("[/]?>"));
+                out.addRule(s.foreground(AttributedStyle.YELLOW), Pattern.compile("<!--"), Pattern.compile("-->"));
+                out.addRule(s.foreground(AttributedStyle.RED), Pattern.compile("&[^;]*;"));
+                out.addRule(s.background(AttributedStyle.GREEN), Pattern.compile("\\s+$"));
+            }
+            return out;
+        }
+
         List<AttributedString> getDisplayedLines(int nbLines) {
             AttributedStyle s = AttributedStyle.DEFAULT.foreground(AttributedStyle.BLACK + AttributedStyle.BRIGHT);
             AttributedString cut = new AttributedString("…", s);
@@ -663,6 +780,7 @@ public class Nano {
             int curLine = firstLineToDisplay;
             int curOffset = offsetInLineToDisplay;
             int prevLine = -1;
+            syntaxHighlighter.reset();
             for (int terminalLine = 0; terminalLine < nbLines; terminalLine++) {
                 AttributedStringBuilder line = new AttributedStringBuilder().tabs(tabs);
                 if (printLineNumbers && curLine < lines.size()) {
@@ -677,26 +795,38 @@ public class Nano {
                 }
                 if (curLine >= lines.size()) {
                     // Nothing to do
-                } else if (firstColumnToDisplay > 0 || !wrapping) {
+                } else if (!wrapping) {
                     AttributedString disp = new AttributedString(getLine(curLine));
-                    disp = disp.columnSubSequence(firstColumnToDisplay, Integer.MAX_VALUE);
-                    if (disp.columnLength() >= width) {
-                        line.append(disp.columnSubSequence(0, width - cut.columnLength()));
-                        line.append(cut);
+                    if (this.line == curLine) {
+                        int cutCount = 1;
+                        if (firstColumnToDisplay > 0) {
+                            line.append(cut);
+                            cutCount = 2;
+                        }
+                        if (disp.columnLength() - firstColumnToDisplay >= width - (cutCount - 1)*cut.columnLength()) {
+                            highlightDisplayedLine(curLine, firstColumnToDisplay
+                                , firstColumnToDisplay + width - cutCount*cut.columnLength(), line);
+                            line.append(cut);
+                        } else {
+                            highlightDisplayedLine(curLine, firstColumnToDisplay, disp.columnLength(), line);
+                        }
                     } else {
-                        line.append(disp);
+                        if (disp.columnLength() >= width) {
+                            highlightDisplayedLine(curLine, 0, width - cut.columnLength(), line);
+                            line.append(cut);
+                        } else {
+                            highlightDisplayedLine(curLine, 0, disp.columnLength(), line);
+                        }
                     }
                     curLine++;
                 } else {
                     Optional<Integer> nextOffset = nextLineOffset(curLine, curOffset);
                     if (nextOffset.isPresent()) {
-                        AttributedString disp = new AttributedString(getLine(curLine));
-                        line.append(disp.columnSubSequence(curOffset, nextOffset.get()));
+                        highlightDisplayedLine(curLine, curOffset, nextOffset.get(), line);
                         line.append(ret);
                         curOffset = nextOffset.get();
                     } else {
-                        AttributedString disp = new AttributedString(getLine(curLine));
-                        line.append(disp.columnSubSequence(curOffset, Integer.MAX_VALUE));
+                        highlightDisplayedLine(curLine, curOffset, Integer.MAX_VALUE, line);
                         curLine++;
                         curOffset = 0;
                     }
@@ -717,14 +847,26 @@ public class Nano {
             cursorDown(y);
         }
 
+        public void gotoLine(int x, int y) {
+            line = y < lines.size() ? y : lines.size() - 1;
+            x = x <= length(lines.get(line), tabs) ? x : length(lines.get(line), tabs);
+            firstLineToDisplay = line > 0 ? line - 1 : line;
+            offsetInLine = 0;
+            offsetInLineToDisplay = 0;
+            column = 0;
+            moveRight(x);
+        }
+
         public int getDisplayedCursor() {
-            int rwidth = size.getColumns() + 1;
-            int cursor = (printLineNumbers ? 8 : 0);
+            return computeCursorPosition(printLineNumbers ? 8 : 0, size.getColumns() + 1);
+        }
+
+        private int computeCursorPosition(int cursor, int rwidth) {
             int cur = firstLineToDisplay;
             int off = offsetInLineToDisplay;
             while (true) {
                 if (cur < line || off < offsetInLine) {
-                    if (firstColumnToDisplay > 0 || !wrapping) {
+                    if (!wrapping) {
                         cursor += rwidth;
                         cur++;
                     } else {
@@ -738,7 +880,12 @@ public class Nano {
                         }
                     }
                 } else if (cur == line) {
-                    cursor += column;
+                    if (!wrapping && column > firstColumnToDisplay + width()) {
+                        while (column > firstColumnToDisplay + width()) {
+                            firstColumnToDisplay += width();
+                        }
+                    }
+                    cursor += column - firstColumnToDisplay + (firstColumnToDisplay > 0 ? 1 : 0);
                     break;
                 } else {
                     throw new IllegalStateException();
@@ -780,24 +927,28 @@ public class Nano {
         public void beginningOfLine() {
             column = offsetInLine = 0;
             wantedColumn = 0;
+            ensureCursorVisible();
         }
 
         public void endOfLine() {
-            column = length(lines.get(line), tabs);
-            int width = size.getColumns() - (printLineNumbers ? 8 : 0);
-            offsetInLine = (column / width) * (width - 1);
-            column = column - offsetInLine;
-            wantedColumn = column;
+            int x = length(lines.get(line), tabs);
+            moveRight(x, true);
         }
 
         public void prevPage() {
             int height = size.getRows() - computeHeader().size() - computeFooter().size();
             scrollUp(height - 2);
+            column = 0;
+            firstLineToDisplay = line;
+            offsetInLineToDisplay = offsetInLine;
         }
 
         public void nextPage() {
             int height = size.getRows() - computeHeader().size() - computeFooter().size();
             scrollDown(height - 2);
+            column = 0;
+            firstLineToDisplay = line;
+            offsetInLineToDisplay = offsetInLine;
         }
 
         public void scrollUp(int lines) {
@@ -874,11 +1025,8 @@ public class Nano {
                     || (!searchBackwards && (newLine < line || (newLine == line && newPos < offsetInLine + column)))) {
                     setMessage("Search Wrapped");
                 }
-                int width = size.getColumns() - (printLineNumbers ? 8 : 0);
                 line = newLine;
-                column = newPos;
-                offsetInLine = (column / width) * (width - 1);
-                ensureCursorVisible();
+                moveRight(newPos, true);
             } else {
                 setMessage("\"" + searchTerm + "\" not found");
             }
@@ -939,6 +1087,326 @@ public class Nano {
 
         private int length(String line, int tabs) {
             return new AttributedStringBuilder().tabs(tabs).append(line).columnLength();
+        }
+
+        void copy() {
+            if (uncut || cut2end || mark) {
+                cutbuffer = new ArrayList<>();
+            }
+            if (mark) {
+                int[] s = getMarkStart();
+                int[] e = getMarkEnd();
+                if (s[0] == e[0]) {
+                    cutbuffer.add(lines.get(s[0]).substring(s[1], e[1]));
+                } else {
+                    if (s[1] != 0) {
+                        cutbuffer.add(lines.get(s[0]).substring(s[1]));
+                        s[0] = s[0] + 1;
+                    }
+                    for (int i = s[0]; i < e[0]; i++) {
+                        cutbuffer.add(lines.get(i));
+                    }
+                    if (e[1] != 0) {
+                        cutbuffer.add(lines.get(e[0]).substring(0, e[1]));
+                    }
+                }
+                mark = false;
+                mark();
+            } else if (cut2end) {
+                String l = lines.get(line);
+                int col = offsetInLine + column;
+                cutbuffer.add(l.substring(col));
+                moveRight(l.substring(col).length());
+            } else {
+                cutbuffer.add(lines.get(line));
+                cursorDown(1);
+            }
+            uncut = false;
+        }
+
+        void cut() {
+            cut(false);
+        }
+
+        void cut(boolean toEnd) {
+            if (lines.size() > 1) {
+                if (uncut || cut2end || toEnd || mark) {
+                    cutbuffer = new ArrayList<>();
+                }
+                if (mark) {
+                    int[] s = getMarkStart();
+                    int[] e = getMarkEnd();
+                    if (s[0] == e[0]) {
+                        String l = lines.get(s[0]);
+                        int cols = s[1];
+                        int cole = e[1];
+                        cutbuffer.add(l.substring(cols, cole));
+                        lines.set(s[0], l.substring(0, cols) + l.substring(cole));
+                        computeAllOffsets();
+                        moveRight(cols, true);
+                    } else {
+                        int ls = s[0];
+                        int cs = s[1];
+                        if (s[1] != 0) {
+                            String l = lines.get(s[0]);
+                            int col = s[1];
+                            cutbuffer.add(l.substring(col));
+                            lines.set(s[0], l.substring(0, col));
+                            s[0] = s[0] + 1;
+                        }
+                        for (int i = s[0]; i < e[0]; i++) {
+                            cutbuffer.add(lines.get(s[0]));
+                            lines.remove(s[0]);
+                        }
+                        if (e[1] != 0) {
+                            String l = lines.get(s[0]);
+                            int col = e[1];
+                            cutbuffer.add(l.substring(0, col));
+                            lines.set(s[0], l.substring(col));
+                        }
+                        computeAllOffsets();
+                        gotoLine(cs, ls);
+                    }
+                    mark = false;
+                    mark();
+                } else if (cut2end || toEnd) {
+                    String l = lines.get(line);
+                    int col = offsetInLine + column;
+                    cutbuffer.add(l.substring(col));
+                    lines.set(line, l.substring(0, col));
+                    if (toEnd) {
+                        line++;
+                        while (true) {
+                            cutbuffer.add(lines.get(line));
+                            lines.remove(line);
+                            if (line > lines.size() - 1) {
+                                line--;
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    cutbuffer.add(lines.get(line));
+                    lines.remove(line);
+                    offsetInLine = 0;
+                    if (line > lines.size() - 1) {
+                        line--;
+                    }
+                }
+                display.clear();
+                computeAllOffsets();
+                dirty = true;
+                uncut = false;
+            }
+        }
+
+        void uncut() {
+            if (cutbuffer.isEmpty()) {
+                return;
+            }
+            String l = lines.get(line);
+            int col = offsetInLine + column;
+            if (cut2end) {
+                lines.set(line, l.substring(0, col) + cutbuffer.get(0) + l.substring(col));
+                computeAllOffsets();
+                moveRight(col + cutbuffer.get(0).length(), true);
+            } else if (col == 0) {
+                lines.addAll(line, cutbuffer);
+                computeAllOffsets();
+                if (cutbuffer.size() > 1) {
+                    gotoLine(cutbuffer.get(cutbuffer.size() - 1).length(), line + cutbuffer.size());
+                } else {
+                    moveRight(cutbuffer.get(0).length(), true);
+                }
+            } else {
+                int gotol = line;
+                if (cutbuffer.size() == 1) {
+                    lines.set(line, l.substring(0, col) + cutbuffer.get(0) + l.substring(col));
+                } else {
+                    lines.set(line++, l.substring(0, col) + cutbuffer.get(0));
+                    gotol = line;
+                    lines.add(line, cutbuffer.get(cutbuffer.size() - 1) + l.substring(col));
+                    for (int i = cutbuffer.size() - 2; i > 0 ; i--) {
+                        gotol++;
+                        lines.add(line, cutbuffer.get(i));
+                    }
+                }
+                computeAllOffsets();
+                if (cutbuffer.size() > 1) {
+                    gotoLine(cutbuffer.get(cutbuffer.size() - 1).length(), gotol);
+                } else {
+                    moveRight(col + cutbuffer.get(0).length(), true);
+                }
+            }
+            display.clear();
+            dirty = true;
+            uncut = true;
+        }
+
+        void mark() {
+            if (mark) {
+                markPos[0] = line;
+                markPos[1] = offsetInLine + column;
+            } else {
+                markPos[0] = -1;
+                markPos[1] = -1;
+            }
+        }
+
+        int[] getMarkStart() {
+            int[] out = {-1, -1};
+            if (!mark) {
+                return out;
+            }
+            if (markPos[0] > line || (markPos[0] == line && markPos[1] > offsetInLine + column) ) {
+                out[0] = line;
+                out[1] = offsetInLine + column;
+            } else {
+                out = markPos;
+            }
+            return out;
+        }
+
+        int[] getMarkEnd() {
+            int[] out = {-1, -1};
+            if (!mark) {
+                return out;
+            }
+            if (markPos[0] > line || (markPos[0] == line && markPos[1] > offsetInLine + column) ) {
+                out = markPos;
+            } else {
+                out[0] = line;
+                out[1] = offsetInLine + column;
+            }
+            return out;
+        }
+    }
+
+    private static class SyntaxHighlighter {
+        private List<HighlightRule> rules = new ArrayList<>();
+        private int ruleStartId = 0;
+
+        public SyntaxHighlighter() {}
+
+        public void addRule(AttributedStyle style, Pattern pattern) {
+            rules.add(new HighlightRule(style, pattern));
+        }
+
+        public void addRule(AttributedStyle style, Pattern start, Pattern end) {
+            rules.add(new HighlightRule(style, start, end));
+        }
+
+        public void reset() {
+            ruleStartId = 0;
+        }
+
+        public AttributedString highlightNextLine(String line) {
+            return highlightNextLine(new AttributedString(line));
+        }
+
+        public AttributedString highlightNextLine(AttributedString line) {
+            if (rules.isEmpty()) {
+                return line;
+            }
+            AttributedStringBuilder asb = new AttributedStringBuilder();
+            AttributedStyle as = new AttributedStyle(AttributedStyle.DEFAULT);
+            asb.append(line);
+            for (int i = ruleStartId; i < rules.size(); i++) {
+                HighlightRule rule = rules.get(i);
+                switch (rule.getType()) {
+                case PATTERN:
+                    asb.styleMatches(rule.getPattern(), rule.getStyle());
+                    break;
+                case START_END:
+                    boolean done = false;
+                    Matcher start = rule.getStart().matcher(asb.toAttributedString());
+                    Matcher end = rule.getEnd().matcher(asb.toAttributedString());
+                    while (!done) {
+                        AttributedStringBuilder a = new AttributedStringBuilder();
+                        if (ruleStartId == i) { // first rule should never be type
+                                                // START_END or we will fail here!
+                            if (end.find()) {
+                                a.append(asb.columnSubSequence(0, end.end()),rule.getStyle());
+                                a.append(asb.columnSubSequence(end.end(), asb.length()));
+                                ruleStartId = 0;
+                            } else {
+                                a.append(asb, rule.getStyle());
+                                done = true;
+                            }
+                            asb = a;
+                        } else {
+                            if (start.find()) {
+                                a.append(asb.columnSubSequence(0, start.start()));
+                                if (end.find()) {
+                                    a.append(asb.columnSubSequence(start.start(), end.end()), rule.getStyle());
+                                    a.append(asb.columnSubSequence(end.end(), asb.length()));
+                                } else {
+                                    ruleStartId = i;
+                                    a.append(asb.columnSubSequence(start.start(),asb.length()), rule.getStyle());
+                                    done = true;
+                                }
+                                asb = a;
+                            } else {
+                                done = true;
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+            return asb.toAttributedString();
+        }
+
+        private static class HighlightRule {
+            public enum RuleType {PATTERN, START_END};
+            private RuleType type;
+            private Pattern pattern;
+            private AttributedStyle style;
+            private Pattern start;
+            private Pattern end;
+
+            public HighlightRule(AttributedStyle style, Pattern pattern) {
+                 this.type = RuleType.PATTERN;
+                 this.pattern = pattern;
+                 this.style = style;
+            }
+
+            public HighlightRule(AttributedStyle style, Pattern start, Pattern end) {
+                 this.type = RuleType.START_END;
+                 this.style = style;
+                 this.start = start;
+                 this.end = end;
+            }
+
+            public RuleType getType() {
+                return type;
+            }
+
+            public AttributedStyle getStyle() {
+                return style;
+            }
+
+            public Pattern getPattern() {
+                if (type == RuleType.START_END) {
+                    throw new IllegalAccessError();
+                }
+                return pattern;
+            }
+
+            public Pattern getStart() {
+                if (type == RuleType.PATTERN) {
+                    throw new IllegalAccessError();
+                }
+                return start;
+            }
+
+            public Pattern getEnd() {
+                if (type == RuleType.PATTERN) {
+                    throw new IllegalAccessError();
+                }
+                return end;
+            }
+
         }
     }
 
@@ -1141,6 +1609,31 @@ public class Nano {
                     case TOGGLE_SUSPENSION:
                         toggleSuspension();
                         break;
+                    case COPY:
+                        buffer.copy();
+                        break;
+                    case CUT:
+                        buffer.cut();
+                        break;
+                    case UNCUT:
+                        buffer.uncut();
+                        break;
+                    case GOTO:
+                        gotoLine();
+                        curPos();
+                        break;
+                    case CUT_TO_END_TOGGLE:
+                        cut2end = !cut2end;
+                        setMessage("Cut to end " + (cut2end ? "enabled" : "disabled"));
+                        break;
+                    case CUT_TO_END:
+                        buffer.cut(true);
+                        break;
+                    case MARK:
+                        mark = !mark;
+                        setMessage("Mark " + (mark ? "Set" : "Unset"));
+                        buffer.mark();
+                        break;
                     default:
                         setMessage("Unsupported " + op.name().toLowerCase().replace('_', '-'));
                         break;
@@ -1160,6 +1653,30 @@ public class Nano {
                 status.restore();
             }
        }
+    }
+
+    private int editInputBuffer(Operation operation, int curPos) {
+        switch (operation) {
+        case INSERT:
+            editBuffer.insert(curPos++, bindingReader.getLastBinding());
+            break;
+        case BACKSPACE:
+            if (curPos > 0) {
+                editBuffer.deleteCharAt(--curPos);
+            }
+            break;
+        case LEFT:
+            if (curPos > 0) {
+                curPos--;
+            }
+            break;
+        case RIGHT:
+            if (curPos < editBuffer.length()) {
+                curPos++;
+            }
+            break;
+        }
+        return curPos;
     }
 
     boolean write() throws IOException {
@@ -1187,7 +1704,7 @@ public class Nano {
         writeKeyMap.bind(Operation.TOGGLE_SUSPENSION, alt('z'));
         writeKeyMap.bind(Operation.RIGHT, key(terminal, Capability.key_right));
         writeKeyMap.bind(Operation.LEFT, key(terminal, Capability.key_left));
-      
+
         editMessage = getWriteMessage();
         editBuffer.setLength(0);
         editBuffer.append(buffer.file == null ? "" : buffer.file);
@@ -1195,25 +1712,8 @@ public class Nano {
         this.shortcuts = writeShortcuts();
         display(curPos);
         while (true) {
-            switch (readOperation(writeKeyMap)) {
-                case INSERT:
-                    editBuffer.insert(curPos++, bindingReader.getLastBinding());
-                    break;
-                case BACKSPACE:
-                    if (curPos > 0) {
-                        editBuffer.deleteCharAt(--curPos);
-                    }
-                    break;
-                case LEFT:
-                    if (curPos > 0) {
-                        curPos--;
-                    }
-                    break;
-                case RIGHT:
-                    if (curPos < editBuffer.length()) {
-                        curPos++;
-                    }
-                    break;
+            Operation op = readOperation(writeKeyMap);
+            switch (op) {
                 case CANCEL:
                     editMessage = null;
                     this.shortcuts = standardShortcuts();
@@ -1248,6 +1748,9 @@ public class Nano {
                     break;
                 case TOGGLE_SUSPENSION:
                     toggleSuspension();
+                    break;
+                default:
+                    curPos = editInputBuffer(op, curPos);
                     break;
             }
             editMessage = getWriteMessage();
@@ -1408,25 +1911,8 @@ public class Nano {
         this.shortcuts = readShortcuts();
         display(curPos);
         while (true) {
-            switch (readOperation(readKeyMap)) {
-                case INSERT:
-                    editBuffer.insert(curPos++, bindingReader.getLastBinding());
-                    break;
-                case BACKSPACE:
-                    if (curPos > 0) {
-                        editBuffer.deleteCharAt(--curPos);
-                    }
-                    break;
-                case LEFT:
-                    if (curPos > 0) {
-                        curPos--;
-                    }
-                    break;
-                case RIGHT:
-                    if (curPos < editBuffer.length()) {
-                        curPos++;
-                    }
-                    break;            
+            Operation op = readOperation(readKeyMap);
+            switch (op) {
                 case CANCEL:
                     editMessage = null;
                     this.shortcuts = standardShortcuts();
@@ -1468,8 +1954,8 @@ public class Nano {
                 case MOUSE_EVENT:
                     mouseEvent();
                     break;
-                case TOGGLE_SUSPENSION:
-                    toggleSuspension();
+                default:
+                    curPos = editInputBuffer(op, curPos);
                     break;
             }
             editMessage = getReadMessage();
@@ -1485,6 +1971,89 @@ public class Nano {
         }
         sb.append(" [from ./]: ");
         return sb.toString();
+    }
+
+    void gotoLine() throws IOException {
+        KeyMap<Operation> readKeyMap = new KeyMap<>();
+        readKeyMap.setUnicode(Operation.INSERT);
+        for (char i = 32; i < 256; i++) {
+            readKeyMap.bind(Operation.INSERT, Character.toString(i));
+        }
+        readKeyMap.bind(Operation.BACKSPACE, del());
+        readKeyMap.bind(Operation.ACCEPT, "\r");
+        readKeyMap.bind(Operation.HELP, ctrl('G'), key(terminal, Capability.key_f1));
+        readKeyMap.bind(Operation.CANCEL, ctrl('C'));
+        readKeyMap.bind(Operation.RIGHT, key(terminal, Capability.key_right));
+        readKeyMap.bind(Operation.LEFT, key(terminal, Capability.key_left));
+        readKeyMap.bind(Operation.FIRST_LINE, ctrl('Y'));
+        readKeyMap.bind(Operation.LAST_LINE, ctrl('V'));
+        readKeyMap.bind(Operation.SEARCH, ctrl('T'));
+
+        editMessage = "Enter line number, column number: ";
+        editBuffer.setLength(0);
+        int curPos = editBuffer.length();
+        this.shortcuts = gotoShortcuts();
+        display(curPos);
+        while (true) {
+            Operation op = readOperation(readKeyMap);
+            switch (op) {
+                case CANCEL:
+                    editMessage = null;
+                    this.shortcuts = standardShortcuts();
+                    return;
+                case FIRST_LINE:
+                    editMessage = null;
+                    buffer.firstLine();
+                    this.shortcuts = standardShortcuts();
+                    return;
+                case LAST_LINE:
+                    editMessage = null;
+                    buffer.lastLine();
+                    this.shortcuts = standardShortcuts();
+                    return;
+                case SEARCH:
+                    search();
+                    return;
+                case ACCEPT:
+                    editMessage = null;
+                    String[] pos = editBuffer.toString().split(",", 2);
+                    int[] args = { 0, 0 };
+                    try {
+                        for(int i = 0; i < pos.length; i++) {
+                            if (pos[i].trim().length() > 0) {
+                                args[i] = Integer.parseInt(pos[i]) - 1;
+                                if (args[i] < 0) {
+                                    throw new NumberFormatException();
+                                }
+                            }
+                        }
+                        buffer.gotoLine(args[1], args[0]);
+                    } catch (NumberFormatException ex) {
+                        setMessage("Invalid line or column number");
+                    } catch (Exception ex) {
+                        setMessage("Internal error: " + ex.getMessage());
+                    }
+                    this.shortcuts = standardShortcuts();
+                    return;
+                case HELP:
+                    help("nano-goto-help.txt");
+                    break;
+                default:
+                    curPos = editInputBuffer(op, curPos);
+                    break;
+            }
+            display(curPos);
+        }
+    }
+
+    private LinkedHashMap<String, String> gotoShortcuts() {
+        LinkedHashMap<String, String> shortcuts = new LinkedHashMap<>();
+        shortcuts.put("^G", "Get Help");
+        shortcuts.put("^Y", "First Line");
+        shortcuts.put("^T", "Go To Text");
+        shortcuts.put("^C", "Cancel");
+        shortcuts.put("^V", "Last Line");
+        return shortcuts;
     }
 
     private LinkedHashMap<String, String> readShortcuts() {
@@ -1657,25 +2226,8 @@ public class Nano {
         display(curPos);
         try {
             while (true) {
-                switch (readOperation(searchKeyMap)) {
-                    case INSERT:
-                        editBuffer.insert(curPos++, bindingReader.getLastBinding());
-                        break;
-                    case BACKSPACE:
-                        if (curPos > 0) {
-                            editBuffer.deleteCharAt(--curPos);
-                        }
-                        break;
-                    case LEFT:
-                        if (curPos > 0) {
-                            curPos--;
-                        }
-                        break;
-                    case RIGHT:
-                        if (curPos < editBuffer.length()) {
-                            curPos++;
-                        }
-                        break;
+                Operation op = readOperation(searchKeyMap);
+                switch (op) {
                     case UP:
                         searchTermId++;
                         if (searchTermId >= 0 && searchTermId < searchTerms.size()) {
@@ -1695,7 +2247,7 @@ public class Nano {
                             editBuffer.setLength(0);
                             if (searchTermId < 0) {
                                 searchTermId = -1;
-                                editBuffer.append(currentBuffer);                                    
+                                editBuffer.append(currentBuffer);
                             } else {
                                 editBuffer.append(searchTerms.get(searchTermId));
                             }
@@ -1742,7 +2294,10 @@ public class Nano {
                     case TOGGLE_SUSPENSION:
                         toggleSuspension();
                         break;
-                }
+                    default:
+                        curPos = editInputBuffer(op, curPos);
+                        break;
+               }
                 editMessage = getSearchMessage();
                 display(curPos);
             }
@@ -1908,6 +2463,7 @@ public class Nano {
 
     void wrap() {
         wrapping = !wrapping;
+        buffer.computeAllOffsets();
         resetDisplay();
         setMessage("Lines wrapping " + (wrapping ? "enabled" : "disabled"));
     }
@@ -1951,7 +2507,7 @@ public class Nano {
             }
         }
     }
-    
+
     void toggleSuspension(){
         if (restricted) {
             setMessage("This function is disabled in restricted mode");
@@ -1986,7 +2542,7 @@ public class Nano {
     synchronized void display() {
         display(null);
     }
-    
+
     synchronized void display(final Integer editCursor) {
         if (nbBindings > 0) {
             if (--nbBindings == 0) {
@@ -2028,7 +2584,7 @@ public class Nano {
             }
             sb.append('\n');
             footer.add(sb.toAttributedString());
-        } else if (message != null || constantCursor) {
+        } else if (message!= null || constantCursor) {
             int rwidth = size.getColumns();
             String text = "[ " + (message == null ? computeCurPos() : message) + " ]";
             int len = text.length();
@@ -2119,7 +2675,7 @@ public class Nano {
         keys.bind(Operation.MARK, ctrl('^'), key(terminal, Capability.key_f15), alt('a'));
         keys.bind(Operation.NEXT_SEARCH, key(terminal, Capability.key_f16), alt('w'));
 
-        keys.bind(Operation.COPY, alt('^'));
+        keys.bind(Operation.COPY, alt('^'), alt('6'));
         keys.bind(Operation.INDENT, alt('}'));
         keys.bind(Operation.UNINDENT, alt('{'));
 
@@ -2130,8 +2686,8 @@ public class Nano {
         keys.bind(Operation.UP, ctrl('P'));
         keys.bind(Operation.DOWN, ctrl('N'));
 
-        keys.bind(Operation.BEGINNING_OF_LINE, ctrl('A'));
-        keys.bind(Operation.END_OF_LINE, ctrl('E'));
+        keys.bind(Operation.BEGINNING_OF_LINE, ctrl('A'), key(terminal, Capability.key_home));
+        keys.bind(Operation.END_OF_LINE, ctrl('E'), key(terminal, Capability.key_end));
         keys.bind(Operation.BEGINNING_OF_PARAGRAPH, alt('('), alt('9'));
         keys.bind(Operation.END_OF_PARAGRAPH, alt(')'), alt('0'));
         keys.bind(Operation.FIRST_LINE, alt('\\'), alt('|'));
@@ -2167,8 +2723,7 @@ public class Nano {
         keys.bind(Operation.SMART_HOME_KEY, alt('h'));
         keys.bind(Operation.AUTO_INDENT, alt('i'));
         keys.bind(Operation.CUT_TO_END_TOGGLE, alt('k'));
-        // TODO: reenable wrapping after fixing #120
-        // keys.bind(Operation.WRAP, alt('l'));
+        keys.bind(Operation.WRAP, alt('l'));
         keys.bind(Operation.TABS_TO_SPACE, alt('q'));
 
         keys.bind(Operation.BACKUP, alt('b'));
@@ -2180,9 +2735,7 @@ public class Nano {
         keys.bind(Operation.DOWN, key(terminal, Capability.key_down));
         keys.bind(Operation.RIGHT, key(terminal, Capability.key_right));
         keys.bind(Operation.LEFT, key(terminal, Capability.key_left));
-
         keys.bind(Operation.MOUSE_EVENT, key(terminal, Capability.key_mouse));
-        
         keys.bind(Operation.TOGGLE_SUSPENSION, alt('z'));
     }
 
@@ -2271,7 +2824,7 @@ public class Nano {
         UNCUT,
 
         MOUSE_EVENT,
- 
+
         TOGGLE_SUSPENSION
     }
 

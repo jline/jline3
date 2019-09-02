@@ -24,6 +24,8 @@
   ESC-(  LeftArrow  *  Right one half screen width (or N positions).
   g  <  ESC-<       *  Go to first line in file (or line N).
   G  >  ESC->       *  Go to last line in file (or line N).
+  r  ^R  ^L            Repaint screen.
+  R                    Repaint screen, discarding buffered input.
         ---------------------------------------------------
         Default "window" is the screen height.
         Default "half-window" is half of the screen height.
@@ -43,6 +45,8 @@
 
                         CHANGING FILES
 
+  :e [file]            Examine a new file.
+  ^X^V                 Same as :e.
   :n                *  Examine the (N-th) next file from the command line.
   :p                *  Examine the (N-th) previous file from the command line.
   :x                *  Examine the first (or N-th) file from the command line.

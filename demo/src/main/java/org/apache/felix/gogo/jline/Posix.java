@@ -30,9 +30,12 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Reader;
+import java.net.MalformedURLException;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
@@ -82,6 +85,7 @@ import org.jline.builtins.Options;
 import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.Source;
 import org.jline.builtins.Source.PathSource;
+import org.jline.builtins.Source.URLSource;
 import org.jline.builtins.TTop;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Terminal;
@@ -964,6 +968,10 @@ public class Posix {
         for (String arg : opt.args()) {
             if ("-".equals(arg)) {
                 sources.add(new StdInSource(process));
+            } else if (arg.contains("*") || arg.contains("?")) {
+                PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:"+arg);
+                Files.find(session.currentDir(), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
+                     .forEach(p -> sources.add(doUrlSource(session.currentDir(), p)));
             } else {
                 sources.add(new PathSource(session.currentDir().resolve(arg), arg));
             }
@@ -984,7 +992,7 @@ public class Posix {
                 tabs.add(parseInteger(s));
             }
         }
-        Less less = new Less(Shell.getTerminal(session)).tabs(tabs);
+        Less less = new Less(Shell.getTerminal(session), session.currentDir()).tabs(tabs);
         less.quitAtFirstEof = opt.isSet("QUIT-AT-EOF");
         less.quitAtSecondEof = opt.isSet("quit-at-eof");
         less.quiet = opt.isSet("quiet");
@@ -999,6 +1007,16 @@ public class Posix {
             Less.class.getField("noKeypad").set(less, opt.isSet("no-keypad"));
         }
         less.run(sources);
+    }
+
+    private static Source doUrlSource(Path currentDir, Path file) {
+        Source out = null;
+        try {
+            out = new URLSource(currentDir.resolve(file).toUri().toURL(), file.toString());
+        } catch (MalformedURLException exp) {
+            throw new IllegalArgumentException(exp.getMessage());
+        }
+        return out;
     }
 
     private int parseInteger(String s) throws IllegalArgumentException {
