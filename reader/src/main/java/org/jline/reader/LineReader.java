@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2019, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,6 +8,7 @@
  */
 package org.jline.reader;
 
+import java.io.File;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.Map;
@@ -131,6 +132,7 @@ public interface LineReader {
     String DOWN_LINE = "down-line";
     String DOWN_LINE_OR_HISTORY = "down-line-or-history";
     String DOWN_LINE_OR_SEARCH = "down-line-or-search";
+    String EDIT_AND_EXECUTE_COMMAND = "edit-and-execute-command";
     String EMACS_BACKWARD_WORD = "emacs-backward-word";
     String EMACS_EDITING_MODE = "emacs-editing-mode";
     String EMACS_FORWARD_WORD = "emacs-forward-word";
@@ -657,5 +659,7 @@ public interface LineReader {
     int getRegionMark();
 
     void addCommandsInBuffer(Collection<String> commands);
+
+    void editAndAddInBuffer(File file) throws Exception;
 
 }

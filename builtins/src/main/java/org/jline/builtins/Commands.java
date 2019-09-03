@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2019, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -105,10 +105,10 @@ public class Commands {
         final String[] usage = {
                 "nano -  edit files",
                 "Usage: nano [OPTIONS] [FILES]",
-                "  -? --help                    Show help", 
+                "  -? --help                    Show help",
                 "  -R --restricted              Restricted mode: don't allow suspending; don't allow a file to be appended to,",
                 "                               prepended to, or saved under a different name if it already has one;",
-                "                               and don't use backup files."               
+                "                               and don't use backup files."
         };
         Options opt = Options.compile(usage).parse(argv);
         if (opt.isSet("help")) {
@@ -213,7 +213,7 @@ public class Commands {
                 "                                  If added to -W or -A, only the events that are new since the last incremental operation",
                 "                                  to the file are added",
                 "  [first] [last]                  These optional arguments may be specified as a number or as a string. A negative number",
-                "                                  is used as an offset to the current history event number. A string specifies the most", 
+                "                                  is used as an offset to the current history event number. A string specifies the most",
                 "                                  recent event beginning with the given string.",
                 "  -e                              Uses the nano editor to edit the commands before executing",
                 "  -s                              Re-executes the command without invoking an editor"};
@@ -334,7 +334,7 @@ public class Commands {
         private FileWriter cmdWriter;
         private File cmdFile;
         private int argId = 0;
-       
+
         public ReExecute(History history, Options opt) throws IOException {
             execute = opt.isSet("e") || opt.isSet("s");
             edit = opt.isSet("e");
@@ -342,7 +342,7 @@ public class Commands {
                 Iterator<History.Entry> iter = history.reverseIterator(history.last());
                 if (iter.hasNext()) {
                     iter.next();
-                    iter.remove();                
+                    iter.remove();
                 }
                 if (edit) {
                     cmdFile = File.createTempFile("jline-history-", null);
@@ -353,19 +353,19 @@ public class Commands {
                         argId = argId + 1;
                         oldParam = s[0];
                         newParam = s[1];
-                    } 
+                    }
                 }
             }
         }
-       
+
         public int getArgId() {
             return argId;
         }
-       
+
         public boolean isEdit() {
             return edit;
         }
-        
+
         public boolean isExecute() {
             return execute;
         }
@@ -373,11 +373,11 @@ public class Commands {
         public void addCommandInFile(String command) throws IOException {
             cmdWriter.write(command + "\n");
         }
-        
+
         public void addCommandInBuffer(LineReader reader, String command) {
             reader.addCommandsInBuffer(Arrays.asList(replaceParam(command)));
         }
-       
+
         private String replaceParam(String command) {
             String out = command;
             if (oldParam != null && newParam != null) {
@@ -385,27 +385,19 @@ public class Commands {
             }
             return out;
         }
-       
-        public void editCommandsAndClose(LineReader reader) throws IOException {
+
+        public void editCommandsAndClose(LineReader reader) throws Exception {
             if (edit) {
                 cmdWriter.close();
-                Nano editor = new Nano(reader.getTerminal(), new File(cmdFile.getParent()));
-                editor.setRestricted(true);
-                editor.open(Arrays.asList(cmdFile.getName()));
-                editor.run();
-                List<String> commands = new ArrayList<>();
-                BufferedReader br = new BufferedReader(new FileReader(cmdFile));
-                String line;
-                while ((line = br.readLine()) != null) {
-                    commands.add(line);
+                try {
+                    reader.editAndAddInBuffer(cmdFile);
+                } finally {
+                    cmdFile.delete();
                 }
-                br.close();
-                reader.addCommandsInBuffer(commands);
-                cmdFile.delete();
             }
         }
     }
-   
+
     private static int historyId(int id, int minId, int maxId) {
         int out = id;
         if (id < 0) {

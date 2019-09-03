@@ -8,11 +8,17 @@
  */
 package org.jline.reader.impl;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.Flushable;
 import java.io.IOError;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.time.Instant;
 import java.util.*;
 import java.util.Map.Entry;
@@ -109,6 +115,10 @@ public class LineReaderImpl implements LineReader, Flushable
          * readLine should exit and return the buffer content
          */
         DONE,
+        /**
+         * readLine should exit return empty String
+         */
+        IGNORE,
         /**
          * readLine should exit and throw an EOFException
          */
@@ -254,10 +264,10 @@ public class LineReaderImpl implements LineReader, Flushable
     protected int nextHistoryId = -1;
 
     /*
-     * execute commands from history
+     * execute commands from commandsBuffer
      */
     protected List<String> commandsBuffer = new ArrayList<>();
-    
+
     public LineReaderImpl(Terminal terminal) throws IOException {
         this(terminal, null, null);
     }
@@ -498,6 +508,7 @@ public class LineReaderImpl implements LineReader, Flushable
             terminal.flush();
             return finish(cmd);
         }
+
         if (!startedReading.compareAndSet(false, true)) {
             throw new IllegalStateException();
         }
@@ -636,6 +647,8 @@ public class LineReaderImpl implements LineReader, Flushable
                     switch (state) {
                         case DONE:
                             return finishBuffer();
+                        case IGNORE:
+                            return "";
                         case EOF:
                             throw new EndOfFileException();
                         case INTERRUPT:
@@ -690,7 +703,7 @@ public class LineReaderImpl implements LineReader, Flushable
             startedReading.set(false);
         }
     }
-    
+
     private boolean isTerminalDumb(){
         return Terminal.TYPE_DUMB.equals(terminal.getType())
                 || Terminal.TYPE_DUMB_COLOR.equals(terminal.getType());
@@ -1011,10 +1024,25 @@ public class LineReaderImpl implements LineReader, Flushable
 
     @Override
     public void addCommandsInBuffer(Collection<String> commands) {
-        commandsBuffer.addAll(commands);        
+        commandsBuffer.addAll(commands);
     }
 
-
+    @Override
+    public void editAndAddInBuffer(File file) throws Exception {
+        Constructor<?> ctor = Class.forName("org.jline.builtins.Nano").getConstructor(Terminal.class, File.class);
+        Editor editor = (Editor) ctor.newInstance(terminal, new File(file.getParent()));
+        editor.setRestricted(true);
+        editor.open(Arrays.asList(file.getName()));
+        editor.run();
+        BufferedReader br = new BufferedReader(new FileReader(file));
+        String line;
+        commandsBuffer.clear();
+        while ((line = br.readLine()) != null) {
+            commandsBuffer.add(line);
+        }
+        br.close();
+    }
+    
     //
     // Widget implementation
     //
@@ -1027,7 +1055,7 @@ public class LineReaderImpl implements LineReader, Flushable
     protected String finishBuffer() {
         return finish(buf.toString());
     }
-    
+
     protected String finish(String str) {
         String historyLine = str;
 
@@ -2852,7 +2880,7 @@ public class LineReaderImpl implements LineReader, Flushable
         }
         return nextCommandFromHistory;
     }
-    
+
     protected boolean acceptAndInferNextHistory() {
         nextCommandFromHistory = false;
         acceptLine();
@@ -2860,7 +2888,7 @@ public class LineReaderImpl implements LineReader, Flushable
             nextHistoryId = searchBackwards(buf.toString(), history.last());
             if (nextHistoryId >= 0 && history.size() > nextHistoryId + 1) {
                 nextHistoryId++;
-                nextCommandFromHistory = true;            
+                nextCommandFromHistory = true;
             }
         }
         return nextCommandFromHistory;
@@ -3497,6 +3525,27 @@ public class LineReaderImpl implements LineReader, Flushable
         return true;
     }
 
+    protected boolean editAndExecute() {
+        boolean out = true;
+        File file = null;
+        try {
+            file = File.createTempFile("jline-execute-", null);
+            FileWriter writer = new FileWriter(file);
+            writer.write(buf.toString());
+            writer.close();
+            editAndAddInBuffer(file);
+        } catch (Exception e) {
+            e.printStackTrace(terminal.writer());
+            out = false;
+        } finally {
+            state = State.IGNORE;
+            if (file != null && file.exists()) {
+                file.delete();
+            }
+        }
+        return out;
+    }
+
     protected Map<String, Widget> builtinWidgets() {
         Map<String, Widget> widgets = new HashMap<>();
         addBuiltinWidget(widgets, ACCEPT_AND_INFER_NEXT_HISTORY, this::acceptAndInferNextHistory);
@@ -3532,6 +3581,7 @@ public class LineReaderImpl implements LineReader, Flushable
         addBuiltinWidget(widgets, DOWN_LINE_OR_HISTORY, this::downLineOrHistory);
         addBuiltinWidget(widgets, DOWN_LINE_OR_SEARCH, this::downLineOrSearch);
         addBuiltinWidget(widgets, DOWN_HISTORY, this::downHistory);
+        addBuiltinWidget(widgets, EDIT_AND_EXECUTE_COMMAND, this::editAndExecute);
         addBuiltinWidget(widgets, EMACS_EDITING_MODE, this::emacsEditingMode);
         addBuiltinWidget(widgets, EMACS_BACKWARD_WORD, this::emacsBackwardWord);
         addBuiltinWidget(widgets, EMACS_FORWARD_WORD, this::emacsForwardWord);
@@ -3647,7 +3697,7 @@ public class LineReaderImpl implements LineReader, Flushable
         addBuiltinWidget(widgets, FOCUS_OUT, this::focusOut);
         return widgets;
     }
-    
+
     private void addBuiltinWidget(Map<String, Widget> widgets, String name, Widget widget) {
         widgets.put(name, namedWidget(name, widget));
     }
@@ -3800,7 +3850,7 @@ public class LineReaderImpl implements LineReader, Flushable
                     newLinesToDisplay.add(newLines.get(lineId++));
                 }
                 if (startId == 0) {
-                    newLinesToDisplay.add(partialCommandInfo);                    
+                    newLinesToDisplay.add(partialCommandInfo);
                 }
                 cursorPos = size.cursorPos(cursorRowPos, cursorColPos);
             } else {
@@ -5620,6 +5670,7 @@ public class LineReaderImpl implements LineReader, Flushable
         bind(emacs, BACKWARD_DELETE_CHAR,                   del());
         bind(emacs, VI_MATCH_BRACKET,                       translate("^X^B"));
         bind(emacs, SEND_BREAK,                             translate("^X^G"));
+        bind(emacs, EDIT_AND_EXECUTE_COMMAND,               translate("^X^E"));
         bind(emacs, VI_FIND_NEXT_CHAR,                      translate("^X^F"));
         bind(emacs, VI_JOIN,                                translate("^X^J"));
         bind(emacs, KILL_BUFFER,                            translate("^X^K"));
@@ -5919,6 +5970,5 @@ public class LineReaderImpl implements LineReader, Flushable
             keyMap.bind(ref, Character.toString(newBinding));
         }
     }
-
 
 }
