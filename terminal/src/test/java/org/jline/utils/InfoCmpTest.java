@@ -8,15 +8,31 @@
  */
 package org.jline.utils;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
 import org.jline.utils.InfoCmp.Capability;
 import org.junit.Test;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.PathMatcher;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -59,5 +75,31 @@ public class InfoCmpTest {
         String infocmp = InfoCmp.getLoadedInfoCmp("xterm");
         InfoCmp.parseInfoCmp(infocmp, bools, ints, strings);
         assertEquals("\\E[J", strings.get(Capability.clr_eos));
+    }
+
+    @Test
+    public void testAllCapsFile() throws IOException {
+        String packagePath = InfoCmp.class.getPackage().getName().replace(".", "/");
+        ArrayList<URL> packageLocations = Collections.list(Thread.currentThread().getContextClassLoader().getResources(packagePath));
+        List<String> allCaps = packageLocations.stream().map(url -> {
+            try {
+                Path capsLocation = Paths.get(url.toURI());
+                PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:**.caps");
+                List<String> s = Files.walk(capsLocation)
+                        .filter(pathMatcher::matches)
+                        .map(Path::getFileName)
+                        .map(Path::toString)
+                        .map(fileName -> fileName.split("\\.")[0])
+                        .collect(Collectors.toList());
+                return s.stream();
+            } catch (URISyntaxException | IOException e) {
+                throw new RuntimeException(e);
+            }
+        }).flatMap(Function.identity())
+                .collect(Collectors.toList());
+
+        allCaps.forEach(
+                (capsName) -> assertNotNull(String.format("%s.caps was not registered in InfoCmp class", capsName), InfoCmp.getLoadedInfoCmp(capsName))
+        );
     }
 }
