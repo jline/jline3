@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2019, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -66,7 +66,7 @@ public class Less {
     public boolean ignoreCaseAlways;
     public boolean noKeypad;
     public boolean noInit;
-    
+
     protected List<Integer> tabs = Arrays.asList(4);
     protected final Terminal terminal;
     protected final Display display;
@@ -363,6 +363,7 @@ public class Less {
                                 offsetInLine = 0;
                                 chopLongLines = !chopLongLines;
                                 message = chopLongLines ? "Chop long lines" : "Fold long lines";
+                                display.clear();
                                 break;
                             case OPT_IGNORE_CASE_COND:
                                 ignoreCaseCond = !ignoreCaseCond;
@@ -410,7 +411,7 @@ public class Less {
                             case GOTO_FILE:
                                 int tofile = getStrictPositiveNumberInBuffer(1);
                                 if (tofile < sources.size()) {
-                                    SavedSourcePositions ssp = new SavedSourcePositions(tofile < sourceIdx ? -1 : 0);                                    
+                                    SavedSourcePositions ssp = new SavedSourcePositions(tofile < sourceIdx ? -1 : 0);
                                     sourceIdx = tofile;
                                     String newSource = sources.get(sourceIdx).getName();
                                     try {
@@ -572,14 +573,14 @@ public class Less {
             return curPos;
         }
     }
-    
+
     private class SavedSourcePositions {
         int saveSourceIdx;
         int saveFirstLineToDisplay;
         int saveFirstColumnToDisplay;
         int saveOffsetInLine;
         boolean savePrintLineNumbers;
-        
+
         public SavedSourcePositions (){
             this(0);
         }
@@ -590,7 +591,7 @@ public class Less {
             saveOffsetInLine = offsetInLine;
             savePrintLineNumbers = printLineNumbers;
         }
-        
+
         public void restore(String failingSource) throws IOException {
             sourceIdx = saveSourceIdx;
             openSource();
@@ -601,7 +602,7 @@ public class Less {
             if (failingSource != null) {
                 message = failingSource + " not found!";
             }
-        }      
+        }
     }
 
     private void addSource(String file) throws IOException {
@@ -677,11 +678,11 @@ public class Less {
         searchKeyMap.bind(Operation.HOME, key(terminal, Capability.key_home), alt('0'));
         searchKeyMap.bind(Operation.END, key(terminal, Capability.key_end), alt('$'));
         searchKeyMap.bind(Operation.BACKSPACE, del());
-        searchKeyMap.bind(Operation.DELETE, alt('x'));         
+        searchKeyMap.bind(Operation.DELETE, alt('x'));
         searchKeyMap.bind(Operation.DELETE_WORD, alt('X'));
         searchKeyMap.bind(Operation.DELETE_LINE, ctrl('U'));
         searchKeyMap.bind(Operation.UP, key(terminal, Capability.key_up), alt('k'));
-        searchKeyMap.bind(Operation.DOWN, key(terminal, Capability.key_down), alt('j'));        
+        searchKeyMap.bind(Operation.DOWN, key(terminal, Capability.key_down), alt('j'));
         searchKeyMap.bind(Operation.ACCEPT, "\r");
 
         boolean forward = true;
@@ -778,7 +779,7 @@ public class Less {
             }
         }
     }
-    
+
     private void help() throws IOException {
         SavedSourcePositions ssp = new SavedSourcePositions();
         printLineNumbers = false;
@@ -862,13 +863,14 @@ public class Less {
             }
         } while (!open && sourceIdx > 0);
         if (!open) {
-            throw new FileNotFoundException(); 
+            throw new FileNotFoundException();
         }
     }
 
     void moveTo(int lineNum) throws IOException {
         AttributedString line = getLine(lineNum);
         if (line != null){
+            display.clear();
             if (firstLineInMemory > lineNum) {
                 openSource();
             }
@@ -878,7 +880,7 @@ public class Less {
             message = "Cannot seek to line number " + (lineNum + 1);
         }
     }
-    
+
     private void moveToNextMatch() throws IOException {
         Pattern compiled = getPattern();
         Pattern dpCompiled = getPattern(true);
@@ -890,6 +892,7 @@ public class Less {
                 } else if (!toBeDisplayed(line, dpCompiled)) {
                     continue;
                 } else if (compiled.matcher(line).find()) {
+                    display.clear();
                     firstLineToDisplay = lineNumber;
                     offsetInLine = 0;
                     return;
@@ -910,6 +913,7 @@ public class Less {
                 } else if (!toBeDisplayed(line, dpCompiled)) {
                     continue;
                 } else if (compiled.matcher(line).find()) {
+                    display.clear();
                     firstLineToDisplay = lineNumber;
                     offsetInLine = 0;
                     return;
@@ -941,6 +945,9 @@ public class Less {
         int width = size.getColumns() - (printLineNumbers ? 8 : 0);
         int height = size.getRows();
         boolean doOffsets = firstColumnToDisplay == 0 && !chopLongLines;
+        if (lines >= size.getRows() - 1) { 
+            display.clear();
+        }
         if (lines == Integer.MAX_VALUE) {
             Long allLines = sources.get(sourceIdx).lines();
             if (allLines != null) {
@@ -949,7 +956,7 @@ public class Less {
                     firstLineToDisplay = prevLine2display(firstLineToDisplay, dpCompiled).getU();
                 }
             }
-        }
+        } 
         while (--lines >= 0) {
             int lastLineToDisplay = firstLineToDisplay;
             if (!doOffsets) {
@@ -991,6 +998,9 @@ public class Less {
     void moveBackward(int lines) throws IOException {
         Pattern dpCompiled = getPattern(true);
         int width = size.getColumns() - (printLineNumbers ? 8 : 0);
+        if (lines >= size.getRows() - 1) { 
+            display.clear();
+        }
         while (--lines >= 0) {
             if (offsetInLine > 0) {
                 offsetInLine = Math.max(0, offsetInLine - width);
@@ -1039,7 +1049,7 @@ public class Less {
             buffer.setLength(0);
         }
     }
-    
+
     private Pair<Integer, AttributedString> nextLine2display(int line, Pattern dpCompiled) throws IOException {
         AttributedString curLine = null;
         do {
@@ -1047,7 +1057,7 @@ public class Less {
         } while (!toBeDisplayed(curLine, dpCompiled));
         return new Pair<>(line, curLine);
     }
-    
+
     private Pair<Integer, AttributedString> prevLine2display(int line, Pattern dpCompiled) throws IOException {
         AttributedString curLine = null;
         do {
@@ -1062,11 +1072,11 @@ public class Less {
     private boolean toBeDisplayed(AttributedString curLine, Pattern dpCompiled) {
         return curLine == null || dpCompiled == null || sourceIdx == 0 || dpCompiled.matcher(curLine).find();
     }
-    
+
     synchronized boolean display(boolean oneScreen) throws IOException {
         return display(oneScreen, null);
     }
-    
+
     synchronized boolean display(boolean oneScreen, Integer curPos) throws IOException {
         List<AttributedString> newLines = new ArrayList<>();
         int width = size.getColumns() - (printLineNumbers ? 8 : 0);
@@ -1156,7 +1166,7 @@ public class Less {
         if (curPos == null) {
             display.update(newLines, -1);
         } else {
-            display.update(newLines, size.cursorPos(size.getRows() - 1, curPos + 1));            
+            display.update(newLines, size.cursorPos(size.getRows() - 1, curPos + 1));
         }
         return false;
     }
@@ -1218,7 +1228,7 @@ public class Less {
         map.bind(Operation.LEFT_ONE_HALF_SCREEN, alt('('), key(terminal, Capability.key_left));
         map.bind(Operation.FORWARD_FOREVER, "F");
         map.bind(Operation.REPAINT, "r", ctrl('R'), ctrl('L'));
-        map.bind(Operation.REPAINT_AND_DISCARD, "R");        
+        map.bind(Operation.REPAINT_AND_DISCARD, "R");
         map.bind(Operation.REPEAT_SEARCH_FORWARD, "n");
         map.bind(Operation.REPEAT_SEARCH_BACKWARD, "N");
         map.bind(Operation.REPEAT_SEARCH_FORWARD_SPAN_FILES, alt('n'));
@@ -1293,8 +1303,8 @@ public class Less {
         GOTO_FILE,
         INFO_FILE,
         DELETE_FILE,
-        
-        // 
+
+        //
         CHAR,
 
         // Edit pattern
