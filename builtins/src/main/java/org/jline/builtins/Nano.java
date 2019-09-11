@@ -12,6 +12,7 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -723,49 +724,30 @@ public class Nano implements Editor {
             }
         }
 
-        /*
-         * Hardcoded syntax patterns... these should be read from config file
-         * Patterns could be get from
-         * https://github.com/scopatz/nanorc
-         * and converted prefibilmente automatically to java format when reading
-         * config
-         */
         private SyntaxHighlighter doSyntaxHighlighter() {
-            AttributedStyle s = AttributedStyle.DEFAULT.foreground(AttributedStyle.BLACK + AttributedStyle.BRIGHT);
             SyntaxHighlighter out = new SyntaxHighlighter();
-            if (file == null) {
-                // do nothing
-            } else if (file.endsWith(".java")) {
-                out.addRule(s.foreground(AttributedStyle.GREEN)
-                        , Pattern.compile("\\b(boolean|byte|char|double|float|int|long|new|short|this"
-                                        + "|transient|void)\\b"));
-                out.addRule(s.foreground(AttributedStyle.RED)
-                        , Pattern.compile("\\b(break|case|catch|continue|default|do|else|finally|for" 
-                                        + "|if|return|switch|throw|try|while)\\b"));
-                out.addRule(s.foreground(AttributedStyle.CYAN)
-                        , Pattern.compile("\\b(abstract|class|extends|final|implements|import|instanceof"
-                                        + "|interface|native|package|private|protected|public|static|strictfp"
-                                        + "|super|synchronized|throws|volatile)\\b"));
-                out.addRule(s.foreground(AttributedStyle.RED), Pattern.compile("\"[^\"]*\""));
-                out.addRule(s.foreground(AttributedStyle.YELLOW), Pattern.compile("\\b(true|false|null)\\b"));
-                out.addRule(s.foreground(AttributedStyle.YELLOW), Pattern.compile("\\b(([1-9][0-9]+)|0+)\\.[0-9]+\\b"));
-                out.addRule(s.foreground(AttributedStyle.YELLOW), Pattern.compile("\\b[1-9][0-9]*\\b"));
-                out.addRule(s.foreground(AttributedStyle.YELLOW), Pattern.compile("\\b0[0-7]*\\b"));
-                out.addRule(s.foreground(AttributedStyle.YELLOW), Pattern.compile("\\b0x[1-9a-f][0-9a-f]*\\b"));
-                out.addRule(s.foreground(AttributedStyle.BLUE), Pattern.compile("//.*"));
-                out.addRule(s.foreground(AttributedStyle.BLUE), Pattern.compile("/\\*"), Pattern.compile("\\*/"));
-                out.addRule(s.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT), Pattern.compile("/\\*\\*"), Pattern.compile("\\*/"));
-                out.addRule(s.background(AttributedStyle.GREEN), Pattern.compile("\\s+$"));
-            } else if (file.endsWith(".xml")) {
-                out.addRule(s.foreground(AttributedStyle.WHITE), Pattern.compile("^.+$"));
-                out.addRule(s.foreground(AttributedStyle.GREEN), Pattern.compile("<"), Pattern.compile(">"));
-                out.addRule(s.foreground(AttributedStyle.CYAN), Pattern.compile("<[^> ]+"));
-                out.addRule(s.foreground(AttributedStyle.MAGENTA), Pattern.compile("\"[^\"]*\""));
-                out.addRule(s.foreground(AttributedStyle.CYAN), Pattern.compile(">"));
-                out.addRule(s.foreground(AttributedStyle.YELLOW), Pattern.compile("<!DOCTYPE"), Pattern.compile("[/]?>"));
-                out.addRule(s.foreground(AttributedStyle.YELLOW), Pattern.compile("<!--"), Pattern.compile("-->"));
-                out.addRule(s.foreground(AttributedStyle.RED), Pattern.compile("&[^;]*;"));
-                out.addRule(s.background(AttributedStyle.GREEN), Pattern.compile("\\s+$"));
+            if (file != null) {
+                File[] dirs = {new File(System.getProperty("user.home") + "/.nanorc")
+                             , new File("/etc/nano")
+                             , new File("/usr/share/nano")};
+                for (File d: dirs) {
+                    if (!d.exists() || !d.isDirectory()) {
+                        continue;
+                    }
+                    for (File f: d.listFiles()) {
+                        if (f.getName().endsWith(".nanorc")) {
+                            NanorcParser parser = new NanorcParser(f, file);
+                            try {
+                                parser.parse();
+                                if (parser.matches()) {
+                                    out.addRules(parser.getHighlightRules());
+                                    return out;
+                                }
+                            } catch (IOException e) {
+                            }
+                        }
+                    }
+                }
             }
             return out;
         }
@@ -1289,20 +1271,12 @@ public class Nano implements Editor {
 
         public SyntaxHighlighter() {}
 
-        public void addRule(AttributedStyle style, Pattern pattern) {
-            rules.add(new HighlightRule(style, pattern));
-        }
-
-        public void addRule(AttributedStyle style, Pattern start, Pattern end) {
-            rules.add(new HighlightRule(style, start, end));
+        public void addRules(List<HighlightRule> rules) {
+            this.rules.addAll(rules);
         }
 
         public void reset() {
             ruleStartId = 0;
-        }
-
-        public AttributedString highlightNextLine(String line) {
-            return highlightNextLine(new AttributedString(line));
         }
 
         public AttributedString highlightNextLine(AttributedString line) {
@@ -1310,7 +1284,6 @@ public class Nano implements Editor {
                 return line;
             }
             AttributedStringBuilder asb = new AttributedStringBuilder();
-            AttributedStyle as = new AttributedStyle(AttributedStyle.DEFAULT);
             asb.append(line);
             for (int i = ruleStartId; i < rules.size(); i++) {
                 HighlightRule rule = rules.get(i);
@@ -1357,57 +1330,218 @@ public class Nano implements Editor {
             }
             return asb.toAttributedString();
         }
+    }
 
-        private static class HighlightRule {
-            public enum RuleType {PATTERN, START_END};
-            private RuleType type;
-            private Pattern pattern;
-            private AttributedStyle style;
-            private Pattern start;
-            private Pattern end;
+    private static class HighlightRule {
+        public enum RuleType {PATTERN, START_END};
+        private RuleType type;
+        private Pattern pattern;
+        private AttributedStyle style;
+        private Pattern start;
+        private Pattern end;
 
-            public HighlightRule(AttributedStyle style, Pattern pattern) {
-                 this.type = RuleType.PATTERN;
-                 this.pattern = pattern;
-                 this.style = style;
+        public HighlightRule(AttributedStyle style, Pattern pattern) {
+             this.type = RuleType.PATTERN;
+             this.pattern = pattern;
+             this.style = style;
+        }
+
+        public HighlightRule(AttributedStyle style, Pattern start, Pattern end) {
+             this.type = RuleType.START_END;
+             this.style = style;
+             this.start = start;
+             this.end = end;
+        }
+
+        public RuleType getType() {
+            return type;
+        }
+
+        public AttributedStyle getStyle() {
+            return style;
+        }
+
+        public Pattern getPattern() {
+            if (type == RuleType.START_END) {
+                throw new IllegalAccessError();
             }
+            return pattern;
+        }
 
-            public HighlightRule(AttributedStyle style, Pattern start, Pattern end) {
-                 this.type = RuleType.START_END;
-                 this.style = style;
-                 this.start = start;
-                 this.end = end;
+        public Pattern getStart() {
+            if (type == RuleType.PATTERN) {
+                throw new IllegalAccessError();
             }
+            return start;
+        }
 
-            public RuleType getType() {
-                return type;
+        public Pattern getEnd() {
+            if (type == RuleType.PATTERN) {
+                throw new IllegalAccessError();
             }
+            return end;
+        }
 
-            public AttributedStyle getStyle() {
-                return style;
-            }
-
-            public Pattern getPattern() {
-                if (type == RuleType.START_END) {
-                    throw new IllegalAccessError();
+        public static RuleType evalRuleType(List<String> colorCfg){
+            RuleType out = null;
+            if (colorCfg.get(0).equals("color") || colorCfg.get(0).equals("icolor")) {
+                out = RuleType.PATTERN;
+                if (colorCfg.size() == 4 && colorCfg.get(2).startsWith("start=") && colorCfg.get(3).startsWith("end=")) {
+                    out = RuleType.START_END;
                 }
-                return pattern;
             }
+            return out;
+        }
 
-            public Pattern getStart() {
-                if (type == RuleType.PATTERN) {
-                    throw new IllegalAccessError();
+    }
+
+    private static class NanorcParser {
+        private File file;
+        private String target;
+        private boolean matches = false;
+        private List<HighlightRule> highlightRules = new ArrayList<>();
+
+        public NanorcParser(File file, String target) {
+            this.file = file;
+            this.target = target;
+        }
+
+        public void parse() throws IOException {
+            BufferedReader reader = new BufferedReader(new FileReader(file));
+            String line = reader.readLine();
+            while (line!= null) {
+                line = line.trim();
+                if (line.length() > 0 && !line.startsWith("#")) {
+                    line = line.replaceAll("\\\\<", "\\\\b").replaceAll("\\\\>", "\\\\b").replaceAll("\\[\\[:space:\\]\\]", "\\\\s");
+                    List<String> parts = split(line);
+                    if (parts.get(0).equals("syntax")) {
+                        List<Pattern> filePatterns = new ArrayList<>();
+                        for (int i = 2; i < parts.size(); i++) {
+                            filePatterns.add(Pattern.compile(parts.get(i)));
+                        }
+                        if (target != null) {
+                            for (Pattern p: filePatterns) {
+                                if (p.matcher(target).find()) {
+                                    matches = true;
+                                    break;
+                                }
+                            }
+                            if (!matches) {
+                                break;
+                            }
+                        } else {
+                            matches = true;
+                        }
+                    } else if (parts.get(0).equals("color")) {
+                        addHighlightRule(parts, false);
+                    } else if (parts.get(0).equals("icolor")) {
+                        addHighlightRule(parts, true);
+                    }
                 }
-                return start;
+                line = reader.readLine();
             }
+            reader.close();
+        }
 
-            public Pattern getEnd() {
-                if (type == RuleType.PATTERN) {
-                    throw new IllegalAccessError();
+        public boolean matches() {
+            return matches;
+        }
+
+        public List<HighlightRule> getHighlightRules() {
+            return highlightRules;
+        }
+
+        private Integer toColor(String styleString) {
+            Integer out = null;
+            if (styleString.length() > 0) {
+                out = 0;
+                if (styleString.startsWith("bright")) {
+                    out = AttributedStyle.BRIGHT;
+                    styleString = styleString.substring(6);
                 }
-                return end;
+                if (styleString.equals("white")) {
+                    out += AttributedStyle.WHITE;
+                } else if (styleString.equals("black")) {
+                    out += AttributedStyle.BLACK;
+                } else if (styleString.equals("red")) {
+                    out += AttributedStyle.RED;
+                } else if (styleString.equals("blue")) {
+                    out += AttributedStyle.BLUE;
+                } else if (styleString.equals("green")) {
+                    out += AttributedStyle.GREEN;
+                } else if (styleString.equals("yellow")) {
+                    out += AttributedStyle.YELLOW;
+                } else if (styleString.equals("magenta")) {
+                    out += AttributedStyle.MAGENTA;
+                } else if (styleString.equals("cyan")) {
+                    out += AttributedStyle.CYAN;
+                }
+            }
+            return out;
+        }
+
+        private void addHighlightRule(List<String> parts, boolean caseInsensitive) {
+            AttributedStyle style = AttributedStyle.DEFAULT.foreground(AttributedStyle.BLACK + AttributedStyle.BRIGHT);
+            String[] styleStrings = parts.get(1).split(",");
+            Integer fcolor = toColor(styleStrings[0]);
+            Integer bcolor = styleStrings.length > 1 ? toColor(styleStrings[1]) : null;
+            if (fcolor != null) {
+                style = style.foreground(fcolor);
+            }
+            if (bcolor != null) {
+                style = style.background(bcolor);
             }
 
+            if (HighlightRule.evalRuleType(parts) == HighlightRule.RuleType.PATTERN) {
+                for (int i = 2; i < parts.size(); i++) {
+                    highlightRules.add(new HighlightRule(style, doPattern(parts.get(i), caseInsensitive)));
+                }
+            } else if (HighlightRule.evalRuleType(parts) == HighlightRule.RuleType.START_END) {
+                String s = parts.get(2);
+                String e = parts.get(3);
+                highlightRules.add(new HighlightRule(style
+                                                   , doPattern(s.substring(7, s.length() - 1), caseInsensitive)
+                                                   , doPattern(e.substring(5, e.length() - 1), caseInsensitive)));
+            }
+        }
+
+        private Pattern doPattern(String regex, boolean caseInsensitive) {
+            return caseInsensitive ? Pattern.compile(regex, Pattern.CASE_INSENSITIVE)
+                                   : Pattern.compile(regex);
+        }
+
+        private List<String> split(String s){
+            List<String> out = new ArrayList<String>();
+            if (s.length() == 0) {
+                return out;
+            }
+            int depth = 0;
+            StringBuilder sb = new StringBuilder();
+            for(int i = 0; i < s.length(); i++) {
+                char c = s.charAt(i);
+                if (c == '"') {
+                    depth = depth == 0 ? 1 : 0;
+                } else if (c ==' ' && depth == 0 && sb.length() > 0) {
+                    out.add(stripQuotes(sb.toString().trim()));
+                    sb = new StringBuilder();
+                    continue;
+                }
+                if(sb.length() > 0 || (c!=' ' && c!='\t')) {
+                    sb.append(c);
+                }
+            }
+            if (sb.length() > 0) {
+                out.add(stripQuotes(sb.toString().trim()));
+            }
+            return out;
+        }
+
+        private String stripQuotes(String s){
+            String out = s;
+            if (s.startsWith("\"") && s.endsWith("\"")) {
+                out = s.substring(1, s.length() - 1);
+            }
+            return out;
         }
     }
 
