@@ -100,8 +100,15 @@ public class Commands {
     }
 
     public static void nano(Terminal terminal, PrintStream out, PrintStream err,
+            Path currentDir,
+            String[] argv) throws Exception {
+        nano(terminal, out, err, currentDir, argv, null);
+    }
+
+    public static void nano(Terminal terminal, PrintStream out, PrintStream err,
                             Path currentDir,
-                            String[] argv) throws Exception {
+                            String[] argv,
+                            Path nanorc) throws Exception {
         final String[] usage = {
                 "nano -  edit files",
                 "Usage: nano [OPTIONS] [FILES]",
@@ -114,7 +121,7 @@ public class Commands {
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
-        Nano edit = new Nano(terminal, currentDir, opt);
+        Nano edit = new Nano(terminal, currentDir, opt, nanorc);
         edit.open(opt.args());
         edit.run();
     }
@@ -224,7 +231,7 @@ public class Commands {
         }
         History history = reader.getHistory();
         boolean done = true;
-        boolean increment = opt.isSet("I");        
+        boolean increment = opt.isSet("I");
         if (opt.isSet("clear")) {
             history.purge();
         } else if (opt.isSet("save")) {

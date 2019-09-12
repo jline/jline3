@@ -93,6 +93,7 @@ public class Nano implements Editor {
     public String matchBrackets = "(<[{)>]}";
     public String punct = "!.?";
     public String quoteStr = "^([ \\t]*[#:>\\|}])+";
+    private List<Path> syntaxFiles = new ArrayList<>();
 
     // Input
     protected final List<Buffer> buffers = new ArrayList<>();
@@ -121,6 +122,7 @@ public class Nano implements Editor {
     protected boolean mark = false;
 
     protected boolean readNewBuffer = true;
+    protected String errorMessage = null;
 
     protected enum WriteMode {
         WRITE,
@@ -727,25 +729,15 @@ public class Nano implements Editor {
         private SyntaxHighlighter doSyntaxHighlighter() {
             SyntaxHighlighter out = new SyntaxHighlighter();
             if (file != null) {
-                File[] dirs = {new File(System.getProperty("user.home") + "/.nanorc")
-                             , new File("/etc/nano")
-                             , new File("/usr/share/nano")};
-                for (File d: dirs) {
-                    if (!d.exists() || !d.isDirectory()) {
-                        continue;
-                    }
-                    for (File f: d.listFiles()) {
-                        if (f.getName().endsWith(".nanorc")) {
-                            NanorcParser parser = new NanorcParser(f, file);
-                            try {
-                                parser.parse();
-                                if (parser.matches()) {
-                                    out.addRules(parser.getHighlightRules());
-                                    return out;
-                                }
-                            } catch (IOException e) {
-                            }
+                for (Path p: syntaxFiles) {
+                    NanorcParser parser = new NanorcParser(p, file);
+                    try {
+                        parser.parse();
+                        if (parser.matches()) {
+                            out.addRules(parser.getHighlightRules());
+                            return out;
                         }
+                    } catch (IOException e) {
                     }
                 }
             }
@@ -1395,14 +1387,57 @@ public class Nano implements Editor {
 
     }
 
-    private static class NanorcParser {
+    private static class ConfigParser extends Parser {
+        private File file;
+        private String message;
+        private List<Path> syntaxFiles = new ArrayList<>();
+
+        public ConfigParser(Path file) {
+             this.file = file.toFile();
+        }
+
+        public void parse() throws IOException {
+            BufferedReader reader = new BufferedReader(new FileReader(file));
+            String line = reader.readLine();
+            while (line!= null) {
+                line = line.trim();
+                if (line.length() > 0 && !line.startsWith("#")) {
+                    List<String> parts = split(line);
+                    if (parts.get(0).equals("include")) {
+                        if (parts.get(1).contains("*") || parts.get(1).contains("?")) {
+                            PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parts.get(1));
+                            Files.find(Paths.get(new File(parts.get(1)).getParent()), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
+                                 .forEach(p -> syntaxFiles.add(p));
+                        } else {
+                            syntaxFiles.add(Paths.get(parts.get(1)));
+                        }
+                    } else {
+                        message = "Nano config: Only 'include' entries are supported!";
+                    }
+                }
+                line = reader.readLine();
+            }
+            reader.close();
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public List<Path> getSyntaxFiles() {
+            return syntaxFiles;
+        }
+
+    }
+
+    private static class NanorcParser extends Parser {
         private File file;
         private String target;
         private boolean matches = false;
         private List<HighlightRule> highlightRules = new ArrayList<>();
 
-        public NanorcParser(File file, String target) {
-            this.file = file;
+        public NanorcParser(Path file, String target) {
+            this.file = file.toFile();
             this.target = target;
         }
 
@@ -1510,7 +1545,10 @@ public class Nano implements Editor {
                                    : Pattern.compile(regex);
         }
 
-        private List<String> split(String s){
+    }
+
+    private static abstract class Parser {
+        protected List<String> split(String s){
             List<String> out = new ArrayList<String>();
             if (s.length() == 0) {
                 return out;
@@ -1522,7 +1560,7 @@ public class Nano implements Editor {
                 if (c == '"') {
                     depth = depth == 0 ? 1 : 0;
                 } else if (c ==' ' && depth == 0 && sb.length() > 0) {
-                    out.add(stripQuotes(sb.toString().trim()));
+                    out.add(stripQuotes(sb.toString()));
                     sb = new StringBuilder();
                     continue;
                 }
@@ -1531,13 +1569,13 @@ public class Nano implements Editor {
                 }
             }
             if (sb.length() > 0) {
-                out.add(stripQuotes(sb.toString().trim()));
+                out.add(stripQuotes(sb.toString()));
             }
             return out;
         }
 
         private String stripQuotes(String s){
-            String out = s;
+            String out = s.trim();
             if (s.startsWith("\"") && s.endsWith("\"")) {
                 out = s.substring(1, s.length() - 1);
             }
@@ -1554,6 +1592,10 @@ public class Nano implements Editor {
     }
 
     public Nano(Terminal terminal, Path root, Options opts) {
+        this(terminal, root, null, null);
+    }
+
+    public Nano(Terminal terminal, Path root, Options opts, Path nanorc) {
         this.terminal = terminal;
         this.root = root;
         this.display = new Display(terminal, true);
@@ -1562,6 +1604,24 @@ public class Nano implements Editor {
         this.restricted = opts != null && opts.isSet("restricted");
         this.vsusp = terminal.getAttributes().getControlChar(ControlChar.VSUSP);
         bindKeys();
+        if (nanorc != null && nanorc.toFile().exists()) {
+            ConfigParser parser = new ConfigParser(nanorc);
+            try {
+                parser.parse();
+                syntaxFiles = parser.getSyntaxFiles();
+                errorMessage = parser.getMessage();
+            } catch (IOException e) {
+                errorMessage = "Encountered error while reading config file: " + nanorc;
+            }
+        } else if (new File("/usr/share/nano").exists()) {
+            PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:/usr/share/nano/*.nanorc");
+            try {
+                Files.find(Paths.get("/usr/share/nano"), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
+                     .forEach(p -> syntaxFiles.add(p));
+            } catch (IOException e) {
+                errorMessage = "Encountered error while reading nanorc files";
+            }
+        }
     }
 
     public void setRestricted(boolean restricted) {
@@ -1575,7 +1635,7 @@ public class Nano implements Editor {
     public void open(List<String> files) throws IOException {
         for (String file : files) {
             if (file.contains("*") || file.contains("?")) {
-                PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:"+file);
+                PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + file);
                 Files.find(root, Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
                      .forEach(p -> buffers.add(new Buffer(p.toString())));
             } else {
@@ -1617,7 +1677,10 @@ public class Nano implements Editor {
                 status.suspend();
             }
             buffer.open();
-            if (buffer.file != null) {
+            if (errorMessage != null) {
+                setMessage(errorMessage);
+                errorMessage = null;
+            } else if (buffer.file != null) {
                 setMessage("Read " + buffer.lines.size() + " lines");
             }
 
@@ -2535,8 +2598,8 @@ public class Nano implements Editor {
     }
 
     void setMessage(String message) {
-        this.message = message;
-        this.nbBindings = 25;
+       this.message = message;
+       this.nbBindings = 25;
     }
 
     boolean quit() throws IOException {
