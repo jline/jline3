@@ -82,7 +82,6 @@ import org.jline.builtins.Commands;
 import org.jline.builtins.Less;
 import org.jline.builtins.Nano;
 import org.jline.builtins.Options;
-import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.Source;
 import org.jline.builtins.Source.PathSource;
 import org.jline.builtins.Source.URLSource;
@@ -868,7 +867,8 @@ public class Posix {
                 "  -? --help                    Show help",
                 "  -R --restricted              Restricted mode: don't allow suspending; don't allow a file to be appended to,",
                 "                               prepended to, or saved under a different name if it already has one;",
-                "                               and don't use backup files."
+                "                               and don't use backup files.",
+                "  -Y --syntax=name             The name of the syntax highlighting to use."
         };
         Options opt = parseOptions(session, usage, argv);
         Nano edit = new Nano(Shell.getTerminal(session), session.currentDir(), opt);

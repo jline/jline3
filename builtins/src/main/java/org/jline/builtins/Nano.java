@@ -88,11 +88,14 @@ public class Nano implements Editor {
     public boolean mouseSupport = false;
     public boolean oneMoreLine = true;
     public boolean constantCursor;
+    public boolean quickblank = false;
     public int tabs = 1;   // tabs are not currently supported!
     public String brackets = "\"’)>]}";
     public String matchBrackets = "(<[{)>]}";
     public String punct = "!.?";
     public String quoteStr = "^([ \\t]*[#:>\\|}])+";
+    private boolean restricted;
+    private String syntaxName;
     private List<Path> syntaxFiles = new ArrayList<>();
 
     // Input
@@ -111,7 +114,6 @@ public class Nano implements Editor {
     protected boolean searchCaseSensitive;
     protected boolean searchRegexp;
     protected boolean searchBackwards;
-    protected boolean restricted;
     protected String searchTerm;
     protected List<String> searchTerms = new ArrayList<>();
     protected int searchTermId = -1;
@@ -120,6 +122,7 @@ public class Nano implements Editor {
     protected List<String> cutbuffer = new ArrayList<>();
     protected boolean cut2end = false;
     protected boolean mark = false;
+    protected boolean highlight = true;
 
     protected boolean readNewBuffer = true;
     protected String errorMessage = null;
@@ -671,7 +674,8 @@ public class Nano implements Editor {
         }
 
         void highlightDisplayedLine(int curLine, int curOffset, int nextOffset, AttributedStringBuilder line){
-            AttributedString disp = syntaxHighlighter.highlightNextLine(new AttributedString(getLine(curLine)));
+            AttributedString disp = highlight ? syntaxHighlighter.highlightNextLine(new AttributedString(getLine(curLine)))
+                                              : new AttributedString(getLine(curLine));
             if (!mark) {
                 line.append(disp.columnSubSequence(curOffset, nextOffset));
             } else if (getMarkStart()[0] == getMarkEnd()[0]) {
@@ -728,18 +732,22 @@ public class Nano implements Editor {
 
         private SyntaxHighlighter doSyntaxHighlighter() {
             SyntaxHighlighter out = new SyntaxHighlighter();
-            if (file != null) {
+            List<HighlightRule> defaultRules = new ArrayList<>();
+            if (file != null && (syntaxName == null || (syntaxName != null && !syntaxName.equals("none")))) {
                 for (Path p: syntaxFiles) {
-                    NanorcParser parser = new NanorcParser(p, file);
+                    NanorcParser parser = new NanorcParser(p, syntaxName, file);
                     try {
                         parser.parse();
                         if (parser.matches()) {
                             out.addRules(parser.getHighlightRules());
                             return out;
+                        } else if (parser.isDefault()) {
+                            defaultRules.addAll(parser.getHighlightRules());
                         }
                     } catch (IOException e) {
                     }
                 }
+                out.addRules(defaultRules);
             }
             return out;
         }
@@ -1387,57 +1395,18 @@ public class Nano implements Editor {
 
     }
 
-    private static class ConfigParser extends Parser {
+    private static class NanorcParser {
+        private static final String DEFAULT_SYNTAX = "default";
         private File file;
-        private String message;
-        private List<Path> syntaxFiles = new ArrayList<>();
-
-        public ConfigParser(Path file) {
-             this.file = file.toFile();
-        }
-
-        public void parse() throws IOException {
-            BufferedReader reader = new BufferedReader(new FileReader(file));
-            String line = reader.readLine();
-            while (line!= null) {
-                line = line.trim();
-                if (line.length() > 0 && !line.startsWith("#")) {
-                    List<String> parts = split(line);
-                    if (parts.get(0).equals("include")) {
-                        if (parts.get(1).contains("*") || parts.get(1).contains("?")) {
-                            PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parts.get(1));
-                            Files.find(Paths.get(new File(parts.get(1)).getParent()), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
-                                 .forEach(p -> syntaxFiles.add(p));
-                        } else {
-                            syntaxFiles.add(Paths.get(parts.get(1)));
-                        }
-                    } else {
-                        message = "Nano config: Only 'include' entries are supported!";
-                    }
-                }
-                line = reader.readLine();
-            }
-            reader.close();
-        }
-
-        public String getMessage() {
-            return message;
-        }
-
-        public List<Path> getSyntaxFiles() {
-            return syntaxFiles;
-        }
-
-    }
-
-    private static class NanorcParser extends Parser {
-        private File file;
+        private String name;
         private String target;
         private boolean matches = false;
         private List<HighlightRule> highlightRules = new ArrayList<>();
+        private String syntaxName;
 
-        public NanorcParser(Path file, String target) {
+        public NanorcParser(Path file, String name, String target) {
             this.file = file.toFile();
+            this.name = name;
             this.target = target;
         }
 
@@ -1448,20 +1417,27 @@ public class Nano implements Editor {
                 line = line.trim();
                 if (line.length() > 0 && !line.startsWith("#")) {
                     line = line.replaceAll("\\\\<", "\\\\b").replaceAll("\\\\>", "\\\\b").replaceAll("\\[\\[:space:\\]\\]", "\\\\s");
-                    List<String> parts = split(line);
+                    List<String> parts = Parser.split(line);
                     if (parts.get(0).equals("syntax")) {
+                        syntaxName = parts.get(1);
                         List<Pattern> filePatterns = new ArrayList<>();
-                        for (int i = 2; i < parts.size(); i++) {
-                            filePatterns.add(Pattern.compile(parts.get(i)));
-                        }
-                        if (target != null) {
+                        if (name != null) {
+                            if (name.equals(syntaxName)) {
+                                matches = true;
+                            } else {
+                                break;
+                            }
+                        } else if (target != null) {
+                            for (int i = 2; i < parts.size(); i++) {
+                                filePatterns.add(Pattern.compile(parts.get(i)));
+                            }
                             for (Pattern p: filePatterns) {
                                 if (p.matcher(target).find()) {
                                     matches = true;
                                     break;
                                 }
                             }
-                            if (!matches) {
+                            if (!matches && !syntaxName.equals(DEFAULT_SYNTAX)) {
                                 break;
                             }
                         } else {
@@ -1484,6 +1460,10 @@ public class Nano implements Editor {
 
         public List<HighlightRule> getHighlightRules() {
             return highlightRules;
+        }
+
+        public boolean isDefault() {
+            return syntaxName.equals(DEFAULT_SYNTAX);
         }
 
         private Integer toColor(String styleString) {
@@ -1547,8 +1527,8 @@ public class Nano implements Editor {
 
     }
 
-    private static abstract class Parser {
-        protected List<String> split(String s){
+    private static class Parser {
+        protected static List<String> split(String s){
             List<String> out = new ArrayList<String>();
             if (s.length() == 0) {
                 return out;
@@ -1574,7 +1554,7 @@ public class Nano implements Editor {
             return out;
         }
 
-        private String stripQuotes(String s){
+        private static String stripQuotes(String s){
             String out = s.trim();
             if (s.startsWith("\"") && s.endsWith("\"")) {
                 out = s.substring(1, s.length() - 1);
@@ -1601,15 +1581,11 @@ public class Nano implements Editor {
         this.display = new Display(terminal, true);
         this.bindingReader = new BindingReader(terminal.reader());
         this.size = new Size();
-        this.restricted = opts != null && opts.isSet("restricted");
         this.vsusp = terminal.getAttributes().getControlChar(ControlChar.VSUSP);
         bindKeys();
         if (nanorc != null && nanorc.toFile().exists()) {
-            ConfigParser parser = new ConfigParser(nanorc);
             try {
-                parser.parse();
-                syntaxFiles = parser.getSyntaxFiles();
-                errorMessage = parser.getMessage();
+                parseConfig(nanorc);
             } catch (IOException e) {
                 errorMessage = "Encountered error while reading config file: " + nanorc;
             }
@@ -1622,6 +1598,75 @@ public class Nano implements Editor {
                 errorMessage = "Encountered error while reading nanorc files";
             }
         }
+        if (opts != null) {
+            this.restricted = opts.isSet("restricted");
+            this.syntaxName = opts.isSet("syntax") ? opts.get("syntax") : null;
+        }
+    }
+
+    private void parseConfig(Path file) throws IOException {
+        BufferedReader reader = new BufferedReader(new FileReader(file.toFile()));
+        String line = reader.readLine();
+        while (line!= null) {
+            line = line.trim();
+            if (line.length() > 0 && !line.startsWith("#")) {
+                List<String> parts = Parser.split(line);
+                if (parts.get(0).equals("include")) {
+                    if (parts.get(1).contains("*") || parts.get(1).contains("?")) {
+                         PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parts.get(1));
+                         Files.find(Paths.get(new File(parts.get(1)).getParent()), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
+                                 .forEach(p -> syntaxFiles.add(p));
+                    } else {
+                        syntaxFiles.add(Paths.get(parts.get(1)));
+                    }
+                } else if (parts.size() == 2
+                        && (parts.get(0).equals("set") || parts.get(0).equals("unset"))) {
+                    String option = parts.get(1);
+                    boolean val = parts.get(0).equals("set");
+                    if (option.equals("linenumbers")) {
+                        printLineNumbers = val;
+                    } else if (option.equals("jumpyscrolling")) {
+                        smoothScrolling = !val;
+                    } else if (option.equals("smooth")) {
+                        smoothScrolling = val;
+                    } else if (option.equals("softwrap")) {
+                        wrapping = val;
+                    } else if (option.equals("mouse")) {
+                        mouseSupport = val;
+                    } else if (option.equals("emptyline")) {
+                        oneMoreLine = val;
+                    } else if (option.equals("morespace")) {
+                        oneMoreLine = !val;
+                    } else if (option.equals("constantshow")) {
+                        constantCursor = val;
+                    } else if (option.equals("quickblank")) {
+                        quickblank = val;
+                    } else {
+                        errorMessage = "Nano config: Unknown or unsupported configuration option " + option;
+                    }
+                } else if (parts.size() == 3 && parts.get(0).equals("set")) {
+                    String option = parts.get(1);
+                    String val = parts.get(2);
+                    if (option.equals("quotestr")) {
+                        quoteStr = val;
+                    } else if (option.equals("punct")) {
+                        punct = val;
+                    } else if (option.equals("matchbrackets")) {
+                        matchBrackets = val;
+                    } else if (option.equals("brackets")) {
+                        brackets = val;
+                    } else {
+                        errorMessage = "Nano config: Unknown or unsupported configuration option " + option;
+                    }
+                } else if (parts.get(0).equals("bind") || parts.get(0).equals("unbind")) {
+                    errorMessage = "Nano config: Key bindings can not be changed!";
+                } else {
+                    errorMessage = "Nano config: Bad configuration '" + line + "'";
+                }
+            }
+            line = reader.readLine();
+        }
+        reader.close();
     }
 
     public void setRestricted(boolean restricted) {
@@ -1831,6 +1876,10 @@ public class Nano implements Editor {
                         mark = !mark;
                         setMessage("Mark " + (mark ? "Set" : "Unset"));
                         buffer.mark();
+                        break;
+                    case HIGHLIGHT:
+                        highlight = !highlight;
+                        setMessage("Highlight " + (highlight ? "enabled" : "disabled"));
                         break;
                     default:
                         setMessage("Unsupported " + op.name().toLowerCase().replace('_', '-'));
@@ -2598,8 +2647,8 @@ public class Nano implements Editor {
     }
 
     void setMessage(String message) {
-       this.message = message;
-       this.nbBindings = 25;
+        this.message = message;
+        this.nbBindings = quickblank ? 2 : 25;
     }
 
     boolean quit() throws IOException {

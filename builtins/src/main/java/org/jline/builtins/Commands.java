@@ -8,9 +8,7 @@
  */
 package org.jline.builtins;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,7 +18,6 @@ import java.nio.file.Files;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -115,7 +112,8 @@ public class Commands {
                 "  -? --help                    Show help",
                 "  -R --restricted              Restricted mode: don't allow suspending; don't allow a file to be appended to,",
                 "                               prepended to, or saved under a different name if it already has one;",
-                "                               and don't use backup files."
+                "                               and don't use backup files.",
+                "  -Y --syntax=name             The name of the syntax highlighting to use."
         };
         Options opt = Options.compile(usage).parse(argv);
         if (opt.isSet("help")) {
@@ -253,7 +251,7 @@ public class Commands {
         }
         ReExecute execute = new ReExecute(history, opt);
         int argId = execute.getArgId();
-        
+
         Pattern pattern = null;
         if (opt.isSet("m") && opt.args().size() > argId) {
             StringBuilder sb = new StringBuilder();
