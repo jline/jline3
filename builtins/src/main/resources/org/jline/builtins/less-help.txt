@@ -85,6 +85,8 @@
                   Chop (truncate) long lines rather than wrapping.
   -x [N[,...]]  --tabs=[N[,...]]
                   Set tab stops (from command line).
+  -Y            --syntax            
+                  Toggle syntax highlighting.
 
  ---------------------------------------------------------------------------
 

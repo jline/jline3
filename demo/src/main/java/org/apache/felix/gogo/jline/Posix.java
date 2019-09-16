@@ -948,13 +948,12 @@ public class Posix {
                 "  -I --IGNORE-CASE             Search ignores all case",
                 "  -x --tabs=N[,...]            Set tab stops",
                 "  -N --LINE-NUMBERS            Display line number for each line",
+                "  -Y --syntax=name             The name of the syntax highlighting to use.",
                 "     --no-init                 Disable terminal initialization",
                 "     --no-keypad               Disable keypad handling"
         };
-        boolean hasExtendedOptions = false;
         try {
             Less.class.getField("quitIfOneScreen");
-            hasExtendedOptions = true;
         } catch (NoSuchFieldException e) {
             List<String> ustrs = new ArrayList<>(Arrays.asList(usage));
             ustrs.removeIf(s -> s.contains("--quit-if-one-screen") || s.contains("--no-init") || s.contains("--no-keypad"));
@@ -986,26 +985,7 @@ public class Posix {
             return;
         }
 
-        List<Integer> tabs = new ArrayList<>();
-        if (opt.isSet("tabs")) {
-            for (String s: opt.get("tabs").split(",")) {
-                tabs.add(parseInteger(s));
-            }
-        }
-        Less less = new Less(Shell.getTerminal(session), session.currentDir()).tabs(tabs);
-        less.quitAtFirstEof = opt.isSet("QUIT-AT-EOF");
-        less.quitAtSecondEof = opt.isSet("quit-at-eof");
-        less.quiet = opt.isSet("quiet");
-        less.veryQuiet = opt.isSet("QUIET");
-        less.chopLongLines = opt.isSet("chop-long-lines");
-        less.ignoreCaseAlways = opt.isSet("IGNORE-CASE");
-        less.ignoreCaseCond = opt.isSet("ignore-case");
-        less.printLineNumbers = opt.isSet("LINE-NUMBERS");
-        if (hasExtendedOptions) {
-            Less.class.getField("quitIfOneScreen").set(less, opt.isSet("quit-if-one-screen"));
-            Less.class.getField("noInit").set(less, opt.isSet("no-init"));
-            Less.class.getField("noKeypad").set(less, opt.isSet("no-keypad"));
-        }
+        Less less = new Less(Shell.getTerminal(session), session.currentDir(), opt, null);
         less.run(sources);
     }
 
@@ -1017,14 +997,6 @@ public class Posix {
             throw new IllegalArgumentException(exp.getMessage());
         }
         return out;
-    }
-
-    private int parseInteger(String s) throws IllegalArgumentException {
-        try {
-            return Integer.parseInt(s);
-        } catch (NumberFormatException ex) {
-            throw new IllegalArgumentException();
-        }
     }
 
     protected void sort(CommandSession session, Process process, String[] argv) throws Exception {

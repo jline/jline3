@@ -125,21 +125,32 @@ public class Commands {
     }
 
     public static void less(Terminal terminal, InputStream in, PrintStream out, PrintStream err,
+            Path currentDir,
+            String[] argv) throws Exception {
+        less(terminal, in, out, err, currentDir, argv, null);
+    }
+    public static void less(Terminal terminal, InputStream in, PrintStream out, PrintStream err,
                             Path currentDir,
-                            String[] argv) throws Exception {
+                            String[] argv,
+                            Path lessrc) throws Exception {
         final String[] usage = {
                 "less -  file pager",
                 "Usage: less [OPTIONS] [FILES]",
                 "  -? --help                    Show help",
                 "  -e --quit-at-eof             Exit on second EOF",
                 "  -E --QUIT-AT-EOF             Exit on EOF",
+                "  -F --quit-if-one-screen      Exit if entire file fits on first screen",
                 "  -q --quiet --silent          Silent mode",
                 "  -Q --QUIET --SILENT          Completely silent",
                 "  -S --chop-long-lines         Do not fold long lines",
                 "  -i --ignore-case             Search ignores lowercase case",
                 "  -I --IGNORE-CASE             Search ignores all case",
                 "  -x --tabs=N[,...]            Set tab stops",
-                "  -N --LINE-NUMBERS            Display line number for each line"
+                "  -N --LINE-NUMBERS            Display line number for each line",
+                "  -Y --syntax=name             The name of the syntax highlighting to use.",
+                "     --no-init                 Disable terminal initialization",
+                "     --no-keypad               Disable keypad handling"
+
         };
 
         Options opt = Options.compile(usage).parse(argv);
@@ -148,21 +159,7 @@ public class Commands {
             throw new HelpException(opt.usage());
         }
 
-        List<Integer> tabs = new ArrayList<>();
-        if (opt.isSet("tabs")) {
-            for (String s: opt.get("tabs").split(",")) {
-                tabs.add(parseInteger(s));
-            }
-        }
-        Less less = new Less(terminal, currentDir).tabs(tabs);
-        less.quitAtFirstEof = opt.isSet("QUIT-AT-EOF");
-        less.quitAtSecondEof = opt.isSet("quit-at-eof");
-        less.quiet = opt.isSet("quiet");
-        less.veryQuiet = opt.isSet("QUIET");
-        less.chopLongLines = opt.isSet("chop-long-lines");
-        less.ignoreCaseAlways = opt.isSet("IGNORE-CASE");
-        less.ignoreCaseCond = opt.isSet("ignore-case");
-        less.printLineNumbers = opt.isSet("LINE-NUMBERS");
+        Less less = new Less(terminal, currentDir, opt, lessrc);
         List<Source> sources = new ArrayList<>();
         if (opt.args().isEmpty()) {
             opt.args().add("-");
@@ -414,14 +411,6 @@ public class Commands {
             out = maxId;
         }
         return out;
-    }
-
-    private static int parseInteger(String s) throws IllegalArgumentException {
-        try {
-            return Integer.parseInt(s);
-        } catch (NumberFormatException ex) {
-            throw new IllegalArgumentException("error parsing number: " + s);
-        }
     }
 
     private static int retrieveHistoryId(History history, String s) throws IllegalArgumentException {

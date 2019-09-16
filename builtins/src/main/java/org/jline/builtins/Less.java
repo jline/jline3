@@ -9,7 +9,9 @@
 package org.jline.builtins;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,6 +21,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -28,6 +31,8 @@ import java.util.TreeMap;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import org.jline.builtins.Nano.Parser;
+import org.jline.builtins.Nano.SyntaxHighlighter;
 import org.jline.builtins.Source.ResourceSource;
 import org.jline.builtins.Source.URLSource;
 import org.jline.keymap.BindingReader;
@@ -66,8 +71,9 @@ public class Less {
     public boolean ignoreCaseAlways;
     public boolean noKeypad;
     public boolean noInit;
-
     protected List<Integer> tabs = Arrays.asList(4);
+    protected String syntaxName;
+
     protected final Terminal terminal;
     protected final Display display;
     protected final BindingReader bindingReader;
@@ -86,6 +92,7 @@ public class Less {
     protected int offsetInLine = 0;
 
     protected String message;
+    protected String errorMessage;
     protected final StringBuilder buffer = new StringBuilder();
 
     protected final Map<String, Operation> options = new TreeMap<>();
@@ -101,15 +108,150 @@ public class Less {
     protected String displayPattern;
 
     protected final Size size = new Size();
+    
+    SyntaxHighlighter syntaxHighlighter;
+    private List<Path> syntaxFiles = new ArrayList<>();
+    private boolean highlight = true;
 
 
     public Less(Terminal terminal, Path currentDir) {
+        this(terminal, currentDir, null, null);
+    }
+
+    public Less(Terminal terminal, Path currentDir, Options opts, Path lessrc) {
         this.terminal = terminal;
         this.display = new Display(terminal, true);
         this.bindingReader = new BindingReader(terminal.reader());
         this.currentDir = currentDir;
+        if (lessrc != null && lessrc.toFile().exists()) {
+            try {
+                parseConfig(lessrc);
+            } catch (IOException e) {
+                errorMessage = "Encountered error while reading config file: " + lessrc;
+            }
+        } else if (new File("/usr/share/nano").exists()) {
+            PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:/usr/share/nano/*.nanorc");
+            try {
+                Files.find(Paths.get("/usr/share/nano"), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
+                     .forEach(p -> syntaxFiles.add(p));
+            } catch (IOException e) {
+                errorMessage = "Encountered error while reading nanorc files";
+            }
+        }
+        if (opts != null) {
+            if (opts.isSet("QUIT-AT-EOF")){
+                quitAtFirstEof = true;
+            }
+            if (opts.isSet("quit-at-eof")){
+                quitAtSecondEof = true;
+            }
+            if (opts.isSet("quit-if-one-screen")) {
+                quitIfOneScreen = true;
+            }
+            if (opts.isSet("quiet")){
+                quiet = true;
+            }
+            if (opts.isSet("QUIET")){
+                veryQuiet = true;
+            }
+            if (opts.isSet("chop-long-lines")){
+                chopLongLines = true;
+            }
+            if (opts.isSet("IGNORE-CASE")){
+                ignoreCaseAlways = true;
+            }
+            if (opts.isSet("ignore-case")){
+                ignoreCaseCond = true;
+            }
+            if (opts.isSet("LINE-NUMBERS")){
+                printLineNumbers = true;
+            }
+            if (opts.isSet("tabs")) {
+                doTabs(opts.get("tabs"));
+            }
+            if (opts.isSet("syntax")) {
+                syntaxName = opts.get("syntax");
+            }
+            if (opts.isSet("no-init")) {
+                noInit = true;
+            }
+            if (opts.isSet("no-keypad")) {
+                noKeypad = true;
+            }
+        }
+    }
+    
+    private void parseConfig(Path file) throws IOException {
+        BufferedReader reader = new BufferedReader(new FileReader(file.toFile()));
+        String line = reader.readLine();
+        while (line!= null) {
+            line = line.trim();
+            if (line.length() > 0 && !line.startsWith("#")) {
+                List<String> parts = Parser.split(line);
+                if (parts.get(0).equals("include")) {
+                    if (parts.get(1).contains("*") || parts.get(1).contains("?")) {
+                         PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parts.get(1));
+                         Files.find(Paths.get(new File(parts.get(1)).getParent()), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
+                                 .forEach(p -> syntaxFiles.add(p));
+                    } else {
+                        syntaxFiles.add(Paths.get(parts.get(1)));
+                    }
+                } else if (parts.size() == 2
+                        && (parts.get(0).equals("set") || parts.get(0).equals("unset"))) {
+                    String option = parts.get(1);
+                    boolean val = parts.get(0).equals("set");
+                    if (option.equals("quitatfirsteof")) {
+                        quitAtFirstEof = val;
+                    } else if (option.equals("quitatsecondeof")) {
+                        quitAtSecondEof = val;
+                    } else if (option.equals("quitifonescreen")) {
+                        quitIfOneScreen = val;
+                    } else if (option.equals("quiet")) {
+                        quiet = val;
+                    } else if (option.equals("veryquiet")) {
+                        veryQuiet = val;
+                    } else if (option.equals("choplonglines")) {
+                        chopLongLines = val;
+                    } else if (option.equals("ignorecaseallways")) {
+                        ignoreCaseAlways = val;
+                    } else if (option.equals("ignorecasecond")) {
+                        ignoreCaseCond = val;
+                    } else if (option.equals("linenumbers")) {
+                        printLineNumbers = val;
+                    } else {
+                        errorMessage = "Less config: Unknown or unsupported configuration option " + option;
+                    }
+                } else if (parts.size() == 3 && parts.get(0).equals("set")) {
+                    String option = parts.get(1);
+                    String val = parts.get(2);
+                    if (option.equals("tabs")) {
+                        doTabs(val);
+                    } else {
+                        errorMessage = "Less config: Unknown or unsupported configuration option " + option;
+                    }
+                } else if (parts.get(0).equals("bind") || parts.get(0).equals("unbind")) {
+                    errorMessage = "Less config: Key bindings can not be changed!";
+                } else {
+                    errorMessage = "Less config: Bad configuration '" + line + "'";
+                }
+            }
+            line = reader.readLine();
+        }
+        reader.close();
     }
 
+    private void doTabs(String val) {
+        tabs = new ArrayList<>();
+        for (String s: val.split(",")) {
+            try {
+                tabs.add(Integer.parseInt(s));
+            } catch (Exception ex) {
+                errorMessage = "Less config: tabs option error parsing number: " + s;
+            }
+        }
+    }
+
+    // to be removed
     public Less tabs(List<Integer> tabs) {
         this.tabs = tabs;
         return this;
@@ -138,6 +280,10 @@ public class Less {
 
         sourceIdx = 1;
         openSource();
+        if (errorMessage != null) {
+            message = errorMessage;
+            errorMessage = null;
+        }
         Status status = Status.getStatus(terminal, false);
 
         try {
@@ -191,6 +337,8 @@ public class Less {
                 options.put("--ignore-case", Operation.OPT_IGNORE_CASE_COND);
                 options.put("-I", Operation.OPT_IGNORE_CASE_ALWAYS);
                 options.put("--IGNORE-CASE", Operation.OPT_IGNORE_CASE_ALWAYS);
+                options.put("-Y", Operation.OPT_SYNTAX_HIGHLIGHT);
+                options.put("--syntax", Operation.OPT_SYNTAX_HIGHLIGHT);
 
                 Operation op;
                 boolean forward = true;
@@ -375,6 +523,10 @@ public class Less {
                                 ignoreCaseCond = false;
                                 message = ignoreCaseAlways ? "Ignore case in searches and in patterns" : "Case is significant in searches";
                                 break;
+                            case OPT_SYNTAX_HIGHLIGHT:
+                                highlight = !highlight;
+                                message = "Highlight " + (highlight ? "enabled" : "disabled");
+                                break;
                             case ADD_FILE:
                                 addFile();
                                 break;
@@ -430,7 +582,7 @@ public class Less {
                                 if (sources.size() > 2) {
                                     sources.remove(sourceIdx);
                                     if (sourceIdx >= sources.size()) {
-                                        sourceIdx = sources.size() - 1; 
+                                        sourceIdx = sources.size() - 1;
                                     }
                                     openSource();
                                 }
@@ -615,7 +767,7 @@ public class Less {
         }
         sourceIdx = sources.size() - 1;
     }
-    
+
     private void addFile() throws IOException, InterruptedException {
         KeyMap<Operation> fileKeyMap = new KeyMap<>();
         fileKeyMap.setUnicode(Operation.INSERT);
@@ -627,7 +779,7 @@ public class Less {
         fileKeyMap.bind(Operation.HOME, key(terminal, Capability.key_home), alt('0'));
         fileKeyMap.bind(Operation.END, key(terminal, Capability.key_end), alt('$'));
         fileKeyMap.bind(Operation.BACKSPACE, del());
-        fileKeyMap.bind(Operation.DELETE, alt('x'));         
+        fileKeyMap.bind(Operation.DELETE, alt('x'));
         fileKeyMap.bind(Operation.DELETE_WORD, alt('X'));
         fileKeyMap.bind(Operation.DELETE_LINE, ctrl('U'));
         fileKeyMap.bind(Operation.ACCEPT, "\r");
@@ -716,7 +868,7 @@ public class Less {
                     buffer.setLength(0);
                     if (patternId < 0) {
                         patternId = -1;
-                        buffer.append(currentBuffer);                                    
+                        buffer.append(currentBuffer);
                     } else {
                         buffer.append(type);
                         buffer.append(patterns.get(patternId));
@@ -809,7 +961,7 @@ public class Less {
             ssp.restore(null);
         }
     }
-     
+
     protected void openSource() throws IOException {
         boolean wasOpen = false;
         if (reader != null) {
@@ -836,6 +988,11 @@ public class Less {
                 firstColumnToDisplay = 0;
                 offsetInLine = 0;
                 display.clear();
+                if (sourceIdx == 0) {
+                    syntaxHighlighter = SyntaxHighlighter.build(syntaxFiles, null, "none");
+                } else {
+                    syntaxHighlighter = SyntaxHighlighter.build(syntaxFiles, source.getName(), syntaxName);
+                }
                 open = true;
                 if (displayMessage) {
                     AttributedStringBuilder asb = new AttributedStringBuilder();
@@ -956,7 +1113,7 @@ public class Less {
                     firstLineToDisplay = prevLine2display(firstLineToDisplay, dpCompiled).getU();
                 }
             }
-        } 
+        }
         while (--lines >= 0) {
             int lastLineToDisplay = firstLineToDisplay;
             if (!doOffsets) {
@@ -1087,6 +1244,7 @@ public class Less {
         Pattern dpCompiled = getPattern(true);
         boolean fitOnOneScreen = false;
         boolean eof = false;
+        syntaxHighlighter.reset();
         for (int terminalLine = 0; terminalLine < height - 1; terminalLine++) {
             if (curLine == null) {
                 Pair<Integer, AttributedString> nextLine = nextLine2display(inputLine, dpCompiled);
@@ -1099,6 +1257,8 @@ public class Less {
                     }
                     eof = true;
                     curLine = new AttributedString("~");
+                } else if (highlight) {
+                    curLine = syntaxHighlighter.highlight(curLine);
                 }
                 if (compiled != null) {
                     curLine = curLine.styleMatches(compiled, AttributedStyle.DEFAULT.inverse());
@@ -1295,6 +1455,7 @@ public class Less {
         OPT_VERY_QUIET,
         OPT_IGNORE_CASE_COND,
         OPT_IGNORE_CASE_ALWAYS,
+        OPT_SYNTAX_HIGHLIGHT,
 
         // Files
         ADD_FILE,

@@ -88,7 +88,7 @@ public class Nano implements Editor {
     public boolean mouseSupport = false;
     public boolean oneMoreLine = true;
     public boolean constantCursor;
-    public boolean quickblank = false;
+    public boolean quickBlank = false;
     public int tabs = 1;   // tabs are not currently supported!
     public String brackets = "\"’)>]}";
     public String matchBrackets = "(<[{)>]}";
@@ -162,7 +162,7 @@ public class Nano implements Editor {
 
         protected Buffer(String file) {
             this.file = file;
-            this.syntaxHighlighter = doSyntaxHighlighter();
+            this.syntaxHighlighter = SyntaxHighlighter.build(syntaxFiles, file, syntaxName);
         }
 
         void open() throws IOException {
@@ -674,7 +674,7 @@ public class Nano implements Editor {
         }
 
         void highlightDisplayedLine(int curLine, int curOffset, int nextOffset, AttributedStringBuilder line){
-            AttributedString disp = highlight ? syntaxHighlighter.highlightNextLine(new AttributedString(getLine(curLine)))
+            AttributedString disp = highlight ? syntaxHighlighter.highlight(new AttributedString(getLine(curLine)))
                                               : new AttributedString(getLine(curLine));
             if (!mark) {
                 line.append(disp.columnSubSequence(curOffset, nextOffset));
@@ -728,28 +728,6 @@ public class Nano implements Editor {
                     line.append(disp.columnSubSequence(curOffset, nextOffset));
                 }
             }
-        }
-
-        private SyntaxHighlighter doSyntaxHighlighter() {
-            SyntaxHighlighter out = new SyntaxHighlighter();
-            List<HighlightRule> defaultRules = new ArrayList<>();
-            if (file != null && (syntaxName == null || (syntaxName != null && !syntaxName.equals("none")))) {
-                for (Path p: syntaxFiles) {
-                    NanorcParser parser = new NanorcParser(p, syntaxName, file);
-                    try {
-                        parser.parse();
-                        if (parser.matches()) {
-                            out.addRules(parser.getHighlightRules());
-                            return out;
-                        } else if (parser.isDefault()) {
-                            defaultRules.addAll(parser.getHighlightRules());
-                        }
-                    } catch (IOException e) {
-                    }
-                }
-                out.addRules(defaultRules);
-            }
-            return out;
         }
 
         List<AttributedString> getDisplayedLines(int nbLines) {
@@ -1265,13 +1243,35 @@ public class Nano implements Editor {
         }
     }
 
-    private static class SyntaxHighlighter {
+    protected static class SyntaxHighlighter {
         private List<HighlightRule> rules = new ArrayList<>();
         private int ruleStartId = 0;
 
-        public SyntaxHighlighter() {}
+        private SyntaxHighlighter() {}
 
-        public void addRules(List<HighlightRule> rules) {
+        public static SyntaxHighlighter build(List<Path> syntaxFiles, String file, String syntaxName) {
+            SyntaxHighlighter out = new SyntaxHighlighter();
+            List<HighlightRule> defaultRules = new ArrayList<>();
+            if (file != null && (syntaxName == null || (syntaxName != null && !syntaxName.equals("none")))) {
+                for (Path p: syntaxFiles) {
+                    NanorcParser parser = new NanorcParser(p, syntaxName, file);
+                    try {
+                        parser.parse();
+                        if (parser.matches()) {
+                            out.addRules(parser.getHighlightRules());
+                            return out;
+                        } else if (parser.isDefault()) {
+                            defaultRules.addAll(parser.getHighlightRules());
+                        }
+                    } catch (IOException e) {
+                    }
+                }
+                out.addRules(defaultRules);
+            }
+            return out;
+        }
+
+        private void addRules(List<HighlightRule> rules) {
             this.rules.addAll(rules);
         }
 
@@ -1279,7 +1279,7 @@ public class Nano implements Editor {
             ruleStartId = 0;
         }
 
-        public AttributedString highlightNextLine(AttributedString line) {
+        public AttributedString highlight(AttributedString line) {
             if (rules.isEmpty()) {
                 return line;
             }
@@ -1527,7 +1527,7 @@ public class Nano implements Editor {
 
     }
 
-    private static class Parser {
+    protected static class Parser {
         protected static List<String> split(String s){
             List<String> out = new ArrayList<String>();
             if (s.length() == 0) {
@@ -1640,7 +1640,7 @@ public class Nano implements Editor {
                     } else if (option.equals("constantshow")) {
                         constantCursor = val;
                     } else if (option.equals("quickblank")) {
-                        quickblank = val;
+                        quickBlank = val;
                     } else {
                         errorMessage = "Nano config: Unknown or unsupported configuration option " + option;
                     }
@@ -2648,7 +2648,7 @@ public class Nano implements Editor {
 
     void setMessage(String message) {
         this.message = message;
-        this.nbBindings = quickblank ? 2 : 25;
+        this.nbBindings = quickBlank ? 2 : 25;
     }
 
     boolean quit() throws IOException {
