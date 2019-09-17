@@ -967,7 +967,7 @@ public class Posix {
                 "  -Y --syntax=name             The name of the syntax highlighting to use.",
                 "     --no-init                 Disable terminal initialization",
                 "     --no-keypad               Disable keypad handling",
-                "     --ignorercfiles           Don't look at the system's lessrc nor at the user's lessrc." 
+                "     --ignorercfiles           Don't look at the system's lessrc nor at the user's lessrc."
 
         };
         try {
@@ -1003,7 +1003,7 @@ public class Posix {
             return;
         }
 
-        Less less = new Less(Shell.getTerminal(session), session.currentDir(), opt, null);
+        Less less = new Less(Shell.getTerminal(session), session.currentDir(), opt);
         less.run(sources);
     }
 

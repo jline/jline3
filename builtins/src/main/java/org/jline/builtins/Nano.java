@@ -43,6 +43,7 @@ import java.util.regex.Pattern;
 
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
+import org.jline.reader.ConfigurationPath;
 import org.jline.reader.Editor;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Attributes.ControlChar;
@@ -1572,10 +1573,10 @@ public class Nano implements Editor {
     }
 
     public Nano(Terminal terminal, Path root, Options opts) {
-        this(terminal, root, null, null);
+        this(terminal, root, opts, null);
     }
 
-    public Nano(Terminal terminal, Path root, Options opts, Path nanorc) {
+    public Nano(Terminal terminal, Path root, Options opts, ConfigurationPath configPath) {
         this.terminal = terminal;
         this.root = root;
         this.display = new Display(terminal, true);
@@ -1583,8 +1584,9 @@ public class Nano implements Editor {
         this.size = new Size();
         this.vsusp = terminal.getAttributes().getControlChar(ControlChar.VSUSP);
         bindKeys();
+        Path nanorc = configPath != null ? configPath.getConfig("jnanorc") : null;
         boolean ignorercfiles = opts!=null && opts.isSet("ignorercfiles");
-        if (nanorc != null && nanorc.toFile().exists() && !ignorercfiles) {
+        if (nanorc != null && !ignorercfiles) {
             try {
                 parseConfig(nanorc);
             } catch (IOException e) {

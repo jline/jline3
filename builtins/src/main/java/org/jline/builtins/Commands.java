@@ -45,6 +45,7 @@ import org.jline.builtins.Source.StdInSource;
 import org.jline.builtins.Source.URLSource;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
+import org.jline.reader.ConfigurationPath;
 import org.jline.reader.Highlighter;
 import org.jline.reader.History;
 import org.jline.reader.LineReader;
@@ -103,9 +104,9 @@ public class Commands {
     }
 
     public static void nano(Terminal terminal, PrintStream out, PrintStream err,
-                            Path currentDir,
-                            String[] argv,
-                            Path nanorc) throws Exception {
+            Path currentDir,
+            String[] argv,
+            ConfigurationPath configPath) throws Exception {
         final String[] usage = {
                 "nano -  edit files",
                 "Usage: nano [OPTIONS] [FILES]",
@@ -135,7 +136,7 @@ public class Commands {
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
-        Nano edit = new Nano(terminal, currentDir, opt, nanorc);
+        Nano edit = new Nano(terminal, currentDir, opt, configPath);
         edit.open(opt.args());
         edit.run();
     }
@@ -145,10 +146,11 @@ public class Commands {
             String[] argv) throws Exception {
         less(terminal, in, out, err, currentDir, argv, null);
     }
+
     public static void less(Terminal terminal, InputStream in, PrintStream out, PrintStream err,
                             Path currentDir,
                             String[] argv,
-                            Path lessrc) throws Exception {
+                            ConfigurationPath configPath) throws Exception {
         final String[] usage = {
                 "less -  file pager",
                 "Usage: less [OPTIONS] [FILES]",
@@ -166,7 +168,7 @@ public class Commands {
                 "  -Y --syntax=name             The name of the syntax highlighting to use.",
                 "     --no-init                 Disable terminal initialization",
                 "     --no-keypad               Disable keypad handling",
-                "     --ignorercfiles           Don't look at the system's lessrc nor at the user's lessrc." 
+                "     --ignorercfiles           Don't look at the system's lessrc nor at the user's lessrc."
 
         };
 
@@ -176,7 +178,7 @@ public class Commands {
             throw new HelpException(opt.usage());
         }
 
-        Less less = new Less(terminal, currentDir, opt, lessrc);
+        Less less = new Less(terminal, currentDir, opt, configPath);
         List<Source> sources = new ArrayList<>();
         if (opt.args().isEmpty()) {
             opt.args().add("-");
