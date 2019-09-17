@@ -82,21 +82,21 @@ public class Nano implements Editor {
 
     // Configuration
     public String title = "JLine Nano 3.0.0";
-    public boolean printLineNumbers = true;
-    public boolean wrapping = true;
+    public boolean printLineNumbers = false;
+    public boolean wrapping = false;
     public boolean smoothScrolling = true;
     public boolean mouseSupport = false;
     public boolean oneMoreLine = true;
-    public boolean constantCursor;
+    public boolean constantCursor = false;
     public boolean quickBlank = false;
     public int tabs = 1;   // tabs are not currently supported!
     public String brackets = "\"’)>]}";
     public String matchBrackets = "(<[{)>]}";
     public String punct = "!.?";
     public String quoteStr = "^([ \\t]*[#:>\\|}])+";
-    private boolean restricted;
+    private boolean restricted = false;
     private String syntaxName;
-    private List<Path> syntaxFiles = new ArrayList<>();
+    private boolean writeBackup = false;
 
     // Input
     protected final List<Buffer> buffers = new ArrayList<>();
@@ -104,6 +104,7 @@ public class Nano implements Editor {
     protected Buffer buffer;
 
     protected String message;
+    protected String errorMessage = null;
     protected int nbBindings = 0;
 
     protected LinkedHashMap<String, String> shortcuts;
@@ -118,14 +119,13 @@ public class Nano implements Editor {
     protected List<String> searchTerms = new ArrayList<>();
     protected int searchTermId = -1;
     protected WriteMode writeMode = WriteMode.WRITE;
-    protected boolean writeBackup;
     protected List<String> cutbuffer = new ArrayList<>();
     protected boolean cut2end = false;
     protected boolean mark = false;
     protected boolean highlight = true;
+    private List<Path> syntaxFiles = new ArrayList<>();
 
     protected boolean readNewBuffer = true;
-    protected String errorMessage = null;
 
     protected enum WriteMode {
         WRITE,
@@ -1583,13 +1583,14 @@ public class Nano implements Editor {
         this.size = new Size();
         this.vsusp = terminal.getAttributes().getControlChar(ControlChar.VSUSP);
         bindKeys();
-        if (nanorc != null && nanorc.toFile().exists()) {
+        boolean ignorercfiles = opts!=null && opts.isSet("ignorercfiles");
+        if (nanorc != null && nanorc.toFile().exists() && !ignorercfiles) {
             try {
                 parseConfig(nanorc);
             } catch (IOException e) {
                 errorMessage = "Encountered error while reading config file: " + nanorc;
             }
-        } else if (new File("/usr/share/nano").exists()) {
+        } else if (new File("/usr/share/nano").exists() && !ignorercfiles) {
             PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:/usr/share/nano/*.nanorc");
             try {
                 Files.find(Paths.get("/usr/share/nano"), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
@@ -1601,6 +1602,36 @@ public class Nano implements Editor {
         if (opts != null) {
             this.restricted = opts.isSet("restricted");
             this.syntaxName = opts.isSet("syntax") ? opts.get("syntax") : null;
+            if (opts.isSet("backup")) {
+                writeBackup = true;
+            }
+            if (opts.isSet("quotestr")) {
+                quoteStr = opts.get("quotestr");
+            }
+            if (opts.isSet("tabsize")) {
+                tabs = opts.getNumber("tabsize");
+            }
+            if (opts.isSet("quickblank")) {
+                quickBlank = true;
+            }
+            if (opts.isSet("constantshow")) {
+                constantCursor = true;
+            }
+            if (opts.isSet("emptyline")) {
+                oneMoreLine = false;
+            }
+            if (opts.isSet("jumpyscrolling")) {
+                smoothScrolling = false;
+            }
+            if (opts.isSet("linenumbers")) {
+                printLineNumbers = true;
+            }
+            if (opts.isSet("mouse")) {
+                mouseSupport = true;
+            }
+            if (opts.isSet("softwrap")) {
+                wrapping = true;
+            }
         }
     }
 
@@ -2393,6 +2424,9 @@ public class Nano implements Editor {
         this.printLineNumbers = false;
         this.constantCursor = false;
         this.buffer = newBuf;
+        if (!oldWrapping) {
+            buffer.computeAllOffsets();
+        }
         try {
             this.message = null;
             terminal.puts(Capability.cursor_invisible);
@@ -2438,6 +2472,9 @@ public class Nano implements Editor {
             this.constantCursor = oldConstantCursor;
             this.shortcuts = oldShortcuts;
             terminal.puts(Capability.cursor_visible);
+            if (!oldWrapping) {
+                buffer.computeAllOffsets();
+            }
         }
     }
 

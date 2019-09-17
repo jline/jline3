@@ -108,7 +108,7 @@ public class Less {
     protected String displayPattern;
 
     protected final Size size = new Size();
-    
+
     SyntaxHighlighter syntaxHighlighter;
     private List<Path> syntaxFiles = new ArrayList<>();
     private boolean highlight = true;
@@ -123,13 +123,14 @@ public class Less {
         this.display = new Display(terminal, true);
         this.bindingReader = new BindingReader(terminal.reader());
         this.currentDir = currentDir;
-        if (lessrc != null && lessrc.toFile().exists()) {
+        boolean ignorercfiles = opts!=null && opts.isSet("ignorercfiles");
+        if (lessrc != null && lessrc.toFile().exists() && !ignorercfiles) {
             try {
                 parseConfig(lessrc);
             } catch (IOException e) {
                 errorMessage = "Encountered error while reading config file: " + lessrc;
             }
-        } else if (new File("/usr/share/nano").exists()) {
+        } else if (new File("/usr/share/nano").exists() && !ignorercfiles) {
             PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:/usr/share/nano/*.nanorc");
             try {
                 Files.find(Paths.get("/usr/share/nano"), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
@@ -180,7 +181,7 @@ public class Less {
             }
         }
     }
-    
+
     private void parseConfig(Path file) throws IOException {
         BufferedReader reader = new BufferedReader(new FileReader(file.toFile()));
         String line = reader.readLine();
@@ -200,23 +201,23 @@ public class Less {
                         && (parts.get(0).equals("set") || parts.get(0).equals("unset"))) {
                     String option = parts.get(1);
                     boolean val = parts.get(0).equals("set");
-                    if (option.equals("quitatfirsteof")) {
+                    if (option.equals("QUIT-AT-EOF")) {
                         quitAtFirstEof = val;
-                    } else if (option.equals("quitatsecondeof")) {
+                    } else if (option.equals("quit-at-eof")) {
                         quitAtSecondEof = val;
-                    } else if (option.equals("quitifonescreen")) {
+                    } else if (option.equals("quit-if-one-screen")) {
                         quitIfOneScreen = val;
-                    } else if (option.equals("quiet")) {
+                    } else if (option.equals("quiet") || option.equals("silent")) {
                         quiet = val;
-                    } else if (option.equals("veryquiet")) {
+                    } else if (option.equals("QUIET") || option.equals("SILENT")) {
                         veryQuiet = val;
-                    } else if (option.equals("choplonglines")) {
+                    } else if (option.equals("chop-long-lines")) {
                         chopLongLines = val;
-                    } else if (option.equals("ignorecaseallways")) {
+                    } else if (option.equals("IGNORE-CASE")) {
                         ignoreCaseAlways = val;
-                    } else if (option.equals("ignorecasecond")) {
+                    } else if (option.equals("ignore-case")) {
                         ignoreCaseCond = val;
-                    } else if (option.equals("linenumbers")) {
+                    } else if (option.equals("LINE-NUMBERS")) {
                         printLineNumbers = val;
                     } else {
                         errorMessage = "Less config: Unknown or unsupported configuration option " + option;

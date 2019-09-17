@@ -110,6 +110,22 @@ public class Commands {
                 "nano -  edit files",
                 "Usage: nano [OPTIONS] [FILES]",
                 "  -? --help                    Show help",
+                "  -B --backup                  When saving a file, back up the previous version of it, using the current filename",
+                "                               suffixed with a tilde (~)." ,
+                "  -I --ignorercfiles           Don't look at the system's nanorc nor at the user's nanorc." ,
+                "  -Q --quotestr=regex          Set the regular expression for matching the quoting part of a line. The default value",
+                "                               is \"^([ \t]*([!#%:;>|}]|//))+\".",
+                "  -T --tabsize=number          Set the size (width) of a tab to number columns.",
+                "  -U --quickblank              Do quick status-bar blanking: status-bar messages will disappear after 1 keystroke",
+                "                               instead of 25.",
+                "  -c --constantshow            Constantly show the cursor position on the status bar.",
+                "  -e --emptyline               Do not use the line below the title bar, leaving it entirely blank.",
+                "  -j --jumpyscrolling          Scroll the buffer contents per half-screen instead of per line.",
+                "  -l --linenumbers             Display line numbers to the left of the text area.",
+                "  -m --mouse                   Enable mouse support, if available for your system. When enabled, mouse clicks can be",
+                "                               used to place the cursor, set the mark (with a double click), and execute shortcuts.",
+                "  -$ --softwrap                Enable 'soft wrapping'. This will make nano attempt to display the entire contents of any",
+                "                               line, even if it is longer than the screen width, by continuing it over multiple screen lines.",
                 "  -R --restricted              Restricted mode: don't allow suspending; don't allow a file to be appended to,",
                 "                               prepended to, or saved under a different name if it already has one;",
                 "                               and don't use backup files.",
@@ -149,7 +165,8 @@ public class Commands {
                 "  -N --LINE-NUMBERS            Display line number for each line",
                 "  -Y --syntax=name             The name of the syntax highlighting to use.",
                 "     --no-init                 Disable terminal initialization",
-                "     --no-keypad               Disable keypad handling"
+                "     --no-keypad               Disable keypad handling",
+                "     --ignorercfiles           Don't look at the system's lessrc nor at the user's lessrc." 
 
         };
 
