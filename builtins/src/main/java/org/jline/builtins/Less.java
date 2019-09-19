@@ -37,6 +37,7 @@ import org.jline.builtins.Source.ResourceSource;
 import org.jline.builtins.Source.URLSource;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
+import org.jline.reader.ConfigurationPath;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
@@ -115,16 +116,21 @@ public class Less {
 
 
     public Less(Terminal terminal, Path currentDir) {
-        this(terminal, currentDir, null, null);
+        this(terminal, currentDir, null);
     }
 
-    public Less(Terminal terminal, Path currentDir, Options opts, Path lessrc) {
+    public Less(Terminal terminal, Path currentDir, Options opts) {
+        this(terminal, currentDir, opts, null);
+    }
+
+    public Less(Terminal terminal, Path currentDir, Options opts, ConfigurationPath configPath) {
         this.terminal = terminal;
         this.display = new Display(terminal, true);
         this.bindingReader = new BindingReader(terminal.reader());
         this.currentDir = currentDir;
+        Path lessrc = configPath != null ? configPath.getConfig("jlessrc") : null;
         boolean ignorercfiles = opts!=null && opts.isSet("ignorercfiles");
-        if (lessrc != null && lessrc.toFile().exists() && !ignorercfiles) {
+        if (lessrc != null && !ignorercfiles) {
             try {
                 parseConfig(lessrc);
             } catch (IOException e) {
@@ -1103,7 +1109,7 @@ public class Less {
         int width = size.getColumns() - (printLineNumbers ? 8 : 0);
         int height = size.getRows();
         boolean doOffsets = firstColumnToDisplay == 0 && !chopLongLines;
-        if (lines >= size.getRows() - 1) { 
+        if (lines >= size.getRows() - 1) {
             display.clear();
         }
         if (lines == Integer.MAX_VALUE) {
@@ -1156,7 +1162,7 @@ public class Less {
     void moveBackward(int lines) throws IOException {
         Pattern dpCompiled = getPattern(true);
         int width = size.getColumns() - (printLineNumbers ? 8 : 0);
-        if (lines >= size.getRows() - 1) { 
+        if (lines >= size.getRows() - 1) {
             display.clear();
         }
         while (--lines >= 0) {
@@ -1302,7 +1308,7 @@ public class Less {
         if (MESSAGE_FILE_INFO.equals(message)){
             Source source = sources.get(sourceIdx);
             Long allLines = source.lines();
-            message = source.getName() 
+            message = source.getName()
                     + (sources.size() > 2 ? " (file " + sourceIdx + " of " + (sources.size() - 1) + ")" : "")
                     + " lines " + (firstLineToDisplay + 1) + "-" + inputLine + "/" + (allLines != null ? allLines : lines.size())
                     + (eof ? " (END)" : "");
