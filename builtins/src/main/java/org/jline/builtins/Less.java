@@ -766,9 +766,9 @@ public class Less {
 
     private void addSource(String file) throws IOException {
         if (file.contains("*") || file.contains("?")) {
-            PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:"+file);
-            Files.find(currentDir, Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
-                 .forEach(p -> sources.add(Commands.doUrlSource(currentDir, p)));
+            for (Path p: Commands.findFiles(currentDir, file)) {
+                 sources.add(new URLSource(p.toUri().toURL(), p.toString()));
+            }
         } else {
             sources.add(new URLSource(currentDir.resolve(file).toUri().toURL(), file));
         }

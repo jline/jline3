@@ -1713,9 +1713,9 @@ public class Nano implements Editor {
     public void open(List<String> files) throws IOException {
         for (String file : files) {
             if (file.contains("*") || file.contains("?")) {
-                PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + file);
-                Files.find(root, Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
-                     .forEach(p -> buffers.add(new Buffer(p.toString())));
+                for (Path p: Commands.findFiles(root, file)) {
+                    buffers.add(new Buffer(p.toString()));
+                }
             } else {
                 buffers.add(new Buffer(file));
             }

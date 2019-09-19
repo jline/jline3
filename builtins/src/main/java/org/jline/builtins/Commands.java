@@ -18,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -32,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Consumer;
@@ -187,9 +189,9 @@ public class Commands {
             if ("-".equals(arg)) {
                 sources.add(new StdInSource(in));
             } else if (arg.contains("*") || arg.contains("?")) {
-                PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:"+arg);
-                Files.find(currentDir, Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
-                     .forEach(p -> sources.add(doUrlSource(currentDir, p)));
+                for (Path p: findFiles(currentDir, arg)) {
+                    sources.add(new URLSource(p.toUri().toURL(), p.toString()));
+                }
             } else {
                 sources.add(new URLSource(currentDir.resolve(arg).toUri().toURL(), arg));
             }
@@ -197,14 +199,25 @@ public class Commands {
         less.run(sources);
     }
 
-    protected static Source doUrlSource(Path currentDir, Path file) {
-        Source out = null;
-        try {
-            out = new URLSource(currentDir.resolve(file).toUri().toURL(), file.toString());
-        } catch (MalformedURLException exp) {
-            throw new IllegalArgumentException(exp.getMessage());
+    protected static List<Path> findFiles(Path root, String files) throws IOException{
+        String regex = files;
+        Path searchRoot = Paths.get("/");
+        if (!new File(files).isAbsolute()) {
+            regex = regex.replaceAll("\\\\", "/").replaceAll("//", "/");
+            if (regex.contains("/")) {
+                String sr = regex.substring(0, regex.lastIndexOf("/") + 1);
+                while (sr.contains("*") || sr.contains("?")) {
+                    sr = sr.substring(0, sr.lastIndexOf("/"));
+                }
+                searchRoot = Paths.get(sr + "/");
+            }
+        } else { 	
+        	regex = (root.toString().length() == 0 ? "" : root.toString() + "/") + files;
+            regex = regex.replaceAll("\\\\", "/").replaceAll("//", "/");
+            searchRoot = root;
         }
-        return out;
+        PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:"+regex);
+        return Files.find(searchRoot, Integer.MAX_VALUE, (path, f)->pathMatcher.matches(path)).collect(Collectors.toList());
     }
 
     public static void history(LineReader reader, PrintStream out, PrintStream err, Path currentDir,
