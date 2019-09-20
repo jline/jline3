@@ -98,6 +98,10 @@ public class Nano implements Editor {
     private boolean restricted = false;
     private String syntaxName;
     private boolean writeBackup = false;
+    private boolean atBlanks = false;
+    private boolean view = false;
+    private boolean cut2end = false;
+    private boolean tempFile = false;
 
     // Input
     protected final List<Buffer> buffers = new ArrayList<>();
@@ -121,7 +125,6 @@ public class Nano implements Editor {
     protected int searchTermId = -1;
     protected WriteMode writeMode = WriteMode.WRITE;
     protected List<String> cutbuffer = new ArrayList<>();
-    protected boolean cut2end = false;
     protected boolean mark = false;
     protected boolean highlight = true;
     private List<Path> syntaxFiles = new ArrayList<>();
@@ -310,7 +313,7 @@ public class Nano implements Editor {
         }
 
         boolean isBreakable(char ch) {
-            return ch == ' ';
+            return atBlanks ? ch == ' ' : true;
         }
 
         void moveToChar(int pos) {
@@ -1582,8 +1585,12 @@ public class Nano implements Editor {
         this.display = new Display(terminal, true);
         this.bindingReader = new BindingReader(terminal.reader());
         this.size = new Size();
-        this.vsusp = terminal.getAttributes().getControlChar(ControlChar.VSUSP);
-        bindKeys();
+        Attributes attrs = terminal.getAttributes();
+        this.vsusp = attrs.getControlChar(ControlChar.VSUSP);
+        if (vsusp > 0) {
+            attrs.setControlChar(ControlChar.VSUSP, 0);
+            terminal.setAttributes(attrs);
+        }
         Path nanorc = configPath != null ? configPath.getConfig("jnanorc") : null;
         boolean ignorercfiles = opts!=null && opts.isSet("ignorercfiles");
         if (nanorc != null && !ignorercfiles) {
@@ -1634,7 +1641,23 @@ public class Nano implements Editor {
             if (opts.isSet("softwrap")) {
                 wrapping = true;
             }
+            if (opts.isSet("atblanks")) {
+                atBlanks = true;
+            }
+            if (opts.isSet("suspend")) {
+                enableSuspension();
+            }
+            if (opts.isSet("view")) {
+                view = true;
+            }
+            if (opts.isSet("cutfromcursor")) {
+                cut2end = true;
+            }
+            if (opts.isSet("tempfile")) {
+                tempFile = true;
+            }
         }
+        bindKeys();
     }
 
     private void parseConfig(Path file) throws IOException {
@@ -1674,6 +1697,16 @@ public class Nano implements Editor {
                         constantCursor = val;
                     } else if (option.equals("quickblank")) {
                         quickBlank = val;
+                    } else if (option.equals("atblanks")) {
+                        atBlanks = val;
+                    } else if (option.equals("suspend")) {
+                        enableSuspension();
+                    } else if (option.equals("view")) {
+                        view = val;
+                    } else if (option.equals("cutfromcursor")) {
+                        cut2end = val;
+                    } else if (option.equals("tempfile")) {
+                        tempFile = val;
                     } else {
                         errorMessage = "Nano config: Unknown or unsupported configuration option " + option;
                     }
@@ -1730,14 +1763,14 @@ public class Nano implements Editor {
 
         Attributes attributes = terminal.getAttributes();
         Attributes newAttr = new Attributes(attributes);
+        if (vsusp > 0) {
+            attributes.setControlChar(ControlChar.VSUSP, 0);
+        }
         newAttr.setLocalFlags(EnumSet.of(LocalFlag.ICANON, LocalFlag.ECHO, LocalFlag.IEXTEN), false);
         newAttr.setInputFlags(EnumSet.of(InputFlag.IXON, InputFlag.ICRNL, InputFlag.INLCR), false);
         newAttr.setControlChar(ControlChar.VMIN, 1);
         newAttr.setControlChar(ControlChar.VTIME, 0);
         newAttr.setControlChar(ControlChar.VINTR, 0);
-        if (restricted) {
-            newAttr.setControlChar(ControlChar.VSUSP, 0);
-        }
         terminal.setAttributes(newAttr);
         terminal.puts(Capability.enter_ca_mode);
         terminal.puts(Capability.keypad_xmit);
@@ -2394,16 +2427,24 @@ public class Nano implements Editor {
     private LinkedHashMap<String, String> standardShortcuts() {
         LinkedHashMap<String, String> s = new LinkedHashMap<>();
         s.put("^G", "Get Help");
-        s.put("^O", "WriteOut");
+        if (!view) {
+            s.put("^O", "WriteOut");
+        }
         s.put("^R", "Read File");
         s.put("^Y", "Prev Page");
-        s.put("^K", "Cut Text");
+        if (!view) {
+            s.put("^K", "Cut Text");
+        }
         s.put("^C", "Cur Pos");
         s.put("^X", "Exit");
-        s.put("^J", "Justify");
+        if (!view) {
+            s.put("^J", "Justify");
+        }
         s.put("^W", "Where Is");
         s.put("^V", "Next Page");
-        s.put("^U", "UnCut Text");
+        if (!view) {
+            s.put("^U", "UnCut Text");
+        }
         s.put("^T", "To Spell");
         return s;
     }
@@ -2692,16 +2733,22 @@ public class Nano implements Editor {
 
     boolean quit() throws IOException {
         if (buffer.dirty) {
-            Operation op = getYNC("Save modified buffer (ANSWERING \"No\" WILL DESTROY CHANGES) ? ");
-            switch (op) {
-                case CANCEL:
+            if (tempFile) {
+                if (!write()) {
                     return false;
-                case NO:
-                    break;
-                case YES:
-                    if (!write()) {
+                }
+            } else {
+                Operation op = getYNC("Save modified buffer (ANSWERING \"No\" WILL DESTROY CHANGES) ? ");
+                switch (op) {
+                    case CANCEL:
                         return false;
-                    }
+                    case NO:
+                        break;
+                    case YES:
+                        if (!write()) {
+                            return false;
+                        }
+                }
             }
         }
         buffers.remove(bufferIndex);
@@ -2791,6 +2838,14 @@ public class Nano implements Editor {
             } else if (event.getButton() == MouseEvent.Button.WheelUp) {
                 buffer.moveUp(1);
             }
+        }
+    }
+
+    void enableSuspension() {
+        if (!restricted && vsusp < 0) {
+            Attributes attrs = terminal.getAttributes();
+            attrs.setControlChar(ControlChar.VSUSP, vsusp);
+            terminal.setAttributes(attrs);
         }
     }
 
@@ -2931,39 +2986,52 @@ public class Nano implements Editor {
 
     protected void bindKeys() {
         keys = new KeyMap<>();
-        keys.setUnicode(Operation.INSERT);
+        if (!view) {
+            keys.setUnicode(Operation.INSERT);
 
-        for (char i = 32; i < KEYMAP_LENGTH; i++) {
-            keys.bind(Operation.INSERT, Character.toString(i));
-        }
-        keys.bind(Operation.BACKSPACE, del());
-        for (char i = 'A'; i <= 'Z'; i++) {
-            keys.bind(Operation.DO_LOWER_CASE, alt(i));
+            for (char i = 32; i < KEYMAP_LENGTH; i++) {
+                keys.bind(Operation.INSERT, Character.toString(i));
+            }
+            keys.bind(Operation.BACKSPACE, del());
+            for (char i = 'A'; i <= 'Z'; i++) {
+                keys.bind(Operation.DO_LOWER_CASE, alt(i));
+            }
+            keys.bind(Operation.WRITE, ctrl('O'), key(terminal, Capability.key_f3));
+            keys.bind(Operation.JUSTIFY_PARAGRAPH, ctrl('J'), key(terminal, Capability.key_f4));
+            keys.bind(Operation.CUT, ctrl('K'), key(terminal, Capability.key_f9));
+            keys.bind(Operation.UNCUT, ctrl('U'), key(terminal, Capability.key_f10));
+            keys.bind(Operation.REPLACE, ctrl('\\'), key(terminal, Capability.key_f14), alt('r'));
+            keys.bind(Operation.MARK, ctrl('^'), key(terminal, Capability.key_f15), alt('a'));
+            keys.bind(Operation.COPY, alt('^'), alt('6'));
+            keys.bind(Operation.INDENT, alt('}'));
+            keys.bind(Operation.UNINDENT, alt('{'));
+            keys.bind(Operation.VERBATIM, alt('v'));
+            keys.bind(Operation.INSERT, ctrl('I'), ctrl('M'));
+            keys.bind(Operation.DELETE, ctrl('D'));
+            keys.bind(Operation.BACKSPACE, ctrl('H'));
+            keys.bind(Operation.CUT_TO_END, alt('t'));
+            keys.bind(Operation.JUSTIFY_FILE, alt('j'));
+            keys.bind(Operation.AUTO_INDENT, alt('i'));
+            keys.bind(Operation.CUT_TO_END_TOGGLE, alt('k'));
+            keys.bind(Operation.TABS_TO_SPACE, alt('q'));
+            keys.bind(Operation.NEXT_PAGE, ctrl('V'), key(terminal, Capability.key_f8));
+            keys.bind(Operation.PREV_PAGE, ctrl('Y'), key(terminal, Capability.key_f7));
+        } else {
+            keys.bind(Operation.NEXT_PAGE, ctrl('V'), key(terminal, Capability.key_f8), " ", "f");
+            keys.bind(Operation.PREV_PAGE, ctrl('Y'), key(terminal, Capability.key_f7), "b");
         }
 
         keys.bind(Operation.HELP, ctrl('G'), key(terminal, Capability.key_f1));
         keys.bind(Operation.QUIT, ctrl('X'), key(terminal, Capability.key_f2));
-        keys.bind(Operation.WRITE, ctrl('O'), key(terminal, Capability.key_f3));
-        keys.bind(Operation.JUSTIFY_PARAGRAPH, ctrl('J'), key(terminal, Capability.key_f4));
 
         keys.bind(Operation.READ, ctrl('R'), key(terminal, Capability.key_f5));
         keys.bind(Operation.SEARCH, ctrl('W'), key(terminal, Capability.key_f6));
-        keys.bind(Operation.PREV_PAGE, ctrl('Y'), key(terminal, Capability.key_f7));
-        keys.bind(Operation.NEXT_PAGE, ctrl('V'), key(terminal, Capability.key_f8));
 
-        keys.bind(Operation.CUT, ctrl('K'), key(terminal, Capability.key_f9));
-        keys.bind(Operation.UNCUT, ctrl('U'), key(terminal, Capability.key_f10));
         keys.bind(Operation.CUR_POS, ctrl('C'), key(terminal, Capability.key_f11));
         keys.bind(Operation.TO_SPELL, ctrl('T'), key(terminal, Capability.key_f11));
 
         keys.bind(Operation.GOTO, ctrl('_'), key(terminal, Capability.key_f13), alt('g'));
-        keys.bind(Operation.REPLACE, ctrl('\\'), key(terminal, Capability.key_f14), alt('r'));
-        keys.bind(Operation.MARK, ctrl('^'), key(terminal, Capability.key_f15), alt('a'));
         keys.bind(Operation.NEXT_SEARCH, key(terminal, Capability.key_f16), alt('w'));
-
-        keys.bind(Operation.COPY, alt('^'), alt('6'));
-        keys.bind(Operation.INDENT, alt('}'));
-        keys.bind(Operation.UNINDENT, alt('{'));
 
         keys.bind(Operation.RIGHT, ctrl('F'));
         keys.bind(Operation.LEFT, ctrl('B'));
@@ -2988,13 +3056,6 @@ public class Nano implements Editor {
         keys.bind(Operation.PREV_BUFFER, alt(','));
         keys.bind(Operation.NEXT_BUFFER, alt('.'));
 
-        keys.bind(Operation.VERBATIM, alt('v'));
-        keys.bind(Operation.INSERT, ctrl('I'), ctrl('M'));
-        keys.bind(Operation.DELETE, ctrl('D'));
-        keys.bind(Operation.BACKSPACE, ctrl('H'));
-        keys.bind(Operation.CUT_TO_END, alt('t'));
-
-        keys.bind(Operation.JUSTIFY_FILE, alt('j'));
         keys.bind(Operation.COUNT, alt('d'));
         keys.bind(Operation.CLEAR_SCREEN, ctrl('L'));
 
@@ -3007,13 +3068,9 @@ public class Nano implements Editor {
         keys.bind(Operation.HIGHLIGHT, alt('y'));
 
         keys.bind(Operation.SMART_HOME_KEY, alt('h'));
-        keys.bind(Operation.AUTO_INDENT, alt('i'));
-        keys.bind(Operation.CUT_TO_END_TOGGLE, alt('k'));
         keys.bind(Operation.WRAP, alt('l'));
-        keys.bind(Operation.TABS_TO_SPACE, alt('q'));
 
         keys.bind(Operation.BACKUP, alt('b'));
-
         keys.bind(Operation.NUMBERS, alt('n'));
 
         // TODO: map other keys
