@@ -114,7 +114,6 @@ public class Less {
     private List<Path> syntaxFiles = new ArrayList<>();
     private boolean highlight = true;
 
-
     public Less(Terminal terminal, Path currentDir) {
         this(terminal, currentDir, null);
     }
@@ -477,21 +476,17 @@ public class Less {
                             case RIGHT_ONE_HALF_SCREEN:
                                 firstColumnToDisplay += size.getColumns() / 2;
                                 break;
-                            case REPEAT_SEARCH_BACKWARD:
                             case REPEAT_SEARCH_BACKWARD_SPAN_FILES:
-                                if (forward) {
-                                    moveToPreviousMatch();
-                                } else {
-                                    moveToNextMatch();
-                                }
+                                moveToMatch(!forward, true);
+                                break;
+                            case REPEAT_SEARCH_BACKWARD:
+                                moveToMatch(!forward, false);
+                                break;
+                            case REPEAT_SEARCH_FORWARD_SPAN_FILES:
+                                moveToMatch(forward, true);
                                 break;
                             case REPEAT_SEARCH_FORWARD:
-                            case REPEAT_SEARCH_FORWARD_SPAN_FILES:
-                                if (forward) {
-                                    moveToNextMatch();
-                                } else {
-                                    moveToPreviousMatch();
-                                }
+                                moveToMatch(forward, false);
                                 break;
                             case UNDO_SEARCH:
                                 pattern = null;
@@ -642,6 +637,14 @@ public class Less {
             if (status != null) {
                 status.restore();
             }
+        }
+    }
+
+    private void moveToMatch(boolean forward, boolean spanFiles) throws IOException {
+        if (forward) {
+            moveToNextMatch(spanFiles);
+        } else {
+            moveToPreviousMatch(spanFiles);
         }
     }
 
@@ -976,7 +979,7 @@ public class Less {
             wasOpen = true;
         }
         boolean open = false;
-        boolean displayMessage = false; 
+        boolean displayMessage = false;
         do {
             Source source = sources.get(sourceIdx);
             try {
@@ -1046,6 +1049,10 @@ public class Less {
     }
 
     private void moveToNextMatch() throws IOException {
+        moveToNextMatch(false);
+    }
+
+    private void moveToNextMatch(boolean spanFiles) throws IOException {
         Pattern compiled = getPattern();
         Pattern dpCompiled = getPattern(true);
         if (compiled != null) {
@@ -1063,10 +1070,29 @@ public class Less {
                 }
             }
         }
-        message = "Pattern not found";
+        if (spanFiles) {
+            if (sourceIdx < sources.size() - 1) {
+                SavedSourcePositions ssp = new SavedSourcePositions();
+                String newSource = sources.get(++sourceIdx).getName();
+                try {
+                    openSource();
+                    moveToNextMatch(true);
+                } catch (FileNotFoundException exp) {
+                    ssp.restore(newSource);
+                }
+            } else {
+                message = "Pattern not found";
+            }
+        } else {
+            message = "Pattern not found";
+        }
     }
 
     private void moveToPreviousMatch() throws IOException {
+        moveToPreviousMatch(false);
+    }
+
+    private void moveToPreviousMatch(boolean spanFiles) throws IOException {
         Pattern compiled = getPattern();
         Pattern dpCompiled = getPattern(true);
         if (compiled != null) {
@@ -1084,7 +1110,23 @@ public class Less {
                 }
             }
         }
-        message = "Pattern not found";
+        if (spanFiles) {
+            if (sourceIdx > 1) {
+                SavedSourcePositions ssp = new SavedSourcePositions(-1);
+                String newSource = sources.get(--sourceIdx).getName();
+                try {
+                    openSource();
+                    firstLineToDisplay = (int)(long)sources.get(sourceIdx).lines();
+                    moveToPreviousMatch(true);
+                } catch (FileNotFoundException exp) {
+                    ssp.restore(newSource);
+                }
+            } else {
+                message = "Pattern not found";
+            }
+        } else {
+            message = "Pattern not found";
+        }
     }
 
     private String printable(String s) {
