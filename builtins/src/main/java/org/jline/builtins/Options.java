@@ -570,13 +570,13 @@ public class Options {
                     asyntax.styleMatches(Pattern.compile("(?:\\[|\\s|=)([A-Za-z]+[A-Za-z_-]*){1}\\b"),
                             Collections.singletonList(resolver.resolve(".ar")));
                     // option
-                    asyntax.styleMatches(Pattern.compile("(?:\\s|\\[)(-\\?|[-]{1,2}[A-Za-z-]+\\b){1}"),
+                    asyntax.styleMatches(Pattern.compile("(?:\\s|\\[)(-\\$|-\\?|[-]{1,2}[A-Za-z-]+\\b){1}"),
                             Collections.singletonList(resolver.resolve(".op")));
                     asb.append(asyntax);
 
                     AttributedStringBuilder acomment = new AttributedStringBuilder().append(comment);
                     // option
-                    acomment.styleMatches(Pattern.compile("(?:\\s|\\[)(-\\?|[-]{1,2}[A-Za-z-]+\\b){1}"),
+                    acomment.styleMatches(Pattern.compile("(?:\\s|\\[)(-\\$|-\\?|[-]{1,2}[A-Za-z-]+\\b){1}"),
                             Collections.singletonList(resolver.resolve(".op")));
                     // argument in comment
                     acomment.styleMatches(Pattern.compile("(?:\\s)([a-z]+[-]+[a-z]+|[A-Z_]{2,}){1}(?:\\s)"),
