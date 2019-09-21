@@ -82,6 +82,7 @@ import org.jline.builtins.Commands;
 import org.jline.builtins.Less;
 import org.jline.builtins.Nano;
 import org.jline.builtins.Options;
+import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.Source;
 import org.jline.builtins.Source.PathSource;
 import org.jline.builtins.Source.URLSource;
@@ -151,7 +152,7 @@ public class Posix {
             process.err().println(e.getMessage());
             process.error(2);
         } catch (HelpException e) {
-            process.err().println(e.getMessage());
+            HelpException.highlight(e.getMessage(), HelpException.defaultStyle()).print(Shell.getTerminal(session));
             process.error(0);
         } catch (Exception e) {
             process.err().println(argv[0] + ": " + e.toString());
@@ -159,19 +160,10 @@ public class Posix {
         }
     }
 
-    @SuppressWarnings("serial")
-    protected static class HelpException extends Exception {
-        public HelpException(String message) {
-            super(message);
-        }
-    }
-
     protected Options parseOptions(CommandSession session, String[] usage, Object[] argv) throws Exception {
         Options opt = Options.compile(usage, s -> get(session, s)).parse(argv, true);
         if (opt.isSet("help")) {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            opt.usage(new PrintStream(baos));
-            throw new HelpException(baos.toString());
+            throw new HelpException(opt.usage());
         }
         return opt;
     }
@@ -254,7 +246,7 @@ public class Posix {
         String output = null;
         for (int i = 1; i < argv.length; i++) {
             if ("-?".equals(argv[i]) || "--help".equals(argv[i])) {
-                throw new HelpException(String.join("\n", usage));
+                throw new HelpException(Options.compile(usage).usage());
             }
             else if ("-r".equals(argv[i])) {
                 if (i + 1 < argv.length) {
