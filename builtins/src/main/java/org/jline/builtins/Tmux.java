@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2019, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -29,6 +29,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -169,7 +170,7 @@ public class Tmux {
     private final PrintStream err;
     private final String term;
     private final Consumer<Terminal> runner;
-    private List<VirtualConsole> panes = new ArrayList<>();
+    private List<VirtualConsole> panes = new CopyOnWriteArrayList<>();
     private VirtualConsole active;
     private int lastActive;
     private final AtomicBoolean running = new AtomicBoolean(true);
@@ -1117,7 +1118,7 @@ public class Tmux {
         int sy;
         int xoff;
         int yoff;
-        List<Layout> cells = new ArrayList<>();
+        List<Layout> cells = new CopyOnWriteArrayList<>();
 
         public static Layout parse(String layout) {
             if (layout.length() < 6) {
@@ -1384,11 +1385,11 @@ public class Tmux {
                 return avail;
             } else if (this.type == type) {
                 return this.cells.stream()
-                        .mapToInt(c -> c.resizeCheck(type))
+                        .mapToInt(c -> c != null ? c.resizeCheck(type) : 0)
                         .sum();
             } else {
                 return this.cells.stream()
-                        .mapToInt(c -> c.resizeCheck(type))
+                        .mapToInt(c -> c != null ? c.resizeCheck(type) : Integer.MAX_VALUE)
                         .min()
                         .orElse(Integer.MAX_VALUE);
             }
