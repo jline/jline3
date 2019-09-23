@@ -1695,7 +1695,7 @@ public class Nano implements Editor {
         Attributes attrs = terminal.getAttributes();
         this.vsusp = attrs.getControlChar(ControlChar.VSUSP);
         if (vsusp > 0) {
-            attrs.setControlChar(ControlChar.VSUSP, vsusp);
+            attrs.setControlChar(ControlChar.VSUSP, 0);
             terminal.setAttributes(attrs);
         }
         Path nanorc = configPath != null ? configPath.getConfig("jnanorc") : null;
