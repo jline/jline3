@@ -9,6 +9,7 @@
 package org.jline.builtins;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -102,6 +103,7 @@ public class Nano implements Editor {
     private boolean view = false;
     private boolean cut2end = false;
     private boolean tempFile = false;
+    private String historyLog = null;
 
     // Input
     protected final List<Buffer> buffers = new ArrayList<>();
@@ -121,8 +123,7 @@ public class Nano implements Editor {
     protected boolean searchRegexp;
     protected boolean searchBackwards;
     protected String searchTerm;
-    protected List<String> searchTerms = new ArrayList<>();
-    protected int searchTermId = -1;
+    protected PatternHistory patternHistory = new PatternHistory(null);
     protected WriteMode writeMode = WriteMode.WRITE;
     protected List<String> cutbuffer = new ArrayList<>();
     protected boolean mark = false;
@@ -1567,6 +1568,112 @@ public class Nano implements Editor {
         }
     }
 
+    protected static class PatternHistory {
+        private Path historyFile;
+        private int size = 100;
+        private List<String> patterns = new ArrayList<>();
+        private int patternId = -1;
+        private boolean lastMoveUp = false;
+
+        public PatternHistory(Path historyFile) {
+            this.historyFile = historyFile;
+            load();
+        }
+
+        public String up(String hint) {
+            String out = hint;
+            if (patterns.size() > 0 && patternId < patterns.size()) {
+                if (!lastMoveUp && patternId > 0 && patternId < patterns.size() - 1) {
+                    patternId++;
+                }
+                if (patternId < 0) {
+                    patternId = 0;
+                }
+                for (int pid = patternId; pid < patterns.size(); pid++) {
+                    if (hint.length() == 0
+                            || patterns.get(pid).startsWith(hint)) {
+                        patternId = pid + 1;
+                        out = patterns.get(pid);
+                        break;
+                    }
+                }
+            }
+            lastMoveUp = true;
+            return out;
+        }
+
+        public String down(String hint) {
+            String out = hint;
+            if (patterns.size() > 0) {
+                if (lastMoveUp) {
+                    patternId--;
+                }
+                if (patternId < 0) {
+                    patternId = -1;
+                } else {
+                    for (int pid = patternId;  pid >= 0; pid--) {
+                        if (hint.length() == 0 || patterns.get(pid).startsWith(hint)) {
+                            patternId = pid - 1;
+                            out = patterns.get(pid);
+                            break;
+                        }
+                    }
+                }
+            }
+            lastMoveUp = false;
+            return out;
+        }
+
+        public void add(String pattern) {
+            if (pattern.trim().length() == 0) {
+                return;
+            }
+            if (patterns.contains(pattern)) {
+                patterns.remove(pattern);
+            }
+            if (patterns.size() > size) {
+                patterns.remove(patterns.size() - 1);
+            }
+            patterns.add(0, pattern);
+            patternId = -1;
+        }
+
+        public void persist(){
+            if (historyFile == null) {
+                return;
+            }
+            try {
+                try (BufferedWriter writer = Files.newBufferedWriter(
+                        historyFile.toAbsolutePath(), StandardOpenOption.WRITE, StandardOpenOption.CREATE)) {
+                    for (String s : patterns) {
+                        if (s.trim().length() > 0) {
+                            writer.append(s);
+                            writer.newLine();
+                        }
+                    }
+                }
+            } catch (Exception e) {
+            }
+        }
+
+        private void load() {
+            if (historyFile == null) {
+                return;
+            }
+            try {
+                if (Files.exists(historyFile)) {
+                    patterns = new ArrayList<>();
+                    try (BufferedReader reader = Files
+                            .newBufferedReader(historyFile)) {
+                        reader.lines().forEach(line -> patterns.add(line));
+                    }
+                }
+            } catch (Exception e) {
+            }
+        }
+
+    }
+
     public Nano(Terminal terminal, File root) {
         this(terminal, root.toPath());
     }
@@ -1588,7 +1695,7 @@ public class Nano implements Editor {
         Attributes attrs = terminal.getAttributes();
         this.vsusp = attrs.getControlChar(ControlChar.VSUSP);
         if (vsusp > 0) {
-            attrs.setControlChar(ControlChar.VSUSP, 0);
+            attrs.setControlChar(ControlChar.VSUSP, vsusp);
             terminal.setAttributes(attrs);
         }
         Path nanorc = configPath != null ? configPath.getConfig("jnanorc") : null;
@@ -1656,8 +1763,18 @@ public class Nano implements Editor {
             if (opts.isSet("tempfile")) {
                 tempFile = true;
             }
+            if (opts.isSet("historylog")) {
+                historyLog = opts.get("historyLog");
+            }
         }
         bindKeys();
+        if (configPath != null && historyLog != null) {
+            try {
+                patternHistory = new PatternHistory(configPath.getUserConfig(historyLog, true));
+            } catch (IOException e) {
+                errorMessage = "Encountered error while reading pattern-history file: " + historyLog;
+            }
+        }
     }
 
     private void parseConfig(Path file) throws IOException {
@@ -1721,6 +1838,8 @@ public class Nano implements Editor {
                         matchBrackets = val;
                     } else if (option.equals("brackets")) {
                         brackets = val;
+                    } else if (option.equals("historylog")) {
+                        historyLog = val;
                     } else {
                         errorMessage = "Nano config: Unknown or unsupported configuration option " + option;
                     }
@@ -1764,7 +1883,7 @@ public class Nano implements Editor {
         Attributes attributes = terminal.getAttributes();
         Attributes newAttr = new Attributes(attributes);
         if (vsusp > 0) {
-            attributes.setControlChar(ControlChar.VSUSP, 0);
+            attributes.setControlChar(ControlChar.VSUSP, vsusp);
         }
         newAttr.setLocalFlags(EnumSet.of(LocalFlag.ICANON, LocalFlag.ECHO, LocalFlag.IEXTEN), false);
         newAttr.setInputFlags(EnumSet.of(InputFlag.IXON, InputFlag.ICRNL, InputFlag.INLCR), false);
@@ -1965,6 +2084,7 @@ public class Nano implements Editor {
             if (status != null) {
                 status.restore();
             }
+            patternHistory.persist();
        }
     }
 
@@ -2547,7 +2667,7 @@ public class Nano implements Editor {
 
         editMessage = getSearchMessage();
         editBuffer.setLength(0);
-        String currentBuffer = "";
+        String currentBuffer = editBuffer.toString();
         int curPos = editBuffer.length();
         this.shortcuts = searchShortcuts();
         display(curPos);
@@ -2556,30 +2676,14 @@ public class Nano implements Editor {
                 Operation op = readOperation(searchKeyMap);
                 switch (op) {
                     case UP:
-                        searchTermId++;
-                        if (searchTermId >= 0 && searchTermId < searchTerms.size()) {
-                            if (searchTermId == 0) {
-                                currentBuffer = editBuffer.toString();
-                            }
-                            editBuffer.setLength(0);
-                            editBuffer.append(searchTerms.get(searchTermId));
-                            curPos = editBuffer.length();
-                        } else if (searchTermId >= searchTerms.size()) {
-                            searchTermId = searchTerms.size() - 1;
-                        }
+                        editBuffer.setLength(0);
+                        editBuffer.append(patternHistory.up(currentBuffer));
+                        curPos = editBuffer.length();
                         break;
                     case DOWN:
-                        if (searchTerms.size() > 0) {
-                            searchTermId--;
-                            editBuffer.setLength(0);
-                            if (searchTermId < 0) {
-                                searchTermId = -1;
-                                editBuffer.append(currentBuffer);
-                            } else {
-                                editBuffer.append(searchTerms.get(searchTermId));
-                            }
-                            curPos = editBuffer.length();
-                        }
+                        editBuffer.setLength(0);
+                        editBuffer.append(patternHistory.down(currentBuffer));
+                        curPos = editBuffer.length();
                         break;
                     case CASE_SENSITIVE:
                         searchCaseSensitive = !searchCaseSensitive;
@@ -2599,10 +2703,7 @@ public class Nano implements Editor {
                         if (searchTerm == null || searchTerm.isEmpty()) {
                             setMessage("Cancelled");
                         } else {
-                            if (!searchTerms.contains(searchTerm)) {
-                                searchTerms.add(searchTerm);
-                            }
-                            searchTermId = -1;
+                            patternHistory.add(searchTerm);
                             buffer.nextSearch();
                         }
                         return;
@@ -2623,6 +2724,7 @@ public class Nano implements Editor {
                         break;
                     default:
                         curPos = editInputBuffer(op, curPos);
+                        currentBuffer = editBuffer.toString();
                         break;
                }
                 editMessage = getSearchMessage();

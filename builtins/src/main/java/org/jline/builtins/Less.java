@@ -32,6 +32,7 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 import org.jline.builtins.Nano.Parser;
+import org.jline.builtins.Nano.PatternHistory;
 import org.jline.builtins.Nano.SyntaxHighlighter;
 import org.jline.builtins.Source.ResourceSource;
 import org.jline.builtins.Source.URLSource;
@@ -74,6 +75,7 @@ public class Less {
     public boolean noInit;
     protected List<Integer> tabs = Arrays.asList(4);
     protected String syntaxName;
+    private String historyLog = null;
 
     protected final Terminal terminal;
     protected final Display display;
@@ -103,8 +105,7 @@ public class Less {
 
     protected int nbEof;
 
-    protected List<String> patterns = new ArrayList<String>();
-    protected int patternId = -1;
+    protected PatternHistory patternHistory = new PatternHistory(null);
     protected String pattern;
     protected String displayPattern;
 
@@ -184,6 +185,16 @@ public class Less {
             if (opts.isSet("no-keypad")) {
                 noKeypad = true;
             }
+            if (opts.isSet("historylog")) {
+                historyLog = opts.get("historylog");
+            }
+        }
+        if (configPath != null && historyLog != null) {
+            try {
+                patternHistory = new PatternHistory(configPath.getUserConfig(historyLog, true));
+            } catch (IOException e) {
+                errorMessage = "Encountered error while reading pattern-history file: " + historyLog;
+            }
         }
     }
 
@@ -232,6 +243,8 @@ public class Less {
                     String val = parts.get(2);
                     if (option.equals("tabs")) {
                         doTabs(val);
+                    } else if (option.equals("historylog")) {
+                        historyLog = val;
                     } else {
                         errorMessage = "Less config: Unknown or unsupported configuration option " + option;
                     }
@@ -637,6 +650,7 @@ public class Less {
             if (status != null) {
                 status.restore();
             }
+            patternHistory.persist();
         }
     }
 
@@ -852,39 +866,23 @@ public class Less {
         int curPos = buffer.length();
         final int begPos = curPos;
         final char type = buffer.charAt(0);
-        String currentBuffer = "";
+        String currentBuffer = buffer.toString();
         LineEditor lineEditor = new LineEditor(begPos);
         while (true) {
             checkInterrupted();
             Operation op = null;
             switch (op=bindingReader.readBinding(searchKeyMap)) {
             case UP:
-                patternId++;
-                if (patternId >= 0 && patternId < patterns.size()) {
-                    if (patternId == 0) {
-                        currentBuffer = buffer.toString();
-                    }
-                    buffer.setLength(0);
-                    buffer.append(type);
-                    buffer.append(patterns.get(patternId));
-                    curPos = buffer.length();
-                } else if (patternId >= patterns.size()) {
-                    patternId = patterns.size() - 1;
-                }
+                buffer.setLength(0);
+                buffer.append(type);
+                buffer.append(patternHistory.up(currentBuffer.substring(1)));
+                curPos = buffer.length();
                 break;
             case DOWN:
-                if (patterns.size() > 0) {
-                    patternId--;
-                    buffer.setLength(0);
-                    if (patternId < 0) {
-                        patternId = -1;
-                        buffer.append(currentBuffer);
-                    } else {
-                        buffer.append(type);
-                        buffer.append(patterns.get(patternId));
-                    }
-                    curPos = buffer.length();
-                }
+                buffer.setLength(0);
+                buffer.append(type);
+                buffer.append(patternHistory.down(currentBuffer.substring(1)));
+                curPos = buffer.length();
                 break;
             case ACCEPT:
                 try {
@@ -907,10 +905,7 @@ public class Less {
                             forward = false;
                         }
                     }
-                    if (_pattern.length() > 0 && !patterns.contains(_pattern)) {
-                        patterns.add(_pattern);
-                    }
-                    patternId = -1;
+                    patternHistory.add(_pattern);
                     buffer.setLength(0);
                 } catch (PatternSyntaxException e) {
                     String str = e.getMessage();
@@ -931,6 +926,7 @@ public class Less {
                 return forward;
             default:
                 curPos = lineEditor.editBuffer(op, curPos);
+                currentBuffer = buffer.toString();
                 break;
             }
             if (curPos < begPos) {

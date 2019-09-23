@@ -133,7 +133,8 @@ public class Commands {
                 "  -z --suspend                 Enable the ability to suspend nano using the system's suspend keystroke (usually ^Z).",
                 "  -v --view                    Don't allow the contents of the file to be altered: read-only mode.",
                 "  -k --cutfromcursor           Make the 'Cut Text' command cut from the current cursor position to the end of the line",
-                "  -t --tempfile                Save a changed buffer without prompting (when exiting with ^X)."
+                "  -t --tempfile                Save a changed buffer without prompting (when exiting with ^X).",
+                "  -H --historylog=name         Log search strings to file, so they can be retrieved in later sessions"
         };
         Options opt = Options.compile(usage).parse(argv);
         if (opt.isSet("help")) {
@@ -171,7 +172,8 @@ public class Commands {
                 "  -Y --syntax=name             The name of the syntax highlighting to use.",
                 "     --no-init                 Disable terminal initialization",
                 "     --no-keypad               Disable keypad handling",
-                "     --ignorercfiles           Don't look at the system's lessrc nor at the user's lessrc."
+                "     --ignorercfiles           Don't look at the system's lessrc nor at the user's lessrc.",
+                "  -H --historylog=name         Log search strings to file, so they can be retrieved in later sessions"
 
         };
 
