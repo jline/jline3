@@ -115,6 +115,30 @@ public class Less {
     private List<Path> syntaxFiles = new ArrayList<>();
     private boolean highlight = true;
 
+    public static String[] usage() {
+        final String[] usage = {
+                "less -  file pager",
+                "Usage: less [OPTIONS] [FILES]",
+                "  -? --help                    Show help",
+                "  -e --quit-at-eof             Exit on second EOF",
+                "  -E --QUIT-AT-EOF             Exit on EOF",
+                "  -F --quit-if-one-screen      Exit if entire file fits on first screen",
+                "  -q --quiet --silent          Silent mode",
+                "  -Q --QUIET --SILENT          Completely silent",
+                "  -S --chop-long-lines         Do not fold long lines",
+                "  -i --ignore-case             Search ignores lowercase case",
+                "  -I --IGNORE-CASE             Search ignores all case",
+                "  -x --tabs=N[,...]            Set tab stops",
+                "  -N --LINE-NUMBERS            Display line number for each line",
+                "  -Y --syntax=name             The name of the syntax highlighting to use.",
+                "     --no-init                 Disable terminal initialization",
+                "     --no-keypad               Disable keypad handling",
+                "     --ignorercfiles           Don't look at the system's lessrc nor at the user's lessrc.",
+                "  -H --historylog=name         Log search strings to file, so they can be retrieved in later sessions"
+        };
+        return usage;
+    }
+
     public Less(Terminal terminal, Path currentDir) {
         this(terminal, currentDir, null);
     }

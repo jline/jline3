@@ -853,33 +853,7 @@ public class Posix {
     }
 
     protected void nano(final CommandSession session, Process process, String[] argv) throws Exception {
-        final String[] usage = {
-                "nano -  edit files",
-                "Usage: nano [OPTIONS] [FILES]",
-                "  -? --help                    Show help",
-                "  -B --backup                  When saving a file, back up the previous version of it, using the current filename",
-                "                               suffixed with a tilde (~)." ,
-                "  -I --ignorercfiles           Don't look at the system's nanorc nor at the user's nanorc." ,
-                "  -Q --quotestr=regex          Set the regular expression for matching the quoting part of a line.",
-                "  -T --tabsize=number          Set the size (width) of a tab to number columns.",
-                "  -U --quickblank              Do quick status-bar blanking: status-bar messages will disappear after 1 keystroke.",
-                "  -c --constantshow            Constantly show the cursor position on the status bar.",
-                "  -e --emptyline               Do not use the line below the title bar, leaving it entirely blank.",
-                "  -j --jumpyscrolling          Scroll the buffer contents per half-screen instead of per line.",
-                "  -l --linenumbers             Display line numbers to the left of the text area.",
-                "  -m --mouse                   Enable mouse support, if available for your system.",
-                "  -$ --softwrap                Enable 'soft wrapping'. ",
-                "  -a --atblanks                Wrap lines at whitespace instead of always at the edge of the screen.",
-                "  -R --restricted              Restricted mode: don't allow suspending; don't allow a file to be appended to,",
-                "                               prepended to, or saved under a different name if it already has one;",
-                "                               and don't use backup files.",
-                "  -Y --syntax=name             The name of the syntax highlighting to use.",
-                "  -z --suspend                 Enable the ability to suspend nano using the system's suspend keystroke (usually ^Z).",
-                "  -v --view                    Don't allow the contents of the file to be altered: read-only mode.",
-                "  -k --cutfromcursor           Make the 'Cut Text' command cut from the current cursor position to the end of the line",
-                "  -t --tempfile                Save a changed buffer without prompting (when exiting with ^X)."
-        };
-        Options opt = parseOptions(session, usage, argv);
+        Options opt = parseOptions(session, Nano.usage(), argv);
         Nano edit = new Nano(Shell.getTerminal(session), session.currentDir(), opt);
         edit.open(opt.args());
         edit.run();
@@ -943,34 +917,7 @@ public class Posix {
     }
 
     protected void less(CommandSession session, Process process, String[] argv) throws Exception {
-        String[] usage = {
-                "less -  file pager",
-                "Usage: less [OPTIONS] [FILES]",
-                "  -? --help                    Show help",
-                "  -e --quit-at-eof             Exit on second EOF",
-                "  -E --QUIT-AT-EOF             Exit on EOF",
-                "  -F --quit-if-one-screen      Exit if entire file fits on first screen",
-                "  -q --quiet --silent          Silent mode",
-                "  -Q --QUIET --SILENT          Completely  silent",
-                "  -S --chop-long-lines         Do not fold long lines",
-                "  -i --ignore-case             Search ignores lowercase case",
-                "  -I --IGNORE-CASE             Search ignores all case",
-                "  -x --tabs=N[,...]            Set tab stops",
-                "  -N --LINE-NUMBERS            Display line number for each line",
-                "  -Y --syntax=name             The name of the syntax highlighting to use.",
-                "     --no-init                 Disable terminal initialization",
-                "     --no-keypad               Disable keypad handling",
-                "     --ignorercfiles           Don't look at the system's lessrc nor at the user's lessrc."
-
-        };
-        try {
-            Less.class.getField("quitIfOneScreen");
-        } catch (NoSuchFieldException e) {
-            List<String> ustrs = new ArrayList<>(Arrays.asList(usage));
-            ustrs.removeIf(s -> s.contains("--quit-if-one-screen") || s.contains("--no-init") || s.contains("--no-keypad"));
-            usage = ustrs.toArray(new String[ustrs.size()]);
-        }
-        Options opt = parseOptions(session, usage, argv);
+        Options opt = parseOptions(session, Less.usage(), argv);
         List<Source> sources = new ArrayList<>();
         if (opt.args().isEmpty()) {
             opt.args().add("-");
