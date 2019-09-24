@@ -1620,13 +1620,18 @@ public class Nano implements Editor {
                 if (patternId < 0) {
                     patternId = 0;
                 }
+                boolean found = false;
                 for (int pid = patternId; pid < patterns.size(); pid++) {
                     if (hint.length() == 0
                             || patterns.get(pid).startsWith(hint)) {
                         patternId = pid + 1;
                         out = patterns.get(pid);
+                        found = true;
                         break;
                     }
+                }
+                if (!found) {
+                    patternId = patterns.size();
                 }
             }
             lastMoveUp = true;
@@ -1642,12 +1647,17 @@ public class Nano implements Editor {
                 if (patternId < 0) {
                     patternId = -1;
                 } else {
+                    boolean found = false;
                     for (int pid = patternId;  pid >= 0; pid--) {
                         if (hint.length() == 0 || patterns.get(pid).startsWith(hint)) {
                             patternId = pid - 1;
                             out = patterns.get(pid);
+                            found = true;
                             break;
                         }
+                    }
+                    if (!found) {
+                        patternId = -1;
                     }
                 }
             }
@@ -3140,19 +3150,19 @@ public class Nano implements Editor {
             keys.bind(Operation.UNINDENT, alt('{'));
             keys.bind(Operation.VERBATIM, alt('v'));
             keys.bind(Operation.INSERT, ctrl('I'), ctrl('M'));
-            keys.bind(Operation.DELETE, ctrl('D'));
+            keys.bind(Operation.DELETE, ctrl('D'), key(terminal, Capability.key_dc));
             keys.bind(Operation.BACKSPACE, ctrl('H'));
             keys.bind(Operation.CUT_TO_END, alt('t'));
             keys.bind(Operation.JUSTIFY_FILE, alt('j'));
             keys.bind(Operation.AUTO_INDENT, alt('i'));
             keys.bind(Operation.CUT_TO_END_TOGGLE, alt('k'));
             keys.bind(Operation.TABS_TO_SPACE, alt('q'));
-            keys.bind(Operation.NEXT_PAGE, ctrl('V'), key(terminal, Capability.key_f8));
-            keys.bind(Operation.PREV_PAGE, ctrl('Y'), key(terminal, Capability.key_f7));
         } else {
-            keys.bind(Operation.NEXT_PAGE, ctrl('V'), key(terminal, Capability.key_f8), " ", "f");
-            keys.bind(Operation.PREV_PAGE, ctrl('Y'), key(terminal, Capability.key_f7), "b");
+            keys.bind(Operation.NEXT_PAGE, " ", "f");
+            keys.bind(Operation.PREV_PAGE, "b");
         }
+        keys.bind(Operation.NEXT_PAGE, ctrl('V'), key(terminal, Capability.key_f8));
+        keys.bind(Operation.PREV_PAGE, ctrl('Y'), key(terminal, Capability.key_f7));
 
         keys.bind(Operation.HELP, ctrl('G'), key(terminal, Capability.key_f1));
         keys.bind(Operation.QUIT, ctrl('X'), key(terminal, Capability.key_f2));
@@ -3206,13 +3216,14 @@ public class Nano implements Editor {
         keys.bind(Operation.BACKUP, alt('b'));
         keys.bind(Operation.NUMBERS, alt('n'));
 
-        // TODO: map other keys
         keys.bind(Operation.UP, key(terminal, Capability.key_up));
         keys.bind(Operation.DOWN, key(terminal, Capability.key_down));
         keys.bind(Operation.RIGHT, key(terminal, Capability.key_right));
         keys.bind(Operation.LEFT, key(terminal, Capability.key_left));
         keys.bind(Operation.MOUSE_EVENT, key(terminal, Capability.key_mouse));
         keys.bind(Operation.TOGGLE_SUSPENSION, alt('z'));
+        keys.bind(Operation.NEXT_PAGE, key(terminal, Capability.key_npage));
+        keys.bind(Operation.PREV_PAGE, key(terminal, Capability.key_ppage));
     }
 
     protected enum Operation {

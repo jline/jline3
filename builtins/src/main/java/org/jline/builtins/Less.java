@@ -1446,8 +1446,8 @@ public class Less {
         map.bind(Operation.EXIT, "q", ":q", "Q", ":Q", "ZZ");
         map.bind(Operation.FORWARD_ONE_LINE, "e", ctrl('E'), "j", ctrl('N'), "\r", key(terminal, Capability.key_down));
         map.bind(Operation.BACKWARD_ONE_LINE, "y", ctrl('Y'), "k", ctrl('K'), ctrl('P'), key(terminal, Capability.key_up));
-        map.bind(Operation.FORWARD_ONE_WINDOW_OR_LINES, "f", ctrl('F'), ctrl('V'), " ");
-        map.bind(Operation.BACKWARD_ONE_WINDOW_OR_LINES, "b", ctrl('B'), alt('v'));
+        map.bind(Operation.FORWARD_ONE_WINDOW_OR_LINES, "f", ctrl('F'), ctrl('V'), " ", key(terminal, Capability.key_npage));
+        map.bind(Operation.BACKWARD_ONE_WINDOW_OR_LINES, "b", ctrl('B'), alt('v'), key(terminal, Capability.key_ppage));
         map.bind(Operation.FORWARD_ONE_WINDOW_AND_SET, "z");
         map.bind(Operation.BACKWARD_ONE_WINDOW_AND_SET, "w");
         map.bind(Operation.FORWARD_ONE_WINDOW_NO_STOP, alt(' '));
