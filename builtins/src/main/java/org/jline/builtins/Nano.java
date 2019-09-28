@@ -421,7 +421,7 @@ public class Nano implements Editor {
             if (lines.get(line).contains("\t")) {
                 int cpos = charPosition(pos, move);
                 pos = new AttributedStringBuilder().tabs(tabs).append(lines.get(line)).columnLength();
-                if (cpos < pos) {
+                if (cpos < lines.get(line).length()) {
                     pos = new AttributedStringBuilder().tabs(tabs).append(lines.get(line).substring(0, cpos)).columnLength();
                 }
             }
