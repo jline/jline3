@@ -104,6 +104,8 @@ public class Nano implements Editor {
     private boolean cut2end = false;
     private boolean tempFile = false;
     private String historyLog = null;
+    private boolean tabsToSpaces = false;
+    private boolean autoIndent = false;
 
     // Input
     protected final List<Buffer> buffers = new ArrayList<>();
@@ -178,7 +180,9 @@ public class Nano implements Editor {
                 "  -v --view                    Don't allow the contents of the file to be altered: read-only mode.",
                 "  -k --cutfromcursor           Make the 'Cut Text' command cut from the current cursor position to the end of the line",
                 "  -t --tempfile                Save a changed buffer without prompting (when exiting with ^X).",
-                "  -H --historylog=name         Log search strings to file, so they can be retrieved in later sessions"
+                "  -H --historylog=name         Log search strings to file, so they can be retrieved in later sessions",
+                "  -E --tabstospaces            Convert typed tabs to spaces.",
+                "  -i --autoindent              Indent new lines to the previous line's indentation."
         };
         return usage;
     }
@@ -335,11 +339,34 @@ public class Nano implements Editor {
             return out;
         }
 
+        String blanks(int nb) {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < nb; i++) {
+                sb.append(' ');
+            }
+            return sb.toString();
+        }
+
         void insert(String insert) {
             String text = lines.get(line);
             int pos = charPosition(offsetInLine + column);
             insert = insert.replaceAll("\r\n", "\n");
             insert = insert.replaceAll("\r", "\n");
+            if (tabsToSpaces && insert.length() == 1 && insert.charAt(0) == '\t') {
+                int len = pos == text.length() ? length(text + insert) : length(text.substring(0, pos) + insert);
+                insert = blanks(len - offsetInLine - column);
+            }
+            if (autoIndent && insert.length() == 1 && insert.charAt(0) == '\n') {
+                for (char c : lines.get(line).toCharArray()) {
+                    if (c == ' ') {
+                        insert += c;
+                    } else if (c == '\t') {
+                        insert += c;
+                    } else {
+                        break;
+                    }
+                }
+            }
             String mod;
             String tail = "";
             if (pos == text.length()) {
@@ -1923,6 +1950,12 @@ public class Nano implements Editor {
             if (opts.isSet("historylog")) {
                 historyLog = opts.get("historyLog");
             }
+            if (opts.isSet("tabstospaces")) {
+                tabsToSpaces = true;
+            }
+            if (opts.isSet("autoindent")) {
+                autoIndent = true;
+            }
         }
         bindKeys();
         if (configPath != null && historyLog != null) {
@@ -1981,6 +2014,10 @@ public class Nano implements Editor {
                         cut2end = val;
                     } else if (option.equals("tempfile")) {
                         tempFile = val;
+                    } else if (option.equals("tabstospaces")) {
+                        tabsToSpaces = val;
+                    } else if (option.equals("autoindent")) {
+                        autoIndent = val;
                     } else {
                         errorMessage = "Nano config: Unknown or unsupported configuration option " + option;
                     }
@@ -2227,6 +2264,14 @@ public class Nano implements Editor {
                     case HIGHLIGHT:
                         highlight = !highlight;
                         setMessage("Highlight " + (highlight ? "enabled" : "disabled"));
+                        break;
+                    case TABS_TO_SPACE:
+                        tabsToSpaces = !tabsToSpaces;
+                        setMessage("Conversion of typed tabs to spaces " + (tabsToSpaces ? "enabled" : "disabled"));
+                        break;
+                    case AUTO_INDENT:
+                        autoIndent = !autoIndent;
+                        setMessage("Auto indent " + (autoIndent ? "enabled" : "disabled"));
                         break;
                     default:
                         setMessage("Unsupported " + op.name().toLowerCase().replace('_', '-'));
