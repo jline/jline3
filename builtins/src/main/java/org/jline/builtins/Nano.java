@@ -3175,11 +3175,11 @@ public class Nano implements Editor {
         sb.append("col ");
         sb.append(buffer.offsetInLine + buffer.column + 1);
         sb.append("/");
-        sb.append(buffer.lines.get(buffer.line).length() + 1);
+        sb.append(buffer.length(buffer.lines.get(buffer.line)) + 1);
         sb.append(" (");
         if (buffer.lines.get(buffer.line).length() > 0) {
             sb.append(Math.round((100.0 * (buffer.offsetInLine + buffer.column))
-                    / (buffer.lines.get(buffer.line).length())));
+                    / (buffer.length(buffer.lines.get(buffer.line)))));
         } else {
             sb.append("100");
         }
