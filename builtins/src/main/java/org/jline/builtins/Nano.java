@@ -302,11 +302,11 @@ public class Nano implements Editor {
             int out = lines.get(line).length();
             if (!lines.get(line).contains("\t") || displayPosition == 0) {
                 out = displayPosition;
-            } else if (displayPosition < new AttributedStringBuilder().tabs(tabs).append(lines.get(line)).columnLength()) {
+            } else if (displayPosition < length(lines.get(line))) {
                 int rdiff = 0;
                 int ldiff = 0;
                 for (int i = 0; i < lines.get(line).length(); i++) {
-                    int dp = new AttributedStringBuilder().tabs(tabs).append(lines.get(line).substring(0, i)).columnLength();
+                    int dp = length(lines.get(line).substring(0, i));
                     if (move == CursorMovement.LEFT) {
                         if (dp <= displayPosition) {
                             out = i;
@@ -357,7 +357,7 @@ public class Nano implements Editor {
                 idx = mod.indexOf('\n', last);
             }
             ins.add(mod.substring(last) + tail);
-            int curPos = new AttributedStringBuilder().tabs(tabs).append(mod.substring(last)).columnLength();
+            int curPos = length(mod.substring(last));
             lines.set(line, ins.get(0));
             offsets.set(line, computeOffsets(ins.get(0)));
             for (int i = 1; i < ins.size(); i++) {
@@ -423,9 +423,9 @@ public class Nano implements Editor {
             if (lines.get(line).contains("\t")) {
                 int cpos = charPosition(pos, move);
                 if (cpos < lines.get(line).length()) {
-                    pos = new AttributedStringBuilder().tabs(tabs).append(lines.get(line).substring(0, cpos)).columnLength();
+                    pos = length(lines.get(line).substring(0, cpos));
                 } else {
-                    pos = new AttributedStringBuilder().tabs(tabs).append(lines.get(line)).columnLength();
+                    pos = length(lines.get(line));
                 }
             }
             offsetInLine = prevLineOffset(line, pos + 1).get();
@@ -448,14 +448,14 @@ public class Nano implements Editor {
                     String prev = lines.get(--line);
                     lines.set(line, prev + text);
                     offsets.set(line, computeOffsets(prev + text));
-                    moveToChar(length(prev, tabs));
+                    moveToChar(length(prev));
                     lines.remove(line + 1);
                     offsets.remove(line + 1);
                     count--;
                     dirty = true;
                 } else {
                     int nb = Math.min(pos, count);
-                    int curPos = new AttributedStringBuilder().tabs(tabs).append(text.substring(0, pos - nb)).columnLength();
+                    int curPos = length(text.substring(0, pos - nb));
                     text = text.substring(0, pos - nb) + text.substring(pos);
                     lines.set(line, text);
                     offsets.set(line, computeOffsets(text));
@@ -475,7 +475,7 @@ public class Nano implements Editor {
                     moveToChar(offsetInLine + column - 1, CursorMovement.LEFT);
                 } else if (line > 0) {
                     line--;
-                    moveToChar(length(getLine(line), tabs));
+                    moveToChar(length(getLine(line)));
                 } else {
                     bof();
                     ret = false;
@@ -500,11 +500,11 @@ public class Nano implements Editor {
                 firstColumnToDisplay = 0;
                 offsetInLine = 0;
                 column = 0;
-                chars = chars <= length(getLine(line), tabs) ? chars : length(getLine(line), tabs);
+                chars = chars <= length(getLine(line)) ? chars : length(getLine(line));
             }
             boolean ret = true;
             while (--chars >= 0) {
-                int len =  length(getLine(line), tabs);
+                int len =  length(getLine(line));
                 if (offsetInLine + column + 1 <= len) {
                     moveToChar(offsetInLine + column + 1, CursorMovement.RIGHT);
                 } else if (getLine(line + 1) != null) {
@@ -612,7 +612,7 @@ public class Nano implements Editor {
                     if (getLine(line + 1) != null) {
                         line++;
                         offsetInLine = 0;
-                        column = Math.min(length(getLine(line), tabs), wantedColumn);
+                        column = Math.min(length(getLine(line)), wantedColumn);
                     } else {
                         bof();
                         break;
@@ -630,7 +630,7 @@ public class Nano implements Editor {
                         offsetInLine = 0;
                         txt = getLine(line);
                     }
-                    int next = nextLineOffset(line, offsetInLine).orElse(length(txt, tabs));
+                    int next = nextLineOffset(line, offsetInLine).orElse(length(txt));
                     column = Math.min(wantedColumn, next - offsetInLine);
                 }
             }
@@ -643,7 +643,7 @@ public class Nano implements Editor {
                 if (!wrapping) {
                     if (line > 0) {
                         line--;
-                        column = Math.min(length(getLine(line), tabs) - offsetInLine, wantedColumn);
+                        column = Math.min(length(getLine(line)) - offsetInLine, wantedColumn);
                     } else {
                         bof();
                         break;
@@ -655,7 +655,7 @@ public class Nano implements Editor {
                     } else if (line > 0) {
                         line--;
                         offsetInLine = prevLineOffset(line, Integer.MAX_VALUE).get();
-                        int next = nextLineOffset(line, offsetInLine).orElse(length(getLine(line), tabs));
+                        int next = nextLineOffset(line, offsetInLine).orElse(length(getLine(line)));
                         column = Math.min(wantedColumn, next - offsetInLine);
                     } else {
                         bof();
@@ -917,7 +917,7 @@ public class Nano implements Editor {
 
         public void gotoLine(int x, int y) {
             line = y < lines.size() ? y : lines.size() - 1;
-            x = x <= length(lines.get(line), tabs) ? x : length(lines.get(line), tabs);
+            x = x <= length(lines.get(line)) ? x : length(lines.get(line));
             firstLineToDisplay = line > 0 ? line - 1 : line;
             offsetInLine = 0;
             offsetInLineToDisplay = 0;
@@ -999,7 +999,7 @@ public class Nano implements Editor {
         }
 
         public void endOfLine() {
-            int x = length(lines.get(line), tabs);
+            int x = length(lines.get(line));
             moveRight(x, true);
         }
 
@@ -1135,9 +1135,9 @@ public class Nano implements Editor {
                 out[0] = line;
                 int col = charPosition(offsetInLine + column) + matchedLength;
                 if (col < lines.get(line).length()) {
-                    out[1] = new AttributedStringBuilder().tabs(tabs).append(lines.get(line).substring(0, col)).columnLength();
+                    out[1] = length(lines.get(line).substring(0, col));
                 } else {
-                    out[1] = new AttributedStringBuilder().tabs(tabs).append(lines.get(line)).columnLength();
+                    out[1] = length(lines.get(line));
                 }
             }
              return out;
@@ -1184,7 +1184,7 @@ public class Nano implements Editor {
             }
         }
 
-        private int length(String line, int tabs) {
+        private int length(String line) {
             return new AttributedStringBuilder().tabs(tabs).append(line).columnLength();
         }
 
