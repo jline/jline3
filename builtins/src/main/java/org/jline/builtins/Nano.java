@@ -123,12 +123,14 @@ public class Nano implements Editor {
     protected boolean searchRegexp;
     protected boolean searchBackwards;
     protected String searchTerm;
+    protected int matchedLength = -1;
     protected PatternHistory patternHistory = new PatternHistory(null);
     protected WriteMode writeMode = WriteMode.WRITE;
     protected List<String> cutbuffer = new ArrayList<>();
     protected boolean mark = false;
     protected boolean highlight = true;
     private List<Path> syntaxFiles = new ArrayList<>();
+    private boolean searchToReplace = false;
 
     protected boolean readNewBuffer = true;
 
@@ -420,9 +422,10 @@ public class Nano implements Editor {
             }
             if (lines.get(line).contains("\t")) {
                 int cpos = charPosition(pos, move);
-                pos = new AttributedStringBuilder().tabs(tabs).append(lines.get(line)).columnLength();
                 if (cpos < lines.get(line).length()) {
                     pos = new AttributedStringBuilder().tabs(tabs).append(lines.get(line).substring(0, cpos)).columnLength();
+                } else {
+                    pos = new AttributedStringBuilder().tabs(tabs).append(lines.get(line)).columnLength();
                 }
             }
             offsetInLine = prevLineOffset(line, pos + 1).get();
@@ -778,53 +781,55 @@ public class Nano implements Editor {
         void highlightDisplayedLine(int curLine, int curOffset, int nextOffset, AttributedStringBuilder line){
             AttributedString disp = highlight ? syntaxHighlighter.highlight(new AttributedStringBuilder().tabs(tabs).append(getLine(curLine)))
                                               : new AttributedStringBuilder().tabs(tabs).append(getLine(curLine)).toAttributedString();
-            if (!mark) {
+            int[] hls = highlightStart();
+            int[] hle = highlightEnd();
+            if (hls[0] == -1 || hle[0] == -1) {
                 line.append(disp.columnSubSequence(curOffset, nextOffset));
-            } else if (getMarkStart()[0] == getMarkEnd()[0]) {
-                if (curLine == getMarkStart()[0]) {
-                    if (getMarkStart()[1] > nextOffset) {
+            } else if (hls[0] == hle[0]) {
+                if (curLine == hls[0]) {
+                    if (hls[1] > nextOffset) {
                         line.append(disp.columnSubSequence(curOffset, nextOffset));
-                    } else if (getMarkStart()[1] <  curOffset) {
-                        if (getMarkEnd()[1] > nextOffset) {
+                    } else if (hls[1] <  curOffset) {
+                        if (hle[1] > nextOffset) {
                             line.append(disp.columnSubSequence(curOffset, nextOffset), AttributedStyle.INVERSE);
-                        } else if (getMarkEnd()[1] > curOffset) {
-                            line.append(disp.columnSubSequence(curOffset, getMarkEnd()[1]), AttributedStyle.INVERSE);
-                            line.append(disp.columnSubSequence(getMarkEnd()[1], nextOffset));
+                        } else if (hle[1] > curOffset) {
+                            line.append(disp.columnSubSequence(curOffset, hle[1]), AttributedStyle.INVERSE);
+                            line.append(disp.columnSubSequence(hle[1], nextOffset));
                         } else {
                             line.append(disp.columnSubSequence(curOffset, nextOffset));
                         }
                     } else {
-                        line.append(disp.columnSubSequence(curOffset, getMarkStart()[1]));
-                        if (getMarkEnd()[1] > nextOffset) {
-                            line.append(disp.columnSubSequence(getMarkStart()[1], nextOffset), AttributedStyle.INVERSE);
+                        line.append(disp.columnSubSequence(curOffset, hls[1]));
+                        if (hle[1] > nextOffset) {
+                            line.append(disp.columnSubSequence(hls[1], nextOffset), AttributedStyle.INVERSE);
                         } else {
-                            line.append(disp.columnSubSequence(getMarkStart()[1], getMarkEnd()[1]), AttributedStyle.INVERSE);
-                            line.append(disp.columnSubSequence(getMarkEnd()[1], nextOffset));
+                            line.append(disp.columnSubSequence(hls[1], hle[1]), AttributedStyle.INVERSE);
+                            line.append(disp.columnSubSequence(hle[1], nextOffset));
                         }
                     }
                 } else {
                     line.append(disp.columnSubSequence(curOffset, nextOffset));
                 }
             } else {
-                if (curLine > getMarkStart()[0] && curLine < getMarkEnd()[0]) {
+                if (curLine > hls[0] && curLine < hle[0]) {
                     line.append(disp.columnSubSequence(curOffset, nextOffset), AttributedStyle.INVERSE);
-                } else if (curLine == getMarkStart()[0]) {
-                    if (getMarkStart()[1] > nextOffset) {
+                } else if (curLine == hls[0]) {
+                    if (hls[1] > nextOffset) {
                         line.append(disp.columnSubSequence(curOffset, nextOffset));
-                    } else if (getMarkStart()[1] < curOffset) {
+                    } else if (hls[1] < curOffset) {
                         line.append(disp.columnSubSequence(curOffset, nextOffset), AttributedStyle.INVERSE);
                     } else {
-                        line.append(disp.columnSubSequence(curOffset, getMarkStart()[1]));
-                        line.append(disp.columnSubSequence(getMarkStart()[1], nextOffset), AttributedStyle.INVERSE);
+                        line.append(disp.columnSubSequence(curOffset, hls[1]));
+                        line.append(disp.columnSubSequence(hls[1], nextOffset), AttributedStyle.INVERSE);
                     }
-                } else if (curLine == getMarkEnd()[0]) {
-                    if (getMarkEnd()[1] < curOffset) {
+                } else if (curLine == hle[0]) {
+                    if (hle[1] < curOffset) {
                         line.append(disp.columnSubSequence(curOffset, nextOffset));
-                    } else if (getMarkEnd()[1] > nextOffset) {
+                    } else if (hle[1] > nextOffset) {
                         line.append(disp.columnSubSequence(curOffset, nextOffset), AttributedStyle.INVERSE);
                     } else {
-                        line.append(disp.columnSubSequence(curOffset, getMarkEnd()[1]), AttributedStyle.INVERSE);
-                        line.append(disp.columnSubSequence(getMarkEnd()[1], nextOffset));
+                        line.append(disp.columnSubSequence(curOffset, hle[1]), AttributedStyle.INVERSE);
+                        line.append(disp.columnSubSequence(hle[1], nextOffset));
                     }
                 } else {
                     line.append(disp.columnSubSequence(curOffset, nextOffset));
@@ -1036,10 +1041,11 @@ public class Nano implements Editor {
             ensureCursorVisible();
         }
 
-        void nextSearch() {
+        boolean nextSearch() {
+            boolean out = false;
             if (searchTerm == null) {
                 setMessage("No current search pattern");
-                return;
+                return false;
             }
             setMessage(null);
             int cur = line;
@@ -1082,7 +1088,7 @@ public class Nano implements Editor {
             if (newPos >= 0) {
                 if (newLine == line && newPos == offsetInLine + column) {
                     setMessage("This is the only occurence");
-                    return;
+                    return false;
                 }
                 if ((searchBackwards && (newLine > line || (newLine == line && newPos > offsetInLine + column)))
                     || (!searchBackwards && (newLine < line || (newLine == line && newPos < offsetInLine + column)))) {
@@ -1090,9 +1096,11 @@ public class Nano implements Editor {
                 }
                 line = newLine;
                 moveRight(newPos, true);
+                out = true;
             } else {
                 setMessage("\"" + searchTerm + "\" not found");
             }
+            return out;
         }
 
         private List<Integer> doSearch(String text) {
@@ -1103,8 +1111,36 @@ public class Nano implements Editor {
             List<Integer> res = new ArrayList<>();
             while (m.find()) {
                 res.add(m.start());
+                matchedLength = m.group(0).length();
             }
             return res;
+        }
+
+        protected int[] highlightStart() {
+            int[] out = {-1, -1};
+            if (mark) {
+                out = getMarkStart();
+            } else if (searchToReplace) {
+                out[0] = line;
+                out[1] = offsetInLine + column;
+            }
+            return out;
+        }
+
+        protected int[] highlightEnd() {
+            int[] out = {-1, -1};
+            if (mark) {
+                out = getMarkEnd();
+            } else if (searchToReplace && matchedLength > 0) {
+                out[0] = line;
+                int col = charPosition(offsetInLine + column) + matchedLength;
+                if (col < lines.get(line).length()) {
+                    out[1] = new AttributedStringBuilder().tabs(tabs).append(lines.get(line).substring(0, col)).columnLength();
+                } else {
+                    out[1] = new AttributedStringBuilder().tabs(tabs).append(lines.get(line)).columnLength();
+                }
+            }
+             return out;
         }
 
         public void matching() {
@@ -1341,6 +1377,17 @@ public class Nano implements Editor {
                 out[1] = offsetInLine + column;
             }
             return out;
+        }
+
+        void replaceFromCursor(int chars, String string) {
+            int pos = charPosition(offsetInLine + column);
+            String text = lines.get(line);
+            String mod = text.substring(0, pos) + string;
+            if (chars + pos < text.length()) {
+                mod += text.substring(chars + pos);
+            }
+            lines.set(line, mod);
+            dirty = true;
         }
     }
 
@@ -2124,7 +2171,12 @@ public class Nano implements Editor {
                         buffer.scrollDown(1);
                         break;
                     case SEARCH:
-                        search();
+                        searchToReplace = false;
+                        searchAndReplace();
+                        break;
+                    case REPLACE:
+                        searchToReplace = true;
+                        searchAndReplace();
                         break;
                     case NEXT_SEARCH:
                         buffer.nextSearch();
@@ -2374,6 +2426,10 @@ public class Nano implements Editor {
     }
 
     private Operation getYNC(String message) {
+        return getYNC(message, false);
+    }
+
+    private Operation getYNC(String message, boolean andAll) {
         String oldEditMessage = editMessage;
         String oldEditBuffer = editBuffer.toString();
         LinkedHashMap<String, String> oldShortcuts = shortcuts;
@@ -2382,10 +2438,16 @@ public class Nano implements Editor {
             editBuffer.setLength(0);
             KeyMap<Operation> yncKeyMap = new KeyMap<>();
             yncKeyMap.bind(Operation.YES, "y", "Y");
+            if (andAll) {
+                yncKeyMap.bind(Operation.ALL, "a", "A");
+            }
             yncKeyMap.bind(Operation.NO, "n", "N");
             yncKeyMap.bind(Operation.CANCEL, ctrl('C'));
             shortcuts = new LinkedHashMap<>();
             shortcuts.put(" Y", "Yes");
+            if (andAll) {
+                shortcuts.put(" A", "All");
+            }
             shortcuts.put(" N", "No");
             shortcuts.put("^C", "Cancel");
             display();
@@ -2555,7 +2617,8 @@ public class Nano implements Editor {
                     this.shortcuts = standardShortcuts();
                     return;
                 case SEARCH:
-                    search();
+                    searchToReplace = false;
+                    searchAndReplace();
                     return;
                 case ACCEPT:
                     editMessage = null;
@@ -2641,16 +2704,33 @@ public class Nano implements Editor {
         LinkedHashMap<String, String> s = new LinkedHashMap<>();
         s.put("^G", "Get Help");
         s.put("^Y", "First Line");
-        s.put("^R", "Replace");
-        s.put("^W", "Beg of Par");
+        if (searchToReplace) {
+            s.put("^R", "No Replace");
+        } else {
+            s.put("^R", "Replace");
+            s.put("^W", "Beg of Par");
+        }
         s.put("M-C", "Case Sens");
         s.put("M-R", "Regexp");
         s.put("^C", "Cancel");
         s.put("^V", "Last Line");
         s.put("^T", "Go To Line");
-        s.put("^O", "End of Par");
+        if (!searchToReplace) {
+            s.put("^O", "End of Par");
+        }
         s.put("M-B", "Backwards");
         s.put("^P", "PrevHstory");
+        return s;
+    }
+
+    private LinkedHashMap<String, String> replaceShortcuts() {
+        LinkedHashMap<String, String> s = new LinkedHashMap<>();
+        s.put("^G", "Get Help");
+        s.put("^Y", "First Line");
+        s.put("^P", "PrevHstory");
+        s.put("^C", "Cancel");
+        s.put("^V", "Last Line");
+        s.put("^N", "NextHstory");
         return s;
     }
 
@@ -2693,7 +2773,11 @@ public class Nano implements Editor {
         boolean oldWrapping = this.wrapping;
         boolean oldPrintLineNumbers = this.printLineNumbers;
         boolean oldConstantCursor = this.constantCursor;
+        boolean oldAtBlanks = this.atBlanks;
+        String oldEditMessage = this.editMessage;
+        this.editMessage = "";
         this.wrapping = true;
+        this.atBlanks = true;
         this.printLineNumbers = false;
         this.constantCursor = false;
         this.buffer = newBuf;
@@ -2744,10 +2828,72 @@ public class Nano implements Editor {
             this.printLineNumbers = oldPrintLineNumbers;
             this.constantCursor = oldConstantCursor;
             this.shortcuts = oldShortcuts;
+            this.atBlanks = oldAtBlanks;
+            this.editMessage = oldEditMessage;
             terminal.puts(Capability.cursor_visible);
             if (!oldWrapping) {
                 buffer.computeAllOffsets();
             }
+        }
+    }
+
+    void searchAndReplace() {
+        try {
+            search();
+            if (!searchToReplace) {
+                return;
+            }
+            String replaceTerm = replace();
+            int replaced = 0;
+            boolean all = false;
+            boolean found = true;
+            List<Integer> matches = new ArrayList<>();
+            Operation op = Operation.NO;
+            while (found) {
+                found = buffer.nextSearch();
+                if (found) {
+                    int[] re = buffer.highlightStart();
+                    int col = searchBackwards ? buffer.getLine(re[0]).length() - re[1] : re[1];
+                    int match = re[0]*100000 + col;
+                    if (matches.contains(match)) {
+                        found = false;
+                        break;
+                    } else {
+                        matches.add(match);
+                    }
+                    if (!all) {
+                        op = getYNC("Replace this instance? ", true);
+                    }
+                } else {
+                    op = Operation.NO;
+                }
+                switch (op) {
+                case ALL:
+                    all = true;
+                    buffer.replaceFromCursor(matchedLength, replaceTerm);
+                    replaced++;
+                    break;
+                case YES:
+                    buffer.replaceFromCursor(matchedLength, replaceTerm);
+                    replaced++;
+                    break;
+                case NO:
+                    break;
+                case CANCEL:
+                    found = false;
+                    break;
+                default:
+                    break;
+                }
+            }
+            message = "Replaced " + replaced + " occurrences";
+        } catch (Exception e) {
+            return;
+        } finally {
+            searchToReplace = false;
+            matchedLength =  -1;
+            this.shortcuts = standardShortcuts();
+            editMessage = null;
         }
     }
 
@@ -2767,6 +2913,7 @@ public class Nano implements Editor {
         searchKeyMap.bind(Operation.REGEXP, alt('r'));
         searchKeyMap.bind(Operation.ACCEPT, "\r");
         searchKeyMap.bind(Operation.CANCEL, ctrl('C'));
+        searchKeyMap.bind(Operation.HELP, ctrl('G'), key(terminal, Capability.key_f1));
         searchKeyMap.bind(Operation.FIRST_LINE, ctrl('Y'));
         searchKeyMap.bind(Operation.LAST_LINE, ctrl('V'));
         searchKeyMap.bind(Operation.MOUSE_EVENT, key(terminal, Capability.key_mouse));
@@ -2774,6 +2921,7 @@ public class Nano implements Editor {
         searchKeyMap.bind(Operation.LEFT, key(terminal, Capability.key_left));
         searchKeyMap.bind(Operation.UP, key(terminal, Capability.key_up));
         searchKeyMap.bind(Operation.DOWN, key(terminal, Capability.key_down));
+        searchKeyMap.bind(Operation.TOGGLE_REPLACE, ctrl('R'));
 
         editMessage = getSearchMessage();
         editBuffer.setLength(0);
@@ -2805,32 +2953,40 @@ public class Nano implements Editor {
                         searchRegexp = !searchRegexp;
                         break;
                     case CANCEL:
-                        return;
+                        throw new IllegalArgumentException();
                     case ACCEPT:
                         if (editBuffer.length() > 0) {
                             searchTerm = editBuffer.toString();
                         }
                         if (searchTerm == null || searchTerm.isEmpty()) {
                             setMessage("Cancelled");
+                            throw new IllegalArgumentException();
                         } else {
                             patternHistory.add(searchTerm);
-                            buffer.nextSearch();
+                            if (!searchToReplace) {
+                                buffer.nextSearch();
+                            }
                         }
                         return;
                     case HELP:
-                        help("nano-search-help.txt");
+                        if (searchToReplace) {
+                            help("nano-search-replace-help.txt");
+                        } else {
+                            help("nano-search-help.txt");
+                        }
                         break;
                     case FIRST_LINE:
                         buffer.firstLine();
-                        return;
+                        break;
                     case LAST_LINE:
                         buffer.lastLine();
-                        return;
+                        break;
                     case MOUSE_EVENT:
                         mouseEvent();
                         break;
-                    case TOGGLE_SUSPENSION:
-                        toggleSuspension();
+                    case TOGGLE_REPLACE:
+                        searchToReplace = !searchToReplace;
+                        this.shortcuts = searchShortcuts();
                         break;
                     default:
                         curPos = editInputBuffer(op, curPos);
@@ -2846,9 +3002,92 @@ public class Nano implements Editor {
         }
     }
 
+    String replace() throws IOException {
+        KeyMap<Operation> keyMap = new KeyMap<>();
+        keyMap.setUnicode(Operation.INSERT);
+//        keyMap.setNomatch(Operation.INSERT);
+        for (char i = 32; i < 256; i++) {
+            keyMap.bind(Operation.INSERT, Character.toString(i));
+        }
+        for (char i = 'A'; i <= 'Z'; i++) {
+            keyMap.bind(Operation.DO_LOWER_CASE, alt(i));
+        }
+        keyMap.bind(Operation.BACKSPACE, del());
+        keyMap.bind(Operation.ACCEPT, "\r");
+        keyMap.bind(Operation.CANCEL, ctrl('C'));
+        keyMap.bind(Operation.HELP, ctrl('G'), key(terminal, Capability.key_f1));
+        keyMap.bind(Operation.FIRST_LINE, ctrl('Y'));
+        keyMap.bind(Operation.LAST_LINE, ctrl('V'));
+        keyMap.bind(Operation.RIGHT, key(terminal, Capability.key_right));
+        keyMap.bind(Operation.LEFT, key(terminal, Capability.key_left));
+        keyMap.bind(Operation.UP, key(terminal, Capability.key_up));
+        keyMap.bind(Operation.DOWN, key(terminal, Capability.key_down));
+
+        editMessage = "Replace with: ";
+        editBuffer.setLength(0);
+        String currentBuffer = editBuffer.toString();
+        int curPos = editBuffer.length();
+        this.shortcuts = replaceShortcuts();
+        display(curPos);
+        try {
+            while (true) {
+                Operation op = readOperation(keyMap);
+                switch (op) {
+                    case UP:
+                        editBuffer.setLength(0);
+                        editBuffer.append(patternHistory.up(currentBuffer));
+                        curPos = editBuffer.length();
+                        break;
+                    case DOWN:
+                        editBuffer.setLength(0);
+                        editBuffer.append(patternHistory.down(currentBuffer));
+                        curPos = editBuffer.length();
+                        break;
+                    case CANCEL:
+                        throw new IllegalArgumentException();
+                    case ACCEPT:
+                        String replaceTerm = "";
+                        if (editBuffer.length() > 0) {
+                            replaceTerm = editBuffer.toString();
+                        }
+                        if (replaceTerm == null) {
+                            setMessage("Cancelled");
+                            throw new IllegalArgumentException();
+                        } else {
+                            patternHistory.add(replaceTerm);
+                        }
+                        return replaceTerm;
+                    case HELP:
+                        help("nano-replace-help.txt");
+                        break;
+                    case FIRST_LINE:
+                        buffer.firstLine();
+                        break;
+                    case LAST_LINE:
+                        buffer.lastLine();
+                        break;
+                    case MOUSE_EVENT:
+                        mouseEvent();
+                        break;
+                    default:
+                        curPos = editInputBuffer(op, curPos);
+                        currentBuffer = editBuffer.toString();
+                        break;
+                }
+                display(curPos);
+            }
+        } finally {
+            this.shortcuts = standardShortcuts();
+            editMessage = null;
+        }
+    }
+
     private String getSearchMessage() {
         StringBuilder sb = new StringBuilder();
         sb.append("Search");
+        if (searchToReplace) {
+            sb.append(" (to replace)");
+        }
         if (searchCaseSensitive) {
             sb.append(" [Case Sensitive]");
         }
@@ -3342,6 +3581,7 @@ public class Nano implements Editor {
         ACCEPT,
         CANCEL,
         SEARCH,
+        TOGGLE_REPLACE,
         MAC_FORMAT,
         DOS_FORMAT,
         APPEND_MODE,
@@ -3350,6 +3590,7 @@ public class Nano implements Editor {
         TO_FILES,
         YES,
         NO,
+        ALL,
         NEW_BUFFER,
         EXECUTE,
         NEXT_SEARCH,
