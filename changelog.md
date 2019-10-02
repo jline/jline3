@@ -2,6 +2,154 @@
 
 <!-- git log --pretty=format:'* [`%h`](https://github.com/jline/jline3/commit/%H) %s' -->
 
+## [JLine 3.11.0][3_11_0]
+[3_11_0]: https://repo1.maven.org/maven2/org/jline/jline/3.11.0/
+* [`ded05b8`](https://github.com/jline/jline3/commit/ded05b86f83c0a9499f103216ff600cca701a2b4) Rewrite the built-in function help highlighter to avoid manipulating ansi sequences directly
+* [`2a4646a`](https://github.com/jline/jline3/commit/2a4646a33ddf2837b700de37ee809c22762cc74d) Add a method to style matching strings with groups
+* [`4c66dfd`](https://github.com/jline/jline3/commit/4c66dfd175027a96ed3cd2f8456236f679b6293a) Add print()/println() methods to AttributedCharSequence to print to the terminal
+* [`fd6eb24`](https://github.com/jline/jline3/commit/fd6eb2426e546fe79b83679f19d027a8e7fe13df) Upgrade to jansi 1.18
+* [`108cd80`](https://github.com/jline/jline3/commit/108cd80839283502dd5f650eb8627157974737ef) Upgrade to jansi 1.18
+* [`f7f9604`](https://github.com/jline/jline3/commit/f7f960404a499006b7f05b0e7e950c6dacac29c5) Fix ssh support in demo
+* [`1c850e1`](https://github.com/jline/jline3/commit/1c850e16eccb7944abeb744db363968ad29f4fcf) Fix compatibility with jansi < 1.17 on windows, fix #369
+* [`4f100ba`](https://github.com/jline/jline3/commit/4f100baa1974d9783433ecc1737fdf2d08a91e0c) Merge branch 'help-printer' of https://github.com/mattirn/jline3
+* [`1d664b1`](https://github.com/jline/jline3/commit/1d664b1331a50e78dab4cb987d1e0a555e34d1ce) Fix ssh support in demo
+* [`5664137`](https://github.com/jline/jline3/commit/5664137ae9adb681b203279b7969a3aae5270ca7) added test if terminal support ansi
+* [`7b37f7f`](https://github.com/jline/jline3/commit/7b37f7fdd51644f2e7c2eb27df0a0ccaf1f72811) multi-instanciable HelpPrinter with the JLine's StyleResolver
+* [`cb027ad`](https://github.com/jline/jline3/commit/cb027adc7be960eb8695bddc2a5bf2983462e37f) Merge branch 'master' into help-printer
+* [`05b89e4`](https://github.com/jline/jline3/commit/05b89e49e38ba89f9e04750ee106a5fd68535431) Provide an easier way to retrieve jansi version, fixes #366
+* [`4b70fb5`](https://github.com/jline/jline3/commit/4b70fb5459f169c67e9fdda077353355fcab4bae) Merge pull request #358 from mattirn/accept
+* [`c4b521c`](https://github.com/jline/jline3/commit/c4b521c0006288a92e9082ce423c1be134e145e7) Merge pull request #363 from mattirn/history
+* [`2a5798c`](https://github.com/jline/jline3/commit/2a5798c8dcadd478206be9b1b48b5c3c88dbf5f3) Merge branch 'issue-364'
+* [`b3e6ed2`](https://github.com/jline/jline3/commit/b3e6ed2e805214a390fe5a48d8dd9770ae949435) Small code cleanup, #364
+* [`514c516`](https://github.com/jline/jline3/commit/514c51670e04569d40b3e7be43025c9581905f81) Add a simple test for #364
+* [`e1b0fde`](https://github.com/jline/jline3/commit/e1b0fdec5269b1919cf0fd7922a789641af8750e) Fix #364: Command completion fails when value starts with escape character
+* [`886867c`](https://github.com/jline/jline3/commit/886867ce6a33198e89db7ba449f375a6e1dece23) LineReader encounters exception if tabs used in dummy terminal, fixes #367
+* [`6d8f049`](https://github.com/jline/jline3/commit/6d8f0491a579d3ab328eb70f439b88f48f9c1e1d) history command: implemented options -ARWI
+* [`d08ba29`](https://github.com/jline/jline3/commit/d08ba29279021cd2888228513c4f3cce3a7b3962) history command: implemented some missing options
+* [`81e4c07`](https://github.com/jline/jline3/commit/81e4c07e0664334e6dccb124f382206ee28b358d) Add missing file headers, fixes #362
+* [`acb9342`](https://github.com/jline/jline3/commit/acb9342504edb19ee4344e802f018b85a3586163) fixed ttop highlighted help
+* [`0b61777`](https://github.com/jline/jline3/commit/0b61777ef040595559e86f370ef115fe24cbf2c1) Highlight builtin commands help
+* [`64e6c8d`](https://github.com/jline/jline3/commit/64e6c8d6c1848f55dc686639926d964d3a21b2ca) Widgets: accept-and-infer-next-history, accept-and-hold & accept-line-and-down-history
+
+## [JLine 3.10.0][3_10_0]
+[3_10_0]: https://repo1.maven.org/maven2/org/jline/jline/3.10.0/
+* [`b65cfe2`](https://github.com/jline/jline3/commit/b65cfe2ff9f8971c2834862b11e7aa3d9add9996) Upgrade to latest gogo and sshd
+* [`310c846`](https://github.com/jline/jline3/commit/310c8462a8dca3d86cf47f14888969c738ff07ec) Merge pull request #353 from mattirn/brackets
+* [`9a2e06d`](https://github.com/jline/jline3/commit/9a2e06da300eea8639f00bb5b9d3c5dde1768239) DefaultParser: do not check brackets if inside quotes
+* [`a6dd868`](https://github.com/jline/jline3/commit/a6dd8683fd9a1ffa465bf574667b799b7fbb82e3) Fix unit tests for conemu
+* [`8bb13a8`](https://github.com/jline/jline3/commit/8bb13a89fad80e51726a29e4b1f8a0724fed78b2) Fix conemu problems with less / clearscreen
+* [`8b054e4`](https://github.com/jline/jline3/commit/8b054e425e070c941318111ef38cf3cb10f481b7) Fix less on conemu, fixes #344
+* [`3b6a67b`](https://github.com/jline/jline3/commit/3b6a67b0a31cd29494a1f94dc029ea3bde7e7799) Provide both terminal window / buffer size on windows, fixes #303, reverts #136
+* [`2d4e5e1`](https://github.com/jline/jline3/commit/2d4e5e1a2bc8af8fcdce512ccf192ef770a225a3) Remove groovy dependency, fix #351
+* [`cfa7d0c`](https://github.com/jline/jline3/commit/cfa7d0cf6227df2aa5a893ca61b26affcd7beac9) Merge branch 'mattirn-brackets'
+* [`2d1e01e`](https://github.com/jline/jline3/commit/2d1e01ed68728f37046d4aa1c98fa92777323934) Merge branch 'master' of https://github.com/mattirn/jline3 into mattirn-brackets
+* [`f230c87`](https://github.com/jline/jline3/commit/f230c87921ba1fad5c449625387ae6efaf573293) Fix formatting
+* [`faf0ef6`](https://github.com/jline/jline3/commit/faf0ef62b33c8611df8eb72c1f0dd47e1caabac6) Merge branch 'brackets' of https://github.com/mattirn/jline3 into mattirn-brackets
+* [`e1d6bc1`](https://github.com/jline/jline3/commit/e1d6bc15cc49238156ae12f51484cef5f662832f) Merge pull request #347 from mkrueger92/master
+* [`a8ce4e8`](https://github.com/jline/jline3/commit/a8ce4e85b850c061ecb53278b4eafdb1572e7ff5) KILL_WHOLE_LINE doesn't work for last line in buffer, fixes #339
+* [`b807f97`](https://github.com/jline/jline3/commit/b807f97ad4d848a77b21585b434e2be93eee002c) The result of Commands.keymap with '-L' option contains unexpected string, fixes #340
+* [`1e6e9a6`](https://github.com/jline/jline3/commit/1e6e9a61d1b86cbcb2352bcd79b929a27aae38c1) AttributedCharSequence.columnSubSequence does not handle UTF-16 surrogate pairs, fixes #314
+* [`8de0b68`](https://github.com/jline/jline3/commit/8de0b682cd2fad99bbc0c1d63a40f60785e27ca9) Merge pull request #348 from Charliocat/master
+* [`804959e`](https://github.com/jline/jline3/commit/804959e2d14d36dedf55d9834b1db48bb78899db) changed identation on try with resources
+* [`efa961d`](https://github.com/jline/jline3/commit/efa961d910c313e0c7f3d3032b93dd77165cb4d1) change to try with resources
+* [`3fa0adf`](https://github.com/jline/jline3/commit/3fa0adf98bebbb72dd2e7fec39d091a0644b43f2) Clear internal history in case of currupted histroy file
+* [`31a3219`](https://github.com/jline/jline3/commit/31a321933ba7d2b246231af8b1ae455a5736d4a3) use StringBuilder in place of String concatenation
+* [`ce92ad2`](https://github.com/jline/jline3/commit/ce92ad2f8defef9b7d035cd408e05d8e868badc8) Missing closing brackets: changed EOFError() 'missing' parameter value
+* [`dd4e507`](https://github.com/jline/jline3/commit/dd4e507408132505304647ba0c5b4752d83c3783) DefaultParser: manage eofOnUnclosedBracket
+* [`b8dd35d`](https://github.com/jline/jline3/commit/b8dd35d35692286de0edbc35db40e0c0d5bd4378) fixed middle quoted word escape rules
+* [`4244c6a`](https://github.com/jline/jline3/commit/4244c6a03e9696e0e32f9573d085ed94283ad7f8) replaced tabs with spaces
+* [`d5e2dbc`](https://github.com/jline/jline3/commit/d5e2dbce2785f880c21a91ef9191cff6c7731603) DefaultParser: parameter middle quoting
+* [`f2e7070`](https://github.com/jline/jline3/commit/f2e7070f22ae1ca57fe9d1412cf5de728d0e6a14) Merge branch 'master' of https://github.com/jline/jline3.git
+* [`7783c03`](https://github.com/jline/jline3/commit/7783c03e0372c0b3c20f44dfc092adb8433b1b74) Fix quote parsing and escaping, fixes #331
+* [`dfedc72`](https://github.com/jline/jline3/commit/dfedc72d2ed06915feac7f50959be58aae40f53a) Nano search does not work, fixes #336
+* [`a24636d`](https://github.com/jline/jline3/commit/a24636dc5de83baa6b65049e8215fb372433b3b1) Fix BSD license http url
+* [`02542d1`](https://github.com/jline/jline3/commit/02542d1809a0f3245cd10cea868340b0b459485e) Fix link to BSD license
+* [`03d35f7`](https://github.com/jline/jline3/commit/03d35f75f190c597165d1f06797a44d58d181dc4) Fix link to license
+* [`438b2ea`](https://github.com/jline/jline3/commit/438b2eaafddb618a599974c79bc07af5d4c7f1c3) Default known terminal keys to beep
+* [`f65e68b`](https://github.com/jline/jline3/commit/f65e68b68754ac97ebdf597a3acf8171fb216442) Merge pull request #333 from snuyanzin/JLINE_332
+* [`ac87e85`](https://github.com/jline/jline3/commit/ac87e850be832b8fbb253e09bd9cd7455386c7f3) [JLINE3-332] Throw IllegalArgumentException in case there is no timestamp or timestamp is wrong in HISTORY_TIMESTAMPED file.
+* [`5a781bb`](https://github.com/jline/jline3/commit/5a781bba450404512ea8e32b073ae6f40e77bdb2) Merge pull request #329 from snuyanzin/README_TYPO
+* [`7b138d2`](https://github.com/jline/jline3/commit/7b138d259c0cfc20c5013ba54adc27b38fdff741) Cut down verbosity for unsupported signals, fixes #327
+* [`fa5964f`](https://github.com/jline/jline3/commit/fa5964fec739a39a4ae642b9f1d8b66e64f7bef7) Add missing dumb-color capabilities, fixes #328
+* [`12ad62c`](https://github.com/jline/jline3/commit/12ad62c7146ab4e00740e8dc16642505bd67e3f1) DefaultParser: enclosed candidate with quotes if it contains delimiter char (escapeChars=null)
+* [`99b1698`](https://github.com/jline/jline3/commit/99b1698bb682b44c5fc5b184136480b0ce9f218f) Typo in README.md
+* [`dc97839`](https://github.com/jline/jline3/commit/dc978395e1ee77da0103ef797a8750252a3f53fc) Merge branch 'mattirn-master'
+* [`f85da18`](https://github.com/jline/jline3/commit/f85da186aa15b7ca6f07ada661455e30744f1192) Merge pull request #326 from snuyanzin/JLINE_325
+* [`46784f7`](https://github.com/jline/jline3/commit/46784f70fd02f71f39c0bdc96574dccb9e9a0d2b) [JLINE3-325] Highlighting in history output
+* [`8ae798f`](https://github.com/jline/jline3/commit/8ae798f09d6d409df79f8fbd963784bf068a9c1f) fixed NPE in DefaultParser escape() method
+* [`09a0f04`](https://github.com/jline/jline3/commit/09a0f0432e66f8be641bbb251f7a8e21d5b95dba) Merge pull request #322 from Hypersonic/fix-dates-in-javadoc
+* [`514f759`](https://github.com/jline/jline3/commit/514f759accc9572232a5ac3d56bd87afe2fb9594) Disable "Created At" dates in javadocs.
+* [`8cedbef`](https://github.com/jline/jline3/commit/8cedbefb76a4d738812745fc0e061d48500c72a3) Merge pull request #319 from snuyanzin/MVNW_NO_BINARY
+* [`d73b5be`](https://github.com/jline/jline3/commit/d73b5be840d3982e2a90b947a5c60fded6d2b6fb) Add extension to download maven instead of keeping binary in a repository, remove maven-wrapper.jar from the repository
+* [`cd4c5f9`](https://github.com/jline/jline3/commit/cd4c5f9d1e6e3a35105a9c17e6755ee5e382d373) Merge pull request #313 from valencik/doc-fix
+* [`1ba6424`](https://github.com/jline/jline3/commit/1ba6424516684230bf1311d13c73d1e376733f62) Fix typos in DefaultParser
+* [`80aa625`](https://github.com/jline/jline3/commit/80aa625d793b93f0f55196cb82da3911795bd54f) Fix support for PROP_SUPPORT_PARSEDLINE, fixes #309
+* [`68d6943`](https://github.com/jline/jline3/commit/68d69438041346f481db96ecc455dcfe5d6d76a3) Case-insensitive search returns no result for TreeCompleter when the root word is case-mismatched, fixes #308
+* [`e95a7d9`](https://github.com/jline/jline3/commit/e95a7d991cd88d9c8d8c011359ca6025ff9c26d1) Fix typo in javadoc
+* [`141442c`](https://github.com/jline/jline3/commit/141442c4d08fffe32a5724c5c2fbd2c941198411) Fix clear screen on ConEmu, fixes #301
+* [`bb51b5c`](https://github.com/jline/jline3/commit/bb51b5c6da6f4977e89815e6458530454be564b2) Update README.md
+* [`4b8a571`](https://github.com/jline/jline3/commit/4b8a571087e1a96dd92e6c038ea0a00d9aa09210) Less fails when a bad regex pattern is used, fixes #304
+* [`d18b65c`](https://github.com/jline/jline3/commit/d18b65c11ace55760ce36006c2c7d4de0060590e) Add DepShield badge
+* [`5a58d01`](https://github.com/jline/jline3/commit/5a58d01c960c0800f37a85fb4baf666ab693bfdb) Jline3 always removes backslash from readline, fixes #296
+* [`50749f8`](https://github.com/jline/jline3/commit/50749f851435d89d8eaa8e97f616f1d69d66f60b) Update README.md
+* [`d11b1bf`](https://github.com/jline/jline3/commit/d11b1bf10c31a66022a96c4a5596809a244c2853) Update README with a maven badge
+
+## [JLine 3.9.0][3_9_0]
+[3_9_0]: https://repo1.maven.org/maven2/org/jline/jline/3.9.0/
+* [`d5fc7e8`](https://github.com/jline/jline3/commit/d5fc7e82b5b99a04b11cd2154884180cb2fe5d10) Provide an api to print output asynchronously above the prompt, fixes #292
+* [`cd29a53`](https://github.com/jline/jline3/commit/cd29a53dbc78bd25087956473b207bdc9cf89d94) Add option to disable timestamps for history file
+* [`b537a73`](https://github.com/jline/jline3/commit/b537a7385a94f9ccf71e19a7419c144adae37a58) Switch to 3.9.0-SNAPSHOT
+
+## [JLine 3.8.2][3_8_2]
+[3_8_2]: https://repo1.maven.org/maven2/org/jline/jline/3.8.2/
+* [`62d6088`](https://github.com/jline/jline3/commit/62d6088010561caa305efc90d840ad4847466844) Fix ConEmu support for 256 colors, fixes #294
+
+## [JLine 3.8.1][3_8_1]
+[3_8_1]: https://repo1.maven.org/maven2/org/jline/jline/3.8.1/
+* [`0fb40ab`](https://github.com/jline/jline3/commit/0fb40ab0b58015ad1e21af01d28513081c9421a1) [maven-release-plugin] prepare release jline-parent-3.8.1
+* [`b5a643d`](https://github.com/jline/jline3/commit/b5a643de48f701a8088bb0e1b0cfaf4a52dde068) Autocomplete options are shown in random order, fixes #290
+* [`a802712`](https://github.com/jline/jline3/commit/a802712d025fd8f065241098360dcc20dd796a98) Fix reflection problem
+
+## [JLine 3.8.0][3_8_0]
+[3_8_0]: https://repo1.maven.org/maven2/org/jline/jline/3.8.0/
+* [`0beae63`](https://github.com/jline/jline3/commit/0beae63a6ac53cb04a58dc6880bc8381b498db55) Upgrade to gogo 1.1.0
+* [`12b992f`](https://github.com/jline/jline3/commit/12b992f2c192b53d8897b99f6302c0d5dc406bf6) Improvement the ExternalTerminal to read multiple bytes in one go
+* [`27de765`](https://github.com/jline/jline3/commit/27de76521d3ee2e7685b88b986cecbeff4f028b2) Provide a status bar, fixes #286
+* [`51c4621`](https://github.com/jline/jline3/commit/51c46217ad367d8ad5e7cab86f5be1fa43b1ba0d) Add a AbstractTerminal#close() implementation
+* [`cde6119`](https://github.com/jline/jline3/commit/cde61194b5ca19098e917c5613b74d7fe5985401) Add some javadoc for Terminal reader/writer/input/output
+* [`f85e27b`](https://github.com/jline/jline3/commit/f85e27b2d3156927c6e8bdea0fe0a9a76d3e46a3) The clr_eos capability is not recognized, fixes #285
+* [`7ff2bc8`](https://github.com/jline/jline3/commit/7ff2bc806a85e116421c62ebd4780e3bb8ad6f07) Restore ConEmu support
+* [`9999987`](https://github.com/jline/jline3/commit/9999987bfcb1ea203b6feefca598d3a9cf063d2e) Correctly report the terminal size on windows, fixes #136
+* [`65c3450`](https://github.com/jline/jline3/commit/65c34506ef45ec21c033fbd61650314e452e3b19) Upgrade to version 3.8.0-SNAPSHOT
+* [`5f97cca`](https://github.com/jline/jline3/commit/5f97ccaefd31f607a4dfc7b1cb817b53601a9b30) Force decoding mouse position using UTF-8, fixes #284
+* [`840d45e`](https://github.com/jline/jline3/commit/840d45eaf49cd48261a52ef62b30749c9953417a) Add a way to not persist some history entries, fixes #282
+* [`d2cc0e3`](https://github.com/jline/jline3/commit/d2cc0e3bdea025283af11d98f5aa6fcc9504beea) Support advanced escape sequences on Windows 10, fixes #279
+* [`44bafc2`](https://github.com/jline/jline3/commit/44bafc299eb01fd1276cee6fe98fc8f945a2d9aa) Provide a test demonstrating how to complete in the middle, fixes #274
+* [`f0b6386`](https://github.com/jline/jline3/commit/f0b6386fb3daa27accf46283ecf873aaf6b51d0d) Provide a way to disable the warning when not implementing CompletingParsedLine, fixes #278
+* [`340ebe2`](https://github.com/jline/jline3/commit/340ebe29b997e87c914eab736b0d03a78715f547) Fix dark gray problem on windows, fixes #277
+
+## [JLine 3.7.1][3_7_1]
+[3_7_1]: https://repo1.maven.org/maven2/org/jline/jline/3.7.1/
+* [`24b5660`](https://github.com/jline/jline3/commit/24b5660669c235e02190363f8c4c827daa1943ff) Extract io exception checking in a method
+* [`5bb4939`](https://github.com/jline/jline3/commit/5bb4939662029ffba7f03f34bca9d8d8ffbae95d) Fix build for jdk 10
+* [`14c87f4`](https://github.com/jline/jline3/commit/14c87f479033b2b050054ff0ed58d82c1153d95e) Convert groovy source files to java
+* [`2bf4058`](https://github.com/jline/jline3/commit/2bf4058a13491ab12e1c177a3125c095d310e812) Remove javadoc warnings
+* [`e9f88f7`](https://github.com/jline/jline3/commit/e9f88f7591adf5b97bdb1f7a98a87da870729b88) Revert "IOException thrown by the terminal does not get reset on subsequent reads, fixes #270"
+* [`c4c1d97`](https://github.com/jline/jline3/commit/c4c1d977a63918cef673a3244f1c8751c27fed33) Merge pull request #272 from vorburger/patch-1
+* [`50f7718`](https://github.com/jline/jline3/commit/50f771812c3cdafc8f2406a6079355c152db7703) fix broken link to Apache Mina SSHD
+* [`9302947`](https://github.com/jline/jline3/commit/9302947ef94d821edd7ab22b74a2c3861db19032) Merge pull request #271 from hflzh/master
+* [`21f5d70`](https://github.com/jline/jline3/commit/21f5d70a731add9dcd7646321c1fd4c9f2eb37f1) Fix a typo which causes NullPointerException in PosixPtyTerminal#resume()
+* [`557500c`](https://github.com/jline/jline3/commit/557500cb84ff88aa4cd171117a3133bbc9746fb7) Fix unwanted new line when using ERASE_LINE_ON_FINISH, fixes #181
+* [`28e36be`](https://github.com/jline/jline3/commit/28e36be839cc06cfd086d658430024c353332f26) IOException thrown by the terminal does not get reset on subsequent reads, fixes #270
+* [`eba1b43`](https://github.com/jline/jline3/commit/eba1b43bb202a32a621036da78c77a0fa4b1559c) Merge pull request #269 from cascala/patch-1
+* [`85b08f4`](https://github.com/jline/jline3/commit/85b08f48614fcd28a262f0f1792053ccfd957809) Make sure all the stream is read before sending EOF, #267
+* [`a67d60f`](https://github.com/jline/jline3/commit/a67d60f5de6f5b8dc6de86b52fa1c3babb466b57) Input stream supplied to TerminalBuilder.streams() is consumed when a terminal instance gets created, fixes #266
+* [`f8894f3`](https://github.com/jline/jline3/commit/f8894f3e155a3607d9954748768756aaac0a6b49) IOExceptions thrown from streams is not propagated to LineReader#readLine(), fixed #267
+* [`69471c7`](https://github.com/jline/jline3/commit/69471c79da999103974addf846b88f87600ad072) LineReader#readLine() should never return null, fixes #265
+* [`c5f68dd`](https://github.com/jline/jline3/commit/c5f68dd236a982121cfcb9dfb0c398118e2c3123) Merge pull request #261 from ZeroErrors/master
+* [`62132ff`](https://github.com/jline/jline3/commit/62132ff3bd592706ac6fa748f399377089cef74d) Fix reflection in TerminalBuilder getParentProcessCommand()
+* [`6cc608c`](https://github.com/jline/jline3/commit/6cc608c0d8711c5c07332745abb2ae386beb7b6d) Command completion with quoted value fails: org.jline.reader.EOFError, fixes #257
+
 ## [JLine 3.7.0][3_7_0]
 [3_7_0]: https://repo1.maven.org/maven2/org/jline/jline/3.7.0/
 * [`e4d5fd6`](https://github.com/jline/jline3/commit/e4d5fd69b7421b184f8f4f79a6f8b46cc6326b69) Upgrade maven plugins

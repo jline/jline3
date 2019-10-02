@@ -1,0 +1,108 @@
+
+                   SUMMARY OF LESS COMMANDS
+
+      Commands marked with * may be preceded by a number, N.
+      Notes in parentheses indicate the behavior if N is given.
+      A key preceded by a caret indicates the Ctrl key; thus ^K is ctrl-K.
+
+  h  H                 Display this help.
+  q  :q  Q  :Q  ZZ     Exit.
+ ---------------------------------------------------------------------------
+
+                           MOVING
+
+  e  ^E  j  ^N  CR  *  Forward  one line   (or N lines).
+  y  ^Y  k  ^K  ^P  *  Backward one line   (or N lines).
+  f  ^F  ^V  SPACE  *  Forward  one window (or N lines).
+  b  ^B  ESC-v      *  Backward one window (or N lines).
+  z                 *  Forward  one window (and set window to N).
+  w                 *  Backward one window (and set window to N).
+  ESC-SPACE         *  Forward  one window, but don't stop at end-of-file.
+  d  ^D             *  Forward  one half-window (and set half-window to N).
+  u  ^U             *  Backward one half-window (and set half-window to N).
+  ESC-)  RightArrow *  Left  one half screen width (or N positions).
+  ESC-(  LeftArrow  *  Right one half screen width (or N positions).
+  g  <  ESC-<       *  Go to first line in file (or line N).
+  G  >  ESC->       *  Go to last line in file (or line N).
+  r  ^R  ^L            Repaint screen.
+  R                    Repaint screen, discarding buffered input.
+        ---------------------------------------------------
+        Default "window" is the screen height.
+        Default "half-window" is half of the screen height.
+ ---------------------------------------------------------------------------
+
+                          SEARCHING
+
+  /pattern             Search forward for (N-th) matching line.
+  ?pattern             Search backward for (N-th) matching line.
+  n                    Repeat previous search (for N-th occurrence).
+  N                    Repeat previous search in reverse direction.
+  ESC-n                Repeat previous search, spanning files.
+  ESC-N                Repeat previous search, reverse dir. & spanning files.
+  ESC-u                Undo (toggle) search highlighting.
+  &pattern             Display only matching lines
+ ---------------------------------------------------------------------------
+
+                        CHANGING FILES
+
+  :e [file]            Examine a new file.
+  ^X^V                 Same as :e.
+  :n                *  Examine the (N-th) next file from the command line.
+  :p                *  Examine the (N-th) previous file from the command line.
+  :x                *  Examine the first (or N-th) file from the command line.
+  :d                   Delete the current file from the command line list.
+  =  ^G  :f            Print current file name.
+ ---------------------------------------------------------------------------
+
+                    MISCELLANEOUS COMMANDS
+
+  -<flag>              Toggle a command line option [see OPTIONS below].
+  --<name>             Toggle a command line option, by name.
+ ---------------------------------------------------------------------------
+
+                           OPTIONS
+
+        Most options may be changed either on the command line,
+        or from within less by using the - or -- command.
+        Options may be given in one of two forms: either a single
+        character preceded by a -, or a name preceded by --.
+
+  -?  ........  --help
+                  Display help (from command line).
+  -e  ........  --quit-at-eof  
+                  Quit at second end of file.
+  -E  ........  --QUIT-AT-EOF
+                  Quit at end of file.
+  -i  ........  --ignore-case
+                  Ignore case in searches that do not contain uppercase.
+  -I  ........  --IGNORE-CASE
+                  Ignore case in all searches.
+  -N  ........  --LINE-NUMBERS
+                  Display line numbers.
+  -q  -Q  ....  --quiet  --QUIET  --silent --SILENT
+                  Quiet the terminal bell.
+  -S  ........  --chop-long-lines
+                  Chop (truncate) long lines rather than wrapping.
+  -x [N[,...]]  --tabs=[N[,...]]
+                  Set tab stops (from command line).
+  -Y            --syntax            
+                  Toggle syntax highlighting.
+
+ ---------------------------------------------------------------------------
+
+                         PATTERN EDITING
+
+             These keys can be used to edit pattern
+
+ RightArrow ... ESC-l ... Move cursor right one character.
+ LeftArrow .... ESC-h ... Move cursor left one character.
+ .............. ESC-w ... Move cursor right one word.
+ .............. ESC-b ... Move cursor left one word.
+ HOME ......... ESC-0 ... Move cursor to start of line.
+ END .......... ESC-$ ... Move cursor to end of line.
+ BACKSPACE .............. Delete char to left of cursor.
+ DELETE ....... ESC-x ... Delete char under cursor.
+ .............. ESC-X ... Delete word under cursor.
+ ctrl-U ................. Delete entire line.
+ UpArrow ...... ESC-k ... Retrieve previous pattern.
+ DownArrow .... ESC-j ... Retrieve next pattern.

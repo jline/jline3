@@ -8,6 +8,7 @@
  */
 package org.jline.builtins;
 
+import org.jline.builtins.Options.HelpException;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
 import org.jline.terminal.Attributes;
@@ -84,8 +85,7 @@ public class TTop {
         };
         Options opt = Options.compile(usage).parse(argv);
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
         TTop ttop = new TTop(terminal);
         ttop.sort = opt.isSet("order") ? Arrays.asList(opt.get("order").split(",")) : null;

@@ -26,7 +26,7 @@ import static org.jline.terminal.impl.jna.osx.CLibrary.winsize;
 
 public class OsXNativePty extends JnaNativePty {
 
-    private static final CLibrary C_LIBRARY = (CLibrary) Native.loadLibrary(Platform.C_LIBRARY_NAME, CLibrary.class);
+    private static final CLibrary C_LIBRARY = Native.load(Platform.C_LIBRARY_NAME, CLibrary.class);
 
     public static OsXNativePty current() throws IOException {
         int slave = 0;

@@ -71,6 +71,11 @@ __process_stream = {
 
 if { $.terminal } then {
     try {
+        complete -c gogo:nano -e
+        complete -c gogo:nano -d "File editor"
+        complete -c gogo:nano -s R -l restricted --description "Restricted mode"
+        complete -c gogo:nano -a '__files'
+
         #
         # TTop command
         #

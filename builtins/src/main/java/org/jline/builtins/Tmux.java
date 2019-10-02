@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2019, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -29,6 +29,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -39,6 +40,7 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.jline.builtins.Options.HelpException;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.ParsedLine;
@@ -168,7 +170,7 @@ public class Tmux {
     private final PrintStream err;
     private final String term;
     private final Consumer<Terminal> runner;
-    private List<VirtualConsole> panes = new ArrayList<>();
+    private List<VirtualConsole> panes = new CopyOnWriteArrayList<>();
     private VirtualConsole active;
     private int lastActive;
     private final AtomicBoolean running = new AtomicBoolean(true);
@@ -466,7 +468,7 @@ public class Tmux {
         }
     }
 
-    protected void setOption(PrintStream out, PrintStream err, List<String> args) throws IOException {
+    protected void setOption(PrintStream out, PrintStream err, List<String> args) throws Exception {
         final String[] usage = {
                 "set-option - ",
                 "Usage: set-option [-agosquw] option [value]",
@@ -475,13 +477,11 @@ public class Tmux {
         };
         Options opt = Options.compile(usage).parse(args);
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
         int nbargs = opt.args().size();
         if (nbargs < 1 || nbargs > 2) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
         String name = opt.args().get(0);
         String value = nbargs > 1 ? opt.args().get(1) : null;
@@ -514,7 +514,7 @@ public class Tmux {
         }
     }
 
-    protected void bindKey(PrintStream out, PrintStream err, List<String> args) throws IOException {
+    protected void bindKey(PrintStream out, PrintStream err, List<String> args) throws Exception {
         final String[] usage = {
                 "bind-key - ",
                 "Usage: bind-key key command [arguments]", /* [-cnr] [-t mode-table] [-T key-table] */
@@ -522,13 +522,11 @@ public class Tmux {
         };
         Options opt = Options.compile(usage).setOptionsFirst(true).parse(args);
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
         List<String> vargs = opt.args();
         if (vargs.size() < 2) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
         String prefix = serverOptions.get(OPT_PREFIX);
         String key = prefix + KeyMap.translate(vargs.remove(0));
@@ -536,7 +534,7 @@ public class Tmux {
         keyMap.bind(vargs.toArray(new String[vargs.size()]), key);
     }
 
-    protected void unbindKey(PrintStream out, PrintStream err, List<String> args) throws IOException {
+    protected void unbindKey(PrintStream out, PrintStream err, List<String> args) throws Exception {
         final String[] usage = {
                 "unbind-key - ",
                 "Usage: unbind-key key", /* [-an] [-t mode-table] [-T key-table] */
@@ -544,13 +542,11 @@ public class Tmux {
         };
         Options opt = Options.compile(usage).setOptionsFirst(true).parse(args);
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
         List<String> vargs = opt.args();
         if (vargs.size() != 1) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
         String prefix = serverOptions.get(OPT_PREFIX);
         String key = prefix + KeyMap.translate(vargs.remove(0));
@@ -558,7 +554,7 @@ public class Tmux {
         keyMap.bind(Binding.Discard, key);
     }
 
-    protected void listKeys(PrintStream out, PrintStream err, List<String> args) throws IOException {
+    protected void listKeys(PrintStream out, PrintStream err, List<String> args) throws Exception {
         final String[] usage = {
                 "list-keys - ",
                 "Usage: list-keys ", /* [-t mode-table] [-T key-table] */
@@ -566,8 +562,7 @@ public class Tmux {
         };
         Options opt = Options.compile(usage).parse(args);
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
         String prefix = serverOptions.get(OPT_PREFIX);
         keyMap.getBoundKeys().entrySet().stream()
@@ -594,7 +589,7 @@ public class Tmux {
                 .forEach(out::println);
     }
 
-    protected void sendKeys(PrintStream out, PrintStream err, List<String> args) throws IOException {
+    protected void sendKeys(PrintStream out, PrintStream err, List<String> args) throws Exception {
         final String[] usage = {
                 "send-keys - ",
                 "Usage: send-keys [-lXRM] [-N repeat-count] [-t target-pane] key...",
@@ -604,8 +599,7 @@ public class Tmux {
         };
         Options opt = Options.compile(usage).parse(args);
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
         for (int i = 0, n = opt.getNumber("number"); i < n; i++) {
             for (String arg : opt.args()) {
@@ -615,7 +609,7 @@ public class Tmux {
         }
     }
 
-    protected void clockMode(PrintStream out, PrintStream err, List<String> args) throws IOException {
+    protected void clockMode(PrintStream out, PrintStream err, List<String> args) throws Exception {
         final String[] usage = {
                 "clock-mode - ",
                 "Usage: clock-mode",
@@ -623,8 +617,7 @@ public class Tmux {
         };
         Options opt = Options.compile(usage).parse(args);
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
         active.clock = true;
 
@@ -636,7 +629,7 @@ public class Tmux {
         setDirty();
     }
 
-    protected void displayPanes(PrintStream out, PrintStream err, List<String> args) throws IOException {
+    protected void displayPanes(PrintStream out, PrintStream err, List<String> args) throws Exception {
         final String[] usage = {
                 "display-panes - ",
                 "Usage: display-panes",
@@ -644,8 +637,7 @@ public class Tmux {
         };
         Options opt = Options.compile(usage).parse(args);
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
         identify = true;
         setDirty();
@@ -655,7 +647,7 @@ public class Tmux {
         }, 1, TimeUnit.SECONDS);
     }
 
-    protected void resizePane(PrintStream out, PrintStream err, List<String> args) throws IOException {
+    protected void resizePane(PrintStream out, PrintStream err, List<String> args) throws Exception {
         final String[] usage = {
                 "resize-pane - ",
                 "Usage: resize-pane [-UDLR] [-x width] [-y height] [-t target-pane] [adjustment]",
@@ -669,8 +661,7 @@ public class Tmux {
         };
         Options opt = Options.compile(usage).parse(args);
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
         int adjust;
         if (opt.args().size() == 0) {
@@ -678,8 +669,7 @@ public class Tmux {
         } else if (opt.args().size() == 1) {
             adjust = Integer.parseInt(opt.args().get(0));
         } else {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
         if (opt.isSet("width")) {
             int x = opt.getNumber("width");
@@ -701,7 +691,7 @@ public class Tmux {
         setDirty();
     }
 
-    protected void selectPane(PrintStream out, PrintStream err, List<String> args) throws IOException {
+    protected void selectPane(PrintStream out, PrintStream err, List<String> args) throws Exception {
         final String[] usage = {
                 "select-pane - ",
                 "Usage: select-pane [-UDLR] [-t target-pane]",
@@ -713,8 +703,7 @@ public class Tmux {
         };
         Options opt = Options.compile(usage).parse(args);
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
         VirtualConsole prevActive = active;
         if (opt.isSet("L")) {
@@ -757,7 +746,7 @@ public class Tmux {
         }
     }
 
-    protected void sendPrefix(PrintStream out, PrintStream err, List<String> args) throws IOException {
+    protected void sendPrefix(PrintStream out, PrintStream err, List<String> args) throws Exception {
         final String[] usage = {
                 "send-prefix - ",
                 "Usage: send-prefix [-2] [-t target-pane]",
@@ -765,13 +754,12 @@ public class Tmux {
         };
         Options opt = Options.compile(usage).parse(args);
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
         active.getMasterInputOutput().write(serverOptions.get(OPT_PREFIX).getBytes());
     }
 
-    protected void splitWindow(PrintStream out, PrintStream err, List<String> args) throws IOException {
+    protected void splitWindow(PrintStream out, PrintStream err, List<String> args) throws Exception {
         final String[] usage = {
                 "split-window - ",
                 "Usage: split-window [-bdfhvP] [-c start-directory] [-F format] [-p percentage|-l size] [-t target-pane] [command]",
@@ -786,8 +774,7 @@ public class Tmux {
         };
         Options opt = Options.compile(usage).parse(args);
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
         Layout.Type type = opt.isSet("horizontal") ? LeftRight : TopBottom;
         // If we're splitting the main pane, create a parent
@@ -1131,7 +1118,7 @@ public class Tmux {
         int sy;
         int xoff;
         int yoff;
-        List<Layout> cells = new ArrayList<>();
+        List<Layout> cells = new CopyOnWriteArrayList<>();
 
         public static Layout parse(String layout) {
             if (layout.length() < 6) {
@@ -1398,11 +1385,11 @@ public class Tmux {
                 return avail;
             } else if (this.type == type) {
                 return this.cells.stream()
-                        .mapToInt(c -> c.resizeCheck(type))
+                        .mapToInt(c -> c != null ? c.resizeCheck(type) : 0)
                         .sum();
             } else {
                 return this.cells.stream()
-                        .mapToInt(c -> c.resizeCheck(type))
+                        .mapToInt(c -> c != null ? c.resizeCheck(type) : Integer.MAX_VALUE)
                         .min()
                         .orElse(Integer.MAX_VALUE);
             }

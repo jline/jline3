@@ -23,7 +23,7 @@
     <artifactId>jline-parent</artifactId>
     <name>JLine Parent</name>
     <description>JLine</description>
-    <version>3.11.0-SNAPSHOT</version>
+    <version>3.12.2-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <licenses>
@@ -78,8 +78,8 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
-        <jna.version>4.2.2</jna.version>
-        <jansi.version>1.17.1</jansi.version>
+        <jna.version>5.3.1</jna.version>
+        <jansi.version>1.18</jansi.version>
         <juniversalchardet.version>1.0.3</juniversalchardet.version>
         <sshd.version>2.1.0</sshd.version>
         <easymock.version>3.3.1</easymock.version>
@@ -182,6 +182,12 @@
                 <groupId>com.googlecode.juniversalchardet</groupId>
                 <artifactId>juniversalchardet</artifactId>
                 <version>${juniversalchardet.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.sshd</groupId>
+                <artifactId>sshd-common</artifactId>
+                <version>${sshd.version}</version>
             </dependency>
 
             <dependency>

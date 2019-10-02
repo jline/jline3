@@ -511,7 +511,7 @@ public final class InfoCmp {
             return getCapabilitiesByName().get(name);
         }
     }
-    
+
     public static Map<String, Capability> getCapabilitiesByName() {
         Map<String, Capability> capabilities = new LinkedHashMap<>();
         try (InputStream is = InfoCmp.class.getResourceAsStream("capabilities.txt");
@@ -550,7 +550,7 @@ public final class InfoCmp {
         }
         return caps;
     }
-    
+
     public static String getLoadedInfoCmp(String terminal) {
         Object caps = CAPS.get(terminal);
         if (caps instanceof Supplier) {
@@ -578,6 +578,8 @@ public final class InfoCmp {
                     int iVal;
                     if (val.startsWith("0x")) {
                         iVal = Integer.parseInt(val.substring(2), 16);
+                    } else if (val.startsWith("0")) {
+                        iVal = Integer.parseInt(val.substring(1), 8);
                     } else {
                         iVal = Integer.parseInt(val);
                     }
@@ -613,9 +615,9 @@ public final class InfoCmp {
     }
 
     static {
-        for (String s : Arrays.asList("dumb", "ansi", "xterm", "xterm-256color",
-                                      "windows", "windows-256color", "windows-conemu", "windows-vtp",
-                                      "screen", "screen-256color")) {
+        for (String s : Arrays.asList("dumb", "dumb-color", "ansi", "xterm", "xterm-256color",
+                "windows", "windows-256color", "windows-conemu", "windows-vtp",
+                "screen", "screen-256color")) {
             setDefaultInfoCmp(s, () -> loadDefaultInfoCmp(s));
         }
     }

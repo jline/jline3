@@ -25,7 +25,7 @@ import static org.jline.terminal.impl.jna.solaris.CLibrary.winsize;
 
 public class SolarisNativePty extends JnaNativePty {
 
-    private static final CLibrary C_LIBRARY = (CLibrary) Native.loadLibrary(Platform.C_LIBRARY_NAME, CLibrary.class);
+    private static final CLibrary C_LIBRARY = Native.load(Platform.C_LIBRARY_NAME, CLibrary.class);
 
     public static SolarisNativePty current() throws IOException {
         int slave = 0;

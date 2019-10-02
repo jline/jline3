@@ -27,8 +27,15 @@
  */
 package org.jline.builtins;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 
+import org.jline.builtins.Options.HelpException;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.AttributedString;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -66,5 +73,37 @@ public class OptionsTest {
         assertTrue(opt.isSet("binary-files"));
         assertEquals(Arrays.asList("foo", "bar"), opt.getList("binary-files"));
         assertEquals(Arrays.asList("test", "pattern"), opt.args());
+    }
+
+    @Test
+    public void testColor() throws IOException {
+        final String[] usage = {
+                "test - test Options usage",
+                "  text before Usage: is displayed when usage() is called and no error has occurred.",
+                "  so can be used as a simple help message.",
+                "",
+                "Usage: testOptions [OPTION]... PATTERN [FILES]...",
+                "  Output control: arbitary non-option text can be included.",
+                "  -? --help                show help",
+                "  -c --count=COUNT         show COUNT lines",
+                "  -h --no-filename         suppress the prefixing filename on output",
+                "  -q --quiet, --silent     suppress all normal output",
+                "     --binary-files=TYPE   assume that binary files are TYPE",
+                "                           TYPE is 'binary', 'text', or 'without-match'",
+                "  -I                       equivalent to --binary-files=without-match",
+                "  -d --directories=ACTION  how to handle directories (default=skip)",
+                "                           ACTION is 'read', 'recurse', or 'skip'",
+                "  -D --devices=ACTION      how to handle devices, FIFOs and sockets",
+                "                           ACTION is 'read' or 'skip'",
+                "  -R, -r --recursive       equivalent to --directories=recurse" };
+
+        String inputString = "";
+        InputStream inputStream = new ByteArrayInputStream(inputString.getBytes());
+        Terminal terminal = TerminalBuilder.builder()
+                                .streams(inputStream, System.out)
+                                .build();
+
+        AttributedString as = HelpException.highlight(String.join("\n", usage), HelpException.defaultStyle());
+        as.print(terminal);
     }
 }

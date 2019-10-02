@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2019, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,10 +8,15 @@
  */
 package org.jline.builtins;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.nio.file.Files;
+import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -27,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Consumer;
@@ -35,10 +41,12 @@ import java.util.function.Supplier;
 
 import org.jline.builtins.Completers.CompletionData;
 import org.jline.builtins.Options;
+import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.Source.StdInSource;
 import org.jline.builtins.Source.URLSource;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
+import org.jline.reader.ConfigurationPath;
 import org.jline.reader.Highlighter;
 import org.jline.reader.History;
 import org.jline.reader.LineReader;
@@ -62,12 +70,9 @@ public class Commands {
                 "Usage: tmux [command]",
                 "  -? --help                    Show help",
         };
-        // Simplified parsing
-        if (argv.length == 1 && ("--help".equals(argv[0]) || "-?".equals(argv[0]))) {
-            for (String s : usage) {
-                err.println(s);
-            }
-            return;
+        Options opt = Options.compile(usage).parse(argv);
+        if (opt.isSet("help")) {
+            throw new HelpException(opt.usage());
         }
         // Tmux with no args
         if (argv.length == 0) {
@@ -94,60 +99,39 @@ public class Commands {
     }
 
     public static void nano(Terminal terminal, PrintStream out, PrintStream err,
-                            Path currentDir,
-                            String[] argv) throws Exception {
-        final String[] usage = {
-                "nano -  edit files",
-                "Usage: nano [FILES]",
-                "  -? --help                    Show help",
-        };
-        Options opt = Options.compile(usage).parse(argv);
+            Path currentDir,
+            String[] argv) throws Exception {
+        nano(terminal, out, err, currentDir, argv, null);
+    }
+
+    public static void nano(Terminal terminal, PrintStream out, PrintStream err,
+            Path currentDir,
+            String[] argv,
+            ConfigurationPath configPath) throws Exception {
+        Options opt = Options.compile(Nano.usage()).parse(argv);
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
-        Nano edit = new Nano(terminal, currentDir);
+        Nano edit = new Nano(terminal, currentDir, opt, configPath);
         edit.open(opt.args());
         edit.run();
     }
 
     public static void less(Terminal terminal, InputStream in, PrintStream out, PrintStream err,
+            Path currentDir,
+            String[] argv) throws Exception {
+        less(terminal, in, out, err, currentDir, argv, null);
+    }
+
+    public static void less(Terminal terminal, InputStream in, PrintStream out, PrintStream err,
                             Path currentDir,
-                            String[] argv) throws IOException, InterruptedException {
-        final String[] usage = {
-                "less -  file pager",
-                "Usage: less [OPTIONS] [FILES]",
-                "  -? --help                    Show help",
-                "  -e --quit-at-eof             Exit on second EOF",
-                "  -E --QUIT-AT-EOF             Exit on EOF",
-                "  -q --quiet --silent          Silent mode",
-                "  -Q --QUIET --SILENT          Completely  silent",
-                "  -S --chop-long-lines         Do not fold long lines",
-                "  -i --ignore-case             Search ignores lowercase case",
-                "  -I --IGNORE-CASE             Search ignores all case",
-                "  -x --tabs                    Set tab stops",
-                "  -N --LINE-NUMBERS            Display line number for each line"
-        };
-
-        Options opt = Options.compile(usage).parse(argv);
-
+                            String[] argv,
+                            ConfigurationPath configPath) throws Exception {
+        Options opt = Options.compile(Less.usage()).parse(argv);
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
-
-        Less less = new Less(terminal);
-        less.quitAtFirstEof = opt.isSet("QUIT-AT-EOF");
-        less.quitAtSecondEof = opt.isSet("quit-at-eof");
-        less.quiet = opt.isSet("quiet");
-        less.veryQuiet = opt.isSet("QUIET");
-        less.chopLongLines = opt.isSet("chop-long-lines");
-        less.ignoreCaseAlways = opt.isSet("IGNORE-CASE");
-        less.ignoreCaseCond = opt.isSet("ignore-case");
-        if (opt.isSet("tabs")) {
-            less.tabs = opt.getNumber("tabs");
-        }
-        less.printLineNumbers = opt.isSet("LINE-NUMBERS");
+        Less less = new Less(terminal, currentDir, opt, configPath);
         List<Source> sources = new ArrayList<>();
         if (opt.args().isEmpty()) {
             opt.args().add("-");
@@ -155,6 +139,10 @@ public class Commands {
         for (String arg : opt.args()) {
             if ("-".equals(arg)) {
                 sources.add(new StdInSource(in));
+            } else if (arg.contains("*") || arg.contains("?")) {
+                for (Path p: findFiles(currentDir, arg)) {
+                    sources.add(new URLSource(p.toUri().toURL(), p.toString()));
+                }
             } else {
                 sources.add(new URLSource(currentDir.resolve(arg).toUri().toURL(), arg));
             }
@@ -162,12 +150,34 @@ public class Commands {
         less.run(sources);
     }
 
-    public static void history(LineReader reader, PrintStream out, PrintStream err,
-                               String[] argv) throws IOException, IllegalArgumentException {
+    protected static List<Path> findFiles(Path root, String files) throws IOException{
+        String regex = files;
+        Path searchRoot = Paths.get("/");
+        if (new File(files).isAbsolute()) {
+            regex = regex.replaceAll("\\\\", "/").replaceAll("//", "/");
+            if (regex.contains("/")) {
+                String sr = regex.substring(0, regex.lastIndexOf("/") + 1);
+                while (sr.contains("*") || sr.contains("?")) {
+                    sr = sr.substring(0, sr.lastIndexOf("/"));
+                }
+                searchRoot = Paths.get(sr + "/");
+            }
+        } else {
+            regex = (root.toString().length() == 0 ? "" : root.toString() + "/") + files;
+            regex = regex.replaceAll("\\\\", "/").replaceAll("//", "/");
+            searchRoot = root;
+        }
+        PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:"+regex);
+        return Files.find(searchRoot, Integer.MAX_VALUE, (path, f)->pathMatcher.matches(path)).collect(Collectors.toList());
+    }
+
+    public static void history(LineReader reader, PrintStream out, PrintStream err, Path currentDir,
+                               String[] argv) throws Exception {
         final String[] usage = {
                 "history -  list history of commands",
-                "Usage: history [-dnrfEi] [-m match] [first] [last]",
+                "Usage: history [-dnrfEie] [-m match] [first] [last]",
                 "       history -ARWI [filename]",
+                "       history -s [old=new] [command]",
                 "       history --clear",
                 "       history --save",
                 "  -? --help                       Displays command help",
@@ -176,40 +186,42 @@ public class Commands {
                 "  -m match                        If option -m is present the first argument is taken as a pattern",
                 "                                  and only the history events matching the pattern will be shown",
                 "  -d                              Print timestamps for each event",
-                "  -f                              Print full time-date stamps in the US format",
-                "  -E                              Print full time-date stamps in the European format",
-                "  -i                              Print full time-date stamps in ISO8601 format",
+                "  -f                              Print full time date stamps in the US format",
+                "  -E                              Print full time date stamps in the European format",
+                "  -i                              Print full time date stamps in ISO8601 format",
                 "  -n                              Suppresses command numbers",
                 "  -r                              Reverses the order of the commands",
                 "  -A                              Appends the history out to the given file",
                 "  -R                              Reads the history from the given file",
                 "  -W                              Writes the history out to the given file",
                 "  -I                              If added to -R, only the events that are not contained within the internal list are added",
-                "                                  If added to -W/A, only the events that are new since the last incremental operation to",
-                "                                  the file are added",
-                "  [first] [last]                  These optional arguments are numbers. A negative number is",
-                "                                  used as an offset to the current history event number"};
+                "                                  If added to -W or -A, only the events that are new since the last incremental operation",
+                "                                  to the file are added",
+                "  [first] [last]                  These optional arguments may be specified as a number or as a string. A negative number",
+                "                                  is used as an offset to the current history event number. A string specifies the most",
+                "                                  recent event beginning with the given string.",
+                "  -e                              Uses the nano editor to edit the commands before executing",
+                "  -s                              Re-executes the command without invoking an editor"};
         Options opt = Options.compile(usage).parse(argv);
 
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
         History history = reader.getHistory();
         boolean done = true;
-        boolean increment = opt.isSet("I") ? true : false;        
+        boolean increment = opt.isSet("I");
         if (opt.isSet("clear")) {
             history.purge();
         } else if (opt.isSet("save")) {
             history.save();
         } else if (opt.isSet("A")) {
-            Path file = opt.args().size() > 0 ? Paths.get(opt.args().get(0)) : null;
+            Path file = opt.args().size() > 0 ? currentDir.resolve(opt.args().get(0)) : null;
             history.append(file, increment);
         } else if (opt.isSet("R")) {
-            Path file = opt.args().size() > 0 ? Paths.get(opt.args().get(0)) : null;
+            Path file = opt.args().size() > 0 ? currentDir.resolve(opt.args().get(0)) : null;
             history.read(file, increment);
         } else if (opt.isSet("W")) {
-            Path file = opt.args().size() > 0 ? Paths.get(opt.args().get(0)) : null;
+            Path file = opt.args().size() > 0 ? currentDir.resolve(opt.args().get(0)) : null;
             history.write(file, increment);
         } else {
             done = false;
@@ -217,90 +229,191 @@ public class Commands {
         if (done) {
             return;
         }
-        int argId = 0;
+        ReExecute execute = new ReExecute(history, opt);
+        int argId = execute.getArgId();
+
         Pattern pattern = null;
-        if (opt.isSet("m")) {
-            if (opt.args().size() == 0) {
-                throw new IllegalArgumentException();
+        if (opt.isSet("m") && opt.args().size() > argId) {
+            StringBuilder sb = new StringBuilder();
+            char prev = '0';
+            for (char c: opt.args().get(argId++).toCharArray()) {
+                if (c == '*' && prev != '\\' && prev != '.') {
+                    sb.append('.');
+                }
+                sb.append(c);
+                prev = c;
             }
-            String sp = opt.args().get(argId++);
-            pattern = Pattern.compile(sp.toString());
+            pattern = Pattern.compile(sb.toString(), Pattern.DOTALL);
         }
-        int firstId = opt.args().size() > argId ? parseInteger(opt.args().get(argId++)) : -17;
-        int lastId  = opt.args().size() > argId ? parseInteger(opt.args().get(argId++)) : -1;
-        firstId = historyId(firstId, history.size() - 1);
-        lastId  = historyId(lastId, history.size() - 1);
+        boolean reverse = opt.isSet("r") || (opt.isSet("s") && opt.args().size() <= argId);
+        int firstId = opt.args().size() > argId ? retrieveHistoryId(history, opt.args().get(argId++)) : -17;
+        int lastId  = opt.args().size() > argId ? retrieveHistoryId(history, opt.args().get(argId++)) : -1;
+        firstId = historyId(firstId, history.first(), history.last());
+        lastId  = historyId(lastId, history.first(), history.last());
         if (firstId > lastId) {
-            throw new IllegalArgumentException();
+            int tmpId = firstId;
+            firstId = lastId;
+            lastId = tmpId;
+            reverse = !reverse;
         }
         int tot = lastId - firstId + 1;
         int listed = 0;
         final Highlighter highlighter = reader.getHighlighter();
         Iterator<History.Entry> iter = null;
-        if (opt.isSet("r")) {
+        if (reverse) {
             iter =  history.reverseIterator(lastId);
         } else {
             iter =  history.iterator(firstId);
         }
+
         while (iter.hasNext() && listed < tot) {
             History.Entry entry = iter.next();
             listed++;
             if (pattern != null && !pattern.matcher(entry.line()).matches()) {
                 continue;
             }
-            AttributedStringBuilder sb = new AttributedStringBuilder();
-            if (!opt.isSet("n")) {
-                sb.append("  ");
-                sb.styled(AttributedStyle::bold, String.format("%3d", entry.index()));
-            }
-            if (opt.isSet("d") || opt.isSet("f") || opt.isSet("E") || opt.isSet("i")) {
-                sb.append("  ");
-                if (opt.isSet("d")) {
-                    LocalTime lt = LocalTime.from(entry.time().atZone(ZoneId.systemDefault()))
-                            .truncatedTo(ChronoUnit.SECONDS);
-                    DateTimeFormatter.ISO_LOCAL_TIME.formatTo(lt, sb);
+            if (execute.isExecute()) {
+                if (execute.isEdit()) {
+                    execute.addCommandInFile(entry.line());
                 } else {
-                    LocalDateTime lt = LocalDateTime.from(entry.time().atZone(ZoneId.systemDefault())
-                            .truncatedTo(ChronoUnit.MINUTES));
-                    String format = "yyyy-MM-dd hh:mm";
-                    if (opt.isSet("f")) {
-                        format = "MM/dd/yy hh:mm";
-                    } else if (opt.isSet("E")) {
-                        format = "dd.MM.yyyy hh:mm";
+                    execute.addCommandInBuffer(reader, entry.line());
+                    break;
+                }
+            } else {
+                AttributedStringBuilder sb = new AttributedStringBuilder();
+                if (!opt.isSet("n")) {
+                    sb.append("  ");
+                    sb.styled(AttributedStyle::bold, String.format("%3d", entry.index()));
+                }
+                if (opt.isSet("d") || opt.isSet("f") || opt.isSet("E") || opt.isSet("i")) {
+                    sb.append("  ");
+                    if (opt.isSet("d")) {
+                        LocalTime lt = LocalTime.from(entry.time().atZone(ZoneId.systemDefault()))
+                                .truncatedTo(ChronoUnit.SECONDS);
+                        DateTimeFormatter.ISO_LOCAL_TIME.formatTo(lt, sb);
+                    } else {
+                        LocalDateTime lt = LocalDateTime.from(entry.time().atZone(ZoneId.systemDefault())
+                                .truncatedTo(ChronoUnit.MINUTES));
+                        String format = "yyyy-MM-dd hh:mm";
+                        if (opt.isSet("f")) {
+                            format = "MM/dd/yy hh:mm";
+                        } else if (opt.isSet("E")) {
+                            format = "dd.MM.yyyy hh:mm";
+                        }
+                        DateTimeFormatter.ofPattern(format).formatTo(lt, sb);
                     }
-                    DateTimeFormatter.ofPattern(format).formatTo(lt, sb);
+                }
+                sb.append("  ");
+                sb.append(highlighter.highlight(reader, entry.line()));
+                out.println(sb.toAnsi(reader.getTerminal()));
+            }
+        }
+        execute.editCommandsAndClose(reader);
+    }
+
+    private static class ReExecute {
+        private final boolean execute;
+        private final boolean edit;
+        private String oldParam;
+        private String newParam;
+        private FileWriter cmdWriter;
+        private File cmdFile;
+        private int argId = 0;
+
+        public ReExecute(History history, Options opt) throws IOException {
+            execute = opt.isSet("e") || opt.isSet("s");
+            edit = opt.isSet("e");
+            if (execute) {
+                Iterator<History.Entry> iter = history.reverseIterator(history.last());
+                if (iter.hasNext()) {
+                    iter.next();
+                    iter.remove();
+                }
+                if (edit) {
+                    cmdFile = File.createTempFile("jline-history-", null);
+                    cmdWriter = new FileWriter(cmdFile);
+                } else if (opt.args().size() > 0 ) {
+                    String[] s = opt.args().get(argId).split("=");
+                    if (s.length == 2) {
+                        argId = argId + 1;
+                        oldParam = s[0];
+                        newParam = s[1];
+                    }
                 }
             }
-            sb.append("  ");
-            sb.append(highlighter.highlight(reader, entry.line()));
-            out.println(sb.toAnsi(reader.getTerminal()));
+        }
+
+        public int getArgId() {
+            return argId;
+        }
+
+        public boolean isEdit() {
+            return edit;
+        }
+
+        public boolean isExecute() {
+            return execute;
+        }
+
+        public void addCommandInFile(String command) throws IOException {
+            cmdWriter.write(command + "\n");
+        }
+
+        public void addCommandInBuffer(LineReader reader, String command) {
+            reader.addCommandsInBuffer(Arrays.asList(replaceParam(command)));
+        }
+
+        private String replaceParam(String command) {
+            String out = command;
+            if (oldParam != null && newParam != null) {
+                out = command.replaceAll(oldParam, newParam);
+            }
+            return out;
+        }
+
+        public void editCommandsAndClose(LineReader reader) throws Exception {
+            if (edit) {
+                cmdWriter.close();
+                try {
+                    reader.editAndAddInBuffer(cmdFile);
+                } finally {
+                    cmdFile.delete();
+                }
+            }
         }
     }
 
-    private static int historyId(int id, int maxId) {
+    private static int historyId(int id, int minId, int maxId) {
         int out = id;
         if (id < 0) {
             out = maxId + id + 1;
         }
-        if (out < 0) {
-            out = 0;
+        if (out < minId) {
+            out = minId;
         } else if (out > maxId) {
             out = maxId;
         }
         return out;
     }
-    
-    private static int parseInteger(String s) throws IllegalArgumentException {
+
+    private static int retrieveHistoryId(History history, String s) throws IllegalArgumentException {
         try {
             return Integer.parseInt(s);
         } catch (NumberFormatException ex) {
-            throw new IllegalArgumentException();
+            Iterator<History.Entry> iter = history.iterator();
+            while (iter.hasNext()) {
+                History.Entry entry = iter.next();
+                if (entry.line().startsWith(s)) {
+                    return entry.index();
+                }
+            }
+            throw new IllegalArgumentException("history: event not found: " + s);
         }
-     }
+    }
 
-     public static void complete(LineReader reader, PrintStream out, PrintStream err,
+    public static void complete(LineReader reader, PrintStream out, PrintStream err,
                                 Map<String, List<CompletionData>> completions,
-                                String[] argv) {
+                                String[] argv) throws HelpException {
         final String[] usage = {
                 "complete -  edit command specific tab-completions",
                 "Usage: complete",
@@ -317,8 +430,7 @@ public class Commands {
         Options opt = Options.compile(usage).parse(argv);
 
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
 
         String command = opt.get("command");
@@ -372,8 +484,7 @@ public class Commands {
         };
         Options opt = Options.compile(usage).parse(argv);
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
 
         int actions = (opt.isSet("N") ? 1 : 0)
@@ -437,7 +548,7 @@ public class Commands {
     public static void keymap(LineReader reader,
                               PrintStream out,
                               PrintStream err,
-                              String[] argv) {
+                              String[] argv) throws HelpException {
         final String[] usage = {
                 "keymap -  manipulate keymaps",
                 "Usage: keymap [options] -l [-L] [keymap ...]",
@@ -462,14 +573,13 @@ public class Commands {
                 "  -e                              Select emacs keymap and bind it to main",
                 "  -l                              List existing keymap names",
                 "  -p                              List bindings which have given key sequence as a a prefix",
-                "  -r                              Unbind specified in-strings",
-                "  -s                              Bind each in-string to each out-string",
+                "  -r                              Unbind specified in-strings ",
+                "  -s                              Bind each in-string to each out-string ",
                 "  -v                              Select viins keymap and bind it to main",
         };
         Options opt = Options.compile(usage).parse(argv);
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
 
         Map<String, KeyMap<Binding>> keyMaps = reader.getKeyMaps();
@@ -784,7 +894,7 @@ public class Commands {
     public static void setopt(LineReader reader,
                               PrintStream out,
                               PrintStream err,
-                              String[] argv) {
+                              String[] argv) throws HelpException {
         final String[] usage = {
                 "setopt -  set options",
                 "Usage: setopt [-m] option ...",
@@ -794,8 +904,7 @@ public class Commands {
         };
         Options opt = Options.compile(usage).parse(argv);
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
         if (opt.args().isEmpty()) {
             for (Option option : Option.values()) {
@@ -813,7 +922,7 @@ public class Commands {
     public static void unsetopt(LineReader reader,
                                 PrintStream out,
                                 PrintStream err,
-                                String[] argv) {
+                                String[] argv) throws HelpException {
         final String[] usage = {
                 "unsetopt -  unset options",
                 "Usage: unsetopt [-m] option ...",
@@ -823,8 +932,7 @@ public class Commands {
         };
         Options opt = Options.compile(usage).parse(argv);
         if (opt.isSet("help")) {
-            opt.usage(err);
-            return;
+            throw new HelpException(opt.usage());
         }
         if (opt.args().isEmpty()) {
             for (Option option : Option.values()) {

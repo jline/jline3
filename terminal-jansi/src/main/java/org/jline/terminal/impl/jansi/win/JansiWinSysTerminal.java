@@ -24,6 +24,7 @@ import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
+import org.jline.terminal.impl.jansi.JansiSupportImpl;
 import org.jline.utils.InfoCmp;
 
 import static org.fusesource.jansi.internal.Kernel32.GetConsoleScreenBufferInfo;
@@ -106,7 +107,12 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
     }
 
     protected boolean processConsoleInput() throws IOException {
-        INPUT_RECORD[] events = WindowsSupport.readConsoleInput(1, 100);
+        INPUT_RECORD[] events;
+        if (JansiSupportImpl.isAtLeast(1, 17)) {
+            events = WindowsSupport.readConsoleInput(1, 100);
+        } else {
+            events = WindowsSupport.readConsoleInput(1);
+        }
         if (events == null) {
             return false;
         }

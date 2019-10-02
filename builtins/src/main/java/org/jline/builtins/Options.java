@@ -38,6 +38,11 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.StyleResolver;
 
 /**
  * Yet another GNU long options parser. This one is configured by parsing its Usage string.
@@ -62,8 +67,8 @@ public class Options {
     private static final int GROUP_LONG_OPT_2 = 5;
     private static final int GROUP_DEFAULT = 6;
 
-    private final Pattern parser = Pattern.compile(regex);
-    private final Pattern uname = Pattern.compile("^Usage:\\s+(\\w+)");
+    private static final Pattern parser = Pattern.compile(regex);
+    private static final Pattern uname = Pattern.compile("^Usage:\\s+(\\w+)");
 
     private final Map<String, Boolean> unmodifiableOptSet;
     private final Map<String, Object> unmodifiableOptArg;
@@ -220,7 +225,12 @@ public class Options {
         return args;
     }
 
+    // Added for backword compability
     public void usage(PrintStream err) {
+        err.print(usage());
+    }
+    
+    public String usage() {
         StringBuilder buf = new StringBuilder();
         int index = 0;
 
@@ -235,9 +245,7 @@ public class Options {
             buf.append(NL);
         }
 
-        String msg = buf.toString();
-
-        err.print(msg);
+        return buf.toString();
     }
 
     /**
@@ -503,6 +511,85 @@ public class Options {
     @Override
     public String toString() {
         return "isSet" + optSet + "\nArg" + optArg + "\nargs" + xargs;
+    }
+
+    /**
+     * Exception thrown when using the <code>--help</code> option on a built-in command.
+     * It can be highlighted using the {@link #highlight(String, StyleResolver)} method and then printed
+     * to the {@link org.jline.terminal.Terminal}.
+     */
+    @SuppressWarnings("serial")
+    public static class HelpException extends Exception {
+
+        public HelpException(String message) {
+            super(message);
+        }
+
+        public static final String DEFAULT_COLORS = "ti=1;34:co=1:ar=3:op=33";
+
+        public static StyleResolver defaultStyle() {
+            return style(DEFAULT_COLORS);
+        }
+
+        public static StyleResolver style(String str) {
+            Map<String, String> colors = Arrays.stream(str.split(":"))
+                    .collect(Collectors.toMap(s -> s.substring(0, s.indexOf('=')),
+                            s -> s.substring(s.indexOf('=') + 1)));
+            return new StyleResolver(colors::get);
+        }
+
+        public static AttributedString highlight(String msg, StyleResolver resolver) {
+            Matcher tm = Pattern.compile("(^|\\n)(Usage:)").matcher(msg);
+            if (tm.find()) {
+                AttributedStringBuilder asb = new AttributedStringBuilder(msg.length());
+                // Command
+                AttributedStringBuilder acommand = new AttributedStringBuilder()
+                        .append(msg.substring(0, tm.start(2)))
+                        .styleMatches(Pattern.compile("(?:^\\s*)([a-z]+[a-z-]*){1}\\b"),
+                                Collections.singletonList(resolver.resolve(".co")));
+                asb.append(acommand);
+                // Title
+                asb.styled(resolver.resolve(".ti"), "Usage").append(":");
+                // Syntax
+                for (String line : msg.substring(tm.end(2)).split("\n")) {
+                    int ind = line.lastIndexOf("  ");
+                    String syntax, comment;
+                    if (ind > 20) {
+                        syntax = line.substring(0, ind);
+                        comment = line.substring(ind + 1);
+                    } else {
+                        syntax = line;
+                        comment = "";
+
+                    }
+                    AttributedStringBuilder asyntax = new AttributedStringBuilder().append(syntax);
+                    // command
+                    asyntax.styleMatches(Pattern.compile("(?:^)(?:\\s*)([a-z]+[a-z-]*){1}\\b"),
+                            Collections.singletonList(resolver.resolve(".co")));
+                    // argument
+                    asyntax.styleMatches(Pattern.compile("(?:\\[|\\s|=)([A-Za-z]+[A-Za-z_-]*){1}\\b"),
+                            Collections.singletonList(resolver.resolve(".ar")));
+                    // option
+                    asyntax.styleMatches(Pattern.compile("(?:\\s|\\[)(-\\$|-\\?|[-]{1,2}[A-Za-z-]+\\b){1}"),
+                            Collections.singletonList(resolver.resolve(".op")));
+                    asb.append(asyntax);
+
+                    AttributedStringBuilder acomment = new AttributedStringBuilder().append(comment);
+                    // option
+                    acomment.styleMatches(Pattern.compile("(?:\\s|\\[)(-\\$|-\\?|[-]{1,2}[A-Za-z-]+\\b){1}"),
+                            Collections.singletonList(resolver.resolve(".op")));
+                    // argument in comment
+                    acomment.styleMatches(Pattern.compile("(?:\\s)([a-z]+[-]+[a-z]+|[A-Z_]{2,}){1}(?:\\s)"),
+                            Collections.singletonList(resolver.resolve(".ar")));
+                    asb.append(acomment);
+
+                    asb.append("\n");
+                }
+                return asb.toAttributedString();
+            } else {
+                return AttributedString.fromAnsi(msg);
+            }
+        }
     }
 
 }

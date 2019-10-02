@@ -1,0 +1,16 @@
+
+Search Command Help Text
+
+ Enter the words or characters you would like to search for, and then press Enter.  If there is a match for the text you entered, the screen will be updated to the location of the nearest match for the search string.
+
+ The previous search string will be shown in brackets after the search prompt.  Hitting Enter without entering any text will perform the previous search.  
+ 
+ The following function keys are available in Search mode:
+
+^G    (F1)      Display this help text
+^C              Cancel the current function
+^Y              Go to the first line of the file
+^V              Go to the last line of the file
+
+^P    (Up)      Recall the previous search/replace string
+^N    (Down)    Recall the next search/replace string

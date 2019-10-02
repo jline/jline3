@@ -1,0 +1,14 @@
+Go To Line Help Text
+
+ Enter the line number that you wish to go to and hit Enter.  If there are
+ fewer lines of text than the number you entered, you will be brought to
+ the last line of the file.
+
+ The following function keys are available in Go To Line mode:
+
+^G    (F1)      Display this help text
+^C              Cancel the current function
+^Y              Go to the first line of the file
+^V              Go to the last line of the file
+
+^T              Search for a string or a regular expression

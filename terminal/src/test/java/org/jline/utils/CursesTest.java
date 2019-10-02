@@ -22,7 +22,7 @@ public class CursesTest {
     @Test
     public void testTputs() throws Exception {
 
-        assertEquals("\033[3;4r", Curses.tputs("\\E[%i%p1%d;%p2%dr", 2, 3));
+        assertEquals("{\033[3;4r", Curses.tputs("\\173\\E[%i%p1%d;%p2%dr", 2, 3));
 
     }
 

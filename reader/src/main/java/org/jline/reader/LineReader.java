@@ -8,7 +8,9 @@
  */
 package org.jline.reader;
 
+import java.io.File;
 import java.io.InputStream;
+import java.util.Collection;
 import java.util.Map;
 import java.util.function.IntConsumer;
 
@@ -57,7 +59,7 @@ import org.jline.utils.AttributedString;
  * Defaults to an empty string.
  * </dd>
  * <dt>{@code %}<var>n</var>{@code P}<var>c</var></dt>
- * <dd>Insert padding at this possion, repeating the following
+ * <dd>Insert padding at this position, repeating the following
  *   character <var>c</var> as needed to bring the total prompt
  *   column width as specified by the digits <var>n</var>.
  * </dd>
@@ -130,6 +132,7 @@ public interface LineReader {
     String DOWN_LINE = "down-line";
     String DOWN_LINE_OR_HISTORY = "down-line-or-history";
     String DOWN_LINE_OR_SEARCH = "down-line-or-search";
+    String EDIT_AND_EXECUTE_COMMAND = "edit-and-execute-command";
     String EMACS_BACKWARD_WORD = "emacs-backward-word";
     String EMACS_EDITING_MODE = "emacs-editing-mode";
     String EMACS_FORWARD_WORD = "emacs-forward-word";
@@ -662,5 +665,9 @@ public interface LineReader {
     RegionType getRegionActive();
 
     int getRegionMark();
+
+    void addCommandsInBuffer(Collection<String> commands);
+
+    void editAndAddInBuffer(File file) throws Exception;
 
 }
