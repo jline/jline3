@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2019, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -22,6 +22,7 @@ import org.jline.builtins.Completers;
 import org.jline.builtins.Completers.TreeCompleter;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
+import org.jline.reader.LineReader.Option;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.DefaultParser.Bracket;
 import org.jline.reader.impl.LineReaderImpl;
@@ -238,6 +239,7 @@ public class Example
                     .parser(parser)
                     .variable(LineReader.SECONDARY_PROMPT_PATTERN, "%M%P > ")
                     .variable(LineReader.INDENTATION, 2)
+                    .option(Option.INSERT_BRACKET, true)
                     .build();
 
             if (timer) {

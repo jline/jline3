@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2019, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -353,7 +353,7 @@ public interface LineReader {
      * Number of history items to keep in the history file.
      */
     String HISTORY_FILE_SIZE = "history-file-size";
-    
+
     /**
      * New line automatic indentation after opening/closing bracket.
      */
@@ -420,6 +420,9 @@ public interface LineReader {
 
         /** if history search is fully case insensitive */
         CASE_INSENSITIVE_SEARCH,
+
+        /** Automatic insertion of closing bracket */
+        INSERT_BRACKET,
         ;
 
         private final boolean def;

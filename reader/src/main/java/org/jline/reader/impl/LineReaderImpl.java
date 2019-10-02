@@ -2013,9 +2013,9 @@ public class LineReaderImpl implements LineReader, Flushable
         redisplay();
 
         peekCharacter(blink);
-        int blinkPosition = buf.cursor(); 
+        int blinkPosition = buf.cursor();
         buf.cursor(closePosition);
-        
+
         if (blinkPosition != closePosition - 1) {
             removeIndentation();
         }
@@ -2770,7 +2770,7 @@ public class LineReaderImpl implements LineReader, Flushable
         }
         return nextCommandFromHistory;
     }
-    
+
     protected boolean acceptAndInferNextHistory() {
         nextCommandFromHistory = false;
         acceptLine();
@@ -2778,7 +2778,7 @@ public class LineReaderImpl implements LineReader, Flushable
             nextHistoryId = searchBackwards(buf.toString(), history.last());
             if (nextHistoryId >= 0 && history.size() > nextHistoryId + 1) {
                 nextHistoryId++;
-                nextCommandFromHistory = true;            
+                nextCommandFromHistory = true;
             }
         }
         return nextCommandFromHistory;
@@ -2786,6 +2786,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
     protected boolean acceptLine() {
         parsedLine = null;
+        int curPos = 0;
         if (!isSet(Option.DISABLE_EVENT_EXPANSION)) {
             try {
                 String str = buf.toString();
@@ -2802,16 +2803,19 @@ public class LineReaderImpl implements LineReader, Flushable
             }
         }
         try {
+            curPos = buf.cursor();
             parsedLine = parser.parse(buf.toString(), buf.cursor(), ParseContext.ACCEPT_LINE);
         } catch (EOFError e) {
-            int indent = getInt(INDENTATION, DEFAULT_INDENTATION)*e.getOpenBrackets();
             StringBuilder sb = new StringBuilder("\n");
-            if (indent > 0) {
-                for (int i = 0; i < indent; i++) {
-                    sb.append(' ');
-                }
+            indention(e.getOpenBrackets(), sb);
+            int curMove = sb.length();
+            if (isSet(Option.INSERT_BRACKET) && e.getOpenBrackets() > 1 && e.getNextClosingBracket() != null) {
+                sb.append('\n');
+                indention(e.getOpenBrackets() - 1, sb);
+                sb.append(e.getNextClosingBracket());
             }
             buf.write(sb.toString());
+            buf.cursor(curPos + curMove);
             return true;
         } catch (SyntaxError e) {
             // do nothing
@@ -2819,6 +2823,13 @@ public class LineReaderImpl implements LineReader, Flushable
         callWidget(CALLBACK_FINISH);
         state = State.DONE;
         return true;
+    }
+
+    void indention(int nb, StringBuilder sb) {
+        int indent = getInt(INDENTATION, DEFAULT_INDENTATION)*nb;
+        for (int i = 0; i < indent; i++) {
+            sb.append(' ');
+        }
     }
 
     protected boolean selfInsert() {
@@ -3572,7 +3583,7 @@ public class LineReaderImpl implements LineReader, Flushable
         addBuiltinWidget(widgets, FOCUS_OUT, this::focusOut);
         return widgets;
     }
-    
+
     private void addBuiltinWidget(Map<String, Widget> widgets, String name, Widget widget) {
         widgets.put(name, namedWidget(name, widget));
     }
@@ -3619,7 +3630,6 @@ public class LineReaderImpl implements LineReader, Flushable
             if(maskingCallback != null) {
                 line = maskingCallback.display(line);
             }
-            
             concat(new AttributedString(line).columnSplitLength(Integer.MAX_VALUE), sb);
             AttributedString toCursor = sb.toAttributedString();
 
@@ -3729,7 +3739,7 @@ public class LineReaderImpl implements LineReader, Flushable
     private AttributedString getHighlightedBuffer(String buffer) {
         if (maskingCallback != null) {
             buffer = maskingCallback.display(buffer);
-        } 
+        }
         if (highlighter != null && !isSet(Option.DISABLE_HIGHLIGHTER)) {
             return highlighter.highlight(this, buffer);
         }
