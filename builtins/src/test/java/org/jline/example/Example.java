@@ -24,6 +24,7 @@ import org.jline.builtins.Completers;
 import org.jline.builtins.Completers.TreeCompleter;
 import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.TTop;
+import org.jline.builtins.Widgets.AutopairWidgets;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.impl.DefaultParser;
@@ -79,7 +80,7 @@ public class Example
             System.out.println(u);
         }
     }
-    
+
     public static void help() {
         String[] help = {
             "List of available commands:"
@@ -94,6 +95,7 @@ public class Example
           , "    ttop       display and update sorted information about threads"
           , "    unsetopt   unset options"
           , "    widget     UNAVAILABLE"
+          , "    autopair   toggle brackets/quotes autopair key bindings"
           , "  Example:"
           , "    cls        clear screen"
           , "    help       list available commands"
@@ -107,7 +109,7 @@ public class Example
         for (String u: help) {
             System.out.println(u);
         }
-        
+
     }
 
     public static void main(String[] args) throws IOException {
@@ -120,7 +122,7 @@ public class Example
             boolean timer = false;
 
             TerminalBuilder builder = TerminalBuilder.builder();
-  
+
             if ((args == null) || (args.length == 0)) {
                 usage();
 
@@ -289,8 +291,8 @@ public class Example
                         }
                 }
             }
-          
-            Terminal terminal = builder.build();          
+
+            Terminal terminal = builder.build();
             System.out.println(terminal.getName()+": "+terminal.getType());
             System.out.println("\nhelp: list available commands");
             LineReader reader = LineReaderBuilder.builder()
@@ -299,6 +301,7 @@ public class Example
                     .parser(parser)
                     .variable(LineReader.SECONDARY_PROMPT_PATTERN, "%M%P > ")
                     .build();
+            AutopairWidgets autopairWidgets = new AutopairWidgets(reader);
 
             if (timer) {
                 Executors.newScheduledThreadPool(1)
@@ -402,7 +405,7 @@ public class Example
                     }
                     else if ("tmux".equals(pl.word())) {
                         Commands.tmux(terminal, System.out, System.err,
-                                null, //Supplier<Object> getter,   
+                                null, //Supplier<Object> getter,
                                 null, //Consumer<Object> setter,
                                 null, //Consumer<Terminal> runner,
                                 argv);
@@ -441,6 +444,14 @@ public class Example
                     }
                     else if ("ttop".equals(pl.word())) {
                         TTop.ttop(terminal, System.out, System.err, argv);
+                    }
+                    else if ("autopair".equals(pl.word())) {
+                        terminal.writer().print("Autopair widgets are ");
+                        if (autopairWidgets.toggleKeyBindings()){
+                            terminal.writer().println("bounded.");
+                        } else {
+                            terminal.writer().println("unbounded.");
+                        }
                     }
                     else if ("help".equals(pl.word()) || "?".equals(pl.word())) {
                         help();
