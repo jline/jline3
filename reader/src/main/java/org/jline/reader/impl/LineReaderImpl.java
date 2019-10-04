@@ -487,7 +487,7 @@ public class LineReaderImpl implements LineReader, Flushable
         // buffer may be null
         if (!commandsBuffer.isEmpty()) {
             String cmd = commandsBuffer.remove(0);
-            boolean done = false; 
+            boolean done = false;
             do {
                 try {
                     parser.parse(cmd, cmd.length() + 1, ParseContext.ACCEPT_LINE);
@@ -499,7 +499,8 @@ public class LineReaderImpl implements LineReader, Flushable
                     cmd += "\n";
                     cmd += commandsBuffer.remove(0);
                 } catch (SyntaxError e) {
-                    done = true;
+                    commandsBuffer = new ArrayList<>();
+                    throw e;
                 }
             } while (!done);
             AttributedStringBuilder sb = new AttributedStringBuilder();
@@ -1042,7 +1043,7 @@ public class LineReaderImpl implements LineReader, Flushable
         }
         br.close();
     }
-    
+
     //
     // Widget implementation
     //
@@ -2916,8 +2917,6 @@ public class LineReaderImpl implements LineReader, Flushable
         } catch (EOFError e) {
             buf.write("\n");
             return true;
-        } catch (SyntaxError e) {
-            // do nothing
         }
         callWidget(CALLBACK_FINISH);
         state = State.DONE;
@@ -3896,7 +3895,7 @@ public class LineReaderImpl implements LineReader, Flushable
     private AttributedString getHighlightedBuffer(String buffer) {
         if (maskingCallback != null) {
             buffer = maskingCallback.display(buffer);
-        } 
+        }
         if (highlighter != null && !isSet(Option.DISABLE_HIGHLIGHTER)) {
             return highlighter.highlight(this, buffer);
         }
@@ -4034,8 +4033,6 @@ public class LineReaderImpl implements LineReader, Flushable
                         parser.parse(buf.toString(), buf.length(), ParseContext.SECONDARY_PROMPT);
                     } catch (EOFError e) {
                         missing = e.getMissing();
-                    } catch (SyntaxError e) {
-                        // Ignore
                     }
                 }
                 missings.add(missing);
@@ -4057,8 +4054,6 @@ public class LineReaderImpl implements LineReader, Flushable
                             parser.parse(buf.toString(), buf.length(), ParseContext.SECONDARY_PROMPT);
                         } catch (EOFError e) {
                             missing = e.getMissing();
-                        } catch (SyntaxError e) {
-                            // Ignore
                         }
                     } else {
                         missing = missings.get(line);
