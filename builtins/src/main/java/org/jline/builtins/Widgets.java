@@ -116,7 +116,7 @@ public class Widgets {
 
         public boolean autopairClose() {
             if (pairs.containsValue(reader.getLastBinding())
-                && reader.getBuffer().currChar() == reader.getLastBinding().charAt(0)) {
+                && currChar().equals(reader.getLastBinding())) {
                 reader.callWidget(LineReader.FORWARD_CHAR);
             } else {
                 reader.callWidget(LineReader.SELF_INSERT);
@@ -125,12 +125,12 @@ public class Widgets {
         }
 
         public boolean autopairDelete() {
-            if (pairs.containsKey(prevChar()) && pairs.get(prevChar()).charAt(0) == currChar().charAt(0)
+            if (pairs.containsKey(prevChar()) && pairs.get(prevChar()).equals(currChar())
                     && canDelete(prevChar())) {
                 reader.callWidget(LineReader.DELETE_CHAR);
             }
             reader.callWidget(LineReader.BACKWARD_DELETE_CHAR);
-            return false;
+            return true;
         }
 
         /*
@@ -190,7 +190,7 @@ public class Widgets {
         }
 
         private boolean canSkip(String d) {
-            if (pairs.get(d).equals(d) && d.charAt(0) != ' ' && reader.getBuffer().currChar() == d.charAt(0)
+            if (pairs.get(d).equals(d) && d.charAt(0) != ' ' && currChar().equals(d)
                     && balanced(d)) {
                 return true;
             }
