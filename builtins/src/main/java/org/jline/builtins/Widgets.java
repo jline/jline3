@@ -50,6 +50,7 @@ public class Widgets {
         private static final Map<String,String> LBOUNDS;
         private static final Map<String,String> RBOUNDS;
         private final Map<String,String> pairs;
+        private final Map<String,Binding> defaultBindings = new HashMap<>();
         private final LineReaderImpl reader;
         private boolean autopair = false;
         {
@@ -92,6 +93,15 @@ public class Widgets {
             addWidget(reader.getWidgets(), "autopair-insert", this::autopairInsert);
             addWidget(reader.getWidgets(), "autopair-close", this::autopairClose);
             addWidget(reader.getWidgets(), "autopair-delete", this::autopairDelete);
+
+            KeyMap<Binding> map = reader.getKeyMaps().get(LineReader.MAIN);
+            for (Map.Entry<String, String> p: pairs.entrySet()) {
+            	defaultBindings.put(p.getKey(), map.getBound(p.getKey()));
+                if (!p.getKey().equals(p.getValue())) {
+                	defaultBindings.put(p.getValue(), map.getBound(p.getValue()));
+                }
+            }
+        	defaultBindings.put(del(), map.getBound(del()));
         }
 
         /*
@@ -167,12 +177,12 @@ public class Widgets {
             }
             KeyMap<Binding> map = reader.getKeyMaps().get(LineReader.MAIN);
             for (Map.Entry<String, String> p: pairs.entrySet()) {
-                map.bind(new Reference(LineReader.SELF_INSERT), p.getKey());
-                if (p.getKey().equals(p.getValue())) {
-                    map.bind(new Reference(LineReader.SELF_INSERT), p.getValue());
+                map.bind(defaultBindings.get(p.getKey()), p.getKey());
+                if (!p.getKey().equals(p.getValue())) {
+                    map.bind(defaultBindings.get(p.getValue()), p.getValue());
                 }
             }
-            map.bind(new Reference(LineReader.BACKWARD_DELETE_CHAR), del());
+            map.bind(defaultBindings.get(del()), del());
             autopair = false;
         }
         /*
