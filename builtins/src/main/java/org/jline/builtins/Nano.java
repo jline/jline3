@@ -404,7 +404,8 @@ public class Nano implements Editor {
             }
         }
 
-        LinkedList<Integer> computeOffsets(String text) {
+        LinkedList<Integer> computeOffsets(String line) {
+            String text = new AttributedStringBuilder().tabs(tabs).append(line).toString();
             int width = size.getColumns() - (printLineNumbers ? 8 : 0);
             LinkedList<Integer> offsets = new LinkedList<>();
             offsets.add(0);
@@ -661,7 +662,7 @@ public class Nano implements Editor {
                     column = Math.min(wantedColumn, next - offsetInLine);
                 }
             }
-            moveToChar(column);
+            moveToChar(offsetInLine + column);
         }
 
         private void cursorUp(int lines) {
@@ -690,7 +691,7 @@ public class Nano implements Editor {
                     }
                 }
             }
-            moveToChar(column);
+            moveToChar(offsetInLine + column);
         }
 
         void ensureCursorVisible() {
