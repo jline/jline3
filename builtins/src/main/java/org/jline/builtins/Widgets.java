@@ -9,6 +9,7 @@
 package org.jline.builtins;
 
 import static org.jline.keymap.KeyMap.del;
+import static org.jline.keymap.KeyMap.ctrl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,13 +24,18 @@ import org.jline.reader.Reference;
 import org.jline.reader.Widget;
 import org.jline.reader.impl.LineReaderImpl;
 
-public class Widgets {
-
-    private static void addWidget(Map<String, Widget> widgets, String name, Widget widget) {
-        widgets.put(name, namedWidget(name, widget));
+public abstract class Widgets {
+    private final LineReaderImpl reader;
+    
+    public Widgets(LineReader reader) {
+        this.reader = (LineReaderImpl)reader;
     }
 
-    private static Widget namedWidget(final String name, final Widget widget) {
+    public void addWidget(String name, Widget widget) {
+        reader.getWidgets().put(name, namedWidget(name, widget));
+    }
+
+    private Widget namedWidget(final String name, final Widget widget) {
         return new Widget() {
             @Override
             public String toString() {
@@ -41,8 +47,36 @@ public class Widgets {
             }
         };
     }
+    
+    public void callWidget(String name) {
+        reader.callWidget(name);
+    }
 
-    public static class AutopairWidgets {
+    public KeyMap<Binding> getKeyMap(String name) {
+        return reader.getKeyMaps().get(name);
+    }
+    
+    public Buffer buffer() {
+        return reader.getBuffer();
+    }
+    
+    public String prevChar() {
+        return String.valueOf((char)reader.getBuffer().prevChar());
+    }
+
+    public String currChar() {
+        return String.valueOf((char)reader.getBuffer().currChar());
+    }
+
+    public String lastBinding() {
+        return reader.getLastBinding();
+    }
+    
+    public void putString(String string) {
+        reader.putString(string);
+    }
+
+    public static class AutopairWidgets extends Widgets {
         /*
          *  Inspired by zsh-autopair
          *  https://github.com/hlissner/zsh-autopair
@@ -51,7 +85,6 @@ public class Widgets {
         private static final Map<String,String> RBOUNDS;
         private final Map<String,String> pairs;
         private final Map<String,Binding> defaultBindings = new HashMap<>();
-        private final LineReaderImpl reader;
         private boolean autopair = false;
         {
             pairs = new HashMap<>();
@@ -86,21 +119,23 @@ public class Widgets {
         }
 
         public AutopairWidgets(LineReader reader, boolean addCurlyBrackets) {
-            this.reader = (LineReaderImpl)reader;
+            super(reader);
             if (addCurlyBrackets) {
                 pairs.put("{", "}");
             }
-            addWidget(reader.getWidgets(), "autopair-insert", this::autopairInsert);
-            addWidget(reader.getWidgets(), "autopair-close", this::autopairClose);
-            addWidget(reader.getWidgets(), "autopair-delete", this::autopairDelete);
+            addWidget("autopair-insert", this::autopairInsert);
+            addWidget("autopair-close", this::autopairClose);
+            addWidget("autopair-delete", this::autopairDelete);
+            addWidget("autopair-toggle", this::toggleKeyBindings);
 
-            KeyMap<Binding> map = reader.getKeyMaps().get(LineReader.MAIN);
+            KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
             for (Map.Entry<String, String> p: pairs.entrySet()) {
             	defaultBindings.put(p.getKey(), map.getBound(p.getKey()));
                 if (!p.getKey().equals(p.getValue())) {
                 	defaultBindings.put(p.getValue(), map.getBound(p.getValue()));
                 }
             }
+            defaultBindings.put(ctrl('H'), map.getBound(ctrl('H')));
         	defaultBindings.put(del(), map.getBound(del()));
         }
 
@@ -108,28 +143,28 @@ public class Widgets {
          * Widgets
          */
         public boolean autopairInsert() {
-            if (pairs.containsKey(reader.getLastBinding())) {
-                if (canSkip(reader.getLastBinding())) {
-                    reader.callWidget(LineReader.FORWARD_CHAR);
-                } else if (canPair(reader.getLastBinding())) {
-                    reader.callWidget(LineReader.SELF_INSERT);
-                    reader.putString(pairs.get(reader.getLastBinding()));
-                    reader.callWidget(LineReader.BACKWARD_CHAR);
+            if (pairs.containsKey(lastBinding())) {
+                if (canSkip(lastBinding())) {
+                    callWidget(LineReader.FORWARD_CHAR);
+                } else if (canPair(lastBinding())) {
+                    callWidget(LineReader.SELF_INSERT);
+                    putString(pairs.get(lastBinding()));
+                    callWidget(LineReader.BACKWARD_CHAR);
                 } else {
-                    reader.callWidget(LineReader.SELF_INSERT);
+                    callWidget(LineReader.SELF_INSERT);
                 }
             } else {
-                reader.callWidget(LineReader.SELF_INSERT);
+                callWidget(LineReader.SELF_INSERT);
             }
             return true;
         }
 
         public boolean autopairClose() {
-            if (pairs.containsValue(reader.getLastBinding())
-                && currChar().equals(reader.getLastBinding())) {
-                reader.callWidget(LineReader.FORWARD_CHAR);
+            if (pairs.containsValue(lastBinding())
+                && currChar().equals(lastBinding())) {
+                callWidget(LineReader.FORWARD_CHAR);
             } else {
-                reader.callWidget(LineReader.SELF_INSERT);
+                callWidget(LineReader.SELF_INSERT);
             }
             return true;
         }
@@ -137,16 +172,12 @@ public class Widgets {
         public boolean autopairDelete() {
             if (pairs.containsKey(prevChar()) && pairs.get(prevChar()).equals(currChar())
                     && canDelete(prevChar())) {
-                reader.callWidget(LineReader.DELETE_CHAR);
+                callWidget(LineReader.DELETE_CHAR);
             }
-            reader.callWidget(LineReader.BACKWARD_DELETE_CHAR);
+            callWidget(LineReader.BACKWARD_DELETE_CHAR);
             return true;
         }
 
-        /*
-         * key bindings...
-         *
-         */
         public boolean toggleKeyBindings() {
             if(autopair) {
                 defaultBindings();
@@ -155,18 +186,22 @@ public class Widgets {
             }
             return autopair;
         }
-
+        /*
+         * key bindings...
+         *
+         */
         private void autopairBindings() {
             if (autopair) {
                 return;
             }
-            KeyMap<Binding> map = reader.getKeyMaps().get(LineReader.MAIN);
+            KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
             for (Map.Entry<String, String> p: pairs.entrySet()) {
                 map.bind(new Reference("autopair-insert"), p.getKey());
                 if (!p.getKey().equals(p.getValue())) {
                     map.bind(new Reference("autopair-close"), p.getValue());
                 }
             }
+            map.bind(new Reference("autopair-delete"), ctrl('H'));
             map.bind(new Reference("autopair-delete"), del());
             autopair = true;
         }
@@ -175,13 +210,14 @@ public class Widgets {
             if (!autopair) {
                 return;
             }
-            KeyMap<Binding> map = reader.getKeyMaps().get(LineReader.MAIN);
+            KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
             for (Map.Entry<String, String> p: pairs.entrySet()) {
                 map.bind(defaultBindings.get(p.getKey()), p.getKey());
                 if (!p.getKey().equals(p.getValue())) {
                     map.bind(defaultBindings.get(p.getValue()), p.getValue());
                 }
             }
+            map.bind(defaultBindings.get(ctrl('H')), ctrl('H'));
             map.bind(defaultBindings.get(del()), del());
             autopair = false;
         }
@@ -216,7 +252,7 @@ public class Widgets {
 
         private boolean balanced(String d) {
             boolean out = false;
-            Buffer buf = reader.getBuffer();
+            Buffer buf = buffer();
             String lbuf = buf.upToCursor();
             String rbuf = buf.substring(lbuf.length());
             String regx1 = pairs.get(d).equals(d)? d : "\\"+d;
@@ -244,14 +280,6 @@ public class Widgets {
                 }
             }
             return out;
-        }
-
-        private String prevChar() {
-            return String.valueOf((char)reader.getBuffer().prevChar());
-        }
-
-        private String currChar() {
-            return String.valueOf((char)reader.getBuffer().currChar());
         }
 
         private boolean boundary(String lb, String rb) {
