@@ -116,7 +116,7 @@ public class LineReaderImpl implements LineReader, Flushable
          */
         DONE,
         /**
-         * readLine should exit return empty String
+         * readLine should exit and return empty String
          */
         IGNORE,
         /**
@@ -170,6 +170,8 @@ public class LineReaderImpl implements LineReader, Flushable
     protected final Map<Option, Boolean> options = new HashMap<>();
 
     protected final Buffer buf = new BufferImpl();
+    protected String tailTip = "";
+    protected boolean doTailTip;
 
     protected final Size size = new Size();
 
@@ -325,6 +327,16 @@ public class LineReaderImpl implements LineReader, Flushable
     @Override
     public Buffer getBuffer() {
         return buf;
+    }
+
+    @Override
+    public void enableTailTip(boolean enable) {
+        this.doTailTip = enable;
+    }
+
+    @Override
+    public String getTailTip(){
+        return tailTip;
     }
 
     @Override
@@ -487,7 +499,7 @@ public class LineReaderImpl implements LineReader, Flushable
         // buffer may be null
         if (!commandsBuffer.isEmpty()) {
             String cmd = commandsBuffer.remove(0);
-            boolean done = false; 
+            boolean done = false;
             do {
                 try {
                     parser.parse(cmd, cmd.length() + 1, ParseContext.ACCEPT_LINE);
@@ -928,10 +940,12 @@ public class LineReaderImpl implements LineReader, Flushable
         return parsedLine;
     }
 
+    @Override
     public String getLastBinding() {
         return bindingReader.getLastBinding();
     }
 
+    @Override
     public String getSearchTerm() {
         return searchTerm != null ? searchTerm.toString() : null;
     }
@@ -1042,7 +1056,7 @@ public class LineReaderImpl implements LineReader, Flushable
         }
         br.close();
     }
-    
+
     //
     // Widget implementation
     //
@@ -3874,6 +3888,38 @@ public class LineReaderImpl implements LineReader, Flushable
         sb.append(lines.get(lines.size() - 1));
     }
 
+    private String matchPreviousCommand(String buffer) {
+        if (buffer.length() == 0) {
+            return "";
+        }
+        History history = getHistory();
+        StringBuilder sb = new StringBuilder();
+        char prev = '0';
+        for (char c: buffer.toCharArray()) {
+            if ((c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}' || c == '^') && prev != '\\' ) {
+                sb.append('\\');
+            }
+            sb.append(c);
+            prev = c;
+        }
+        Pattern pattern = Pattern.compile(sb.toString() + ".*", Pattern.DOTALL);
+        Iterator<History.Entry> iter = history.reverseIterator(history.last());
+        String suggestion = "";
+        int tot = 0;
+        while (iter.hasNext()) {
+            History.Entry entry = iter.next();
+            Matcher matcher = pattern.matcher(entry.line());
+            if (matcher.matches()) {
+                suggestion = entry.line().substring(buffer.length());
+                break;
+            } else if (tot > 200) {
+                break;
+            }
+            tot++;
+        }
+        return suggestion;
+    }
+
     /**
      * Compute the full string to be displayed with the left, right and secondary prompts
      * @param secondaryPrompts a list to store the secondary prompts
@@ -3886,6 +3932,12 @@ public class LineReaderImpl implements LineReader, Flushable
         AttributedStringBuilder full = new AttributedStringBuilder().tabs(TAB_WIDTH);
         full.append(prompt);
         full.append(tNewBuf);
+        if (doTailTip) {
+            AttributedStringBuilder sb = new AttributedStringBuilder();
+            tailTip = matchPreviousCommand(buf.toString());
+            sb.styled(AttributedStyle::faint, tailTip);
+            full.append(sb.toAttributedString());
+        }
         if (post != null) {
             full.append("\n");
             full.append(post.get());
@@ -3896,7 +3948,7 @@ public class LineReaderImpl implements LineReader, Flushable
     private AttributedString getHighlightedBuffer(String buffer) {
         if (maskingCallback != null) {
             buffer = maskingCallback.display(buffer);
-        } 
+        }
         if (highlighter != null && !isSet(Option.DISABLE_HIGHLIGHTER)) {
             return highlighter.highlight(this, buffer);
         }

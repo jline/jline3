@@ -25,6 +25,7 @@ import org.jline.builtins.Completers.TreeCompleter;
 import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.TTop;
 import org.jline.builtins.Widgets.AutopairWidgets;
+import org.jline.builtins.Widgets.AutosuggestionWidgets;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.impl.DefaultParser;
@@ -85,25 +86,26 @@ public class Example
         String[] help = {
             "List of available commands:"
           , "  Builtin:"
-          , "    complete   UNAVAILABLE"
-          , "    history    list history of commands"
-          , "    keymap     manipulate keymaps"
-          , "    less       file pager"
-          , "    nano       nano editor"
-          , "    setopt     set options"
-          , "    tmux       UNAVAILABLE"
-          , "    ttop       display and update sorted information about threads"
-          , "    unsetopt   unset options"
-          , "    widget     UNAVAILABLE"
-          , "    autopair   toggle brackets/quotes autopair key bindings"
+          , "    complete        UNAVAILABLE"
+          , "    history         list history of commands"
+          , "    keymap          manipulate keymaps"
+          , "    less            file pager"
+          , "    nano            nano editor"
+          , "    setopt          set options"
+          , "    tmux            UNAVAILABLE"
+          , "    ttop            display and update sorted information about threads"
+          , "    unsetopt        unset options"
+          , "    widget          UNAVAILABLE"
+          , "    autopair        toggle brackets/quotes autopair key bindings"
+          , "    autosuggestion  toggle autosuggestion key bindings"
           , "  Example:"
-          , "    cls        clear screen"
-          , "    help       list available commands"
-          , "    exit       exit from example app"
-          , "    set        set lineReader variable"
-          , "    sleep      sleep 3 seconds"
-          , "    testkey    display key events"
-          , "    tput       set terminal capability"
+          , "    cls             clear screen"
+          , "    help            list available commands"
+          , "    exit            exit from example app"
+          , "    set             set lineReader variable"
+          , "    sleep           sleep 3 seconds"
+          , "    testkey         display key events"
+          , "    tput            set terminal capability"
           , "  Additional help:"
           , "    <command> --help"};
         for (String u: help) {
@@ -302,7 +304,7 @@ public class Example
                     .variable(LineReader.SECONDARY_PROMPT_PATTERN, "%M%P > ")
                     .build();
             AutopairWidgets autopairWidgets = new AutopairWidgets(reader);
-
+            AutosuggestionWidgets autosuggestionWidgets = new AutosuggestionWidgets(reader);
             if (timer) {
                 Executors.newScheduledThreadPool(1)
                         .scheduleAtFixedRate(() -> {
@@ -448,6 +450,14 @@ public class Example
                     else if ("autopair".equals(pl.word())) {
                         terminal.writer().print("Autopair widgets are ");
                         if (autopairWidgets.toggleKeyBindings()) {
+                            terminal.writer().println("bounded.");
+                        } else {
+                            terminal.writer().println("unbounded.");
+                        }
+                    }
+                    else if ("autosuggestion".equals(pl.word())) {
+                        terminal.writer().print("Autosuggestion widgets are ");
+                        if (autosuggestionWidgets.toggleKeyBindings()) {
                             terminal.writer().println("bounded.");
                         } else {
                             terminal.writer().println("unbounded.");

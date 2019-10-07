@@ -662,4 +662,10 @@ public interface LineReader {
 
     void editAndAddInBuffer(File file) throws Exception;
 
+    public String getLastBinding();
+
+    public String getTailTip();
+
+    public void enableTailTip(boolean enable);
+
 }
