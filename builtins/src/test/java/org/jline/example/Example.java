@@ -28,6 +28,7 @@ import org.jline.builtins.Widgets.AutopairWidgets;
 import org.jline.builtins.Widgets.AutosuggestionWidgets;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
+import org.jline.reader.LineReader.SuggestionType;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.DefaultParser.Bracket;
 import org.jline.reader.impl.LineReaderImpl;
@@ -97,7 +98,7 @@ public class Example
           , "    unsetopt        unset options"
           , "    widget          UNAVAILABLE"
           , "    autopair        toggle brackets/quotes autopair key bindings"
-          , "    autosuggestion  toggle autosuggestion key bindings"
+          , "    autosuggestion  history, completer or none"
           , "  Example:"
           , "    cls             clear screen"
           , "    help            list available commands"
@@ -456,11 +457,26 @@ public class Example
                         }
                     }
                     else if ("autosuggestion".equals(pl.word())) {
-                        terminal.writer().print("Autosuggestion widgets are ");
-                        if (autosuggestionWidgets.toggleKeyBindings()) {
-                            terminal.writer().println("bounded.");
+                        if (pl.words().size() == 2) {
+                            String type = pl.words().get(1);
+                            if (type.toLowerCase().startsWith("his")) {
+                                autosuggestionWidgets.autosuggestionBindings();
+                            } else if (type.toLowerCase().startsWith("com")) {
+                                if (reader.getAutosuggestion() == SuggestionType.HISTORY) {
+                                    autosuggestionWidgets.defaultBindings();
+                                }
+                                reader.setAutosuggestion(SuggestionType.COMPLETER);
+                            } else if (type.toLowerCase().startsWith("non")) {
+                                if (reader.getAutosuggestion() == SuggestionType.HISTORY) {
+                                    autosuggestionWidgets.defaultBindings();
+                                } else {
+                                    reader.setAutosuggestion(SuggestionType.NONE);
+                                }
+                            } else {
+                                terminal.writer().println("Usage: autosuggestion history|completer|none");
+                            }
                         } else {
-                            terminal.writer().println("unbounded.");
+                            terminal.writer().println("Autosuggestion: " + reader.getAutosuggestion());
                         }
                     }
                     else if ("help".equals(pl.word()) || "?".equals(pl.word())) {

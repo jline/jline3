@@ -14,7 +14,6 @@ import static org.jline.keymap.KeyMap.ctrl;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,9 +22,9 @@ import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
 import org.jline.reader.Buffer;
 import org.jline.reader.LineReader;
+import org.jline.reader.LineReader.SuggestionType;
 import org.jline.reader.Reference;
 import org.jline.reader.Widget;
-import org.jline.reader.impl.LineReaderImpl;
 import org.jline.reader.impl.BufferImpl;
 
 public abstract class Widgets {
@@ -89,7 +88,7 @@ public abstract class Widgets {
     }
 
     public void enableTailTip(boolean enable) {
-        reader.enableTailTip(enable);
+        reader.setAutosuggestion(enable ? SuggestionType.HISTORY : SuggestionType.NONE);
     }
 
     public static class AutopairWidgets extends Widgets {
@@ -139,9 +138,9 @@ public abstract class Widgets {
             if (addCurlyBrackets) {
                 pairs.put("{", "}");
             }
-            addWidget("autopair-insert", this::autopairInsert);
-            addWidget("autopair-close", this::autopairClose);
-            addWidget("autopair-delete", this::autopairDelete);
+            addWidget("_autopair-insert", this::autopairInsert);
+            addWidget("_autopair-close", this::autopairClose);
+            addWidget("_autopair-delete", this::autopairDelete);
             addWidget("autopair-toggle", this::toggleKeyBindings);
 
             KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
@@ -209,13 +208,13 @@ public abstract class Widgets {
         private void autopairBindings() {
             KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
             for (Map.Entry<String, String> p: pairs.entrySet()) {
-                map.bind(new Reference("autopair-insert"), p.getKey());
+                map.bind(new Reference("_autopair-insert"), p.getKey());
                 if (!p.getKey().equals(p.getValue())) {
-                    map.bind(new Reference("autopair-close"), p.getValue());
+                    map.bind(new Reference("_autopair-close"), p.getValue());
                 }
             }
-            map.bind(new Reference("autopair-delete"), ctrl('H'));
-            map.bind(new Reference("autopair-delete"), del());
+            map.bind(new Reference("_autopair-delete"), ctrl('H'));
+            map.bind(new Reference("_autopair-delete"), del());
             autopair = true;
         }
 
@@ -329,9 +328,9 @@ public abstract class Widgets {
 
         public AutosuggestionWidgets(LineReader reader) {
             super(reader);
-            addWidget("autosuggest-forward-char", this::autosuggestForwardChar);
-            addWidget("autosuggest-end-of-line", this::autosuggestEndOfLine);
-            addWidget("autosuggest-forward-word", this::partialAccept);
+            addWidget("_autosuggest-forward-char", this::autosuggestForwardChar);
+            addWidget("_autosuggest-end-of-line", this::autosuggestEndOfLine);
+            addWidget("_autosuggest-forward-word", this::partialAccept);
             addWidget("autosuggest-toggle", this::toggleKeyBindings);
             KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
             for (Map.Entry<String, Binding> bound : map.getBoundKeys().entrySet()) {
@@ -388,7 +387,6 @@ public abstract class Widgets {
             } else {
                 autosuggestionBindings();
             }
-            enableTailTip(autosuggestion);
             return autosuggestion;
         }
 
@@ -406,27 +404,34 @@ public abstract class Widgets {
          * key bindings...
          *
          */
-        private void autosuggestionBindings() {
+        public void autosuggestionBindings() {
+            if (autosuggestion) {
+                return;
+            }
             KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
             for (Map.Entry<Reference, Set<String>> entry : defaultBindings.entrySet()) {
                 if (entry.getKey().name().equals(LineReader.FORWARD_CHAR)) {
                     for (String s: entry.getValue()) {
-                        map.bind(new Reference("autosuggest-forward-char"), s);
+                        map.bind(new Reference("_autosuggest-forward-char"), s);
                     }
                 } else if (entry.getKey().name().equals(LineReader.END_OF_LINE)) {
                     for (String s: entry.getValue()) {
-                        map.bind(new Reference("autosuggest-end-of-line"), s);
+                        map.bind(new Reference("_autosuggest-end-of-line"), s);
                     }
                 } else if (entry.getKey().name().equals(LineReader.FORWARD_WORD)) {
                     for (String s: entry.getValue()) {
-                        map.bind(new Reference("autosuggest-forward-word"), s);
+                        map.bind(new Reference("_autosuggest-forward-word"), s);
                     }
                 }
             }
             autosuggestion = true;
+            enableTailTip(autosuggestion);
         }
 
-        private void defaultBindings() {
+        public void defaultBindings() {
+            if (!autosuggestion) {
+                return;
+            }
             KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
             for (Map.Entry<Reference, Set<String>> entry : defaultBindings.entrySet()) {
                 for (String s: entry.getValue()) {
@@ -434,6 +439,7 @@ public abstract class Widgets {
                 }
             }
             autosuggestion = false;
+            enableTailTip(autosuggestion);
         }
     }
 }

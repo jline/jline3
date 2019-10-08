@@ -171,7 +171,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
     protected final Buffer buf = new BufferImpl();
     protected String tailTip = "";
-    protected boolean doTailTip;
+    protected SuggestionType autosuggestion = SuggestionType.NONE;
 
     protected final Size size = new Size();
 
@@ -330,8 +330,13 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     @Override
-    public void enableTailTip(boolean enable) {
-        this.doTailTip = enable;
+    public void setAutosuggestion(SuggestionType type) {
+        this.autosuggestion = type;
+    }
+
+    @Override
+    public SuggestionType getAutosuggestion() {
+        return autosuggestion;
     }
 
     @Override
@@ -3932,11 +3937,22 @@ public class LineReaderImpl implements LineReader, Flushable
         AttributedStringBuilder full = new AttributedStringBuilder().tabs(TAB_WIDTH);
         full.append(prompt);
         full.append(tNewBuf);
-        if (doTailTip) {
+        String lastBinding = getLastBinding() != null ? getLastBinding() : "";
+        if (autosuggestion == SuggestionType.HISTORY) {
             AttributedStringBuilder sb = new AttributedStringBuilder();
             tailTip = matchPreviousCommand(buf.toString());
             sb.styled(AttributedStyle::faint, tailTip);
             full.append(sb.toAttributedString());
+        } else if (autosuggestion == SuggestionType.COMPLETER) {
+            if (buf.length() > 0 && buf.length() == buf.cursor()
+                && (!lastBinding.equals("\t") || buf.prevChar() == ' ')) {
+                if (buf.prevChar() == ' ') {
+                    doEmptyList();
+                }
+                listChoices(true);
+            } else if (!lastBinding.equals("\t")){
+                doEmptyList();
+            }
         }
         if (post != null) {
             full.append("\n");
@@ -4237,7 +4253,11 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     protected boolean listChoices() {
-        return doComplete(CompletionType.List, isSet(Option.MENU_COMPLETE), false);
+        return listChoices(false);
+    }
+
+    private boolean listChoices(boolean forSuggestion) {
+        return doComplete(CompletionType.List, isSet(Option.MENU_COMPLETE), false, forSuggestion);
     }
 
     protected boolean deleteCharOrList() {
@@ -4249,6 +4269,10 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     protected boolean doComplete(CompletionType lst, boolean useMenu, boolean prefix) {
+        return doComplete(lst, useMenu, prefix, false);
+    }
+
+    protected boolean doComplete(CompletionType lst, boolean useMenu, boolean prefix, boolean forSuggestion) {
         // If completion is disabled, just bail out
         if (getBoolean(DISABLE_COMPLETION, false)) {
             return true;
@@ -4375,7 +4399,7 @@ public class LineReaderImpl implements LineReader, Flushable
                 List<Candidate> possible = matching.entrySet().stream()
                         .flatMap(e -> e.getValue().stream())
                         .collect(Collectors.toList());
-                doList(possible, line.word(), false, line::escape);
+                doList(possible, line.word(), false, line::escape, forSuggestion);
                 return !possible.isEmpty();
             }
 
@@ -4844,7 +4868,18 @@ public class LineReaderImpl implements LineReader, Flushable
         return false;
     }
 
-    protected boolean doList(List<Candidate> possible, String completed, boolean runLoop, BiFunction<CharSequence, Boolean, CharSequence> escaper) {
+    protected boolean doEmptyList() {
+        return doList(new ArrayList<Candidate>(), "", false, null, false);
+    }
+
+    protected boolean doList(List<Candidate> possible
+                           , String completed, boolean runLoop, BiFunction<CharSequence, Boolean, CharSequence> escaper) {
+        return doList(possible, completed, runLoop, escaper, false);
+    }
+
+    protected boolean doList(List<Candidate> possible
+                           , String completed
+                           , boolean runLoop, BiFunction<CharSequence, Boolean, CharSequence> escaper, boolean forSuggestion) {
         // If we list only and if there's a big
         // number of items, we should ask the user
         // for confirmation, display the list
@@ -4857,13 +4892,17 @@ public class LineReaderImpl implements LineReader, Flushable
         int listMax = getInt(LIST_MAX, DEFAULT_LIST_MAX);
         if (listMax > 0 && possible.size() >= listMax
                 || lines >= size.getRows() - promptLines) {
-            // prompt
-            post = () -> new AttributedString(getAppName() + ": do you wish to see all " + possible.size()
-                    + " possibilities (" + lines + " lines)?");
-            redisplay(true);
-            int c = readCharacter();
-            if (c != 'y' && c != 'Y' && c != '\t') {
-                post = null;
+            if (!forSuggestion) {
+                // prompt
+                post = () -> new AttributedString(getAppName() + ": do you wish to see all " + possible.size()
+                        + " possibilities (" + lines + " lines)?");
+                redisplay(true);
+                int c = readCharacter();
+                if (c != 'y' && c != 'Y' && c != '\t') {
+                    post = null;
+                    return false;
+                }
+            } else {
                 return false;
             }
         }

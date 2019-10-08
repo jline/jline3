@@ -442,6 +442,12 @@ public interface LineReader {
         PASTE
     }
 
+    enum SuggestionType {
+        NONE,
+        HISTORY,
+        COMPLETER
+    }
+
     /**
      * Read the next line and return the contents of the buffer.
      *
@@ -666,6 +672,7 @@ public interface LineReader {
 
     public String getTailTip();
 
-    public void enableTailTip(boolean enable);
+    public void setAutosuggestion(SuggestionType type);
 
+    public SuggestionType getAutosuggestion();
 }
