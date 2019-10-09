@@ -345,6 +345,11 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     @Override
+    public void setTailTip(String tailTip) {
+        this.tailTip = tailTip;
+    }
+
+    @Override
     public void runMacro(String macro) {
         bindingReader.runMacro(macro);
     }
@@ -3947,12 +3952,30 @@ public class LineReaderImpl implements LineReader, Flushable
             if (buf.length() > 0 && buf.length() == buf.cursor()
                 && (!lastBinding.equals("\t") || buf.prevChar() == ' ')) {
                 if (buf.prevChar() == ' ') {
-                    doEmptyList();
+                    clearChoices();
                 }
                 listChoices(true);
             } else if (!lastBinding.equals("\t")){
-                doEmptyList();
+                clearChoices();
             }
+        } else if (autosuggestion == SuggestionType.TAIL_TIP
+                && buf.length() == buf.cursor()) {
+            if (!lastBinding.equals("\t")){
+                clearChoices();
+            }
+            AttributedStringBuilder sb = new AttributedStringBuilder();
+            if (buf.prevChar() != ' ') {
+                if (!tailTip.startsWith("[")) {
+                    int idx = tailTip.indexOf(' ');
+                    if (idx > 0) {
+                        tailTip = tailTip.substring(idx);
+                    }
+                } else {
+                    sb.append(" ");
+                }
+            }
+            sb.styled(AttributedStyle::faint, tailTip);
+            full.append(sb.toAttributedString());
         }
         if (post != null) {
             full.append("\n");
@@ -4868,7 +4891,7 @@ public class LineReaderImpl implements LineReader, Flushable
         return false;
     }
 
-    protected boolean doEmptyList() {
+    protected boolean clearChoices() {
         return doList(new ArrayList<Candidate>(), "", false, null, false);
     }
 

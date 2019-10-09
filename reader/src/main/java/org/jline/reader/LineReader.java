@@ -445,7 +445,8 @@ public interface LineReader {
     enum SuggestionType {
         NONE,
         HISTORY,
-        COMPLETER
+        COMPLETER,
+        TAIL_TIP
     }
 
     /**
@@ -668,11 +669,13 @@ public interface LineReader {
 
     void editAndAddInBuffer(File file) throws Exception;
 
-    public String getLastBinding();
+    String getLastBinding();
 
-    public String getTailTip();
+    String getTailTip();
 
-    public void setAutosuggestion(SuggestionType type);
+    void setTailTip(String tailTip);
 
-    public SuggestionType getAutosuggestion();
+    void setAutosuggestion(SuggestionType type);
+
+    SuggestionType getAutosuggestion();
 }

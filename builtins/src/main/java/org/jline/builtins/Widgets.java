@@ -67,6 +67,10 @@ public abstract class Widgets {
         reader.getBuffer().copyFrom(buffer);
     }
 
+    public List<String> args(String line) {
+        return reader.getParser().parse(line, 0).words();
+    }
+
     public String prevChar() {
         return String.valueOf((char)reader.getBuffer().prevChar());
     }
@@ -87,8 +91,16 @@ public abstract class Widgets {
         return reader.getTailTip();
     }
 
-    public void enableTailTip(boolean enable) {
-        reader.setAutosuggestion(enable ? SuggestionType.HISTORY : SuggestionType.NONE);
+    public void setTailTip(String tailTip) {
+        reader.setTailTip(tailTip);
+    }
+
+    public void clearTailTip() {
+        reader.setTailTip("");
+    }
+
+    public void setSuggestionType(SuggestionType type) {
+        reader.setAutosuggestion(type);
     }
 
     public static class AutopairWidgets extends Widgets {
@@ -425,7 +437,7 @@ public abstract class Widgets {
                 }
             }
             autosuggestion = true;
-            enableTailTip(autosuggestion);
+            setSuggestionType(SuggestionType.HISTORY);
         }
 
         public void defaultBindings() {
@@ -439,7 +451,167 @@ public abstract class Widgets {
                 }
             }
             autosuggestion = false;
-            enableTailTip(autosuggestion);
+            setSuggestionType(SuggestionType.NONE);
         }
     }
+
+    public static class TailTipWidgets extends Widgets {
+        private final Map<Reference, Set<String>> defaultBindings = new HashMap<>();
+        private boolean autosuggestion = false;
+        private Map<String,List<String>> tailTips = new HashMap<>();
+        private boolean withCompleter;
+
+        public TailTipWidgets(LineReader reader, Map<String,List<String>> tailTips) {
+            this(reader, tailTips, true);
+        }
+
+        public TailTipWidgets(LineReader reader, Map<String, List<String>> tailTips, boolean withCompleter) {
+            super(reader);
+            this.tailTips.putAll(tailTips);
+            this.withCompleter = withCompleter;
+            addWidget("_tailtip-accept-line", this::tailtipAcceptLine);
+            addWidget("_tailtip-insert", this::tailtipInsert);
+            addWidget("_tailtip-backward-delete-char", this::tailtipBackwardDelete);
+            addWidget("_tailtip-delete-char", this::tailtipDelete);
+            addWidget("tailtip-toggle", this::toggleKeyBindings);
+            KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
+            for (Map.Entry<String, Binding> bound : map.getBoundKeys().entrySet()) {
+                if (bound.getValue() instanceof Reference) {
+                    Reference w = (Reference)bound.getValue();
+                    if (w.name().equals(LineReader.ACCEPT_LINE)){
+                        addKeySequence(w, bound.getKey());
+                    } else if (w.name().equals(LineReader.BACKWARD_DELETE_CHAR)){
+                        addKeySequence(w, bound.getKey());
+                    } else if (w.name().equals(LineReader.DELETE_CHAR)){
+                        addKeySequence(w, bound.getKey());
+                    }
+                }
+            }
+        }
+
+        private void addKeySequence(Reference widget, String keySequence) {
+            if (!defaultBindings.containsKey(widget)) {
+                defaultBindings.put(widget, new HashSet<String>());
+            }
+            defaultBindings.get(widget).add(keySequence);
+        }
+
+        /*
+         * widgets
+         */
+        public boolean tailtipAcceptLine() {
+            if (withCompleter){
+                setSuggestionType(SuggestionType.COMPLETER);
+            }
+            return clearTailTip(LineReader.ACCEPT_LINE);
+        }
+
+        public boolean tailtipBackwardDelete() {
+            return clearTailTip(LineReader.BACKWARD_DELETE_CHAR);
+        }
+
+        private boolean clearTailTip(String widget) {
+            clearTailTip();
+            callWidget(widget);
+            return true;
+        }
+
+        public boolean tailtipDelete() {
+            clearTailTip();
+            return doTailTip(LineReader.DELETE_CHAR);
+        }
+
+        public boolean tailtipInsert() {
+            return doTailTip(LineReader.SELF_INSERT);
+        }
+
+        private boolean doTailTip(String widget) {
+            Buffer buffer = buffer();
+            if (buffer.length() == buffer.cursor()) {
+                List<String> bp = args(buffer.toString());
+                if (bp.size() > 0 && tailTips.containsKey(bp.get(0))) {
+                    setSuggestionType(SuggestionType.TAIL_TIP);
+                    List<String> params = tailTips.get(bp.get(0));
+                    if (bp.size() - 1 < params.size()) {
+                        StringBuilder tip = new StringBuilder();
+                        boolean first = true;
+                        for (int i = bp.size() - 1; i < params.size(); i++) {
+                            if (!first) {
+                                tip.append(" ");
+                            }
+                            tip.append(params.get(i));
+                            first = false;
+                        }
+                        setTailTip(tip.toString());
+                    } else if (params.get(params.size() - 1).charAt(0) == '[') {
+                        setTailTip(params.get(params.size() - 1));
+                    }
+                } else if (withCompleter){
+                    setSuggestionType(SuggestionType.COMPLETER);
+                }
+            }
+            callWidget(widget);
+            return true;
+        }
+
+        public boolean toggleKeyBindings() {
+            if (autosuggestion) {
+                defaultBindings();
+            } else {
+                autosuggestionBindings();
+            }
+            return autosuggestion;
+        }
+
+        /*
+         * key bindings...
+         *
+         */
+        public void autosuggestionBindings() {
+            if (autosuggestion) {
+                return;
+            }
+            KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
+            for (Map.Entry<Reference, Set<String>> entry : defaultBindings.entrySet()) {
+                if (entry.getKey().name().equals(LineReader.ACCEPT_LINE)) {
+                    for (String s: entry.getValue()) {
+                        map.bind(new Reference("_tailtip-accept-line"), s);
+                    }
+                }
+                if (entry.getKey().name().equals(LineReader.BACKWARD_DELETE_CHAR)) {
+                    for (String s: entry.getValue()) {
+                        map.bind(new Reference("_tailtip-backward-delete-char"), s);
+                    }
+                }
+                if (entry.getKey().name().equals(LineReader.DELETE_CHAR)) {
+                    for (String s: entry.getValue()) {
+                        map.bind(new Reference("_tailtip-delete-char"), s);
+                    }
+                }
+            }
+            map.bind(new Reference("_tailtip-insert"), " ");
+            if (withCompleter) {
+                setSuggestionType(SuggestionType.COMPLETER);
+            } else {
+                setSuggestionType(SuggestionType.TAIL_TIP);
+            }
+            autosuggestion = true;
+        }
+
+        public void defaultBindings() {
+            if (!autosuggestion) {
+                return;
+            }
+            KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
+            for (Map.Entry<Reference, Set<String>> entry : defaultBindings.entrySet()) {
+                for (String s: entry.getValue()) {
+                    map.bind(entry.getKey(), s);
+                }
+            }
+            map.bind(new Reference(LineReader.SELF_INSERT), " ");
+            setSuggestionType(SuggestionType.NONE);
+            autosuggestion = false;
+        }
+    }
+
 }

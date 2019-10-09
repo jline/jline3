@@ -26,6 +26,7 @@ import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.TTop;
 import org.jline.builtins.Widgets.AutopairWidgets;
 import org.jline.builtins.Widgets.AutosuggestionWidgets;
+import org.jline.builtins.Widgets.TailTipWidgets;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.LineReader.SuggestionType;
@@ -98,7 +99,7 @@ public class Example
           , "    unsetopt        unset options"
           , "    widget          UNAVAILABLE"
           , "    autopair        toggle brackets/quotes autopair key bindings"
-          , "    autosuggestion  history, completer or none"
+          , "    autosuggestion  history, completer, tailtip or none"
           , "  Example:"
           , "    cls             clear screen"
           , "    help            list available commands"
@@ -202,7 +203,7 @@ public class Example
                         break;
                     case "argument":
                         completer = new ArgumentCompleter(
-                                new StringsCompleter("foo11", "foo12", "foo13"),
+                                new StringsCompleter("foo11", "foo12", "foo13", "tail"),
                                 new StringsCompleter("foo21", "foo22", "foo23"),
                                 new Completer() {
                                     @Override
@@ -306,6 +307,9 @@ public class Example
                     .build();
             AutopairWidgets autopairWidgets = new AutopairWidgets(reader);
             AutosuggestionWidgets autosuggestionWidgets = new AutosuggestionWidgets(reader);
+            Map<String, List<String>> tailTips = new HashMap<>();
+            tailTips.put("tail", Arrays.asList("param1", "param2", "[paramN...]"));
+            TailTipWidgets tailtipWidgets = new TailTipWidgets(reader, tailTips);
             if (timer) {
                 Executors.newScheduledThreadPool(1)
                         .scheduleAtFixedRate(() -> {
@@ -460,18 +464,19 @@ public class Example
                         if (pl.words().size() == 2) {
                             String type = pl.words().get(1);
                             if (type.toLowerCase().startsWith("his")) {
+                                tailtipWidgets.defaultBindings();
                                 autosuggestionWidgets.autosuggestionBindings();
+                            } else if (type.toLowerCase().startsWith("tai")) {
+                                autosuggestionWidgets.defaultBindings();
+                                tailtipWidgets.autosuggestionBindings();
                             } else if (type.toLowerCase().startsWith("com")) {
-                                if (reader.getAutosuggestion() == SuggestionType.HISTORY) {
-                                    autosuggestionWidgets.defaultBindings();
-                                }
+                                autosuggestionWidgets.defaultBindings();
+                                tailtipWidgets.defaultBindings();
                                 reader.setAutosuggestion(SuggestionType.COMPLETER);
                             } else if (type.toLowerCase().startsWith("non")) {
-                                if (reader.getAutosuggestion() == SuggestionType.HISTORY) {
-                                    autosuggestionWidgets.defaultBindings();
-                                } else {
-                                    reader.setAutosuggestion(SuggestionType.NONE);
-                                }
+                                autosuggestionWidgets.defaultBindings();
+                                tailtipWidgets.defaultBindings();
+                                reader.setAutosuggestion(SuggestionType.NONE);
                             } else {
                                 terminal.writer().println("Usage: autosuggestion history|completer|none");
                             }
