@@ -27,6 +27,8 @@ import org.jline.builtins.TTop;
 import org.jline.builtins.Widgets.AutopairWidgets;
 import org.jline.builtins.Widgets.AutosuggestionWidgets;
 import org.jline.builtins.Widgets.TailTipWidgets;
+import org.jline.builtins.Widgets.TailTipWidgets.TipType;
+import org.jline.builtins.Widgets.ArgDesc;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.LineReader.SuggestionType;
@@ -99,7 +101,7 @@ public class Example
           , "    unsetopt        unset options"
           , "    widget          UNAVAILABLE"
           , "    autopair        toggle brackets/quotes autopair key bindings"
-          , "    autosuggestion  history, completer, tailtip or none"
+          , "    autosuggestion  history, completer, tailtip [tailtip|completer|combined] or none"
           , "  Example:"
           , "    cls             clear screen"
           , "    help            list available commands"
@@ -307,9 +309,22 @@ public class Example
                     .build();
             AutopairWidgets autopairWidgets = new AutopairWidgets(reader);
             AutosuggestionWidgets autosuggestionWidgets = new AutosuggestionWidgets(reader);
-            Map<String, List<String>> tailTips = new HashMap<>();
-            tailTips.put("tail", Arrays.asList("param1", "param2", "[paramN...]"));
-            TailTipWidgets tailtipWidgets = new TailTipWidgets(reader, tailTips);
+            Map<String, List<ArgDesc>> tailTips = new HashMap<>();
+            tailTips.put("tail", ArgDesc.doArgNames(Arrays.asList("param1", "param2", "[paramN...]")));
+            tailTips.put("foo11", Arrays.asList(
+                    new ArgDesc("param1",Arrays.asList(new AttributedString("line 1")
+                                                    , new AttributedString("line 2")
+                                                    , new AttributedString("line 3")
+                                                    , new AttributedString("line 4")
+                                                    , new AttributedString("line 5")
+                                                    , new AttributedString("line 6")
+                                                      ))
+                  , new ArgDesc("param2",Arrays.asList(new AttributedString("line 1")
+                                                    , new AttributedString("line 2")
+                                                      ))
+                  , new ArgDesc("param3", new ArrayList<>())
+            ));
+            TailTipWidgets tailtipWidgets = new TailTipWidgets(reader, tailTips, TipType.COMPLETER);
             if (timer) {
                 Executors.newScheduledThreadPool(1)
                         .scheduleAtFixedRate(() -> {
@@ -461,7 +476,7 @@ public class Example
                         }
                     }
                     else if ("autosuggestion".equals(pl.word())) {
-                        if (pl.words().size() == 2) {
+                        if (pl.words().size() > 1) {
                             String type = pl.words().get(1);
                             if (type.toLowerCase().startsWith("his")) {
                                 tailtipWidgets.defaultBindings();
@@ -469,6 +484,17 @@ public class Example
                             } else if (type.toLowerCase().startsWith("tai")) {
                                 autosuggestionWidgets.defaultBindings();
                                 tailtipWidgets.autosuggestionBindings();
+                                tailtipWidgets.setDescriptionSize(5);
+                                if (pl.words().size() > 2) {
+                                    String mode = pl.words().get(2);
+                                    if (mode.toLowerCase().startsWith("tai")) {
+                                        tailtipWidgets.setTipType(TipType.TAIL_TIP);
+                                    } else if (mode.toLowerCase().startsWith("comp")) {
+                                        tailtipWidgets.setTipType(TipType.COMPLETER);
+                                    } else if (mode.toLowerCase().startsWith("comb")) {
+                                        tailtipWidgets.setTipType(TipType.COMBINED);
+                                    }
+                                }
                             } else if (type.toLowerCase().startsWith("com")) {
                                 autosuggestionWidgets.defaultBindings();
                                 tailtipWidgets.defaultBindings();
@@ -478,10 +504,17 @@ public class Example
                                 tailtipWidgets.defaultBindings();
                                 reader.setAutosuggestion(SuggestionType.NONE);
                             } else {
-                                terminal.writer().println("Usage: autosuggestion history|completer|none");
+                                terminal.writer().println("Usage: autosuggestion history|completer|tailtip|none");
                             }
                         } else {
-                            terminal.writer().println("Autosuggestion: " + reader.getAutosuggestion());
+                            if (tailtipWidgets.isActive()) {
+                                terminal.writer().println("Autosuggestion: tailtip/" + tailtipWidgets.getTipType());
+                            } else {
+                                terminal.writer().println("Autosuggestion: " + reader.getAutosuggestion());
+                            }
+                        }
+                        if (!tailtipWidgets.isActive()) {
+                            Status.getStatus(terminal).update(null);
                         }
                     }
                     else if ("help".equals(pl.word()) || "?".equals(pl.word())) {

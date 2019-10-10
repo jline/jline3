@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2019, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -13,8 +13,6 @@ import java.util.Collections;
 import java.util.ArrayList;
 import java.util.List;
 import org.jline.terminal.Terminal;
-import org.jline.terminal.Terminal.Signal;
-import org.jline.terminal.Terminal.SignalHandler;
 import org.jline.terminal.impl.AbstractTerminal;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.terminal.Size;
@@ -77,6 +75,16 @@ public class Status {
             return;
         }
         update(oldLines);
+    }
+
+    public void clear() {
+        if (!oldLines.isEmpty()) {
+            List<AttributedString> as = new ArrayList<>();
+            for (int i = 0; i < oldLines.size(); i++) {
+                as.add(new AttributedString(""));
+            }
+            update(as);
+        }
     }
 
     public void update(List<AttributedString> lines) {

@@ -3957,31 +3957,42 @@ public class LineReaderImpl implements LineReader, Flushable
                 listChoices(true);
             } else if (!lastBinding.equals("\t")){
                 clearChoices();
+                clearStatus();
             }
-        } else if (autosuggestion == SuggestionType.TAIL_TIP
-                && buf.length() == buf.cursor()) {
-            if (!lastBinding.equals("\t")){
-                clearChoices();
-            }
-            AttributedStringBuilder sb = new AttributedStringBuilder();
-            if (buf.prevChar() != ' ') {
-                if (!tailTip.startsWith("[")) {
-                    int idx = tailTip.indexOf(' ');
-                    if (idx > 0) {
-                        tailTip = tailTip.substring(idx);
-                    }
-                } else {
-                    sb.append(" ");
+        } else if (autosuggestion == SuggestionType.TAIL_TIP) {
+            if (buf.length() == buf.cursor()) {
+                if (!lastBinding.equals("\t")){
+                    clearChoices();
                 }
+                AttributedStringBuilder sb = new AttributedStringBuilder();
+                if (buf.prevChar() != ' ') {
+                    if (!tailTip.startsWith("[")) {
+                        int idx = tailTip.indexOf(' ');
+                        if (idx > 0) {
+                            tailTip = tailTip.substring(idx);
+                        }
+                    } else {
+                        sb.append(" ");
+                    }
+                }
+                sb.styled(AttributedStyle::faint, tailTip);
+                full.append(sb.toAttributedString());
+            } else {
+                clearStatus();
             }
-            sb.styled(AttributedStyle::faint, tailTip);
-            full.append(sb.toAttributedString());
         }
         if (post != null) {
             full.append("\n");
             full.append(post.get());
         }
         return full.toAttributedString();
+    }
+
+    private void clearStatus() {
+        Status status = Status.getStatus(terminal, false);
+        if (status != null) {
+            status.clear();
+        }
     }
 
     private AttributedString getHighlightedBuffer(String buffer) {

@@ -26,6 +26,8 @@ import org.jline.reader.LineReader.SuggestionType;
 import org.jline.reader.Reference;
 import org.jline.reader.Widget;
 import org.jline.reader.impl.BufferImpl;
+import org.jline.utils.AttributedString;
+import org.jline.utils.Status;
 
 public abstract class Widgets {
     private final LineReader reader;
@@ -102,6 +104,30 @@ public abstract class Widgets {
     public void setSuggestionType(SuggestionType type) {
         reader.setAutosuggestion(type);
     }
+
+    public void addDescription(List<AttributedString> desc) {
+        Status.getStatus(reader.getTerminal()).update(desc);
+    }
+
+    public void clearDescription() {
+        clearDescription(0);
+    }
+
+    public void clearDescription(int size) {
+        if (size > 0) {
+            List<AttributedString> as = new ArrayList<>();
+            for (int i = 0; i < size; i++) {
+                as.add(new AttributedString(""));
+            }
+            addDescription(as);
+        } else {
+            Status status = Status.getStatus(reader.getTerminal(), false);
+            if (status != null) {
+                status.clear();
+            }
+        }
+    }
+
 
     public static class AutopairWidgets extends Widgets {
         /*
@@ -456,23 +482,40 @@ public abstract class Widgets {
     }
 
     public static class TailTipWidgets extends Widgets {
+        public enum TipType {
+            TAIL_TIP,
+            COMPLETER,
+            COMBINED
+        }
         private final Map<Reference, Set<String>> defaultBindings = new HashMap<>();
         private boolean autosuggestion = false;
-        private Map<String,List<String>> tailTips = new HashMap<>();
-        private boolean withCompleter;
+        private Map<String,List<ArgDesc>> tailTips = new HashMap<>();
+        private TipType tipType;
+        private int descriptionSize = 0;
 
-        public TailTipWidgets(LineReader reader, Map<String,List<String>> tailTips) {
-            this(reader, tailTips, true);
+        public TailTipWidgets(LineReader reader, Map<String,List<ArgDesc>> tailTips) {
+            this(reader, tailTips, 0, TipType.COMBINED);
         }
 
-        public TailTipWidgets(LineReader reader, Map<String, List<String>> tailTips, boolean withCompleter) {
+        public TailTipWidgets(LineReader reader, Map<String,List<ArgDesc>> tailTips, TipType tipType) {
+            this(reader, tailTips, 0, tipType);
+        }
+
+        public TailTipWidgets(LineReader reader, Map<String,List<ArgDesc>> tailTips, int descriptionSize) {
+            this(reader, tailTips, descriptionSize, TipType.COMBINED);
+        }
+
+        public TailTipWidgets(LineReader reader, Map<String,List<ArgDesc>> tailTips, int descriptionSize, TipType tipType) {
             super(reader);
             this.tailTips.putAll(tailTips);
-            this.withCompleter = withCompleter;
+            this.descriptionSize = descriptionSize;
+            this.tipType = tipType;
+            clearDescription(descriptionSize);
             addWidget("_tailtip-accept-line", this::tailtipAcceptLine);
             addWidget("_tailtip-insert", this::tailtipInsert);
             addWidget("_tailtip-backward-delete-char", this::tailtipBackwardDelete);
             addWidget("_tailtip-delete-char", this::tailtipDelete);
+            addWidget("_tailtip-expand-or-complete", this::tailtipComplete);
             addWidget("tailtip-toggle", this::toggleKeyBindings);
             KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
             for (Map.Entry<String, Binding> bound : map.getBoundKeys().entrySet()) {
@@ -483,6 +526,8 @@ public abstract class Widgets {
                     } else if (w.name().equals(LineReader.BACKWARD_DELETE_CHAR)){
                         addKeySequence(w, bound.getKey());
                     } else if (w.name().equals(LineReader.DELETE_CHAR)){
+                        addKeySequence(w, bound.getKey());
+                    } else if (w.name().equals(LineReader.EXPAND_OR_COMPLETE)){
                         addKeySequence(w, bound.getKey());
                     }
                 }
@@ -496,18 +541,49 @@ public abstract class Widgets {
             defaultBindings.get(widget).add(keySequence);
         }
 
+        public void setDescriptionSize(int descriptionSize) {
+            this.descriptionSize = descriptionSize;
+            clearDescription(descriptionSize);
+        }
+
+        public int getDescriptionSize() {
+            return descriptionSize;
+        }
+
+        public void setTipType(TipType type) {
+            this.tipType = type;
+            if (tipType == TipType.TAIL_TIP) {
+                setSuggestionType(SuggestionType.TAIL_TIP);
+            } else {
+                setSuggestionType(SuggestionType.COMPLETER);
+            }
+        }
+
+        public TipType getTipType() {
+            return tipType;
+        }
+
+        public boolean isActive() {
+            return autosuggestion;
+        }
+
         /*
          * widgets
          */
+        public boolean tailtipComplete() {
+            return doTailTip(LineReader.EXPAND_OR_COMPLETE);
+        }
+
         public boolean tailtipAcceptLine() {
-            if (withCompleter){
+            if (tipType != TipType.TAIL_TIP){
                 setSuggestionType(SuggestionType.COMPLETER);
             }
+            clearDescription();
             return clearTailTip(LineReader.ACCEPT_LINE);
         }
 
         public boolean tailtipBackwardDelete() {
-            return clearTailTip(LineReader.BACKWARD_DELETE_CHAR);
+            return doTailTip(LineReader.BACKWARD_DELETE_CHAR);
         }
 
         private boolean clearTailTip(String widget) {
@@ -527,31 +603,55 @@ public abstract class Widgets {
 
         private boolean doTailTip(String widget) {
             Buffer buffer = buffer();
-            if (buffer.length() == buffer.cursor()) {
+            callWidget(widget);
+            if (buffer.length() == buffer.cursor()
+                    && ((!widget.equals(LineReader.BACKWARD_DELETE_CHAR) && prevChar().equals(" ")) ||
+                        (widget.equals(LineReader.BACKWARD_DELETE_CHAR) && !prevChar().equals(" ")))) {
                 List<String> bp = args(buffer.toString());
-                if (bp.size() > 0 && tailTips.containsKey(bp.get(0))) {
-                    setSuggestionType(SuggestionType.TAIL_TIP);
-                    List<String> params = tailTips.get(bp.get(0));
-                    if (bp.size() - 1 < params.size()) {
+                int bpsize = bp.size() + (widget.equals(LineReader.BACKWARD_DELETE_CHAR) ? -1 : 0);
+                List<AttributedString> desc = new ArrayList<>();
+                if (bpsize > 0 && tailTips.containsKey(bp.get(0))) {
+                    List<ArgDesc> params = tailTips.get(bp.get(0));
+                    setSuggestionType(tipType == TipType.COMPLETER ? SuggestionType.COMPLETER : SuggestionType.TAIL_TIP);
+                    if (bpsize - 1 < params.size()) {
+                        desc = params.get(bpsize - 1).getDescription();
                         StringBuilder tip = new StringBuilder();
-                        boolean first = true;
-                        for (int i = bp.size() - 1; i < params.size(); i++) {
-                            if (!first) {
-                                tip.append(" ");
-                            }
-                            tip.append(params.get(i));
-                            first = false;
+                        for (int i = bpsize - 1; i < params.size(); i++) {
+                            tip.append(params.get(i).getName());
+                            tip.append(" ");
                         }
                         setTailTip(tip.toString());
-                    } else if (params.get(params.size() - 1).charAt(0) == '[') {
-                        setTailTip(params.get(params.size() - 1));
+                    } else if (params.get(params.size() - 1).getName().charAt(0) == '[') {
+                        setTailTip(params.get(params.size() - 1).getName());
+                        desc = params.get(params.size() - 1).getDescription();
                     }
-                } else if (withCompleter){
-                    setSuggestionType(SuggestionType.COMPLETER);
+                } else {
+                    setTailTip("");
+                    if (tipType != TipType.TAIL_TIP){
+                        setSuggestionType(SuggestionType.COMPLETER);
+                    }
                 }
+                doDescription(desc);
             }
-            callWidget(widget);
             return true;
+        }
+
+        private void doDescription(List<AttributedString> desc) {
+            if (descriptionSize == 0) {
+                return;
+            }
+            if (desc.isEmpty()) {
+                clearDescription();
+            } else if (desc.size() == descriptionSize) {
+                addDescription(desc);
+            } else if (desc.size() > descriptionSize) {
+                addDescription(desc.subList(0, descriptionSize));
+            } else if (desc.size() < descriptionSize) {
+                while (desc.size() != descriptionSize) {
+                    desc.add(new AttributedString(""));
+                }
+                addDescription(desc);
+            }
         }
 
         public boolean toggleKeyBindings() {
@@ -588,9 +688,14 @@ public abstract class Widgets {
                         map.bind(new Reference("_tailtip-delete-char"), s);
                     }
                 }
+                if (entry.getKey().name().equals(LineReader.EXPAND_OR_COMPLETE)) {
+                    for (String s: entry.getValue()) {
+                        map.bind(new Reference("_tailtip-expand-or-complete"), s);
+                    }
+                }
             }
             map.bind(new Reference("_tailtip-insert"), " ");
-            if (withCompleter) {
+            if (tipType != TipType.TAIL_TIP) {
                 setSuggestionType(SuggestionType.COMPLETER);
             } else {
                 setSuggestionType(SuggestionType.TAIL_TIP);
@@ -611,6 +716,36 @@ public abstract class Widgets {
             map.bind(new Reference(LineReader.SELF_INSERT), " ");
             setSuggestionType(SuggestionType.NONE);
             autosuggestion = false;
+        }
+    }
+
+    public static class ArgDesc {
+        private String name;
+        private List<AttributedString> description = new ArrayList<AttributedString>();
+
+        public ArgDesc(String name) {
+            this(name, new ArrayList<AttributedString>());
+        }
+
+        public ArgDesc(String name, List<AttributedString> description) {
+            this.name = name;
+            this.description.addAll(description);
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public List<AttributedString> getDescription() {
+            return description;
+        }
+
+        public static List<ArgDesc> doArgNames(List<String> names) {
+            List<ArgDesc> out = new ArrayList<>();
+            for (String n: names) {
+                out.add(new ArgDesc(n));
+            }
+            return out;
         }
     }
 
