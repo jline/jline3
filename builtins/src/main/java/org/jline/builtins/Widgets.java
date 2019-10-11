@@ -27,6 +27,8 @@ import org.jline.reader.Reference;
 import org.jline.reader.Widget;
 import org.jline.reader.impl.BufferImpl;
 import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.AttributedStyle;
 import org.jline.utils.Status;
 
 public abstract class Widgets {
@@ -110,10 +112,10 @@ public abstract class Widgets {
     }
 
     public void clearDescription() {
-        clearDescription(0);
+        initDescription(0);
     }
 
-    public void clearDescription(int size) {
+    public void initDescription(int size) {
         if (size > 0) {
             List<AttributedString> as = new ArrayList<>();
             for (int i = 0; i < size; i++) {
@@ -507,10 +509,10 @@ public abstract class Widgets {
 
         public TailTipWidgets(LineReader reader, Map<String,List<ArgDesc>> tailTips, int descriptionSize, TipType tipType) {
             super(reader);
-            this.tailTips.putAll(tailTips);
+            this.tailTips = new HashMap<>(tailTips);
             this.descriptionSize = descriptionSize;
             this.tipType = tipType;
-            clearDescription(descriptionSize);
+            initDescription(descriptionSize);
             addWidget("_tailtip-accept-line", this::tailtipAcceptLine);
             addWidget("_tailtip-insert", this::tailtipInsert);
             addWidget("_tailtip-backward-delete-char", this::tailtipBackwardDelete);
@@ -543,7 +545,7 @@ public abstract class Widgets {
 
         public void setDescriptionSize(int descriptionSize) {
             this.descriptionSize = descriptionSize;
-            clearDescription(descriptionSize);
+            initDescription(descriptionSize);
         }
 
         public int getDescriptionSize() {
@@ -645,7 +647,11 @@ public abstract class Widgets {
             } else if (desc.size() == descriptionSize) {
                 addDescription(desc);
             } else if (desc.size() > descriptionSize) {
-                addDescription(desc.subList(0, descriptionSize));
+                AttributedStringBuilder asb = new AttributedStringBuilder();
+                asb.append(desc.get(descriptionSize - 1)).append("...", new AttributedStyle(AttributedStyle.INVERSE));
+                List<AttributedString> mod = new ArrayList<>(desc.subList(0, descriptionSize-1));
+                mod.add(asb.toAttributedString());
+                addDescription(mod);
             } else if (desc.size() < descriptionSize) {
                 while (desc.size() != descriptionSize) {
                     desc.add(new AttributedString(""));
@@ -729,7 +735,7 @@ public abstract class Widgets {
 
         public ArgDesc(String name, List<AttributedString> description) {
             this.name = name;
-            this.description.addAll(description);
+            this.description = new ArrayList<>(description);
         }
 
         public String getName() {

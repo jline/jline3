@@ -61,7 +61,7 @@ public class Example
               , "    -system          terminalBuilder.system(false)"
               , "    +system          terminalBuilder.system(true)"
               , "  Completors:"
-              , "    argumet          an argument completor"
+              , "    argumet          an argument completor & autosuggestion"
               , "    files            a completor that completes file names"
               , "    none             no completors"
               , "    param            a paramenter completer using Java functional interface"
@@ -205,7 +205,14 @@ public class Example
                         break;
                     case "argument":
                         completer = new ArgumentCompleter(
-                                new StringsCompleter("foo11", "foo12", "foo13", "tail"),
+                                new Completer() {
+                                    @Override
+                                    public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
+                                        candidates.add(new Candidate("foo11", "foo11", null, "with complete argDesc", null, null, true));
+                                        candidates.add(new Candidate("foo12", "foo12", null, "with argDesc -names only", null, null, true));
+                                        candidates.add(new Candidate("foo13", "foo13", null, "-", null, null, true));
+                                    }
+                                },
                                 new StringsCompleter("foo21", "foo22", "foo23"),
                                 new Completer() {
                                     @Override
@@ -310,16 +317,17 @@ public class Example
             AutopairWidgets autopairWidgets = new AutopairWidgets(reader);
             AutosuggestionWidgets autosuggestionWidgets = new AutosuggestionWidgets(reader);
             Map<String, List<ArgDesc>> tailTips = new HashMap<>();
-            tailTips.put("tail", ArgDesc.doArgNames(Arrays.asList("param1", "param2", "[paramN...]")));
+            tailTips.put("foo12", ArgDesc.doArgNames(Arrays.asList("param1", "param2", "[paramN...]")));
             tailTips.put("foo11", Arrays.asList(
-                    new ArgDesc("param1",Arrays.asList(new AttributedString("line 1")
-                                                    , new AttributedString("line 2")
+                    new ArgDesc("param1",Arrays.asList(new AttributedString("Param1 description...")
+                                                    , new AttributedString("line 2: This is a very long line that does exceed the terminal width."
+                                                          +" The line will be truncated automatically (by Status class) be before printing out.")
                                                     , new AttributedString("line 3")
                                                     , new AttributedString("line 4")
                                                     , new AttributedString("line 5")
                                                     , new AttributedString("line 6")
                                                       ))
-                  , new ArgDesc("param2",Arrays.asList(new AttributedString("line 1")
+                  , new ArgDesc("param2",Arrays.asList(new AttributedString("Param2 description...")
                                                     , new AttributedString("line 2")
                                                       ))
                   , new ArgDesc("param3", new ArrayList<>())
@@ -477,29 +485,29 @@ public class Example
                     }
                     else if ("autosuggestion".equals(pl.word())) {
                         if (pl.words().size() > 1) {
-                            String type = pl.words().get(1);
-                            if (type.toLowerCase().startsWith("his")) {
+                            String type = pl.words().get(1).toLowerCase();
+                            if (type.startsWith("his")) {
                                 tailtipWidgets.defaultBindings();
                                 autosuggestionWidgets.autosuggestionBindings();
-                            } else if (type.toLowerCase().startsWith("tai")) {
+                            } else if (type.startsWith("tai")) {
                                 autosuggestionWidgets.defaultBindings();
                                 tailtipWidgets.autosuggestionBindings();
                                 tailtipWidgets.setDescriptionSize(5);
                                 if (pl.words().size() > 2) {
-                                    String mode = pl.words().get(2);
-                                    if (mode.toLowerCase().startsWith("tai")) {
+                                    String mode = pl.words().get(2).toLowerCase();
+                                    if (mode.startsWith("tai")) {
                                         tailtipWidgets.setTipType(TipType.TAIL_TIP);
-                                    } else if (mode.toLowerCase().startsWith("comp")) {
+                                    } else if (mode.startsWith("comp")) {
                                         tailtipWidgets.setTipType(TipType.COMPLETER);
-                                    } else if (mode.toLowerCase().startsWith("comb")) {
+                                    } else if (mode.startsWith("comb")) {
                                         tailtipWidgets.setTipType(TipType.COMBINED);
                                     }
                                 }
-                            } else if (type.toLowerCase().startsWith("com")) {
+                            } else if (type.startsWith("com")) {
                                 autosuggestionWidgets.defaultBindings();
                                 tailtipWidgets.defaultBindings();
                                 reader.setAutosuggestion(SuggestionType.COMPLETER);
-                            } else if (type.toLowerCase().startsWith("non")) {
+                            } else if (type.startsWith("non")) {
                                 autosuggestionWidgets.defaultBindings();
                                 tailtipWidgets.defaultBindings();
                                 reader.setAutosuggestion(SuggestionType.NONE);

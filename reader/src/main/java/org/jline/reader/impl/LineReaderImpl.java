@@ -187,6 +187,7 @@ public class LineReaderImpl implements LineReader, Flushable
     protected boolean searchFailing;
     protected boolean searchBackward;
     protected int searchIndex = -1;
+    protected boolean inCompleterMenu;
 
 
     // Reading buffers
@@ -3942,49 +3943,50 @@ public class LineReaderImpl implements LineReader, Flushable
         AttributedStringBuilder full = new AttributedStringBuilder().tabs(TAB_WIDTH);
         full.append(prompt);
         full.append(tNewBuf);
-        String lastBinding = getLastBinding() != null ? getLastBinding() : "";
-        if (autosuggestion == SuggestionType.HISTORY) {
-            AttributedStringBuilder sb = new AttributedStringBuilder();
-            tailTip = matchPreviousCommand(buf.toString());
-            sb.styled(AttributedStyle::faint, tailTip);
-            full.append(sb.toAttributedString());
-        } else if (autosuggestion == SuggestionType.COMPLETER) {
-            if (buf.length() > 0 && buf.length() == buf.cursor()
-                && (!lastBinding.equals("\t") || buf.prevChar() == ' ')) {
-                if (buf.prevChar() == ' ') {
-                    clearChoices();
-                }
-                listChoices(true);
-            } else if (!lastBinding.equals("\t")){
-                clearChoices();
-                clearStatus();
-            }
-        } else if (autosuggestion == SuggestionType.TAIL_TIP) {
-            if (buf.length() == buf.cursor()) {
-                if (!lastBinding.equals("\t")){
-                    clearChoices();
-                }
+        if (!inCompleterMenu) {
+            String lastBinding = getLastBinding() != null ? getLastBinding() : "";
+            if (autosuggestion == SuggestionType.HISTORY) {
                 AttributedStringBuilder sb = new AttributedStringBuilder();
-                if (buf.prevChar() != ' ') {
-                    if (!tailTip.startsWith("[")) {
-                        int idx = tailTip.indexOf(' ');
-                        if (idx > 0) {
-                            tailTip = tailTip.substring(idx);
-                        }
-                    } else {
-                        sb.append(" ");
-                    }
-                }
+                tailTip = matchPreviousCommand(buf.toString());
                 sb.styled(AttributedStyle::faint, tailTip);
                 full.append(sb.toAttributedString());
-            } else {
-                clearStatus();
+            } else if (autosuggestion == SuggestionType.COMPLETER) {
+                if (buf.length() > 0 && buf.length() == buf.cursor()
+                    && (!lastBinding.equals("\t") || buf.prevChar() == ' ')) {
+                    clearChoices();
+                    listChoices(true);
+                } else if (!lastBinding.equals("\t")){
+                    clearChoices();
+                    clearStatus();
+                }
+            } else if (autosuggestion == SuggestionType.TAIL_TIP) {
+                if (buf.length() == buf.cursor()) {
+                    if (!lastBinding.equals("\t")){
+                        clearChoices();
+                    }
+                    AttributedStringBuilder sb = new AttributedStringBuilder();
+                    if (buf.prevChar() != ' ') {
+                        if (!tailTip.startsWith("[")) {
+                            int idx = tailTip.indexOf(' ');
+                            if (idx > 0) {
+                                tailTip = tailTip.substring(idx);
+                            }
+                        } else {
+                            sb.append(" ");
+                        }
+                    }
+                    sb.styled(AttributedStyle::faint, tailTip);
+                    full.append(sb.toAttributedString());
+                } else {
+                    clearStatus();
+                }
             }
         }
         if (post != null) {
             full.append("\n");
             full.append(post.get());
         }
+        inCompleterMenu = false;
         return full.toAttributedString();
     }
 
@@ -4897,6 +4899,7 @@ public class LineReaderImpl implements LineReader, Flushable
                     return true;
                 }
             }
+            inCompleterMenu = true;
             redisplay();
         }
         return false;
