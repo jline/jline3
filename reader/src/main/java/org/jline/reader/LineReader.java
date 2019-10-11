@@ -357,6 +357,11 @@ public interface LineReader {
      */
     String HISTORY_FILE_SIZE = "history-file-size";
 
+    /**
+     * New line automatic indentation after opening/closing bracket.
+     */
+    String INDENTATION = "indentation";
+
     Map<String, KeyMap<Binding>> defaultKeyMaps();
 
     enum Option {
@@ -418,6 +423,9 @@ public interface LineReader {
 
         /** if history search is fully case insensitive */
         CASE_INSENSITIVE_SEARCH,
+
+        /** Automatic insertion of closing bracket */
+        INSERT_BRACKET,
         ;
 
         private final boolean def;

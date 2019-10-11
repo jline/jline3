@@ -31,6 +31,7 @@ import org.jline.builtins.Widgets.TailTipWidgets.TipType;
 import org.jline.builtins.Widgets.ArgDesc;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
+import org.jline.reader.LineReader.Option;
 import org.jline.reader.LineReader.SuggestionType;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.DefaultParser.Bracket;
@@ -313,6 +314,8 @@ public class Example
                     .completer(completer)
                     .parser(parser)
                     .variable(LineReader.SECONDARY_PROMPT_PATTERN, "%M%P > ")
+                    .variable(LineReader.INDENTATION, 2)
+                    .option(Option.INSERT_BRACKET, true)
                     .build();
             AutopairWidgets autopairWidgets = new AutopairWidgets(reader);
             AutosuggestionWidgets autosuggestionWidgets = new AutosuggestionWidgets(reader);
