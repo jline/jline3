@@ -39,6 +39,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.IntStream;
 
 import org.jline.builtins.Options.HelpException;
 import org.jline.keymap.BindingReader;
@@ -88,6 +89,14 @@ public class Tmux {
     public static final String CMD_BIND = "bind";
     public static final String CMD_UNBIND_KEY = "unbind-key";
     public static final String CMD_UNBIND = "unbind";
+    public static final String CMD_NEW_WINDOW = "new-window";
+    public static final String CMD_NEWW = "neww";
+    public static final String CMD_NEXT_WINDOW = "next-window";
+    public static final String CMD_NEXT = "next";
+    public static final String CMD_PREVIOUS_WINDOW = "previous-window";
+    public static final String CMD_PREV = "prev";
+    public static final String CMD_LIST_WINDOWS = "list-windows";
+    public static final String CMD_LSW = "lsw";
 
     private static final int[][][] WINDOW_CLOCK_TABLE = {
           { { 1,1,1,1,1 }, /* 0 */
@@ -170,13 +179,11 @@ public class Tmux {
     private final PrintStream err;
     private final String term;
     private final Consumer<Terminal> runner;
-    private List<VirtualConsole> panes = new CopyOnWriteArrayList<>();
-    private VirtualConsole active;
-    private int lastActive;
+    private List<Window> windows = new ArrayList<>();
+    private Integer windowsId = 0;
+    private int activeWindow = 0;
     private final AtomicBoolean running = new AtomicBoolean(true);
     private final Size size = new Size();
-    private final AtomicInteger paneId = new AtomicInteger();
-    private Layout layout;
     private boolean identify;
     private ScheduledExecutorService executor;
 
@@ -188,6 +195,184 @@ public class Tmux {
 
     enum Binding {
         Discard, SelfInsert, Mouse
+    }
+
+    private class Window {
+        private List<VirtualConsole> panes = new CopyOnWriteArrayList<>();
+        private VirtualConsole active;
+        private int lastActive;
+        private final AtomicInteger paneId = new AtomicInteger();
+        private Layout layout;
+        private Tmux tmux;
+        private String name;
+
+        public Window(Tmux tmux) throws IOException {
+            this.tmux = tmux;
+            layout = new Layout();
+            layout.sx = size.getColumns();
+            layout.sy = size.getRows();
+            layout.type = WindowPane;
+            active = new VirtualConsole(paneId.incrementAndGet(), term
+                                      , 0, 0, size.getColumns(), size.getRows() - 1
+                                      , tmux::setDirty, tmux::close, layout);
+            active.active = lastActive++;
+            active.getConsole().setAttributes(terminal.getAttributes());
+            panes.add(active);
+            name = "win" + (windowsId < 10 ? "0" + windowsId : windowsId);
+            windowsId++;
+        }
+
+        public String getName() {
+            return name;
+        }
+        public List<VirtualConsole> getPanes() {
+            return panes;
+        }
+
+        public VirtualConsole getActive() {
+            return active;
+        }
+
+        public void remove(VirtualConsole console) {
+            panes.remove(console);
+            if (!panes.isEmpty()) {
+                console.layout.remove();
+                if (active == console) {
+                    active = panes.stream()
+                                .sorted(Comparator.<VirtualConsole>comparingInt(p -> p.active).reversed())
+                                .findFirst().get();
+                }
+                layout = active.layout;
+                while (layout.parent != null) {
+                    layout = layout.parent;
+                }
+                layout.fixOffsets();
+                layout.fixPanes(size.getColumns(), size.getRows());
+            }
+        }
+
+        public void handleResize() {
+            layout.resize(size.getColumns(), size.getRows() - 1);
+            panes.forEach(vc -> {
+                if (vc.width() != vc.layout.sx || vc.height() != vc.layout.sy
+                        || vc.left() != vc.layout.xoff || vc.top() != vc.layout.yoff) {
+                    vc.resize(vc.layout.xoff, vc.layout.yoff, vc.layout.sx, vc.layout.sy);
+                    display.clear();
+                }
+            });
+        }
+
+        public VirtualConsole splitPane(Options opt) throws IOException {
+            Layout.Type type = opt.isSet("horizontal") ? LeftRight : TopBottom;
+            // If we're splitting the main pane, create a parent
+           if (layout.type == WindowPane) {
+                Layout p = new Layout();
+                p.sx = layout.sx;
+                p.sy = layout.sy;
+                p.type = type;
+                p.cells.add(layout);
+                layout.parent = p;
+                layout = p;
+            }
+            Layout cell = active.layout();
+            if (opt.isSet("f")) {
+                while (cell.parent != layout) {
+                    cell = cell.parent;
+                }
+            }
+            int size = -1;
+            if (opt.isSet("size")) {
+                size = opt.getNumber("size");
+            } else if (opt.isSet("perc")) {
+                int p = opt.getNumber("perc");
+                if (type == TopBottom) {
+                    size = (cell.sy * p) / 100;
+                } else {
+                    size = (cell.sx * p) / 100;
+                }
+            }
+            // Split now
+            Layout newCell = cell.split(type, size, opt.isSet("before"));
+            if (newCell == null) {
+                err.println("create pane failed: pane too small");
+                return null;
+            }
+
+            VirtualConsole newConsole = new VirtualConsole(paneId.incrementAndGet(), term
+                                                         , newCell.xoff, newCell.yoff, newCell.sx, newCell.sy
+                                                         , tmux::setDirty, tmux::close, newCell);
+            panes.add(newConsole);
+            newConsole.getConsole().setAttributes(terminal.getAttributes());
+            if (!opt.isSet("d")) {
+                active = newConsole;
+                active.active = lastActive++;
+            }
+            return newConsole;
+        }
+
+        public boolean selectPane(Options opt) {
+            VirtualConsole prevActive = active;
+            if (opt.isSet("L")) {
+                active = panes.stream()
+                        .filter(c -> c.bottom() > active.top() && c.top() < active.bottom())
+                        .filter(c -> c != active)
+                        .sorted(Comparator
+                                .<VirtualConsole>comparingInt(c -> c.left() > active.left() ? c.left() : c.left() + size.getColumns()).reversed()
+                                .<VirtualConsole>thenComparingInt(c -> - c.active))
+                        .findFirst().orElse(active);
+            }
+            else if (opt.isSet("R")) {
+                active = panes.stream()
+                        .filter(c -> c.bottom() > active.top() && c.top() < active.bottom())
+                        .filter(c -> c != active)
+                        .sorted(Comparator
+                                .<VirtualConsole>comparingInt(c -> c.left() > active.left() ? c.left() : c.left() + size.getColumns())
+                                .<VirtualConsole>thenComparingInt(c -> - c.active))
+                        .findFirst().orElse(active);
+            } else if (opt.isSet("U")) {
+                active = panes.stream()
+                        .filter(c -> c.right() > active.left() && c.left() < active.right())
+                        .filter(c -> c != active)
+                        .sorted(Comparator
+                                .<VirtualConsole>comparingInt(c -> c.top() > active.top() ? c.top() : c.top() + size.getRows()).reversed()
+                                .<VirtualConsole>thenComparingInt(c -> - c.active))
+                        .findFirst().orElse(active);
+            } else if (opt.isSet("D")) {
+                active = panes.stream()
+                        .filter(c -> c.right() > active.left() && c.left() < active.right())
+                        .filter(c -> c != active)
+                        .sorted(Comparator
+                                .<VirtualConsole>comparingInt(c -> c.top() > active.top() ? c.top() : c.top() + size.getRows())
+                                .<VirtualConsole>thenComparingInt(c -> - c.active))
+                        .findFirst().orElse(active);
+            }
+            boolean out = false;
+            if (prevActive != active) {
+                active.active = lastActive++;
+                out = true;
+            }
+            return out;
+        }
+
+        public void resizePane(Options opt, int adjust) {
+            if (opt.isSet("width")) {
+                int x = opt.getNumber("width");
+                active.layout().resizeTo(LeftRight, x);
+            }
+            if (opt.isSet("height")) {
+                int y = opt.getNumber("height");
+                active.layout().resizeTo(TopBottom, y);
+            }
+            if (opt.isSet("L")) {
+                active.layout().resize(LeftRight, -adjust, true);
+            } else if (opt.isSet("R")) {
+                active.layout().resize(LeftRight, adjust, true);
+            } else if (opt.isSet("U")) {
+                active.layout().resize(TopBottom, -adjust, true);
+            } else if (opt.isSet("D")) {
+                active.layout().resize(TopBottom, adjust, true);
+            }
+        }
     }
 
     public Tmux(Terminal terminal, PrintStream err, Consumer<Terminal> runner) throws IOException {
@@ -222,6 +407,9 @@ public class Tmux {
         keyMap.bind(CMD_RESIZE_PANE + " -R", prefix + translate("^[[1;5D"), prefix + alt(translate("^[[D"))); // ctrl-right
         keyMap.bind(CMD_DISPLAY_PANES, prefix + "q");
         keyMap.bind(CMD_CLOCK_MODE, prefix + "t");
+        keyMap.bind(CMD_NEW_WINDOW, prefix + "c");
+        keyMap.bind(CMD_NEXT_WINDOW, prefix + "n");
+        keyMap.bind(CMD_PREVIOUS_WINDOW, prefix + "p");
         return keyMap;
     }
 
@@ -249,15 +437,9 @@ public class Tmux {
         try {
             // Create first pane
             size.copy(terminal.getSize());
-            layout = new Layout();
-            layout.sx = size.getColumns();
-            layout.sy = size.getRows();
-            layout.type = WindowPane;
-            active = new VirtualConsole(paneId.incrementAndGet(), term, 0, 0, size.getColumns(), size.getRows() - 1, this::setDirty, this::close, layout);
-            active.active = lastActive++;
-            active.getConsole().setAttributes(terminal.getAttributes());
-            panes.add(active);
-            runner.accept(active.getConsole());
+            windows.add(new Window(this));
+            activeWindow = 0;
+            runner.accept(active().getConsole());
             // Start input loop
             new Thread(this::inputLoop, "Mux input loop").start();
             // Redraw loop
@@ -275,6 +457,18 @@ public class Tmux {
             terminal.handle(Signal.INT, prevIntHandler);
             terminal.handle(Signal.TSTP, prevSuspHandler);
         }
+    }
+
+    private VirtualConsole active() {
+        return windows.get(activeWindow).getActive();
+    }
+
+    private List<VirtualConsole> panes() {
+        return windows.get(activeWindow).getPanes();
+    }
+
+    private Window window() {
+        return windows.get(activeWindow);
     }
 
     private void redrawLoop() {
@@ -314,22 +508,22 @@ public class Tmux {
                     b = null;
                 }
                 if (b == Binding.SelfInsert) {
-                    if (active.clock) {
-                        active.clock = false;
-                        if (clockFuture != null && panes.stream().noneMatch(vc -> vc.clock)) {
+                    if (active().clock) {
+                        active().clock = false;
+                        if (clockFuture != null && panes().stream().noneMatch(vc -> vc.clock)) {
                             clockFuture.cancel(false);
                             clockFuture = null;
                         }
                         setDirty();
                     } else {
-                        active.getMasterInputOutput().write(reader.getLastBinding().getBytes());
+                        active().getMasterInputOutput().write(reader.getLastBinding().getBytes());
                         first = false;
                     }
                 } else {
                     if (first) {
                         first = false;
                     } else {
-                        active.getMasterInputOutput().flush();
+                        active().getMasterInputOutput().flush();
                         first = true;
                     }
                     if (b == Binding.Mouse) {
@@ -362,25 +556,29 @@ public class Tmux {
     }
 
     private synchronized void close(VirtualConsole terminal) {
-        int idx = panes.indexOf(terminal);
+        int idx = -1;
+        Window window = null;
+        for (Window w: windows) {
+            idx = w.getPanes().indexOf(terminal);
+            if (idx >= 0) {
+                window = w;
+                break;
+            }
+        }
         if (idx >= 0) {
-            panes.remove(idx);
-            if (panes.isEmpty()) {
-                running.set(false);
-                setDirty();
+            window.remove(terminal);
+            if (window.getPanes().isEmpty()) {
+                if (windows.size() > 1) {
+                    windows.remove(window);
+                    if (activeWindow >= windows.size()) {
+                        activeWindow--;
+                    }
+                    resize(Signal.WINCH);
+                } else {
+                    running.set(false);
+                    setDirty();
+                }
             } else {
-                terminal.layout.remove();
-                if (active == terminal) {
-                    active = panes.stream()
-                                .sorted(Comparator.<VirtualConsole>comparingInt(p -> p.active).reversed())
-                                .findFirst().get();
-                }
-                layout = active.layout;
-                while (layout.parent != null) {
-                    layout = layout.parent;
-                }
-                layout.fixOffsets();
-                layout.fixPanes(size.getColumns(), size.getRows());
                 resize(Signal.WINCH);
             }
         }
@@ -392,11 +590,11 @@ public class Tmux {
     }
 
     private void interrupt(Signal signal) {
-        active.getConsole().raise(signal);
+        active().getConsole().raise(signal);
     }
 
     private void suspend(Signal signal) {
-        active.getConsole().raise(signal);
+        active().getConsole().raise(signal);
     }
 
     private void handleResize() {
@@ -404,14 +602,7 @@ public class Tmux {
         if (resized.compareAndSet(true, false)) {
             size.copy(terminal.getSize());
         }
-        layout.resize(size.getColumns(), size.getRows() - 1);
-        panes.forEach(vc -> {
-            if (vc.width() != vc.layout.sx || vc.height() != vc.layout.sy
-                    || vc.left() != vc.layout.xoff || vc.top() != vc.layout.yoff) {
-                vc.resize(vc.layout.xoff, vc.layout.yoff, vc.layout.sx, vc.layout.sy);
-                display.clear();
-            }
-        });
+        window().handleResize();
     }
 
     public void execute(PrintStream out, PrintStream err, String command) throws Exception {
@@ -465,7 +656,106 @@ public class Tmux {
             case CMD_SET:
                 setOption(out, err, args);
                 break;
+            case CMD_NEW_WINDOW:
+            case CMD_NEWW:
+                newWindow(out, err, args);
+                break;
+            case CMD_NEXT_WINDOW:
+            case CMD_NEXT:
+                nextWindow(out, err, args);
+                break;
+            case CMD_PREVIOUS_WINDOW:
+            case CMD_PREV:
+                previousWindow(out, err, args);
+                break;
+            case CMD_LIST_WINDOWS:
+            case CMD_LSW:
+                listWindows(out, err, args);
+                break;
         }
+    }
+
+    protected void listWindows(PrintStream out, PrintStream err, List<String> args) throws Exception {
+        final String[] usage = {
+                "list-windows - ",
+                "Usage: list-windows",
+                "  -? --help                    Show help"
+        };
+        Options opt = Options.compile(usage).parse(args);
+        if (opt.isSet("help")) {
+            throw new HelpException(opt.usage());
+        }
+        IntStream.range(0, windows.size())
+            .mapToObj(i -> {
+                StringBuilder sb = new StringBuilder();
+                sb.append(i);
+                sb.append(": ");
+                sb.append(windows.get(i).getName());
+                sb.append(i == activeWindow ? "* " : " ");
+                sb.append("(");
+                sb.append(windows.get(i).getPanes().size());
+                sb.append(" panes)");
+                if (i == activeWindow) {
+                    sb.append(" (active)");
+                }
+                return sb.toString();
+            })
+            .sorted()
+            .forEach(out::println);
+    }
+
+    protected void previousWindow(PrintStream out, PrintStream err, List<String> args) throws Exception {
+        final String[] usage = {
+                "previous-window - ",
+                "Usage: previous-window",
+                "  -? --help                    Show help"
+        };
+        Options opt = Options.compile(usage).parse(args);
+        if (opt.isSet("help")) {
+            throw new HelpException(opt.usage());
+        }
+        if (windows.size() > 1) {
+            activeWindow--;
+            if (activeWindow < 0) {
+                activeWindow = windows.size() - 1;
+            }
+            setDirty();
+        }
+    }
+
+    protected void nextWindow(PrintStream out, PrintStream err, List<String> args) throws Exception {
+        final String[] usage = {
+                "next-window - ",
+                "Usage: next-window",
+                "  -? --help                    Show help"
+        };
+        Options opt = Options.compile(usage).parse(args);
+        if (opt.isSet("help")) {
+            throw new HelpException(opt.usage());
+        }
+        if (windows.size() > 1) {
+            activeWindow++;
+            if (activeWindow >= windows.size()) {
+                activeWindow = 0;
+            }
+            setDirty();
+        }
+    }
+
+    protected void newWindow(PrintStream out, PrintStream err, List<String> args) throws Exception {
+        final String[] usage = {
+                "new-window - ",
+                "Usage: new-window",
+                "  -? --help                    Show help"
+        };
+        Options opt = Options.compile(usage).parse(args);
+        if (opt.isSet("help")) {
+            throw new HelpException(opt.usage());
+        }
+        windows.add(new Window(this));
+        activeWindow = windows.size() - 1;
+        runner.accept(active().getConsole());
+        setDirty();
     }
 
     protected void setOption(PrintStream out, PrintStream err, List<String> args) throws Exception {
@@ -604,7 +894,7 @@ public class Tmux {
         for (int i = 0, n = opt.getNumber("number"); i < n; i++) {
             for (String arg : opt.args()) {
                 String s = opt.isSet("literal") ? arg : KeyMap.translate(arg);
-                active.getMasterInputOutput().write(s.getBytes());
+                active().getMasterInputOutput().write(s.getBytes());
             }
         }
     }
@@ -619,7 +909,7 @@ public class Tmux {
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
-        active.clock = true;
+        active().clock = true;
 
         if (clockFuture == null) {
             long initial = Instant.now().until(Instant.now().truncatedTo(ChronoUnit.MINUTES).plusSeconds(60), ChronoUnit.MILLIS);
@@ -671,23 +961,7 @@ public class Tmux {
         } else {
             throw new HelpException(opt.usage());
         }
-        if (opt.isSet("width")) {
-            int x = opt.getNumber("width");
-            active.layout().resizeTo(LeftRight, x);
-        }
-        if (opt.isSet("height")) {
-            int y = opt.getNumber("height");
-            active.layout().resizeTo(TopBottom, y);
-        }
-        if (opt.isSet("L")) {
-            active.layout().resize(LeftRight, -adjust, true);
-        } else if (opt.isSet("R")) {
-            active.layout().resize(LeftRight, adjust, true);
-        } else if (opt.isSet("U")) {
-            active.layout().resize(TopBottom, -adjust, true);
-        } else if (opt.isSet("D")) {
-            active.layout().resize(TopBottom, adjust, true);
-        }
+        window().resizePane(opt, adjust);
         setDirty();
     }
 
@@ -705,44 +979,8 @@ public class Tmux {
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
-        VirtualConsole prevActive = active;
-        if (opt.isSet("L")) {
-            active = panes.stream()
-                    .filter(c -> c.bottom() > active.top() && c.top() < active.bottom())
-                    .filter(c -> c != active)
-                    .sorted(Comparator
-                            .<VirtualConsole>comparingInt(c -> c.left() > active.left() ? c.left() : c.left() + size.getColumns()).reversed()
-                            .<VirtualConsole>thenComparingInt(c -> - c.active))
-                    .findFirst().orElse(active);
-        }
-        else if (opt.isSet("R")) {
-            active = panes.stream()
-                    .filter(c -> c.bottom() > active.top() && c.top() < active.bottom())
-                    .filter(c -> c != active)
-                    .sorted(Comparator
-                            .<VirtualConsole>comparingInt(c -> c.left() > active.left() ? c.left() : c.left() + size.getColumns())
-                            .<VirtualConsole>thenComparingInt(c -> - c.active))
-                    .findFirst().orElse(active);
-        } else if (opt.isSet("U")) {
-            active = panes.stream()
-                    .filter(c -> c.right() > active.left() && c.left() < active.right())
-                    .filter(c -> c != active)
-                    .sorted(Comparator
-                            .<VirtualConsole>comparingInt(c -> c.top() > active.top() ? c.top() : c.top() + size.getRows()).reversed()
-                            .<VirtualConsole>thenComparingInt(c -> - c.active))
-                    .findFirst().orElse(active);
-        } else if (opt.isSet("D")) {
-            active = panes.stream()
-                    .filter(c -> c.right() > active.left() && c.left() < active.right())
-                    .filter(c -> c != active)
-                    .sorted(Comparator
-                            .<VirtualConsole>comparingInt(c -> c.top() > active.top() ? c.top() : c.top() + size.getRows())
-                            .<VirtualConsole>thenComparingInt(c -> - c.active))
-                    .findFirst().orElse(active);
-        }
-        if (prevActive != active) {
+        if (window().selectPane(opt)) {
             setDirty();
-            active.active = lastActive++;
         }
     }
 
@@ -756,7 +994,7 @@ public class Tmux {
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
-        active.getMasterInputOutput().write(serverOptions.get(OPT_PREFIX).getBytes());
+        active().getMasterInputOutput().write(serverOptions.get(OPT_PREFIX).getBytes());
     }
 
     protected void splitWindow(PrintStream out, PrintStream err, List<String> args) throws Exception {
@@ -776,48 +1014,7 @@ public class Tmux {
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
-        Layout.Type type = opt.isSet("horizontal") ? LeftRight : TopBottom;
-        // If we're splitting the main pane, create a parent
-        if (layout.type == WindowPane) {
-            Layout p = new Layout();
-            p.sx = layout.sx;
-            p.sy = layout.sy;
-            p.type = type;
-            p.cells.add(layout);
-            layout.parent = p;
-            layout = p;
-        }
-        Layout cell = active.layout();
-        if (opt.isSet("f")) {
-            while (cell.parent != layout) {
-                cell = cell.parent;
-            }
-        }
-        int size = -1;
-        if (opt.isSet("size")) {
-            size = opt.getNumber("size");
-        } else if (opt.isSet("perc")) {
-            int p = opt.getNumber("perc");
-            if (type == TopBottom) {
-                size = (cell.sy * p) / 100;
-            } else {
-                size = (cell.sx * p) / 100;
-            }
-        }
-        // Split now
-        Layout newCell = cell.split(type, size, opt.isSet("before"));
-        if (newCell == null) {
-            err.println("create pane failed: pane too small");
-            return;
-        }
-
-        VirtualConsole newConsole = new VirtualConsole(paneId.incrementAndGet(), term, newCell.xoff, newCell.yoff, newCell.sx, newCell.sy, this::setDirty, this::close, newCell);
-        panes.add(newConsole);
-        newConsole.getConsole().setAttributes(terminal.getAttributes());
-        if (!opt.isSet("d")) {
-            active = newConsole;
-            active.active = lastActive++;
-        }
+        VirtualConsole newConsole = window().splitPane(opt);
         runner.accept(newConsole.getConsole());
         setDirty();
     }
@@ -835,37 +1032,37 @@ public class Tmux {
         // Fill
         Arrays.fill(screen, 0x00000020L);
         int[] cursor = new int[2];
-        for (VirtualConsole terminal : panes) {
+        for (VirtualConsole terminal : panes()) {
             if (terminal.clock) {
                 String str = DateFormat.getTimeInstance(DateFormat.SHORT).format(new Date());
                 print(screen, terminal, str, CLOCK_COLOR);
             } else {
                 // Dump terminal
                 terminal.dump(screen, terminal.top(), terminal.left(), size.getRows(), size.getColumns(),
-                        terminal == active ? cursor : null);
+                        terminal == active() ? cursor : null);
             }
 
             if (identify) {
                 String id = Integer.toString(terminal.id);
-                print(screen, terminal, id, terminal == active ? ACTIVE_COLOR : INACTIVE_COLOR);
+                print(screen, terminal, id, terminal == active() ? ACTIVE_COLOR : INACTIVE_COLOR);
             }
             // Draw border
             drawBorder(screen, size, terminal, 0x0L);
         }
-        drawBorder(screen, size, active, 0x010080000L << 32);
+        drawBorder(screen, size, active(), 0x010080000L << 32);
         // Draw status
         Arrays.fill(screen, (size.getRows() - 1) * size.getColumns(), size.getRows() * size.getColumns(),
                 0x20000080L << 32 | 0x0020L);
 
         // Attribute mask: 0xYXFFFBBB00000000L
-        //	X:	Bit 0 - Underlined
-        //		Bit 1 - Negative
-        //		Bit 2 - Concealed
+        //  X:  Bit 0 - Underlined
+        //      Bit 1 - Negative
+        //      Bit 2 - Concealed
         //      Bit 3 - Bold
         //  Y:  Bit 0 - Foreground set
         //      Bit 1 - Background set
-        //	F:	Foreground r-g-b
-        //	B:	Background r-g-b
+        //  F:  Foreground r-g-b
+        //  B:  Background r-g-b
 
         List<AttributedString> lines = new ArrayList<>();
         int prevBg = 0;

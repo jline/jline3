@@ -24,9 +24,14 @@ import org.jline.builtins.Completers;
 import org.jline.builtins.Completers.TreeCompleter;
 import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.TTop;
+import org.jline.builtins.Widgets.AutopairWidgets;
+import org.jline.builtins.Widgets.AutosuggestionWidgets;
+import org.jline.builtins.Widgets.TailTipWidgets;
+import org.jline.builtins.Widgets.TailTipWidgets.TipType;
+import org.jline.builtins.Widgets.ArgDesc;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
-import org.jline.reader.LineReader.Option;
+import org.jline.reader.LineReader.SuggestionType;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.DefaultParser.Bracket;
 import org.jline.reader.impl.LineReaderImpl;
@@ -56,7 +61,7 @@ public class Example
               , "    -system          terminalBuilder.system(false)"
               , "    +system          terminalBuilder.system(true)"
               , "  Completors:"
-              , "    argumet          an argument completor"
+              , "    argumet          an argument completor & autosuggestion"
               , "    files            a completor that completes file names"
               , "    none             no completors"
               , "    param            a paramenter completer using Java functional interface"
@@ -80,35 +85,37 @@ public class Example
             System.out.println(u);
         }
     }
-    
+
     public static void help() {
         String[] help = {
             "List of available commands:"
           , "  Builtin:"
-          , "    complete   UNAVAILABLE"
-          , "    history    list history of commands"
-          , "    keymap     manipulate keymaps"
-          , "    less       file pager"
-          , "    nano       nano editor"
-          , "    setopt     set options"
-          , "    tmux       UNAVAILABLE"
-          , "    ttop       display and update sorted information about threads"
-          , "    unsetopt   unset options"
-          , "    widget     UNAVAILABLE"
+          , "    complete        UNAVAILABLE"
+          , "    history         list history of commands"
+          , "    keymap          manipulate keymaps"
+          , "    less            file pager"
+          , "    nano            nano editor"
+          , "    setopt          set options"
+          , "    tmux            UNAVAILABLE"
+          , "    ttop            display and update sorted information about threads"
+          , "    unsetopt        unset options"
+          , "    widget          UNAVAILABLE"
+          , "    autopair        toggle brackets/quotes autopair key bindings"
+          , "    autosuggestion  history, completer, tailtip [tailtip|completer|combined] or none"
           , "  Example:"
-          , "    cls        clear screen"
-          , "    help       list available commands"
-          , "    exit       exit from example app"
-          , "    set        set lineReader variable"
-          , "    sleep      sleep 3 seconds"
-          , "    testkey    display key events"
-          , "    tput       set terminal capability"
+          , "    cls             clear screen"
+          , "    help            list available commands"
+          , "    exit            exit from example app"
+          , "    set             set lineReader variable"
+          , "    sleep           sleep 3 seconds"
+          , "    testkey         display key events"
+          , "    tput            set terminal capability"
           , "  Additional help:"
           , "    <command> --help"};
         for (String u: help) {
             System.out.println(u);
         }
-        
+
     }
 
     public static void main(String[] args) throws IOException {
@@ -121,7 +128,7 @@ public class Example
             boolean timer = false;
 
             TerminalBuilder builder = TerminalBuilder.builder();
-  
+
             if ((args == null) || (args.length == 0)) {
                 usage();
 
@@ -198,7 +205,14 @@ public class Example
                         break;
                     case "argument":
                         completer = new ArgumentCompleter(
-                                new StringsCompleter("foo11", "foo12", "foo13"),
+                                new Completer() {
+                                    @Override
+                                    public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
+                                        candidates.add(new Candidate("foo11", "foo11", null, "with complete argDesc", null, null, true));
+                                        candidates.add(new Candidate("foo12", "foo12", null, "with argDesc -names only", null, null, true));
+                                        candidates.add(new Candidate("foo13", "foo13", null, "-", null, null, true));
+                                    }
+                                },
                                 new StringsCompleter("foo21", "foo22", "foo23"),
                                 new Completer() {
                                     @Override
@@ -290,8 +304,8 @@ public class Example
                         }
                 }
             }
-          
-            Terminal terminal = builder.build();          
+
+            Terminal terminal = builder.build();
             System.out.println(terminal.getName()+": "+terminal.getType());
             System.out.println("\nhelp: list available commands");
             LineReader reader = LineReaderBuilder.builder()
@@ -302,7 +316,25 @@ public class Example
                     .variable(LineReader.INDENTATION, 2)
                     .option(Option.INSERT_BRACKET, true)
                     .build();
-
+            AutopairWidgets autopairWidgets = new AutopairWidgets(reader);
+            AutosuggestionWidgets autosuggestionWidgets = new AutosuggestionWidgets(reader);
+            Map<String, List<ArgDesc>> tailTips = new HashMap<>();
+            tailTips.put("foo12", ArgDesc.doArgNames(Arrays.asList("param1", "param2", "[paramN...]")));
+            tailTips.put("foo11", Arrays.asList(
+                    new ArgDesc("param1",Arrays.asList(new AttributedString("Param1 description...")
+                                                    , new AttributedString("line 2: This is a very long line that does exceed the terminal width."
+                                                          +" The line will be truncated automatically (by Status class) be before printing out.")
+                                                    , new AttributedString("line 3")
+                                                    , new AttributedString("line 4")
+                                                    , new AttributedString("line 5")
+                                                    , new AttributedString("line 6")
+                                                      ))
+                  , new ArgDesc("param2",Arrays.asList(new AttributedString("Param2 description...")
+                                                    , new AttributedString("line 2")
+                                                      ))
+                  , new ArgDesc("param3", new ArrayList<>())
+            ));
+            TailTipWidgets tailtipWidgets = new TailTipWidgets(reader, tailTips, TipType.COMPLETER);
             if (timer) {
                 Executors.newScheduledThreadPool(1)
                         .scheduleAtFixedRate(() -> {
@@ -405,7 +437,7 @@ public class Example
                     }
                     else if ("tmux".equals(pl.word())) {
                         Commands.tmux(terminal, System.out, System.err,
-                                null, //Supplier<Object> getter,   
+                                null, //Supplier<Object> getter,
                                 null, //Consumer<Object> setter,
                                 null, //Consumer<Terminal> runner,
                                 argv);
@@ -444,6 +476,56 @@ public class Example
                     }
                     else if ("ttop".equals(pl.word())) {
                         TTop.ttop(terminal, System.out, System.err, argv);
+                    }
+                    else if ("autopair".equals(pl.word())) {
+                        terminal.writer().print("Autopair widgets are ");
+                        if (autopairWidgets.toggleKeyBindings()) {
+                            terminal.writer().println("bounded.");
+                        } else {
+                            terminal.writer().println("unbounded.");
+                        }
+                    }
+                    else if ("autosuggestion".equals(pl.word())) {
+                        if (pl.words().size() > 1) {
+                            String type = pl.words().get(1).toLowerCase();
+                            if (type.startsWith("his")) {
+                                tailtipWidgets.defaultBindings();
+                                autosuggestionWidgets.autosuggestionBindings();
+                            } else if (type.startsWith("tai")) {
+                                autosuggestionWidgets.defaultBindings();
+                                tailtipWidgets.autosuggestionBindings();
+                                tailtipWidgets.setDescriptionSize(5);
+                                if (pl.words().size() > 2) {
+                                    String mode = pl.words().get(2).toLowerCase();
+                                    if (mode.startsWith("tai")) {
+                                        tailtipWidgets.setTipType(TipType.TAIL_TIP);
+                                    } else if (mode.startsWith("comp")) {
+                                        tailtipWidgets.setTipType(TipType.COMPLETER);
+                                    } else if (mode.startsWith("comb")) {
+                                        tailtipWidgets.setTipType(TipType.COMBINED);
+                                    }
+                                }
+                            } else if (type.startsWith("com")) {
+                                autosuggestionWidgets.defaultBindings();
+                                tailtipWidgets.defaultBindings();
+                                reader.setAutosuggestion(SuggestionType.COMPLETER);
+                            } else if (type.startsWith("non")) {
+                                autosuggestionWidgets.defaultBindings();
+                                tailtipWidgets.defaultBindings();
+                                reader.setAutosuggestion(SuggestionType.NONE);
+                            } else {
+                                terminal.writer().println("Usage: autosuggestion history|completer|tailtip|none");
+                            }
+                        } else {
+                            if (tailtipWidgets.isActive()) {
+                                terminal.writer().println("Autosuggestion: tailtip/" + tailtipWidgets.getTipType());
+                            } else {
+                                terminal.writer().println("Autosuggestion: " + reader.getAutosuggestion());
+                            }
+                        }
+                        if (!tailtipWidgets.isActive()) {
+                            Status.getStatus(terminal).update(null);
+                        }
                     }
                     else if ("help".equals(pl.word()) || "?".equals(pl.word())) {
                         help();

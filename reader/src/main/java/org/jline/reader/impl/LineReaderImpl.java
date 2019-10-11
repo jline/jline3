@@ -117,7 +117,7 @@ public class LineReaderImpl implements LineReader, Flushable
          */
         DONE,
         /**
-         * readLine should exit return empty String
+         * readLine should exit and return empty String
          */
         IGNORE,
         /**
@@ -171,6 +171,8 @@ public class LineReaderImpl implements LineReader, Flushable
     protected final Map<Option, Boolean> options = new HashMap<>();
 
     protected final Buffer buf = new BufferImpl();
+    protected String tailTip = "";
+    protected SuggestionType autosuggestion = SuggestionType.NONE;
 
     protected final Size size = new Size();
 
@@ -186,6 +188,7 @@ public class LineReaderImpl implements LineReader, Flushable
     protected boolean searchFailing;
     protected boolean searchBackward;
     protected int searchIndex = -1;
+    protected boolean inCompleterMenu;
 
 
     // Reading buffers
@@ -325,6 +328,26 @@ public class LineReaderImpl implements LineReader, Flushable
     @Override
     public Buffer getBuffer() {
         return buf;
+    }
+
+    @Override
+    public void setAutosuggestion(SuggestionType type) {
+        this.autosuggestion = type;
+    }
+
+    @Override
+    public SuggestionType getAutosuggestion() {
+        return autosuggestion;
+    }
+
+    @Override
+    public String getTailTip(){
+        return tailTip;
+    }
+
+    @Override
+    public void setTailTip(String tailTip) {
+        this.tailTip = tailTip;
     }
 
     @Override
@@ -487,7 +510,7 @@ public class LineReaderImpl implements LineReader, Flushable
         // buffer may be null
         if (!commandsBuffer.isEmpty()) {
             String cmd = commandsBuffer.remove(0);
-            boolean done = false; 
+            boolean done = false;
             do {
                 try {
                     parser.parse(cmd, cmd.length() + 1, ParseContext.ACCEPT_LINE);
@@ -928,10 +951,12 @@ public class LineReaderImpl implements LineReader, Flushable
         return parsedLine;
     }
 
+    @Override
     public String getLastBinding() {
         return bindingReader.getLastBinding();
     }
 
+    @Override
     public String getSearchTerm() {
         return searchTerm != null ? searchTerm.toString() : null;
     }
@@ -1042,7 +1067,7 @@ public class LineReaderImpl implements LineReader, Flushable
         }
         br.close();
     }
-    
+
     //
     // Widget implementation
     //
@@ -3913,6 +3938,38 @@ public class LineReaderImpl implements LineReader, Flushable
         sb.append(lines.get(lines.size() - 1));
     }
 
+    private String matchPreviousCommand(String buffer) {
+        if (buffer.length() == 0) {
+            return "";
+        }
+        History history = getHistory();
+        StringBuilder sb = new StringBuilder();
+        char prev = '0';
+        for (char c: buffer.toCharArray()) {
+            if ((c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}' || c == '^') && prev != '\\' ) {
+                sb.append('\\');
+            }
+            sb.append(c);
+            prev = c;
+        }
+        Pattern pattern = Pattern.compile(sb.toString() + ".*", Pattern.DOTALL);
+        Iterator<History.Entry> iter = history.reverseIterator(history.last());
+        String suggestion = "";
+        int tot = 0;
+        while (iter.hasNext()) {
+            History.Entry entry = iter.next();
+            Matcher matcher = pattern.matcher(entry.line());
+            if (matcher.matches()) {
+                suggestion = entry.line().substring(buffer.length());
+                break;
+            } else if (tot > 200) {
+                break;
+            }
+            tot++;
+        }
+        return suggestion;
+    }
+
     /**
      * Compute the full string to be displayed with the left, right and secondary prompts
      * @param secondaryPrompts a list to store the secondary prompts
@@ -3925,11 +3982,58 @@ public class LineReaderImpl implements LineReader, Flushable
         AttributedStringBuilder full = new AttributedStringBuilder().tabs(TAB_WIDTH);
         full.append(prompt);
         full.append(tNewBuf);
+        if (!inCompleterMenu) {
+            String lastBinding = getLastBinding() != null ? getLastBinding() : "";
+            if (autosuggestion == SuggestionType.HISTORY) {
+                AttributedStringBuilder sb = new AttributedStringBuilder();
+                tailTip = matchPreviousCommand(buf.toString());
+                sb.styled(AttributedStyle::faint, tailTip);
+                full.append(sb.toAttributedString());
+            } else if (autosuggestion == SuggestionType.COMPLETER) {
+                if (buf.length() > 0 && buf.length() == buf.cursor()
+                    && (!lastBinding.equals("\t") || buf.prevChar() == ' ')) {
+                    clearChoices();
+                    listChoices(true);
+                } else if (!lastBinding.equals("\t")){
+                    clearChoices();
+                    clearStatus();
+                }
+            } else if (autosuggestion == SuggestionType.TAIL_TIP) {
+                if (buf.length() == buf.cursor()) {
+                    if (!lastBinding.equals("\t")){
+                        clearChoices();
+                    }
+                    AttributedStringBuilder sb = new AttributedStringBuilder();
+                    if (buf.prevChar() != ' ') {
+                        if (!tailTip.startsWith("[")) {
+                            int idx = tailTip.indexOf(' ');
+                            if (idx > 0) {
+                                tailTip = tailTip.substring(idx);
+                            }
+                        } else {
+                            sb.append(" ");
+                        }
+                    }
+                    sb.styled(AttributedStyle::faint, tailTip);
+                    full.append(sb.toAttributedString());
+                } else {
+                    clearStatus();
+                }
+            }
+        }
         if (post != null) {
             full.append("\n");
             full.append(post.get());
         }
+        inCompleterMenu = false;
         return full.toAttributedString();
+    }
+
+    private void clearStatus() {
+        Status status = Status.getStatus(terminal, false);
+        if (status != null) {
+            status.clear();
+        }
     }
 
     private AttributedString getHighlightedBuffer(String buffer) {
@@ -4224,7 +4328,11 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     protected boolean listChoices() {
-        return doComplete(CompletionType.List, isSet(Option.MENU_COMPLETE), false);
+        return listChoices(false);
+    }
+
+    private boolean listChoices(boolean forSuggestion) {
+        return doComplete(CompletionType.List, isSet(Option.MENU_COMPLETE), false, forSuggestion);
     }
 
     protected boolean deleteCharOrList() {
@@ -4236,6 +4344,10 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     protected boolean doComplete(CompletionType lst, boolean useMenu, boolean prefix) {
+        return doComplete(lst, useMenu, prefix, false);
+    }
+
+    protected boolean doComplete(CompletionType lst, boolean useMenu, boolean prefix, boolean forSuggestion) {
         // If completion is disabled, just bail out
         if (getBoolean(DISABLE_COMPLETION, false)) {
             return true;
@@ -4362,7 +4474,7 @@ public class LineReaderImpl implements LineReader, Flushable
                 List<Candidate> possible = matching.entrySet().stream()
                         .flatMap(e -> e.getValue().stream())
                         .collect(Collectors.toList());
-                doList(possible, line.word(), false, line::escape);
+                doList(possible, line.word(), false, line::escape, forSuggestion);
                 return !possible.isEmpty();
             }
 
@@ -4826,12 +4938,24 @@ public class LineReaderImpl implements LineReader, Flushable
                     return true;
                 }
             }
+            inCompleterMenu = true;
             redisplay();
         }
         return false;
     }
 
-    protected boolean doList(List<Candidate> possible, String completed, boolean runLoop, BiFunction<CharSequence, Boolean, CharSequence> escaper) {
+    protected boolean clearChoices() {
+        return doList(new ArrayList<Candidate>(), "", false, null, false);
+    }
+
+    protected boolean doList(List<Candidate> possible
+                           , String completed, boolean runLoop, BiFunction<CharSequence, Boolean, CharSequence> escaper) {
+        return doList(possible, completed, runLoop, escaper, false);
+    }
+
+    protected boolean doList(List<Candidate> possible
+                           , String completed
+                           , boolean runLoop, BiFunction<CharSequence, Boolean, CharSequence> escaper, boolean forSuggestion) {
         // If we list only and if there's a big
         // number of items, we should ask the user
         // for confirmation, display the list
@@ -4844,13 +4968,17 @@ public class LineReaderImpl implements LineReader, Flushable
         int listMax = getInt(LIST_MAX, DEFAULT_LIST_MAX);
         if (listMax > 0 && possible.size() >= listMax
                 || lines >= size.getRows() - promptLines) {
-            // prompt
-            post = () -> new AttributedString(getAppName() + ": do you wish to see all " + possible.size()
-                    + " possibilities (" + lines + " lines)?");
-            redisplay(true);
-            int c = readCharacter();
-            if (c != 'y' && c != 'Y' && c != '\t') {
-                post = null;
+            if (!forSuggestion) {
+                // prompt
+                post = () -> new AttributedString(getAppName() + ": do you wish to see all " + possible.size()
+                        + " possibilities (" + lines + " lines)?");
+                redisplay(true);
+                int c = readCharacter();
+                if (c != 'y' && c != 'Y' && c != '\t') {
+                    post = null;
+                    return false;
+                }
+            } else {
                 return false;
             }
         }

@@ -450,6 +450,13 @@ public interface LineReader {
         PASTE
     }
 
+    enum SuggestionType {
+        NONE,
+        HISTORY,
+        COMPLETER,
+        TAIL_TIP
+    }
+
     /**
      * Read the next line and return the contents of the buffer.
      *
@@ -670,4 +677,13 @@ public interface LineReader {
 
     void editAndAddInBuffer(File file) throws Exception;
 
+    String getLastBinding();
+
+    String getTailTip();
+
+    void setTailTip(String tailTip);
+
+    void setAutosuggestion(SuggestionType type);
+
+    SuggestionType getAutosuggestion();
 }
