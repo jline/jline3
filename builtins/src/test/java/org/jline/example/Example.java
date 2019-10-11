@@ -31,6 +31,7 @@ import org.jline.builtins.Widgets.TailTipWidgets.TipType;
 import org.jline.builtins.Widgets.ArgDesc;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
+import org.jline.reader.LineReader.Option;
 import org.jline.reader.LineReader.SuggestionType;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.DefaultParser.Bracket;
