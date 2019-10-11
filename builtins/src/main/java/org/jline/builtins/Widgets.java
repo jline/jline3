@@ -116,17 +116,19 @@ public abstract class Widgets {
     }
 
     public void initDescription(int size) {
+        Status status = Status.getStatus(reader.getTerminal(), false);
         if (size > 0) {
+            if (status == null) {
+                status = Status.getStatus(reader.getTerminal());
+            }
+            status.setBorder(true);
             List<AttributedString> as = new ArrayList<>();
             for (int i = 0; i < size; i++) {
                 as.add(new AttributedString(""));
             }
             addDescription(as);
-        } else {
-            Status status = Status.getStatus(reader.getTerminal(), false);
-            if (status != null) {
-                status.clear();
-            }
+        } else if (status != null) {
+            status.clear();
         }
     }
 

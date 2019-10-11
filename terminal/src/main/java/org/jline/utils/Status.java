@@ -27,6 +27,8 @@ public class Status {
     protected int columns;
     protected boolean force;
     protected boolean suspended = false;
+    protected AttributedString borderString;
+    protected int border = 0;
 
     public static Status getStatus(Terminal terminal) {
         return getStatus(terminal, true);
@@ -46,8 +48,19 @@ public class Status {
             && terminal.getStringCapability(Capability.restore_cursor) != null
             && terminal.getStringCapability(Capability.cursor_address) != null;
         if (supported) {
+            char borderChar = '─';
+            AttributedStringBuilder bb = new AttributedStringBuilder();
+            for (int i = 0; i < 200; i++) {
+                bb.append(borderChar);
+            }
+            borderString = bb.toAttributedString();
             resize();
         }
+    }
+
+    public void setBorder(boolean border) {
+        clear();
+        this.border = border ? 1 : 0;
     }
 
     public void resize() {
@@ -78,11 +91,21 @@ public class Status {
     }
 
     public void clear() {
-        if (!oldLines.isEmpty()) {
-            List<AttributedString> as = new ArrayList<>();
-            for (int i = 0; i < oldLines.size(); i++) {
-                as.add(new AttributedString(""));
-            }
+        privateClear(oldLines.size());
+    }
+
+    private void clearAll() {
+        int b = border;
+        border = 0;
+        privateClear(oldLines.size() + b);
+    }
+
+    private void privateClear(int statusSize) {
+        List<AttributedString> as = new ArrayList<>();
+        for (int i = 0; i < statusSize; i++) {
+            as.add(new AttributedString(""));
+        }
+        if (!as.isEmpty()) {
             update(as);
         }
     }
@@ -98,10 +121,14 @@ public class Status {
             linesToRestore = new ArrayList<>(lines);
             return;
         }
+        if (lines.isEmpty()) {
+            clearAll();
+        }
         if (oldLines.equals(lines) && !force) {
             return;
         }
-        int nb = lines.size() - oldLines.size();
+        int statusSize = lines.size() + (lines.size() == 0 ? 0 : border);
+        int nb = statusSize - oldLines.size() - (oldLines.size() == 0 ? 0 : border);
         if (nb > 0) {
             for (int i = 0; i < nb; i++) {
                 terminal.puts(Capability.cursor_down);
@@ -111,13 +138,23 @@ public class Status {
             }
         }
         terminal.puts(Capability.save_cursor);
-        terminal.puts(Capability.cursor_address, rows - lines.size(), 0);
+        terminal.puts(Capability.cursor_address, rows - statusSize, 0);
         terminal.puts(Capability.clr_eos);
+        if (border == 1 && lines.size() > 0) {
+            terminal.puts(Capability.cursor_address, rows - statusSize, 0);
+            borderString.columnSubSequence(0, columns).print(terminal);
+        }
         for (int i = 0; i < lines.size(); i++) {
             terminal.puts(Capability.cursor_address, rows - lines.size() + i, 0);
-            lines.get(i).columnSubSequence(0, columns).print(terminal);
+            if (lines.get(i).length() > columns) {
+                AttributedStringBuilder asb = new AttributedStringBuilder();
+                asb.append(lines.get(i).substring(0, columns - 3)).append("...", new AttributedStyle(AttributedStyle.INVERSE));
+                asb.toAttributedString().columnSubSequence(0, columns).print(terminal);
+            } else {
+                lines.get(i).columnSubSequence(0, columns).print(terminal);
+            }
         }
-        terminal.puts(Capability.change_scroll_region, 0, rows - 1 - lines.size());
+        terminal.puts(Capability.change_scroll_region, 0, rows - 1 - statusSize);
         terminal.puts(Capability.restore_cursor);
         terminal.flush();
         oldLines = new ArrayList<>(lines);
@@ -136,14 +173,14 @@ public class Status {
     public void restore() {
         if (!suspended) {
             return;
-        }        
+        }
         suspended = false;
         update(linesToRestore);
         linesToRestore = Collections.emptyList();
     }
 
     public int size() {
-        return oldLines.size();
+        return oldLines.size() + border;
     }
 
 }
