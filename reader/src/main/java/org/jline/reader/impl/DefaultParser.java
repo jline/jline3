@@ -56,7 +56,7 @@ public class DefaultParser implements Parser {
         return this;
     }
 
-    public DefaultParser eofOnUnclosedBracket(Bracket... brackets){
+    public DefaultParser eofOnUnclosedBracket(Bracket... brackets) {
         setEofOnUnclosedBracket(brackets);
         return this;
     }
@@ -102,7 +102,7 @@ public class DefaultParser implements Parser {
         return eofOnEscapedNewLine;
     }
 
-    public void setEofOnUnclosedBracket(Bracket... brackets){
+    public void setEofOnUnclosedBracket(Bracket... brackets) {
         if (brackets == null) {
             openingBrackets = null;
             closingBrackets = null;
@@ -358,11 +358,11 @@ public class DefaultParser implements Parser {
         private int cursor;
         private String nextClosingBracket;
 
-        public BracketChecker(int cursor){
+        public BracketChecker(int cursor) {
             this.cursor = cursor;
         }
 
-        public void check(final CharSequence buffer, final int pos){
+        public void check(final CharSequence buffer, final int pos) {
             if (openingBrackets == null || pos < 0) {
                 return;
             }
@@ -387,22 +387,22 @@ public class DefaultParser implements Parser {
             }
         }
 
-        public boolean isOpeningBracketMissing(){
+        public boolean isOpeningBracketMissing() {
             return missingOpeningBracket != -1;
         }
 
-        public String getMissingOpeningBracket(){
+        public String getMissingOpeningBracket() {
             if (!isOpeningBracketMissing()) {
                 return null;
             }
             return Character.toString(openingBrackets[missingOpeningBracket]);
         }
 
-        public boolean isClosingBracketMissing(){
+        public boolean isClosingBracketMissing() {
             return !nested.isEmpty();
         }
 
-        public String getMissingClosingBrackets(){
+        public String getMissingClosingBrackets() {
             if (!isClosingBracketMissing()) {
                 return null;
             }
@@ -413,7 +413,7 @@ public class DefaultParser implements Parser {
             return out.toString();
         }
 
-        public int getOpenBrackets(){
+        public int getOpenBrackets() {
             return openBrackets;
         }
 
@@ -421,7 +421,7 @@ public class DefaultParser implements Parser {
             return nested.size() > 1 ? nextClosingBracket : null;
         }
 
-        private int bracketId(final char[] brackets, final CharSequence buffer, final int pos){
+        private int bracketId(final char[] brackets, final CharSequence buffer, final int pos) {
             for (int i=0; i < brackets.length; i++) {
                 if (buffer.charAt(pos) == brackets[i]) {
                     return i;
