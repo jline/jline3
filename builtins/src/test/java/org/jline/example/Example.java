@@ -491,10 +491,10 @@ public class Example
                             String type = pl.words().get(1).toLowerCase();
                             if (type.startsWith("his")) {
                                 tailtipWidgets.defaultBindings();
-                                autosuggestionWidgets.autosuggestionBindings();
+                                autosuggestionWidgets.customBindings();
                             } else if (type.startsWith("tai")) {
                                 autosuggestionWidgets.defaultBindings();
-                                tailtipWidgets.autosuggestionBindings();
+                                tailtipWidgets.customBindings();
                                 tailtipWidgets.setDescriptionSize(5);
                                 if (pl.words().size() > 2) {
                                     String mode = pl.words().get(2).toLowerCase();

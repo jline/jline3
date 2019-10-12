@@ -56,7 +56,7 @@ public abstract class Widgets {
     }
 
     public void callWidget(String name) {
-        reader.callWidget(name);
+        reader.callWidget("." + name);
     }
 
     public KeyMap<Binding> getKeyMap(String name) {
@@ -239,7 +239,7 @@ public abstract class Widgets {
             if (autopair) {
                 defaultBindings();
             } else {
-                autopairBindings();
+                customBindings();
             }
             return autopair;
         }
@@ -247,7 +247,7 @@ public abstract class Widgets {
          * key bindings...
          *
          */
-        private void autopairBindings() {
+        private void customBindings() {
             KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
             for (Map.Entry<String, String> p: pairs.entrySet()) {
                 map.bind(new Reference("_autopair-insert"), p.getKey());
@@ -378,11 +378,11 @@ public abstract class Widgets {
             for (Map.Entry<String, Binding> bound : map.getBoundKeys().entrySet()) {
                 if (bound.getValue() instanceof Reference) {
                     Reference w = (Reference)bound.getValue();
-                    if (w.name().equals(LineReader.FORWARD_CHAR)){
+                    if (w.name().equals(LineReader.FORWARD_CHAR)) {
                         addKeySequence(w, bound.getKey());
-                    } else if (w.name().equals(LineReader.END_OF_LINE)){
+                    } else if (w.name().equals(LineReader.END_OF_LINE)) {
                         addKeySequence(w, bound.getKey());
-                    } else if (w.name().equals(LineReader.FORWARD_WORD)){
+                    } else if (w.name().equals(LineReader.FORWARD_WORD)) {
                         addKeySequence(w, bound.getKey());
                     }
                 }
@@ -427,7 +427,7 @@ public abstract class Widgets {
             if (autosuggestion) {
                 defaultBindings();
             } else {
-                autosuggestionBindings();
+                customBindings();
             }
             return autosuggestion;
         }
@@ -446,7 +446,7 @@ public abstract class Widgets {
          * key bindings...
          *
          */
-        public void autosuggestionBindings() {
+        public void customBindings() {
             if (autosuggestion) {
                 return;
             }
@@ -525,13 +525,13 @@ public abstract class Widgets {
             for (Map.Entry<String, Binding> bound : map.getBoundKeys().entrySet()) {
                 if (bound.getValue() instanceof Reference) {
                     Reference w = (Reference)bound.getValue();
-                    if (w.name().equals(LineReader.ACCEPT_LINE)){
+                    if (w.name().equals(LineReader.ACCEPT_LINE)) {
                         addKeySequence(w, bound.getKey());
-                    } else if (w.name().equals(LineReader.BACKWARD_DELETE_CHAR)){
+                    } else if (w.name().equals(LineReader.BACKWARD_DELETE_CHAR)) {
                         addKeySequence(w, bound.getKey());
-                    } else if (w.name().equals(LineReader.DELETE_CHAR)){
+                    } else if (w.name().equals(LineReader.DELETE_CHAR)) {
                         addKeySequence(w, bound.getKey());
-                    } else if (w.name().equals(LineReader.EXPAND_OR_COMPLETE)){
+                    } else if (w.name().equals(LineReader.EXPAND_OR_COMPLETE)) {
                         addKeySequence(w, bound.getKey());
                     }
                 }
@@ -579,7 +579,7 @@ public abstract class Widgets {
         }
 
         public boolean tailtipAcceptLine() {
-            if (tipType != TipType.TAIL_TIP){
+            if (tipType != TipType.TAIL_TIP) {
                 setSuggestionType(SuggestionType.COMPLETER);
             }
             clearDescription();
@@ -631,7 +631,7 @@ public abstract class Widgets {
                     }
                 } else {
                     setTailTip("");
-                    if (tipType != TipType.TAIL_TIP){
+                    if (tipType != TipType.TAIL_TIP) {
                         setSuggestionType(SuggestionType.COMPLETER);
                     }
                 }
@@ -666,7 +666,7 @@ public abstract class Widgets {
             if (autosuggestion) {
                 defaultBindings();
             } else {
-                autosuggestionBindings();
+                customBindings();
             }
             return autosuggestion;
         }
@@ -675,7 +675,7 @@ public abstract class Widgets {
          * key bindings...
          *
          */
-        public void autosuggestionBindings() {
+        public void customBindings() {
             if (autosuggestion) {
                 return;
             }

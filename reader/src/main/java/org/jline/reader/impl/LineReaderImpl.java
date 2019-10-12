@@ -341,7 +341,7 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     @Override
-    public String getTailTip(){
+    public String getTailTip() {
         return tailTip;
     }
 
@@ -727,12 +727,12 @@ public class LineReaderImpl implements LineReader, Flushable
         }
     }
 
-    private boolean isTerminalDumb(){
+    private boolean isTerminalDumb() {
         return Terminal.TYPE_DUMB.equals(terminal.getType())
                 || Terminal.TYPE_DUMB_COLOR.equals(terminal.getType());
     }
 
-    private void doDisplay(){
+    private void doDisplay() {
         // Cache terminal size for the duration of the call to readLine()
         // It will eventually be updated with WINCH signals
         size.copy(terminal.getBufferSize());
@@ -2178,7 +2178,7 @@ public class LineReaderImpl implements LineReader, Flushable
         return true;
     }
 
-    private void removeIndentation(){
+    private void removeIndentation() {
         int indent = getInt(INDENTATION, DEFAULT_INDENTATION);
         if (indent > 0) {
             buf.move(-1);
@@ -3994,13 +3994,13 @@ public class LineReaderImpl implements LineReader, Flushable
                     && (!lastBinding.equals("\t") || buf.prevChar() == ' ')) {
                     clearChoices();
                     listChoices(true);
-                } else if (!lastBinding.equals("\t")){
+                } else if (!lastBinding.equals("\t")) {
                     clearChoices();
                     clearStatus();
                 }
             } else if (autosuggestion == SuggestionType.TAIL_TIP) {
                 if (buf.length() == buf.cursor()) {
-                    if (!lastBinding.equals("\t")){
+                    if (!lastBinding.equals("\t") || buf.prevChar() == ' ') {
                         clearChoices();
                     }
                     AttributedStringBuilder sb = new AttributedStringBuilder();
