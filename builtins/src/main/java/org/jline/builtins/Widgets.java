@@ -8,9 +8,7 @@
  */
 package org.jline.builtins;
 
-import static org.jline.keymap.KeyMap.del;
-import static org.jline.keymap.KeyMap.ctrl;
-
+import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -57,6 +55,19 @@ public abstract class Widgets {
 
     public void callWidget(String name) {
         reader.callWidget("." + name);
+    }
+
+    public void aliasWidget(String orig, String alias) {
+        Widget org = null;
+        if (orig.startsWith(".")) {
+            org = reader.getBuiltinWidgets().get(orig.substring(1));
+        } else {
+            org = reader.getWidgets().get(orig);
+        }
+        if (org == null) {
+            throw new InvalidParameterException("widget: no such widget " + orig);
+        }
+        reader.getWidgets().put(alias, org);
     }
 
     public KeyMap<Binding> getKeyMap(String name) {
@@ -132,7 +143,6 @@ public abstract class Widgets {
         }
     }
 
-
     public static class AutopairWidgets extends Widgets {
         /*
          *  Inspired by zsh-autopair
@@ -182,7 +192,7 @@ public abstract class Widgets {
             }
             addWidget("_autopair-insert", this::autopairInsert);
             addWidget("_autopair-close", this::autopairClose);
-            addWidget("_autopair-delete", this::autopairDelete);
+            addWidget("_autopair-backward-delete-char", this::autopairDelete);
             addWidget("autopair-toggle", this::toggleKeyBindings);
 
             KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
@@ -192,8 +202,6 @@ public abstract class Widgets {
                     defaultBindings.put(p.getValue(), map.getBound(p.getValue()));
                 }
             }
-            defaultBindings.put(ctrl('H'), map.getBound(ctrl('H')));
-            defaultBindings.put(del(), map.getBound(del()));
         }
 
         /*
@@ -255,8 +263,7 @@ public abstract class Widgets {
                     map.bind(new Reference("_autopair-close"), p.getValue());
                 }
             }
-            map.bind(new Reference("_autopair-delete"), ctrl('H'));
-            map.bind(new Reference("_autopair-delete"), del());
+            aliasWidget("_autopair-backward-delete-char", LineReader.BACKWARD_DELETE_CHAR);
             autopair = true;
         }
 
@@ -268,8 +275,7 @@ public abstract class Widgets {
                     map.bind(defaultBindings.get(p.getValue()), p.getValue());
                 }
             }
-            map.bind(defaultBindings.get(ctrl('H')), ctrl('H'));
-            map.bind(defaultBindings.get(del()), del());
+            aliasWidget("." + LineReader.BACKWARD_DELETE_CHAR, LineReader.BACKWARD_DELETE_CHAR);
             autopair = false;
         }
         /*
@@ -365,7 +371,6 @@ public abstract class Widgets {
     }
 
     public static class AutosuggestionWidgets extends Widgets {
-        private final Map<Reference, Set<String>> defaultBindings = new HashMap<>();
         private boolean autosuggestion = false;
 
         public AutosuggestionWidgets(LineReader reader) {
@@ -374,27 +379,8 @@ public abstract class Widgets {
             addWidget("_autosuggest-end-of-line", this::autosuggestEndOfLine);
             addWidget("_autosuggest-forward-word", this::partialAccept);
             addWidget("autosuggest-toggle", this::toggleKeyBindings);
-            KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
-            for (Map.Entry<String, Binding> bound : map.getBoundKeys().entrySet()) {
-                if (bound.getValue() instanceof Reference) {
-                    Reference w = (Reference)bound.getValue();
-                    if (w.name().equals(LineReader.FORWARD_CHAR)) {
-                        addKeySequence(w, bound.getKey());
-                    } else if (w.name().equals(LineReader.END_OF_LINE)) {
-                        addKeySequence(w, bound.getKey());
-                    } else if (w.name().equals(LineReader.FORWARD_WORD)) {
-                        addKeySequence(w, bound.getKey());
-                    }
-                }
-            }
         }
 
-        private void addKeySequence(Reference widget, String keySequence) {
-            if (!defaultBindings.containsKey(widget)) {
-                defaultBindings.put(widget, new HashSet<String>());
-            }
-            defaultBindings.get(widget).add(keySequence);
-        }
         /*
          * Widgets
          */
@@ -450,22 +436,9 @@ public abstract class Widgets {
             if (autosuggestion) {
                 return;
             }
-            KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
-            for (Map.Entry<Reference, Set<String>> entry : defaultBindings.entrySet()) {
-                if (entry.getKey().name().equals(LineReader.FORWARD_CHAR)) {
-                    for (String s: entry.getValue()) {
-                        map.bind(new Reference("_autosuggest-forward-char"), s);
-                    }
-                } else if (entry.getKey().name().equals(LineReader.END_OF_LINE)) {
-                    for (String s: entry.getValue()) {
-                        map.bind(new Reference("_autosuggest-end-of-line"), s);
-                    }
-                } else if (entry.getKey().name().equals(LineReader.FORWARD_WORD)) {
-                    for (String s: entry.getValue()) {
-                        map.bind(new Reference("_autosuggest-forward-word"), s);
-                    }
-                }
-            }
+            aliasWidget("_autosuggest-forward-char", LineReader.FORWARD_CHAR);
+            aliasWidget("_autosuggest-end-of-line", LineReader.END_OF_LINE);
+            aliasWidget("_autosuggest-forward-word", LineReader.FORWARD_WORD);
             autosuggestion = true;
             setSuggestionType(SuggestionType.HISTORY);
         }
@@ -474,12 +447,9 @@ public abstract class Widgets {
             if (!autosuggestion) {
                 return;
             }
-            KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
-            for (Map.Entry<Reference, Set<String>> entry : defaultBindings.entrySet()) {
-                for (String s: entry.getValue()) {
-                    map.bind(entry.getKey(), s);
-                }
-            }
+            aliasWidget("." + LineReader.FORWARD_CHAR, LineReader.FORWARD_CHAR);
+            aliasWidget("." + LineReader.END_OF_LINE, LineReader.END_OF_LINE);
+            aliasWidget("." + LineReader.FORWARD_WORD, LineReader.FORWARD_WORD);
             autosuggestion = false;
             setSuggestionType(SuggestionType.NONE);
         }
@@ -491,7 +461,6 @@ public abstract class Widgets {
             COMPLETER,
             COMBINED
         }
-        private final Map<Reference, Set<String>> defaultBindings = new HashMap<>();
         private boolean autosuggestion = false;
         private Map<String,List<ArgDesc>> tailTips = new HashMap<>();
         private TipType tipType;
@@ -521,28 +490,6 @@ public abstract class Widgets {
             addWidget("_tailtip-delete-char", this::tailtipDelete);
             addWidget("_tailtip-expand-or-complete", this::tailtipComplete);
             addWidget("tailtip-toggle", this::toggleKeyBindings);
-            KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
-            for (Map.Entry<String, Binding> bound : map.getBoundKeys().entrySet()) {
-                if (bound.getValue() instanceof Reference) {
-                    Reference w = (Reference)bound.getValue();
-                    if (w.name().equals(LineReader.ACCEPT_LINE)) {
-                        addKeySequence(w, bound.getKey());
-                    } else if (w.name().equals(LineReader.BACKWARD_DELETE_CHAR)) {
-                        addKeySequence(w, bound.getKey());
-                    } else if (w.name().equals(LineReader.DELETE_CHAR)) {
-                        addKeySequence(w, bound.getKey());
-                    } else if (w.name().equals(LineReader.EXPAND_OR_COMPLETE)) {
-                        addKeySequence(w, bound.getKey());
-                    }
-                }
-            }
-        }
-
-        private void addKeySequence(Reference widget, String keySequence) {
-            if (!defaultBindings.containsKey(widget)) {
-                defaultBindings.put(widget, new HashSet<String>());
-            }
-            defaultBindings.get(widget).add(keySequence);
         }
 
         public void setDescriptionSize(int descriptionSize) {
@@ -679,29 +626,11 @@ public abstract class Widgets {
             if (autosuggestion) {
                 return;
             }
+            aliasWidget("_tailtip-accept-line", LineReader.ACCEPT_LINE);
+            aliasWidget("_tailtip-backward-delete-char", LineReader.BACKWARD_DELETE_CHAR);
+            aliasWidget("_tailtip-delete-char", LineReader.DELETE_CHAR);
+            aliasWidget("_tailtip-expand-or-complete", LineReader.EXPAND_OR_COMPLETE);
             KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
-            for (Map.Entry<Reference, Set<String>> entry : defaultBindings.entrySet()) {
-                if (entry.getKey().name().equals(LineReader.ACCEPT_LINE)) {
-                    for (String s: entry.getValue()) {
-                        map.bind(new Reference("_tailtip-accept-line"), s);
-                    }
-                }
-                if (entry.getKey().name().equals(LineReader.BACKWARD_DELETE_CHAR)) {
-                    for (String s: entry.getValue()) {
-                        map.bind(new Reference("_tailtip-backward-delete-char"), s);
-                    }
-                }
-                if (entry.getKey().name().equals(LineReader.DELETE_CHAR)) {
-                    for (String s: entry.getValue()) {
-                        map.bind(new Reference("_tailtip-delete-char"), s);
-                    }
-                }
-                if (entry.getKey().name().equals(LineReader.EXPAND_OR_COMPLETE)) {
-                    for (String s: entry.getValue()) {
-                        map.bind(new Reference("_tailtip-expand-or-complete"), s);
-                    }
-                }
-            }
             map.bind(new Reference("_tailtip-insert"), " ");
             if (tipType != TipType.TAIL_TIP) {
                 setSuggestionType(SuggestionType.COMPLETER);
@@ -715,12 +644,11 @@ public abstract class Widgets {
             if (!autosuggestion) {
                 return;
             }
+            aliasWidget("." + LineReader.ACCEPT_LINE, LineReader.ACCEPT_LINE);
+            aliasWidget("." + LineReader.BACKWARD_DELETE_CHAR, LineReader.BACKWARD_DELETE_CHAR);
+            aliasWidget("." + LineReader.DELETE_CHAR, LineReader.DELETE_CHAR);
+            aliasWidget("." + LineReader.EXPAND_OR_COMPLETE, LineReader.EXPAND_OR_COMPLETE);
             KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
-            for (Map.Entry<Reference, Set<String>> entry : defaultBindings.entrySet()) {
-                for (String s: entry.getValue()) {
-                    map.bind(entry.getKey(), s);
-                }
-            }
             map.bind(new Reference(LineReader.SELF_INSERT), " ");
             setSuggestionType(SuggestionType.NONE);
             autosuggestion = false;
