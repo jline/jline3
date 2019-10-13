@@ -3763,7 +3763,7 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     private void addBuiltinWidget(Map<String, Widget> widgets, String name, Widget widget) {
-        widgets.put(name, namedWidget(name, widget));
+        widgets.put(name, namedWidget("." + name, widget));
     }
 
     private Widget namedWidget(String name, Widget widget) {

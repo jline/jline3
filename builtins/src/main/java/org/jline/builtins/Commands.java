@@ -469,11 +469,11 @@ public class Commands {
                               String[] argv) throws Exception {
         final String[] usage = {
                 "widget -  manipulate widgets",
-                "Usage: widget [options] -N new-widget [function-name]",
-                "       widget [options] -D widget ...",
-                "       widget [options] -A old-widget new-widget",
-                "       widget [options] -U string ...",
-                "       widget [options] -l",
+                "Usage: widget -N new-widget [function-name]",
+                "       widget -D widget ...",
+                "       widget -A old-widget new-widget",
+                "       widget -U string ...",
+                "       widget -l [options]",
                 "  -? --help                       Displays command help",
                 "  -A                              Create alias to widget",
                 "  -N                              Create new widget",
@@ -497,11 +497,13 @@ public class Commands {
             return;
         }
         if (opt.isSet("l")) {
-            Set<String> widgets = new TreeSet<>(reader.getWidgets().keySet());
-            if (!opt.isSet("a")){
-                widgets.removeAll(reader.getBuiltinWidgets().keySet());
+            for (String s : new TreeSet<>(reader.getWidgets().keySet())) {
+                if (opt.isSet("a")) {
+                    out.println(s);
+                } else if (!reader.getWidgets().get(s).toString().startsWith(".")) {
+                    out.println(s + " (" + reader.getWidgets().get(s) + ")");
+                }
             }
-            widgets.forEach(out::println);
         }
         else if (opt.isSet("N")) {
             if (opt.args().size() < 1) {
@@ -528,7 +530,12 @@ public class Commands {
                 err.println("widget: too many arguments for -A");
                 return;
             }
-            Widget org = reader.getWidgets().get(opt.args().get(0));
+            Widget org = null;
+            if (opt.args().get(0).startsWith(".")) {
+                org = reader.getBuiltinWidgets().get(opt.args().get(0).substring(1));
+            } else {
+                org = reader.getWidgets().get(opt.args().get(0));
+            }
             if (org == null) {
                 err.println("widget: no such widget `" + opt.args().get(0) + "'");
                 return;
