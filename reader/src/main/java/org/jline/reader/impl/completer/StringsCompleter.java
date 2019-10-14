@@ -48,6 +48,11 @@ public class StringsCompleter implements Completer
         this.candidates.addAll(Arrays.asList(candidates));
     }
 
+    public StringsCompleter(Collection<Candidate> candidates) {
+        assert candidates != null;
+        this.candidates.addAll(candidates);
+    }
+
     public void complete(LineReader reader, final ParsedLine commandLine, final List<Candidate> candidates) {
         assert commandLine != null;
         assert candidates != null;
