@@ -19,7 +19,9 @@ import java.util.Set;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
 import org.jline.reader.Buffer;
+import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
+import org.jline.reader.UserInterruptException;
 import org.jline.reader.LineReader.SuggestionType;
 import org.jline.reader.Reference;
 import org.jline.reader.Widget;
@@ -173,6 +175,9 @@ public abstract class Widgets {
         }
     }
 
+    /**
+     * Creates and manages widgets that auto-closes, deletes and skips over matching delimiters intelligently.
+     */
     public static class AutopairWidgets extends Widgets {
         /*
          *  Inspired by zsh-autopair
@@ -436,6 +441,10 @@ public abstract class Widgets {
         }
     }
 
+    /**
+     * Creates and manages widgets for as you type command line suggestions.
+     * Suggestions are created using a using command history.
+     */
     public static class AutosuggestionWidgets extends Widgets {
         private boolean enabled = false;
 
@@ -531,10 +540,24 @@ public abstract class Widgets {
         }
     }
 
+    /**
+     * Creates and manages widgets for as you type command line suggestions.
+     * Suggestions are created using a command completer data and/or positional argument descriptions.
+     */
     public static class TailTipWidgets extends Widgets {
         public enum TipType {
+            /**
+             * Prepare command line suggestions using a command positional argument descriptions.
+             */
             TAIL_TIP,
+            /**
+             * Prepare command line suggestions using a command completer data.
+             */
             COMPLETER,
+            /**
+             * Prepare command line suggestions using either a command positional argument descriptions if exists
+             * or command completers data.
+             */
             COMBINED
         }
         private boolean enabled = false;
@@ -542,18 +565,54 @@ public abstract class Widgets {
         private TipType tipType;
         private int descriptionSize = 0;
 
+        /**
+         * Creates tailtip widgets used in command line suggestions. Suggestions are created using a command
+         * positional argument names. If argument descriptions do not exists command completer data will be used.
+         * Status bar for argument descriptions will not be created.
+         *
+         * @param reader      LineReader.
+         * @param tailTips    Commands positional argument descriptions.
+         * @throws IllegalStateException     If widgets are already created.
+         */
         public TailTipWidgets(LineReader reader, Map<String,List<ArgDesc>> tailTips) {
             this(reader, tailTips, 0, TipType.COMBINED);
         }
 
+        /**
+         * Creates tailtip widgets used in command line suggestions.
+         * Status bar for argument descriptions will not be created.
+         *
+         * @param reader      LineReader.
+         * @param tailTips    Commands positional argument descriptions.
+         * @param tipType     Defines which data will be used for suggestions.
+         * @throws IllegalStateException     If widgets are already created.
+         */
         public TailTipWidgets(LineReader reader, Map<String,List<ArgDesc>> tailTips, TipType tipType) {
             this(reader, tailTips, 0, tipType);
         }
 
+        /**
+         * Creates tailtip widgets used in command line suggestions. Suggestions are created using a command
+         * positional argument names. If argument descriptions do not exists command completer data will be used.
+         *
+         * @param reader           LineReader.
+         * @param tailTips         Commands positional argument descriptions.
+         * @param descriptionSize  Size of the status bar.
+         * @throws IllegalStateException     If widgets are already created.
+         */
         public TailTipWidgets(LineReader reader, Map<String,List<ArgDesc>> tailTips, int descriptionSize) {
             this(reader, tailTips, descriptionSize, TipType.COMBINED);
         }
 
+        /**
+         * Creates tailtip widgets used in command line suggestions.
+         *
+         * @param reader           LineReader.
+         * @param tailTips         Commands positional argument descriptions.
+         * @param descriptionSize  Size of the status bar.
+         * @param tipType          Defines which data will be used for suggestions.
+         * @throws IllegalStateException     If widgets are already created.
+         */
         public TailTipWidgets(LineReader reader, Map<String,List<ArgDesc>> tailTips, int descriptionSize, TipType tipType) {
             super(reader);
             if (existsWidget(TT_ACCEPT_LINE)) {

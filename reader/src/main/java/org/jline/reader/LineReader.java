@@ -451,9 +451,23 @@ public interface LineReader {
     }
 
     enum SuggestionType {
+        /**
+         * As you type command line suggestions are disabled.
+         */
         NONE,
+        /**
+         * Prepare command line suggestions using command history.
+         * Requires an additional widgets implementation.
+         */
         HISTORY,
+        /**
+         * Prepare command line suggestions using command completer data.
+         */
         COMPLETER,
+        /**
+         * Prepare command line suggestions using command completer data and/or command positional argument descriptions.
+         * Requires an additional widgets implementation.
+         */
         TAIL_TIP
     }
 
