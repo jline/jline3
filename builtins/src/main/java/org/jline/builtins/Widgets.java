@@ -30,6 +30,12 @@ import org.jline.utils.AttributedStyle;
 import org.jline.utils.Status;
 
 public abstract class Widgets {
+    protected static final String AP_TOGGLE = "autopair-toggle";
+    protected static final String AP_INSERT = "_autopair-insert";
+    protected static final String AP_BACKWARD_DELETE_CHAR = "_autopair-backward-delete-char";
+    protected static final String TT_TOGGLE = "tailtip-toggle";
+    protected static final String TT_ACCEPT_LINE = "_tailtip-accept-line";
+
     private final LineReader reader;
 
     public Widgets(LineReader reader) {
@@ -54,20 +60,35 @@ public abstract class Widgets {
     }
 
     public void callWidget(String name) {
-        reader.callWidget("." + name);
+        if (!name.startsWith("_") && !name.endsWith("-toggle")) {
+            name = "." + name;
+        }
+        reader.callWidget(name);
+    }
+
+    public void executeWidget(String name) {
+        widget(name).apply();
     }
 
     public void aliasWidget(String orig, String alias) {
-        Widget org = null;
-        if (orig.startsWith(".")) {
-            org = reader.getBuiltinWidgets().get(orig.substring(1));
+        reader.getWidgets().put(alias, widget(orig));
+    }
+
+    public String getWidget(String name) {
+        return widget(name).toString();
+    }
+
+    private Widget widget(String name) {
+        Widget out = null;
+        if (name.startsWith(".")) {
+            out = reader.getBuiltinWidgets().get(name.substring(1));
         } else {
-            org = reader.getWidgets().get(orig);
+            out = reader.getWidgets().get(name);
         }
-        if (org == null) {
-            throw new InvalidParameterException("widget: no such widget " + orig);
+        if (out == null) {
+            throw new InvalidParameterException("widget: no such widget " + name);
         }
-        reader.getWidgets().put(alias, org);
+        return out;
     }
 
     public KeyMap<Binding> getKeyMap(String name) {
@@ -152,7 +173,8 @@ public abstract class Widgets {
         private static final Map<String,String> RBOUNDS;
         private final Map<String,String> pairs;
         private final Map<String,Binding> defaultBindings = new HashMap<>();
-        private boolean autopair = false;
+        private boolean enabled;
+
         {
             pairs = new HashMap<>();
             pairs.put("`", "`");
@@ -190,10 +212,10 @@ public abstract class Widgets {
             if (addCurlyBrackets) {
                 pairs.put("{", "}");
             }
-            addWidget("_autopair-insert", this::autopairInsert);
+            addWidget(AP_INSERT, this::autopairInsert);
             addWidget("_autopair-close", this::autopairClose);
-            addWidget("_autopair-backward-delete-char", this::autopairDelete);
-            addWidget("autopair-toggle", this::toggleKeyBindings);
+            addWidget(AP_BACKWARD_DELETE_CHAR, this::autopairDelete);
+            addWidget(AP_TOGGLE, this::toggleKeyBindings);
 
             KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
             for (Map.Entry<String, String> p: pairs.entrySet()) {
@@ -202,6 +224,23 @@ public abstract class Widgets {
                     defaultBindings.put(p.getValue(), map.getBound(p.getValue()));
                 }
             }
+        }
+
+        public void enable() {
+            if (!enabled) {
+                executeWidget(AP_TOGGLE);
+            }
+        }
+
+        public void disable() {
+            if (enabled) {
+                executeWidget(AP_TOGGLE);
+            }
+        }
+
+        public boolean toggle() {
+            executeWidget(AP_TOGGLE);
+            return enabled;
         }
 
         /*
@@ -244,27 +283,34 @@ public abstract class Widgets {
         }
 
         public boolean toggleKeyBindings() {
-            if (autopair) {
+            if (enabled) {
                 defaultBindings();
             } else {
                 customBindings();
             }
-            return autopair;
+            return enabled;
         }
         /*
          * key bindings...
          *
          */
         private void customBindings() {
+            boolean ttActive = tailtipEnabled();
+            if (ttActive) {
+                callWidget(TT_TOGGLE);
+            }
             KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
             for (Map.Entry<String, String> p: pairs.entrySet()) {
-                map.bind(new Reference("_autopair-insert"), p.getKey());
+                map.bind(new Reference(AP_INSERT), p.getKey());
                 if (!p.getKey().equals(p.getValue())) {
                     map.bind(new Reference("_autopair-close"), p.getValue());
                 }
             }
-            aliasWidget("_autopair-backward-delete-char", LineReader.BACKWARD_DELETE_CHAR);
-            autopair = true;
+            aliasWidget(AP_BACKWARD_DELETE_CHAR, LineReader.BACKWARD_DELETE_CHAR);
+            if (ttActive) {
+                callWidget(TT_TOGGLE);
+            }
+            enabled = true;
         }
 
         private void defaultBindings() {
@@ -276,11 +322,19 @@ public abstract class Widgets {
                 }
             }
             aliasWidget("." + LineReader.BACKWARD_DELETE_CHAR, LineReader.BACKWARD_DELETE_CHAR);
-            autopair = false;
+            if (tailtipEnabled()) {
+                callWidget(TT_TOGGLE);
+                callWidget(TT_TOGGLE);
+            }
+            enabled = false;
         }
         /*
          * helpers
          */
+        private boolean tailtipEnabled() {
+            return getWidget(LineReader.ACCEPT_LINE).equals(TT_ACCEPT_LINE);
+        }
+
         private boolean canPair(String d) {
             if (balanced(d) && !nexToBoundary(d)) {
                 if (d.equals(" ") && (prevChar().equals(" ") || currChar().equals(" "))) {
@@ -371,7 +425,7 @@ public abstract class Widgets {
     }
 
     public static class AutosuggestionWidgets extends Widgets {
-        private boolean autosuggestion = false;
+        private boolean enabled = false;
 
         public AutosuggestionWidgets(LineReader reader) {
             super(reader);
@@ -381,6 +435,13 @@ public abstract class Widgets {
             addWidget("autosuggest-toggle", this::toggleKeyBindings);
         }
 
+        public void disable() {
+            defaultBindings();
+        }
+
+        public void enable() {
+            customBindings();
+        }
         /*
          * Widgets
          */
@@ -410,12 +471,12 @@ public abstract class Widgets {
         }
 
         public boolean toggleKeyBindings() {
-            if (autosuggestion) {
+            if (enabled) {
                 defaultBindings();
             } else {
                 customBindings();
             }
-            return autosuggestion;
+            return enabled;
         }
 
 
@@ -432,25 +493,25 @@ public abstract class Widgets {
          * key bindings...
          *
          */
-        public void customBindings() {
-            if (autosuggestion) {
+        private void customBindings() {
+            if (enabled) {
                 return;
             }
             aliasWidget("_autosuggest-forward-char", LineReader.FORWARD_CHAR);
             aliasWidget("_autosuggest-end-of-line", LineReader.END_OF_LINE);
             aliasWidget("_autosuggest-forward-word", LineReader.FORWARD_WORD);
-            autosuggestion = true;
+            enabled = true;
             setSuggestionType(SuggestionType.HISTORY);
         }
 
-        public void defaultBindings() {
-            if (!autosuggestion) {
+        private void defaultBindings() {
+            if (!enabled) {
                 return;
             }
             aliasWidget("." + LineReader.FORWARD_CHAR, LineReader.FORWARD_CHAR);
             aliasWidget("." + LineReader.END_OF_LINE, LineReader.END_OF_LINE);
             aliasWidget("." + LineReader.FORWARD_WORD, LineReader.FORWARD_WORD);
-            autosuggestion = false;
+            enabled = false;
             setSuggestionType(SuggestionType.NONE);
         }
     }
@@ -461,7 +522,7 @@ public abstract class Widgets {
             COMPLETER,
             COMBINED
         }
-        private boolean autosuggestion = false;
+        private boolean enabled = false;
         private Map<String,List<ArgDesc>> tailTips = new HashMap<>();
         private TipType tipType;
         private int descriptionSize = 0;
@@ -484,7 +545,7 @@ public abstract class Widgets {
             this.descriptionSize = descriptionSize;
             this.tipType = tipType;
             initDescription(descriptionSize);
-            addWidget("_tailtip-accept-line", this::tailtipAcceptLine);
+            addWidget(TT_ACCEPT_LINE, this::tailtipAcceptLine);
             addWidget("_tailtip-insert", this::tailtipInsert);
             addWidget("_tailtip-backward-delete-char", this::tailtipBackwardDelete);
             addWidget("_tailtip-delete-char", this::tailtipDelete);
@@ -514,8 +575,18 @@ public abstract class Widgets {
             return tipType;
         }
 
-        public boolean isActive() {
-            return autosuggestion;
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void disable() {
+            if (enabled) {
+                executeWidget(Widgets.TT_TOGGLE);
+            }
+        }
+
+        public void enable() {
+            customBindings();
         }
 
         /*
@@ -534,7 +605,7 @@ public abstract class Widgets {
         }
 
         public boolean tailtipBackwardDelete() {
-            return doTailTip(LineReader.BACKWARD_DELETE_CHAR);
+            return doTailTip(autopairEnabled() ? AP_BACKWARD_DELETE_CHAR : LineReader.BACKWARD_DELETE_CHAR);
         }
 
         private boolean clearTailTip(String widget) {
@@ -549,17 +620,17 @@ public abstract class Widgets {
         }
 
         public boolean tailtipInsert() {
-            return doTailTip(LineReader.SELF_INSERT);
+            return doTailTip(autopairEnabled() ? AP_INSERT : LineReader.SELF_INSERT);
         }
 
         private boolean doTailTip(String widget) {
             Buffer buffer = buffer();
             callWidget(widget);
             if (buffer.length() == buffer.cursor()
-                    && ((!widget.equals(LineReader.BACKWARD_DELETE_CHAR) && prevChar().equals(" ")) ||
-                        (widget.equals(LineReader.BACKWARD_DELETE_CHAR) && !prevChar().equals(" ")))) {
+                    && ((!widget.endsWith(LineReader.BACKWARD_DELETE_CHAR) && prevChar().equals(" ")) ||
+                        (widget.endsWith(LineReader.BACKWARD_DELETE_CHAR) && !prevChar().equals(" ")))) {
                 List<String> bp = args(buffer.toString());
-                int bpsize = bp.size() + (widget.equals(LineReader.BACKWARD_DELETE_CHAR) ? -1 : 0);
+                int bpsize = bp.size() + (widget.endsWith(LineReader.BACKWARD_DELETE_CHAR) ? -1 : 0);
                 List<AttributedString> desc = new ArrayList<>();
                 if (bpsize > 0 && tailTips.containsKey(bp.get(0))) {
                     List<ArgDesc> params = tailTips.get(bp.get(0));
@@ -609,24 +680,51 @@ public abstract class Widgets {
             }
         }
 
+        private boolean autopairEnabled() {
+            Binding binding = getKeyMap(LineReader.MAIN).getBound("(");
+            if (binding instanceof Reference && ((Reference)binding).name().equals(AP_INSERT)) {
+                return true;
+            }
+            return false;
+        }
+
         public boolean toggleKeyBindings() {
-            if (autosuggestion) {
+            if (enabled) {
                 defaultBindings();
             } else {
                 customBindings();
             }
-            return autosuggestion;
+            return enabled;
         }
 
         /*
          * key bindings...
          *
          */
-        public void customBindings() {
-            if (autosuggestion) {
+        private boolean defaultBindings() {
+            if (!enabled) {
+                return false;
+            }
+            aliasWidget("." + LineReader.ACCEPT_LINE, LineReader.ACCEPT_LINE);
+            aliasWidget("." + LineReader.BACKWARD_DELETE_CHAR, LineReader.BACKWARD_DELETE_CHAR);
+            aliasWidget("." + LineReader.DELETE_CHAR, LineReader.DELETE_CHAR);
+            aliasWidget("." + LineReader.EXPAND_OR_COMPLETE, LineReader.EXPAND_OR_COMPLETE);
+            KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
+            map.bind(new Reference(LineReader.SELF_INSERT), " ");
+            setSuggestionType(SuggestionType.NONE);
+            if (autopairEnabled()) {
+                callWidget(AP_TOGGLE);
+                callWidget(AP_TOGGLE);
+            }
+            enabled = false;
+            return true;
+        }
+
+        private void customBindings() {
+            if (enabled) {
                 return;
             }
-            aliasWidget("_tailtip-accept-line", LineReader.ACCEPT_LINE);
+            aliasWidget(TT_ACCEPT_LINE, LineReader.ACCEPT_LINE);
             aliasWidget("_tailtip-backward-delete-char", LineReader.BACKWARD_DELETE_CHAR);
             aliasWidget("_tailtip-delete-char", LineReader.DELETE_CHAR);
             aliasWidget("_tailtip-expand-or-complete", LineReader.EXPAND_OR_COMPLETE);
@@ -637,22 +735,9 @@ public abstract class Widgets {
             } else {
                 setSuggestionType(SuggestionType.TAIL_TIP);
             }
-            autosuggestion = true;
+            enabled = true;
         }
 
-        public void defaultBindings() {
-            if (!autosuggestion) {
-                return;
-            }
-            aliasWidget("." + LineReader.ACCEPT_LINE, LineReader.ACCEPT_LINE);
-            aliasWidget("." + LineReader.BACKWARD_DELETE_CHAR, LineReader.BACKWARD_DELETE_CHAR);
-            aliasWidget("." + LineReader.DELETE_CHAR, LineReader.DELETE_CHAR);
-            aliasWidget("." + LineReader.EXPAND_OR_COMPLETE, LineReader.EXPAND_OR_COMPLETE);
-            KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
-            map.bind(new Reference(LineReader.SELF_INSERT), " ");
-            setSuggestionType(SuggestionType.NONE);
-            autosuggestion = false;
-        }
     }
 
     public static class ArgDesc {

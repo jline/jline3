@@ -480,21 +480,21 @@ public class Example
                     }
                     else if ("autopair".equals(pl.word())) {
                         terminal.writer().print("Autopair widgets are ");
-                        if (autopairWidgets.toggleKeyBindings()) {
-                            terminal.writer().println("bounded.");
+                        if (autopairWidgets.toggle()) {
+                            terminal.writer().println("enabled.");
                         } else {
-                            terminal.writer().println("unbounded.");
+                            terminal.writer().println("disabled.");
                         }
                     }
                     else if ("autosuggestion".equals(pl.word())) {
                         if (pl.words().size() > 1) {
                             String type = pl.words().get(1).toLowerCase();
                             if (type.startsWith("his")) {
-                                tailtipWidgets.defaultBindings();
-                                autosuggestionWidgets.customBindings();
+                                tailtipWidgets.disable();
+                                autosuggestionWidgets.enable();
                             } else if (type.startsWith("tai")) {
-                                autosuggestionWidgets.defaultBindings();
-                                tailtipWidgets.customBindings();
+                                autosuggestionWidgets.disable();
+                                tailtipWidgets.enable();
                                 tailtipWidgets.setDescriptionSize(5);
                                 if (pl.words().size() > 2) {
                                     String mode = pl.words().get(2).toLowerCase();
@@ -507,24 +507,24 @@ public class Example
                                     }
                                 }
                             } else if (type.startsWith("com")) {
-                                autosuggestionWidgets.defaultBindings();
-                                tailtipWidgets.defaultBindings();
+                                autosuggestionWidgets.disable();
+                                tailtipWidgets.disable();
                                 reader.setAutosuggestion(SuggestionType.COMPLETER);
                             } else if (type.startsWith("non")) {
-                                autosuggestionWidgets.defaultBindings();
-                                tailtipWidgets.defaultBindings();
+                                autosuggestionWidgets.disable();
+                                tailtipWidgets.disable();
                                 reader.setAutosuggestion(SuggestionType.NONE);
                             } else {
                                 terminal.writer().println("Usage: autosuggestion history|completer|tailtip|none");
                             }
                         } else {
-                            if (tailtipWidgets.isActive()) {
+                            if (tailtipWidgets.isEnabled()) {
                                 terminal.writer().println("Autosuggestion: tailtip/" + tailtipWidgets.getTipType());
                             } else {
                                 terminal.writer().println("Autosuggestion: " + reader.getAutosuggestion());
                             }
                         }
-                        if (!tailtipWidgets.isActive()) {
+                        if (!tailtipWidgets.isEnabled()) {
                             Status.getStatus(terminal).update(null);
                         }
                     }
