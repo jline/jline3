@@ -15,13 +15,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
 import org.jline.reader.Buffer;
-import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
-import org.jline.reader.UserInterruptException;
 import org.jline.reader.LineReader.SuggestionType;
 import org.jline.reader.Reference;
 import org.jline.reader.Widget;
@@ -561,7 +560,7 @@ public abstract class Widgets {
             COMBINED
         }
         private boolean enabled = false;
-        private Map<String,List<ArgDesc>> tailTips = new HashMap<>();
+        private Map<String,CmdDesc> tailTips = new HashMap<>();
         private TipType tipType;
         private int descriptionSize = 0;
 
@@ -571,10 +570,10 @@ public abstract class Widgets {
          * Status bar for argument descriptions will not be created.
          *
          * @param reader      LineReader.
-         * @param tailTips    Commands positional argument descriptions.
+         * @param tailTips    Commands options and positional argument descriptions.
          * @throws IllegalStateException     If widgets are already created.
          */
-        public TailTipWidgets(LineReader reader, Map<String,List<ArgDesc>> tailTips) {
+        public TailTipWidgets(LineReader reader, Map<String,CmdDesc> tailTips) {
             this(reader, tailTips, 0, TipType.COMBINED);
         }
 
@@ -583,11 +582,11 @@ public abstract class Widgets {
          * Status bar for argument descriptions will not be created.
          *
          * @param reader      LineReader.
-         * @param tailTips    Commands positional argument descriptions.
+         * @param tailTips    Commands options and positional argument descriptions.
          * @param tipType     Defines which data will be used for suggestions.
          * @throws IllegalStateException     If widgets are already created.
          */
-        public TailTipWidgets(LineReader reader, Map<String,List<ArgDesc>> tailTips, TipType tipType) {
+        public TailTipWidgets(LineReader reader, Map<String,CmdDesc> tailTips, TipType tipType) {
             this(reader, tailTips, 0, tipType);
         }
 
@@ -596,11 +595,11 @@ public abstract class Widgets {
          * positional argument names. If argument descriptions do not exists command completer data will be used.
          *
          * @param reader           LineReader.
-         * @param tailTips         Commands positional argument descriptions.
+         * @param tailTips         Commands options and positional argument descriptions.
          * @param descriptionSize  Size of the status bar.
          * @throws IllegalStateException     If widgets are already created.
          */
-        public TailTipWidgets(LineReader reader, Map<String,List<ArgDesc>> tailTips, int descriptionSize) {
+        public TailTipWidgets(LineReader reader, Map<String,CmdDesc> tailTips, int descriptionSize) {
             this(reader, tailTips, descriptionSize, TipType.COMBINED);
         }
 
@@ -613,7 +612,7 @@ public abstract class Widgets {
          * @param tipType          Defines which data will be used for suggestions.
          * @throws IllegalStateException     If widgets are already created.
          */
-        public TailTipWidgets(LineReader reader, Map<String,List<ArgDesc>> tailTips, int descriptionSize, TipType tipType) {
+        public TailTipWidgets(LineReader reader, Map<String,CmdDesc> tailTips, int descriptionSize, TipType tipType) {
             super(reader);
             if (existsWidget(TT_ACCEPT_LINE)) {
                 throw new IllegalStateException("TailTipWidgets already created!");
@@ -704,16 +703,27 @@ public abstract class Widgets {
             Buffer buffer = buffer();
             callWidget(widget);
             if (buffer.length() == buffer.cursor()
-                    && ((!widget.endsWith(LineReader.BACKWARD_DELETE_CHAR) && prevChar().equals(" ")) ||
+                    && ((!widget.endsWith(LineReader.BACKWARD_DELETE_CHAR) && (prevChar().equals(" ") || prevChar().equals("=") || prevChar().equals("-"))) ||
                         (widget.endsWith(LineReader.BACKWARD_DELETE_CHAR) && !prevChar().equals(" ")))) {
                 List<String> bp = args(buffer.toString());
-                int bpsize = bp.size() + (widget.endsWith(LineReader.BACKWARD_DELETE_CHAR) ? -1 : 0);
+                int argnum = 0;
+                for (String a: bp) {
+                    if (!a.startsWith("-")) {
+                        argnum++;
+                    }
+                }
+                String lastArg = !prevChar().equals(" ") ? bp.get(bp.size() - 1) : "";
+                int bpsize = argnum + (!lastArg.startsWith("-") && widget.endsWith(LineReader.BACKWARD_DELETE_CHAR) ? -1 : 0);
                 List<AttributedString> desc = new ArrayList<>();
                 if (bpsize > 0 && tailTips.containsKey(bp.get(0))) {
-                    List<ArgDesc> params = tailTips.get(bp.get(0));
+                    List<ArgDesc> params = tailTips.get(bp.get(0)).getArgsDesc();
                     setSuggestionType(tipType == TipType.COMPLETER ? SuggestionType.COMPLETER : SuggestionType.TAIL_TIP);
                     if (bpsize - 1 < params.size()) {
-                        desc = params.get(bpsize - 1).getDescription();
+                        if (lastArg.startsWith("-")) {
+                            desc = tailTips.get(bp.get(0)).getOptionDescription(lastArg);
+                        } else {
+                            desc = params.get(bpsize - 1).getDescription();
+                        }
                         StringBuilder tip = new StringBuilder();
                         for (int i = bpsize - 1; i < params.size(); i++) {
                             tip.append(params.get(i).getName());
@@ -788,6 +798,8 @@ public abstract class Widgets {
             aliasWidget("." + LineReader.EXPAND_OR_COMPLETE, LineReader.EXPAND_OR_COMPLETE);
             KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
             map.bind(new Reference(LineReader.SELF_INSERT), " ");
+            map.bind(new Reference(LineReader.SELF_INSERT), "=");
+            map.bind(new Reference(LineReader.SELF_INSERT), "-");
             setSuggestionType(SuggestionType.NONE);
             if (autopairEnabled()) {
                 callWidget(AP_TOGGLE);
@@ -807,6 +819,8 @@ public abstract class Widgets {
             aliasWidget("_tailtip-expand-or-complete", LineReader.EXPAND_OR_COMPLETE);
             KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
             map.bind(new Reference("_tailtip-insert"), " ");
+            map.bind(new Reference("_tailtip-insert"), "=");
+            map.bind(new Reference("_tailtip-insert"), "-");
             if (tipType != TipType.TAIL_TIP) {
                 setSuggestionType(SuggestionType.COMPLETER);
             } else {
@@ -842,6 +856,50 @@ public abstract class Widgets {
             List<ArgDesc> out = new ArrayList<>();
             for (String n: names) {
                 out.add(new ArgDesc(n));
+            }
+            return out;
+        }
+    }
+
+    public static class CmdDesc {
+        private List<ArgDesc> argsDesc;
+        private TreeMap<String,List<AttributedString>> optsDesc;
+
+        public CmdDesc(List<ArgDesc> argsDesc) {
+            this(argsDesc, new HashMap<>());
+        }
+
+        public CmdDesc(List<ArgDesc> argsDesc, Map<String,List<AttributedString>> optsDesc) {
+            this.argsDesc = new ArrayList<>(argsDesc);
+            this.optsDesc = new TreeMap<>(optsDesc);
+        }
+
+        public List<ArgDesc> getArgsDesc() {
+            return argsDesc;
+        }
+
+        public List<AttributedString> getOptionDescription(String opt) {
+            List<AttributedString> out = new ArrayList<>();
+            if (!opt.startsWith("-")) {
+                return out;
+            } else if (opt.startsWith("--")) {
+                int ind = opt.indexOf("=");
+                if (ind > 0) {
+                    opt = opt.substring(0, ind);
+                }
+            }
+            if (optsDesc.containsKey(opt)) {
+                out = new ArrayList<>(optsDesc.get(opt));
+            } else {
+                for (Map.Entry<String, List<AttributedString>> entry: optsDesc.entrySet()) {
+                    if (entry.getKey().startsWith(opt)) {
+                        AttributedStringBuilder asb = new AttributedStringBuilder();
+                        asb.append(entry.getKey());
+                        asb.append("\t");
+                        asb.append(entry.getValue().get(0));
+                        out.add(asb.toAttributedString());
+                    }
+                }
             }
             return out;
         }

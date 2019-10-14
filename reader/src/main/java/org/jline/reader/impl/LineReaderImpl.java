@@ -4007,8 +4007,12 @@ public class LineReaderImpl implements LineReader, Flushable
                     if (buf.prevChar() != ' ') {
                         if (!tailTip.startsWith("[")) {
                             int idx = tailTip.indexOf(' ');
-                            if (idx > 0) {
+                            int idb = buf.toString().lastIndexOf(' ');
+                            int idd = buf.toString().lastIndexOf('-');
+                            if (idx > 0 && ((idb == -1 && idb == idd) || (idb >= 0 && idb > idd))) {
                                 tailTip = tailTip.substring(idx);
+                            } else if (idb >= 0 && idb < idd) {
+                                sb.append(" ");
                             }
                         } else {
                             sb.append(" ");

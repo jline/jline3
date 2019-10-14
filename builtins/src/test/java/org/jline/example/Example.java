@@ -29,6 +29,7 @@ import org.jline.builtins.Widgets.AutosuggestionWidgets;
 import org.jline.builtins.Widgets.TailTipWidgets;
 import org.jline.builtins.Widgets.TailTipWidgets.TipType;
 import org.jline.builtins.Widgets.ArgDesc;
+import org.jline.builtins.Widgets.CmdDesc;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.LineReader.Option;
@@ -319,9 +320,14 @@ public class Example
                     .build();
             AutopairWidgets autopairWidgets = new AutopairWidgets(reader);
             AutosuggestionWidgets autosuggestionWidgets = new AutosuggestionWidgets(reader);
-            Map<String, List<ArgDesc>> tailTips = new HashMap<>();
-            tailTips.put("foo12", ArgDesc.doArgNames(Arrays.asList("param1", "param2", "[paramN...]")));
-            tailTips.put("foo11", Arrays.asList(
+            Map<String, CmdDesc> tailTips = new HashMap<>();
+            Map<String, List<AttributedString>> optDesc = new HashMap<>();
+            optDesc.put("--option1", Arrays.asList(new AttributedString("option1 description...")));
+            optDesc.put("--option2", Arrays.asList(new AttributedString("option2 description...")));
+            optDesc.put("--option3", Arrays.asList(new AttributedString("option3 description...")
+                                                 , new AttributedString("line2")));
+            tailTips.put("foo12", new CmdDesc(ArgDesc.doArgNames(Arrays.asList("param1", "param2", "[paramN...]"))));
+            tailTips.put("foo11", new CmdDesc(Arrays.asList(
                     new ArgDesc("param1",Arrays.asList(new AttributedString("Param1 description...")
                                                     , new AttributedString("line 2: This is a very long line that does exceed the terminal width."
                                                           +" The line will be truncated automatically (by Status class) be before printing out.")
@@ -334,7 +340,7 @@ public class Example
                                                     , new AttributedString("line 2")
                                                       ))
                   , new ArgDesc("param3", new ArrayList<>())
-            ));
+                  ), optDesc));
             TailTipWidgets tailtipWidgets = new TailTipWidgets(reader, tailTips, TipType.COMPLETER);
             if (timer) {
                 Executors.newScheduledThreadPool(1)
