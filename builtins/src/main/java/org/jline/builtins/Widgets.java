@@ -78,6 +78,15 @@ public abstract class Widgets {
         return widget(name).toString();
     }
 
+    public boolean existsWidget(String name) {
+        try {
+            widget(name);
+            return true;
+        } catch(Exception e) {
+        }
+        return false;
+    }
+
     private Widget widget(String name) {
         Widget out = null;
         if (name.startsWith(".")) {
@@ -209,6 +218,9 @@ public abstract class Widgets {
 
         public AutopairWidgets(LineReader reader, boolean addCurlyBrackets) {
             super(reader);
+            if (existsWidget(AP_INSERT)) {
+                throw new IllegalStateException("AutopairWidgets already created!");
+            }
             if (addCurlyBrackets) {
                 pairs.put("{", "}");
             }
@@ -429,6 +441,9 @@ public abstract class Widgets {
 
         public AutosuggestionWidgets(LineReader reader) {
             super(reader);
+            if (existsWidget("_autosuggest-forward-char")) {
+                throw new IllegalStateException("AutosuggestionWidgets already created!");
+            }
             addWidget("_autosuggest-forward-char", this::autosuggestForwardChar);
             addWidget("_autosuggest-end-of-line", this::autosuggestEndOfLine);
             addWidget("_autosuggest-forward-word", this::partialAccept);
@@ -541,6 +556,9 @@ public abstract class Widgets {
 
         public TailTipWidgets(LineReader reader, Map<String,List<ArgDesc>> tailTips, int descriptionSize, TipType tipType) {
             super(reader);
+            if (existsWidget(TT_ACCEPT_LINE)) {
+                throw new IllegalStateException("TailTipWidgets already created!");
+            }
             this.tailTips = new HashMap<>(tailTips);
             this.descriptionSize = descriptionSize;
             this.tipType = tipType;
