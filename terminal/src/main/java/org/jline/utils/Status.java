@@ -59,7 +59,6 @@ public class Status {
     }
 
     public void setBorder(boolean border) {
-        clear();
         this.border = border ? 1 : 0;
     }
 
@@ -79,7 +78,9 @@ public class Status {
             return;
         }
         List<AttributedString> lines = new ArrayList<>(oldLines);
+        int b = border;
         update(null);
+        border = b;
         update(lines);
     }
 
@@ -166,7 +167,9 @@ public class Status {
             return;
         }
         linesToRestore = new ArrayList<>(oldLines);
+        int b = border;
         update(null);
+        border = b;
         suspended = true;
     }
 
