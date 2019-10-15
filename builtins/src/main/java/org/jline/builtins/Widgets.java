@@ -8,6 +8,8 @@
  */
 package org.jline.builtins;
 
+import static org.jline.keymap.KeyMap.range;
+
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -68,6 +70,7 @@ public abstract class Widgets {
     }
 
     public void executeWidget(String name) {
+        // this should be executed inside readLine()!!!
         widget(name).apply();
     }
 
@@ -702,9 +705,7 @@ public abstract class Widgets {
         private boolean doTailTip(String widget) {
             Buffer buffer = buffer();
             callWidget(widget);
-            if (buffer.length() == buffer.cursor()
-                    && ((!widget.endsWith(LineReader.BACKWARD_DELETE_CHAR) && (prevChar().equals(" ") || prevChar().equals("=") || prevChar().equals("-"))) ||
-                        (widget.endsWith(LineReader.BACKWARD_DELETE_CHAR) && !prevChar().equals(" ")))) {
+            if (buffer.length() == buffer.cursor()) {
                 List<String> bp = args(buffer.toString());
                 int argnum = 0;
                 for (String a: bp) {
@@ -713,28 +714,48 @@ public abstract class Widgets {
                     }
                 }
                 String lastArg = !prevChar().equals(" ") ? bp.get(bp.size() - 1) : "";
-                int bpsize = argnum + (!lastArg.startsWith("-") && widget.endsWith(LineReader.BACKWARD_DELETE_CHAR) ? -1 : 0);
+                int bpsize = argnum;
+                boolean doTailTip = true;
+                if (widget.endsWith(LineReader.BACKWARD_DELETE_CHAR)) {
+                    if (!lastArg.startsWith("-")) {
+                        bpsize--;
+                    }
+                    if (prevChar().equals(" ")) {
+                        bpsize++;
+                    }
+                } else if (!prevChar().equals(" ")) {
+                    doTailTip = false;
+                }
                 List<AttributedString> desc = new ArrayList<>();
-                if (bpsize > 0 && tailTips.containsKey(bp.get(0))) {
-                    List<ArgDesc> params = tailTips.get(bp.get(0)).getArgsDesc();
-                    setSuggestionType(tipType == TipType.COMPLETER ? SuggestionType.COMPLETER : SuggestionType.TAIL_TIP);
-                    if (bpsize - 1 < params.size()) {
-                        if (lastArg.startsWith("-")) {
-                            desc = tailTips.get(bp.get(0)).getOptionDescription(lastArg);
-                        } else {
-                            desc = params.get(bpsize - 1).getDescription();
+                boolean clearTip = false;
+                if (tailTips.containsKey(bp.get(0))) {
+                    if (lastArg.startsWith("-")) {
+                        desc = tailTips.get(bp.get(0)).getOptionDescription(lastArg);
+                    }
+                    if (bpsize > 0 && doTailTip) {
+                        List<ArgDesc> params = tailTips.get(bp.get(0)).getArgsDesc();
+                        setSuggestionType(tipType == TipType.COMPLETER ? SuggestionType.COMPLETER : SuggestionType.TAIL_TIP);
+                        if (bpsize - 1 < params.size()) {
+                            if (!lastArg.startsWith("-")) {
+                                desc = params.get(bpsize - 1).getDescription();
+                            }
+                            StringBuilder tip = new StringBuilder();
+                            for (int i = bpsize - 1; i < params.size(); i++) {
+                                tip.append(params.get(i).getName());
+                                tip.append(" ");
+                            }
+                            setTailTip(tip.toString());
+                        } else if (params.get(params.size() - 1).getName().charAt(0) == '[') {
+                            setTailTip(params.get(params.size() - 1).getName());
+                            desc = params.get(params.size() - 1).getDescription();
                         }
-                        StringBuilder tip = new StringBuilder();
-                        for (int i = bpsize - 1; i < params.size(); i++) {
-                            tip.append(params.get(i).getName());
-                            tip.append(" ");
-                        }
-                        setTailTip(tip.toString());
-                    } else if (params.get(params.size() - 1).getName().charAt(0) == '[') {
-                        setTailTip(params.get(params.size() - 1).getName());
-                        desc = params.get(params.size() - 1).getDescription();
+                    } else if (doTailTip) {
+                        clearTip = true;
                     }
                 } else {
+                    clearTip = true;
+                }
+                if (clearTip) {
                     setTailTip("");
                     if (tipType != TipType.TAIL_TIP) {
                         setSuggestionType(SuggestionType.COMPLETER);
@@ -800,6 +821,9 @@ public abstract class Widgets {
             map.bind(new Reference(LineReader.SELF_INSERT), " ");
             map.bind(new Reference(LineReader.SELF_INSERT), "=");
             map.bind(new Reference(LineReader.SELF_INSERT), "-");
+            map.bind(new Reference(LineReader.SELF_INSERT), range("A-Z"));
+            map.bind(new Reference(LineReader.SELF_INSERT), range("a-z"));
+
             setSuggestionType(SuggestionType.NONE);
             if (autopairEnabled()) {
                 callWidget(AP_TOGGLE);
@@ -821,6 +845,8 @@ public abstract class Widgets {
             map.bind(new Reference("_tailtip-insert"), " ");
             map.bind(new Reference("_tailtip-insert"), "=");
             map.bind(new Reference("_tailtip-insert"), "-");
+            map.bind(new Reference("_tailtip-insert"), range("A-Z"));
+            map.bind(new Reference("_tailtip-insert"), range("a-z"));
             if (tipType != TipType.TAIL_TIP) {
                 setSuggestionType(SuggestionType.COMPLETER);
             } else {
@@ -889,7 +915,15 @@ public abstract class Widgets {
                 }
             }
             if (optsDesc.containsKey(opt)) {
-                out = new ArrayList<>(optsDesc.get(opt));
+                out.add(new AttributedString(opt));
+                for (AttributedString as: optsDesc.get(opt)) {
+                    AttributedStringBuilder asb = new AttributedStringBuilder();
+                    asb.append(" \t");
+                    asb.append(as);
+                    out.add(asb.toAttributedString());
+                }
+            } else if (optsDesc.containsKey("main")) {
+                out = new ArrayList<>(optsDesc.get("main"));
             } else {
                 for (Map.Entry<String, List<AttributedString>> entry: optsDesc.entrySet()) {
                     if (entry.getKey().startsWith(opt)) {

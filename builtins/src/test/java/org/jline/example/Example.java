@@ -210,9 +210,10 @@ public class Example
                                 new Completer() {
                                     @Override
                                     public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
-                                        candidates.add(new Candidate("foo11", "foo11", null, "with complete argDesc", null, null, true));
-                                        candidates.add(new Candidate("foo12", "foo12", null, "with argDesc -names only", null, null, true));
+                                        candidates.add(new Candidate("foo11", "foo11", null, "complete cmdDesc", null, null, true));
+                                        candidates.add(new Candidate("foo12", "foo12", null, "cmdDesc -names only", null, null, true));
                                         candidates.add(new Candidate("foo13", "foo13", null, "-", null, null, true));
+                                        candidates.add(new Candidate("widget", "widget", null, "cmdDesc with short options", null, null, true));
                                     }
                                 },
                                 new StringsCompleter("foo21", "foo22", "foo23"),
@@ -322,10 +323,24 @@ public class Example
             AutosuggestionWidgets autosuggestionWidgets = new AutosuggestionWidgets(reader);
             Map<String, CmdDesc> tailTips = new HashMap<>();
             Map<String, List<AttributedString>> optDesc = new HashMap<>();
-            optDesc.put("--option1", Arrays.asList(new AttributedString("option1 description...")));
-            optDesc.put("--option2", Arrays.asList(new AttributedString("option2 description...")));
-            optDesc.put("--option3", Arrays.asList(new AttributedString("option3 description...")
+            optDesc.put("--optionA", Arrays.asList(new AttributedString("optionA description...")));
+            optDesc.put("--noitpoB", Arrays.asList(new AttributedString("noitpoB description...")));
+            optDesc.put("--optionC", Arrays.asList(new AttributedString("optionC description...")
                                                  , new AttributedString("line2")));
+            Map<String, List<AttributedString>> widgetOpts = new HashMap<>();
+            widgetOpts.put("main", Arrays.asList(new AttributedString("widget -N new-widget [function-name]")
+                                            , new AttributedString("widget -D widget ...")
+                                            , new AttributedString("widget -A old-widget new-widget")
+                                            , new AttributedString("widget -U string ...")
+                                            , new AttributedString("widget -l [options]")
+                           ));
+            widgetOpts.put("-N", Arrays.asList(new AttributedString("Create new widget")));
+            widgetOpts.put("-D", Arrays.asList(new AttributedString("Delete widgets")));
+            widgetOpts.put("-A", Arrays.asList(new AttributedString("Create alias to widget")));
+            widgetOpts.put("-U", Arrays.asList(new AttributedString("Push characters to the stack")));
+            widgetOpts.put("-l", Arrays.asList(new AttributedString("List user-defined widgets")));
+
+            tailTips.put("widget", new CmdDesc(ArgDesc.doArgNames(Arrays.asList("[pN...]")), widgetOpts));
             tailTips.put("foo12", new CmdDesc(ArgDesc.doArgNames(Arrays.asList("param1", "param2", "[paramN...]"))));
             tailTips.put("foo11", new CmdDesc(Arrays.asList(
                     new ArgDesc("param1",Arrays.asList(new AttributedString("Param1 description...")
@@ -543,6 +558,9 @@ public class Example
                 }
                 catch (IllegalArgumentException e) {
                     System.out.println(e.getMessage());
+                }
+                catch (IllegalStateException e) {
+                    e.printStackTrace();
                 }
                 catch (UserInterruptException e) {
                     // Ignore
