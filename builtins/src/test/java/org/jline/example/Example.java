@@ -356,7 +356,7 @@ public class Example
                                                       ))
                   , new ArgDesc("param3", new ArrayList<>())
                   ), optDesc));
-            TailTipWidgets tailtipWidgets = new TailTipWidgets(reader, tailTips, TipType.COMPLETER);
+            TailTipWidgets tailtipWidgets = new TailTipWidgets(reader, tailTips, 5, TipType.COMPLETER);
             if (timer) {
                 Executors.newScheduledThreadPool(1)
                         .scheduleAtFixedRate(() -> {
@@ -516,7 +516,6 @@ public class Example
                             } else if (type.startsWith("tai")) {
                                 autosuggestionWidgets.disable();
                                 tailtipWidgets.enable();
-                                tailtipWidgets.setDescriptionSize(5);
                                 if (pl.words().size() > 2) {
                                     String mode = pl.words().get(2).toLowerCase();
                                     if (mode.startsWith("tai")) {
@@ -544,9 +543,6 @@ public class Example
                             } else {
                                 terminal.writer().println("Autosuggestion: " + reader.getAutosuggestion());
                             }
-                        }
-                        if (!tailtipWidgets.isEnabled()) {
-                            Status.getStatus(terminal).update(null);
                         }
                     }
                     else if ("help".equals(pl.word()) || "?".equals(pl.word())) {

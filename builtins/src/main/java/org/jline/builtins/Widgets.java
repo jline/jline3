@@ -9,6 +9,8 @@
 package org.jline.builtins;
 
 import static org.jline.keymap.KeyMap.range;
+import static org.jline.keymap.KeyMap.ctrl;
+import static org.jline.keymap.KeyMap.alt;
 
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
@@ -70,8 +72,13 @@ public abstract class Widgets {
     }
 
     public void executeWidget(String name) {
-        // this should be executed inside readLine()!!!
-        widget(name).apply();
+        // WORK-AROUND
+        getKeyMap().bind(new Reference(name), alt(ctrl('X')));
+        reader.runMacro(alt(ctrl('X')));
+        // The line below should be executed inside readLine()!!!
+        // Create LineReader method executeWidget() maybe???
+        //
+        // widget(name).apply();
     }
 
     public void aliasWidget(String orig, String alias) {
@@ -104,8 +111,8 @@ public abstract class Widgets {
         return out;
     }
 
-    public KeyMap<Binding> getKeyMap(String name) {
-        return reader.getKeyMaps().get(name);
+    public KeyMap<Binding> getKeyMap() {
+        return reader.getKeyMaps().get(LineReader.MAIN);
     }
 
     public Buffer buffer() {
@@ -172,9 +179,19 @@ public abstract class Widgets {
                 as.add(new AttributedString(""));
             }
             addDescription(as);
+            reader.runMacro(KeyMap.ctrl('M'));
         } else if (status != null) {
-            status.clear();
+            if (size < 0) {
+                status.update(null);
+                reader.runMacro(KeyMap.ctrl('M'));
+            } else {
+                status.clear();
+            }
         }
+    }
+
+    public void destroyDescription() {
+        initDescription(-1);
     }
 
     /**
@@ -236,7 +253,7 @@ public abstract class Widgets {
             addWidget(AP_BACKWARD_DELETE_CHAR, this::autopairDelete);
             addWidget(AP_TOGGLE, this::toggleKeyBindings);
 
-            KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
+            KeyMap<Binding> map = getKeyMap();
             for (Map.Entry<String, String> p: pairs.entrySet()) {
                 defaultBindings.put(p.getKey(), map.getBound(p.getKey()));
                 if (!p.getKey().equals(p.getValue())) {
@@ -258,8 +275,9 @@ public abstract class Widgets {
         }
 
         public boolean toggle() {
+            boolean before = enabled;
             executeWidget(AP_TOGGLE);
-            return enabled;
+            return !before;
         }
 
         /*
@@ -318,7 +336,7 @@ public abstract class Widgets {
             if (ttActive) {
                 callWidget(TT_TOGGLE);
             }
-            KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
+            KeyMap<Binding> map = getKeyMap();
             for (Map.Entry<String, String> p: pairs.entrySet()) {
                 map.bind(new Reference(AP_INSERT), p.getKey());
                 if (!p.getKey().equals(p.getValue())) {
@@ -333,7 +351,7 @@ public abstract class Widgets {
         }
 
         private void defaultBindings() {
-            KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
+            KeyMap<Binding> map = getKeyMap();
             for (Map.Entry<String, String> p: pairs.entrySet()) {
                 map.bind(defaultBindings.get(p.getKey()), p.getKey());
                 if (!p.getKey().equals(p.getValue())) {
@@ -566,6 +584,7 @@ public abstract class Widgets {
         private Map<String,CmdDesc> tailTips = new HashMap<>();
         private TipType tipType;
         private int descriptionSize = 0;
+        private boolean descriptionEnabled = true;
 
         /**
          * Creates tailtip widgets used in command line suggestions. Suggestions are created using a command
@@ -623,13 +642,13 @@ public abstract class Widgets {
             this.tailTips = new HashMap<>(tailTips);
             this.descriptionSize = descriptionSize;
             this.tipType = tipType;
-            initDescription(descriptionSize);
             addWidget(TT_ACCEPT_LINE, this::tailtipAcceptLine);
             addWidget("_tailtip-insert", this::tailtipInsert);
             addWidget("_tailtip-backward-delete-char", this::tailtipBackwardDelete);
             addWidget("_tailtip-delete-char", this::tailtipDelete);
             addWidget("_tailtip-expand-or-complete", this::tailtipComplete);
-            addWidget("tailtip-toggle", this::toggleKeyBindings);
+            addWidget("tailtip-window", this::toggleWindow);
+            addWidget(TT_TOGGLE, this::toggleKeyBindings);
         }
 
         public void setDescriptionSize(int descriptionSize) {
@@ -665,7 +684,9 @@ public abstract class Widgets {
         }
 
         public void enable() {
-            customBindings();
+            if (!enabled) {
+                toggleKeyBindings();
+            }
         }
 
         /*
@@ -726,18 +747,17 @@ public abstract class Widgets {
                 } else if (!prevChar().equals(" ")) {
                     doTailTip = false;
                 }
-                List<AttributedString> desc = new ArrayList<>();
                 boolean clearTip = false;
-                if (tailTips.containsKey(bp.get(0))) {
+                if (bp.size() > 0 && tailTips.containsKey(bp.get(0))) {
                     if (lastArg.startsWith("-")) {
-                        desc = tailTips.get(bp.get(0)).getOptionDescription(lastArg);
+                        doDescription(tailTips.get(bp.get(0)).getOptionDescription(lastArg));
                     }
                     if (bpsize > 0 && doTailTip) {
                         List<ArgDesc> params = tailTips.get(bp.get(0)).getArgsDesc();
                         setSuggestionType(tipType == TipType.COMPLETER ? SuggestionType.COMPLETER : SuggestionType.TAIL_TIP);
                         if (bpsize - 1 < params.size()) {
                             if (!lastArg.startsWith("-")) {
-                                desc = params.get(bpsize - 1).getDescription();
+                                doDescription(params.get(bpsize - 1).getDescription());
                             }
                             StringBuilder tip = new StringBuilder();
                             for (int i = bpsize - 1; i < params.size(); i++) {
@@ -747,7 +767,7 @@ public abstract class Widgets {
                             setTailTip(tip.toString());
                         } else if (params.get(params.size() - 1).getName().charAt(0) == '[') {
                             setTailTip(params.get(params.size() - 1).getName());
-                            desc = params.get(params.size() - 1).getDescription();
+                            doDescription(params.get(params.size() - 1).getDescription());
                         }
                     } else if (doTailTip) {
                         clearTip = true;
@@ -761,13 +781,12 @@ public abstract class Widgets {
                         setSuggestionType(SuggestionType.COMPLETER);
                     }
                 }
-                doDescription(desc);
             }
             return true;
         }
 
         private void doDescription(List<AttributedString> desc) {
-            if (descriptionSize == 0) {
+            if (descriptionSize == 0 || !descriptionEnabled) {
                 return;
             }
             if (desc.isEmpty()) {
@@ -789,18 +808,32 @@ public abstract class Widgets {
         }
 
         private boolean autopairEnabled() {
-            Binding binding = getKeyMap(LineReader.MAIN).getBound("(");
+            Binding binding = getKeyMap().getBound("(");
             if (binding instanceof Reference && ((Reference)binding).name().equals(AP_INSERT)) {
                 return true;
             }
             return false;
         }
 
+        public boolean toggleWindow() {
+            descriptionEnabled = !descriptionEnabled;
+            if (descriptionEnabled) {
+                initDescription(descriptionSize);
+            } else {
+                destroyDescription();
+            }
+            return true;
+        }
+
         public boolean toggleKeyBindings() {
             if (enabled) {
                 defaultBindings();
+                destroyDescription();
             } else {
                 customBindings();
+                if (descriptionEnabled) {
+                    initDescription(descriptionSize);
+                }
             }
             return enabled;
         }
@@ -817,7 +850,7 @@ public abstract class Widgets {
             aliasWidget("." + LineReader.BACKWARD_DELETE_CHAR, LineReader.BACKWARD_DELETE_CHAR);
             aliasWidget("." + LineReader.DELETE_CHAR, LineReader.DELETE_CHAR);
             aliasWidget("." + LineReader.EXPAND_OR_COMPLETE, LineReader.EXPAND_OR_COMPLETE);
-            KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
+            KeyMap<Binding> map = getKeyMap();
             map.bind(new Reference(LineReader.SELF_INSERT), " ");
             map.bind(new Reference(LineReader.SELF_INSERT), "=");
             map.bind(new Reference(LineReader.SELF_INSERT), "-");
@@ -841,7 +874,7 @@ public abstract class Widgets {
             aliasWidget("_tailtip-backward-delete-char", LineReader.BACKWARD_DELETE_CHAR);
             aliasWidget("_tailtip-delete-char", LineReader.DELETE_CHAR);
             aliasWidget("_tailtip-expand-or-complete", LineReader.EXPAND_OR_COMPLETE);
-            KeyMap<Binding> map = getKeyMap(LineReader.MAIN);
+            KeyMap<Binding> map = getKeyMap();
             map.bind(new Reference("_tailtip-insert"), " ");
             map.bind(new Reference("_tailtip-insert"), "=");
             map.bind(new Reference("_tailtip-insert"), "-");
@@ -917,8 +950,8 @@ public abstract class Widgets {
             if (optsDesc.containsKey(opt)) {
                 out.add(new AttributedString(opt));
                 for (AttributedString as: optsDesc.get(opt)) {
-                    AttributedStringBuilder asb = new AttributedStringBuilder();
-                    asb.append(" \t");
+                    AttributedStringBuilder asb = new AttributedStringBuilder().tabs(8);
+                    asb.append("\t");
                     asb.append(as);
                     out.add(asb.toAttributedString());
                 }
@@ -927,7 +960,7 @@ public abstract class Widgets {
             } else {
                 for (Map.Entry<String, List<AttributedString>> entry: optsDesc.entrySet()) {
                     if (entry.getKey().startsWith(opt)) {
-                        AttributedStringBuilder asb = new AttributedStringBuilder();
+                        AttributedStringBuilder asb = new AttributedStringBuilder().tabs(8);
                         asb.append(entry.getKey());
                         asb.append("\t");
                         asb.append(entry.getValue().get(0));
