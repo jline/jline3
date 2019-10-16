@@ -523,6 +523,10 @@ public class LineReaderImpl implements LineReader, Flushable
                     cmd += commandsBuffer.remove(0);
                 } catch (SyntaxError e) {
                     done = true;
+                } catch (Exception e) {
+                    throw new IllegalArgumentException(e.getMessage());
+                } finally {
+                    commandsBuffer.clear();
                 }
             } while (!done);
             AttributedStringBuilder sb = new AttributedStringBuilder();
