@@ -1030,7 +1030,7 @@ public class Posix {
             throw new IllegalArgumentException("usage: cd DIRECTORY");
         }
         Path cwd = session.currentDir();
-        cwd = cwd.resolve(opt.args().get(0)).toAbsolutePath();
+        cwd = cwd.resolve(opt.args().get(0)).toAbsolutePath().normalize();
         if (!Files.exists(cwd)) {
             throw new IOException("no such file or directory: " + opt.args().get(0));
         } else if (!Files.isDirectory(cwd)) {
