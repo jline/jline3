@@ -8,6 +8,7 @@
  */
 package org.jline.example;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.LocalDate;
@@ -101,10 +102,10 @@ public class Example
           , "    tmux            UNAVAILABLE"
           , "    ttop            display and update sorted information about threads"
           , "    unsetopt        unset options"
-          , "    widget          UNAVAILABLE"
+          , "    widget          ~UNAVAILABLE"
+          , "  Example:"
           , "    autopair        toggle brackets/quotes autopair key bindings"
           , "    autosuggestion  history, completer, tailtip [tailtip|completer|combined] or none"
-          , "  Example:"
           , "    cls             clear screen"
           , "    help            list available commands"
           , "    exit            exit from example app"
@@ -118,6 +119,156 @@ public class Example
             System.out.println(u);
         }
 
+    }
+
+    private static Map<String,CmdDesc> compileTailTips() {
+        Map<String, CmdDesc> tailTips = new HashMap<>();
+        Map<String, List<AttributedString>> optDesc = new HashMap<>();
+        optDesc.put("--optionA", Arrays.asList(new AttributedString("optionA description...")));
+        optDesc.put("--noitpoB", Arrays.asList(new AttributedString("noitpoB description...")));
+        optDesc.put("--optionC", Arrays.asList(new AttributedString("optionC description...")
+                                             , new AttributedString("line2")));
+        Map<String, List<AttributedString>> widgetOpts = new HashMap<>();
+        List<AttributedString> mainDesc = Arrays.asList(new AttributedString("widget -N new-widget [function-name]")
+                                        , new AttributedString("widget -D widget ...")
+                                        , new AttributedString("widget -A old-widget new-widget")
+                                        , new AttributedString("widget -U string ...")
+                                        , new AttributedString("widget -l [options]")
+                       );
+        widgetOpts.put("-N", Arrays.asList(new AttributedString("Create new widget")));
+        widgetOpts.put("-D", Arrays.asList(new AttributedString("Delete widgets")));
+        widgetOpts.put("-A", Arrays.asList(new AttributedString("Create alias to widget")));
+        widgetOpts.put("-U", Arrays.asList(new AttributedString("Push characters to the stack")));
+        widgetOpts.put("-l", Arrays.asList(new AttributedString("List user-defined widgets")));
+
+        tailTips.put("widget", new CmdDesc(mainDesc, ArgDesc.doArgNames(Arrays.asList("[pN...]")), widgetOpts));
+        tailTips.put("foo12", new CmdDesc(ArgDesc.doArgNames(Arrays.asList("param1", "param2", "[paramN...]"))));
+        tailTips.put("foo11", new CmdDesc(Arrays.asList(
+                new ArgDesc("param1",Arrays.asList(new AttributedString("Param1 description...")
+                                                , new AttributedString("line 2: This is a very long line that does exceed the terminal width."
+                                                      +" The line will be truncated automatically (by Status class) be before printing out.")
+                                                , new AttributedString("line 3")
+                                                , new AttributedString("line 4")
+                                                , new AttributedString("line 5")
+                                                , new AttributedString("line 6")
+                                                  ))
+              , new ArgDesc("param2",Arrays.asList(new AttributedString("Param2 description...")
+                                                , new AttributedString("line 2")
+                                                  ))
+              , new ArgDesc("param3", new ArrayList<>())
+              ), optDesc));
+        return tailTips;
+    }
+
+    private static class Executor {
+        LineReader reader;
+        Terminal terminal;
+
+        public Executor(LineReader reader) {
+            this.reader = reader;
+            this.terminal = reader.getTerminal();
+        }
+
+        public boolean execute(String command, String[] argv) throws Exception {
+            boolean out = true;
+            if ("tmux".equals(command)) {
+                Commands.tmux(terminal, System.out, System.err,
+                        null, //Supplier<Object> getter,
+                        null, //Consumer<Object> setter,
+                        null, //Consumer<Terminal> runner,
+                        argv);
+            }
+            else if ("nano".equals(command)) {
+                Commands.nano(terminal, System.out, System.err,
+                        Paths.get(""),
+                        argv);
+            }
+            else if ("less".equals(command)) {
+                Commands.less(terminal, System.in, System.out, System.err,
+                        Paths.get(""),
+                        argv);
+            }
+            else if ("history".equals(command)) {
+                Commands.history(reader, System.out, System.err, Paths.get(""),argv);
+            }
+            else if ("complete".equals(command)) {
+                Commands.complete(reader, System.out, System.err,
+                        null, // Map<String, List<CompletionData>> completions,
+                        argv);
+            }
+            else if ("widget".equals(command)) {
+                Commands.widget(reader, System.out, System.err,
+                        null, //Function<String, Widget> widgetCreator,
+                        argv);
+            }
+            else if ("keymap".equals(command)) {
+                Commands.keymap(reader, System.out, System.err, argv);
+            }
+            else if ("setopt".equals(command)) {
+                Commands.setopt(reader, System.out, System.err, argv);
+            }
+            else if ("unsetopt".equals(command)) {
+                Commands.unsetopt(reader, System.out, System.err, argv);
+            }
+            else if ("ttop".equals(command)) {
+                TTop.ttop(terminal, System.out, System.err, argv);
+            }
+            else {
+                out = false;
+            }
+            return out;
+        }
+
+        CmdDesc commandDescription(String command) {
+            CmdDesc out = null;
+            String[] argv = {"--help"};
+            try {
+                execute(command, argv);
+           } catch (HelpException e) {
+                List<AttributedString> main = new ArrayList<>();
+                Map<String, List<AttributedString>> options = new HashMap<>();
+                String[] msg = e.getMessage().split("\\n");
+                String prevOpt = null;
+                boolean mainDone = false;
+                boolean start = false;
+                for (String s: msg) {
+                    if (!start) {
+                        if (s.trim().startsWith("Usage: ")) {
+                            s = s.split("Usage:")[1];
+                            start = true;
+                        } else {
+                            continue;
+                        }
+                    }
+                    if (s.matches("^\\s+-.*$")) {
+                        mainDone = true;
+                        int ind = s.lastIndexOf("  ");
+                        if (ind > 0) {
+                            String o = s.substring(0, ind);
+                            String d = s.substring(ind);
+                            if (o.trim().length() > 0) {
+                                prevOpt = o.trim();
+                                options.put(prevOpt, new ArrayList<>(Arrays.asList(new AttributedString(d.trim()))));
+                            }
+                        }
+                    } else if (s.matches("^[\\s]{20}.*$") && prevOpt != null && options.containsKey(prevOpt)) {
+                        int ind = s.lastIndexOf("  ");
+                        if (ind > 0) {
+                            options.get(prevOpt).add(new AttributedString(s.substring(ind).trim()));
+                        }
+                    } else {
+                        prevOpt = null;
+                    }
+                    if (!mainDone) {
+                        main.add(new AttributedString(s.trim()));
+                    }
+                }
+                out = new CmdDesc(main, ArgDesc.doArgNames(Arrays.asList("[pN...]")), options);
+            } catch (Exception e) {
+
+            }
+            return out;
+        }
     }
 
     public static void main(String[] args) throws IOException {
@@ -307,7 +458,6 @@ public class Example
                         }
                 }
             }
-
             Terminal terminal = builder.build();
             System.out.println(terminal.getName()+": "+terminal.getType());
             System.out.println("\nhelp: list available commands");
@@ -319,44 +469,15 @@ public class Example
                     .variable(LineReader.INDENTATION, 2)
                     .option(Option.INSERT_BRACKET, true)
                     .build();
+
+            Executor executor = new Executor(reader);
+
             AutopairWidgets autopairWidgets = new AutopairWidgets(reader);
             AutosuggestionWidgets autosuggestionWidgets = new AutosuggestionWidgets(reader);
-            Map<String, CmdDesc> tailTips = new HashMap<>();
-            Map<String, List<AttributedString>> optDesc = new HashMap<>();
-            optDesc.put("--optionA", Arrays.asList(new AttributedString("optionA description...")));
-            optDesc.put("--noitpoB", Arrays.asList(new AttributedString("noitpoB description...")));
-            optDesc.put("--optionC", Arrays.asList(new AttributedString("optionC description...")
-                                                 , new AttributedString("line2")));
-            Map<String, List<AttributedString>> widgetOpts = new HashMap<>();
-            widgetOpts.put("main", Arrays.asList(new AttributedString("widget -N new-widget [function-name]")
-                                            , new AttributedString("widget -D widget ...")
-                                            , new AttributedString("widget -A old-widget new-widget")
-                                            , new AttributedString("widget -U string ...")
-                                            , new AttributedString("widget -l [options]")
-                           ));
-            widgetOpts.put("-N", Arrays.asList(new AttributedString("Create new widget")));
-            widgetOpts.put("-D", Arrays.asList(new AttributedString("Delete widgets")));
-            widgetOpts.put("-A", Arrays.asList(new AttributedString("Create alias to widget")));
-            widgetOpts.put("-U", Arrays.asList(new AttributedString("Push characters to the stack")));
-            widgetOpts.put("-l", Arrays.asList(new AttributedString("List user-defined widgets")));
 
-            tailTips.put("widget", new CmdDesc(ArgDesc.doArgNames(Arrays.asList("[pN...]")), widgetOpts));
-            tailTips.put("foo12", new CmdDesc(ArgDesc.doArgNames(Arrays.asList("param1", "param2", "[paramN...]"))));
-            tailTips.put("foo11", new CmdDesc(Arrays.asList(
-                    new ArgDesc("param1",Arrays.asList(new AttributedString("Param1 description...")
-                                                    , new AttributedString("line 2: This is a very long line that does exceed the terminal width."
-                                                          +" The line will be truncated automatically (by Status class) be before printing out.")
-                                                    , new AttributedString("line 3")
-                                                    , new AttributedString("line 4")
-                                                    , new AttributedString("line 5")
-                                                    , new AttributedString("line 6")
-                                                      ))
-                  , new ArgDesc("param2",Arrays.asList(new AttributedString("Param2 description...")
-                                                    , new AttributedString("line 2")
-                                                      ))
-                  , new ArgDesc("param3", new ArrayList<>())
-                  ), optDesc));
-            TailTipWidgets tailtipWidgets = new TailTipWidgets(reader, tailTips, 5, TipType.COMPLETER);
+//            TailTipWidgets tailtipWidgets = new TailTipWidgets(reader, compileTailTips(), 5, TipType.COMPLETER);
+            TailTipWidgets tailtipWidgets = new TailTipWidgets(reader, executor::commandDescription, 5, TipType.COMPLETER);
+
             if (timer) {
                 Executors.newScheduledThreadPool(1)
                         .scheduleAtFixedRate(() -> {
@@ -394,9 +515,8 @@ public class Example
                 Thread.sleep(2000);
             }
             while (true) {
-                String line = null;
                 try {
-                    line = reader.readLine(prompt, rightPrompt, (MaskingCallback) null, null);
+                    String line = reader.readLine(prompt, rightPrompt, (MaskingCallback) null, null);
                     line = line.trim();
 
                     if (color) {
@@ -419,16 +539,22 @@ public class Example
                     }
                     ParsedLine pl = reader.getParser().parse(line, 0);
                     String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
-                    if ("set".equals(pl.word())) {
-                        if (pl.words().size() == 3) {
-                            reader.setVariable(pl.words().get(1), pl.words().get(2));
+                    if ("help".equals(pl.word()) || "?".equals(pl.word())) {
+                        help();
+                    }
+                    else if (executor.execute(pl.word(), argv)) {
+                        // built-in command has been executed
+                    }
+                    else if ("set".equals(pl.word())) {
+                        if (argv.length == 2) {
+                            reader.setVariable(argv[0], argv[1]);
                         } else {
                             terminal.writer().println("Usage: set <name> <value>");
                         }
                     }
                     else if ("tput".equals(pl.word())) {
-                        if (pl.words().size() == 2) {
-                            Capability vcap = Capability.byName(pl.words().get(1));
+                        if (argv.length == 1) {
+                            Capability vcap = Capability.byName(argv[0]);
                             if (vcap != null) {
                                 terminal.puts(vcap);
                             } else {
@@ -457,48 +583,6 @@ public class Example
                     else if ("sleep".equals(pl.word())) {
                         Thread.sleep(3000);
                     }
-                    else if ("tmux".equals(pl.word())) {
-                        Commands.tmux(terminal, System.out, System.err,
-                                null, //Supplier<Object> getter,
-                                null, //Consumer<Object> setter,
-                                null, //Consumer<Terminal> runner,
-                                argv);
-                    }
-                    else if ("nano".equals(pl.word())) {
-                        Commands.nano(terminal, System.out, System.err,
-                                Paths.get(""),
-                                argv);
-                    }
-                    else if ("less".equals(pl.word())) {
-                        Commands.less(terminal, System.in, System.out, System.err,
-                                Paths.get(""),
-                                argv);
-                    }
-                    else if ("history".equals(pl.word())) {
-                        Commands.history(reader, System.out, System.err, Paths.get(""),argv);
-                    }
-                    else if ("complete".equals(pl.word())) {
-                        Commands.complete(reader, System.out, System.err,
-                                null, // Map<String, List<CompletionData>> completions,
-                                argv);
-                    }
-                    else if ("widget".equals(pl.word())) {
-                        Commands.widget(reader, System.out, System.err,
-                                null, //Function<String, Widget> widgetCreator,
-                                argv);
-                    }
-                    else if ("keymap".equals(pl.word())) {
-                        Commands.keymap(reader, System.out, System.err, argv);
-                    }
-                    else if ("setopt".equals(pl.word())) {
-                        Commands.setopt(reader, System.out, System.err, argv);
-                    }
-                    else if ("unsetopt".equals(pl.word())) {
-                        Commands.unsetopt(reader, System.out, System.err, argv);
-                    }
-                    else if ("ttop".equals(pl.word())) {
-                        TTop.ttop(terminal, System.out, System.err, argv);
-                    }
                     else if ("autopair".equals(pl.word())) {
                         terminal.writer().print("Autopair widgets are ");
                         if (autopairWidgets.toggle()) {
@@ -508,16 +592,16 @@ public class Example
                         }
                     }
                     else if ("autosuggestion".equals(pl.word())) {
-                        if (pl.words().size() > 1) {
-                            String type = pl.words().get(1).toLowerCase();
+                        if (argv.length > 0) {
+                            String type = argv[0].toLowerCase();
                             if (type.startsWith("his")) {
                                 tailtipWidgets.disable();
                                 autosuggestionWidgets.enable();
                             } else if (type.startsWith("tai")) {
                                 autosuggestionWidgets.disable();
                                 tailtipWidgets.enable();
-                                if (pl.words().size() > 2) {
-                                    String mode = pl.words().get(2).toLowerCase();
+                                if (argv.length > 1) {
+                                    String mode = argv[1].toLowerCase();
                                     if (mode.startsWith("tai")) {
                                         tailtipWidgets.setTipType(TipType.TAIL_TIP);
                                     } else if (mode.startsWith("comp")) {
@@ -545,24 +629,21 @@ public class Example
                             }
                         }
                     }
-                    else if ("help".equals(pl.word()) || "?".equals(pl.word())) {
-                        help();
-                    }
                 }
                 catch (HelpException e) {
                     HelpException.highlight(e.getMessage(), HelpException.defaultStyle()).print(terminal);
                 }
-                catch (IllegalArgumentException e) {
+                catch (IllegalArgumentException|FileNotFoundException e) {
                     System.out.println(e.getMessage());
-                }
-                catch (IllegalStateException e) {
-                    e.printStackTrace();
                 }
                 catch (UserInterruptException e) {
                     // Ignore
                 }
                 catch (EndOfFileException e) {
                     return;
+                }
+                catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
         }
