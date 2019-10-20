@@ -19,6 +19,7 @@ import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 import org.jline.builtins.Commands;
 import org.jline.builtins.Completers;
@@ -31,6 +32,7 @@ import org.jline.builtins.Widgets.TailTipWidgets;
 import org.jline.builtins.Widgets.TailTipWidgets.TipType;
 import org.jline.builtins.Widgets.ArgDesc;
 import org.jline.builtins.Widgets.CmdDesc;
+import org.jline.builtins.Widgets.CmdLine;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.LineReader.Option;
@@ -219,7 +221,51 @@ public class Example
             return out;
         }
 
-        CmdDesc commandDescription(String command) {
+        CmdDesc commandDescription(CmdLine line) {
+            CmdDesc out = null;
+            if (line.isCommand()) {
+                out = commandDescription(line.getArgs().get(0));
+            } else {
+                out = methodDescription(line);
+            }
+            return out;
+        }
+
+        private CmdDesc methodDescription(CmdLine line) {
+            List<String> keywords = Arrays.asList("if", "while", "for");
+            for (String s: keywords) {
+                if (Pattern.compile("\\b" + s + "\\s*$").matcher(line.getHead()).find()){
+                    return null;
+                }
+            }
+            List<AttributedString> mainDesc = new ArrayList<>();
+            try {
+                // For example if using groovy you can create involved object
+                // dynamically from line string  and then inspect method's
+                // parameters using reflection
+                if (line.getLine().length() > 200) {
+                    throw new IllegalArgumentException("Failed to create object from source: " + line);
+                }
+                for (String s: line.getHead().split("\n")) {
+                    mainDesc.add(new AttributedString(s));
+
+                }
+                mainDesc.add(new AttributedString("----------------------------------------"));
+                for (String s: line.getTail().split("\n")) {
+                    mainDesc.add(new AttributedString(s));
+                }
+//                mainDesc = Arrays.asList(new AttributedString("method1(int arg1, List<String> arg2)")
+//                            , new AttributedString("method1(int arg1, Map<String,Object> arg2)")
+//                    );
+            } catch (Exception e) {
+                for (String s: e.getMessage().split("\n")) {
+                    mainDesc.add(new AttributedString(e.getMessage(), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED)));
+                }
+            }
+            return new CmdDesc(mainDesc, new ArrayList<>(), new HashMap<>());
+        }
+
+        private CmdDesc commandDescription(String command) {
             CmdDesc out = null;
             String[] argv = {"--help"};
             try {
@@ -227,7 +273,7 @@ public class Example
            } catch (HelpException e) {
                 List<AttributedString> main = new ArrayList<>();
                 Map<String, List<AttributedString>> options = new HashMap<>();
-                String[] msg = e.getMessage().split("\\n");
+                String[] msg = e.getMessage().replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n");
                 String prevOpt = null;
                 boolean mainDone = false;
                 boolean start = false;

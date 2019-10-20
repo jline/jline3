@@ -8,17 +8,14 @@
  */
 package org.jline.builtins;
 
-import static org.jline.keymap.KeyMap.range;
 import static org.jline.keymap.KeyMap.ctrl;
 import static org.jline.keymap.KeyMap.alt;
 
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Function;
 
@@ -36,6 +33,11 @@ import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 import org.jline.utils.Status;
 
+/**
+ * Brackets/quotes autopairing and command autosuggestion widgets for jline applications. 
+ *
+ * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
+ */
 public abstract class Widgets {
     protected static final String AP_TOGGLE = "autopair-toggle";
     protected static final String AP_INSERT = "_autopair-insert";
@@ -649,13 +651,13 @@ public abstract class Widgets {
          * @param tipType          Defines which data will be used for suggestions.
          * @throws IllegalStateException     If widgets are already created.
          */
-        public TailTipWidgets(LineReader reader, Function<String,CmdDesc> descFun, int descriptionSize, TipType tipType) {
+        public TailTipWidgets(LineReader reader, Function<CmdLine,CmdDesc> descFun, int descriptionSize, TipType tipType) {
             this(reader, null, descriptionSize, tipType, descFun);
         }
 
         private TailTipWidgets(LineReader reader
                              , Map<String,CmdDesc> tailTips
-                             , int descriptionSize, TipType tipType, Function<String,CmdDesc> descFun) {
+                             , int descriptionSize, TipType tipType, Function<CmdLine,CmdDesc> descFun) {
             super(reader);
             if (existsWidget(TT_ACCEPT_LINE)) {
                 throw new IllegalStateException("TailTipWidgets already created!");
@@ -664,10 +666,11 @@ public abstract class Widgets {
             this.descriptionSize = descriptionSize;
             this.tipType = tipType;
             addWidget(TT_ACCEPT_LINE, this::tailtipAcceptLine);
-            addWidget("_tailtip-insert", this::tailtipInsert);
+            addWidget("_tailtip-self-insert", this::tailtipInsert);
             addWidget("_tailtip-backward-delete-char", this::tailtipBackwardDelete);
             addWidget("_tailtip-delete-char", this::tailtipDelete);
             addWidget("_tailtip-expand-or-complete", this::tailtipComplete);
+            addWidget("_tailtip-redisplay", this::tailtipUpdateStatus);
             addWidget("tailtip-window", this::toggleWindow);
             addWidget(TT_TOGGLE, this::toggleKeyBindings);
         }
@@ -722,6 +725,7 @@ public abstract class Widgets {
                 setSuggestionType(SuggestionType.COMPLETER);
             }
             clearDescription();
+            cmdDescs.clearTemporaryDescs();
             return clearTailTip(LineReader.ACCEPT_LINE);
         }
 
@@ -744,72 +748,98 @@ public abstract class Widgets {
             return doTailTip(autopairEnabled() ? AP_INSERT : LineReader.SELF_INSERT);
         }
 
+        public boolean tailtipUpdateStatus() {
+            return doTailTip(LineReader.REDISPLAY);
+        }
+
         private boolean doTailTip(String widget) {
             Buffer buffer = buffer();
             callWidget(widget);
             if (buffer.length() == buffer.cursor()) {
-                List<String> bp = args(buffer.toString());
-                int argnum = 0;
-                for (String a: bp) {
-                    if (!a.startsWith("-")) {
-                        argnum++;
-                    }
-                }
-                String lastArg = !prevChar().equals(" ") ? bp.get(bp.size() - 1) : "";
-                int bpsize = argnum;
-                boolean doTailTip = true;
-                if (widget.endsWith(LineReader.BACKWARD_DELETE_CHAR)) {
-                    if (!lastArg.startsWith("-")) {
-                        bpsize--;
-                    }
-                    if (prevChar().equals(" ")) {
-                        bpsize++;
-                    }
-                } else if (!prevChar().equals(" ")) {
-                    doTailTip = false;
-                }
-                boolean clearTip = false;
-                CmdDesc cmdDesc = bp.size() > 0 ? cmdDescs.getDescription(bp.get(0)) : null;
-                if (cmdDesc != null) {
-                    if (lastArg.startsWith("-")) {
-                        doDescription(cmdDesc.getOptionDescription(lastArg, descriptionSize));
-                    }
-                    if (bpsize > 0 && doTailTip) {
-                        List<ArgDesc> params = cmdDesc.getArgsDesc();
-                        setSuggestionType(tipType == TipType.COMPLETER ? SuggestionType.COMPLETER : SuggestionType.TAIL_TIP);
-                        if (bpsize - 1 < params.size()) {
-                            if (!lastArg.startsWith("-")) {
-                                List<AttributedString> d = params.get(bpsize - 1).getDescription();
-                                if (d.isEmpty()) {
-                                    d = cmdDesc.getMainDescription(descriptionSize);
-                                }
-                                doDescription(d);
-                            }
-                            StringBuilder tip = new StringBuilder();
-                            for (int i = bpsize - 1; i < params.size(); i++) {
-                                tip.append(params.get(i).getName());
-                                tip.append(" ");
-                            }
-                            setTailTip(tip.toString());
-                        } else if (params.get(params.size() - 1).getName().charAt(0) == '[') {
-                            setTailTip(params.get(params.size() - 1).getName());
-                            doDescription(params.get(params.size() - 1).getDescription());
-                        }
-                    } else if (doTailTip) {
-                        clearTip = true;
-                    }
-                } else {
+                List<String> args = args(buffer.toString());
+                Pair<String,Boolean> cmdkey = cmdDescs.evaluateCommandLine(buffer.toString(), args);
+                CmdDesc cmdDesc = cmdDescs.getDescription(cmdkey.getU());
+                if (cmdDesc == null) {
                     clearDescription();
-                    clearTip = true;
+                    resetTailTip();
+                } else if (cmdkey.getV()) {
+                    doCommandTailTip(widget, cmdDesc, args);
+                } else {
+                    doDescription(cmdDesc.getMainDescription(descriptionSize));
                 }
-                if (clearTip) {
-                    setTailTip("");
-                    if (tipType != TipType.TAIL_TIP) {
-                        setSuggestionType(SuggestionType.COMPLETER);
-                    }
+            } else {
+                Pair<String,Boolean> cmdkey = cmdDescs.evaluateCommandLine(buffer.toString(), buffer.cursor());
+                CmdDesc cmdDesc = cmdDescs.getDescription(cmdkey.getU());
+                if (cmdDesc == null) {
+                    clearDescription();
+                    resetTailTip();
+                } else if (!cmdkey.getV()) {
+                    doDescription(cmdDesc.getMainDescription(descriptionSize));
                 }
             }
             return true;
+        }
+
+        private void doCommandTailTip(String widget, CmdDesc cmdDesc, List<String> args) {
+            int argnum = 0;
+            for (String a : args) {
+                if (!a.startsWith("-")) {
+                    argnum++;
+                }
+            }
+            String lastArg = !prevChar().equals(" ") ? args.get(args.size() - 1) : "";
+            int bpsize = argnum;
+            boolean doTailTip = true;
+            if (widget.endsWith(LineReader.BACKWARD_DELETE_CHAR)) {
+                if (!lastArg.startsWith("-")) {
+                    bpsize--;
+                }
+                if (prevChar().equals(" ")) {
+                    bpsize++;
+                }
+            } else if (!prevChar().equals(" ")) {
+                doTailTip = false;
+            }
+            if (cmdDesc != null) {
+                if (lastArg.startsWith("-")) {
+                    doDescription(cmdDesc.getOptionDescription(lastArg, descriptionSize));
+                }
+                if (bpsize > 0 && doTailTip) {
+                    List<ArgDesc> params = cmdDesc.getArgsDesc();
+                    setSuggestionType(tipType == TipType.COMPLETER ? SuggestionType.COMPLETER : SuggestionType.TAIL_TIP);
+                    if (bpsize - 1 < params.size()) {
+                        if (!lastArg.startsWith("-")) {
+                            List<AttributedString> d = params.get(bpsize - 1)
+                                    .getDescription();
+                            if (d.isEmpty()) {
+                                d = cmdDesc.getMainDescription(descriptionSize);
+                            }
+                            doDescription(d);
+                        }
+                        StringBuilder tip = new StringBuilder();
+                        for (int i = bpsize - 1; i < params.size(); i++) {
+                            tip.append(params.get(i).getName());
+                            tip.append(" ");
+                        }
+                        setTailTip(tip.toString());
+                    } else if (!params.isEmpty() && params.get(params.size() - 1).getName().startsWith("[")) {
+                        setTailTip(params.get(params.size() - 1).getName());
+                        doDescription(params.get(params.size() - 1).getDescription());
+                    }
+                } else if (doTailTip) {
+                    resetTailTip();
+                }
+            } else {
+                clearDescription();
+                resetTailTip();
+            }
+        }
+
+        private void resetTailTip() {
+            setTailTip("");
+            if (tipType != TipType.TAIL_TIP) {
+                setSuggestionType(SuggestionType.COMPLETER);
+            }
         }
 
         private void doDescription(List<AttributedString> desc) {
@@ -877,12 +907,10 @@ public abstract class Widgets {
             aliasWidget("." + LineReader.BACKWARD_DELETE_CHAR, LineReader.BACKWARD_DELETE_CHAR);
             aliasWidget("." + LineReader.DELETE_CHAR, LineReader.DELETE_CHAR);
             aliasWidget("." + LineReader.EXPAND_OR_COMPLETE, LineReader.EXPAND_OR_COMPLETE);
+            aliasWidget("." + LineReader.SELF_INSERT, LineReader.SELF_INSERT);
+            aliasWidget("." + LineReader.REDISPLAY, LineReader.REDISPLAY);
             KeyMap<Binding> map = getKeyMap();
-            map.bind(new Reference(LineReader.SELF_INSERT), " ");
-            map.bind(new Reference(LineReader.SELF_INSERT), "=");
-            map.bind(new Reference(LineReader.SELF_INSERT), "-");
-            map.bind(new Reference(LineReader.SELF_INSERT), range("A-Z"));
-            map.bind(new Reference(LineReader.SELF_INSERT), range("a-z"));
+            map.bind(new Reference(LineReader.INSERT_CLOSE_PAREN), ")");
 
             setSuggestionType(SuggestionType.NONE);
             if (autopairEnabled()) {
@@ -901,12 +929,11 @@ public abstract class Widgets {
             aliasWidget("_tailtip-backward-delete-char", LineReader.BACKWARD_DELETE_CHAR);
             aliasWidget("_tailtip-delete-char", LineReader.DELETE_CHAR);
             aliasWidget("_tailtip-expand-or-complete", LineReader.EXPAND_OR_COMPLETE);
+            aliasWidget("_tailtip-self-insert", LineReader.SELF_INSERT);
+            aliasWidget("_tailtip-redisplay", LineReader.REDISPLAY);
             KeyMap<Binding> map = getKeyMap();
-            map.bind(new Reference("_tailtip-insert"), " ");
-            map.bind(new Reference("_tailtip-insert"), "=");
-            map.bind(new Reference("_tailtip-insert"), "-");
-            map.bind(new Reference("_tailtip-insert"), range("A-Z"));
-            map.bind(new Reference("_tailtip-insert"), range("a-z"));
+            map.bind(new Reference("_tailtip-self-insert"), ")");
+
             if (tipType != TipType.TAIL_TIP) {
                 setSuggestionType(SuggestionType.COMPLETER);
             } else {
@@ -917,28 +944,138 @@ public abstract class Widgets {
 
         private class CommandDescriptions {
             Map<String,CmdDesc> descriptions = new HashMap<>();
-            Function<String,CmdDesc> descFun;
+            Map<String,CmdDesc> temporaryDescs = new HashMap<>();
+            Function<CmdLine,CmdDesc> descFun;
 
             public CommandDescriptions(Map<String,CmdDesc> descriptions) {
                 this.descriptions = new HashMap<>(descriptions);
             }
 
-            public CommandDescriptions(Function<String,CmdDesc> descFun) {
+            public CommandDescriptions(Function<CmdLine,CmdDesc> descFun) {
                 this.descFun = descFun;
             }
 
-            public boolean hasDescription(String command) {
-                if (descFun != null && !descriptions.containsKey(command)) {
-                    descriptions.put(command, descFun.apply(command));
+            public Pair<String,Boolean> evaluateCommandLine(String line, int curPos) {
+                return evaluateCommandLine(line, new ArrayList<>(), curPos);
+            }
+
+            public Pair<String,Boolean> evaluateCommandLine(String line, List<String> args) {
+                return evaluateCommandLine(line, args, line.length());
+            }
+
+            private Pair<String,Boolean> evaluateCommandLine(String line, List<String> args, int curPos) {
+                String cmd = null;
+                boolean command = false;
+                String head = line.substring(0, curPos);
+                String tail = line.substring(curPos);
+                if (line.length() == curPos) {
+                    cmd = args != null && (args.size() > 1 || (args.size() == 1
+                             && line.endsWith(" "))) ? args.get(0) : null;
+                    command = true;
                 }
-                return descriptions.containsKey(command);
+                int brackets = 0;
+                for (int i = head.length() - 1; i >= 0; i--) {
+                    if (head.charAt(i) == ')') {
+                        brackets++;
+                    } else if (head.charAt(i) == '(') {
+                        brackets--;
+                    }
+                    if (brackets < 0) {
+                        command = false;
+                        head = head.substring(0, i);
+                        cmd = head;
+                        break;
+                    }
+                }
+                if (!command) {
+                    brackets = 0;
+                    for (int i = 0; i < tail.length(); i++) {
+                        if (tail.charAt(i) == ')') {
+                            brackets++;
+                        } else if (tail.charAt(i) == '(') {
+                            brackets--;
+                        }
+                        if (brackets > 0) {
+                            tail = tail.substring(i + 1);
+                            break;
+                        }
+                    }
+                }
+                if (cmd != null && !descriptions.containsKey(cmd) && !temporaryDescs.containsKey(cmd)
+                        && descFun != null) {
+                    if (command) {
+                        CmdDesc c = descFun.apply(new CmdLine(line, head, tail, args, command));
+                        if (c != null) {
+                            descriptions.put(cmd, c);
+                        } else {
+                            temporaryDescs.put(cmd, c);
+                        }
+                    } else {
+                        temporaryDescs.put(cmd, descFun.apply(new CmdLine(line, head, tail, args, command)));
+                    }
+                }
+                return new Pair<String,Boolean>(cmd, new Boolean(command));
             }
 
             public CmdDesc getDescription(String command) {
-                return hasDescription(command) ? descriptions.get(command) : null;
+                CmdDesc out = null;
+                if (descriptions.containsKey(command)) {
+                    out = descriptions.get(command);
+                } else if (temporaryDescs.containsKey(command)) {
+                    out = temporaryDescs.get(command);
+                }
+                return out;
+            }
+
+            public void clearTemporaryDescs() {
+                temporaryDescs = new HashMap<>();
             }
         }
 
+    }
+
+    public static class CmdLine {
+        private String line;
+        private String head;
+        private String tail;
+        private List<String> args;
+        private boolean command;
+
+        /**
+         * CmdLine class constructor.
+         * @param line     Command line
+         * @param head     Command line til cursor, method parameters and parenthesis before the cursor are removed.
+         * @param tail     Command line after cursor, method parameters and parenthesis after the cursor are removed.
+         * @param args     Parsed command line.
+         * @param command  true if command line is not script statement.
+         */
+        public CmdLine(String line, String head, String tail, List<String> args, boolean command) {
+            this.line = line;
+            this.head = head;
+            this.tail = tail;
+            this.args = new ArrayList<>(args);
+            this.command = command;
+        }
+
+        public String getLine() {
+            return line;
+        }
+
+        public String getHead() {
+            return head;
+        }
+
+        public String getTail() {
+            return tail;
+        }
+
+        public List<String> getArgs() {
+            return args;
+        }
+
+        public boolean isCommand() {
+            return command;
+        }
     }
 
     public static class ArgDesc {
@@ -1131,6 +1268,20 @@ public abstract class Widgets {
                 out = new ArrayList<>(keyList);
             }
             return out;
+        }
+    }
+
+    static class Pair<U,V> {
+        final U u; final V v;
+        public Pair(U u, V v) {
+            this.u = u;
+            this.v = v;
+        }
+        public U getU() {
+            return u;
+        }
+        public V getV() {
+            return v;
         }
     }
 
