@@ -8,6 +8,8 @@
  */
 package org.jline.reader.impl;
 
+import java.util.regex.Pattern;
+
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReader.RegionType;
 import org.jline.reader.Highlighter;
@@ -17,6 +19,12 @@ import org.jline.utils.AttributedStyle;
 import org.jline.utils.WCWidth;
 
 public class DefaultHighlighter implements Highlighter {
+    private Pattern errorPattern;
+
+    @Override
+    public void setErrorPattern(Pattern errorPattern) {
+        this.errorPattern = errorPattern;
+    }
 
     @Override
     public AttributedString highlight(LineReader reader, String buffer) {
@@ -77,6 +85,9 @@ public class DefaultHighlighter implements Highlighter {
             if (i == negativeEnd) {
                 sb.style(AttributedStyle::inverseOff);
             }
+        }
+        if (errorPattern != null) {
+            sb.styleMatches(errorPattern, AttributedStyle.INVERSE);
         }
         return sb.toAttributedString();
     }

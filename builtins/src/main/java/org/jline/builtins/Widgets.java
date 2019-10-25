@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
@@ -34,7 +35,7 @@ import org.jline.utils.AttributedStyle;
 import org.jline.utils.Status;
 
 /**
- * Brackets/quotes autopairing and command autosuggestion widgets for jline applications. 
+ * Brackets/quotes autopairing and command autosuggestion widgets for jline applications.
  *
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
@@ -153,6 +154,10 @@ public abstract class Widgets {
 
     public void setTailTip(String tailTip) {
         reader.setTailTip(tailTip);
+    }
+
+    public void setErrorPattern(Pattern errorPattern) {
+        reader.getHighlighter().setErrorPattern(errorPattern);
     }
 
     public void clearTailTip() {
@@ -725,6 +730,7 @@ public abstract class Widgets {
                 setSuggestionType(SuggestionType.COMPLETER);
             }
             clearDescription();
+            setErrorPattern(null);
             cmdDescs.clearTemporaryDescs();
             return clearTailTip(LineReader.ACCEPT_LINE);
         }
@@ -766,6 +772,7 @@ public abstract class Widgets {
                     doCommandTailTip(widget, cmdDesc, args);
                 } else {
                     doDescription(cmdDesc.getMainDescription(descriptionSize));
+                    setErrorPattern(cmdDesc.getErrorPattern());
                 }
             } else {
                 Pair<String,Boolean> cmdkey = cmdDescs.evaluateCommandLine(buffer.toString(), buffer.cursor());
@@ -775,6 +782,7 @@ public abstract class Widgets {
                     resetTailTip();
                 } else if (!cmdkey.getV()) {
                     doDescription(cmdDesc.getMainDescription(descriptionSize));
+                    setErrorPattern(cmdDesc.getErrorPattern());
                 }
             }
             return true;
@@ -1112,6 +1120,11 @@ public abstract class Widgets {
         private List<AttributedString> mainDesc;
         private List<ArgDesc> argsDesc;
         private TreeMap<String,List<AttributedString>> optsDesc;
+        private Pattern errorPattern;
+
+        public CmdDesc() {
+
+        }
 
         public CmdDesc(List<ArgDesc> argsDesc) {
             this(new ArrayList<>(), argsDesc, new HashMap<>());
@@ -1130,6 +1143,19 @@ public abstract class Widgets {
             } else {
                 this.mainDesc = new ArrayList<>(mainDesc);
             }
+        }
+
+        public CmdDesc mainDesc(List<AttributedString> mainDesc) {
+            this.mainDesc = new ArrayList<>(mainDesc);
+            return this;
+        }
+
+        public void setErrorPattern(Pattern errorPattern) {
+            this.errorPattern = errorPattern;
+        }
+
+        public Pattern getErrorPattern() {
+            return errorPattern;
         }
 
         public List<ArgDesc> getArgsDesc() {

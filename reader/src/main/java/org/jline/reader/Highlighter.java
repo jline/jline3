@@ -8,9 +8,12 @@
  */
 package org.jline.reader;
 
+import java.util.regex.Pattern;
+
 import org.jline.utils.AttributedString;
 
 public interface Highlighter {
 
     AttributedString highlight(LineReader reader, String buffer);
+    public void setErrorPattern(Pattern errorPattern);
 }
