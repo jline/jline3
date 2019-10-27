@@ -23,7 +23,7 @@
     <artifactId>jline-parent</artifactId>
     <name>JLine Parent</name>
     <description>JLine</description>
-    <version>3.13.1-SNAPSHOT</version>
+    <version>3.13.2-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <licenses>
@@ -420,7 +420,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.0.0</version>
+                <version>3.1.1</version>
                 <configuration>
                     <additionalparam>-Xdoclint:none </additionalparam>
                     <additionalparam>-notimestamp </additionalparam>

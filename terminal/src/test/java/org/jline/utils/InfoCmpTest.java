@@ -59,10 +59,11 @@ public class InfoCmpTest {
         Map<Capability, String> strings = new HashMap<>();
         String infocmp = "xterm-256color|xterm with 256 colors,\n" +
                 "\tam, bce, ccc, km, mc5i, mir, msgr, npc, xenl,\n" +
-                "\tcolors#0x100, cols#80, it#8, lines#24, pairs#0x7fff,\n" +
+                "\tcolors#0x100, cols#010, it#0, lines#24, pairs#0x7fff,\n" +
                 "\tacsc=``aaffggiijjkkllmmnnooppqqrrssttuuvvwwxxyyzz{{||}}~~,\n" +
                 "\tbel=^G, blink=\\E[5m, bold=\\E[1m, cbt=\\E[Z, civis=\\E[?25l\n";
         InfoCmp.parseInfoCmp(infocmp, bools, ints, strings);
+        assertEquals(8, (int) ints.get(Capability.columns));
         assertEquals(0x100, (int) ints.get(Capability.max_colors));
         assertEquals(0x7fff, (int) ints.get(Capability.max_pairs));
     }

@@ -1419,16 +1419,16 @@ public class Nano implements Editor {
         }
     }
 
-    protected static class SyntaxHighlighter {
+    public static class SyntaxHighlighter {
         private List<HighlightRule> rules = new ArrayList<>();
         private int ruleStartId = 0;
 
         private SyntaxHighlighter() {}
 
-        public static SyntaxHighlighter build(List<Path> syntaxFiles, String file, String syntaxName) {
+        protected static SyntaxHighlighter build(List<Path> syntaxFiles, String file, String syntaxName) {
             SyntaxHighlighter out = new SyntaxHighlighter();
             List<HighlightRule> defaultRules = new ArrayList<>();
-            if (file != null && (syntaxName == null || (syntaxName != null && !syntaxName.equals("none")))) {
+            if (syntaxName == null || (syntaxName != null && !syntaxName.equals("none"))) {
                 for (Path p: syntaxFiles) {
                     NanorcParser parser = new NanorcParser(p, syntaxName, file);
                     try {
@@ -1447,12 +1447,56 @@ public class Nano implements Editor {
             return out;
         }
 
+        /**
+         * Build SyntaxHighlighter
+         *
+         * @param nanorc        Path of nano config file jnanorc
+         * @param syntaxName    syntax name e.g 'Java'
+         * @return              SyntaxHighlighter
+         */
+        public static SyntaxHighlighter build(Path nanorc, String syntaxName) {
+            SyntaxHighlighter out = new SyntaxHighlighter();
+            List<Path> syntaxFiles = new ArrayList<>();
+            try {
+                BufferedReader reader = new BufferedReader(new FileReader(nanorc.toFile()));
+                String line = reader.readLine();
+                while (line != null) {
+                    line = line.trim();
+                    if (line.length() > 0 && !line.startsWith("#")) {
+                        List<String> parts = Parser.split(line);
+                        if (parts.get(0).equals("include")) {
+                            if (parts.get(1).contains("*") || parts.get(1).contains("?")) {
+                                PathMatcher pathMatcher = FileSystems
+                                        .getDefault().getPathMatcher("glob:" + parts.get(1));
+                                Files.find(
+                                        Paths.get(new File(parts.get(1)).getParent()),
+                                        Integer.MAX_VALUE,
+                                        (path, f) -> pathMatcher.matches(path))
+                                        .forEach(p -> syntaxFiles.add(p));
+                            } else {
+                                syntaxFiles.add(Paths.get(parts.get(1)));
+                            }
+                        }
+                    }
+                    line = reader.readLine();
+                }
+                reader.close();
+                out = build(syntaxFiles, null, syntaxName);
+            } catch (Exception e) {
+            }
+            return out;
+        }
+
         private void addRules(List<HighlightRule> rules) {
             this.rules.addAll(rules);
         }
 
         public void reset() {
             ruleStartId = 0;
+        }
+
+        public AttributedString highlight(String string) {
+            return highlight(new AttributedString(string));
         }
 
         public AttributedString highlight(AttributedStringBuilder asb) {
@@ -1584,6 +1628,10 @@ public class Nano implements Editor {
         private List<HighlightRule> highlightRules = new ArrayList<>();
         private String syntaxName;
 
+        public NanorcParser(Path file, String name) {
+            this(file, name, null);
+        }
+
         public NanorcParser(Path file, String name, String target) {
             this.file = file.toFile();
             this.name = name;
@@ -1685,6 +1733,26 @@ public class Nano implements Editor {
             }
             if (bcolor != null) {
                 style = style.background(bcolor);
+            }
+            // extended nanorc..
+            if (styleStrings.length > 2) {
+                if (styleStrings[2].equals("blink")) {
+                    style = style.blink();
+                } else if (styleStrings[2].equals("bold")) {
+                    style = style.bold();
+                } else if (styleStrings[2].equals("conceal")) {
+                    style = style.conceal();
+                } else if (styleStrings[2].equals("faint")) {
+                    style = style.faint();    
+                } else if (styleStrings[2].equals("hidden")) {
+                    style = style.hidden();
+                } else if (styleStrings[2].equals("inverse")) {
+                    style = style.inverse();
+                } else if (styleStrings[2].equals("italic")) {
+                    style = style.italic();
+                } else if (styleStrings[2].equals("underline")) {
+                    style = style.underline();
+                }     
             }
 
             if (HighlightRule.evalRuleType(parts) == HighlightRule.RuleType.PATTERN) {

@@ -16,7 +16,7 @@
     <parent>
         <groupId>org.jline</groupId>
         <artifactId>jline-parent</artifactId>
-        <version>3.13.1-SNAPSHOT</version>
+        <version>3.13.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>jline</artifactId>
@@ -57,6 +57,46 @@
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>
             <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-terminal</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-terminal-jansi</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-terminal-jna</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-reader</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-builtins</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-remote-ssh</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-remote-telnet</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-style</artifactId>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 
