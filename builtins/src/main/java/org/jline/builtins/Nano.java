@@ -1734,6 +1734,26 @@ public class Nano implements Editor {
             if (bcolor != null) {
                 style = style.background(bcolor);
             }
+            // extended nanorc..
+            if (styleStrings.length > 2) {
+                if (styleStrings[2].equals("blink")) {
+                    style = style.blink();
+                } else if (styleStrings[2].equals("bold")) {
+                    style = style.bold();
+                } else if (styleStrings[2].equals("conceal")) {
+                    style = style.conceal();
+                } else if (styleStrings[2].equals("faint")) {
+                    style = style.faint();    
+                } else if (styleStrings[2].equals("hidden")) {
+                    style = style.hidden();
+                } else if (styleStrings[2].equals("inverse")) {
+                    style = style.inverse();
+                } else if (styleStrings[2].equals("italic")) {
+                    style = style.italic();
+                } else if (styleStrings[2].equals("underline")) {
+                    style = style.underline();
+                }     
+            }
 
             if (HighlightRule.evalRuleType(parts) == HighlightRule.RuleType.PATTERN) {
                 for (int i = 2; i < parts.size(); i++) {
