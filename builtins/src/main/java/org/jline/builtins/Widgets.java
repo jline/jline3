@@ -128,8 +128,8 @@ public abstract class Widgets {
         reader.getBuffer().copyFrom(buffer);
     }
 
-    public List<String> args(String line) {
-        return reader.getParser().parse(line, 0, ParseContext.COMPLETE).words();
+    public List<String> args() {
+        return reader.getParser().parse(buffer().toString(), 0, ParseContext.COMPLETE).words();
     }
 
     public String prevChar() {
@@ -762,7 +762,7 @@ public abstract class Widgets {
             Buffer buffer = buffer();
             callWidget(widget);
             if (buffer.length() == buffer.cursor()) {
-                List<String> args = args(buffer.toString());
+                List<String> args = args();
                 Pair<String,Boolean> cmdkey = cmdDescs.evaluateCommandLine(buffer.toString(), args);
                 CmdDesc cmdDesc = cmdDescs.getDescription(cmdkey.getU());
                 if (cmdDesc == null) {
@@ -964,7 +964,7 @@ public abstract class Widgets {
             }
 
             public Pair<String,Boolean> evaluateCommandLine(String line, int curPos) {
-                return evaluateCommandLine(line, new ArrayList<>(), curPos);
+                return evaluateCommandLine(line, args(), curPos);
             }
 
             public Pair<String,Boolean> evaluateCommandLine(String line, List<String> args) {
@@ -973,56 +973,63 @@ public abstract class Widgets {
 
             private Pair<String,Boolean> evaluateCommandLine(String line, List<String> args, int curPos) {
                 String cmd = null;
-                boolean command = false;
+                CmdLine.DescriptionType descType = CmdLine.DescriptionType.METHOD;
                 String head = line.substring(0, curPos);
                 String tail = line.substring(curPos);
-                if (line.length() == curPos) {
-                    cmd = args != null && (args.size() > 1 || (args.size() == 1
-                             && line.endsWith(" "))) ? args.get(0) : null;
-                    command = true;
-                }
-                int brackets = 0;
-                for (int i = head.length() - 1; i >= 0; i--) {
-                    if (head.charAt(i) == ')') {
-                        brackets++;
-                    } else if (head.charAt(i) == '(') {
-                        brackets--;
+                if (prevChar().equals(")")) {
+                    descType = CmdLine.DescriptionType.SYNTAX;
+                    cmd = head;
+                } else {
+                    if (line.length() == curPos) {
+                        cmd = args != null && (args.size() > 1 || (args.size() == 1
+                                 && line.endsWith(" "))) ? args.get(0) : null;
+                        descType = CmdLine.DescriptionType.COMMAND;
                     }
-                    if (brackets < 0) {
-                        command = false;
-                        head = head.substring(0, i);
-                        cmd = head;
-                        break;
-                    }
-                }
-                if (!command) {
-                    brackets = 0;
-                    for (int i = 0; i < tail.length(); i++) {
-                        if (tail.charAt(i) == ')') {
+                    int brackets = 0;
+                    for (int i = head.length() - 1; i >= 0; i--) {
+                        if (head.charAt(i) == ')') {
                             brackets++;
-                        } else if (tail.charAt(i) == '(') {
+                        } else if (head.charAt(i) == '(') {
                             brackets--;
                         }
-                        if (brackets > 0) {
-                            tail = tail.substring(i + 1);
+                        if (brackets < 0) {
+                            descType = CmdLine.DescriptionType.METHOD;
+                            head = head.substring(0, i);
+                            cmd = head;
                             break;
+                        }
+                    }
+                    if (descType == CmdLine.DescriptionType.METHOD) {
+                        brackets = 0;
+                        for (int i = 0; i < tail.length(); i++) {
+                            if (tail.charAt(i) == ')') {
+                                brackets++;
+                            } else if (tail.charAt(i) == '(') {
+                                brackets--;
+                            }
+                            if (brackets > 0) {
+                                tail = tail.substring(i + 1);
+                                break;
+                            }
                         }
                     }
                 }
                 if (cmd != null && !descriptions.containsKey(cmd) && !temporaryDescs.containsKey(cmd)
                         && descFun != null) {
-                    if (command) {
-                        CmdDesc c = descFun.apply(new CmdLine(line, head, tail, args, command));
+                    if (descType == CmdLine.DescriptionType.COMMAND) {
+                        CmdDesc c = descFun.apply(new CmdLine(line, head, tail, args, descType));
                         if (c != null) {
                             descriptions.put(cmd, c);
                         } else {
                             temporaryDescs.put(cmd, c);
                         }
+                    } else if (descType == CmdLine.DescriptionType.METHOD) {
+                        temporaryDescs.put(cmd, descFun.apply(new CmdLine(line, head, tail, args, descType)));
                     } else {
-                        temporaryDescs.put(cmd, descFun.apply(new CmdLine(line, head, tail, args, command)));
+                        temporaryDescs.put(cmd, descFun.apply(new CmdLine(line, head, tail, args, descType)));
                     }
                 }
-                return new Pair<String,Boolean>(cmd, new Boolean(command));
+                return new Pair<String,Boolean>(cmd, descType == CmdLine.DescriptionType.COMMAND ? true : false);
             }
 
             public CmdDesc getDescription(String command) {
@@ -1043,26 +1050,27 @@ public abstract class Widgets {
     }
 
     public static class CmdLine {
+        public enum DescriptionType {COMMAND, METHOD, SYNTAX};
         private String line;
         private String head;
         private String tail;
         private List<String> args;
-        private boolean command;
+        private DescriptionType descType;
 
         /**
          * CmdLine class constructor.
          * @param line     Command line
-         * @param head     Command line til cursor, method parameters and parenthesis before the cursor are removed.
-         * @param tail     Command line after cursor, method parameters and parenthesis after the cursor are removed.
+         * @param head     Command line til cursor, method parameters and opening parenthesis before the cursor are removed.
+         * @param tail     Command line after cursor, method parameters and closing parenthesis after the cursor are removed.
          * @param args     Parsed command line.
-         * @param command  true if command line is not script statement.
+         * @param descType Request COMMAND, METHOD or SYNTAX description
          */
-        public CmdLine(String line, String head, String tail, List<String> args, boolean command) {
+        public CmdLine(String line, String head, String tail, List<String> args, DescriptionType descType) {
             this.line = line;
             this.head = head;
             this.tail = tail;
             this.args = new ArrayList<>(args);
-            this.command = command;
+            this.descType = descType;
         }
 
         public String getLine() {
@@ -1081,8 +1089,8 @@ public abstract class Widgets {
             return args;
         }
 
-        public boolean isCommand() {
-            return command;
+        public DescriptionType getDescriptionType() {
+            return descType;
         }
     }
 

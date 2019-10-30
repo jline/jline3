@@ -223,10 +223,15 @@ public class Example
 
         CmdDesc commandDescription(CmdLine line) {
             CmdDesc out = null;
-            if (line.isCommand()) {
+            switch (line.getDescriptionType()) {
+            case COMMAND:
                 out = commandDescription(line.getArgs().get(0));
-            } else {
+                break;
+            case METHOD:
                 out = methodDescription(line);
+                break;
+            case SYNTAX:
+                break;
             }
             return out;
         }
@@ -243,23 +248,15 @@ public class Example
                 // For example if using groovy you can create involved object
                 // dynamically from line string  and then inspect method's
                 // parameters using reflection
-                if (line.getLine().length() > 200) {
-                    throw new IllegalArgumentException("Failed to create object from source: " + line);
+                if (line.getLine().length() > 20) {
+                    throw new IllegalArgumentException("Failed to create object from source: " + line.getLine());
                 }
-                for (String s: line.getHead().split("\n")) {
-                    mainDesc.add(new AttributedString(s));
-
-                }
-                mainDesc.add(new AttributedString("----------------------------------------"));
-                for (String s: line.getTail().split("\n")) {
-                    mainDesc.add(new AttributedString(s));
-                }
-//                mainDesc = Arrays.asList(new AttributedString("method1(int arg1, List<String> arg2)")
-//                            , new AttributedString("method1(int arg1, Map<String,Object> arg2)")
-//                    );
+                mainDesc = Arrays.asList(new AttributedString("method1(int arg1, List<String> arg2)")
+                            , new AttributedString("method1(int arg1, Map<String,Object> arg2)")
+                    );
             } catch (Exception e) {
                 for (String s: e.getMessage().split("\n")) {
-                    mainDesc.add(new AttributedString(e.getMessage(), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED)));
+                    mainDesc.add(new AttributedString(s, AttributedStyle.DEFAULT.foreground(AttributedStyle.RED)));
                 }
             }
             return new CmdDesc(mainDesc, new ArrayList<>(), new HashMap<>());
@@ -325,6 +322,7 @@ public class Example
             String trigger = null;
             boolean color = false;
             boolean timer = false;
+            boolean argument = false;
 
             TerminalBuilder builder = TerminalBuilder.builder();
 
@@ -403,6 +401,7 @@ public class Example
                         });
                         break;
                     case "argument":
+                        argument = true;
                         completer = new ArgumentCompleter(
                                 new Completer() {
                                     @Override
@@ -520,9 +519,12 @@ public class Example
 
             AutopairWidgets autopairWidgets = new AutopairWidgets(reader);
             AutosuggestionWidgets autosuggestionWidgets = new AutosuggestionWidgets(reader);
-
-//            TailTipWidgets tailtipWidgets = new TailTipWidgets(reader, compileTailTips(), 5, TipType.COMPLETER);
-            TailTipWidgets tailtipWidgets = new TailTipWidgets(reader, executor::commandDescription, 5, TipType.COMPLETER);
+            TailTipWidgets tailtipWidgets = null;
+            if (argument) {
+                tailtipWidgets = new TailTipWidgets(reader, compileTailTips(), 5, TipType.COMPLETER);
+            } else {
+                tailtipWidgets = new TailTipWidgets(reader, executor::commandDescription, 5, TipType.COMPLETER);
+            }
 
             if (timer) {
                 Executors.newScheduledThreadPool(1)

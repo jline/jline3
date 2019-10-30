@@ -1119,6 +1119,7 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     protected void handleSignal(Signal signal) {
+        doAutosuggestion = false;
         if (signal == Signal.WINCH) {
             Status status = Status.getStatus(terminal, false);
             if (status != null) {
