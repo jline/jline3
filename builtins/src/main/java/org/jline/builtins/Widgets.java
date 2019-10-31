@@ -160,6 +160,10 @@ public abstract class Widgets {
         reader.getHighlighter().setErrorPattern(errorPattern);
     }
 
+    public void setErrorIndex(int errorIndex) {
+        reader.getHighlighter().setErrorIndex(errorIndex);
+    }
+
     public void clearTailTip() {
         reader.setTailTip("");
     }
@@ -731,6 +735,7 @@ public abstract class Widgets {
             }
             clearDescription();
             setErrorPattern(null);
+            setErrorIndex(-1);
             cmdDescs.clearTemporaryDescs();
             return clearTailTip(LineReader.ACCEPT_LINE);
         }
@@ -773,6 +778,7 @@ public abstract class Widgets {
                 } else {
                     doDescription(cmdDesc.getMainDescription(descriptionSize));
                     setErrorPattern(cmdDesc.getErrorPattern());
+                    setErrorIndex(cmdDesc.getErrorIndex());
                 }
             } else {
                 Pair<String,Boolean> cmdkey = cmdDescs.evaluateCommandLine(buffer.toString(), buffer.cursor());
@@ -783,6 +789,7 @@ public abstract class Widgets {
                 } else if (!cmdkey.getV()) {
                     doDescription(cmdDesc.getMainDescription(descriptionSize));
                     setErrorPattern(cmdDesc.getErrorPattern());
+                    setErrorIndex(cmdDesc.getErrorIndex());
                 }
             }
             return true;
@@ -1050,7 +1057,20 @@ public abstract class Widgets {
     }
 
     public static class CmdLine {
-        public enum DescriptionType {COMMAND, METHOD, SYNTAX};
+        public enum DescriptionType {
+            /**
+             * Cursor is at the end of line. The args[0] is completed, the line does not have unclosed opening parenthesis 
+             * and does not end to the closing parenthesis.
+             */
+            COMMAND,
+            /**
+             * The part of the line from beginning til cursor has unclosed opening parenthesis.
+             */
+            METHOD,
+            /**
+             * The part of the line from beginning til cursor ends to the closing parenthesis.
+             */
+            SYNTAX};
         private String line;
         private String head;
         private String tail;
@@ -1062,7 +1082,7 @@ public abstract class Widgets {
          * @param line     Command line
          * @param head     Command line til cursor, method parameters and opening parenthesis before the cursor are removed.
          * @param tail     Command line after cursor, method parameters and closing parenthesis after the cursor are removed.
-         * @param args     Parsed command line.
+         * @param args     Parsed command line arguments.
          * @param descType Request COMMAND, METHOD or SYNTAX description
          */
         public CmdLine(String line, String head, String tail, List<String> args, DescriptionType descType) {
@@ -1129,6 +1149,7 @@ public abstract class Widgets {
         private List<ArgDesc> argsDesc;
         private TreeMap<String,List<AttributedString>> optsDesc;
         private Pattern errorPattern;
+        private int errorIndex = -1;
 
         public CmdDesc() {
 
@@ -1157,6 +1178,10 @@ public abstract class Widgets {
             this.mainDesc = new ArrayList<>(mainDesc);
             return this;
         }
+        
+        public void setMainDesc(List<AttributedString> mainDesc) {
+            this.mainDesc = new ArrayList<>(mainDesc);
+        }
 
         public void setErrorPattern(Pattern errorPattern) {
             this.errorPattern = errorPattern;
@@ -1166,13 +1191,23 @@ public abstract class Widgets {
             return errorPattern;
         }
 
+        public void setErrorIndex(int errorIndex) {
+            this.errorIndex = errorIndex;    
+        }
+        
+        public int getErrorIndex() {
+            return errorIndex;    
+        }
+        
         public List<ArgDesc> getArgsDesc() {
             return argsDesc;
         }
 
         public List<AttributedString> getMainDescription(int descriptionSize) {
             List<AttributedString> out = new ArrayList<>();
-            if (mainDesc.size() <= descriptionSize) {
+            if (mainDesc == null) {
+                // do nothing
+            } else if (mainDesc.size() <= descriptionSize) {
                 out = mainDesc;
             } else {
                 int tabs = 0;

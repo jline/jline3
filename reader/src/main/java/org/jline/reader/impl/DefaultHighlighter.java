@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2019, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -20,10 +20,16 @@ import org.jline.utils.WCWidth;
 
 public class DefaultHighlighter implements Highlighter {
     private Pattern errorPattern;
+    private int errorIndex = -1;
 
     @Override
     public void setErrorPattern(Pattern errorPattern) {
         this.errorPattern = errorPattern;
+    }
+
+    @Override
+    public void setErrorIndex(int errorIndex) {
+        this.errorIndex = errorIndex;
     }
 
     @Override
@@ -65,6 +71,10 @@ public class DefaultHighlighter implements Highlighter {
             if (i == negativeStart) {
                 sb.style(AttributedStyle::inverse);
             }
+            if (i == errorIndex) {
+                sb.style(AttributedStyle::inverse);
+            }
+
             char c = buffer.charAt(i);
             if (c == '\t' || c == '\n') {
                 sb.append(c);
@@ -83,6 +93,9 @@ public class DefaultHighlighter implements Highlighter {
                 sb.style(AttributedStyle::underlineOff);
             }
             if (i == negativeEnd) {
+                sb.style(AttributedStyle::inverseOff);
+            }
+            if (i == errorIndex) {
                 sb.style(AttributedStyle::inverseOff);
             }
         }
