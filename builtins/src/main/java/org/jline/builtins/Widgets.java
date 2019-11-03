@@ -684,6 +684,10 @@ public abstract class Widgets {
             addWidget(TT_TOGGLE, this::toggleKeyBindings);
         }
 
+        public void setTailTips(Map<String,CmdDesc> tailTips) {
+            cmdDescs.setDescriptions(tailTips);
+        }
+
         public void setDescriptionSize(int descriptionSize) {
             this.descriptionSize = descriptionSize;
             initDescription(descriptionSize);
@@ -771,22 +775,28 @@ public abstract class Widgets {
                 Pair<String,Boolean> cmdkey = cmdDescs.evaluateCommandLine(buffer.toString(), args);
                 CmdDesc cmdDesc = cmdDescs.getDescription(cmdkey.getU());
                 if (cmdDesc == null) {
+                    setErrorPattern(null);
+                    setErrorIndex(-1);
                     clearDescription();
                     resetTailTip();
-                } else if (cmdkey.getV()) {
-                    doCommandTailTip(widget, cmdDesc, args);
-                } else {
-                    doDescription(cmdDesc.getMainDescription(descriptionSize));
-                    setErrorPattern(cmdDesc.getErrorPattern());
-                    setErrorIndex(cmdDesc.getErrorIndex());
+                } else if (cmdDesc.isValid()) {
+                    if (cmdkey.getV()) {
+                        doCommandTailTip(widget, cmdDesc, args);
+                    } else {
+                        doDescription(cmdDesc.getMainDescription(descriptionSize));
+                        setErrorPattern(cmdDesc.getErrorPattern());
+                        setErrorIndex(cmdDesc.getErrorIndex());
+                    }
                 }
             } else {
                 Pair<String,Boolean> cmdkey = cmdDescs.evaluateCommandLine(buffer.toString(), buffer.cursor());
                 CmdDesc cmdDesc = cmdDescs.getDescription(cmdkey.getU());
                 if (cmdDesc == null) {
+                    setErrorPattern(null);
+                    setErrorIndex(-1);
                     clearDescription();
                     resetTailTip();
-                } else if (!cmdkey.getV()) {
+                } else if (cmdDesc.isValid() && !cmdkey.getV()) {
                     doDescription(cmdDesc.getMainDescription(descriptionSize));
                     setErrorPattern(cmdDesc.getErrorPattern());
                     setErrorIndex(cmdDesc.getErrorIndex());
@@ -970,6 +980,10 @@ public abstract class Widgets {
                 this.descFun = descFun;
             }
 
+            public void setDescriptions(Map<String,CmdDesc> descriptions) {
+                this.descriptions = new HashMap<>(descriptions);
+            }
+
             public Pair<String,Boolean> evaluateCommandLine(String line, int curPos) {
                 return evaluateCommandLine(line, args(), curPos);
             }
@@ -1059,7 +1073,7 @@ public abstract class Widgets {
     public static class CmdLine {
         public enum DescriptionType {
             /**
-             * Cursor is at the end of line. The args[0] is completed, the line does not have unclosed opening parenthesis 
+             * Cursor is at the end of line. The args[0] is completed, the line does not have unclosed opening parenthesis
              * and does not end to the closing parenthesis.
              */
             COMMAND,
@@ -1150,9 +1164,13 @@ public abstract class Widgets {
         private TreeMap<String,List<AttributedString>> optsDesc;
         private Pattern errorPattern;
         private int errorIndex = -1;
+        private boolean valid = true;
 
         public CmdDesc() {
+        }
 
+        public CmdDesc(boolean valid) {
+            this.valid = valid;
         }
 
         public CmdDesc(List<ArgDesc> argsDesc) {
@@ -1174,11 +1192,15 @@ public abstract class Widgets {
             }
         }
 
+        public boolean isValid() {
+            return valid;
+        }
+
         public CmdDesc mainDesc(List<AttributedString> mainDesc) {
             this.mainDesc = new ArrayList<>(mainDesc);
             return this;
         }
-        
+
         public void setMainDesc(List<AttributedString> mainDesc) {
             this.mainDesc = new ArrayList<>(mainDesc);
         }
@@ -1192,13 +1214,13 @@ public abstract class Widgets {
         }
 
         public void setErrorIndex(int errorIndex) {
-            this.errorIndex = errorIndex;    
+            this.errorIndex = errorIndex;
         }
-        
+
         public int getErrorIndex() {
-            return errorIndex;    
+            return errorIndex;
         }
-        
+
         public List<ArgDesc> getArgsDesc() {
             return argsDesc;
         }

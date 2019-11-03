@@ -231,6 +231,7 @@ public class Example
                 out = methodDescription(line);
                 break;
             case SYNTAX:
+                out = new CmdDesc(false);
                 break;
             }
             return out;
