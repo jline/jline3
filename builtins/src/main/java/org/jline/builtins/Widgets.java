@@ -26,6 +26,7 @@ import org.jline.reader.Binding;
 import org.jline.reader.Buffer;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReader.SuggestionType;
+import org.jline.reader.Parser.ParseContext;
 import org.jline.reader.Reference;
 import org.jline.reader.Widget;
 import org.jline.reader.impl.BufferImpl;
@@ -124,7 +125,7 @@ public abstract class Widgets {
     }
 
     public List<String> args(String line) {
-        return reader.getParser().parse(line, 0).words();
+        return reader.getParser().parse(line, 0, ParseContext.COMPLETE).words();
     }
 
     public String prevChar() {
