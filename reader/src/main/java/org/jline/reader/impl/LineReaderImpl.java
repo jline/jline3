@@ -2190,10 +2190,11 @@ public class LineReaderImpl implements LineReader, Flushable
                 if (buf.currChar() == ' ') {
                     buf.delete();
                 } else {
+                    buf.move(1);
                     break;
                 }
             }
-            endOfLine();
+            buf.move(1);
         }
     }
 
