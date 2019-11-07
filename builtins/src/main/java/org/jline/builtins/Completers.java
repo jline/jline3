@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2019, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -219,7 +219,7 @@ public class Completers {
     public static class DirectoriesCompleter extends FileNameCompleter {
 
         private final Supplier<Path> currentDir;
-        private final boolean forceSlash;  
+        private final boolean forceSlash;
 
         public DirectoriesCompleter(File currentDir) {
             this(currentDir.toPath(), false);
@@ -235,7 +235,7 @@ public class Completers {
 
         public DirectoriesCompleter(Path currentDir, boolean forceSlash) {
             this.currentDir = () -> currentDir;
-            this.forceSlash = forceSlash;            
+            this.forceSlash = forceSlash;
         }
 
         public DirectoriesCompleter(Supplier<Path> currentDir) {
@@ -255,7 +255,7 @@ public class Completers {
         @Override
         protected String getSeparator() {
             return forceSlash ? "/" : getUserDir().getFileSystem().getSeparator();
-        }        
+        }
 
         @Override
         protected boolean accept(Path path) {
@@ -266,7 +266,7 @@ public class Completers {
     public static class FilesCompleter extends FileNameCompleter {
 
         private final Supplier<Path> currentDir;
-        private final boolean forceSlash;  
+        private final boolean forceSlash;
 
         public FilesCompleter(File currentDir) {
             this(currentDir.toPath(), false);
@@ -298,11 +298,11 @@ public class Completers {
         protected Path getUserDir() {
             return currentDir.get();
         }
-        
+
         @Override
         protected String getSeparator() {
             return forceSlash ? "/" : getUserDir().getFileSystem().getSeparator();
-        }        
+        }
     }
 
     /**
@@ -337,35 +337,39 @@ public class Completers {
             String curBuf;
             String sep = getSeparator();
             int lastSep = buffer.lastIndexOf(sep);
-            if (lastSep >= 0) {
-                curBuf = buffer.substring(0, lastSep + 1);
-                if (curBuf.startsWith("~")) {
-                    if (curBuf.startsWith("~" + sep)) {
-                        current = getUserHome().resolve(curBuf.substring(2));
+            try {
+                if (lastSep >= 0) {
+                    curBuf = buffer.substring(0, lastSep + 1);
+                    if (curBuf.startsWith("~")) {
+                        if (curBuf.startsWith("~" + sep)) {
+                            current = getUserHome().resolve(curBuf.substring(2));
+                        } else {
+                            current = getUserHome().getParent().resolve(curBuf.substring(1));
+                        }
                     } else {
-                        current = getUserHome().getParent().resolve(curBuf.substring(1));
+                        current = getUserDir().resolve(curBuf);
                     }
                 } else {
-                    current = getUserDir().resolve(curBuf);
+                    curBuf = "";
+                    current = getUserDir();
                 }
-            } else {
-                curBuf = "";
-                current = getUserDir();
-            }
-            try (DirectoryStream<Path> directory = Files.newDirectoryStream(current, this::accept)) {
-                directory.forEach(p -> {
-                    String value = curBuf + p.getFileName().toString();
-                    if (Files.isDirectory(p)) {
-                        candidates.add(
-                                new Candidate(value + (reader.isSet(LineReader.Option.AUTO_PARAM_SLASH) ? sep : ""),
-                                        getDisplay(reader.getTerminal(), p), null, null,
-                                        reader.isSet(LineReader.Option.AUTO_REMOVE_SLASH) ? sep : null, null, false));
-                    } else {
-                        candidates.add(new Candidate(value, getDisplay(reader.getTerminal(), p), null, null, null, null,
-                                true));
-                    }
-                });
-            } catch (IOException e) {
+                try (DirectoryStream<Path> directory = Files.newDirectoryStream(current, this::accept)) {
+                    directory.forEach(p -> {
+                        String value = curBuf + p.getFileName().toString();
+                        if (Files.isDirectory(p)) {
+                            candidates.add(
+                                    new Candidate(value + (reader.isSet(LineReader.Option.AUTO_PARAM_SLASH) ? sep : ""),
+                                            getDisplay(reader.getTerminal(), p), null, null,
+                                            reader.isSet(LineReader.Option.AUTO_REMOVE_SLASH) ? sep : null, null, false));
+                        } else {
+                            candidates.add(new Candidate(value, getDisplay(reader.getTerminal(), p), null, null, null, null,
+                                    true));
+                        }
+                    });
+                } catch (IOException e) {
+                    // Ignore
+                }
+            } catch (Exception e) {
                 // Ignore
             }
         }
@@ -385,7 +389,7 @@ public class Completers {
         protected Path getUserHome() {
             return Paths.get(System.getProperty("user.home"));
         }
-        
+
         protected String getSeparator() {
             return getUserDir().getFileSystem().getSeparator();
         }

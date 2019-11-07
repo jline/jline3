@@ -524,9 +524,8 @@ public class LineReaderImpl implements LineReader, Flushable
                 } catch (SyntaxError e) {
                     done = true;
                 } catch (Exception e) {
-                    throw new IllegalArgumentException(e.getMessage());
-                } finally {
                     commandsBuffer.clear();
+                    throw new IllegalArgumentException(e.getMessage());
                 }
             } while (!done);
             AttributedStringBuilder sb = new AttributedStringBuilder();
@@ -2192,10 +2191,11 @@ public class LineReaderImpl implements LineReader, Flushable
                 if (buf.currChar() == ' ') {
                     buf.delete();
                 } else {
+                    buf.move(1);
                     break;
                 }
             }
-            endOfLine();
+            buf.move(1);
         }
     }
 

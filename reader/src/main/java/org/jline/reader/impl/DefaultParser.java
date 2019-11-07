@@ -220,7 +220,7 @@ public class DefaultParser implements Parser {
             if (bracketChecker.isClosingBracketMissing() || bracketChecker.isOpeningBracketMissing()) {
                 String message = null;
                 String missing = null;
-                if(bracketChecker.isClosingBracketMissing()) {
+                if (bracketChecker.isClosingBracketMissing()) {
                     message = "Missing closing brackets";
                     missing = "add: " + bracketChecker.getMissingClosingBrackets();
                 } else {
@@ -418,7 +418,7 @@ public class DefaultParser implements Parser {
         }
 
         public String getNextClosingBracket() {
-            return nested.size() > 1 ? nextClosingBracket : null;
+            return nested.size() == 2 ? nextClosingBracket : null;
         }
 
         private int bracketId(final char[] brackets, final CharSequence buffer, final int pos) {
