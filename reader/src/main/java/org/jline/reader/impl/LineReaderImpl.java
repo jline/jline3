@@ -188,7 +188,7 @@ public class LineReaderImpl implements LineReader, Flushable
     protected boolean searchFailing;
     protected boolean searchBackward;
     protected int searchIndex = -1;
-    protected boolean inCompleterMenu;
+    protected boolean doAutosuggestion;
 
 
     // Reading buffers
@@ -1118,6 +1118,7 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     protected void handleSignal(Signal signal) {
+        doAutosuggestion = false;
         if (signal == Signal.WINCH) {
             Status status = Status.getStatus(terminal, false);
             if (status != null) {
@@ -2535,6 +2536,7 @@ public class LineReaderImpl implements LineReader, Flushable
         buf.cursor(buf.length());
         post = null;
         if (size.getColumns() > 0 || size.getRows() > 0) {
+            doAutosuggestion = false;
             redisplay(false);
             if (nl) {
                 println();
@@ -3986,7 +3988,7 @@ public class LineReaderImpl implements LineReader, Flushable
         AttributedStringBuilder full = new AttributedStringBuilder().tabs(TAB_WIDTH);
         full.append(prompt);
         full.append(tNewBuf);
-        if (!inCompleterMenu) {
+        if (doAutosuggestion) {
             String lastBinding = getLastBinding() != null ? getLastBinding() : "";
             if (autosuggestion == SuggestionType.HISTORY) {
                 AttributedStringBuilder sb = new AttributedStringBuilder();
@@ -4033,7 +4035,7 @@ public class LineReaderImpl implements LineReader, Flushable
             full.append("\n");
             full.append(post.get());
         }
-        inCompleterMenu = false;
+        doAutosuggestion = true;
         return full.toAttributedString();
     }
 
@@ -4946,7 +4948,7 @@ public class LineReaderImpl implements LineReader, Flushable
                     return true;
                 }
             }
-            inCompleterMenu = true;
+            doAutosuggestion = false;
             redisplay();
         }
         return false;
