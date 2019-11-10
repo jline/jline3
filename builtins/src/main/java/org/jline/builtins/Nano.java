@@ -290,19 +290,19 @@ public class Nano implements Editor {
             moveToChar(0);
         }
 
-        private int charPosition(int displayPosition){
+        private int charPosition(int displayPosition) {
             return charPosition(line, displayPosition, CursorMovement.STILL);
         }
 
-        private int charPosition(int displayPosition, CursorMovement move){
+        private int charPosition(int displayPosition, CursorMovement move) {
             return charPosition(line, displayPosition, move);
         }
 
-        private int charPosition(int line, int displayPosition){
+        private int charPosition(int line, int displayPosition) {
             return charPosition(line, displayPosition, CursorMovement.STILL);
         }
 
-        private int charPosition(int line, int displayPosition, CursorMovement move){
+        private int charPosition(int line, int displayPosition, CursorMovement move) {
             int out = lines.get(line).length();
             if (!lines.get(line).contains("\t") || displayPosition == 0) {
                 out = displayPosition;
@@ -806,7 +806,7 @@ public class Nano implements Editor {
             }
         }
 
-        void highlightDisplayedLine(int curLine, int curOffset, int nextOffset, AttributedStringBuilder line){
+        void highlightDisplayedLine(int curLine, int curOffset, int nextOffset, AttributedStringBuilder line) {
             AttributedString disp = highlight ? syntaxHighlighter.highlight(new AttributedStringBuilder().tabs(tabs).append(getLine(curLine)))
                                               : new AttributedStringBuilder().tabs(tabs).append(getLine(curLine)).toAttributedString();
             int[] hls = highlightStart();
@@ -1606,7 +1606,7 @@ public class Nano implements Editor {
             return end;
         }
 
-        public static RuleType evalRuleType(List<String> colorCfg){
+        public static RuleType evalRuleType(List<String> colorCfg) {
             RuleType out = null;
             if (colorCfg.get(0).equals("color") || colorCfg.get(0).equals("icolor")) {
                 out = RuleType.PATTERN;
@@ -1776,14 +1776,14 @@ public class Nano implements Editor {
     }
 
     protected static class Parser {
-        protected static List<String> split(String s){
+        protected static List<String> split(String s) {
             List<String> out = new ArrayList<String>();
             if (s.length() == 0) {
                 return out;
             }
             int depth = 0;
             StringBuilder sb = new StringBuilder();
-            for(int i = 0; i < s.length(); i++) {
+            for (int i = 0; i < s.length(); i++) {
                 char c = s.charAt(i);
                 if (c == '"') {
                     depth = depth == 0 ? 1 : 0;
@@ -1792,7 +1792,7 @@ public class Nano implements Editor {
                     sb = new StringBuilder();
                     continue;
                 }
-                if(sb.length() > 0 || (c!=' ' && c!='\t')) {
+                if (sb.length() > 0 || (c!=' ' && c!='\t')) {
                     sb.append(c);
                 }
             }
@@ -1802,7 +1802,7 @@ public class Nano implements Editor {
             return out;
         }
 
-        private static String stripQuotes(String s){
+        private static String stripQuotes(String s) {
             String out = s.trim();
             if (s.startsWith("\"") && s.endsWith("\"")) {
                 out = s.substring(1, s.length() - 1);
@@ -1891,7 +1891,7 @@ public class Nano implements Editor {
             patternId = -1;
         }
 
-        public void persist(){
+        public void persist() {
             if (historyFile == null) {
                 return;
             }
@@ -2739,7 +2739,7 @@ public class Nano implements Editor {
                     String[] pos = editBuffer.toString().split(",", 2);
                     int[] args = { 0, 0 };
                     try {
-                        for(int i = 0; i < pos.length; i++) {
+                        for (int i = 0; i < pos.length; i++) {
                             if (pos[i].trim().length() > 0) {
                                 args[i] = Integer.parseInt(pos[i]) - 1;
                                 if (args[i] < 0) {
@@ -2888,12 +2888,14 @@ public class Nano implements Editor {
         boolean oldPrintLineNumbers = this.printLineNumbers;
         boolean oldConstantCursor = this.constantCursor;
         boolean oldAtBlanks = this.atBlanks;
+        boolean oldHighlight = this.highlight;
         String oldEditMessage = this.editMessage;
         this.editMessage = "";
         this.wrapping = true;
         this.atBlanks = true;
         this.printLineNumbers = false;
         this.constantCursor = false;
+        this.highlight = false;
         this.buffer = newBuf;
         if (!oldWrapping) {
             buffer.computeAllOffsets();
@@ -2943,6 +2945,7 @@ public class Nano implements Editor {
             this.constantCursor = oldConstantCursor;
             this.shortcuts = oldShortcuts;
             this.atBlanks = oldAtBlanks;
+            this.highlight = oldHighlight;
             this.editMessage = oldEditMessage;
             terminal.puts(Capability.cursor_visible);
             if (!oldWrapping) {
@@ -3414,7 +3417,7 @@ public class Nano implements Editor {
         }
     }
 
-    void toggleSuspension(){
+    void toggleSuspension() {
         if (restricted) {
             setMessage("This function is disabled in restricted mode");
         } else if (vsusp < 0) {

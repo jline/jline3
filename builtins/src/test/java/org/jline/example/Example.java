@@ -20,6 +20,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
+import java.util.function.Supplier;
 
 import org.jline.builtins.Commands;
 import org.jline.builtins.Completers;
@@ -40,6 +41,7 @@ import org.jline.reader.LineReader.SuggestionType;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.DefaultParser.Bracket;
 import org.jline.reader.impl.LineReaderImpl;
+import org.jline.reader.impl.completer.AggregateCompleter;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.terminal.Cursor;
@@ -66,7 +68,8 @@ public class Example
               , "    -system          terminalBuilder.system(false)"
               , "    +system          terminalBuilder.system(true)"
               , "  Completors:"
-              , "    argumet          an argument completor & autosuggestion"
+              , "    aggregate        an aggregate completor with strings Supplier"
+              , "    argument         an argument completor & autosuggestion"
               , "    files            a completor that completes file names"
               , "    none             no completors"
               , "    param            a paramenter completer using Java functional interface"
@@ -315,6 +318,27 @@ public class Example
         }
     }
 
+    private static class ReaderOptions {
+        LineReader reader;
+
+        public ReaderOptions() {
+        }
+
+        public void setReader(LineReader reader) {
+            this.reader = reader;
+        }
+
+        List<String> unsetted(boolean set) {
+            List<String> out = new ArrayList<>();
+            for (Option option : Option.values()) {
+                if (set == (reader.isSet(option) == option.isDef())) {
+                    out.add((option.isDef() ? "no-" : "") + option.toString().toLowerCase().replace('_', '-'));
+                }
+            }
+            return out;
+        }
+    }
+
     public static void main(String[] args) throws IOException {
         try {
             String prompt = "prompt> ";
@@ -337,6 +361,7 @@ public class Example
             Completer completer = null;
             Parser parser = null;
             List<Consumer<LineReader>> callbacks = new ArrayList<>();
+            ReaderOptions readerOptions = new ReaderOptions();
 
             for (int index=0; index < args.length; index++) {
                 switch (args[index]) {
@@ -400,6 +425,16 @@ public class Example
                                 }
                             }).start();
                         });
+                        break;
+                    case "aggregate":
+                        List<Completer> ccc = new ArrayList<>();
+                        ccc.add(new ArgumentCompleter(
+                                new StringsCompleter("setopt"),
+                                new StringsCompleter(() -> readerOptions.unsetted(true))));
+                        ccc.add(new ArgumentCompleter(
+                                new StringsCompleter("unsetopt"),
+                                new StringsCompleter(() -> readerOptions.unsetted(false))));
+                        completer = new AggregateCompleter(ccc);
                         break;
                     case "argument":
                         argument = true;
@@ -517,7 +552,7 @@ public class Example
                     .build();
 
             Executor executor = new Executor(reader);
-
+            readerOptions.setReader(reader);
             AutopairWidgets autopairWidgets = new AutopairWidgets(reader);
             AutosuggestionWidgets autosuggestionWidgets = new AutosuggestionWidgets(reader);
             TailTipWidgets tailtipWidgets = null;
