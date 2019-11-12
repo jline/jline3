@@ -497,7 +497,14 @@ public class Commands {
             return;
         }
         if (opt.isSet("l")) {
-            for (String s : new TreeSet<>(reader.getWidgets().keySet())) {
+            TreeSet<String> ws = new TreeSet<>(reader.getWidgets().keySet());
+            if (opt.isSet("a")) {
+                Set<String> temp = new HashSet<>(ws);
+                for (String s: temp) {
+                    ws.add(reader.getWidgets().get(s).toString());
+                }
+            }
+            for (String s : ws) {
                 if (opt.isSet("a")) {
                     out.println(s);
                 } else if (!reader.getWidgets().get(s).toString().startsWith(".")) {
