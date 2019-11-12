@@ -29,12 +29,12 @@ import org.jline.utils.AttributedString;
 public class StringsCompleter implements Completer
 {
     protected Collection<Candidate> candidates = new ArrayList<>();
-    protected Supplier<List<String>> stringsSupplier;
+    protected Supplier<Collection<String>> stringsSupplier;
 
     public StringsCompleter() {
     }
 
-    public StringsCompleter(Supplier<List<String>> stringsSupplier) {
+    public StringsCompleter(Supplier<Collection<String>> stringsSupplier) {
         assert stringsSupplier != null;
         candidates = null;
         this.stringsSupplier = stringsSupplier;
