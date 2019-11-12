@@ -1004,4 +1004,25 @@ public class Commands {
         }
     }
 
+    public static void setvar(LineReader lineReader, PrintStream out, PrintStream err, String[] argv) throws HelpException {
+        final String[] usage = {
+                "setvar -  set lineReader variable value",
+                "Usage: setvar [variable] [value]",
+                "  -? --help                    Show help",
+        };
+        Options opt = Options.compile(usage).parse(argv);
+        if (opt.isSet("help")) {
+            throw new HelpException(opt.usage());
+        }
+        if (opt.args().isEmpty()) {
+            for (Map.Entry<String, Object> entry: lineReader.getVariables().entrySet()) {
+                out.println(entry.getKey() + ": " + entry.getValue());    
+            }
+        } else if (opt.args().size() == 1) {
+            out.println(lineReader.getVariable(opt.args().get(0)));
+        } else {
+            lineReader.setVariable(opt.args().get(0), opt.args().get(1));
+        }
+    }
+    
 }
