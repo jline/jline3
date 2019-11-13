@@ -192,11 +192,11 @@ public abstract class Widgets {
                 as.add(new AttributedString(""));
             }
             addDescription(as);
-            reader.runMacro(KeyMap.ctrl('M'));
+            executeWidget(LineReader.REDRAW_LINE);
         } else if (status != null) {
             if (size < 0) {
                 status.update(null);
-                reader.runMacro(KeyMap.ctrl('M'));
+                executeWidget(LineReader.REDRAW_LINE);
             } else {
                 status.clear();
             }
@@ -781,7 +781,9 @@ public abstract class Widgets {
                     resetTailTip();
                 } else if (cmdDesc.isValid()) {
                     if (cmdkey.getV()) {
-                        doCommandTailTip(widget, cmdDesc, args);
+                        if (cmdDesc.isCommand()) {
+                            doCommandTailTip(widget, cmdDesc, args);
+                        }
                     } else {
                         doDescription(cmdDesc.getMainDescription(descriptionSize));
                         setErrorPattern(cmdDesc.getErrorPattern());
@@ -1165,8 +1167,10 @@ public abstract class Widgets {
         private Pattern errorPattern;
         private int errorIndex = -1;
         private boolean valid = true;
+        private boolean command = false;
 
         public CmdDesc() {
+            command = false;
         }
 
         public CmdDesc(boolean valid) {
@@ -1190,10 +1194,15 @@ public abstract class Widgets {
             } else {
                 this.mainDesc = new ArrayList<>(mainDesc);
             }
+            this.command = true;
         }
 
         public boolean isValid() {
             return valid;
+        }
+        
+        public boolean isCommand() {
+            return command;
         }
 
         public CmdDesc mainDesc(List<AttributedString> mainDesc) {
