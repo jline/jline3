@@ -180,11 +180,11 @@ public abstract class Widgets {
                 as.add(new AttributedString(""));
             }
             addDescription(as);
-            reader.runMacro(KeyMap.ctrl('M'));
+            executeWidget(LineReader.REDRAW_LINE);
         } else if (status != null) {
             if (size < 0) {
                 status.update(null);
-                reader.runMacro(KeyMap.ctrl('M'));
+                executeWidget(LineReader.REDRAW_LINE);
             } else {
                 status.clear();
             }
