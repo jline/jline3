@@ -4002,7 +4002,6 @@ public class LineReaderImpl implements LineReader, Flushable
                     listChoices(true);
                 } else if (!lastBinding.equals("\t")) {
                     clearChoices();
-                    clearStatus();
                 }
             } else if (autosuggestion == SuggestionType.TAIL_TIP) {
                 if (buf.length() == buf.cursor()) {
@@ -4026,8 +4025,6 @@ public class LineReaderImpl implements LineReader, Flushable
                     }
                     sb.styled(AttributedStyle::faint, tailTip);
                     full.append(sb.toAttributedString());
-                } else {
-                    clearStatus();
                 }
             }
         }
@@ -4037,13 +4034,6 @@ public class LineReaderImpl implements LineReader, Flushable
         }
         doAutosuggestion = true;
         return full.toAttributedString();
-    }
-
-    private void clearStatus() {
-        Status status = Status.getStatus(terminal, false);
-        if (status != null) {
-            status.clear();
-        }
     }
 
     private AttributedString getHighlightedBuffer(String buffer) {
@@ -4567,6 +4557,7 @@ public class LineReaderImpl implements LineReader, Flushable
             if (hasUnambiguous) {
                 buf.backspace(line.rawWordLength());
                 buf.write(line.escape(commonPrefix, false));
+                callWidget(REDISPLAY);
                 current = commonPrefix;
                 if ((!isSet(Option.AUTO_LIST) && isSet(Option.AUTO_MENU))
                         || (isSet(Option.AUTO_LIST) && isSet(Option.LIST_AMBIGUOUS))) {
@@ -4892,7 +4883,7 @@ public class LineReaderImpl implements LineReader, Flushable
         // Build menu support
         MenuSupport menuSupport = new MenuSupport(original, completed, escaper);
         post = menuSupport;
-        redisplay();
+        callWidget(REDISPLAY);
 
         // Loop
         KeyMap<Binding> keyMap = keyMaps.get(MENU);
@@ -4949,7 +4940,7 @@ public class LineReaderImpl implements LineReader, Flushable
                 }
             }
             doAutosuggestion = false;
-            redisplay();
+            callWidget(REDISPLAY);
         }
         return false;
     }
@@ -5049,7 +5040,7 @@ public class LineReaderImpl implements LineReader, Flushable
                     }
                 } else if (SELF_INSERT.equals(name)) {
                     sb.append(getLastBinding());
-                    buf.write(getLastBinding());
+                    callWidget(name);
                     if (cands.isEmpty()) {
                         post = null;
                         return false;
