@@ -60,6 +60,7 @@
                         <configuration>
                             <excludes>
                                 <exclude>**/TTop.java</exclude>
+                                <exclude>**/Builtins.java</exclude>
                             </excludes>
                             <compilerArgs>
                                 <arg>-Xlint:all,-options</arg>
@@ -77,6 +78,7 @@
                         <configuration>
                             <includes>
                                 <include>**/TTop.java</include>
+                                <include>**/Builtins.java</include>
                             </includes>
                             <compilerArgs>
                                 <arg>-Xlint:all,-options</arg>

@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,6 +31,9 @@ import java.util.function.Supplier;
 import org.jline.reader.Candidate;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReader.Option;
+import org.jline.reader.impl.completer.AggregateCompleter;
+import org.jline.reader.impl.completer.ArgumentCompleter;
+import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.reader.ParsedLine;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedStringBuilder;
@@ -562,4 +566,116 @@ public class Completers {
             }
         }
     }
+
+    public static class SystemCompleter implements org.jline.reader.Completer {
+        private Map<String,List<org.jline.reader.Completer>> completers = new HashMap<>();
+        private Map<String,String> aliasCommand = new HashMap<>();
+        private StringsCompleter commands;
+        private boolean compiled = false;
+
+        public SystemCompleter() {}
+
+        @Override
+        public void complete(LineReader reader, ParsedLine commandLine, List<Candidate> candidates) {
+            if (!compiled) {
+                throw new IllegalStateException();
+            }
+            assert commandLine != null;
+            assert candidates != null;
+            if (commandLine.words().size() > 0) {
+                if (commandLine.words().size() == 1) {
+                    commands.complete(reader, commandLine, candidates);
+                } else if (command(commandLine.words().get(0)) != null) {
+                    completers.get(command(commandLine.words().get(0))).get(0).complete(reader, commandLine, candidates);
+                }
+            }
+        }
+
+        public boolean isCompiled() {
+            return compiled;
+        }
+
+        private String command(String cmd) {
+            String out = null;
+            if (completers.containsKey(cmd)) {
+                out = cmd;
+            } else if (aliasCommand.containsKey(cmd)) {
+                out = aliasCommand.get(cmd);
+            }
+            return out;
+        }
+
+        public void add(String command, List<org.jline.reader.Completer> completers) {
+            for (org.jline.reader.Completer c : completers) {
+                add(command, c);
+            }
+        }
+
+        public void add(List<String> commands, org.jline.reader.Completer completer) {
+            for (String c: commands) {
+                add(c, completer);
+            }
+        }
+
+        public void add(String command, org.jline.reader.Completer completer) {
+            if (compiled) {
+                throw new IllegalStateException();
+            }
+            if (!completers.containsKey(command)) {
+                completers.put(command, new ArrayList<org.jline.reader.Completer>());
+            }
+            if (completer instanceof ArgumentCompleter) {
+                ((ArgumentCompleter) completer).setStrictCommand(false);
+            }
+            completers.get(command).add(completer);
+        }
+
+        public void add(SystemCompleter other) {
+            if (other.isCompiled()) {
+                throw new IllegalStateException();
+            }
+            for (Map.Entry<String, List<org.jline.reader.Completer>> entry: other.getCompleters().entrySet()) {
+                for (org.jline.reader.Completer c: entry.getValue()) {
+                    add(entry.getKey(), c);
+                }
+            }
+            addAliases(other.getAliases());
+        }
+
+        public void addAliases(Map<String,String> aliasCommand) {
+            if (compiled) {
+                throw new IllegalStateException();
+            }
+            this.aliasCommand.putAll(aliasCommand);
+        }
+
+        public Map<String,String> getAliases() {
+            return aliasCommand;
+        }
+
+        public void compile() {
+            if (compiled) {
+                return;
+            }
+            Map<String, List<org.jline.reader.Completer>> compiledCompleters = new HashMap<>();
+            for (Map.Entry<String, List<org.jline.reader.Completer>> entry: completers.entrySet()) {
+                if (entry.getValue().size() == 1) {
+                    compiledCompleters.put(entry.getKey(), entry.getValue());
+                } else {
+                    compiledCompleters.put(entry.getKey(), new ArrayList<org.jline.reader.Completer>());
+                    compiledCompleters.get(entry.getKey()).add(new AggregateCompleter(entry.getValue()));
+                }
+            }
+            completers = compiledCompleters;
+            Set<String> cmds = new HashSet<>(completers.keySet());
+            cmds.addAll(aliasCommand.keySet());
+            commands = new StringsCompleter(cmds);
+            compiled = true;
+        }
+
+        public Map<String,List<org.jline.reader.Completer>> getCompleters() {
+            return completers;
+        }
+    }
+
 }
