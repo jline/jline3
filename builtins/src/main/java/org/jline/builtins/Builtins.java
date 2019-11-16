@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 
 import org.jline.builtins.Commands;
 import org.jline.builtins.Completers.FilesCompleter;
+import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.Completers.SystemCompleter;
 import org.jline.builtins.TTop;
 import org.jline.builtins.Options.HelpException;
@@ -327,26 +328,45 @@ public class Builtins {
 
     private List<Completer> nanoCompleter(String name) {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(new StringsCompleter(name), new FilesCompleter(workDir.get(), true)));
+        completers.add(new ArgumentCompleter(new StringsCompleter(name)
+                                           , new OptionCompleter(new FilesCompleter(workDir.get(), true)
+                                                               , new HashMap<String,List<String>>()
+                                                               , new ArrayList<String>()
+                                                               , 1)
+                                            ));
         return completers;
     }
 
     private List<Completer> lessCompleter(String name) {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(new StringsCompleter(name), new FilesCompleter(workDir.get(), true)));
+        completers.add(new ArgumentCompleter(new StringsCompleter(name)
+                                           , new OptionCompleter(new FilesCompleter(workDir.get(), true)
+                                                               , new HashMap<String,List<String>>()
+                                                               , new ArrayList<String>()
+                                                               , 1)
+                                       ));
         return completers;
     }
 
     private List<Completer> historyCompleter(String name) {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(new StringsCompleter(name), new NullCompleter()));
         completers.add(new ArgumentCompleter(new StringsCompleter(name)
-                     , new StringsCompleter(Arrays.asList("-A", "-W", "-R")), new FilesCompleter(workDir.get(), true), new NullCompleter()));
+                                            , new OptionCompleter(new NullCompleter()
+                                                                , new HashMap<String,List<String>>()
+                                                                , new ArrayList<String>()
+                                                                , 1)
+                                       ));
+        completers.add(new ArgumentCompleter(new StringsCompleter(name)
+                     , new StringsCompleter(Arrays.asList("-A", "-W", "-R", "-AI", "-RI", "-WI")), new FilesCompleter(workDir.get(), true), new NullCompleter()));
         return completers;
     }
 
     private List<Completer> widgetCompleter(String name) {
         List<Completer> completers = new ArrayList<>();
+        completers.add(new ArgumentCompleter(new StringsCompleter(name)
+                                          , new StringsCompleter("-l", "-la", "-N", "-U")
+                                          , new NullCompleter()
+                       ));
         completers.add(new ArgumentCompleter(new StringsCompleter(name)
                      , new StringsCompleter("-A"), new StringsCompleter(() -> allWidgets())
                      , new StringsCompleter(() -> reader.getWidgets().keySet()), new NullCompleter()));
