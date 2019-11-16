@@ -208,19 +208,19 @@ public class Builtins {
                         String d = s.substring(ind);
                         if (o.trim().length() > 0) {
                             prevOpt = o.trim();
-                            options.put(prevOpt, new ArrayList<>(Arrays.asList(new AttributedString(d.trim()))));
+                            options.put(prevOpt, new ArrayList<>(Arrays.asList(highlightComment(d.trim()))));
                         }
                     }
                 } else if (s.matches("^[\\s]{20}.*$") && prevOpt != null && options.containsKey(prevOpt)) {
                     int ind = s.lastIndexOf("  ");
                     if (ind > 0) {
-                        options.get(prevOpt).add(new AttributedString(s.substring(ind).trim()));
+                        options.get(prevOpt).add(highlightComment(s.substring(ind).trim()));
                     }
                 } else {
                     prevOpt = null;
                 }
                 if (!mainDone) {
-                    main.add(new AttributedString(s.trim()));
+                    main.add(HelpException.highlightSyntax(s.trim(), HelpException.defaultStyle()));
                 }
             }
             out = new CmdDesc(main, ArgDesc.doArgNames(Arrays.asList("[pN...]")), options);
@@ -228,6 +228,10 @@ public class Builtins {
 
         }
         return out;
+    }
+
+    private AttributedString highlightComment(String comment) {
+        return HelpException.highlightComment(comment, HelpException.defaultStyle());
     }
 
     private Terminal terminal() {

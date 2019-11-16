@@ -20,6 +20,7 @@ import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
+import org.jline.builtins.Options.HelpException;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
 import org.jline.reader.Buffer;
@@ -1200,7 +1201,7 @@ public abstract class Widgets {
         public boolean isValid() {
             return valid;
         }
-        
+
         public boolean isCommand() {
             return command;
         }
@@ -1295,7 +1296,7 @@ public abstract class Widgets {
                 }
             }
             if (matched.size() == 1) {
-                out.add(new AttributedString(matched.get(0), new AttributedStyle(AttributedStyle.BOLD)));
+                out.add(highlightOption(matched.get(0)));
                 for (AttributedString as: optsDesc.get(matched.get(0))) {
                     AttributedStringBuilder asb = new AttributedStringBuilder().tabs(8);
                     asb.append("\t");
@@ -1305,7 +1306,7 @@ public abstract class Widgets {
             } else if (matched.size() <= descriptionSize) {
                 for (String key: matched) {
                     AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
-                    asb.append(new AttributedString(key, new AttributedStyle(AttributedStyle.BOLD)));
+                    asb.append(highlightOption(key));
                     asb.append("\t");
                     asb.append(optsDesc.get(key).get(0));
                     out.add(asb.toAttributedString());
@@ -1320,7 +1321,7 @@ public abstract class Widgets {
                 for (String key: matched) {
                     AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
                     if (row < descriptionSize) {
-                        asb.append(new AttributedString(key, new AttributedStyle(AttributedStyle.BOLD)));
+                        asb.append(highlightOption(key));
                         asb.append("\t");
                         asb.append(optsDesc.get(key).get(0));
                         if (asb.columnLength() > columnWidth - 2) {
@@ -1337,7 +1338,7 @@ public abstract class Widgets {
                         keyList.add(asb.toAttributedString().columnSubSequence(0, columnWidth));
                     } else {
                         asb.append(keyList.get(row - descriptionSize));
-                        asb.append(new AttributedString(key, new AttributedStyle(AttributedStyle.BOLD)));
+                        asb.append(highlightOption(key));
                         asb.append("\t");
                         asb.append(optsDesc.get(key).get(0));
                         keyList.remove(row - descriptionSize);
@@ -1356,7 +1357,7 @@ public abstract class Widgets {
                 for (String key: matched) {
                     AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
                     asb.append(keyList.get(row));
-                    asb.append(key);
+                    asb.append(highlightOption(key));
                     asb.append("\t");
                     keyList.remove(row);
                     keyList.add(row, asb.toAttributedString());
@@ -1368,6 +1369,12 @@ public abstract class Widgets {
                 out = new ArrayList<>(keyList);
             }
             return out;
+        }
+
+        private AttributedString highlightOption(String option) {
+            return new AttributedStringBuilder()
+                    .append(option, HelpException.defaultStyle().resolve(".op"))
+                    .toAttributedString();
         }
     }
 
