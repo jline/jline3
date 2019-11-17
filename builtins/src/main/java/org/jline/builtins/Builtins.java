@@ -224,7 +224,43 @@ public class Builtins {
                     main.add(new AttributedString(s.trim()));
                 }
             }
-            out = new CmdDesc(main, ArgDesc.doArgNames(Arrays.asList("[pN...]")), options);
+            out = new CmdDesc(main, ArgDesc.doArgNames(Arrays.asList("")), options);
+        } catch (Exception e) {
+
+        }
+        return out;
+    }
+
+    private Map<String,String> commandOptions(String command) {
+        Map<String,String> out = new HashMap<>();
+        List<String> args = Arrays.asList("--help");
+        try {
+            execute(command, args);
+        } catch (HelpException e) {
+            String[] msg = e.getMessage().replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n");
+            boolean start = false;
+            for (String s: msg) {
+                if (!start) {
+                    if (s.trim().startsWith("Usage: ")) {
+                        s = s.split("Usage:")[1];
+                        start = true;
+                    } else {
+                        continue;
+                    }
+                }
+                if (s.matches("^\\s+-.*$")) {
+                    int ind = s.lastIndexOf("  ");
+                    if (ind > 0) {
+                        String op = s.substring(0, ind).trim();
+                        String d = s.substring(ind).trim();
+                        if (op.length() > 0) {
+                            for (String o: op.split("\\s+")) {
+                                out.put(o, d);
+                            }
+                        }
+                    }
+                }
+            }
         } catch (Exception e) {
 
         }
@@ -330,8 +366,7 @@ public class Builtins {
         List<Completer> completers = new ArrayList<>();
         completers.add(new ArgumentCompleter(new StringsCompleter(name)
                                            , new OptionCompleter(new FilesCompleter(workDir.get(), true)
-                                                               , new HashMap<String,List<String>>()
-                                                               , new ArrayList<String>()
+                                                               , this::commandOptions
                                                                , 1)
                                             ));
         return completers;
@@ -341,8 +376,7 @@ public class Builtins {
         List<Completer> completers = new ArrayList<>();
         completers.add(new ArgumentCompleter(new StringsCompleter(name)
                                            , new OptionCompleter(new FilesCompleter(workDir.get(), true)
-                                                               , new HashMap<String,List<String>>()
-                                                               , new ArrayList<String>()
+                                                               , this::commandOptions
                                                                , 1)
                                        ));
         return completers;
@@ -352,8 +386,7 @@ public class Builtins {
         List<Completer> completers = new ArrayList<>();
         completers.add(new ArgumentCompleter(new StringsCompleter(name)
                                             , new OptionCompleter(new NullCompleter()
-                                                                , new HashMap<String,List<String>>()
-                                                                , new ArrayList<String>()
+                                                                , this::commandOptions
                                                                 , 1)
                                        ));
         completers.add(new ArgumentCompleter(new StringsCompleter(name)
@@ -364,9 +397,10 @@ public class Builtins {
     private List<Completer> widgetCompleter(String name) {
         List<Completer> completers = new ArrayList<>();
         completers.add(new ArgumentCompleter(new StringsCompleter(name)
-                                          , new StringsCompleter("-l", "-la", "-N", "-U")
-                                          , new NullCompleter()
-                       ));
+                                            , new OptionCompleter(new NullCompleter()
+                                                                , this::commandOptions
+                                                                , 1)
+                                       ));
         completers.add(new ArgumentCompleter(new StringsCompleter(name)
                      , new StringsCompleter("-A"), new StringsCompleter(() -> allWidgets())
                      , new StringsCompleter(() -> reader.getWidgets().keySet()), new NullCompleter()));
@@ -377,7 +411,11 @@ public class Builtins {
 
     private List<Completer> keymapCompleter(String name) {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(new StringsCompleter(name), new NullCompleter()));
+        completers.add(new ArgumentCompleter(new StringsCompleter(name)
+                                            , new OptionCompleter(new NullCompleter()
+                                                                , this::commandOptions
+                                                                , 1)
+                        ));
         return completers;
     }
 
@@ -404,7 +442,11 @@ public class Builtins {
 
     private List<Completer> ttopCompleter(String name) {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(new StringsCompleter(name), new NullCompleter()));
+        completers.add(new ArgumentCompleter(new StringsCompleter(name)
+                                            , new OptionCompleter(new NullCompleter()
+                                                                , this::commandOptions
+                                                                , 1)
+                                    ));
         return completers;
     }
 
