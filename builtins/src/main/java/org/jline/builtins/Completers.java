@@ -31,11 +31,13 @@ import java.util.function.Supplier;
 import org.jline.reader.Candidate;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReader.Option;
+import org.jline.reader.Parser;
 import org.jline.reader.impl.completer.AggregateCompleter;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.reader.ParsedLine;
 import org.jline.terminal.Terminal;
+import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 
@@ -584,9 +586,22 @@ public class Completers {
             assert candidates != null;
             if (commandLine.words().size() > 0) {
                 if (commandLine.words().size() == 1) {
-                    commands.complete(reader, commandLine, candidates);
-                } else if (command(commandLine.words().get(0)) != null) {
-                    completers.get(command(commandLine.words().get(0))).get(0).complete(reader, commandLine, candidates);
+                    String buffer = commandLine.words().get(0);
+                    int eq = buffer.indexOf('=');
+                    if (eq < 0) {
+                        commands.complete(reader, commandLine, candidates);
+                    } else {
+                        String curBuf = buffer.substring(0, eq + 1);
+                        for (String c: completers.keySet()) {
+                            candidates.add(new Candidate(AttributedString.stripAnsi(curBuf+c)
+                                        , c, null, null, null, null, true));                                           
+                        }
+                    }
+                } else {
+                    String cmd = Parser.getCommand(commandLine.words().get(0));
+                    if (command(cmd) != null) {
+                        completers.get(command(cmd)).get(0).complete(reader, commandLine, candidates);
+                    }
                 }
             }
         }

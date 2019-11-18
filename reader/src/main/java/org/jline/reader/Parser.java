@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2019, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -7,6 +7,9 @@
  * https://opensource.org/licenses/BSD-3-Clause
  */
 package org.jline.reader;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public interface Parser {
 
@@ -18,6 +21,18 @@ public interface Parser {
 
     default boolean isEscapeChar(char ch) {
         return ch == '\\';
+    }
+
+    static String getCommand(final String line) {
+        String out = null;
+        Pattern  patternCommand = Pattern.compile("^\\s*[a-zA-Z]{1,}[a-zA-Z0-9]*=([a-zA-Z]{1,}[a-zA-Z0-9]*)(\\s+|$)");
+        Matcher matcher = patternCommand.matcher(line);
+        if (matcher.find()) {
+            out = matcher.group(1);
+        } else {
+            out = line.trim().split("\\s+")[0];
+        }
+        return out;
     }
 
     enum ParseContext {
