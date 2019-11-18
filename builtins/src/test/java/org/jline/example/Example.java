@@ -535,20 +535,21 @@ public class Example
                     }
                     ParsedLine pl = reader.getParser().parse(line, 0);
                     String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
-                    if ("help".equals(pl.word()) || "?".equals(pl.word())) {
+                    String command = Parser.getCommand(pl.word());
+                    if ("help".equals(pl.word()) || "?".equals(command)) {
                         help();
                     }
-                    else if (builtins.hasCommand(pl.word())) {
-                        builtins.execute(pl.word(), argv, System.in, System.out, System.err);
+                    else if (builtins.hasCommand(command)) {
+                        builtins.execute(command, argv, System.in, System.out, System.err);
                     }
-                    else if ("tmux".equals(pl.word())) {
+                    else if ("tmux".equals(command)) {
                         Commands.tmux(terminal, System.out, System.err,
                                 null, //Supplier<Object> getter,
                                 null, //Consumer<Object> setter,
                                 null, //Consumer<Terminal> runner,
                                 argv);
                     }
-                    else if ("tput".equals(pl.word())) {
+                    else if ("tput".equals(command)) {
                         if (argv.length == 1) {
                             Capability vcap = Capability.byName(argv[0]);
                             if (vcap != null) {
@@ -560,7 +561,7 @@ public class Example
                             terminal.writer().println("Usage: tput <capability>");
                         }
                     }
-                    else if ("testkey".equals(pl.word())) {
+                    else if ("testkey".equals(command)) {
                         terminal.writer().write("Input the key event(Enter to complete): ");
                         terminal.writer().flush();
                         StringBuilder sb = new StringBuilder();
@@ -572,14 +573,14 @@ public class Example
                         terminal.writer().println(KeyMap.display(sb.toString()));
                         terminal.writer().flush();
                     }
-                    else if ("cls".equals(pl.word())) {
+                    else if ("cls".equals(command)) {
                         terminal.puts(Capability.clear_screen);
                         terminal.flush();
                     }
-                    else if ("sleep".equals(pl.word())) {
+                    else if ("sleep".equals(command)) {
                         Thread.sleep(3000);
                     }
-                    else if ("autopair".equals(pl.word())) {
+                    else if ("autopair".equals(command)) {
                         terminal.writer().print("Autopair widgets are ");
                         if (autopairWidgets.toggle()) {
                             terminal.writer().println("enabled.");
@@ -587,7 +588,7 @@ public class Example
                             terminal.writer().println("disabled.");
                         }
                     }
-                    else if ("autosuggestion".equals(pl.word())) {
+                    else if ("autosuggestion".equals(command)) {
                         if (argv.length > 0) {
                             String type = argv[0].toLowerCase();
                             if (type.startsWith("his")) {
