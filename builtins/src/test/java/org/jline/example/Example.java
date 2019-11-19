@@ -448,7 +448,9 @@ public class Example
             systemCompleter.compile();
             List<Completer> completers = new ArrayList<>();
             completers.add(systemCompleter);
-            completers.add(completer);
+            if (completer != null) {
+                completers.add(completer);
+            }
             AggregateCompleter finalCompleter = new AggregateCompleter(completers);
             Terminal terminal = builder.build();
             System.out.println(terminal.getName()+": "+terminal.getType());
