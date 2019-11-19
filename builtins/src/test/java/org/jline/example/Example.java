@@ -20,16 +20,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
-import java.util.function.Supplier;
 
 import org.jline.builtins.Builtins;
 import org.jline.builtins.Builtins.Command;
-import org.jline.builtins.Commands;
 import org.jline.builtins.Completers;
 import org.jline.builtins.Completers.TreeCompleter;
 import org.jline.builtins.Completers.SystemCompleter;
 import org.jline.builtins.Options.HelpException;
-import org.jline.builtins.TTop;
 import org.jline.builtins.Widgets.AutopairWidgets;
 import org.jline.builtins.Widgets.AutosuggestionWidgets;
 import org.jline.builtins.Widgets.TailTipWidgets;
@@ -179,7 +176,12 @@ public class Example
             CmdDesc out = null;
             switch (line.getDescriptionType()) {
             case COMMAND:
-                out = builtins.commandDescription(line.getArgs().get(0));
+                String cmd = Parser.getCommand(line.getArgs().get(0));
+                if (builtins.hasCommand(cmd)) {
+                    out = builtins.commandDescription(cmd);
+                } else {
+                    // other commands...
+                }
                 break;
             case METHOD:
                 out = methodDescription(line);
@@ -465,7 +467,7 @@ public class Example
                     .build();
 
             builtins.setLineReader(reader);
-            DescriptionGenerator descritionGenerator = new DescriptionGenerator(builtins);
+            DescriptionGenerator descriptionGenerator = new DescriptionGenerator(builtins);
             readerOptions.setReader(reader);
             AutopairWidgets autopairWidgets = new AutopairWidgets(reader);
             AutosuggestionWidgets autosuggestionWidgets = new AutosuggestionWidgets(reader);
@@ -473,7 +475,7 @@ public class Example
             if (argument) {
                 tailtipWidgets = new TailTipWidgets(reader, compileTailTips(), 5, TipType.COMPLETER);
             } else {
-                tailtipWidgets = new TailTipWidgets(reader, descritionGenerator::commandDescription, 5, TipType.COMPLETER);
+                tailtipWidgets = new TailTipWidgets(reader, descriptionGenerator::commandDescription, 5, TipType.COMPLETER);
             }
 
             if (timer) {
@@ -537,20 +539,14 @@ public class Example
                     }
                     ParsedLine pl = reader.getParser().parse(line, 0);
                     String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
-                    if ("help".equals(pl.word()) || "?".equals(pl.word())) {
+                    String cmd = Parser.getCommand(pl.word());
+                    if ("help".equals(cmd) || "?".equals(cmd)) {
                         help();
                     }
-                    else if (builtins.hasCommand(pl.word())) {
-                        builtins.execute(pl.word(), argv, System.in, System.out, System.err);
+                    else if (builtins.hasCommand(cmd)) {
+                        builtins.execute(cmd, argv, System.in, System.out, System.err);
                     }
-                    else if ("tmux".equals(pl.word())) {
-                        Commands.tmux(terminal, System.out, System.err,
-                                null, //Supplier<Object> getter,
-                                null, //Consumer<Object> setter,
-                                null, //Consumer<Terminal> runner,
-                                argv);
-                    }
-                    else if ("tput".equals(pl.word())) {
+                    else if ("tput".equals(cmd)) {
                         if (argv.length == 1) {
                             Capability vcap = Capability.byName(argv[0]);
                             if (vcap != null) {
@@ -562,7 +558,7 @@ public class Example
                             terminal.writer().println("Usage: tput <capability>");
                         }
                     }
-                    else if ("testkey".equals(pl.word())) {
+                    else if ("testkey".equals(cmd)) {
                         terminal.writer().write("Input the key event(Enter to complete): ");
                         terminal.writer().flush();
                         StringBuilder sb = new StringBuilder();
@@ -574,14 +570,14 @@ public class Example
                         terminal.writer().println(KeyMap.display(sb.toString()));
                         terminal.writer().flush();
                     }
-                    else if ("cls".equals(pl.word())) {
+                    else if ("cls".equals(cmd)) {
                         terminal.puts(Capability.clear_screen);
                         terminal.flush();
                     }
-                    else if ("sleep".equals(pl.word())) {
+                    else if ("sleep".equals(cmd)) {
                         Thread.sleep(3000);
                     }
-                    else if ("autopair".equals(pl.word())) {
+                    else if ("autopair".equals(cmd)) {
                         terminal.writer().print("Autopair widgets are ");
                         if (autopairWidgets.toggle()) {
                             terminal.writer().println("enabled.");
@@ -589,7 +585,7 @@ public class Example
                             terminal.writer().println("disabled.");
                         }
                     }
-                    else if ("autosuggestion".equals(pl.word())) {
+                    else if ("autosuggestion".equals(cmd)) {
                         if (argv.length > 0) {
                             String type = argv[0].toLowerCase();
                             if (type.startsWith("his")) {

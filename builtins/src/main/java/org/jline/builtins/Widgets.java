@@ -25,6 +25,7 @@ import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
 import org.jline.reader.Buffer;
 import org.jline.reader.LineReader;
+import org.jline.reader.Parser;
 import org.jline.reader.LineReader.SuggestionType;
 import org.jline.reader.Parser.ParseContext;
 import org.jline.reader.Reference;
@@ -1017,7 +1018,7 @@ public abstract class Widgets {
                 } else {
                     if (line.length() == curPos) {
                         cmd = args != null && (args.size() > 1 || (args.size() == 1
-                                 && line.endsWith(" "))) ? args.get(0) : null;
+                                 && line.endsWith(" "))) ? Parser.getCommand(args.get(0)) : null;
                         descType = CmdLine.DescriptionType.COMMAND;
                     }
                     int brackets = 0;
