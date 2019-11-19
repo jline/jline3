@@ -22,9 +22,12 @@ import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.function.Supplier;
 
+import org.jline.builtins.Builtins;
+import org.jline.builtins.Builtins.Command;
 import org.jline.builtins.Commands;
 import org.jline.builtins.Completers;
 import org.jline.builtins.Completers.TreeCompleter;
+import org.jline.builtins.Completers.SystemCompleter;
 import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.TTop;
 import org.jline.builtins.Widgets.AutopairWidgets;
@@ -104,17 +107,17 @@ public class Example
           , "    less            file pager"
           , "    nano            nano editor"
           , "    setopt          set options"
+          , "    setvar          set lineReader variable"
           , "    tmux            UNAVAILABLE"
           , "    ttop            display and update sorted information about threads"
           , "    unsetopt        unset options"
-          , "    widget          ~UNAVAILABLE"
+          , "    widget          ~UNAVAILABLE, has been created without widgetCreator"
           , "  Example:"
           , "    autopair        toggle brackets/quotes autopair key bindings"
           , "    autosuggestion  history, completer, tailtip [tailtip|completer|combined] or none"
           , "    cls             clear screen"
           , "    help            list available commands"
           , "    exit            exit from example app"
-          , "    set             set lineReader variable"
           , "    sleep           sleep 3 seconds"
           , "    testkey         display key events"
           , "    tput            set terminal capability"
@@ -165,70 +168,18 @@ public class Example
         return tailTips;
     }
 
-    private static class Executor {
-        LineReader reader;
-        Terminal terminal;
+    private static class DescriptionGenerator {
+        Builtins builtins;
 
-        public Executor(LineReader reader) {
-            this.reader = reader;
-            this.terminal = reader.getTerminal();
-        }
-
-        public boolean execute(String command, String[] argv) throws Exception {
-            boolean out = true;
-            if ("tmux".equals(command)) {
-                Commands.tmux(terminal, System.out, System.err,
-                        null, //Supplier<Object> getter,
-                        null, //Consumer<Object> setter,
-                        null, //Consumer<Terminal> runner,
-                        argv);
-            }
-            else if ("nano".equals(command)) {
-                Commands.nano(terminal, System.out, System.err,
-                        Paths.get(""),
-                        argv);
-            }
-            else if ("less".equals(command)) {
-                Commands.less(terminal, System.in, System.out, System.err,
-                        Paths.get(""),
-                        argv);
-            }
-            else if ("history".equals(command)) {
-                Commands.history(reader, System.out, System.err, Paths.get(""),argv);
-            }
-            else if ("complete".equals(command)) {
-                Commands.complete(reader, System.out, System.err,
-                        null, // Map<String, List<CompletionData>> completions,
-                        argv);
-            }
-            else if ("widget".equals(command)) {
-                Commands.widget(reader, System.out, System.err,
-                        null, //Function<String, Widget> widgetCreator,
-                        argv);
-            }
-            else if ("keymap".equals(command)) {
-                Commands.keymap(reader, System.out, System.err, argv);
-            }
-            else if ("setopt".equals(command)) {
-                Commands.setopt(reader, System.out, System.err, argv);
-            }
-            else if ("unsetopt".equals(command)) {
-                Commands.unsetopt(reader, System.out, System.err, argv);
-            }
-            else if ("ttop".equals(command)) {
-                TTop.ttop(terminal, System.out, System.err, argv);
-            }
-            else {
-                out = false;
-            }
-            return out;
+        public DescriptionGenerator(Builtins builtins) {
+            this.builtins = builtins;
         }
 
         CmdDesc commandDescription(CmdLine line) {
             CmdDesc out = null;
             switch (line.getDescriptionType()) {
             case COMMAND:
-                out = commandDescription(line.getArgs().get(0));
+                out = builtins.commandDescription(line.getArgs().get(0));
                 break;
             case METHOD:
                 out = methodDescription(line);
@@ -266,56 +217,6 @@ public class Example
             return new CmdDesc(mainDesc, new ArrayList<>(), new HashMap<>());
         }
 
-        private CmdDesc commandDescription(String command) {
-            CmdDesc out = null;
-            String[] argv = {"--help"};
-            try {
-                execute(command, argv);
-           } catch (HelpException e) {
-                List<AttributedString> main = new ArrayList<>();
-                Map<String, List<AttributedString>> options = new HashMap<>();
-                String[] msg = e.getMessage().replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n");
-                String prevOpt = null;
-                boolean mainDone = false;
-                boolean start = false;
-                for (String s: msg) {
-                    if (!start) {
-                        if (s.trim().startsWith("Usage: ")) {
-                            s = s.split("Usage:")[1];
-                            start = true;
-                        } else {
-                            continue;
-                        }
-                    }
-                    if (s.matches("^\\s+-.*$")) {
-                        mainDone = true;
-                        int ind = s.lastIndexOf("  ");
-                        if (ind > 0) {
-                            String o = s.substring(0, ind);
-                            String d = s.substring(ind);
-                            if (o.trim().length() > 0) {
-                                prevOpt = o.trim();
-                                options.put(prevOpt, new ArrayList<>(Arrays.asList(new AttributedString(d.trim()))));
-                            }
-                        }
-                    } else if (s.matches("^[\\s]{20}.*$") && prevOpt != null && options.containsKey(prevOpt)) {
-                        int ind = s.lastIndexOf("  ");
-                        if (ind > 0) {
-                            options.get(prevOpt).add(new AttributedString(s.substring(ind).trim()));
-                        }
-                    } else {
-                        prevOpt = null;
-                    }
-                    if (!mainDone) {
-                        main.add(new AttributedString(s.trim()));
-                    }
-                }
-                out = new CmdDesc(main, ArgDesc.doArgNames(Arrays.asList("[pN...]")), options);
-            } catch (Exception e) {
-
-            }
-            return out;
-        }
     }
 
     private static class ReaderOptions {
@@ -539,19 +440,30 @@ public class Example
                         }
                 }
             }
+            Builtins builtins = new Builtins(Paths.get(""), null, null);
+            builtins.rename(Command.TTOP, "top");
+            builtins.alias("zle", "widget");
+            builtins.alias("bindkey", "keymap");
+            SystemCompleter systemCompleter = builtins.compileCompleters();
+            systemCompleter.compile();
+            List<Completer> completers = new ArrayList<>();
+            completers.add(systemCompleter);
+            completers.add(completer);
+            AggregateCompleter finalCompleter = new AggregateCompleter(completers);
             Terminal terminal = builder.build();
             System.out.println(terminal.getName()+": "+terminal.getType());
             System.out.println("\nhelp: list available commands");
             LineReader reader = LineReaderBuilder.builder()
                     .terminal(terminal)
-                    .completer(completer)
+                    .completer(finalCompleter)
                     .parser(parser)
                     .variable(LineReader.SECONDARY_PROMPT_PATTERN, "%M%P > ")
                     .variable(LineReader.INDENTATION, 2)
                     .option(Option.INSERT_BRACKET, true)
                     .build();
 
-            Executor executor = new Executor(reader);
+            builtins.setLineReader(reader);
+            DescriptionGenerator descritionGenerator = new DescriptionGenerator(builtins);
             readerOptions.setReader(reader);
             AutopairWidgets autopairWidgets = new AutopairWidgets(reader);
             AutosuggestionWidgets autosuggestionWidgets = new AutosuggestionWidgets(reader);
@@ -559,7 +471,7 @@ public class Example
             if (argument) {
                 tailtipWidgets = new TailTipWidgets(reader, compileTailTips(), 5, TipType.COMPLETER);
             } else {
-                tailtipWidgets = new TailTipWidgets(reader, executor::commandDescription, 5, TipType.COMPLETER);
+                tailtipWidgets = new TailTipWidgets(reader, descritionGenerator::commandDescription, 5, TipType.COMPLETER);
             }
 
             if (timer) {
@@ -626,15 +538,15 @@ public class Example
                     if ("help".equals(pl.word()) || "?".equals(pl.word())) {
                         help();
                     }
-                    else if (executor.execute(pl.word(), argv)) {
-                        // built-in command has been executed
+                    else if (builtins.hasCommand(pl.word())) {
+                        builtins.execute(pl.word(), argv, System.in, System.out, System.err);
                     }
-                    else if ("set".equals(pl.word())) {
-                        if (argv.length == 2) {
-                            reader.setVariable(argv[0], argv[1]);
-                        } else {
-                            terminal.writer().println("Usage: set <name> <value>");
-                        }
+                    else if ("tmux".equals(pl.word())) {
+                        Commands.tmux(terminal, System.out, System.err,
+                                null, //Supplier<Object> getter,
+                                null, //Consumer<Object> setter,
+                                null, //Consumer<Terminal> runner,
+                                argv);
                     }
                     else if ("tput".equals(pl.word())) {
                         if (argv.length == 1) {
