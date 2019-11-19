@@ -4831,8 +4831,10 @@ public class LineReaderImpl implements LineReader, Flushable
             PostResult pr = computePost(possible, completion(), null, completed);
             AttributedString text = insertSecondaryPrompts(AttributedStringBuilder.append(prompt, buf.toString()), new ArrayList<>());
             int promptLines = text.columnSplitLength(size.getColumns(), false, display.delayLineWrap()).size();
-            if (pr.lines > size.getRows() - promptLines) {
-                int displayed = size.getRows() - promptLines - 1;
+            Status status = Status.getStatus(terminal, false);
+            int displaySize = size.getRows() - (status != null ? status.size() : 0) - promptLines;
+            if (pr.lines > displaySize) {
+                int displayed = displaySize - 1;
                 if (pr.selectedLine >= 0) {
                     if (pr.selectedLine < topLine) {
                         topLine = pr.selectedLine;
