@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 
 import org.jline.builtins.Commands;
 import org.jline.builtins.Completers.FilesCompleter;
+import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.Completers.SystemCompleter;
 import org.jline.builtins.TTop;
 import org.jline.builtins.Options.HelpException;
@@ -223,7 +224,43 @@ public class Builtins {
                     main.add(HelpException.highlightSyntax(s.trim(), HelpException.defaultStyle()));
                 }
             }
-            out = new CmdDesc(main, ArgDesc.doArgNames(Arrays.asList("[pN...]")), options);
+            out = new CmdDesc(main, ArgDesc.doArgNames(Arrays.asList("")), options);
+        } catch (Exception e) {
+
+        }
+        return out;
+    }
+
+    private Map<String,String> commandOptions(String command) {
+        Map<String,String> out = new HashMap<>();
+        List<String> args = Arrays.asList("--help");
+        try {
+            execute(command, args);
+        } catch (HelpException e) {
+            String[] msg = e.getMessage().replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n");
+            boolean start = false;
+            for (String s: msg) {
+                if (!start) {
+                    if (s.trim().startsWith("Usage: ")) {
+                        s = s.split("Usage:")[1];
+                        start = true;
+                    } else {
+                        continue;
+                    }
+                }
+                if (s.matches("^\\s+-.*$")) {
+                    int ind = s.lastIndexOf("  ");
+                    if (ind > 0) {
+                        String op = s.substring(0, ind).trim();
+                        String d = s.substring(ind).trim();
+                        if (op.length() > 0) {
+                            for (String o: op.split("\\s+")) {
+                                out.put(o, d);
+                            }
+                        }
+                    }
+                }
+            }
         } catch (Exception e) {
 
         }
@@ -331,26 +368,43 @@ public class Builtins {
 
     private List<Completer> nanoCompleter(String name) {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(new StringsCompleter(name), new FilesCompleter(workDir.get(), true)));
+        completers.add(new ArgumentCompleter(new StringsCompleter(name)
+                                           , new OptionCompleter(new FilesCompleter(workDir.get(), true)
+                                                               , this::commandOptions
+                                                               , 1)
+                                            ));
         return completers;
     }
 
     private List<Completer> lessCompleter(String name) {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(new StringsCompleter(name), new FilesCompleter(workDir.get(), true)));
+        completers.add(new ArgumentCompleter(new StringsCompleter(name)
+                                           , new OptionCompleter(new FilesCompleter(workDir.get(), true)
+                                                               , this::commandOptions
+                                                               , 1)
+                                       ));
         return completers;
     }
 
     private List<Completer> historyCompleter(String name) {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(new StringsCompleter(name), new NullCompleter()));
         completers.add(new ArgumentCompleter(new StringsCompleter(name)
-                     , new StringsCompleter(Arrays.asList("-A", "-W", "-R")), new FilesCompleter(workDir.get(), true), new NullCompleter()));
+                                            , new OptionCompleter(new NullCompleter()
+                                                                , this::commandOptions
+                                                                , 1)
+                                       ));
+        completers.add(new ArgumentCompleter(new StringsCompleter(name)
+                     , new StringsCompleter(Arrays.asList("-A", "-W", "-R", "-AI", "-RI", "-WI")), new FilesCompleter(workDir.get(), true), new NullCompleter()));
         return completers;
     }
 
     private List<Completer> widgetCompleter(String name) {
         List<Completer> completers = new ArrayList<>();
+        completers.add(new ArgumentCompleter(new StringsCompleter(name)
+                                            , new OptionCompleter(new NullCompleter()
+                                                                , this::commandOptions
+                                                                , 1)
+                                       ));
         completers.add(new ArgumentCompleter(new StringsCompleter(name)
                      , new StringsCompleter("-A"), new StringsCompleter(() -> allWidgets())
                      , new StringsCompleter(() -> reader.getWidgets().keySet()), new NullCompleter()));
@@ -361,7 +415,11 @@ public class Builtins {
 
     private List<Completer> keymapCompleter(String name) {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(new StringsCompleter(name), new NullCompleter()));
+        completers.add(new ArgumentCompleter(new StringsCompleter(name)
+                                            , new OptionCompleter(new NullCompleter()
+                                                                , this::commandOptions
+                                                                , 1)
+                        ));
         return completers;
     }
 
@@ -388,7 +446,11 @@ public class Builtins {
 
     private List<Completer> ttopCompleter(String name) {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(new StringsCompleter(name), new NullCompleter()));
+        completers.add(new ArgumentCompleter(new StringsCompleter(name)
+                                            , new OptionCompleter(new NullCompleter()
+                                                                , this::commandOptions
+                                                                , 1)
+                                    ));
         return completers;
     }
 

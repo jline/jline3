@@ -678,4 +678,125 @@ public class Completers {
         }
     }
 
+    public static class OptionCompleter implements org.jline.reader.Completer {
+        private Map<String,List<String>> optionValues = new HashMap<>();
+        private List<String> options = new ArrayList<String>();
+        private Function<String,Map<String,String>> commandOptions;
+        private List<org.jline.reader.Completer> argsCompleters = new ArrayList<>();
+        private int startPos;
+
+        public OptionCompleter(org.jline.reader.Completer completer, Function<String,Map<String,String>> commandOptions, int startPos) {
+            this.startPos = startPos;
+            this.commandOptions = commandOptions;
+            this.argsCompleters.add(completer);
+        }
+
+        public OptionCompleter(List<org.jline.reader.Completer> completers, Function<String,Map<String,String>> commandOptions, int startPos) {
+            this.startPos = startPos;
+            this.commandOptions = commandOptions;
+            this.argsCompleters = new ArrayList<>(completers);
+        }
+
+        public OptionCompleter(List<org.jline.reader.Completer> completers, Map<String,List<String>> optionValues, Collection<String> options, int startPos) {
+            this(optionValues, options, startPos);
+            this.argsCompleters = new ArrayList<>(completers);
+        }
+
+        public OptionCompleter(org.jline.reader.Completer completer, Map<String,List<String>> optionValues, Collection<String> options, int startPos) {
+            this(optionValues, options, startPos);
+            this.argsCompleters.add(completer);
+        }
+
+        private OptionCompleter(Map<String,List<String>> optionValues, Collection<String> options, int startPos) {
+            this.optionValues = new HashMap<>(optionValues);
+            this.options.addAll(options);
+            this.startPos = startPos;
+        }
+
+        @Override
+        public void complete(LineReader reader, final ParsedLine commandLine, List<Candidate> candidates) {
+            assert commandLine != null;
+            assert candidates != null;
+            List<String> words = commandLine.words();
+            String buffer = commandLine.word().substring(0, commandLine.wordCursor());
+            if (buffer.startsWith("-")) {
+                boolean addbuff = true;
+                boolean valueCandidates = false;
+                if (commandOptions != null) {
+                    boolean longOption = buffer.startsWith("--");
+                    for (Map.Entry<String,String> entry: commandOptions.apply(words.get(0)).entrySet()) {
+                        if (entry.getKey().startsWith(buffer)) {
+                            addbuff = false;
+                        }
+                        if ((!longOption && !entry.getKey().startsWith("--")) || longOption) {
+                            candidates.add(new Candidate(entry.getKey(), entry.getKey(), null, entry.getValue(), null, null, true));
+                        }
+                    }
+                } else {
+                    int eq = buffer.indexOf('=');
+                    if (eq < 0) {
+                        List<String> usedOptions = new ArrayList<>();
+                        for (int i = startPos; i < words.size(); i++) {
+                            if (words.get(i).startsWith("-")) {
+                                String w = words.get(i);
+                                int ind = w.indexOf('=');
+                                if (ind < 0) {
+                                    usedOptions.add(w);
+                                } else {
+                                    usedOptions.add(w.substring(0,ind));
+                                }
+                            }
+                        }
+                        for (String o: optionValues.keySet()) {
+                            if (usedOptions.contains(o)) {
+                                continue;
+                            }
+                            if (o.startsWith(buffer)) {
+                                addbuff = false;
+                            }
+                            candidates.add(new Candidate(o+"=", o, null, null, null, null, false));
+                        }
+                        for (String o: options) {
+                            if (usedOptions.contains(o)) {
+                                continue;
+                            }
+                            if (o.startsWith(buffer)) {
+                                addbuff = false;
+                            }
+                            candidates.add(new Candidate(o, o, null, null, null, null, true));
+                        }
+                    } else {
+                        String value = buffer.substring(eq + 1);
+                        String curBuf = buffer.substring(0, eq + 1);
+                        String opt = buffer.substring(0, eq);
+                        if (optionValues.containsKey(opt) && !optionValues.get(opt).isEmpty()) {
+                            for (String v: optionValues.get(opt)) {
+                                if (v.startsWith(value)) {
+                                    valueCandidates = true;
+                                    addbuff = false;
+                                }
+                                candidates.add(new Candidate(curBuf+v, v, null, null, null, null, true));
+                            }
+                        }
+                    }
+                }
+                if ((buffer.contains("=") && !buffer.endsWith("=") && !valueCandidates) || addbuff) {
+                    candidates.add(new Candidate(buffer, buffer, null, null, null, null, true));
+                }
+            } else if (argsCompleters.size() > 1) {
+                int args = 0;
+                for (int i = startPos; i < words.size(); i++) {
+                    if (!words.get(i).startsWith("-")) {
+                        args++;
+                    }
+                }
+                if (args < argsCompleters.size()) {
+                    argsCompleters.get(args).complete(reader, commandLine, candidates);
+                }
+            } else {
+                argsCompleters.get(0).complete(reader, commandLine, candidates);
+            }
+        }
+    }
+
 }

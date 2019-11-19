@@ -816,9 +816,14 @@ public abstract class Widgets {
                 }
             }
             String lastArg = !prevChar().equals(" ") ? args.get(args.size() - 1) : "";
+            if (lastArg.startsWith("-")) {
+            }
             int bpsize = argnum;
             boolean doTailTip = true;
+            boolean noCompleters = false;
             if (widget.endsWith(LineReader.BACKWARD_DELETE_CHAR)) {
+                setSuggestionType(SuggestionType.TAIL_TIP);
+                noCompleters = true;
                 if (!lastArg.startsWith("-")) {
                     bpsize--;
                 }
@@ -831,10 +836,16 @@ public abstract class Widgets {
             if (cmdDesc != null) {
                 if (lastArg.startsWith("-")) {
                     doDescription(cmdDesc.getOptionDescription(lastArg, descriptionSize));
+                    setSuggestionType(SuggestionType.TAIL_TIP);
+                    noCompleters = true;
+                } else if (!widget.endsWith(LineReader.BACKWARD_DELETE_CHAR)){
+                    setTipType(tipType);
                 }
                 if (bpsize > 0 && doTailTip) {
                     List<ArgDesc> params = cmdDesc.getArgsDesc();
-                    setSuggestionType(tipType == TipType.COMPLETER ? SuggestionType.COMPLETER : SuggestionType.TAIL_TIP);
+                    if (!noCompleters) {
+                        setSuggestionType(tipType == TipType.COMPLETER ? SuggestionType.COMPLETER : SuggestionType.TAIL_TIP);
+                    }
                     if (bpsize - 1 < params.size()) {
                         if (!lastArg.startsWith("-")) {
                             List<AttributedString> d = params.get(bpsize - 1)
