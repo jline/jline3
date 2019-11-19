@@ -792,6 +792,8 @@ public class Completers {
                 }
                 if (args < argsCompleters.size()) {
                     argsCompleters.get(args).complete(reader, commandLine, candidates);
+                } else {
+                    argsCompleters.get(argsCompleters.size() - 1).complete(reader, commandLine, candidates);
                 }
             } else {
                 argsCompleters.get(0).complete(reader, commandLine, candidates);
