@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2019, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -151,7 +151,7 @@ public class Options {
         if ( arg == null ) {
             throw new IllegalArgumentException("option not defined with argument: " + name);
         }
-        
+
         if (arg instanceof String) { // default value
             list = new ArrayList<>();
             if (!"".equals(arg))
@@ -229,7 +229,7 @@ public class Options {
     public void usage(PrintStream err) {
         err.print(usage());
     }
-    
+
     public String usage() {
         StringBuilder buf = new StringBuilder();
         int index = 0;
@@ -372,7 +372,7 @@ public class Options {
     public Options parse(Object[] argv, boolean skipArg0) {
         if (null == argv)
             throw new IllegalArgumentException("argv is null");
-        
+
         return parse(Arrays.asList(argv), skipArg0);
     }
 
@@ -562,33 +562,48 @@ public class Options {
                         comment = "";
 
                     }
-                    AttributedStringBuilder asyntax = new AttributedStringBuilder().append(syntax);
-                    // command
-                    asyntax.styleMatches(Pattern.compile("(?:^)(?:\\s*)([a-z]+[a-z-]*){1}\\b"),
-                            Collections.singletonList(resolver.resolve(".co")));
-                    // argument
-                    asyntax.styleMatches(Pattern.compile("(?:\\[|\\s|=)([A-Za-z]+[A-Za-z_-]*){1}\\b"),
-                            Collections.singletonList(resolver.resolve(".ar")));
-                    // option
-                    asyntax.styleMatches(Pattern.compile("(?:\\s|\\[)(-\\$|-\\?|[-]{1,2}[A-Za-z-]+\\b){1}"),
-                            Collections.singletonList(resolver.resolve(".op")));
-                    asb.append(asyntax);
-
-                    AttributedStringBuilder acomment = new AttributedStringBuilder().append(comment);
-                    // option
-                    acomment.styleMatches(Pattern.compile("(?:\\s|\\[)(-\\$|-\\?|[-]{1,2}[A-Za-z-]+\\b){1}"),
-                            Collections.singletonList(resolver.resolve(".op")));
-                    // argument in comment
-                    acomment.styleMatches(Pattern.compile("(?:\\s)([a-z]+[-]+[a-z]+|[A-Z_]{2,}){1}(?:\\s)"),
-                            Collections.singletonList(resolver.resolve(".ar")));
-                    asb.append(acomment);
-
+                    asb.append(_highlightSyntax(syntax, resolver));
+                    asb.append(_highlightComment(comment, resolver));
                     asb.append("\n");
                 }
                 return asb.toAttributedString();
             } else {
                 return AttributedString.fromAnsi(msg);
             }
+        }
+
+        public static AttributedString highlightSyntax(String syntax, StyleResolver resolver) {
+            return _highlightSyntax(syntax, resolver).toAttributedString();
+        }
+
+        public static AttributedString highlightComment(String comment, StyleResolver resolver) {
+            return _highlightComment(comment, resolver).toAttributedString();
+        }
+
+        private static AttributedStringBuilder _highlightSyntax(String syntax, StyleResolver resolver) {
+            AttributedStringBuilder asyntax = new AttributedStringBuilder().append(syntax);
+            // command
+            asyntax.styleMatches(Pattern.compile("(?:^)(?:\\s*)([a-z]+[a-z-]*){1}\\b"),
+                    Collections.singletonList(resolver.resolve(".co")));
+            // argument
+            asyntax.styleMatches(Pattern.compile("(?:\\[|\\s|=)([A-Za-z]+[A-Za-z_-]*){1}\\b"),
+                    Collections.singletonList(resolver.resolve(".ar")));
+            // option
+            asyntax.styleMatches(Pattern.compile("(?:\\s|\\[)(-\\$|-\\?|[-]{1,2}[A-Za-z-]+\\b){1}"),
+                    Collections.singletonList(resolver.resolve(".op")));
+            return asyntax;
+        }
+
+        private static AttributedStringBuilder _highlightComment(String comment, StyleResolver resolver) {
+            AttributedStringBuilder acomment = new AttributedStringBuilder().append(comment);
+            // option
+            acomment.styleMatches(Pattern.compile("(?:\\s|\\[)(-\\$|-\\?|[-]{1,2}[A-Za-z-]+\\b){1}"),
+                    Collections.singletonList(resolver.resolve(".op")));
+            // argument in comment
+            acomment.styleMatches(Pattern.compile("(?:\\s)([a-z]+[-]+[a-z]+|[A-Z_]{2,}){1}(?:\\s)"),
+                    Collections.singletonList(resolver.resolve(".ar")));
+            return acomment;
+
         }
     }
 
