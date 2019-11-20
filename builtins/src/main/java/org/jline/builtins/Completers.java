@@ -739,7 +739,7 @@ public class Completers {
                 boolean valueCandidates = false;
                 if (commandOptions != null) {
                     boolean longOption = buffer.startsWith("--");
-                    for (Map.Entry<String,String> entry: commandOptions.apply(words.get(0)).entrySet()) {
+                    for (Map.Entry<String,String> entry: commandOptions.apply(Parser.getCommand(words.get(0))).entrySet()) {
                         if (entry.getKey().startsWith(buffer)) {
                             addbuff = false;
                         }
@@ -799,13 +799,15 @@ public class Completers {
                     candidates.add(new Candidate(buffer, buffer, null, null, null, null, true));
                 }
             } else if (argsCompleters.size() > 1) {
-                int args = 0;
+                int args = -1;
                 for (int i = startPos; i < words.size(); i++) {
                     if (!words.get(i).startsWith("-")) {
                         args++;
                     }
                 }
-                if (args < argsCompleters.size()) {
+                if (args == -1) {  // alternatively could set argumentCompleter strict = false;
+                    candidates.add(new Candidate(buffer, buffer, null, null, null, null, true));
+                } else if (args < argsCompleters.size()) {
                     argsCompleters.get(args).complete(reader, commandLine, candidates);
                 } else {
                     argsCompleters.get(argsCompleters.size() - 1).complete(reader, commandLine, candidates);
