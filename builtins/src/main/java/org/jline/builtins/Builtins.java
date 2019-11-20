@@ -369,7 +369,7 @@ public class Builtins {
     private List<Completer> nanoCompleter(String name) {
         List<Completer> completers = new ArrayList<>();
         completers.add(new ArgumentCompleter(new StringsCompleter(name)
-                                           , new OptionCompleter(new FilesCompleter(workDir.get(), true)
+                                           , new OptionCompleter(new FilesCompleter(workDir)
                                                                , this::commandOptions
                                                                , 1)
                                             ));
@@ -379,7 +379,7 @@ public class Builtins {
     private List<Completer> lessCompleter(String name) {
         List<Completer> completers = new ArrayList<>();
         completers.add(new ArgumentCompleter(new StringsCompleter(name)
-                                           , new OptionCompleter(new FilesCompleter(workDir.get(), true)
+                                           , new OptionCompleter(new FilesCompleter(workDir)
                                                                , this::commandOptions
                                                                , 1)
                                        ));
@@ -394,7 +394,8 @@ public class Builtins {
                                                                 , 1)
                                        ));
         completers.add(new ArgumentCompleter(new StringsCompleter(name)
-                     , new StringsCompleter(Arrays.asList("-A", "-W", "-R", "-AI", "-RI", "-WI")), new FilesCompleter(workDir.get(), true), NullCompleter.INSTANCE));
+                                           , new StringsCompleter(Arrays.asList("-A", "-W", "-R", "-AI", "-RI", "-WI"))
+                                           , new FilesCompleter(workDir), NullCompleter.INSTANCE));
         return completers;
     }
 
