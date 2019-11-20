@@ -406,6 +406,7 @@ public interface LineReader {
         DELAY_LINE_WRAP,
         AUTO_PARAM_SLASH(true),
         AUTO_REMOVE_SLASH(true),
+        USE_FORWARD_SLASH(false),
         /** When hitting the <code>&lt;tab&gt;</code> key at the beginning of the line, insert a tabulation
          *  instead of completing.  This is mainly useful when {@link #BRACKETED_PASTE} is
          *  disabled, so that copy/paste of indented text does not trigger completion.

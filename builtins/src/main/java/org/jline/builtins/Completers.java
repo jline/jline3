@@ -259,8 +259,8 @@ public class Completers {
         }
 
         @Override
-        protected String getSeparator() {
-            return forceSlash ? "/" : getUserDir().getFileSystem().getSeparator();
+        protected String getSeparator(boolean useForwardSlash) {
+            return forceSlash || useForwardSlash ? "/" : getUserDir().getFileSystem().getSeparator();
         }
 
         @Override
@@ -306,8 +306,8 @@ public class Completers {
         }
 
         @Override
-        protected String getSeparator() {
-            return forceSlash ? "/" : getUserDir().getFileSystem().getSeparator();
+        protected String getSeparator(boolean useForwardSlash) {
+            return forceSlash || useForwardSlash ? "/" : getUserDir().getFileSystem().getSeparator();
         }
     }
 
@@ -341,7 +341,7 @@ public class Completers {
 
             Path current;
             String curBuf;
-            String sep = getSeparator();
+            String sep = getSeparator(reader.isSet(LineReader.Option.USE_FORWARD_SLASH));
             int lastSep = buffer.lastIndexOf(sep);
             try {
                 if (lastSep >= 0) {
@@ -396,8 +396,8 @@ public class Completers {
             return Paths.get(System.getProperty("user.home"));
         }
 
-        protected String getSeparator() {
-            return getUserDir().getFileSystem().getSeparator();
+        protected String getSeparator(boolean useForwardSlash) {
+            return useForwardSlash ? "/" :getUserDir().getFileSystem().getSeparator();
         }
 
         protected String getDisplay(Terminal terminal, Path p) {
