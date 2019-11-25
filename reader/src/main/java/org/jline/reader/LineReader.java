@@ -362,6 +362,14 @@ public interface LineReader {
      */
     String INDENTATION = "indentation";
 
+    /**
+     * Max buffer size for advanced features.
+     * Once the length of the buffer reaches this threshold, no
+     * advanced features will be enabled. This includes the undo
+     * buffer, syntax highlighting, parsing, etc....
+     */
+    String FEATURES_MAX_BUFFER_SIZE = "features-max-buffer-size";
+
     Map<String, KeyMap<Binding>> defaultKeyMaps();
 
     enum Option {

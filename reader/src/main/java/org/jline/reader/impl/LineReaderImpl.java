@@ -18,12 +18,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.time.Instant;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.*;
 import java.util.regex.Matcher;
@@ -93,6 +91,7 @@ public class LineReaderImpl implements LineReader, Flushable
     public static final String DEFAULT_COMPLETION_STYLE_GROUP = "35;1";     // magenta
     public static final String DEFAULT_COMPLETION_STYLE_SELECTION = "7";    // inverted
     public static final int    DEFAULT_INDENTATION = 0;
+    public static final int    DEFAULT_FEATURES_MAX_BUFFER_SIZE = 1000;
 
     private static final int MIN_ROWS = 3;
 
@@ -661,12 +660,13 @@ public class LineReaderImpl implements LineReader, Flushable
                 try {
                     lock.lock();
                     // Get executable widget
-                    Buffer copy = buf.copy();
+                    Buffer copy = buf.length() <= getInt(FEATURES_MAX_BUFFER_SIZE, DEFAULT_FEATURES_MAX_BUFFER_SIZE) ? buf.copy() : null;
                     Widget w = getWidget(o);
                     if (!w.apply()) {
                         beep();
                     }
-                    if (!isUndo && !copy.toString().equals(buf.toString())) {
+                    if (!isUndo && copy != null && buf.length() <= getInt(FEATURES_MAX_BUFFER_SIZE, DEFAULT_FEATURES_MAX_BUFFER_SIZE)
+                            && !copy.toString().equals(buf.toString())) {
                         undo.newState(buf.copy());
                     }
 
@@ -4040,7 +4040,8 @@ public class LineReaderImpl implements LineReader, Flushable
         if (maskingCallback != null) {
             buffer = maskingCallback.display(buffer);
         }
-        if (highlighter != null && !isSet(Option.DISABLE_HIGHLIGHTER)) {
+        if (highlighter != null && !isSet(Option.DISABLE_HIGHLIGHTER)
+                && buffer.length() < getInt(FEATURES_MAX_BUFFER_SIZE, DEFAULT_FEATURES_MAX_BUFFER_SIZE)) {
             return highlighter.highlight(this, buffer);
         }
         return new AttributedString(buffer);
@@ -4162,7 +4163,8 @@ public class LineReaderImpl implements LineReader, Flushable
         List<AttributedString> lines = strAtt.columnSplitLength(Integer.MAX_VALUE);
         AttributedStringBuilder sb = new AttributedStringBuilder();
         String secondaryPromptPattern = getString(SECONDARY_PROMPT_PATTERN, DEFAULT_SECONDARY_PROMPT_PATTERN);
-        boolean needsMessage = secondaryPromptPattern.contains("%M");
+        boolean needsMessage = secondaryPromptPattern.contains("%M")
+                && strAtt.length() < getInt(FEATURES_MAX_BUFFER_SIZE, DEFAULT_FEATURES_MAX_BUFFER_SIZE);
         AttributedStringBuilder buf = new AttributedStringBuilder();
         int width = 0;
         List<String> missings = new ArrayList<>();
