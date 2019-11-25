@@ -914,6 +914,19 @@ public class LineReaderImpl implements LineReader, Flushable
         }
     }
 
+    protected String doReadStringUntil(String sequence) {
+        if (lock.isHeldByCurrentThread()) {
+            try {
+                lock.unlock();
+                return bindingReader.readStringUntil(sequence);
+            } finally {
+                lock.lock();
+            }
+        } else {
+            return bindingReader.readStringUntil(sequence);
+        }
+    }
+
     /**
      * Read from the input stream and decode an operation from the key map.
      *
@@ -5625,28 +5638,10 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     public boolean beginPaste() {
-        final Object SELF_INSERT = new Object();
-        final Object END_PASTE = new Object();
-        KeyMap<Object> keyMap = new KeyMap<>();
-        keyMap.setUnicode(SELF_INSERT);
-        keyMap.setNomatch(SELF_INSERT);
-        keyMap.setAmbiguousTimeout(0);
-        keyMap.bind(END_PASTE, BRACKETED_PASTE_END);
-        StringBuilder sb = new StringBuilder();
-        while (true) {
-            Object b = doReadBinding(keyMap, null);
-            if (b == END_PASTE) {
-                break;
-            }
-            String s = getLastBinding();
-            if ("\r".equals(s)) {
-                s = "\n";
-            }
-            sb.append(s);
-        }
+        String str = doReadStringUntil(BRACKETED_PASTE_END);
         regionActive = RegionType.PASTE;
         regionMark = getBuffer().cursor();
-        getBuffer().write(sb);
+        getBuffer().write(str.replace('\r', '\n'));
         return true;
     }
 

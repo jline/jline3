@@ -106,6 +106,28 @@ public class NonBlockingPumpReader extends NonBlockingReader {
         return res;
     }
 
+    @Override
+    public int readBuffered(char[] b) throws IOException {
+        if (b == null) {
+            throw new NullPointerException();
+        } else if (b.length == 0) {
+            return 0;
+        } else {
+            int r = Math.min(b.length, readBuffer.remaining());
+            if (r > 0) {
+                readBuffer.get(b);
+                return r;
+            } else {
+                r = read(-1, false);
+                if (r >= 0) {
+                    b[0] = (char) r;
+                    return 1;
+                }
+                return r;
+            }
+        }
+    }
+
     synchronized void write(char[] cbuf, int off, int len) throws IOException {
         while (len > 0) {
             // Blocks until there is new space available for buffering or the

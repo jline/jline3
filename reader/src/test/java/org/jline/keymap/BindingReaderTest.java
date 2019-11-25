@@ -74,4 +74,12 @@ public class BindingReaderTest {
         assertEquals("b", reader.getLastBinding());
         assertNull(reader.readBinding(keyMap));
     }
+
+    @Test
+    public void testBindingReaderReadString() {
+        in.setIn(new ByteArrayInputStream("\uD834\uDD21abc0123456789defg".getBytes(StandardCharsets.UTF_8)));
+        BindingReader reader = new BindingReader(terminal.reader());
+        String str = reader.readStringUntil("fg");
+        assertEquals("\uD834\uDD21abc0123456789de", str);
+    }
 }
