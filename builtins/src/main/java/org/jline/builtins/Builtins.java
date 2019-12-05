@@ -24,19 +24,17 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import org.jline.builtins.Commands;
 import org.jline.builtins.Completers.FilesCompleter;
 import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.Completers.SystemCompleter;
-import org.jline.builtins.TTop;
 import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.Widgets.ArgDesc;
 import org.jline.builtins.Widgets.CmdDesc;
 import org.jline.reader.Completer;
 import org.jline.reader.ConfigurationPath;
 import org.jline.reader.LineReader;
-import org.jline.reader.Widget;
 import org.jline.reader.LineReader.Option;
+import org.jline.reader.Widget;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
@@ -48,7 +46,7 @@ import org.jline.utils.AttributedString;
  *
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
-public class Builtins {
+public class Builtins implements CommandRegistry {
     public enum Command {NANO
                        , LESS
                        , HISTORY
@@ -65,6 +63,7 @@ public class Builtins {
     private Map<String,Command> nameCommand = new HashMap<>();
     private Map<String,String> aliasCommand = new HashMap<>();
     private final Map<Command,CommandMethods> commandExecute = new HashMap<>();
+    private Map<Command,List<String>> commandInfo = new HashMap<>();
     private LineReader reader;
     private Exception exception;
 
@@ -103,6 +102,21 @@ public class Builtins {
         commandExecute.put(Command.SETVAR, new CommandMethods(this::setvar, this::setvarCompleter));
         commandExecute.put(Command.UNSETOPT, new CommandMethods(this::unsetopt, this::unsetoptCompleter));
         commandExecute.put(Command.TTOP, new CommandMethods(this::ttop, this::ttopCompleter));
+    }
+
+    public Set<String> commandNames() {
+        return nameCommand.keySet();
+    }
+
+    public Map<String, String> commandAliases() {
+        return aliasCommand;
+    }
+
+    public List<String> commandInfo(String command) {
+        if (!commandInfo.containsKey(command(command))) {
+            commandOptions(command);
+        }
+        return commandInfo.get(command(command));
     }
 
     private void doNameCommand() {
@@ -237,14 +251,22 @@ public class Builtins {
         try {
             execute(command, args);
         } catch (HelpException e) {
+            List<String> info = new ArrayList<>();
             String[] msg = e.getMessage().replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n");
             boolean start = false;
+            boolean first = true;
             for (String s: msg) {
                 if (!start) {
                     if (s.trim().startsWith("Usage: ")) {
                         s = s.split("Usage:")[1];
                         start = true;
                     } else {
+                        if (first && s.contains(" - ")) {
+                            info.add(s.substring(s.indexOf(" - ") + 3).trim());
+                        } else {
+                            info.add(s.trim());
+                        }
+                        first = false;
                         continue;
                     }
                 }
@@ -261,6 +283,7 @@ public class Builtins {
                     }
                 }
             }
+            commandInfo.put(command(command), info);
         } catch (Exception e) {
 
         }

@@ -1,0 +1,60 @@
+/*
+ * Copyright (c) 2002-2019, the original author or authors.
+ *
+ * This software is distributable under the BSD license. See the terms of the
+ * BSD license in the documentation provided with this software.
+ *
+ * https://opensource.org/licenses/BSD-3-Clause
+ */
+package org.jline.builtins;
+
+import org.jline.builtins.Completers;
+import org.jline.builtins.Widgets;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+public interface CommandRegistry {
+
+    /**
+     * Returns the command names known by this registry.
+     * @return the set of known command names, excluding aliases
+     */
+    Set<String> commandNames();
+
+    /**
+     * Returns a map of alias-to-command names known by this registry.
+     * @return a map with alias keys and command name values
+     */
+    Map<String, String> commandAliases();
+    
+    /**
+     * Returns a short info about command known by this registry.
+     * @return a short info about command
+     */
+    List<String> commandInfo(String command);
+
+    /**
+     * Returns whether a command with the specified name is known to this registry.
+     * @param command the command name to test
+     * @return true if the specified command is registered
+     */
+    boolean hasCommand(String command);
+
+    /**
+     * Returns a {@code SystemCompleter} that can provide detailed completion
+     * information for all registered commands.
+     * 
+     * @return a SystemCompleter that can provide command completion for all registered commands
+     */
+    Completers.SystemCompleter compileCompleters();
+
+    /**
+     * Returns a command description for use in the JLine Widgets framework.
+     * @param command name of the command whose description to return 
+     * @return command description for JLine TailTipWidgets to be displayed
+     *         in the terminal status bar.
+     */
+    Widgets.CmdDesc commandDescription(String command);
+}
