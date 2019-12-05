@@ -624,4 +624,12 @@ public final class InfoCmp {
         }
     }
 
+    static boolean support(String terminal, Capability capability) {
+        if ((terminal.equals("windows") || terminal.equals("windows-256color"))
+                && (capability == Capability.clr_eos)) {
+            return false;
+        }
+        return true;
+    }
+
 }

@@ -139,8 +139,15 @@ public class Status {
             }
         }
         terminal.puts(Capability.save_cursor);
-        terminal.puts(Capability.cursor_address, rows - statusSize, 0);
-        terminal.puts(Capability.clr_eos);
+        if (InfoCmp.support(terminal.getType(), Capability.clr_eos)) {
+            terminal.puts(Capability.cursor_address, rows - statusSize, 0);
+            terminal.puts(Capability.clr_eos);
+        } else {
+            for (int i = rows - statusSize; i < rows; i++) {
+                terminal.puts(Capability.cursor_address, i, 0);
+                terminal.puts(Capability.clr_eol);
+            }
+        }
         if (border == 1 && lines.size() > 0) {
             terminal.puts(Capability.cursor_address, rows - statusSize, 0);
             borderString.columnSubSequence(0, columns).print(terminal);
