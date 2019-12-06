@@ -772,35 +772,25 @@ public abstract class Widgets {
         private boolean doTailTip(String widget) {
             Buffer buffer = buffer();
             callWidget(widget);
+            Pair<String,Boolean> cmdkey = null;
+            List<String> args = args();
             if (buffer.length() == buffer.cursor()) {
-                List<String> args = args();
-                Pair<String,Boolean> cmdkey = cmdDescs.evaluateCommandLine(buffer.toString(), args);
-                CmdDesc cmdDesc = cmdDescs.getDescription(cmdkey.getU());
-                if (cmdDesc == null) {
-                    setErrorPattern(null);
-                    setErrorIndex(-1);
-                    clearDescription();
-                    resetTailTip();
-                } else if (cmdDesc.isValid()) {
-                    if (cmdkey.getV()) {
-                        if (cmdDesc.isCommand()) {
-                            doCommandTailTip(widget, cmdDesc, args);
-                        }
-                    } else {
-                        doDescription(cmdDesc.getMainDescription(descriptionSize));
-                        setErrorPattern(cmdDesc.getErrorPattern());
-                        setErrorIndex(cmdDesc.getErrorIndex());
-                    }
-                }
+                cmdkey = cmdDescs.evaluateCommandLine(buffer.toString(), args);
             } else {
-                Pair<String,Boolean> cmdkey = cmdDescs.evaluateCommandLine(buffer.toString(), buffer.cursor());
-                CmdDesc cmdDesc = cmdDescs.getDescription(cmdkey.getU());
-                if (cmdDesc == null) {
-                    setErrorPattern(null);
-                    setErrorIndex(-1);
-                    clearDescription();
-                    resetTailTip();
-                } else if (cmdDesc.isValid() && !cmdkey.getV()) {
+                cmdkey = cmdDescs.evaluateCommandLine(buffer.toString(), buffer.cursor());
+            }
+            CmdDesc cmdDesc = cmdDescs.getDescription(cmdkey.getU());
+            if (cmdDesc == null) {
+                setErrorPattern(null);
+                setErrorIndex(-1);
+                clearDescription();
+                resetTailTip();
+            } else if (cmdDesc.isValid()) {
+                if (cmdkey.getV()) {
+                    if (cmdDesc.isCommand() && buffer.length() == buffer.cursor()) {
+                        doCommandTailTip(widget, cmdDesc, args);
+                    }
+                } else {
                     doDescription(cmdDesc.getMainDescription(descriptionSize));
                     setErrorPattern(cmdDesc.getErrorPattern());
                     setErrorIndex(cmdDesc.getErrorIndex());
@@ -835,8 +825,12 @@ public abstract class Widgets {
             if (cmdDesc != null) {
                 if (lastArg.startsWith("-")) {
                     doDescription(cmdDesc.getOptionDescription(lastArg, descriptionSize));
-                    setSuggestionType(SuggestionType.TAIL_TIP);
-                    noCompleters = true;
+                    if (!lastArg.contains("=")) {
+                        setSuggestionType(SuggestionType.TAIL_TIP);
+                        noCompleters = true;
+                    } else {
+                        setTipType(tipType);
+                    }
                 } else if (!widget.endsWith(LineReader.BACKWARD_DELETE_CHAR)){
                     setTipType(tipType);
                 }
