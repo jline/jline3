@@ -817,8 +817,6 @@ public abstract class Widgets {
                 }
             }
             String lastArg = !prevChar().equals(" ") ? args.get(args.size() - 1) : "";
-            if (lastArg.startsWith("-")) {
-            }
             int bpsize = argnum;
             boolean doTailTip = true;
             boolean noCompleters = false;
@@ -1320,7 +1318,7 @@ public abstract class Widgets {
                     AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
                     asb.append(highlightOption(key));
                     asb.append("\t");
-                    asb.append(optsDesc.get(key).get(0));
+                    asb.append(optionDescription(key));
                     out.add(asb.toAttributedString());
                 }
             } else if (matched.size() <= 2*descriptionSize) {
@@ -1335,7 +1333,7 @@ public abstract class Widgets {
                     if (row < descriptionSize) {
                         asb.append(highlightOption(key));
                         asb.append("\t");
-                        asb.append(optsDesc.get(key).get(0));
+                        asb.append(optionDescription(key));
                         if (asb.columnLength() > columnWidth - 2) {
                             AttributedString trunc = asb.columnSubSequence(0, columnWidth - 5);
                             asb = new AttributedStringBuilder().tabs(tabs);
@@ -1352,7 +1350,7 @@ public abstract class Widgets {
                         asb.append(keyList.get(row - descriptionSize));
                         asb.append(highlightOption(key));
                         asb.append("\t");
-                        asb.append(optsDesc.get(key).get(0));
+                        asb.append(optionDescription(key));
                         keyList.remove(row - descriptionSize);
                         keyList.add(row - descriptionSize, asb.toAttributedString());
 
@@ -1381,6 +1379,10 @@ public abstract class Widgets {
                 out = new ArrayList<>(keyList);
             }
             return out;
+        }
+        
+        private AttributedString optionDescription(String key) {
+            return optsDesc.get(key).size() > 0 ? optsDesc.get(key).get(0) : new AttributedString("");
         }
 
         private AttributedString highlightOption(String option) {
