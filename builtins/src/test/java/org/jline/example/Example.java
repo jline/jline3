@@ -8,6 +8,10 @@
  */
 package org.jline.example;
 
+import static java.time.temporal.ChronoField.HOUR_OF_DAY;
+import static java.time.temporal.ChronoField.MINUTE_OF_HOUR;
+import static org.jline.builtins.Completers.TreeCompleter.node;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -23,17 +27,18 @@ import java.util.regex.Pattern;
 
 import org.jline.builtins.Builtins;
 import org.jline.builtins.Builtins.Command;
+import org.jline.builtins.CommandRegistry;
 import org.jline.builtins.Completers;
-import org.jline.builtins.Completers.TreeCompleter;
 import org.jline.builtins.Completers.SystemCompleter;
+import org.jline.builtins.Completers.TreeCompleter;
 import org.jline.builtins.Options.HelpException;
+import org.jline.builtins.Widgets.ArgDesc;
 import org.jline.builtins.Widgets.AutopairWidgets;
 import org.jline.builtins.Widgets.AutosuggestionWidgets;
-import org.jline.builtins.Widgets.TailTipWidgets;
-import org.jline.builtins.Widgets.TailTipWidgets.TipType;
-import org.jline.builtins.Widgets.ArgDesc;
 import org.jline.builtins.Widgets.CmdDesc;
 import org.jline.builtins.Widgets.CmdLine;
+import org.jline.builtins.Widgets.TailTipWidgets;
+import org.jline.builtins.Widgets.TailTipWidgets.TipType;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.LineReader.Option;
@@ -53,11 +58,6 @@ import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.Status;
-
-import static java.time.temporal.ChronoField.HOUR_OF_DAY;
-import static java.time.temporal.ChronoField.MINUTE_OF_HOUR;
-import static org.jline.builtins.Completers.TreeCompleter.node;
-
 
 public class Example
 {
@@ -94,22 +94,21 @@ public class Example
         }
     }
 
-    public static void help() {
-        String[] help = {
+    public static void help(CommandRegistry builtins) {
+        TreeSet<String> commands = new TreeSet<>(builtins.commandNames());
+        List<String> help = new ArrayList<String>(Arrays.asList(
             "List of available commands:"
-          , "  Builtin:"
-          , "    complete        UNAVAILABLE"
-          , "    history         list history of commands"
-          , "    keymap          manipulate keymaps"
-          , "    less            file pager"
-          , "    nano            nano editor"
-          , "    setopt          set options"
-          , "    setvar          set lineReader variable"
-          , "    tmux            UNAVAILABLE"
-          , "    ttop            display and update sorted information about threads"
-          , "    unsetopt        unset options"
-          , "    widget          ~UNAVAILABLE, has been created without widgetCreator"
-          , "  Example:"
+          , "  Builtin:"));
+        for (String c: commands) {
+            AttributedStringBuilder asb = new AttributedStringBuilder().tabs(Arrays.asList(4,20));
+            asb.append("\t");
+            asb.append(c);
+            asb.append("\t");
+            asb.append(builtins.commandInfo(c).get(0));
+            help.add(asb.toString());
+        }
+        help.addAll(Arrays.asList(
+            "  Example:"
           , "    autopair        toggle brackets/quotes autopair key bindings"
           , "    autosuggestion  history, completer, tailtip [tailtip|completer|combined] or none"
           , "    cls             clear screen"
@@ -119,7 +118,7 @@ public class Example
           , "    testkey         display key events"
           , "    tput            set terminal capability"
           , "  Additional help:"
-          , "    <command> --help"};
+          , "    <command> --help"));
         for (String u: help) {
             System.out.println(u);
         }
@@ -541,7 +540,7 @@ public class Example
                     String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
                     String cmd = Parser.getCommand(pl.word());
                     if ("help".equals(cmd) || "?".equals(cmd)) {
-                        help();
+                        help(builtins);
                     }
                     else if (builtins.hasCommand(cmd)) {
                         builtins.execute(cmd, argv, System.in, System.out, System.err);
