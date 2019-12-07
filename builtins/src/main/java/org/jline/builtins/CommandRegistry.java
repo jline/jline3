@@ -18,6 +18,28 @@ import java.util.Set;
 public interface CommandRegistry {
 
     /**
+     * Aggregate SystemCompleters of commandRegisteries
+     * @return uncompiled SystemCompleter
+     */
+    static Completers.SystemCompleter aggregateCompleters(CommandRegistry ... commandRegistries) {
+        Completers.SystemCompleter out = new Completers.SystemCompleter();
+        for (CommandRegistry r: commandRegistries) {
+            out.add(r.compileCompleters());
+        }
+        return out;
+    }
+
+    /**
+     * Aggregate and compile SystemCompleters of commandRegisteries
+     * @return compiled SystemCompleter
+     */
+    static Completers.SystemCompleter compileCompleters(CommandRegistry ... commandRegistries) {
+        Completers.SystemCompleter out = aggregateCompleters(commandRegistries);
+        out.compile();
+        return out;
+    }
+
+    /**
      * Returns the command names known by this registry.
      * @return the set of known command names, excluding aliases
      */
