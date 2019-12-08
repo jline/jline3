@@ -139,10 +139,8 @@ public class Status {
             }
         }
         terminal.puts(Capability.save_cursor);
-        if (InfoCmp.support(terminal.getType(), Capability.clr_eos)) {
-            terminal.puts(Capability.cursor_address, rows - statusSize, 0);
-            terminal.puts(Capability.clr_eos);
-        } else {
+        terminal.puts(Capability.cursor_address, rows - statusSize, 0);
+        if (!terminal.puts(Capability.clr_eos)) {
             for (int i = rows - statusSize; i < rows; i++) {
                 terminal.puts(Capability.cursor_address, i, 0);
                 terminal.puts(Capability.clr_eol);
