@@ -150,7 +150,7 @@ public class Example
         tailTips.put("foo11", new CmdDesc(Arrays.asList(
                 new ArgDesc("param1",Arrays.asList(new AttributedString("Param1 description...")
                                                 , new AttributedString("line 2: This is a very long line that does exceed the terminal width."
-                                                      +" The line will be truncated automatically (by Status class) be before printing out.")
+                                                      +" The line will be truncated automatically (by Status class) before printing out.")
                                                 , new AttributedString("line 3")
                                                 , new AttributedString("line 4")
                                                 , new AttributedString("line 5")

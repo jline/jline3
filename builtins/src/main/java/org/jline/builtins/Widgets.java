@@ -801,12 +801,21 @@ public abstract class Widgets {
 
         private void doCommandTailTip(String widget, CmdDesc cmdDesc, List<String> args) {
             int argnum = 0;
+            String prevArg = "";
             for (String a : args) {
                 if (!a.startsWith("-")) {
-                    argnum++;
+                    if (!prevArg.matches("-[a-zA-Z]{1}") || !cmdDesc.optionWithValue(prevArg)) {
+                        argnum++;
+                    }
                 }
+                prevArg = a;
             }
-            String lastArg = !prevChar().equals(" ") ? args.get(args.size() - 1) : "";
+            String lastArg = "";
+            prevArg = args.get(args.size() - 1);
+            if (!prevChar().equals(" ")) {
+                lastArg = args.get(args.size() - 1);
+                prevArg = args.get(args.size() - 2);
+            }
             int bpsize = argnum;
             boolean doTailTip = true;
             boolean noCompleters = false;
@@ -814,7 +823,9 @@ public abstract class Widgets {
                 setSuggestionType(SuggestionType.TAIL_TIP);
                 noCompleters = true;
                 if (!lastArg.startsWith("-")) {
-                    bpsize--;
+                    if (!prevArg.matches("-[a-zA-Z]{1}") || !cmdDesc.optionWithValue(prevArg)) {
+                        bpsize--;
+                    }
                 }
                 if (prevChar().equals(" ")) {
                     bpsize++;
@@ -824,12 +835,23 @@ public abstract class Widgets {
             }
             if (cmdDesc != null) {
                 if (lastArg.startsWith("-")) {
-                    doDescription(cmdDesc.getOptionDescription(lastArg, descriptionSize));
-                    if (!lastArg.contains("=")) {
-                        setSuggestionType(SuggestionType.TAIL_TIP);
-                        noCompleters = true;
+                    if (lastArg.matches("-[a-zA-Z]{1}[a-zA-Z0-9]+")) {
+                        if (cmdDesc.optionWithValue(lastArg.substring(0,2))) {
+                            doDescription(cmdDesc.getOptionDescription(lastArg.substring(0,2), descriptionSize));
+                            setTipType(tipType);
+                        } else {
+                            doDescription(cmdDesc.getOptionDescription("-" + lastArg.substring(lastArg.length() - 1), descriptionSize));
+                            setSuggestionType(SuggestionType.TAIL_TIP);
+                            noCompleters = true;
+                        }
                     } else {
-                        setTipType(tipType);
+                        doDescription(cmdDesc.getOptionDescription(lastArg, descriptionSize));
+                        if (!lastArg.contains("=")) {
+                            setSuggestionType(SuggestionType.TAIL_TIP);
+                            noCompleters = true;
+                        } else {
+                            setTipType(tipType);
+                        }
                     }
                 } else if (!widget.endsWith(LineReader.BACKWARD_DELETE_CHAR)){
                     setTipType(tipType);
@@ -841,9 +863,13 @@ public abstract class Widgets {
                     }
                     if (bpsize - 1 < params.size()) {
                         if (!lastArg.startsWith("-")) {
-                            List<AttributedString> d = params.get(bpsize - 1)
-                                    .getDescription();
-                            if (d.isEmpty()) {
+                            List<AttributedString> d = null;
+                            if (!prevArg.matches("-[a-zA-Z]{1}") || !cmdDesc.optionWithValue(prevArg)) {
+                                d = params.get(bpsize - 1).getDescription();
+                            } else {
+                                d = cmdDesc.getOptionDescription(prevArg, descriptionSize);
+                            }
+                            if (d == null || d.isEmpty()) {
                                 d = cmdDesc.getMainDescription(descriptionSize);
                             }
                             doDescription(d);
@@ -1202,11 +1228,11 @@ public abstract class Widgets {
             this.command = true;
         }
 
-        public boolean isValid() {
+        protected boolean isValid() {
             return valid;
         }
 
-        public boolean isCommand() {
+        protected boolean isCommand() {
             return command;
         }
 
@@ -1235,11 +1261,11 @@ public abstract class Widgets {
             return errorIndex;
         }
 
-        public List<ArgDesc> getArgsDesc() {
+        protected List<ArgDesc> getArgsDesc() {
             return argsDesc;
         }
 
-        public List<AttributedString> getMainDescription(int descriptionSize) {
+        protected List<AttributedString> getMainDescription(int descriptionSize) {
             List<AttributedString> out = new ArrayList<>();
             if (mainDesc == null) {
                 // do nothing
@@ -1276,11 +1302,11 @@ public abstract class Widgets {
             return out;
         }
 
-        public List<AttributedString> getOptionDescription(String opt, int descriptionSize) {
+        protected List<AttributedString> getOptionDescription(String opt, int descriptionSize) {
             List<AttributedString> out = new ArrayList<>();
             if (!opt.startsWith("-")) {
                 return out;
-            } else if (opt.startsWith("--")) {
+            } else {
                 int ind = opt.indexOf("=");
                 if (ind > 0) {
                     opt = opt.substring(0, ind);
@@ -1374,7 +1400,20 @@ public abstract class Widgets {
             }
             return out;
         }
-        
+
+        protected boolean optionWithValue(String option) {
+            for (String key: optsDesc.keySet()) {
+                if (key.matches("(^|.*\\s)" + option + "($|=.*|\\s.*)")) {
+                    if (key.contains("=")) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }
+            }
+            return false;
+        }
+
         private AttributedString optionDescription(String key) {
             return optsDesc.get(key).size() > 0 ? optsDesc.get(key).get(0) : new AttributedString("");
         }
