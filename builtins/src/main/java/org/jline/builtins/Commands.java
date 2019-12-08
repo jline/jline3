@@ -137,6 +137,7 @@ public class Commands {
             opt.args().add("-");
         }
         for (String arg : opt.args()) {
+            arg = arg.startsWith("~") ? arg.replace("~", System.getProperty("user.home")) : arg;
             if ("-".equals(arg)) {
                 sources.add(new StdInSource(in));
             } else if (arg.contains("*") || arg.contains("?")) {
@@ -151,6 +152,7 @@ public class Commands {
     }
 
     protected static List<Path> findFiles(Path root, String files) throws IOException{
+        files = files.startsWith("~") ? files.replace("~", System.getProperty("user.home")) : files;
         String regex = files;
         Path searchRoot = Paths.get("/");
         if (new File(files).isAbsolute()) {
@@ -1023,7 +1025,7 @@ public class Commands {
         }
         if (opt.args().isEmpty()) {
             for (Map.Entry<String, Object> entry: lineReader.getVariables().entrySet()) {
-                out.println(entry.getKey() + ": " + entry.getValue());    
+                out.println(entry.getKey() + ": " + entry.getValue());
             }
         } else if (opt.args().size() == 1) {
             out.println(lineReader.getVariable(opt.args().get(0)));
@@ -1031,5 +1033,5 @@ public class Commands {
             lineReader.setVariable(opt.args().get(0), opt.args().get(1));
         }
     }
-    
+
 }

@@ -1743,7 +1743,7 @@ public class Nano implements Editor {
                 } else if (styleStrings[2].equals("conceal")) {
                     style = style.conceal();
                 } else if (styleStrings[2].equals("faint")) {
-                    style = style.faint();    
+                    style = style.faint();
                 } else if (styleStrings[2].equals("hidden")) {
                     style = style.hidden();
                 } else if (styleStrings[2].equals("inverse")) {
@@ -1752,7 +1752,7 @@ public class Nano implements Editor {
                     style = style.italic();
                 } else if (styleStrings[2].equals("underline")) {
                     style = style.underline();
-                }     
+                }
             }
 
             if (HighlightRule.evalRuleType(parts) == HighlightRule.RuleType.PATTERN) {
@@ -2127,6 +2127,7 @@ public class Nano implements Editor {
 
     public void open(List<String> files) throws IOException {
         for (String file : files) {
+            file = file.startsWith("~") ? file.replace("~", System.getProperty("user.home")) : file;
             if (file.contains("*") || file.contains("?")) {
                 for (Path p: Commands.findFiles(root, file)) {
                     buffers.add(new Buffer(p.toString()));
