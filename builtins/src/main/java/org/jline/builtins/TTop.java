@@ -183,7 +183,9 @@ public class TTop {
         try {
 
             // Use alternate buffer
-            terminal.puts(InfoCmp.Capability.enter_ca_mode);
+            if (!terminal.puts(InfoCmp.Capability.enter_ca_mode)) {
+                terminal.puts(InfoCmp.Capability.clear_screen);
+            }
             terminal.puts(InfoCmp.Capability.keypad_xmit);
             terminal.puts(InfoCmp.Capability.cursor_invisible);
             terminal.writer().flush();
@@ -233,7 +235,9 @@ public class TTop {
                 terminal.handle(Terminal.Signal.WINCH, prevHandler);
             }
             // Use main buffer
-            terminal.puts(InfoCmp.Capability.exit_ca_mode);
+            if (!terminal.puts(InfoCmp.Capability.exit_ca_mode)) {
+                terminal.puts(InfoCmp.Capability.clear_screen);
+            }
             terminal.puts(InfoCmp.Capability.keypad_local);
             terminal.puts(InfoCmp.Capability.cursor_visible);
             terminal.writer().flush();

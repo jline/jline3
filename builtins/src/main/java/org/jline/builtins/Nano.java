@@ -2353,7 +2353,9 @@ public class Nano implements Editor {
             if (mouseSupport) {
                 terminal.trackMouse(Terminal.MouseTracking.Off);
             }
-            terminal.puts(Capability.exit_ca_mode);
+            if (!terminal.puts(Capability.exit_ca_mode)) {
+                terminal.puts(Capability.clear_screen);
+            }
             terminal.puts(Capability.keypad_local);
             terminal.flush();
             terminal.setAttributes(attributes);
