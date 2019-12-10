@@ -478,11 +478,15 @@ public class Builtins implements CommandRegistry {
         return completers;
     }
 
-    private class CommandInput{
+    public static class CommandInput{
         String[] args;
         InputStream in;
         PrintStream out;
         PrintStream err;
+
+        public CommandInput(String[] args) {
+            this(args, null, null, null);
+        }
 
         public CommandInput(String[] args, InputStream in, PrintStream out, PrintStream err) {
             this.args = args;
@@ -509,7 +513,7 @@ public class Builtins implements CommandRegistry {
 
     }
 
-    private class CommandMethods {
+    public static class CommandMethods {
         Consumer<CommandInput> execute;
         Function<String, List<Completer>> compileCompleter;
 

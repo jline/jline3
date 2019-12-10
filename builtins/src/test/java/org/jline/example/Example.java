@@ -26,7 +26,6 @@ import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 import org.jline.builtins.Builtins;
-import org.jline.builtins.Builtins.Command;
 import org.jline.builtins.CommandRegistry;
 import org.jline.builtins.Completers;
 import org.jline.builtins.Completers.SystemCompleter;
@@ -49,6 +48,7 @@ import org.jline.reader.impl.LineReaderImpl;
 import org.jline.reader.impl.completer.AggregateCompleter;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
+import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.MouseEvent;
 import org.jline.terminal.Terminal;
@@ -56,6 +56,7 @@ import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
+import org.jline.utils.InfoCmp;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.Status;
 
@@ -68,7 +69,6 @@ public class Example
               , "    -system          terminalBuilder.system(false)"
               , "    +system          terminalBuilder.system(true)"
               , "  Completors:"
-              , "    aggregate        an aggregate completor with strings Supplier"
               , "    argument         an argument completor & autosuggestion"
               , "    files            a completor that completes file names"
               , "    none             no completors"
@@ -92,37 +92,6 @@ public class Example
         for (String u: usage) {
             System.out.println(u);
         }
-    }
-
-    public static void help(CommandRegistry builtins) {
-        TreeSet<String> commands = new TreeSet<>(builtins.commandNames());
-        List<String> help = new ArrayList<String>(Arrays.asList(
-            "List of available commands:"
-          , "  Builtin:"));
-        for (String c: commands) {
-            AttributedStringBuilder asb = new AttributedStringBuilder().tabs(Arrays.asList(4,20));
-            asb.append("\t");
-            asb.append(c);
-            asb.append("\t");
-            asb.append(builtins.commandInfo(c).get(0));
-            help.add(asb.toString());
-        }
-        help.addAll(Arrays.asList(
-            "  Example:"
-          , "    autopair        toggle brackets/quotes autopair key bindings"
-          , "    autosuggestion  history, completer, tailtip [tailtip|completer|combined] or none"
-          , "    cls             clear screen"
-          , "    help            list available commands"
-          , "    exit            exit from example app"
-          , "    sleep           sleep 3 seconds"
-          , "    testkey         display key events"
-          , "    tput            set terminal capability"
-          , "  Additional help:"
-          , "    <command> --help"));
-        for (String u: help) {
-            System.out.println(u);
-        }
-
     }
 
     private static Map<String,CmdDesc> compileTailTips() {
@@ -164,22 +133,45 @@ public class Example
         return tailTips;
     }
 
-    private static class DescriptionGenerator {
-        Builtins builtins;
+    private static class MasterRegistry {
+        private final CommandRegistry[] commandRegistries;
 
-        public DescriptionGenerator(Builtins builtins) {
-            this.builtins = builtins;
+        public MasterRegistry(CommandRegistry... commandRegistries) {
+            this.commandRegistries = commandRegistries;
         }
 
-        CmdDesc commandDescription(CmdLine line) {
+        public void help() {
+            System.out.println("List of available commands:");
+            for (CommandRegistry r : commandRegistries) {
+                TreeSet<String> commands = new TreeSet<>(r.commandNames());
+                AttributedStringBuilder asb = new AttributedStringBuilder().tabs(2);
+                asb.append("\t");
+                asb.append(r.getClass().getSimpleName());
+                asb.append(":");
+                System.out.println(asb.toString());
+                for (String c: commands) {
+                    asb = new AttributedStringBuilder().tabs(Arrays.asList(4,20));
+                    asb.append("\t");
+                    asb.append(c);
+                    asb.append("\t");
+                    asb.append(r.commandInfo(c).get(0));
+                    System.out.println(asb.toString());
+                }
+            }
+            System.out.println("  Additional help:");
+            System.out.println("    <command> --help");
+        }
+
+        public CmdDesc commandDescription(CmdLine line) {
             CmdDesc out = null;
             switch (line.getDescriptionType()) {
             case COMMAND:
                 String cmd = Parser.getCommand(line.getArgs().get(0));
-                if (builtins.hasCommand(cmd)) {
-                    out = builtins.commandDescription(cmd);
-                } else {
-                    // other commands...
+                for (CommandRegistry r : commandRegistries) {
+                    if (r.hasCommand(cmd)) {
+                        out = r.commandDescription(cmd);
+                        break;
+                    }
                 }
                 break;
             case METHOD:
@@ -220,23 +212,234 @@ public class Example
 
     }
 
-    private static class ReaderOptions {
-        LineReader reader;
+    private static class ExampleCommands implements CommandRegistry {
+        private LineReader reader;
+        private AutosuggestionWidgets autosuggestionWidgets;
+        private TailTipWidgets tailtipWidgets;
+        private AutopairWidgets autopairWidgets;
+        private final Map<String,Builtins.CommandMethods> commandExecute = new HashMap<>();
+        private final Map<String,List<String>> commandInfo = new HashMap<>();
+        private Map<String,String> aliasCommand = new HashMap<>();
+        private Exception exception;
 
-        public ReaderOptions() {
+        public ExampleCommands() {
+            commandExecute.put("tput", new Builtins.CommandMethods(this::tput, this::tputCompleter));
+            commandExecute.put("testkey", new Builtins.CommandMethods(this::testkey, this::defaultCompleter));
+            commandExecute.put("clear", new Builtins.CommandMethods(this::clear, this::defaultCompleter));
+            commandExecute.put("sleep", new Builtins.CommandMethods(this::sleep, this::defaultCompleter));
+            commandExecute.put("autopair", new Builtins.CommandMethods(this::autopair, this::defaultCompleter));
+            commandExecute.put("autosuggestion", new Builtins.CommandMethods(this::autosuggestion, this::autosuggestionCompleter));
+
+            commandInfo.put("tput", Arrays.asList("set terminal capability"));
+            commandInfo.put("testkey", Arrays.asList("display key events"));
+            commandInfo.put("clear", Arrays.asList("clear screen"));
+            commandInfo.put("sleep", Arrays.asList("sleep 3 seconds"));
+            commandInfo.put("autopair", Arrays.asList("toggle brackets/quotes autopair key bindings"));
+            commandInfo.put("autosuggestion", Arrays.asList("set autosuggestion modality: history, completer, tailtip or none"));
         }
 
-        public void setReader(LineReader reader) {
+        public void setLineReader(LineReader reader) {
             this.reader = reader;
         }
 
-        List<String> unsetted(boolean set) {
-            List<String> out = new ArrayList<>();
-            for (Option option : Option.values()) {
-                if (set == (reader.isSet(option) == option.isDef())) {
-                    out.add((option.isDef() ? "no-" : "") + option.toString().toLowerCase().replace('_', '-'));
-                }
+        public void setAutosuggestionWidgets(AutosuggestionWidgets autosuggestionWidgets) {
+            this.autosuggestionWidgets = autosuggestionWidgets;
+        }
+
+        public void setTailTipWidgets(TailTipWidgets tailtipWidgets) {
+            this.tailtipWidgets = tailtipWidgets;
+        }
+
+        public void setAutopairWidgets(AutopairWidgets autopairWidgets) {
+            this.autopairWidgets = autopairWidgets;
+        }
+
+        private Terminal terminal() {
+            return reader.getTerminal();
+        }
+
+        public Set<String> commandNames() {
+            return commandExecute.keySet();
+        }
+
+        public Map<String, String> commandAliases() {
+            return aliasCommand;
+        }
+
+        public List<String> commandInfo(String command) {
+            return commandInfo.get(command(command));
+        }
+
+        public boolean hasCommand(String command) {
+            if (commandExecute.containsKey(command) || aliasCommand.containsKey(command)) {
+                return true;
             }
+            return false;
+        }
+
+        private String command(String name) {
+            if (commandExecute.containsKey(name)) {
+                return name;
+            } else if (aliasCommand.containsKey(name)) {
+                return aliasCommand.get(name);
+            }
+            return null;
+        }
+
+        public Completers.SystemCompleter compileCompleters() {
+            SystemCompleter out = new SystemCompleter();
+            for (String c : commandExecute.keySet()) {
+                out.add(c, commandExecute.get(c).compileCompleter().apply(c));
+            }
+            out.addAliases(aliasCommand);
+            return out;
+        }
+
+        public void execute(String command, String[] args) throws Exception {
+            exception = null;
+            commandExecute.get(command(command)).execute().accept(new Builtins.CommandInput(args));
+            if (exception != null) {
+                throw exception;
+            }
+        }
+
+        public CmdDesc commandDescription(String command) {
+            // TODO
+            return new CmdDesc(false);
+        }
+
+        private void tput(Builtins.CommandInput input) {
+            String[] argv = input.args();
+            try {
+                if (argv.length == 1 && !argv[0].equals("--help") && !argv[0].equals("-?")) {
+                    Capability vcap = Capability.byName(argv[0]);
+                    if (vcap != null) {
+                        terminal().puts(vcap);
+                    } else {
+                        terminal().writer().println("Unknown capability");
+                    }
+                } else {
+                    terminal().writer().println("Usage: tput <capability>");
+                }
+            } catch (Exception e) {
+                exception = e;
+            }
+        }
+
+        private void testkey(Builtins.CommandInput input) {
+            try {
+                terminal().writer().write("Input the key event(Enter to complete): ");
+                terminal().writer().flush();
+                StringBuilder sb = new StringBuilder();
+                while (true) {
+                    int c = ((LineReaderImpl) reader).readCharacter();
+                    if (c == 10 || c == 13) break;
+                    sb.append(new String(Character.toChars(c)));
+                }
+                terminal().writer().println(KeyMap.display(sb.toString()));
+                terminal().writer().flush();
+            } catch (Exception e) {
+                exception = e;
+            }
+        }
+
+        private void clear(Builtins.CommandInput input) {
+            try {
+                terminal().puts(Capability.clear_screen);
+                terminal().flush();
+            } catch (Exception e) {
+                exception = e;
+            }
+        }
+
+        private void sleep(Builtins.CommandInput input) {
+            try {
+                Thread.sleep(3000);
+            } catch (Exception e) {
+                exception = e;
+            }
+        }
+
+        private void autopair(Builtins.CommandInput input) {
+            try {
+                terminal().writer().print("Autopair widgets are ");
+                if (autopairWidgets.toggle()) {
+                    terminal().writer().println("enabled.");
+                } else {
+                    terminal().writer().println("disabled.");
+                }
+            } catch (Exception e) {
+                exception = e;
+            }
+        }
+
+        private void autosuggestion(Builtins.CommandInput input) {
+            String[] argv = input.args();
+            try {
+                if (argv.length > 0) {
+                    String type = argv[0].toLowerCase();
+                    if (type.startsWith("his")) {
+                        tailtipWidgets.disable();
+                        autosuggestionWidgets.enable();
+                    } else if (type.startsWith("tai")) {
+                        autosuggestionWidgets.disable();
+                        tailtipWidgets.enable();
+                        if (argv.length > 1) {
+                            String mode = argv[1].toLowerCase();
+                            if (mode.startsWith("tai")) {
+                                tailtipWidgets.setTipType(TipType.TAIL_TIP);
+                            } else if (mode.startsWith("comp")) {
+                                tailtipWidgets.setTipType(TipType.COMPLETER);
+                            } else if (mode.startsWith("comb")) {
+                                tailtipWidgets.setTipType(TipType.COMBINED);
+                            }
+                        }
+                    } else if (type.startsWith("com")) {
+                        autosuggestionWidgets.disable();
+                        tailtipWidgets.disable();
+                        reader.setAutosuggestion(SuggestionType.COMPLETER);
+                    } else if (type.startsWith("non")) {
+                        autosuggestionWidgets.disable();
+                        tailtipWidgets.disable();
+                        reader.setAutosuggestion(SuggestionType.NONE);
+                    } else {
+                        terminal().writer().println("Usage: autosuggestion history|completer|tailtip|none");
+                    }
+                } else {
+                    if (tailtipWidgets.isEnabled()) {
+                        terminal().writer().println("Autosuggestion: tailtip/" + tailtipWidgets.getTipType());
+                    } else {
+                        terminal().writer().println("Autosuggestion: " + reader.getAutosuggestion());
+                    }
+                }
+            } catch (Exception e) {
+                exception = e;
+            }
+        }
+
+        private List<Completer> defaultCompleter(String command) {
+            return Arrays.asList(NullCompleter.INSTANCE);
+        }
+
+        private Set<String> capabilities() {
+            return InfoCmp.getCapabilitiesByName().keySet();
+        }
+
+        private List<Completer> tputCompleter(String command) {
+            return Arrays.asList(new ArgumentCompleter(NullCompleter.INSTANCE
+                                                     , new StringsCompleter(this::capabilities)
+                                                   ));
+        }
+
+        private List<Completer> autosuggestionCompleter(String command) {
+            List<Completer> out = new ArrayList<>();
+            out.add(new ArgumentCompleter(NullCompleter.INSTANCE
+                                        , new StringsCompleter("history", "completer", "none")
+                                        , NullCompleter.INSTANCE));
+            out.add(new ArgumentCompleter(NullCompleter.INSTANCE
+                                        , new StringsCompleter("tailtip")
+                                        , new StringsCompleter("tailtip", "completer", "combined")
+                                        , NullCompleter.INSTANCE));
             return out;
         }
     }
@@ -263,7 +466,6 @@ public class Example
             Completer completer = null;
             Parser parser = null;
             List<Consumer<LineReader>> callbacks = new ArrayList<>();
-            ReaderOptions readerOptions = new ReaderOptions();
 
             for (int index=0; index < args.length; index++) {
                 switch (args[index]) {
@@ -327,16 +529,6 @@ public class Example
                                 }
                             }).start();
                         });
-                        break;
-                    case "aggregate":
-                        List<Completer> ccc = new ArrayList<>();
-                        ccc.add(new ArgumentCompleter(
-                                new StringsCompleter("setopt"),
-                                new StringsCompleter(() -> readerOptions.unsetted(true))));
-                        ccc.add(new ArgumentCompleter(
-                                new StringsCompleter("unsetopt"),
-                                new StringsCompleter(() -> readerOptions.unsetted(false))));
-                        completer = new AggregateCompleter(ccc);
                         break;
                     case "argument":
                         argument = true;
@@ -441,18 +633,23 @@ public class Example
                         }
                 }
             }
+            //
+            // Command registeries
+            //
             Builtins builtins = new Builtins(Paths.get(""), null, null);
-            builtins.rename(Command.TTOP, "top");
+            builtins.rename(Builtins.Command.TTOP, "top");
             builtins.alias("zle", "widget");
             builtins.alias("bindkey", "keymap");
-            SystemCompleter systemCompleter = builtins.compileCompleters();
-            systemCompleter.compile();
-            List<Completer> completers = new ArrayList<>();
-            completers.add(systemCompleter);
-            if (completer != null) {
-                completers.add(completer);
-            }
-            AggregateCompleter finalCompleter = new AggregateCompleter(completers);
+            ExampleCommands exampleCommands = new ExampleCommands();
+            MasterRegistry masterRegistry = new MasterRegistry(builtins, exampleCommands);
+            //
+            // Command completers
+            //
+            AggregateCompleter finalCompleter = new AggregateCompleter(CommandRegistry.compileCompleters(builtins, exampleCommands)
+                                                                     , completer != null ? completer : NullCompleter.INSTANCE);
+            //
+            // Terminal & LineReader
+            //
             Terminal terminal = builder.build();
             System.out.println(terminal.getName()+": "+terminal.getType());
             System.out.println("\nhelp: list available commands");
@@ -464,18 +661,25 @@ public class Example
                     .variable(LineReader.INDENTATION, 2)
                     .option(Option.INSERT_BRACKET, true)
                     .build();
-
-            builtins.setLineReader(reader);
-            DescriptionGenerator descriptionGenerator = new DescriptionGenerator(builtins);
-            readerOptions.setReader(reader);
+            //
+            // widgets
+            //
             AutopairWidgets autopairWidgets = new AutopairWidgets(reader);
             AutosuggestionWidgets autosuggestionWidgets = new AutosuggestionWidgets(reader);
             TailTipWidgets tailtipWidgets = null;
             if (argument) {
                 tailtipWidgets = new TailTipWidgets(reader, compileTailTips(), 5, TipType.COMPLETER);
             } else {
-                tailtipWidgets = new TailTipWidgets(reader, descriptionGenerator::commandDescription, 5, TipType.COMPLETER);
+                tailtipWidgets = new TailTipWidgets(reader, masterRegistry::commandDescription, 5, TipType.COMPLETER);
             }
+            //
+            // complete command registeries
+            //
+            builtins.setLineReader(reader);
+            exampleCommands.setLineReader(reader);
+            exampleCommands.setAutosuggestionWidgets(autosuggestionWidgets);
+            exampleCommands.setTailTipWidgets(tailtipWidgets);
+            exampleCommands.setAutopairWidgets(autopairWidgets);
 
             if (timer) {
                 Executors.newScheduledThreadPool(1)
@@ -513,6 +717,9 @@ public class Example
             if (!callbacks.isEmpty()) {
                 Thread.sleep(2000);
             }
+            //
+            // REPL-loop
+            //
             while (true) {
                 try {
                     String line = reader.readLine(prompt, rightPrompt, (MaskingCallback) null, null);
@@ -540,87 +747,13 @@ public class Example
                     String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
                     String cmd = Parser.getCommand(pl.word());
                     if ("help".equals(cmd) || "?".equals(cmd)) {
-                        help(builtins);
+                        masterRegistry.help();
                     }
                     else if (builtins.hasCommand(cmd)) {
                         builtins.execute(cmd, argv, System.in, System.out, System.err);
                     }
-                    else if ("tput".equals(cmd)) {
-                        if (argv.length == 1) {
-                            Capability vcap = Capability.byName(argv[0]);
-                            if (vcap != null) {
-                                terminal.puts(vcap);
-                            } else {
-                                terminal.writer().println("Unknown capability");
-                            }
-                        } else {
-                            terminal.writer().println("Usage: tput <capability>");
-                        }
-                    }
-                    else if ("testkey".equals(cmd)) {
-                        terminal.writer().write("Input the key event(Enter to complete): ");
-                        terminal.writer().flush();
-                        StringBuilder sb = new StringBuilder();
-                        while (true) {
-                            int c = ((LineReaderImpl) reader).readCharacter();
-                            if (c == 10 || c == 13) break;
-                            sb.append(new String(Character.toChars(c)));
-                        }
-                        terminal.writer().println(KeyMap.display(sb.toString()));
-                        terminal.writer().flush();
-                    }
-                    else if ("cls".equals(cmd)) {
-                        terminal.puts(Capability.clear_screen);
-                        terminal.flush();
-                    }
-                    else if ("sleep".equals(cmd)) {
-                        Thread.sleep(3000);
-                    }
-                    else if ("autopair".equals(cmd)) {
-                        terminal.writer().print("Autopair widgets are ");
-                        if (autopairWidgets.toggle()) {
-                            terminal.writer().println("enabled.");
-                        } else {
-                            terminal.writer().println("disabled.");
-                        }
-                    }
-                    else if ("autosuggestion".equals(cmd)) {
-                        if (argv.length > 0) {
-                            String type = argv[0].toLowerCase();
-                            if (type.startsWith("his")) {
-                                tailtipWidgets.disable();
-                                autosuggestionWidgets.enable();
-                            } else if (type.startsWith("tai")) {
-                                autosuggestionWidgets.disable();
-                                tailtipWidgets.enable();
-                                if (argv.length > 1) {
-                                    String mode = argv[1].toLowerCase();
-                                    if (mode.startsWith("tai")) {
-                                        tailtipWidgets.setTipType(TipType.TAIL_TIP);
-                                    } else if (mode.startsWith("comp")) {
-                                        tailtipWidgets.setTipType(TipType.COMPLETER);
-                                    } else if (mode.startsWith("comb")) {
-                                        tailtipWidgets.setTipType(TipType.COMBINED);
-                                    }
-                                }
-                            } else if (type.startsWith("com")) {
-                                autosuggestionWidgets.disable();
-                                tailtipWidgets.disable();
-                                reader.setAutosuggestion(SuggestionType.COMPLETER);
-                            } else if (type.startsWith("non")) {
-                                autosuggestionWidgets.disable();
-                                tailtipWidgets.disable();
-                                reader.setAutosuggestion(SuggestionType.NONE);
-                            } else {
-                                terminal.writer().println("Usage: autosuggestion history|completer|tailtip|none");
-                            }
-                        } else {
-                            if (tailtipWidgets.isEnabled()) {
-                                terminal.writer().println("Autosuggestion: tailtip/" + tailtipWidgets.getTipType());
-                            } else {
-                                terminal.writer().println("Autosuggestion: " + reader.getAutosuggestion());
-                            }
-                        }
+                    else if (exampleCommands.hasCommand(cmd)) {
+                        exampleCommands.execute(cmd, argv);
                     }
                 }
                 catch (HelpException e) {
