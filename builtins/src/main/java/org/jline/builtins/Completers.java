@@ -734,7 +734,9 @@ public class Completers {
             assert candidates != null;
             List<String> words = commandLine.words();
             String buffer = commandLine.word().substring(0, commandLine.wordCursor());
-            if (buffer.startsWith("-")) {
+            if (startPos >= words.size()) {
+                candidates.add(new Candidate(buffer, buffer, null, null, null, null, true));
+            } else if (buffer.startsWith("-")) {
                 boolean addbuff = true;
                 boolean valueCandidates = false;
                 if (commandOptions != null) {
@@ -748,7 +750,7 @@ public class Completers {
                         }
                     }
                 } else {
-                    int eq = buffer.indexOf('=');
+                    int eq = buffer.matches("-[a-zA-Z]{1}[a-zA-Z0-9]+") ? 2 : buffer.indexOf('=');
                     if (eq < 0) {
                         List<String> usedOptions = new ArrayList<>();
                         for (int i = startPos; i < words.size(); i++) {
@@ -781,8 +783,9 @@ public class Completers {
                             candidates.add(new Candidate(o, o, null, null, null, null, true));
                         }
                     } else {
-                        String value = buffer.substring(eq + 1);
-                        String curBuf = buffer.substring(0, eq + 1);
+                        int nb = buffer.contains("=") ? 1 : 0;
+                        String value = buffer.substring(eq + nb);
+                        String curBuf = buffer.substring(0, eq + nb);
                         String opt = buffer.substring(0, eq);
                         if (optionValues.containsKey(opt) && !optionValues.get(opt).isEmpty()) {
                             for (String v: optionValues.get(opt)) {
@@ -798,22 +801,24 @@ public class Completers {
                 if ((buffer.contains("=") && !buffer.endsWith("=") && !valueCandidates) || addbuff) {
                     candidates.add(new Candidate(buffer, buffer, null, null, null, null, true));
                 }
-            } else if (argsCompleters.size() > 1) {
+            } else if (words.size() > 1 && words.get(words.size() - 2).matches("-[a-zA-Z]{1}") && optionValues.containsKey(words.get(words.size() - 2))) {
+                new StringsCompleter(optionValues.get(words.get(words.size() - 2))).complete(reader, commandLine, candidates);
+            } else if (!argsCompleters.isEmpty()) {
                 int args = -1;
                 for (int i = startPos; i < words.size(); i++) {
                     if (!words.get(i).startsWith("-")) {
-                        args++;
+                        if (i > 0 && (!words.get(i - 1).matches("-[a-zA-Z]{1}") || !optionValues.containsKey(words.get(i - 1)))) {
+                            args++;
+                        }
                     }
                 }
-                if (args == -1) {  // alternatively could set argumentCompleter strict = false;
+                if (args == -1) {
                     candidates.add(new Candidate(buffer, buffer, null, null, null, null, true));
                 } else if (args < argsCompleters.size()) {
                     argsCompleters.get(args).complete(reader, commandLine, candidates);
                 } else {
                     argsCompleters.get(argsCompleters.size() - 1).complete(reader, commandLine, candidates);
                 }
-            } else {
-                argsCompleters.get(0).complete(reader, commandLine, candidates);
             }
         }
     }
