@@ -594,7 +594,7 @@ public class Completers {
                         String curBuf = buffer.substring(0, eq + 1);
                         for (String c: completers.keySet()) {
                             candidates.add(new Candidate(AttributedString.stripAnsi(curBuf+c)
-                                        , c, null, null, null, null, true));                                           
+                                        , c, null, null, null, null, true));
                         }
                     }
                 } else {
@@ -693,20 +693,126 @@ public class Completers {
         }
     }
 
+    public static class OptDesc {
+        private String shortOption;
+        private String longOption;
+        private String description;
+        private boolean value;
+        private org.jline.reader.Completer valueCompleter;
+
+        protected static List<OptDesc> compile(Map<String,List<String>> optionValues, Collection<String> options) {
+            List<OptDesc> out = new ArrayList<>();
+            for (Map.Entry<String, List<String>> entry: optionValues.entrySet()) {
+                if (entry.getKey().startsWith("--")) {
+                    out.add(new OptDesc(null, entry.getKey(), new StringsCompleter(entry.getValue())));
+                } else if (entry.getKey().matches("-[a-zA-Z]{1}")) {
+                    out.add(new OptDesc(entry.getKey(), null, new StringsCompleter(entry.getValue())));
+                }
+            }
+            for (String o: options) {
+                if (o.startsWith("--")) {
+                    out.add(new OptDesc(null, o));
+                } else if (o.matches("-[a-zA-Z]{1}")) {
+                    out.add(new OptDesc(o, null));
+                }
+            }
+            return out;
+        }
+
+        public OptDesc(String shortOption, String longOption, String description, org.jline.reader.Completer valueCompleter) {
+            this.shortOption = shortOption;
+            this.longOption = longOption;
+            this.description = description;
+            this.value = valueCompleter != null ? true : false;
+            this.valueCompleter = valueCompleter;
+        }
+
+        public OptDesc(String shortOption, String longOption, org.jline.reader.Completer valueCompleter) {
+            this(shortOption, longOption, null, valueCompleter);
+        }
+
+        public OptDesc(String shortOption, String longOption, String description) {
+            this(shortOption, longOption, description, null);
+        }
+
+        public OptDesc(String shortOption, String longOption) {
+            this(shortOption, longOption, null, null);
+        }
+
+        protected OptDesc() {
+        }
+
+        protected String longOption() {
+            return longOption;
+        }
+
+        protected String shortOption() {
+            return shortOption;
+        }
+
+        protected String description() {
+            return description;
+        }
+
+        protected boolean hasValue() {
+            return value;
+        }
+
+        protected org.jline.reader.Completer valueCompleter() {
+            return valueCompleter;
+        }
+
+        protected void completeOption(LineReader reader, final ParsedLine commandLine, List<Candidate> candidates, boolean longOpt) {
+            if (!longOpt) {
+                if (shortOption != null) {
+                    candidates.add(new Candidate(shortOption, shortOption, null, description, null, null, false));
+                }
+            } else if (longOption != null) {
+                if (value) {
+                    candidates.add(new Candidate(longOption + "=", longOption, null, description, null, null, false));
+                } else {
+                    candidates.add(new Candidate(longOption, longOption, null, description, null, null, true));
+                }
+            }
+        }
+
+        protected boolean completeValue(LineReader reader, final ParsedLine commandLine, List<Candidate> candidates, String curBuf, String partialValue) {
+            boolean out = false;
+            List<Candidate> temp = new ArrayList<>();
+            valueCompleter.complete(reader, commandLine, temp);
+            for (Candidate c : temp) {
+                String v = c.value();
+                if (v.startsWith(partialValue)) {
+                    out = true;
+                }
+                candidates.add(new Candidate(curBuf + v, v, null, null, null, null, true));
+            }
+            return out;
+        }
+
+        protected boolean match(String option) {
+            return (shortOption != null && shortOption.equals(option)) || (longOption != null && longOption.equals(option));
+        }
+
+        protected boolean startsWith(String option) {
+            return (shortOption != null && shortOption.startsWith(option))
+                    || (longOption != null && longOption.startsWith(option));
+        }
+    }
+
     public static class OptionCompleter implements org.jline.reader.Completer {
-        private Map<String,List<String>> optionValues = new HashMap<>();
-        private List<String> options = new ArrayList<String>();
-        private Function<String,Map<String,String>> commandOptions;
+        private Function<String,Collection<OptDesc>> commandOptions;
+        private Collection<OptDesc> options;
         private List<org.jline.reader.Completer> argsCompleters = new ArrayList<>();
         private int startPos;
 
-        public OptionCompleter(org.jline.reader.Completer completer, Function<String,Map<String,String>> commandOptions, int startPos) {
+        public OptionCompleter(org.jline.reader.Completer completer, Function<String,Collection<OptDesc>> commandOptions, int startPos) {
             this.startPos = startPos;
             this.commandOptions = commandOptions;
             this.argsCompleters.add(completer);
         }
 
-        public OptionCompleter(List<org.jline.reader.Completer> completers, Function<String,Map<String,String>> commandOptions, int startPos) {
+        public OptionCompleter(List<org.jline.reader.Completer> completers, Function<String,Collection<OptDesc>> commandOptions, int startPos) {
             this.startPos = startPos;
             this.commandOptions = commandOptions;
             this.argsCompleters = new ArrayList<>(completers);
@@ -722,9 +828,13 @@ public class Completers {
             this.argsCompleters.add(completer);
         }
 
-        private OptionCompleter(Map<String,List<String>> optionValues, Collection<String> options, int startPos) {
-            this.optionValues = new HashMap<>(optionValues);
-            this.options.addAll(options);
+        public OptionCompleter(Map<String,List<String>> optionValues, Collection<String> options, int startPos) {
+            this.options = OptDesc.compile(optionValues, options);
+            this.startPos = startPos;
+        }
+
+        public OptionCompleter(Collection<OptDesc> options, int startPos) {
+            this.options = options;
             this.startPos = startPos;
         }
 
@@ -736,78 +846,57 @@ public class Completers {
             String buffer = commandLine.word().substring(0, commandLine.wordCursor());
             if (startPos >= words.size()) {
                 candidates.add(new Candidate(buffer, buffer, null, null, null, null, true));
-            } else if (buffer.startsWith("-")) {
+                return;
+            }
+            String command = Parser.getCommand(words.get(0));
+            if (buffer.startsWith("-")) {
                 boolean addbuff = true;
                 boolean valueCandidates = false;
-                if (commandOptions != null) {
-                    boolean longOption = buffer.startsWith("--");
-                    for (Map.Entry<String,String> entry: commandOptions.apply(Parser.getCommand(words.get(0))).entrySet()) {
-                        if (entry.getKey().startsWith(buffer)) {
-                            addbuff = false;
-                        }
-                        if ((!longOption && !entry.getKey().startsWith("--")) || longOption) {
-                            candidates.add(new Candidate(entry.getKey(), entry.getKey(), null, entry.getValue(), null, null, true));
+                boolean longOption = buffer.startsWith("--");
+                int eq = buffer.matches("-[a-zA-Z]{1}[a-zA-Z0-9]+") ? 2 : buffer.indexOf('=');
+                if (eq < 0) {
+                    List<String> usedOptions = new ArrayList<>();
+                    for (int i = startPos; i < words.size(); i++) {
+                        if (words.get(i).startsWith("-")) {
+                            String w = words.get(i);
+                            int ind = w.indexOf('=');
+                            if (ind < 0) {
+                                usedOptions.add(w);
+                            } else {
+                                usedOptions.add(w.substring(0,ind));
+                            }
                         }
                     }
+                    for (OptDesc o : commandOptions == null ? options : commandOptions.apply(command)) {
+                        if (usedOptions.contains(o.shortOption()) || usedOptions.contains(o.longOption())) {
+                            continue;
+                        }
+                        if (o.startsWith(buffer)) {
+                            addbuff = false;
+                        }
+                        o.completeOption(reader, commandLine, candidates, longOption);
+                    }
                 } else {
-                    int eq = buffer.matches("-[a-zA-Z]{1}[a-zA-Z0-9]+") ? 2 : buffer.indexOf('=');
-                    if (eq < 0) {
-                        List<String> usedOptions = new ArrayList<>();
-                        for (int i = startPos; i < words.size(); i++) {
-                            if (words.get(i).startsWith("-")) {
-                                String w = words.get(i);
-                                int ind = w.indexOf('=');
-                                if (ind < 0) {
-                                    usedOptions.add(w);
-                                } else {
-                                    usedOptions.add(w.substring(0,ind));
-                                }
-                            }
-                        }
-                        for (String o: optionValues.keySet()) {
-                            if (usedOptions.contains(o)) {
-                                continue;
-                            }
-                            if (o.startsWith(buffer)) {
-                                addbuff = false;
-                            }
-                            candidates.add(new Candidate(o+"=", o, null, null, null, null, false));
-                        }
-                        for (String o: options) {
-                            if (usedOptions.contains(o)) {
-                                continue;
-                            }
-                            if (o.startsWith(buffer)) {
-                                addbuff = false;
-                            }
-                            candidates.add(new Candidate(o, o, null, null, null, null, true));
-                        }
-                    } else {
-                        int nb = buffer.contains("=") ? 1 : 0;
-                        String value = buffer.substring(eq + nb);
-                        String curBuf = buffer.substring(0, eq + nb);
-                        String opt = buffer.substring(0, eq);
-                        if (optionValues.containsKey(opt) && !optionValues.get(opt).isEmpty()) {
-                            for (String v: optionValues.get(opt)) {
-                                if (v.startsWith(value)) {
-                                    valueCandidates = true;
-                                    addbuff = false;
-                                }
-                                candidates.add(new Candidate(curBuf+v, v, null, null, null, null, true));
-                            }
-                        }
+                    addbuff = false;
+                    int nb = buffer.contains("=") ? 1 : 0;
+                    String value = buffer.substring(eq + nb);
+                    String curBuf = buffer.substring(0, eq + nb);
+                    String opt = buffer.substring(0, eq);
+                    OptDesc option = findOptDesc(command, opt);
+                    if (option.hasValue()) {
+                        valueCandidates = option.completeValue(reader, commandLine, candidates, curBuf, value);
                     }
                 }
                 if ((buffer.contains("=") && !buffer.endsWith("=") && !valueCandidates) || addbuff) {
                     candidates.add(new Candidate(buffer, buffer, null, null, null, null, true));
                 }
-            } else if (words.size() > 1 && words.get(words.size() - 2).matches("-[a-zA-Z]{1}") && optionValues.containsKey(words.get(words.size() - 2))) {
-                new StringsCompleter(optionValues.get(words.get(words.size() - 2))).complete(reader, commandLine, candidates);
+            } else if (words.size() > 1 && words.get(words.size() - 2).matches("-[a-zA-Z]{1}") && findOptDesc(command, words.get(words.size() - 2)).hasValue()) {
+                findOptDesc(command, words.get(words.size() - 2)).valueCompleter().complete(reader, commandLine, candidates);
             } else if (!argsCompleters.isEmpty()) {
                 int args = -1;
                 for (int i = startPos; i < words.size(); i++) {
                     if (!words.get(i).startsWith("-")) {
-                        if (i > 0 && (!words.get(i - 1).matches("-[a-zA-Z]{1}") || !optionValues.containsKey(words.get(i - 1)))) {
+                        if (i > 0 && (!words.get(i - 1).matches("-[a-zA-Z]{1}") || !findOptDesc(command, words.get(i - 1)).hasValue())) {
                             args++;
                         }
                     }
@@ -821,6 +910,14 @@ public class Completers {
                 }
             }
         }
-    }
 
+        private OptDesc findOptDesc(String command, String opt) {
+            for (OptDesc o : commandOptions == null ? options : commandOptions.apply(command)) {
+                if (o.match(opt)) {
+                    return o;
+                }
+            }
+            return new OptDesc();
+        }
+    }
 }

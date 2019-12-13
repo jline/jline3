@@ -25,6 +25,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.jline.builtins.Completers.FilesCompleter;
+import org.jline.builtins.Completers.OptDesc;
 import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.Completers.SystemCompleter;
 import org.jline.builtins.Options.HelpException;
@@ -245,8 +246,8 @@ public class Builtins implements CommandRegistry {
         return out;
     }
 
-    private Map<String,String> commandOptions(String command) {
-        Map<String,String> out = new HashMap<>();
+    private List<OptDesc> commandOptions(String command) {
+        List<OptDesc> out = new ArrayList<>();
         List<String> args = Arrays.asList("--help");
         try {
             execute(command, args);
@@ -273,12 +274,18 @@ public class Builtins implements CommandRegistry {
                 if (s.matches("^\\s+-.*$")) {
                     int ind = s.lastIndexOf("  ");
                     if (ind > 0) {
-                        String op = s.substring(0, ind).trim();
+                        String[] op = s.substring(0, ind).trim().split("\\s+");
                         String d = s.substring(ind).trim();
-                        if (op.length() > 0) {
-                            for (String o: op.split("\\s+")) {
-                                out.put(o, d);
+                        String so = null;
+                        String lo = null;
+                        if (op.length == 1) {
+                            if (op[0].startsWith("--")) {
+                                out.add(new OptDesc(null, op[0], d));
+                            } else {
+                                out.add(new OptDesc(op[0], null, d));
                             }
+                        } else {
+                            out.add(new OptDesc(op[0], op[1], d));
                         }
                     }
                 }
