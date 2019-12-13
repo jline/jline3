@@ -581,17 +581,24 @@ public class Options {
         }
 
         private static AttributedStringBuilder _highlightSyntax(String syntax, StyleResolver resolver) {
-            AttributedStringBuilder asyntax = new AttributedStringBuilder().append(syntax);
+            StringBuilder indent = new StringBuilder();
+            for (char c : syntax.toCharArray()) {
+                if (c != ' ') {
+                    break;
+                }
+                indent.append(c);
+            }
+            AttributedStringBuilder asyntax = new AttributedStringBuilder().append(syntax.substring(indent.length()));
             // command
-            asyntax.styleMatches(Pattern.compile("(?:^)(?:\\s*)([a-z]+[a-z-]*){1}\\b"),
+            asyntax.styleMatches(Pattern.compile("(?:^)([a-z]+[a-z-]*){1}\\b"),
                     Collections.singletonList(resolver.resolve(".co")));
             // argument
-            asyntax.styleMatches(Pattern.compile("(?:\\[|\\s|=)([A-Za-z]+[A-Za-z_-]*){1}\\b"),
+            asyntax.styleMatches(Pattern.compile("(?:<|\\[|\\s|=)([A-Za-z]+[A-Za-z_-]*){1}\\b"),
                     Collections.singletonList(resolver.resolve(".ar")));
             // option
-            asyntax.styleMatches(Pattern.compile("(?:\\s|\\[)(-\\$|-\\?|[-]{1,2}[A-Za-z-]+\\b){1}"),
+            asyntax.styleMatches(Pattern.compile("(?:^|\\s|\\[)(-\\$|-\\?|[-]{1,2}[A-Za-z-]+\\b){1}"),
                     Collections.singletonList(resolver.resolve(".op")));
-            return asyntax;
+            return new AttributedStringBuilder().append(indent).append(asyntax);
         }
 
         private static AttributedStringBuilder _highlightComment(String comment, StyleResolver resolver) {
