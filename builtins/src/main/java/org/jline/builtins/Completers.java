@@ -697,7 +697,6 @@ public class Completers {
         private String shortOption;
         private String longOption;
         private String description;
-        private boolean value;
         private org.jline.reader.Completer valueCompleter;
 
         protected static List<OptDesc> compile(Map<String,List<String>> optionValues, Collection<String> options) {
@@ -723,7 +722,6 @@ public class Completers {
             this.shortOption = shortOption;
             this.longOption = longOption;
             this.description = description;
-            this.value = valueCompleter != null ? true : false;
             this.valueCompleter = valueCompleter;
         }
 
@@ -742,11 +740,15 @@ public class Completers {
         protected OptDesc() {
         }
 
-        protected String longOption() {
+        public void setValueCompleter(org.jline.reader.Completer valueCompleter) {
+            this.valueCompleter = valueCompleter;
+        }
+
+        public String longOption() {
             return longOption;
         }
 
-        protected String shortOption() {
+        public String shortOption() {
             return shortOption;
         }
 
@@ -755,7 +757,7 @@ public class Completers {
         }
 
         protected boolean hasValue() {
-            return value;
+            return valueCompleter != null;
         }
 
         protected org.jline.reader.Completer valueCompleter() {
@@ -768,7 +770,7 @@ public class Completers {
                     candidates.add(new Candidate(shortOption, shortOption, null, description, null, null, false));
                 }
             } else if (longOption != null) {
-                if (value) {
+                if (hasValue()) {
                     candidates.add(new Candidate(longOption + "=", longOption, null, description, null, null, false));
                 } else {
                     candidates.add(new Candidate(longOption, longOption, null, description, null, null, true));
@@ -829,8 +831,17 @@ public class Completers {
         }
 
         public OptionCompleter(Map<String,List<String>> optionValues, Collection<String> options, int startPos) {
-            this.options = OptDesc.compile(optionValues, options);
-            this.startPos = startPos;
+            this(OptDesc.compile(optionValues, options), startPos);
+        }
+         
+        public OptionCompleter(org.jline.reader.Completer completer, Collection<OptDesc> options, int startPos) {
+            this(options, startPos);
+            this.argsCompleters.add(completer);
+        }
+
+        public OptionCompleter(List<org.jline.reader.Completer> completers, Collection<OptDesc> options, int startPos) {
+            this(options, startPos);
+            this.argsCompleters = new ArrayList<>(completers);
         }
 
         public OptionCompleter(Collection<OptDesc> options, int startPos) {
