@@ -435,6 +435,9 @@ public interface LineReader {
 
         /** Automatic insertion of closing bracket */
         INSERT_BRACKET,
+
+        /** Show command options tab completion candidates for zero length word */
+        EMPTY_WORD_OPTIONS(true),
         ;
 
         private final boolean def;

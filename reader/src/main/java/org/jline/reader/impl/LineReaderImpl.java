@@ -4461,11 +4461,17 @@ public class LineReaderImpl implements LineReader, Flushable
         } else {
             String wd = line.word();
             String wdi = caseInsensitive ? wd.toLowerCase() : wd;
-            matchers = Arrays.asList(
-                    simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).startsWith(wdi)),
-                    simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).contains(wdi)),
-                    typoMatcher(wdi, errors, caseInsensitive)
-            );
+            if (isSet(Option.EMPTY_WORD_OPTIONS) || wd.length() > 0) {
+                matchers = Arrays.asList(
+                        simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).startsWith(wdi)),
+                        simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).contains(wdi)),
+                        typoMatcher(wdi, errors, caseInsensitive)
+                );
+            } else {
+                matchers = Arrays.asList(
+                        simpleMatcher(s -> !s.startsWith("-"))
+                );
+            }
             exact = s -> caseInsensitive ? s.equalsIgnoreCase(wd) : s.equals(wd);
         }
         // Find matching candidates

@@ -660,6 +660,7 @@ public class Example
                     .variable(LineReader.SECONDARY_PROMPT_PATTERN, "%M%P > ")
                     .variable(LineReader.INDENTATION, 2)
                     .option(Option.INSERT_BRACKET, true)
+                    .option(Option.EMPTY_WORD_OPTIONS, false)
                     .build();
             //
             // widgets
