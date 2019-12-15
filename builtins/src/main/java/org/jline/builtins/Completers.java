@@ -833,7 +833,7 @@ public class Completers {
         public OptionCompleter(Map<String,List<String>> optionValues, Collection<String> options, int startPos) {
             this(OptDesc.compile(optionValues, options), startPos);
         }
-         
+
         public OptionCompleter(org.jline.reader.Completer completer, Collection<OptDesc> options, int startPos) {
             this(options, startPos);
             this.argsCompleters.add(completer);
@@ -901,13 +901,13 @@ public class Completers {
                 if ((buffer.contains("=") && !buffer.endsWith("=") && !valueCandidates) || addbuff) {
                     candidates.add(new Candidate(buffer, buffer, null, null, null, null, true));
                 }
-            } else if (words.size() > 1 && words.get(words.size() - 2).matches("-[a-zA-Z]{1}") && findOptDesc(command, words.get(words.size() - 2)).hasValue()) {
-                findOptDesc(command, words.get(words.size() - 2)).valueCompleter().complete(reader, commandLine, candidates);
+            } else if (words.size() > 1 && shortOptionValueCompleter(command, words.get(words.size() - 2)) != null) {
+                shortOptionValueCompleter(command, words.get(words.size() - 2)).complete(reader, commandLine, candidates);
             } else if (!argsCompleters.isEmpty()) {
                 int args = -1;
                 for (int i = startPos; i < words.size(); i++) {
                     if (!words.get(i).startsWith("-")) {
-                        if (i > 0 && (!words.get(i - 1).matches("-[a-zA-Z]{1}") || !findOptDesc(command, words.get(i - 1)).hasValue())) {
+                        if (i > 0 && shortOptionValueCompleter(command, words.get(i - 1)) == null) {
                             args++;
                         }
                     }
@@ -922,8 +922,33 @@ public class Completers {
             }
         }
 
+        private org.jline.reader.Completer shortOptionValueCompleter(String command, String opt) {
+            if (!opt.matches("-[a-zA-Z]+")) {
+                return null;
+            }
+            org.jline.reader.Completer out = null;
+            Collection<OptDesc> optDescs = commandOptions == null ? options : commandOptions.apply(command);
+            if (opt.length() == 2) {
+                out = findOptDesc(optDescs, opt).valueCompleter();
+            } else if (opt.length() > 2) {
+                for (int i = 1; i < opt.length(); i++) {
+                    OptDesc o = findOptDesc(optDescs, "-" + opt.charAt(i));
+                    if (o.shortOption() == null) {
+                        return null;
+                    } else if (out == null) {
+                        out = o.valueCompleter();
+                    }
+                }
+            }
+            return out;
+        }
+
         private OptDesc findOptDesc(String command, String opt) {
-            for (OptDesc o : commandOptions == null ? options : commandOptions.apply(command)) {
+            return findOptDesc(commandOptions == null ? options : commandOptions.apply(command), opt);
+        }
+
+        private OptDesc findOptDesc(Collection<OptDesc> optDescs, String opt) {
+            for (OptDesc o : optDescs) {
                 if (o.match(opt)) {
                     return o;
                 }
