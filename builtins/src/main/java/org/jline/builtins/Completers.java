@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -590,7 +591,7 @@ public class Completers {
                     int eq = buffer.indexOf('=');
                     if (eq < 0) {
                         commands.complete(reader, commandLine, candidates);
-                    } else {
+                    } else if (buffer.substring(0, eq).matches("[a-zA-Z]{1,}[a-zA-Z0-9]*")) {
                         String curBuf = buffer.substring(0, eq + 1);
                         for (String c: completers.keySet()) {
                             candidates.add(new Candidate(AttributedString.stripAnsi(curBuf+c)
@@ -633,6 +634,7 @@ public class Completers {
         }
 
         public void add(String command, org.jline.reader.Completer completer) {
+            Objects.requireNonNull(command);
             if (compiled) {
                 throw new IllegalStateException();
             }
