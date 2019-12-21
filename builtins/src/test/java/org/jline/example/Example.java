@@ -31,6 +31,7 @@ import org.jline.builtins.Completers;
 import org.jline.builtins.Completers.SystemCompleter;
 import org.jline.builtins.Completers.TreeCompleter;
 import org.jline.builtins.Options.HelpException;
+import org.jline.builtins.ScriptCommands;
 import org.jline.builtins.Widgets.ArgDesc;
 import org.jline.builtins.Widgets.AutopairWidgets;
 import org.jline.builtins.Widgets.AutosuggestionWidgets;
@@ -38,6 +39,7 @@ import org.jline.builtins.Widgets.CmdDesc;
 import org.jline.builtins.Widgets.CmdLine;
 import org.jline.builtins.Widgets.TailTipWidgets;
 import org.jline.builtins.Widgets.TailTipWidgets.TipType;
+import org.jline.script.impl.Groovy;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.LineReader.Option;
@@ -641,6 +643,7 @@ public class Example
             builtins.alias("zle", "widget");
             builtins.alias("bindkey", "keymap");
             ExampleCommands exampleCommands = new ExampleCommands();
+            ScriptCommands scriptCommands = new ScriptCommands(new Groovy());
             MasterRegistry masterRegistry = new MasterRegistry(builtins, exampleCommands);
             //
             // Command completers
@@ -747,6 +750,7 @@ public class Example
                     ParsedLine pl = reader.getParser().parse(line, 0);
                     String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
                     String cmd = Parser.getCommand(pl.word());
+                    Object result = null;
                     if ("help".equals(cmd) || "?".equals(cmd)) {
                         masterRegistry.help();
                     }
@@ -755,6 +759,15 @@ public class Example
                     }
                     else if (exampleCommands.hasCommand(cmd)) {
                         exampleCommands.execute(cmd, argv);
+                    }
+                    else if (scriptCommands.hasCommand(cmd)) {
+                        result = scriptCommands.execute(cmd, argv);
+                    }
+                    else {
+                        result = scriptCommands.execute(line);
+                    }
+                    if (result != null) {
+                        System.out.println(result);
                     }
                 }
                 catch (HelpException e) {

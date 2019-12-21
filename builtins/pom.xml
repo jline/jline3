@@ -31,6 +31,10 @@
             <groupId>org.jline</groupId>
             <artifactId>jline-style</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-script</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>com.googlecode.juniversalchardet</groupId>
@@ -66,7 +70,7 @@
                                 <arg>-Xlint:all,-options</arg>
                                 <arg>-Werror</arg>
                                 <arg>-profile</arg>
-                                <arg>compact1</arg>
+                                <arg>compact3</arg>
                             </compilerArgs>
                         </configuration>
                     </execution>

@@ -531,7 +531,13 @@ public class Builtins implements CommandRegistry {
 
     public static class CommandMethods {
         Consumer<CommandInput> execute;
+        Function<CommandInput, Object> executeFunction;
         Function<String, List<Completer>> compileCompleter;
+
+        public CommandMethods(Function<CommandInput, Object> execute,  Function<String, List<Completer>> compileCompleter) {
+            this.executeFunction = execute;
+            this.compileCompleter = compileCompleter;
+        }
 
         public CommandMethods(Consumer<CommandInput> execute,  Function<String, List<Completer>> compileCompleter) {
             this.execute = execute;
@@ -540,6 +546,10 @@ public class Builtins implements CommandRegistry {
 
         public Consumer<CommandInput> execute() {
             return execute;
+        }
+
+        public Function<CommandInput, Object> executeFunction() {
+            return executeFunction;
         }
 
         public Function<String, List<Completer>> compileCompleter() {
