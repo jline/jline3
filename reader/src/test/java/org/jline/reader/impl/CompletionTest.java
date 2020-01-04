@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2020, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -136,13 +136,13 @@ public class CompletionTest extends ReaderTestSupport {
 
     @Test
     public void testMenuOrder() {
-        reader.setCompleter(new StringsCompleter(Arrays.asList("ae_helloWorld", "ad_helloWorld", "ac_helloWorld", "ab_helloWorld", "aa_helloWorld")));
+        reader.setCompleter(new StringsCompleter(Arrays.asList("ae_helloWorld1", "ad_helloWorld12", "ac_helloWorld1234", "ab_helloWorld123", "aa_helloWorld12345")));
         reader.unsetOpt(Option.AUTO_LIST);
         reader.setOpt(Option.AUTO_MENU);
 
-        assertLine("aa_helloWorld ", new TestBuffer("a\t\n\n"));
+        assertLine("aa_helloWorld12345 ", new TestBuffer("a\t\n\n"));
 
-        assertLine("ab_helloWorld ", new TestBuffer("a\t\t\n\n"));
+        assertLine("ab_helloWorld123 ", new TestBuffer("a\t\t\n\n"));
     }
 
     @Test
