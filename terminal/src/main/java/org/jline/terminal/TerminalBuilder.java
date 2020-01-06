@@ -422,14 +422,7 @@ public final class TerminalBuilder {
                     Log.debug("Error creating JANSI based terminal: ", t.getMessage(), t);
                 }
             }
-            Terminal terminal = new ExternalTerminal(name, type, in, out, encoding, signalHandler, paused);
-            if (attributes != null) {
-                terminal.setAttributes(attributes);
-            }
-            if (size != null) {
-                terminal.setSize(size);
-            }
-            return terminal;
+            return new ExternalTerminal(name, type, in, out, encoding, signalHandler, paused, attributes, size);
         }
     }
 
