@@ -1139,7 +1139,8 @@ public class LineReaderImpl implements LineReader, Flushable
             }
             size.copy(terminal.getBufferSize());
             display.resize(size.getRows(), size.getColumns());
-            redrawLine();
+            // restores prompt but also prevents scrolling in consoleZ, see #492
+            // redrawLine();
             redisplay();
         }
         else if (signal == Signal.CONT) {
