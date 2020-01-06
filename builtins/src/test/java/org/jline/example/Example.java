@@ -30,8 +30,8 @@ import org.jline.builtins.CommandRegistry;
 import org.jline.builtins.Completers;
 import org.jline.builtins.Completers.SystemCompleter;
 import org.jline.builtins.Completers.TreeCompleter;
-import org.jline.builtins.Options.HelpException;
-import org.jline.builtins.ScriptCommands;
+import org.jline.builtins.Options;
+import org.jline.builtins.ConsoleCommands;
 import org.jline.builtins.Widgets.ArgDesc;
 import org.jline.builtins.Widgets.AutopairWidgets;
 import org.jline.builtins.Widgets.AutosuggestionWidgets;
@@ -39,7 +39,7 @@ import org.jline.builtins.Widgets.CmdDesc;
 import org.jline.builtins.Widgets.CmdLine;
 import org.jline.builtins.Widgets.TailTipWidgets;
 import org.jline.builtins.Widgets.TailTipWidgets.TipType;
-import org.jline.script.impl.Groovy;
+import org.jline.groovy.Engine;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.LineReader.Option;
@@ -643,12 +643,12 @@ public class Example
             builtins.alias("zle", "widget");
             builtins.alias("bindkey", "keymap");
             ExampleCommands exampleCommands = new ExampleCommands();
-            ScriptCommands scriptCommands = new ScriptCommands(new Groovy());
-            MasterRegistry masterRegistry = new MasterRegistry(builtins, exampleCommands);
+            ConsoleCommands consoleCommands = new ConsoleCommands(new Engine());
+            MasterRegistry masterRegistry = new MasterRegistry(builtins, consoleCommands, exampleCommands);
             //
             // Command completers
             //
-            AggregateCompleter finalCompleter = new AggregateCompleter(CommandRegistry.compileCompleters(builtins, exampleCommands)
+            AggregateCompleter finalCompleter = new AggregateCompleter(CommandRegistry.compileCompleters(builtins, consoleCommands, exampleCommands)
                                                                      , completer != null ? completer : NullCompleter.INSTANCE);
             //
             // Terminal & LineReader
@@ -747,6 +747,7 @@ public class Example
                     if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) {
                         break;
                     }
+
                     ParsedLine pl = reader.getParser().parse(line, 0);
                     String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
                     String cmd = Parser.getCommand(pl.word());
@@ -760,18 +761,20 @@ public class Example
                     else if (exampleCommands.hasCommand(cmd)) {
                         exampleCommands.execute(cmd, argv);
                     }
-                    else if (scriptCommands.hasCommand(cmd)) {
-                        result = scriptCommands.execute(cmd, argv);
+                    else if (consoleCommands.hasCommand(cmd)) {
+                        result = consoleCommands.execute(cmd, argv);
                     }
                     else {
-                        result = scriptCommands.execute(line);
+                        result = consoleCommands.execute(cmd, argv, line);
                     }
                     if (result != null) {
                         System.out.println(result);
                     }
+
+
                 }
-                catch (HelpException e) {
-                    HelpException.highlight(e.getMessage(), HelpException.defaultStyle()).print(terminal);
+                catch (Options.HelpException e) {
+                    Options.HelpException.highlight(e.getMessage(), Options.HelpException.defaultStyle()).print(terminal);
                 }
                 catch (IllegalArgumentException|FileNotFoundException e) {
                     System.out.println(e.getMessage());

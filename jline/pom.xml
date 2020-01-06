@@ -80,6 +80,11 @@
         </dependency>
         <dependency>
             <groupId>org.jline</groupId>
+            <artifactId>jline-groovy</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
             <artifactId>jline-builtins</artifactId>
             <scope>provided</scope>
         </dependency>
@@ -147,6 +152,14 @@
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
+                                    <artifactId>jline-groovy</artifactId>
+                                    <classifier>sources</classifier>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
                                     <artifactId>jline-builtins</artifactId>
                                     <classifier>sources</classifier>
                                     <type>jar</type>
@@ -206,6 +219,14 @@
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
                                     <artifactId>jline-reader</artifactId>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+                                    <excludes>**/*.class</excludes>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jline-groovy</artifactId>
                                     <type>jar</type>
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
@@ -294,10 +315,24 @@
                         <configuration>
                             <excludes>
                                 <exclude>**/TTop.java</exclude>
+                                <exclude>**/groovy/Engine.java</exclude>
                             </excludes>
                             <compilerArgs>
                                 <arg>-Xlint:all,-options</arg>
                                 <arg>-Werror</arg>
+                                <arg>-profile</arg>
+                                <arg>compact1</arg>
+                            </compilerArgs>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>compile-accept-warn</id>
+                        <configuration>
+                            <includes>
+                                <include>**/groovy/Engine.java</include>
+                            </includes>
+                            <compilerArgs>
+                                <arg>-Xlint:all,-options</arg>
                                 <arg>-profile</arg>
                                 <arg>compact1</arg>
                             </compilerArgs>

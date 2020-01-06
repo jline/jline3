@@ -1,22 +1,20 @@
-package org.jline.script.impl;
+package org.jline.groovy;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
-import org.jline.script.JLineEngine;
+import org.jline.reader.ScriptEngine;
 
 import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
 import groovy.lang.Script;
 
-public class Groovy implements JLineEngine {
+public class Engine implements ScriptEngine {
     private GroovyShell shell;
     private Binding sharedData;
     private Map<String,String> imports = new HashMap<String,String>();
 
-    public Groovy() {
+    public Engine() {
         this.sharedData = new Binding();
         shell = new GroovyShell(sharedData);
     }
@@ -37,7 +35,8 @@ public class Groovy implements JLineEngine {
     }
 
     @Override
-    public Object execute(File script) throws Exception {
+    public Object execute(File script, Object[] args) throws Exception {
+        sharedData.setProperty("args", args);
         Script s = shell.parse(script);
         return s.run();
     }
@@ -52,7 +51,7 @@ public class Groovy implements JLineEngine {
         } else if (statement.equals("import")) {
             out = new ArrayList<>(imports.keySet());
         } else {
-            String e="";
+            String e = "";
             for (Map.Entry<String, String> entry : imports.entrySet()) {
                 e += entry.getValue()+"\n";
             }
@@ -65,6 +64,11 @@ public class Groovy implements JLineEngine {
     @Override
     public String getEngineName() {
         return this.getClass().getSimpleName();
+    }
+
+    @Override
+    public List<String> getExtensions() {
+        return Arrays.asList("groovy");
     }
 
     private void del(String var){

@@ -1,4 +1,4 @@
-package org.jline.script;
+package org.jline.reader;
 
 import java.io.File;
 import java.util.*;
@@ -6,23 +6,29 @@ import java.util.*;
 import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 
-public interface JLineEngine {
+public interface ScriptEngine {
 
-    public String getEngineName();
+    String getEngineName();
 
-    public void put(String name, Object value);
+    Collection<String> getExtensions();
 
-    public Object get(String name);
+    void put(String name, Object value);
 
-    public Map<String,Object> get();
+    Object get(String name);
 
-    public void del(String... vars);
+    Map<String,Object> get();
 
-    public Object execute(String statement) throws Exception;
+    void del(String... vars);
 
-    public Object execute(File script) throws Exception;
+    Object execute(String statement) throws Exception;
 
-    public static List<Map<String, Object>> listEngines() {
+    default Object execute(File script) throws Exception {
+        return execute(script, null);
+    }
+
+    Object execute(File script, Object[] args) throws Exception;
+
+    static List<Map<String, Object>> listEngines() {
         List<Map<String, Object>> out = new ArrayList<>();
         ScriptEngineManager f = new ScriptEngineManager();
         List<ScriptEngineFactory> engines = f.getEngineFactories();

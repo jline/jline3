@@ -168,7 +168,7 @@
 
             <dependency>
                 <groupId>org.jline</groupId>
-                <artifactId>jline-script</artifactId>
+                <artifactId>jline-groovy</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -505,7 +505,7 @@
         <module>terminal-jna</module>
         <module>terminal-jansi</module>
         <module>reader</module>
-        <module>script</module>
+        <module>groovy</module>
         <module>builtins</module>
         <module>remote-ssh</module>
         <module>remote-telnet</module>

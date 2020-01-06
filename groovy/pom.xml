@@ -10,15 +10,19 @@
 		<version>3.13.3-SNAPSHOT</version>
 	</parent>
 	<groupId>org.jline</groupId>
-	<artifactId>jline-script</artifactId>
+	<artifactId>jline-groovy</artifactId>
 	<version>3.13.3-SNAPSHOT</version>
-	<name>jline-script</name>
+	<name>JLine Groovy</name>
 	<url>http://maven.apache.org</url>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<groovy.version>2.5.8</groovy.version>
 	</properties>
 	<dependencies>
+         <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-reader</artifactId>
+        </dependency>
         <dependency>
              <groupId>org.codehaus.groovy</groupId>
              <artifactId>groovy-all</artifactId>

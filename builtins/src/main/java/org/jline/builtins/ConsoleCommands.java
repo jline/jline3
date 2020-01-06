@@ -1,42 +1,49 @@
 package org.jline.builtins;
 
+import java.io.File;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.jline.builtins.Builtins;
 import org.jline.builtins.Builtins.Command;
+import org.jline.builtins.Builtins.CommandInput;
 import org.jline.builtins.Builtins.CommandMethods;
+import org.jline.builtins.Completers.SystemCompleter;
 import org.jline.reader.Completer;
 import org.jline.reader.ConfigurationPath;
 import org.jline.reader.LineReader;
 import org.jline.reader.Widget;
 import org.jline.reader.impl.completer.NullCompleter;
-import org.jline.script.JLineEngine;
-
-public class ScriptCommands implements CommandRegistry {
-    public enum Command {SET
+import org.jline.reader.ScriptEngine;
+    
+public class ConsoleCommands implements CommandRegistry {
+    public enum Command {SHOW
                        , DEL
                        , ENGINES};
-    private final JLineEngine engine;
+    private final ScriptEngine engine;
     private Map<Command,String> commandName = new HashMap<>();
     private Map<String,Command> nameCommand = new HashMap<>();
     private Map<String,String> aliasCommand = new HashMap<>();
     private final Map<Command,CommandMethods> commandExecute = new HashMap<>();
     private Map<Command,List<String>> commandInfo = new HashMap<>();
     private Exception exception;
+    private Consumer<String> execute;
 
-    public ScriptCommands(JLineEngine engine) {
+    public ConsoleCommands(ScriptEngine engine) {
         this.engine = engine;
+//        this.commandExecute = execute;
         Set<Command> cmds = new HashSet<>(EnumSet.allOf(Command.class));
         for (Command c: cmds) {
             commandName.put(c, c.name().toLowerCase());
         }
         doNameCommand();
         commandExecute.put(Command.ENGINES, new CommandMethods(this::engines, this::defaultCompleter));
-        commandExecute.put(Command.SET, new CommandMethods(this::set, this::defaultCompleter));
+        commandExecute.put(Command.DEL, new CommandMethods(this::del, this::defaultCompleter));
+        commandExecute.put(Command.SHOW, new CommandMethods(this::show, this::defaultCompleter));
     }
     
     public Set<String> commandNames() {
@@ -98,15 +105,35 @@ public class ScriptCommands implements CommandRegistry {
     }
 
     public Completers.SystemCompleter compileCompleters() {
-        return null;
+        SystemCompleter out = new SystemCompleter();
+        for (Map.Entry<Command, String> entry: commandName.entrySet()) {
+            out.add(entry.getValue(), commandExecute.get(entry.getKey()).compileCompleter().apply(entry.getValue()));
+        }
+        out.addAliases(aliasCommand);
+        return out;
     }
 
     public Widgets.CmdDesc commandDescription(String command) {
         return null;
     }
   
-    public Object execute(String statement) throws Exception {
-        return engine.execute(statement);    
+    public Object execute(String cmd, String[] args, String statement) throws Exception {
+        Object out = null;
+        if (new File(cmd).exists()) {
+            File file = new File(cmd);
+            String name = file.getName();
+            String ext = name.contains(".") ? name.substring(name.lastIndexOf(".") + 1) : "";
+            if(engine.getExtensions().contains(ext)) {
+                out = engine.execute(file, args);            
+            } else {
+                throw new IllegalArgumentException("Command not found: " + cmd);
+            }
+//          execute.accept(statement);
+
+        } else {
+            out = engine.execute(statement);
+        }
+        return out;    
     }
     
     public Object execute(String command, String[] args) throws Exception {
@@ -119,15 +146,19 @@ public class ScriptCommands implements CommandRegistry {
     }
 
     public Object engines(Builtins.CommandInput input) {
-        return JLineEngine.listEngines();
+        return ScriptEngine.listEngines();
     }
 
-    public Object set(Builtins.CommandInput input) {
+    public Object show(Builtins.CommandInput input) {
         return engine.get();
+    }
+
+    public Object del(Builtins.CommandInput input) {
+        engine.del(input.args());
+        return null;
     }
 
     private List<Completer> defaultCompleter(String command) {
         return Arrays.asList(NullCompleter.INSTANCE);
     }
-
 }

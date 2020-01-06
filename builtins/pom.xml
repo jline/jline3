@@ -33,7 +33,7 @@
         </dependency>
         <dependency>
             <groupId>org.jline</groupId>
-            <artifactId>jline-script</artifactId>
+            <artifactId>jline-groovy</artifactId>
         </dependency>
 
         <dependency>
