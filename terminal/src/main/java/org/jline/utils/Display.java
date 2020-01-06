@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019, the original author or authors.
+ * Copyright (c) 2002-2020, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -207,17 +207,15 @@ public class Display {
                     // go to next line column zero
                     rawPrint(new AttributedString(" \b"));
                 } else {
-                    AttributedString firstChar =
-                        newLine.columnSubSequence(0, 1);
+                    AttributedString firstChar = newLine.substring(0, 1);
                     // go to next line column one
                     rawPrint(firstChar);
-                    cursorPos++;
-                    int firstLength = firstChar.length(); // normally 1
-                    newLine = newLine.substring(firstLength, newLength);
-                    newLength -= firstLength;
-                    if (oldLength >= firstLength) {
-                        oldLine = oldLine.substring(firstLength, oldLength);
-                        oldLength -= firstLength;
+                    cursorPos += firstChar.columnLength(); // normally 1
+                    newLine = newLine.substring(1, newLength);
+                    newLength--;
+                    if (oldLength > 0) {
+                        oldLine = oldLine.substring(1, oldLength);
+                        oldLength--;
                     }
                     currentPos = cursorPos;
                 }
@@ -321,7 +319,6 @@ public class Display {
                 currentPos = cursorPos;
             }
         }
-        int was = cursorPos;
         if (cursorPos != targetCursorPos) {
             moveVisualCursorTo(targetCursorPos < 0 ? currentPos : targetCursorPos, newLines);
         }
