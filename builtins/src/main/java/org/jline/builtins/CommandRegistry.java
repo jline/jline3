@@ -10,6 +10,7 @@ package org.jline.builtins;
 
 import org.jline.builtins.Completers;
 import org.jline.builtins.Widgets;
+import org.jline.reader.*;
 
 import java.util.List;
 import java.util.Map;
@@ -79,4 +80,12 @@ public interface CommandRegistry {
      *         in the terminal status bar.
      */
     Widgets.CmdDesc commandDescription(String command);
+    
+    default Object execute(String command, String[] args) throws Exception {
+        throw new IllegalAccessError("Not implemented!");
+    }
+
+    default Object execute(ParsedLine parsedLine) throws Exception {
+        throw new IllegalAccessError("Not implemented!");
+    }
 }

@@ -5,5 +5,5 @@ class HelloWorld {
 }
 
 def static main(args){
-    HelloWorld.hello(!args || args.size() == 0 ? 'world' : args[0])
+    HelloWorld.hello(!args ? 'world' : args[0])
 }

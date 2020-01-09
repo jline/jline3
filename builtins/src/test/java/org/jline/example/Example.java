@@ -44,6 +44,7 @@ import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.LineReader.Option;
 import org.jline.reader.LineReader.SuggestionType;
+import org.jline.reader.Parser.ParseContext;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.DefaultParser.Bracket;
 import org.jline.reader.impl.LineReaderImpl;
@@ -135,11 +136,40 @@ public class Example
         return tailTips;
     }
 
-    private static class MasterRegistry {
+    public static class MasterRegistry implements CommandRegistry {
         private final CommandRegistry[] commandRegistries;
+        private Parser parser;
 
         public MasterRegistry(CommandRegistry... commandRegistries) {
             this.commandRegistries = commandRegistries;
+        }
+
+        public void setParser(Parser parser) {
+            this.parser = parser;
+        }
+
+        public Object execute(ParsedLine pl) throws Exception {
+            String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
+            String cmd = Parser.getCommand(pl.word());
+            Object out = null;
+            boolean done = false;
+            if ("help".equals(cmd) || "?".equals(cmd)) {
+                help();
+                done = true;
+            }
+            else {
+                for (CommandRegistry r : commandRegistries) {
+                    if (r.hasCommand(cmd)) {
+                        out = r.execute(cmd, argv);
+                        done = true;
+                        break;
+                    }
+                }
+            }
+            if (!done) {
+                out = commandRegistries[0].execute(pl);
+            }
+            return out;
         }
 
         public void help() {
@@ -162,6 +192,29 @@ public class Example
             }
             System.out.println("  Additional help:");
             System.out.println("    <command> --help");
+        }
+        public Set<String> commandNames(){
+            return null;
+        }
+
+        public Map<String, String> commandAliases(){
+            return null;
+        }
+
+        public List<String> commandInfo(String command) {
+            return null;
+        }
+
+        public boolean hasCommand(String command) {
+            return true;
+        }
+
+        public Completers.SystemCompleter compileCompleters() {
+            return null;
+        }
+
+        public CmdDesc commandDescription(String command) {
+            return null;
         }
 
         public CmdDesc commandDescription(CmdLine line) {
@@ -297,12 +350,13 @@ public class Example
             return out;
         }
 
-        public void execute(String command, String[] args) throws Exception {
+        public Object execute(String command, String[] args) throws Exception {
             exception = null;
             commandExecute.get(command(command)).execute().accept(new Builtins.CommandInput(args));
             if (exception != null) {
                 throw exception;
             }
+            return null;
         }
 
         public CmdDesc commandDescription(String command) {
@@ -643,8 +697,10 @@ public class Example
             builtins.alias("zle", "widget");
             builtins.alias("bindkey", "keymap");
             ExampleCommands exampleCommands = new ExampleCommands();
-            ConsoleCommands consoleCommands = new ConsoleCommands(new Engine());
-            MasterRegistry masterRegistry = new MasterRegistry(builtins, consoleCommands, exampleCommands);
+            ConsoleCommands consoleCommands = new ConsoleCommands(new Engine(), parser);
+            MasterRegistry masterRegistry = new MasterRegistry(consoleCommands, builtins, exampleCommands);
+            masterRegistry.setParser(parser);
+            consoleCommands.setMasterRegistry(masterRegistry);
             //
             // Command completers
             //
@@ -748,30 +804,10 @@ public class Example
                         break;
                     }
 
-                    ParsedLine pl = reader.getParser().parse(line, 0);
-                    String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
-                    String cmd = Parser.getCommand(pl.word());
-                    Object result = null;
-                    if ("help".equals(cmd) || "?".equals(cmd)) {
-                        masterRegistry.help();
-                    }
-                    else if (builtins.hasCommand(cmd)) {
-                        builtins.execute(cmd, argv, System.in, System.out, System.err);
-                    }
-                    else if (exampleCommands.hasCommand(cmd)) {
-                        exampleCommands.execute(cmd, argv);
-                    }
-                    else if (consoleCommands.hasCommand(cmd)) {
-                        result = consoleCommands.execute(cmd, argv);
-                    }
-                    else {
-                        result = consoleCommands.execute(cmd, argv, line);
-                    }
+                    Object result = masterRegistry.execute(reader.getParser().parse(line, 0, ParseContext.ACCEPT_LINE));
                     if (result != null) {
                         System.out.println(result);
                     }
-
-
                 }
                 catch (Options.HelpException e) {
                     Options.HelpException.highlight(e.getMessage(), Options.HelpException.defaultStyle()).print(terminal);

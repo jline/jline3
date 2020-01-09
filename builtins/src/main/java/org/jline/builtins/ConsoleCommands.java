@@ -1,7 +1,11 @@
 package org.jline.builtins;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -13,12 +17,11 @@ import org.jline.builtins.Builtins.Command;
 import org.jline.builtins.Builtins.CommandInput;
 import org.jline.builtins.Builtins.CommandMethods;
 import org.jline.builtins.Completers.SystemCompleter;
-import org.jline.reader.Completer;
-import org.jline.reader.ConfigurationPath;
-import org.jline.reader.LineReader;
-import org.jline.reader.Widget;
+import org.jline.reader.*;
+import org.jline.reader.Parser.ParseContext;
 import org.jline.reader.impl.completer.NullCompleter;
-import org.jline.reader.ScriptEngine;
+import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.AttributedStyle;
     
 public class ConsoleCommands implements CommandRegistry {
     public enum Command {SHOW
@@ -31,11 +34,13 @@ public class ConsoleCommands implements CommandRegistry {
     private final Map<Command,CommandMethods> commandExecute = new HashMap<>();
     private Map<Command,List<String>> commandInfo = new HashMap<>();
     private Exception exception;
-    private Consumer<String> execute;
+    private CommandRegistry masterRegistry;
+    private String scriptExtension = "jline";
+    private Parser parser;
 
-    public ConsoleCommands(ScriptEngine engine) {
+    public ConsoleCommands(ScriptEngine engine, Parser parser) {
         this.engine = engine;
-//        this.commandExecute = execute;
+        this.parser = parser;
         Set<Command> cmds = new HashSet<>(EnumSet.allOf(Command.class));
         for (Command c: cmds) {
             commandName.put(c, c.name().toLowerCase());
@@ -44,6 +49,15 @@ public class ConsoleCommands implements CommandRegistry {
         commandExecute.put(Command.ENGINES, new CommandMethods(this::engines, this::defaultCompleter));
         commandExecute.put(Command.DEL, new CommandMethods(this::del, this::defaultCompleter));
         commandExecute.put(Command.SHOW, new CommandMethods(this::show, this::defaultCompleter));
+    }
+    
+    public void setMasterRegistry(CommandRegistry masterRegistry) {
+        this.masterRegistry = masterRegistry;
+    }
+    
+    public ConsoleCommands scriptExtension(String extension) {
+        this.scriptExtension = extension;
+        return this;
     }
     
     public Set<String> commandNames() {
@@ -116,22 +130,52 @@ public class ConsoleCommands implements CommandRegistry {
     public Widgets.CmdDesc commandDescription(String command) {
         return null;
     }
+
+    private List<String> slurp(String path) throws IOException{
+        List<String> out = new ArrayList<>();
+        byte[] encoded = Files.readAllBytes(Paths.get(path));
+        out.addAll(Arrays.asList(new String(encoded, StandardCharsets.UTF_8).split("\n|\n\r")));
+        return out;
+   }
   
-    public Object execute(String cmd, String[] args, String statement) throws Exception {
+    public Object execute(ParsedLine pl) throws Exception {
+        String[] args = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
+        String cmd = Parser.getCommand(pl.word());
         Object out = null;
         if (new File(cmd).exists()) {
             File file = new File(cmd);
             String name = file.getName();
             String ext = name.contains(".") ? name.substring(name.lastIndexOf(".") + 1) : "";
             if(engine.getExtensions().contains(ext)) {
-                out = engine.execute(file, args);            
+                out = engine.execute(file, args);
+            } else if (scriptExtension.equals(ext)) {
+                List<String> commandsBuffer = slurp(cmd);
+                String line = "";
+                boolean done = false;
+                while (!commandsBuffer.isEmpty()) {
+                    try {
+                        line += commandsBuffer.remove(0);
+                        parser.parse(line, line.length() + 1, ParseContext.ACCEPT_LINE);
+                        masterRegistry.execute(parser.parse(line, 0, ParseContext.ACCEPT_LINE));
+                        line = "";
+                    } catch (EOFError e) {
+                        if (commandsBuffer.isEmpty()) {
+                            throw new IllegalArgumentException("Incompleted command: \n" + line);
+                        }
+                        line += "\n";
+                    } catch (SyntaxError e) {
+                        commandsBuffer.clear();
+                        throw e;
+                    } catch (Exception e) {
+                        commandsBuffer.clear();
+                        throw new IllegalArgumentException(e.getMessage());
+                    }
+                }
             } else {
                 throw new IllegalArgumentException("Command not found: " + cmd);
             }
-//          execute.accept(statement);
-
         } else {
-            out = engine.execute(statement);
+            out = engine.execute(pl.line());
         }
         return out;    
     }

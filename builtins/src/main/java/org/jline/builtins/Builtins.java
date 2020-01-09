@@ -137,6 +137,7 @@ public class Builtins implements CommandRegistry {
         aliasCommand.put(alias, command);
     }
 
+    @Override
     public boolean hasCommand(String name) {
         if (nameCommand.containsKey(name) || aliasCommand.containsKey(name)) {
             return true;
@@ -169,8 +170,14 @@ public class Builtins implements CommandRegistry {
         return out;
     }
 
-    private void execute(String command, List<String> args) throws Exception {
+    @Override
+    public Object execute(String command, String[] args) throws Exception {
+        return execute(command, Arrays.asList(args));
+    }
+
+    private Object execute(String command, List<String> args) throws Exception {
         execute(command, args, System.in, System.out, System.err);
+        return null;
     }
 
     public void execute(String command, List<String> args, InputStream in, PrintStream out, PrintStream err) throws Exception {
