@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019, the original author or authors.
+ * Copyright (c) 2002-2020, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -30,8 +30,9 @@ import org.jline.builtins.CommandRegistry;
 import org.jline.builtins.Completers;
 import org.jline.builtins.Completers.SystemCompleter;
 import org.jline.builtins.Completers.TreeCompleter;
+import org.jline.builtins.ConsoleEngine;
 import org.jline.builtins.Options;
-import org.jline.builtins.ConsoleCommands;
+import org.jline.builtins.Master;
 import org.jline.builtins.Widgets.ArgDesc;
 import org.jline.builtins.Widgets.AutopairWidgets;
 import org.jline.builtins.Widgets.AutosuggestionWidgets;
@@ -136,85 +137,11 @@ public class Example
         return tailTips;
     }
 
-    public static class MasterRegistry implements CommandRegistry {
-        private final CommandRegistry[] commandRegistries;
-        private Parser parser;
+    private static class DescriptionGenerator {
+        CommandRegistry masterRegistry;
 
-        public MasterRegistry(CommandRegistry... commandRegistries) {
-            this.commandRegistries = commandRegistries;
-        }
-
-        public void setParser(Parser parser) {
-            this.parser = parser;
-        }
-
-        public Object execute(ParsedLine pl) throws Exception {
-            String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
-            String cmd = Parser.getCommand(pl.word());
-            Object out = null;
-            boolean done = false;
-            if ("help".equals(cmd) || "?".equals(cmd)) {
-                help();
-                done = true;
-            }
-            else {
-                for (CommandRegistry r : commandRegistries) {
-                    if (r.hasCommand(cmd)) {
-                        out = r.execute(cmd, argv);
-                        done = true;
-                        break;
-                    }
-                }
-            }
-            if (!done) {
-                out = commandRegistries[0].execute(pl);
-            }
-            return out;
-        }
-
-        public void help() {
-            System.out.println("List of available commands:");
-            for (CommandRegistry r : commandRegistries) {
-                TreeSet<String> commands = new TreeSet<>(r.commandNames());
-                AttributedStringBuilder asb = new AttributedStringBuilder().tabs(2);
-                asb.append("\t");
-                asb.append(r.getClass().getSimpleName());
-                asb.append(":");
-                System.out.println(asb.toString());
-                for (String c: commands) {
-                    asb = new AttributedStringBuilder().tabs(Arrays.asList(4,20));
-                    asb.append("\t");
-                    asb.append(c);
-                    asb.append("\t");
-                    asb.append(r.commandInfo(c).get(0));
-                    System.out.println(asb.toString());
-                }
-            }
-            System.out.println("  Additional help:");
-            System.out.println("    <command> --help");
-        }
-        public Set<String> commandNames(){
-            return null;
-        }
-
-        public Map<String, String> commandAliases(){
-            return null;
-        }
-
-        public List<String> commandInfo(String command) {
-            return null;
-        }
-
-        public boolean hasCommand(String command) {
-            return true;
-        }
-
-        public Completers.SystemCompleter compileCompleters() {
-            return null;
-        }
-
-        public CmdDesc commandDescription(String command) {
-            return null;
+        public DescriptionGenerator(CommandRegistry masterRegistry) {
+            this.masterRegistry = masterRegistry;
         }
 
         public CmdDesc commandDescription(CmdLine line) {
@@ -222,12 +149,7 @@ public class Example
             switch (line.getDescriptionType()) {
             case COMMAND:
                 String cmd = Parser.getCommand(line.getArgs().get(0));
-                for (CommandRegistry r : commandRegistries) {
-                    if (r.hasCommand(cmd)) {
-                        out = r.commandDescription(cmd);
-                        break;
-                    }
-                }
+                out = masterRegistry.commandDescription(cmd);
                 break;
             case METHOD:
                 out = methodDescription(line);
@@ -697,14 +619,12 @@ public class Example
             builtins.alias("zle", "widget");
             builtins.alias("bindkey", "keymap");
             ExampleCommands exampleCommands = new ExampleCommands();
-            ConsoleCommands consoleCommands = new ConsoleCommands(new Engine(), parser);
-            MasterRegistry masterRegistry = new MasterRegistry(consoleCommands, builtins, exampleCommands);
-            masterRegistry.setParser(parser);
-            consoleCommands.setMasterRegistry(masterRegistry);
+            ConsoleEngine consoleEngine = new ConsoleEngine(new Engine(), parser);
+            Master.Registry masterRegistry = new Master.Registry(consoleEngine, builtins, exampleCommands);
             //
             // Command completers
             //
-            AggregateCompleter finalCompleter = new AggregateCompleter(CommandRegistry.compileCompleters(builtins, consoleCommands, exampleCommands)
+            AggregateCompleter finalCompleter = new AggregateCompleter(masterRegistry.compileCompleters()
                                                                      , completer != null ? completer : NullCompleter.INSTANCE);
             //
             // Terminal & LineReader
@@ -730,7 +650,8 @@ public class Example
             if (argument) {
                 tailtipWidgets = new TailTipWidgets(reader, compileTailTips(), 5, TipType.COMPLETER);
             } else {
-                tailtipWidgets = new TailTipWidgets(reader, masterRegistry::commandDescription, 5, TipType.COMPLETER);
+                DescriptionGenerator descriptionGenerator = new DescriptionGenerator(masterRegistry);
+                tailtipWidgets = new TailTipWidgets(reader, descriptionGenerator::commandDescription, 5, TipType.COMPLETER);
             }
             //
             // complete command registeries

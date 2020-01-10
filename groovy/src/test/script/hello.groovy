@@ -4,6 +4,6 @@ class HelloWorld {
     }       
 }
 
-def static main(args){
+def static main(def args){
     HelloWorld.hello(!args ? 'world' : args[0])
 }

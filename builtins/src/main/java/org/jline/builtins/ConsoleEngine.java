@@ -1,3 +1,11 @@
+/*
+ * Copyright (c) 2002-2020, the original author or authors.
+ *
+ * This software is distributable under the BSD license. See the terms of the
+ * BSD license in the documentation provided with this software.
+ *
+ * https://opensource.org/licenses/BSD-3-Clause
+ */
 package org.jline.builtins;
 
 import java.io.File;
@@ -23,7 +31,12 @@ import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
     
-public class ConsoleCommands implements CommandRegistry {
+/**
+ * Console commands and script execution.
+ *
+ * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
+ */
+public class ConsoleEngine implements CommandRegistry {
     public enum Command {SHOW
                        , DEL
                        , ENGINES};
@@ -38,7 +51,7 @@ public class ConsoleCommands implements CommandRegistry {
     private String scriptExtension = "jline";
     private Parser parser;
 
-    public ConsoleCommands(ScriptEngine engine, Parser parser) {
+    public ConsoleEngine(ScriptEngine engine, Parser parser) {
         this.engine = engine;
         this.parser = parser;
         Set<Command> cmds = new HashSet<>(EnumSet.allOf(Command.class));
@@ -51,11 +64,19 @@ public class ConsoleCommands implements CommandRegistry {
         commandExecute.put(Command.SHOW, new CommandMethods(this::show, this::defaultCompleter));
     }
     
+    @Override
+    public CommandRegistry.Type getType() {
+        return CommandRegistry.Type.CONSOLE;
+    }
+    
     public void setMasterRegistry(CommandRegistry masterRegistry) {
+        if (masterRegistry.getType() != CommandRegistry.Type.SYSTEM) {
+            throw new IllegalArgumentException();
+        }
         this.masterRegistry = masterRegistry;
     }
     
-    public ConsoleCommands scriptExtension(String extension) {
+    public ConsoleEngine scriptExtension(String extension) {
         this.scriptExtension = extension;
         return this;
     }
@@ -115,7 +136,7 @@ public class ConsoleCommands implements CommandRegistry {
     }
 
     public List<String> commandInfo(String command) {
-        return null;
+        return new ArrayList<>();
     }
 
     public Completers.SystemCompleter compileCompleters() {

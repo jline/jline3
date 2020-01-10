@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019, the original author or authors.
+ * Copyright (c) 2002-2020, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -17,6 +17,8 @@ import java.util.Map;
 import java.util.Set;
 
 public interface CommandRegistry {
+    
+    enum Type {BASE, CONSOLE, SYSTEM}
 
     /**
      * Aggregate SystemCompleters of commandRegisteries
@@ -80,6 +82,14 @@ public interface CommandRegistry {
      *         in the terminal status bar.
      */
     Widgets.CmdDesc commandDescription(String command);
+    
+    default Type getType() {
+        return Type.BASE;
+    }
+
+    default void setMasterRegistry(CommandRegistry masterRegistry) {
+        throw new IllegalAccessError("Not implemented!");        
+    }
     
     default Object execute(String command, String[] args) throws Exception {
         throw new IllegalAccessError("Not implemented!");
