@@ -33,7 +33,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                     throw new IllegalArgumentException();
                 } else {
                     this.consoleId = i;
-                    ((ConsoleEngine) commandRegistries[i]).setMasterRegistry(this);
+                    ((ConsoleEngine) commandRegistries[i]).setSystemRegistry(this);
                 }
             } else if (commandRegistries[i] instanceof SystemRegistry) {
                 throw new IllegalArgumentException();

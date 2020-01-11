@@ -8,7 +8,9 @@
  */
 package org.jline.builtins;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -50,7 +52,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     private final Map<Command,CommandMethods> commandExecute = new HashMap<>();
     private Map<Command,List<String>> commandInfo = new HashMap<>();
     private Exception exception;
-    private SystemRegistry masterRegistry;
+    private SystemRegistry systemRegistry;
     private String scriptExtension = "jline";
     private Parser parser;
 
@@ -67,8 +69,8 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         commandExecute.put(Command.SHOW, new CommandMethods(this::show, this::defaultCompleter));
     }
         
-    public void setMasterRegistry(SystemRegistry masterRegistry) {
-        this.masterRegistry = masterRegistry;
+    public void setSystemRegistry(SystemRegistry systemRegistry) {
+        this.systemRegistry = systemRegistry;
     }
     
     public ConsoleEngineImpl scriptExtension(String extension) {
@@ -147,14 +149,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return null;
     }
 
-    private List<String> slurp(String path) throws IOException{
-        List<String> out = new ArrayList<>();
-        byte[] encoded = Files.readAllBytes(Paths.get(path));
-        out.addAll(Arrays.asList(new String(encoded, StandardCharsets.UTF_8).split("\n|\n\r")));
-        return out;
-    }
-  
-    public Object[] expandVariables(String[] args) throws Exception {
+    private Object[] expandVariables(String[] args) throws Exception {
         Object[] out = new Object[args.length];
         for (int i = 0; i < args.length; i++) {
             if (args[i].startsWith("$")) {
@@ -182,6 +177,15 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return out;
     }
     
+    private boolean isCodeBlock(String line) {
+        return line.contains("\n") && line.trim().endsWith("}");
+    }
+    
+    private boolean isCommandLine(String line) {
+        String command = Parser.getCommand(line);
+        return command.startsWith(":") && systemRegistry.hasCommand(command.substring(1));
+    }
+        
     private String quote(String var) {
         if ((var.startsWith("\\\"") && var.endsWith("\\\""))
                 || (var.startsWith("'") && var.endsWith("'"))) {
@@ -204,36 +208,59 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             if(engine.getExtensions().contains(ext)) {
                 out = engine.execute(file, expandVariables(args));
             } else if (scriptExtension.equals(ext)) {
-                List<String> commandsBuffer = slurp(cmd);
-                String line = "";
                 boolean done = false;
-                while (!commandsBuffer.isEmpty()) {
-                    try {
-                        line += commandsBuffer.remove(0);
-                        parser.parse(line, line.length() + 1, ParseContext.ACCEPT_LINE);
-                        for (int i = 0; i < args.length; i++) {
-                            line = line.replaceAll("\\$\\d", args[i].startsWith("$") ? expandName(args[i]) : quote(args[i]));
+                String line = "";
+                engine.put("_systemRegistry", systemRegistry);
+                try(BufferedReader br = new BufferedReader(new FileReader(file))) {
+                    for(String l; (l = br.readLine()) != null; ) {
+                        try {
+                            line += l;
+                            parser.parse(line, line.length() + 1, ParseContext.ACCEPT_LINE);
+                            done = true;
+                            for (int i = 0; i < args.length; i++) {
+                                line = line.replaceAll("\\$\\d", args[i].startsWith("$") ? expandName(args[i]) : quote(args[i]));
+                            }
+                            if (isCodeBlock(line)) {
+                                StringBuilder sb = new StringBuilder();
+                                for (String s: line.split("\n|\n\r")) {
+                                    if (isCommandLine(s)) {
+                                        List<String> ws = parser.parse(s, 0, ParseContext.COMPLETE).words();
+                                        int idx = ws.get(0).lastIndexOf(":");
+                                        if (idx > 0) {
+                                            sb.append(ws.get(0).substring(0, idx - 1));   
+                                        } 
+                                        sb.append("_systemRegistry.invoke('" + ws.get(0).substring(idx + 1) + "'");
+                                        for (int i = 1; i < ws.size(); i++) {
+                                            sb.append(", ");
+                                            sb.append(ws.get(i));
+                                        }
+                                        sb.append(")");
+                                    } else {
+                                        sb.append(s);
+                                    }
+                                    sb.append("\n");
+                                }
+                                line = sb.toString();
+                            }
+                            systemRegistry.execute(parser.parse(line, 0, ParseContext.COMPLETE));
+                            line = "";
+                        } catch (EOFError e) {
+                            done = false;
+                            line += "\n";
+                        } catch (SyntaxError e) {
+                            throw e;
+                        } catch (Exception e) {
+                            throw new IllegalArgumentException(e.getMessage());
                         }
-                        masterRegistry.execute(parser.parse(line, 0, ParseContext.ACCEPT_LINE));
-                        line = "";
-                    } catch (EOFError e) {
-                        if (commandsBuffer.isEmpty()) {
-                            throw new IllegalArgumentException("Incompleted command: \n" + line);
-                        }
-                        line += "\n";
-                    } catch (SyntaxError e) {
-                        commandsBuffer.clear();
-                        throw e;
-                    } catch (Exception e) {
-                        commandsBuffer.clear();
-                        throw new IllegalArgumentException(e.getMessage());
+                    }
+                    if (!done) {
+                        throw new IllegalArgumentException("Incompleted command: \n" + line);                        
                     }
                 }
             } else {
                 throw new IllegalArgumentException("Command not found: " + cmd);
             }
         } else {
-            System.out.println(pl.line());
             out = engine.execute(pl.line());
         }
         return out;    
@@ -264,4 +291,5 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     private List<Completer> defaultCompleter(String command) {
         return Arrays.asList(NullCompleter.INSTANCE);
     }
+    
 }

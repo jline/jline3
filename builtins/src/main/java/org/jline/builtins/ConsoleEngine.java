@@ -13,10 +13,8 @@ import org.jline.reader.ParsedLine;
 
 public interface ConsoleEngine extends CommandRegistry {
     
-    void setMasterRegistry(SystemRegistry masterRegistry);
+    void setSystemRegistry(SystemRegistry systemRegistry);
     
-    Object[] expandVariables(String[] args) throws Exception;
-
     Object execute(ParsedLine parsedLine) throws Exception;
 
 }

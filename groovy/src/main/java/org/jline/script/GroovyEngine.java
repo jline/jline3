@@ -56,7 +56,7 @@ public class GroovyEngine implements ScriptEngine {
 
     @Override
     public Object execute(String statement) throws Exception {
-        Object out=null;
+        Object out = null;
         if (statement.startsWith("import ")) {
             shell.evaluate(statement);
             String[] p = statement.split("\\s+", 2);
@@ -69,7 +69,7 @@ public class GroovyEngine implements ScriptEngine {
                 e += entry.getValue()+"\n";
             }
             e += statement;
-            out=shell.evaluate(e);
+            out = shell.evaluate(e);
         }
         return out;
     }
@@ -84,19 +84,25 @@ public class GroovyEngine implements ScriptEngine {
         return Arrays.asList("groovy");
     }
 
-    private void del(String var){
-        if (var==null) {
+    private void del(String var) {
+        if (var == null) {
             return;
         }
         if (imports.containsKey(var)) {
             imports.remove(var);
-        } else if(sharedData.hasVariable(var)){
+        } else if (sharedData.hasVariable(var)) {
             sharedData.getVariables().remove(var);
         } else if (!var.contains(".") && var.contains("*")) {
-            var = var.replace("*", ".*");
-            Map<String,Object> vars = sharedData.getVariables();
-            for (String v : vars.keySet()){
-                if (v.matches(var) && sharedData.hasVariable(v)) {
+            var = var.replaceAll("\\*", ".*");
+            Map<String, Object> vars=sharedData.getVariables();
+            List<String> todel = new ArrayList<String>();
+            for (Map.Entry<String,Object> entry : vars.entrySet()){
+                if (!entry.getKey().equals("_") && entry.getKey().matches(var)) {
+                    todel.add(entry.getKey());
+                }
+            }
+            for (String v : todel){
+                if (sharedData.hasVariable(v)) {
                     sharedData.getVariables().remove(v);
                 }
             }
@@ -112,4 +118,5 @@ public class GroovyEngine implements ScriptEngine {
             del(s);
         }
     }
+
 }

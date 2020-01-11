@@ -2,10 +2,11 @@ import org.jline.utils.*
 
 println "Is Windows: " + OSUtils.IS_WINDOWS
 
-array=[0,1,2,3,4,5,6,7]
+array=[0,1]
 
 array.each {
     println it
+    :show
 }
 
 println $1
