@@ -18,8 +18,6 @@ import java.util.Set;
 
 public interface CommandRegistry {
     
-    enum Type {BASE, CONSOLE, SYSTEM}
-
     /**
      * Aggregate SystemCompleters of commandRegisteries
      * @return uncompiled SystemCompleter
@@ -83,19 +81,8 @@ public interface CommandRegistry {
      */
     Widgets.CmdDesc commandDescription(String command);
     
-    default Type getType() {
-        return Type.BASE;
-    }
-
-    default void setMasterRegistry(CommandRegistry masterRegistry) {
-        throw new IllegalAccessError("Not implemented!");        
-    }
-    
     default Object execute(String command, String[] args) throws Exception {
         throw new IllegalAccessError("Not implemented!");
     }
 
-    default Object execute(ParsedLine parsedLine) throws Exception {
-        throw new IllegalAccessError("Not implemented!");
-    }
 }

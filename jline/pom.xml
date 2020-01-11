@@ -315,7 +315,7 @@
                         <configuration>
                             <excludes>
                                 <exclude>**/TTop.java</exclude>
-                                <exclude>**/groovy/Engine.java</exclude>
+                                <exclude>**/GroovyEngine.java</exclude>
                             </excludes>
                             <compilerArgs>
                                 <arg>-Xlint:all,-options</arg>
@@ -329,7 +329,7 @@
                         <id>compile-accept-warn</id>
                         <configuration>
                             <includes>
-                                <include>**/groovy/Engine.java</include>
+                                <include>**/GroovyEngine.java</include>
                             </includes>
                             <compilerArgs>
                                 <arg>-Xlint:all,-options</arg>

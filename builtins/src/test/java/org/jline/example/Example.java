@@ -30,9 +30,10 @@ import org.jline.builtins.CommandRegistry;
 import org.jline.builtins.Completers;
 import org.jline.builtins.Completers.SystemCompleter;
 import org.jline.builtins.Completers.TreeCompleter;
-import org.jline.builtins.ConsoleEngine;
+import org.jline.builtins.ConsoleEngineImpl;
 import org.jline.builtins.Options;
-import org.jline.builtins.Master;
+import org.jline.builtins.SystemRegistry;
+import org.jline.builtins.SystemRegistryImpl;
 import org.jline.builtins.Widgets.ArgDesc;
 import org.jline.builtins.Widgets.AutopairWidgets;
 import org.jline.builtins.Widgets.AutosuggestionWidgets;
@@ -40,7 +41,6 @@ import org.jline.builtins.Widgets.CmdDesc;
 import org.jline.builtins.Widgets.CmdLine;
 import org.jline.builtins.Widgets.TailTipWidgets;
 import org.jline.builtins.Widgets.TailTipWidgets.TipType;
-import org.jline.groovy.Engine;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.LineReader.Option;
@@ -52,6 +52,7 @@ import org.jline.reader.impl.LineReaderImpl;
 import org.jline.reader.impl.completer.AggregateCompleter;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
+import org.jline.script.GroovyEngine;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.MouseEvent;
@@ -138,10 +139,10 @@ public class Example
     }
 
     private static class DescriptionGenerator {
-        CommandRegistry masterRegistry;
+        SystemRegistry systemRegistry;
 
-        public DescriptionGenerator(CommandRegistry masterRegistry) {
-            this.masterRegistry = masterRegistry;
+        public DescriptionGenerator(SystemRegistry systemRegistry) {
+            this.systemRegistry = systemRegistry;
         }
 
         public CmdDesc commandDescription(CmdLine line) {
@@ -149,7 +150,7 @@ public class Example
             switch (line.getDescriptionType()) {
             case COMMAND:
                 String cmd = Parser.getCommand(line.getArgs().get(0));
-                out = masterRegistry.commandDescription(cmd);
+                out = systemRegistry.commandDescription(cmd);
                 break;
             case METHOD:
                 out = methodDescription(line);
@@ -614,17 +615,18 @@ public class Example
             //
             // Command registeries
             //
+            GroovyEngine scriptEngine = new GroovyEngine();
             Builtins builtins = new Builtins(Paths.get(""), null, null);
             builtins.rename(Builtins.Command.TTOP, "top");
             builtins.alias("zle", "widget");
             builtins.alias("bindkey", "keymap");
             ExampleCommands exampleCommands = new ExampleCommands();
-            ConsoleEngine consoleEngine = new ConsoleEngine(new Engine(), parser);
-            Master.Registry masterRegistry = new Master.Registry(consoleEngine, builtins, exampleCommands);
+            ConsoleEngineImpl consoleEngine = new ConsoleEngineImpl(scriptEngine, parser);
+            SystemRegistryImpl systemRegistry = new SystemRegistryImpl(consoleEngine, builtins, exampleCommands);
             //
             // Command completers
             //
-            AggregateCompleter finalCompleter = new AggregateCompleter(masterRegistry.compileCompleters()
+            AggregateCompleter finalCompleter = new AggregateCompleter(systemRegistry.compileCompleters()
                                                                      , completer != null ? completer : NullCompleter.INSTANCE);
             //
             // Terminal & LineReader
@@ -650,7 +652,7 @@ public class Example
             if (argument) {
                 tailtipWidgets = new TailTipWidgets(reader, compileTailTips(), 5, TipType.COMPLETER);
             } else {
-                DescriptionGenerator descriptionGenerator = new DescriptionGenerator(masterRegistry);
+                DescriptionGenerator descriptionGenerator = new DescriptionGenerator(systemRegistry);
                 tailtipWidgets = new TailTipWidgets(reader, descriptionGenerator::commandDescription, 5, TipType.COMPLETER);
             }
             //
@@ -703,6 +705,7 @@ public class Example
             //
             while (true) {
                 try {
+                    scriptEngine.del("_*");
                     String line = reader.readLine(prompt, rightPrompt, (MaskingCallback) null, null);
                     line = line.trim();
 
@@ -725,7 +728,7 @@ public class Example
                         break;
                     }
 
-                    Object result = masterRegistry.execute(reader.getParser().parse(line, 0, ParseContext.ACCEPT_LINE));
+                    Object result = systemRegistry.execute(reader.getParser().parse(line, 0, ParseContext.ACCEPT_LINE));
                     if (result != null) {
                         System.out.println(result);
                     }

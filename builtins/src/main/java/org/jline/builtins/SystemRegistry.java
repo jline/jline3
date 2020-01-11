@@ -8,15 +8,9 @@
  */
 package org.jline.builtins;
 
-import org.jline.builtins.CommandRegistry;
 import org.jline.reader.ParsedLine;
 
-public interface ConsoleEngine extends CommandRegistry {
-    
-    void setMasterRegistry(SystemRegistry masterRegistry);
-    
-    Object[] expandVariables(String[] args) throws Exception;
+public interface SystemRegistry extends CommandRegistry {
 
     Object execute(ParsedLine parsedLine) throws Exception;
-
 }

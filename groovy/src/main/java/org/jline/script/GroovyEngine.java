@@ -6,7 +6,7 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.groovy;
+package org.jline.script;
 
 import java.io.File;
 import java.util.*;
@@ -22,12 +22,12 @@ import groovy.lang.Script;
  *
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
-public class Engine implements ScriptEngine {
+public class GroovyEngine implements ScriptEngine {
     private GroovyShell shell;
     private Binding sharedData;
     private Map<String,String> imports = new HashMap<String,String>();
 
-    public Engine() {
+    public GroovyEngine() {
         this.sharedData = new Binding();
         shell = new GroovyShell(sharedData);
     }
@@ -49,7 +49,7 @@ public class Engine implements ScriptEngine {
 
     @Override
     public Object execute(File script, Object[] args) throws Exception {
-        sharedData.setProperty("args", args);
+        sharedData.setProperty("_args", args);
         Script s = shell.parse(script);
         return s.run();
     }
