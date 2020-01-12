@@ -8,7 +8,9 @@
  */
 package org.jline.terminal.impl;
 
+import org.jline.terminal.Attributes;
 import org.jline.terminal.Cursor;
+import org.jline.terminal.Size;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -57,8 +59,25 @@ public class ExternalTerminal extends LineDisciplineTerminal {
                             Charset encoding,
                             SignalHandler signalHandler,
                             boolean paused) throws IOException {
+        this(name, type, masterInput, masterOutput, encoding, signalHandler, paused, null, null);
+    }
+
+    public ExternalTerminal(String name, String type,
+                            InputStream masterInput,
+                            OutputStream masterOutput,
+                            Charset encoding,
+                            SignalHandler signalHandler,
+                            boolean paused,
+                            Attributes attributes,
+                            Size size) throws IOException {
         super(name, type, masterOutput, encoding, signalHandler);
         this.masterInput = masterInput;
+        if (attributes != null) {
+            setAttributes(attributes);
+        }
+        if (size != null) {
+            setSize(size);
+        }
         if (!paused) {
             resume();
         }
