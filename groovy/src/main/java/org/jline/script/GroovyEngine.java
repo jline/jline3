@@ -11,7 +11,11 @@ package org.jline.script;
 import java.io.File;
 import java.util.*;
 
+import org.jline.groovy.Utils;
 import org.jline.reader.ScriptEngine;
+import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.AttributedStyle;
 
 import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
@@ -33,6 +37,11 @@ public class GroovyEngine implements ScriptEngine {
     }
 
     @Override
+    public boolean hasVariable(String name) {
+        return sharedData.hasVariable(name);
+    }
+
+    @Override
     public void put(String name, Object value) {
         sharedData.setProperty(name, value);
     }
@@ -50,7 +59,7 @@ public class GroovyEngine implements ScriptEngine {
     @Override
     public Object execute(File script, Object[] args) throws Exception {
         sharedData.setProperty("_args", args);
-        Script s = shell.parse(script);
+        Script s = shell.parse("import ");
         return s.run();
     }
 
@@ -119,4 +128,48 @@ public class GroovyEngine implements ScriptEngine {
         }
     }
 
+    @Override
+    public List<AttributedString> format(Map<String, Object> options, Object obj) {
+        List<AttributedString> out = new ArrayList<>();
+        int width = (int)options.getOrDefault("width", 80);
+        if (obj == null) {
+            // do nothing
+        } else if (obj instanceof Map) {
+            out = formatMap((Map<String, Object>)obj, width);
+        } else if (obj instanceof Collection<?>) {
+            Collection<?> collection = (Collection<?>)obj;
+            if (!collection.isEmpty()) {
+                if (collection.size() == 1) {
+                    Object elem = collection.iterator().next();
+                    if (elem instanceof Map) {
+                        out = formatMap((Map<String, Object>)elem, width);
+                    } else {
+                        out.add(new AttributedString(Utils.toString(obj)));
+                    }
+                } else {
+
+                }
+            }
+        } else {
+            out.add(new AttributedString(Utils.toString(obj)));
+        }
+        return out;
+    }
+
+    private List<AttributedString> formatMap(Map<String, Object> map, int width) {
+        List<AttributedString> out = new ArrayList<>();
+        int max = map.keySet().stream().map(String::length).max(Integer::compareTo).get();
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            AttributedStringBuilder asb = new AttributedStringBuilder().tabs(Arrays.asList(1, max + 2));
+            asb.append("\t");
+            asb.append(entry.getKey(), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE));
+            asb.append("\t");
+            asb.append(Utils.toString(entry.getValue()), AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW));
+            if (asb.columnLength() > width) {
+                asb.setLength(width);
+            }
+            out.add(asb.toAttributedString());
+        }
+        return out;
+    }
 }

@@ -14,11 +14,15 @@ import java.util.*;
 import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 
+import org.jline.utils.AttributedString;
+
 public interface ScriptEngine {
 
     String getEngineName();
 
     Collection<String> getExtensions();
+
+    boolean hasVariable(String name);
 
     void put(String name, Object value);
 
@@ -27,6 +31,8 @@ public interface ScriptEngine {
     Map<String,Object> get();
 
     void del(String... vars);
+
+    List<AttributedString> format(Map<String, Object> options, Object object);
 
     Object execute(String statement) throws Exception;
 

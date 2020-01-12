@@ -25,15 +25,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
-import org.jline.builtins.Builtins;
-import org.jline.builtins.CommandRegistry;
-import org.jline.builtins.Completers;
+import org.jline.builtins.*;
 import org.jline.builtins.Completers.SystemCompleter;
 import org.jline.builtins.Completers.TreeCompleter;
-import org.jline.builtins.ConsoleEngineImpl;
-import org.jline.builtins.Options;
-import org.jline.builtins.SystemRegistry;
-import org.jline.builtins.SystemRegistryImpl;
 import org.jline.builtins.Widgets.ArgDesc;
 import org.jline.builtins.Widgets.AutopairWidgets;
 import org.jline.builtins.Widgets.AutosuggestionWidgets;
@@ -613,6 +607,12 @@ public class Example
                 }
             }
             //
+            // Terminal
+            //
+            Terminal terminal = builder.build();
+            System.out.println(terminal.getName()+": "+terminal.getType());
+            System.out.println("\nhelp: list available commands");
+            //
             // Command registeries
             //
             GroovyEngine scriptEngine = new GroovyEngine();
@@ -621,7 +621,7 @@ public class Example
             builtins.alias("zle", "widget");
             builtins.alias("bindkey", "keymap");
             ExampleCommands exampleCommands = new ExampleCommands();
-            ConsoleEngineImpl consoleEngine = new ConsoleEngineImpl(scriptEngine, parser);
+            ConsoleEngine consoleEngine = new ConsoleEngineImpl(scriptEngine, parser, terminal);
             SystemRegistryImpl systemRegistry = new SystemRegistryImpl(consoleEngine, builtins, exampleCommands);
             //
             // Command completers
@@ -629,11 +629,8 @@ public class Example
             AggregateCompleter finalCompleter = new AggregateCompleter(systemRegistry.compileCompleters()
                                                                      , completer != null ? completer : NullCompleter.INSTANCE);
             //
-            // Terminal & LineReader
+            // LineReader
             //
-            Terminal terminal = builder.build();
-            System.out.println(terminal.getName()+": "+terminal.getType());
-            System.out.println("\nhelp: list available commands");
             LineReader reader = LineReaderBuilder.builder()
                     .terminal(terminal)
                     .completer(finalCompleter)
@@ -728,16 +725,12 @@ public class Example
                         break;
                     }
 
-                    Object result = systemRegistry.execute(reader.getParser().parse(line, 0, ParseContext.ACCEPT_LINE));
-                    if (result != null) {
-                        System.out.println(result);
-                    }
+                    ParsedLine pl = reader.getParser().parse(line, 0, ParseContext.ACCEPT_LINE);
+                    Object result = systemRegistry.execute(pl);
+                    consoleEngine.println(result);
                 }
                 catch (Options.HelpException e) {
                     Options.HelpException.highlight(e.getMessage(), Options.HelpException.defaultStyle()).print(terminal);
-                }
-                catch (IllegalArgumentException|FileNotFoundException e) {
-                    System.out.println(e.getMessage());
                 }
                 catch (UserInterruptException e) {
                     // Ignore
@@ -746,7 +739,9 @@ public class Example
                     return;
                 }
                 catch (Exception e) {
-                    e.printStackTrace();
+                    AttributedStringBuilder asb = new AttributedStringBuilder();
+                    asb.append(e.getMessage(), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+                    asb.toAttributedString().println(terminal);
                 }
             }
         }

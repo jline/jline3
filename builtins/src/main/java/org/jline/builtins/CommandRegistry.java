@@ -82,10 +82,10 @@ public interface CommandRegistry {
     Widgets.CmdDesc commandDescription(String command);
     
     default Object execute(String command, String[] args) throws Exception {
-        throw new IllegalArgumentException("Not implemented!");
+        throw new IllegalArgumentException("CommandRegistry has no implementation: execute(String command, String[] args)");
     }
 
     default Object invoke(String command, Object... args) throws Exception {
-        throw new IllegalArgumentException("Not implemented!");
+        throw new IllegalArgumentException("CommandRegistry has no implementation: invoke(String command, Object... args)");
     }
 }

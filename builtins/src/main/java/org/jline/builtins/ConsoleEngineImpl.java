@@ -33,6 +33,8 @@ import org.jline.builtins.Completers.SystemCompleter;
 import org.jline.reader.*;
 import org.jline.reader.Parser.ParseContext;
 import org.jline.reader.impl.completer.NullCompleter;
+import org.jline.terminal.Terminal;
+import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
     
@@ -55,10 +57,12 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     private SystemRegistry systemRegistry;
     private String scriptExtension = "jline";
     private Parser parser;
+    private Terminal terminal;
 
-    public ConsoleEngineImpl(ScriptEngine engine, Parser parser) {
+    public ConsoleEngineImpl(ScriptEngine engine, Parser parser, Terminal terminal) {
         this.engine = engine;
         this.parser = parser;
+        this.terminal = terminal;
         Set<Command> cmds = new HashSet<>(EnumSet.allOf(Command.class));
         for (Command c: cmds) {
             commandName.put(c, c.name().toLowerCase());
@@ -198,6 +202,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
     
     public Object execute(ParsedLine pl) throws Exception {
+        if (pl.line().trim().startsWith("#")) {
+            return null;            
+        }
         String[] args = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
         String cmd = Parser.getCommand(pl.word());
         Object out = null;
@@ -210,7 +217,6 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             } else if (scriptExtension.equals(ext)) {
                 boolean done = false;
                 String line = "";
-                engine.put("_systemRegistry", systemRegistry);
                 try(BufferedReader br = new BufferedReader(new FileReader(file))) {
                     for(String l; (l = br.readLine()) != null; ) {
                         try {
@@ -220,28 +226,6 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                             for (int i = 0; i < args.length; i++) {
                                 line = line.replaceAll("\\$\\d", args[i].startsWith("$") ? expandName(args[i]) : quote(args[i]));
                             }
-                            if (isCodeBlock(line)) {
-                                StringBuilder sb = new StringBuilder();
-                                for (String s: line.split("\n|\n\r")) {
-                                    if (isCommandLine(s)) {
-                                        List<String> ws = parser.parse(s, 0, ParseContext.COMPLETE).words();
-                                        int idx = ws.get(0).lastIndexOf(":");
-                                        if (idx > 0) {
-                                            sb.append(ws.get(0).substring(0, idx - 1));   
-                                        } 
-                                        sb.append("_systemRegistry.invoke('" + ws.get(0).substring(idx + 1) + "'");
-                                        for (int i = 1; i < ws.size(); i++) {
-                                            sb.append(", ");
-                                            sb.append(ws.get(i));
-                                        }
-                                        sb.append(")");
-                                    } else {
-                                        sb.append(s);
-                                    }
-                                    sb.append("\n");
-                                }
-                                line = sb.toString();
-                            }
                             systemRegistry.execute(parser.parse(line, 0, ParseContext.COMPLETE));
                             line = "";
                         } catch (EOFError e) {
@@ -250,7 +234,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                         } catch (SyntaxError e) {
                             throw e;
                         } catch (Exception e) {
-                            throw new IllegalArgumentException(e.getMessage());
+                            throw new IllegalArgumentException(line + "\n" + e.getMessage());
                         }
                     }
                     if (!done) {
@@ -260,8 +244,47 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             } else {
                 throw new IllegalArgumentException("Command not found: " + cmd);
             }
+            if (pl.word().contains("=")) {
+                engine.put(pl.word().substring(0, pl.word().indexOf('=')), out);
+                out = null;
+            }
         } else {
-            out = engine.execute(pl.line());
+            String line = pl.line();
+            if (isCodeBlock(line)) {
+                StringBuilder sb = new StringBuilder();
+                boolean copyRegistry = false;
+                String registry = "_systemRegistry";
+                for (String s: line.split("\n|\n\r")) {
+                    if (isCommandLine(s)) {
+                        copyRegistry = true;
+                        List<String> ws = parser.parse(s, 0, ParseContext.COMPLETE).words();
+                        int idx = ws.get(0).lastIndexOf(":");
+                        if (idx > 0) {
+                            sb.append(ws.get(0).substring(0, idx - 1));   
+                        } 
+                        sb.append(registry + ".invoke('" + ws.get(0).substring(idx + 1) + "'");
+                        for (int i = 1; i < ws.size(); i++) {
+                            sb.append(", ");
+                            sb.append(ws.get(i));
+                        }
+                        sb.append(")");
+                    } else {
+                        sb.append(s);
+                    }
+                    sb.append("\n");
+                }
+                line = sb.toString();
+                if (copyRegistry && !engine.hasVariable(registry)) {
+                    engine.put(registry, systemRegistry);                    
+                }
+            }
+            if (engine.hasVariable(line)) {
+                out = engine.get(line);
+            } else if (Parser.getVariable(line) == null) {
+                out = engine.execute(line);
+            } else {
+                engine.execute(line);
+            }
         }
         return out;    
     }
@@ -273,6 +296,13 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             throw exception;
         }
         return out;
+    }
+    
+    public void println(Map<String, Object> options, Object object) {
+        options.putIfAbsent("width", terminal.getSize().getColumns());
+        for (AttributedString as : engine.format(options, object)) {
+            as.println(terminal);
+        }
     }
 
     public Object engines(Builtins.CommandInput input) {
@@ -291,5 +321,5 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     private List<Completer> defaultCompleter(String command) {
         return Arrays.asList(NullCompleter.INSTANCE);
     }
-    
+        
 }

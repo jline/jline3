@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019, the original author or authors.
+ * Copyright (c) 2002-2020, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -12,6 +12,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public interface Parser {
+    static final String REGEX_VARIABLE = "[a-zA-Z]{1,}[a-zA-Z0-9_-]*";
+    static final String REGEX_COMMAND = REGEX_VARIABLE;
 
     ParsedLine parse(String line, int cursor, ParseContext context) throws SyntaxError;
 
@@ -25,12 +27,22 @@ public interface Parser {
 
     static String getCommand(final String line) {
         String out = null;
-        Pattern  patternCommand = Pattern.compile("^\\s*[a-zA-Z]{1,}[a-zA-Z0-9]*=([a-zA-Z]{1,}[a-zA-Z0-9]*)(\\s+|$)");
+        Pattern  patternCommand = Pattern.compile("^\\s*" + REGEX_VARIABLE + "=(" + REGEX_COMMAND + ")(\\s+|$)");
         Matcher matcher = patternCommand.matcher(line);
         if (matcher.find()) {
             out = matcher.group(1);
         } else {
             out = line.trim().split("\\s+")[0];
+        }
+        return out;
+    }
+
+    static String getVariable(final String line) {
+        String out = null;
+        Pattern  patternCommand = Pattern.compile("^\\s*(" + REGEX_VARIABLE + ")\\s*=[^=].*");
+        Matcher matcher = patternCommand.matcher(line);
+        if (matcher.find()) {
+            out = matcher.group(1);
         }
         return out;
     }

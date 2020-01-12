@@ -9,9 +9,7 @@
 		<artifactId>jline-parent</artifactId>
 		<version>3.13.3-SNAPSHOT</version>
 	</parent>
-	<groupId>org.jline</groupId>
 	<artifactId>jline-groovy</artifactId>
-	<version>3.13.3-SNAPSHOT</version>
 	<name>JLine Groovy</name>
 	<url>http://maven.apache.org</url>
 	<properties>
@@ -38,27 +36,41 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-	<build>
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.7.0</version>
-                    <configuration>
-                        <showWarnings>true</showWarnings>
-                        <compilerArgs>
-                            <arg>-Xlint:all,-options</arg>
-                            <!--
-                            <arg>-Werror</arg>
-                            -->
-                            <arg>-profile</arg>
-                            <arg>compact1</arg>
-                        </compilerArgs>
-                        <fork>true</fork>
-                    </configuration>
-                </plugin>
-	        </plugins>
-	    </pluginManagement>
-	</build>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.7.0</version>
+                <configuration>
+                    <showWarnings>true</showWarnings>
+                    <compilerArgs>
+                        <arg>-Xlint:all,-options</arg>
+                        <arg>-profile</arg>
+                        <arg>compact1</arg>
+                    </compilerArgs>
+                    <fork>true</fork>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.gmavenplus</groupId>
+                <artifactId>gmavenplus-plugin</artifactId>
+                <version>1.8.1</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>addSources</goal>
+                            <goal>addTestSources</goal>
+                            <goal>generateStubs</goal>
+                            <goal>compile</goal>
+                            <goal>generateTestStubs</goal>
+                            <goal>compileTests</goal>
+                            <goal>removeStubs</goal>
+                            <goal>removeTestStubs</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>       
+        </plugins>
+    </build>
 </project>

@@ -88,7 +88,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             if (id > -1) {
                 out = commandRegistries[id].execute(cmd, argv);
             } else if (consoleId != null) {
-                consoleEngine().execute(pl);
+                out = consoleEngine().execute(pl);
             }
         }
         return out;
