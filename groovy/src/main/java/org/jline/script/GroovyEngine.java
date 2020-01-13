@@ -59,7 +59,7 @@ public class GroovyEngine implements ScriptEngine {
     @Override
     public Object execute(File script, Object[] args) throws Exception {
         sharedData.setProperty("_args", args);
-        Script s = shell.parse("import ");
+        Script s = shell.parse(script);
         return s.run();
     }
 
@@ -131,7 +131,17 @@ public class GroovyEngine implements ScriptEngine {
     @Override
     public List<AttributedString> format(Map<String, Object> options, Object obj) {
         List<AttributedString> out = new ArrayList<>();
-        int width = (int)options.getOrDefault("width", 80);
+        try {
+            out = formatInternal(options, obj);
+        } catch (Exception e) {
+            out = formatInternal(options, Utils.convert(obj));
+        }
+        return out;
+    }
+
+    private List<AttributedString> formatInternal(Map<String, Object> options, Object obj) {
+        List<AttributedString> out = new ArrayList<>();
+        int width = (int)options.getOrDefault("width", Integer.MAX_VALUE);
         if (obj == null) {
             // do nothing
         } else if (obj instanceof Map) {
@@ -147,7 +157,84 @@ public class GroovyEngine implements ScriptEngine {
                         out.add(new AttributedString(Utils.toString(obj)));
                     }
                 } else {
-
+                    Object elem = collection.iterator().next();
+                    if (elem instanceof Map) {
+                        Map<String, Object> map = (Map<String, Object>)elem;
+                        List<String> header = new ArrayList<>();
+                        header.addAll(map.keySet());
+                        List<Integer> columns = new ArrayList<>();
+                        for (int i = 0; i < header.size(); i++) {
+                            columns.add(header.get(i).length() + 1);
+                        }
+                        for (Object o : collection) {
+                            for (int i = 0; i < header.size(); i++) {
+                                Map<String, Object> m = (Map<String, Object>)o;
+                                if (Utils.toString(m.get(header.get(i))).length() > columns.get(i) - 1) {
+                                    columns.set(i, Utils.toString(m.get(header.get(i))).length() + 1);
+                                }
+                            }
+                        }
+                        columns.add(0, 0);
+                        toTabStops(columns);
+                        AttributedStringBuilder asb = new AttributedStringBuilder().tabs(columns);
+                        for (int i = 0; i < header.size(); i++) {
+                            asb.append(header.get(i), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
+                            asb.append("\t");
+                        }
+                        if (asb.columnLength() > width) {
+                            asb.setLength(width);
+                        }
+                        out.add(asb.toAttributedString());
+                        for (Object o : collection) {
+                            AttributedStringBuilder asb2 = new AttributedStringBuilder().tabs(columns);
+                            for (int i = 0; i < header.size(); i++) {
+                                Map<String, Object> m = (Map<String, Object>)o;
+                                asb2.append(Utils.toString(m.get(header.get(i))));
+                                asb2.append("\t");
+                            }
+                            if (asb2.columnLength() > width) {
+                                asb2.setLength(width);
+                            }
+                            out.add(asb2.toAttributedString());
+                        }
+                    } else if (elem instanceof Collection) {
+                        List<Integer> columns = new ArrayList<>();
+                        for (Object o : collection) {
+                            List<Object> inner = new ArrayList<>();
+                            inner.addAll((Collection<?>)o);
+                            for (int i = 0; i < inner.size(); i++) {
+                                int len1 = Utils.toString(inner.get(i)).length() + 1;
+                                if (columns.size() <= i) {
+                                    columns.add(len1);
+                                } else if (len1 > columns.get(i)) {
+                                    columns.set(i, len1);
+                                }
+                            }
+                        }
+                        toTabStops(columns);
+                        for (Object o : collection) {
+                            AttributedStringBuilder asb = new AttributedStringBuilder().tabs(columns);
+                            List<Object> inner = new ArrayList<>();
+                            inner.addAll((Collection<?>)o);
+                            for (int i = 0; i < inner.size(); i++) {
+                                asb.append(Utils.toString(inner.get(i)));
+                                asb.append("\t");
+                            }
+                            if (asb.columnLength() > width) {
+                                asb.setLength(width);
+                            }
+                            out.add(asb.toAttributedString());
+                        }
+                    } else {
+                        for (Object o: collection) {
+                            AttributedStringBuilder asb = new AttributedStringBuilder();
+                            asb.append(Utils.toString(o));
+                            if (asb.columnLength() > width) {
+                                asb.setLength(width);
+                            }
+                            out.add(asb.toAttributedString());
+                        }
+                    }
                 }
             }
         } else {
@@ -156,13 +243,18 @@ public class GroovyEngine implements ScriptEngine {
         return out;
     }
 
+    private void toTabStops(List<Integer> columns) {
+        for (int i = 1; i < columns.size(); i++) {
+            columns.set(i, columns.get(i - 1) + columns.get(i));
+        }
+    }
+
     private List<AttributedString> formatMap(Map<String, Object> map, int width) {
         List<AttributedString> out = new ArrayList<>();
         int max = map.keySet().stream().map(String::length).max(Integer::compareTo).get();
         for (Map.Entry<String, Object> entry : map.entrySet()) {
-            AttributedStringBuilder asb = new AttributedStringBuilder().tabs(Arrays.asList(1, max + 2));
-            asb.append("\t");
-            asb.append(entry.getKey(), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE));
+            AttributedStringBuilder asb = new AttributedStringBuilder().tabs(Arrays.asList(0, max + 1));
+            asb.append(entry.getKey(), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
             asb.append("\t");
             asb.append(Utils.toString(entry.getValue()), AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW));
             if (asb.columnLength() > width) {

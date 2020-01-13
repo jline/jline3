@@ -79,14 +79,15 @@ public class SystemRegistryImpl implements SystemRegistry {
         String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
         String cmd = Parser.getCommand(pl.word());
         Object out = null;
-        boolean done = false;
         if ("help".equals(cmd) || "?".equals(cmd)) {
             help();
-            done = true;
         } else {
             int id = registryId(cmd);
             if (id > -1) {
                 out = commandRegistries[id].execute(cmd, argv);
+                if (consoleId != null) {
+                    out = consoleEngine().postProcess(pl.line(), out);
+                }
             } else if (consoleId != null) {
                 out = consoleEngine().execute(pl);
             }

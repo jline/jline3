@@ -8,6 +8,9 @@
  */
 package org.jline.groovy;
 
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+
 public class Utils {
 
     private Utils() {}
@@ -16,4 +19,8 @@ public class Utils {
         object.toString()
     }
 
+    static Object convert(Object object) {
+        def slurper = new JsonSlurper()
+        slurper.parseText(JsonOutput.toJson(object)) 
+    }
 }
