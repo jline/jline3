@@ -59,6 +59,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         commandExecute.put(Command.SHOW, new CommandMethods(this::show, this::defaultCompleter));
     }
 
+    @Override
     public void setSystemRegistry(SystemRegistry systemRegistry) {
         this.systemRegistry = systemRegistry;
     }
@@ -68,6 +69,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return this;
     }
 
+    @Override
     public Set<String> commandNames() {
         return nameCommand.keySet();
     }
@@ -76,6 +78,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return aliasCommand;
     }
 
+    @Override
     public boolean hasCommand(String name) {
         if (nameCommand.containsKey(name) || aliasCommand.containsKey(name)) {
             return true;
@@ -122,10 +125,12 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         aliasCommand.put(alias, command);
     }
 
+    @Override
     public List<String> commandInfo(String command) {
         return new ArrayList<>();
     }
 
+    @Override
     public Completers.SystemCompleter compileCompleters() {
         SystemCompleter out = new SystemCompleter();
         for (Map.Entry<Command, String> entry: commandName.entrySet()) {
@@ -135,6 +140,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return out;
     }
 
+    @Override
     public Widgets.CmdDesc commandDescription(String command) {
         return null;
     }
@@ -181,12 +187,13 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 || (var.startsWith("'") && var.endsWith("'"))) {
             return var;
         }
-        if (var.contains("\\\"")) {
+        if (!var.contains("\\\"")) {
             return "'" + var + "'";
         }
         return "\\\"" + var + "\\\"";
     }
 
+    @Override
     public Object execute(ParsedLine pl) throws Exception {
         if (pl.line().trim().startsWith("#")) {
             return null;
@@ -239,20 +246,31 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             String line = pl.line();
             if (isCodeBlock(line)) {
                 StringBuilder sb = new StringBuilder();
-                boolean copyRegistry = false;
-                String registry = "_systemRegistry";
                 for (String s: line.split("\n|\n\r")) {
                     if (isCommandLine(s)) {
-                        copyRegistry = true;
                         List<String> ws = parser.parse(s, 0, ParseContext.COMPLETE).words();
                         int idx = ws.get(0).lastIndexOf(":");
                         if (idx > 0) {
-                            sb.append(ws.get(0).substring(0, idx - 1));
+                            sb.append(ws.get(0).substring(0, idx));
                         }
-                        sb.append(registry + ".invoke('" + ws.get(0).substring(idx + 1) + "'");
+                        String[] argv = new String[ws.size()];
                         for (int i = 1; i < ws.size(); i++) {
+                            argv[i] = ws.get(i);
+                            if (argv[i].startsWith("${")) {
+                                Matcher argvMatcher = Pattern.compile("\\$\\{(.*)}").matcher(argv[i]);
+                                if (argvMatcher.find()) {
+                                    argv[i] = argv[i].replace(argv[i], argvMatcher.group(1));
+                                }
+                            } else if (argv[i].startsWith("$")) {
+                                argv[i] = argv[i].substring(1);
+                            } else {
+                                argv[i] = quote(argv[i]);
+                            }
+                        }
+                        sb.append("org.jline.builtins.SystemRegistry.get().invoke('" + ws.get(0).substring(idx + 1) + "'");
+                        for (int i = 1; i < argv.length; i++) {
                             sb.append(", ");
-                            sb.append(ws.get(i));
+                            sb.append(argv[i]);
                         }
                         sb.append(")");
                     } else {
@@ -261,9 +279,6 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                     sb.append("\n");
                 }
                 line = sb.toString();
-                if (copyRegistry && !engine.hasVariable(registry)) {
-                    engine.put(registry, systemRegistry);
-                }
             }
             if (engine.hasVariable(line)) {
                 out = engine.get(line);
@@ -276,6 +291,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return out;
     }
 
+    @Override
     public Object postProcess(String line, Object result) {
         Object out = result;
         if (Parser.getVariable(line) != null) {
@@ -285,6 +301,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return out;
     }
 
+    @Override
     public Object execute(String command, String[] args) throws Exception {
         exception = null;
         Object out = commandExecute.get(command(command)).executeFunction().apply(new Builtins.CommandInput(args));
@@ -294,6 +311,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return out;
     }
 
+    @Override
     public void println(Map<String, Object> options, Object object) {
         options.putIfAbsent("width", terminal.getSize().getColumns());
         for (AttributedString as : engine.format(options, object)) {

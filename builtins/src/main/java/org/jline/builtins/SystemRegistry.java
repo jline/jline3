@@ -8,9 +8,41 @@
  */
 package org.jline.builtins;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.jline.reader.ParsedLine;
 
 public interface SystemRegistry extends CommandRegistry {
 
     Object execute(ParsedLine parsedLine) throws Exception;
+
+    static SystemRegistry get() {
+        return Registeries.getInstance().getSystemRegistry();
+    }
+
+    static void put(SystemRegistry systemRegistry) {
+        Registeries.getInstance().addRegistry(systemRegistry);
+    }
+
+    public class Registeries {
+        private static Registeries instance = new Registeries();
+        private Map<Long, SystemRegistry> systemRegisteries = new HashMap<>();
+
+        private Registeries () {}
+
+        public static Registeries getInstance() {
+            return instance;
+        }
+
+        public void addRegistry(SystemRegistry systemRegistry) {
+            systemRegisteries.put(Thread.currentThread().getId(), systemRegistry);
+        }
+
+        public SystemRegistry getSystemRegistry() {
+            return systemRegisteries.getOrDefault(Thread.currentThread().getId(), null);
+        }
+
+    }
+
 }

@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
 
 public interface Parser {
     static final String REGEX_VARIABLE = "[a-zA-Z]{1,}[a-zA-Z0-9_-]*";
-    static final String REGEX_COMMAND = REGEX_VARIABLE;
+    static final String REGEX_COMMAND = "[:]{0,1}" + REGEX_VARIABLE;
 
     ParsedLine parse(String line, int cursor, ParseContext context) throws SyntaxError;
 

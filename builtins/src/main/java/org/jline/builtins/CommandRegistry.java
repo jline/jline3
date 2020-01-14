@@ -10,14 +10,13 @@ package org.jline.builtins;
 
 import org.jline.builtins.Completers;
 import org.jline.builtins.Widgets;
-import org.jline.reader.*;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 public interface CommandRegistry {
-    
+
     /**
      * Aggregate SystemCompleters of commandRegisteries
      * @return uncompiled SystemCompleter
@@ -51,7 +50,7 @@ public interface CommandRegistry {
      * @return a map with alias keys and command name values
      */
     Map<String, String> commandAliases();
-    
+
     /**
      * Returns a short info about command known by this registry.
      * @return a short info about command
@@ -68,24 +67,28 @@ public interface CommandRegistry {
     /**
      * Returns a {@code SystemCompleter} that can provide detailed completion
      * information for all registered commands.
-     * 
+     *
      * @return a SystemCompleter that can provide command completion for all registered commands
      */
     Completers.SystemCompleter compileCompleters();
 
     /**
      * Returns a command description for use in the JLine Widgets framework.
-     * @param command name of the command whose description to return 
+     * @param command name of the command whose description to return
      * @return command description for JLine TailTipWidgets to be displayed
      *         in the terminal status bar.
      */
     Widgets.CmdDesc commandDescription(String command);
-    
+
     default Object execute(String command, String[] args) throws Exception {
-        throw new IllegalArgumentException("CommandRegistry has no implementation: execute(String command, String[] args)");
+        throw new IllegalArgumentException("CommandRegistry method execute(String command, String[] args) is not implemented!");
     }
 
     default Object invoke(String command, Object... args) throws Exception {
-        throw new IllegalArgumentException("CommandRegistry has no implementation: invoke(String command, Object... args)");
+        String[] _args = new String[args.length];
+        for (int i = 0; i < args.length; i++) {
+            _args[i] = args[i].toString();
+        }
+        return execute(command, _args);
     }
 }

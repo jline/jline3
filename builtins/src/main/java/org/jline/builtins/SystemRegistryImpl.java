@@ -39,6 +39,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 throw new IllegalArgumentException();
             }
         }
+        SystemRegistry.put(this);
     }
 
     public Set<String> commandNames() {
@@ -73,6 +74,19 @@ public class SystemRegistryImpl implements SystemRegistry {
     public Widgets.CmdDesc commandDescription(String command) {
         int id = registryId(command);
         return id > -1 ? commandRegistries[id].commandDescription(command) : new Widgets.CmdDesc(false);
+    }
+
+    public Object execute(String command, String[] args) throws Exception {
+        return null;
+    }
+
+    public Object invoke(String command, Object... args) throws Exception {
+        Object out = null;
+        int id = registryId(command);
+        if (id > -1) {
+            out = commandRegistries[id].invoke(command, args);
+        }
+        return out;
     }
 
     public Object execute(ParsedLine pl) throws Exception {
