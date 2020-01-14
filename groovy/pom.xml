@@ -1,14 +1,4 @@
 <?xml version="1.0"?>
-<!--
-
-    Copyright (c) 2002-2016, the original author or authors.
-
-    This software is distributable under the BSD license. See the terms of the
-    BSD license in the documentation provided with this software.
-
-    https://opensource.org/licenses/BSD-3-Clause
-
--->
 <project
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
 	xmlns="http://maven.apache.org/POM/4.0.0"
@@ -55,9 +45,10 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.7.0</version>
                 <configuration>
-                    <showWarnings>false</showWarnings>
+                    <showWarnings>true</showWarnings>
                     <compilerArgs>
                         <arg>-Xlint:all,-options</arg>
+                        <arg>-Werror</arg>
                         <arg>-profile</arg>
                         <arg>compact1</arg>
                     </compilerArgs>

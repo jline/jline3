@@ -51,6 +51,7 @@ public class GroovyEngine implements ScriptEngine {
         return sharedData.hasVariable(name) ? sharedData.getVariable(name) : null;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public Map<String,Object> get() {
         return sharedData.getVariables();
@@ -93,6 +94,7 @@ public class GroovyEngine implements ScriptEngine {
         return Arrays.asList("groovy");
     }
 
+    @SuppressWarnings("unchecked")
     private void del(String var) {
         if (var == null) {
             return;
@@ -139,6 +141,7 @@ public class GroovyEngine implements ScriptEngine {
         return out;
     }
 
+    @SuppressWarnings("unchecked")
     private List<AttributedString> formatInternal(Map<String, Object> options, Object obj) {
         List<AttributedString> out = new ArrayList<>();
         int width = (int)options.getOrDefault("width", Integer.MAX_VALUE);
