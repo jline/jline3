@@ -21,8 +21,12 @@ public interface SystemRegistry extends CommandRegistry {
         return Registeries.getInstance().getSystemRegistry();
     }
 
-    static void put(SystemRegistry systemRegistry) {
+    static void add(SystemRegistry systemRegistry) {
         Registeries.getInstance().addRegistry(systemRegistry);
+    }
+
+    static void remove() {
+        Registeries.getInstance().removeRegistry();
     }
 
     public class Registeries {
@@ -41,6 +45,10 @@ public interface SystemRegistry extends CommandRegistry {
 
         public SystemRegistry getSystemRegistry() {
             return systemRegisteries.getOrDefault(Thread.currentThread().getId(), null);
+        }
+
+        public void removeRegistry() {
+            systemRegisteries.remove(Thread.currentThread().getId());
         }
 
     }

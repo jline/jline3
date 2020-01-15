@@ -23,4 +23,9 @@ public class Utils {
         def slurper = new JsonSlurper()
         slurper.parseText(JsonOutput.toJson(object)) 
     }
+
+    static String toJson(Object object) {
+        return object instanceof String ? JsonOutput.prettyPrint(object) 
+                                        : JsonOutput.prettyPrint(JsonOutput.toJson(object))
+    }
 }

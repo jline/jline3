@@ -9,7 +9,6 @@
 package org.jline.builtins;
 
 import java.util.Map;
-import java.util.HashMap;
 
 import org.jline.builtins.CommandRegistry;
 import org.jline.reader.ParsedLine;
@@ -22,9 +21,7 @@ public interface ConsoleEngine extends CommandRegistry {
 
     Object postProcess(String line, Object result);
 
-    default void println(Object object) {
-        println(new HashMap<>(), object);
-    }
+    void println(Object object);
 
     void println(Map<String, Object> options, Object object);
 

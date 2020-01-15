@@ -39,7 +39,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 throw new IllegalArgumentException();
             }
         }
-        SystemRegistry.put(this);
+        SystemRegistry.add(this);
     }
 
     public Set<String> commandNames() {
@@ -82,6 +82,9 @@ public class SystemRegistryImpl implements SystemRegistry {
 
     public Object invoke(String command, Object... args) throws Exception {
         Object out = null;
+        if (command.startsWith(":")) {
+            command = command.substring(1);
+        }
         int id = registryId(command);
         if (id > -1) {
             out = commandRegistries[id].invoke(command, args);
@@ -93,6 +96,9 @@ public class SystemRegistryImpl implements SystemRegistry {
         String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
         String cmd = Parser.getCommand(pl.word());
         Object out = null;
+        if (cmd.startsWith(":")) {
+            cmd = cmd.substring(1);
+        }
         if ("help".equals(cmd) || "?".equals(cmd)) {
             help();
         } else {

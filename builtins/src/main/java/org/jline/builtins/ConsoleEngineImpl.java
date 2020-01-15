@@ -19,11 +19,14 @@ import java.util.stream.Collectors;
 import org.jline.builtins.Builtins;
 import org.jline.builtins.Builtins.CommandMethods;
 import org.jline.builtins.Completers.SystemCompleter;
+import org.jline.builtins.Nano.SyntaxHighlighter;
+import org.jline.builtins.Options.HelpException;
 import org.jline.reader.*;
 import org.jline.reader.Parser.ParseContext;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStringBuilder;
 
 /**
  * Manage console variables, commands and script execution.
@@ -33,7 +36,9 @@ import org.jline.utils.AttributedString;
 public class ConsoleEngineImpl implements ConsoleEngine {
     public enum Command {SHOW
                        , DEL
-                       , ENGINES};
+                       , ENGINES
+                       , PRNT
+                       , ECHO};
     private final ScriptEngine engine;
     private Map<Command,String> commandName = new HashMap<>();
     private Map<String,Command> nameCommand = new HashMap<>();
@@ -44,11 +49,13 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     private String scriptExtension = "jline";
     private Parser parser;
     private Terminal terminal;
+    private ConfigurationPath configPath;
 
-    public ConsoleEngineImpl(ScriptEngine engine, Parser parser, Terminal terminal) {
+    public ConsoleEngineImpl(ScriptEngine engine, Parser parser, Terminal terminal, ConfigurationPath configPath) {
         this.engine = engine;
         this.parser = parser;
         this.terminal = terminal;
+        this.configPath = configPath;
         Set<Command> cmds = new HashSet<>(EnumSet.allOf(Command.class));
         for (Command c: cmds) {
             commandName.put(c, c.name().toLowerCase());
@@ -57,6 +64,8 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         commandExecute.put(Command.ENGINES, new CommandMethods(this::engines, this::defaultCompleter));
         commandExecute.put(Command.DEL, new CommandMethods(this::del, this::defaultCompleter));
         commandExecute.put(Command.SHOW, new CommandMethods(this::show, this::defaultCompleter));
+        commandExecute.put(Command.PRNT, new CommandMethods(this::prnt, this::defaultCompleter));
+        commandExecute.put(Command.ECHO, new CommandMethods(this::echo, this::defaultCompleter));
     }
 
     @Override
@@ -200,6 +209,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         }
         String[] args = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
         String cmd = Parser.getCommand(pl.word());
+        if (cmd.startsWith(":")) {
+            cmd = cmd.substring(1);
+        }
         Object out = null;
         if (new File(cmd).exists()) {
             File file = new File(cmd);
@@ -239,7 +251,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 throw new IllegalArgumentException("Command not found: " + cmd);
             }
             if (pl.word().contains("=")) {
-                engine.put(pl.word().substring(0, pl.word().indexOf('=')), out);
+                engine.put(Parser.getVariable(pl.word()), out);
                 out = null;
             }
         } else {
@@ -311,11 +323,49 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return out;
     }
 
+    @SuppressWarnings("unchecked")
+    private Map<String,Object> defaultPrntOptions() {
+        Map<String, Object> out = new HashMap<>();
+        if (engine.hasVariable("PRNT_OPTIONS")) {
+            out.putAll((Map<String,Object>)engine.get("PRNT_OPTIONS"));
+        }
+        return out;
+    }
+
+    @Override
+    public void println(Object object) {
+        println(defaultPrntOptions(), object);
+    }
+
     @Override
     public void println(Map<String, Object> options, Object object) {
+        if (object == null) {
+            return;
+        }
         options.putIfAbsent("width", terminal.getSize().getColumns());
-        for (AttributedString as : engine.format(options, object)) {
-            as.println(terminal);
+        String style = (String)options.getOrDefault("style", "");
+        if (style.equals("JSON")) {
+            highlight((int)options.get("width"), style, engine.format(options, object));
+        } else if (!style.isEmpty() && object instanceof String) {
+            highlight((int)options.get("width"), style, (String)object);
+        } else {
+            for (AttributedString as : engine.highlight(options, object)) {
+                as.println(terminal);
+            }
+        }
+    }
+
+    private void highlight(int width, String style, String object) {
+        SyntaxHighlighter highlighter = configPath != null ? SyntaxHighlighter.build(configPath.getConfig("jnanorc"), style)
+                                                           : null;
+        for (String s: object.split("\n")) {
+            AttributedStringBuilder asb = new AttributedStringBuilder();
+            asb.append(s).setLength(width);
+            if (highlighter != null) {
+                highlighter.highlight(asb).println(terminal);
+            } else {
+                asb.toAttributedString().println(terminal);
+            }
         }
     }
 
@@ -329,6 +379,63 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     public Object del(Builtins.CommandInput input) {
         engine.del(input.args());
+        return null;
+    }
+
+    public Object echo(Builtins.CommandInput input) {
+        final String[] usage = {
+                "echo -  print object",
+                "Usage: echo object",
+                "  -? --help                       Displays command help",
+        };
+        Options opt = Options.compile(usage).parse(input.args());
+        if (opt.isSet("help")) {
+            exception = new HelpException(opt.usage());
+            return null;
+        }
+        try {
+            Object[] args = expandVariables(opt.args().stream().toArray(String[]::new));
+            if (args.length > 0) {
+                println(defaultPrntOptions(), args[0]);
+            }
+        } catch (Exception e) {
+            exception = e;
+        }
+        return null;
+    }
+
+    public Object prnt(Builtins.CommandInput input) {
+        try {
+            invokePrnt(expandVariables(input.args()));
+        } catch (Exception e) {
+            exception = e;
+        }
+        return null;
+    }
+
+    public Object invokePrnt(Object[] argv) throws Exception {
+        final String[] usage = {
+                "prnt -  print object",
+                "Usage: prnt [OPTIONS] object",
+                "  -? --help                       Displays command help",
+                "  -s --style=STYLE                Use nanorc STYLE",
+                "  -w --width=WIDTH                Display width (default terminal width)"
+        };
+        Options opt = Options.compile(usage).parse(argv);
+        if (opt.isSet("help")) {
+            throw new HelpException(opt.usage());
+        }
+        Map<String, Object> options = defaultPrntOptions();
+        if (opt.isSet("style")) {
+            options.put("style", opt.get("style"));
+        }
+        if (opt.isSet("width")) {
+            options.put("width", opt.getNumber("width"));
+        }
+        List<Object> args = opt.argObjects();
+        if (args.size() > 0) {
+            println(options, args.get(0));
+        }
         return null;
     }
 

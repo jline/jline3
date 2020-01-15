@@ -131,12 +131,29 @@ public class GroovyEngine implements ScriptEngine {
     }
 
     @Override
-    public List<AttributedString> format(Map<String, Object> options, Object obj) {
+    public String format(Map<String, Object> options, Object obj) {
+        String out = obj instanceof String ? (String)obj : "";
+        String style = (String)options.getOrDefault("style", "");
+        if (style.equals("JSON")) {
+            out = Utils.toJson(obj);
+        } else if (!(obj instanceof String)) {
+            throw new IllegalArgumentException("Bad or missing style option: " + style);
+        }
+        return out;
+    }
+
+    @Override
+    public List<AttributedString> highlight(Map<String, Object> options, Object obj) {
         List<AttributedString> out = new ArrayList<>();
-        try {
-            out = formatInternal(options, obj);
-        } catch (Exception e) {
-            out = formatInternal(options, Utils.convert(obj));
+        String style = (String)options.getOrDefault("style", "");
+        if (style.equals("JSON")) {
+            throw new IllegalArgumentException("Bad style option: " + style);
+        } else {
+            try {
+                out = formatInternal(options, obj);
+            } catch (Exception e) {
+                out = formatInternal(options, Utils.convert(obj));
+            }
         }
         return out;
     }

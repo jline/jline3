@@ -32,7 +32,9 @@ public interface ScriptEngine {
 
     void del(String... vars);
 
-    List<AttributedString> format(Map<String, Object> options, Object object);
+    String format(Map<String, Object> options, Object object);
+
+    List<AttributedString> highlight(Map<String, Object> options, Object object);
 
     Object execute(String statement) throws Exception;
 
