@@ -1,6 +1,10 @@
+import org.jline.builtins.SystemRegistry
+
 class HelloWorld {
     static void hello(def who) {
-       println "hello $who!"
+        println "hello $who!"
+        def map = [user:'pippo',age:10]
+        SystemRegistry.get().invoke('prnt', '-s', 'JSON', map)
     }       
 }
 

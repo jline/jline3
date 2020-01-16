@@ -6,7 +6,8 @@ array=[0,1]
 
 array.each {
     println it
-    :show
+    resp=:show
+    :prnt $resp
 }
 
 println $1

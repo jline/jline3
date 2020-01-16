@@ -373,6 +373,21 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return out;
     }
 
+    @Override
+    public Object invoke(String command, Object... args) throws Exception {
+        Object out = null;
+        if (command.equals("prnt")) {
+            invokePrnt(args);
+        } else {
+            String[] _args = new String[args.length];
+            for (int i = 0; i < args.length; i++) {
+                _args[i] = args[i].toString();
+            }
+            out = execute(command, _args);
+        }
+        return out;
+    }
+
     @SuppressWarnings("unchecked")
     private Map<String,Object> defaultPrntOptions() {
         Map<String, Object> out = new HashMap<>();
@@ -403,6 +418,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 as.println(terminal);
             }
         }
+        terminal.flush();
     }
 
     private void highlight(int width, String style, String object) {
