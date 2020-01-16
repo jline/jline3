@@ -58,6 +58,21 @@ public class GroovyEngine implements ScriptEngine {
     }
 
     @Override
+    public Object expandParameter(String variable) {
+        Object out = variable;
+        if (variable.startsWith("[") && variable.endsWith("]")) {
+            try {
+                out = execute(variable);
+            } catch (Exception e) {
+                out = Utils.toObject(variable); // try json
+            }
+        } else if (variable.startsWith("{") && variable.endsWith("}")) {
+            out = Utils.toObject(variable);
+        }
+        return out;
+    }
+
+    @Override
     public Object execute(File script, Object[] args) throws Exception {
         sharedData.setProperty("_args", args);
         Script s = shell.parse(script);

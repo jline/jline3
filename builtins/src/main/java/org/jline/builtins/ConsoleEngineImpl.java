@@ -154,13 +154,15 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return null;
     }
 
-    private Object[] expandVariables(String[] args) throws Exception {
+    private Object[] expandParameters(String[] args) throws Exception {
         Object[] out = new Object[args.length];
         for (int i = 0; i < args.length; i++) {
-            if (args[i].startsWith("$")) {
+            if (args[i].startsWith("${")) {
+                out[i] = engine.execute(expandName(args[i]));
+            } else if (args[i].startsWith("$")) {
                 out[i] = engine.get(expandName(args[i]));
             } else {
-                out[i] = args[i];
+                out[i] = engine.expandParameter(args[i]);
             }
         }
         return out;
@@ -218,7 +220,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             String name = file.getName();
             String ext = name.contains(".") ? name.substring(name.lastIndexOf(".") + 1) : "";
             if(engine.getExtensions().contains(ext)) {
-                out = engine.execute(file, expandVariables(args));
+                out = engine.execute(file, expandParameters(args));
                 out = postProcess(pl.line(), out);
             } else if (scriptExtension.equals(ext)) {
                 boolean done = false;
@@ -394,7 +396,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             return null;
         }
         try {
-            Object[] args = expandVariables(opt.args().stream().toArray(String[]::new));
+            Object[] args = expandParameters(opt.args().stream().toArray(String[]::new));
             if (args.length > 0) {
                 println(defaultPrntOptions(), args[0]);
             }
@@ -406,7 +408,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     public Object prnt(Builtins.CommandInput input) {
         try {
-            invokePrnt(expandVariables(input.args()));
+            invokePrnt(expandParameters(input.args()));
         } catch (Exception e) {
             exception = e;
         }

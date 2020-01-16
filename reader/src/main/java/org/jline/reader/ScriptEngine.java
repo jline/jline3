@@ -36,6 +36,8 @@ public interface ScriptEngine {
 
     List<AttributedString> highlight(Map<String, Object> options, Object object);
 
+    Object expandParameter(String variable);
+
     Object execute(String statement) throws Exception;
 
     default Object execute(File script) throws Exception {

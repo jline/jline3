@@ -10,6 +10,7 @@ package org.jline.groovy;
 
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
+import groovy.json.JsonParserType
 
 public class Utils {
 
@@ -19,13 +20,20 @@ public class Utils {
         object.toString()
     }
 
+    static Object toObject(String json) {
+        def slurper = new JsonSlurper(type: JsonParserType.LAX)
+        slurper.parseText(json)
+    }
+    
     static Object convert(Object object) {
         def slurper = new JsonSlurper()
         slurper.parseText(JsonOutput.toJson(object)) 
     }
-
+    
     static String toJson(Object object) {
-        return object instanceof String ? JsonOutput.prettyPrint(object) 
-                                        : JsonOutput.prettyPrint(JsonOutput.toJson(object))
+        String json = object instanceof String ? object : JsonOutput.toJson(object)
+        ((json.startsWith("{") && json.endsWith("}"))
+            || (json.startsWith("[") && json.endsWith("]"))) ? JsonOutput.prettyPrint(json) : json
     }
+    
 }
