@@ -10,3 +10,5 @@ array.each {
 }
 
 println $1
+
+_return='ok' 

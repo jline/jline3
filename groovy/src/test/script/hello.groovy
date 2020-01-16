@@ -6,4 +6,5 @@ class HelloWorld {
 
 def static main(def _args){
     HelloWorld.hello(!_args ? 'world' : _args[0])
+    return 'just testing...'
 }

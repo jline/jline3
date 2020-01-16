@@ -11,6 +11,8 @@ package org.jline.builtins;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -204,6 +206,60 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return "\\\"" + var + "\\\"";
     }
 
+    private class ScriptFile {
+        private File script;
+        private String extension = "";
+
+        @SuppressWarnings("unchecked")
+        public ScriptFile(String command) {
+            this.script = new File(command);
+            if (script.exists()) {
+                scriptExtension(command);
+            } else if (engine.hasVariable("PATH")) {
+                List<String>  extensions = new ArrayList<>();
+                extensions.addAll(engine.getExtensions());
+                extensions.add(scriptExtension);
+                boolean found = false;
+                for (String p: (List<String>)engine.get("PATH")) {
+                    for (String e : extensions) {
+                        String file = command + "." + e;
+                        Path path = Paths.get(p, file);
+                        if (path.toFile().exists()) {
+                            script = path.toFile();
+                            scriptExtension(command);
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        private void scriptExtension(String command) {
+            String name = script.getName();
+            this.extension = name.contains(".") ? name.substring(name.lastIndexOf(".") + 1) : "";
+            if (!isEngineScript() && !isConsoleScript()) {
+                throw new IllegalArgumentException("Command not found: " + command);
+            }
+        }
+
+        public File getScript() {
+            return script;
+        }
+
+        public boolean isEngineScript() {
+            return engine.getExtensions().contains(extension);
+        }
+
+        public boolean isConsoleScript() {
+            return scriptExtension.equals(extension);
+        }
+
+    }
+
     @Override
     public Object execute(ParsedLine pl) throws Exception {
         if (pl.line().trim().startsWith("#")) {
@@ -215,46 +271,38 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             cmd = cmd.substring(1);
         }
         Object out = null;
-        if (new File(cmd).exists()) {
-            File file = new File(cmd);
-            String name = file.getName();
-            String ext = name.contains(".") ? name.substring(name.lastIndexOf(".") + 1) : "";
-            if(engine.getExtensions().contains(ext)) {
-                out = engine.execute(file, expandParameters(args));
-                out = postProcess(pl.line(), out);
-            } else if (scriptExtension.equals(ext)) {
-                boolean done = false;
-                String line = "";
-                try(BufferedReader br = new BufferedReader(new FileReader(file))) {
-                    for(String l; (l = br.readLine()) != null; ) {
-                        try {
-                            line += l;
-                            parser.parse(line, line.length() + 1, ParseContext.ACCEPT_LINE);
-                            done = true;
-                            for (int i = 0; i < args.length; i++) {
-                                line = line.replaceAll("\\$\\d", args[i].startsWith("$") ? expandName(args[i]) : quote(args[i]));
-                            }
-                            systemRegistry.execute(parser.parse(line, 0, ParseContext.COMPLETE));
-                            line = "";
-                        } catch (EOFError e) {
-                            done = false;
-                            line += "\n";
-                        } catch (SyntaxError e) {
-                            throw e;
-                        } catch (Exception e) {
-                            throw new IllegalArgumentException(line + "\n" + e.getMessage());
+        ScriptFile file = new ScriptFile(cmd);
+        if(file.isEngineScript()) {
+            out = engine.execute(file.getScript(), expandParameters(args));
+            out = postProcess(pl.line(), out);
+        } else if (file.isConsoleScript()) {
+            boolean done = false;
+            String line = "";
+            try(BufferedReader br = new BufferedReader(new FileReader(file.getScript()))) {
+                for(String l; (l = br.readLine()) != null; ) {
+                    try {
+                        line += l;
+                        parser.parse(line, line.length() + 1, ParseContext.ACCEPT_LINE);
+                        done = true;
+                        for (int i = 0; i < args.length; i++) {
+                            line = line.replaceAll("\\$\\d", args[i].startsWith("$") ? expandName(args[i]) : quote(args[i]));
                         }
-                    }
-                    if (!done) {
-                        throw new IllegalArgumentException("Incompleted command: \n" + line);
+                        systemRegistry.execute(parser.parse(line, 0, ParseContext.COMPLETE));
+                        line = "";
+                    } catch (EOFError e) {
+                        done = false;
+                        line += "\n";
+                    } catch (SyntaxError e) {
+                        throw e;
+                    } catch (Exception e) {
+                        throw new IllegalArgumentException(line + "\n" + e.getMessage());
                     }
                 }
-            } else {
-                throw new IllegalArgumentException("Command not found: " + cmd);
-            }
-            if (pl.word().contains("=")) {
-                engine.put(Parser.getVariable(pl.word()), out);
-                out = null;
+                if (!done) {
+                    throw new IllegalArgumentException("Incompleted command: \n" + line);
+                }
+                out = engine.get("_return");
+                out = postProcess(pl.line(), out);
             }
         } else {
             String line = pl.line();
