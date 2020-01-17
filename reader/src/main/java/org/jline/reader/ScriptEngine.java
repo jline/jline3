@@ -16,6 +16,11 @@ import javax.script.ScriptEngineManager;
 
 import org.jline.utils.AttributedString;
 
+/**
+ * Manage scriptEngine variables, statements and script execution.
+ *
+ * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
+ */
 public interface ScriptEngine {
 
     String getEngineName();
@@ -28,7 +33,11 @@ public interface ScriptEngine {
 
     Object get(String name);
 
-    Map<String,Object> get();
+    default Map<String,Object> find() {
+        return find(null);
+    }
+
+    Map<String,Object> find(String name);
 
     void del(String... vars);
 

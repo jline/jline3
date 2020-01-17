@@ -440,7 +440,17 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     public Object show(Builtins.CommandInput input) {
-        return engine.get();
+        final String[] usage = {
+                "show -  list console variables",
+                "Usage: show [VARIABLE]",
+                "  -? --help                       Displays command help",
+        };
+        Options opt = Options.compile(usage).parse(input.args());
+        if (opt.isSet("help")) {
+            exception = new HelpException(opt.usage());
+            return null;
+        }
+        return engine.find(input.args().length > 0 ? input.args()[0] : null);
     }
 
     public Object del(Builtins.CommandInput input) {

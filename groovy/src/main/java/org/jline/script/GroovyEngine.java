@@ -27,6 +27,7 @@ import groovy.lang.Script;
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public class GroovyEngine implements ScriptEngine {
+    private static final String REGEX_SYSTEM_VAR = "[A-Z]{1}[A-Z_]*";
     private GroovyShell shell;
     private Binding sharedData;
     private Map<String,String> imports = new HashMap<String,String>();
@@ -53,8 +54,16 @@ public class GroovyEngine implements ScriptEngine {
 
     @SuppressWarnings("unchecked")
     @Override
-    public Map<String,Object> get() {
-        return sharedData.getVariables();
+    public Map<String,Object> find(String name) {
+        Map<String, Object> out = new HashMap<>();
+        if (name == null) {
+            out = sharedData.getVariables();
+        } else {
+            for (String v : internalFind(name)) {
+                out.put(v, get(v));
+            }
+        }
+        return out;
     }
 
     @Override
@@ -110,6 +119,19 @@ public class GroovyEngine implements ScriptEngine {
     }
 
     @SuppressWarnings("unchecked")
+    private List<String> internalFind(String var) {
+        List<String> out = new ArrayList<>();
+        if(!var.contains(".") && var.contains("*")) {
+            var = var.replaceAll("\\*", ".*");
+        }
+        for (String v :  (Set<String>)sharedData.getVariables().keySet()) {
+            if (v.matches(var)) {
+                out.add(v);
+            }
+        }
+        return out;
+    }
+
     private void del(String var) {
         if (var == null) {
             return;
@@ -119,16 +141,8 @@ public class GroovyEngine implements ScriptEngine {
         } else if (sharedData.hasVariable(var)) {
             sharedData.getVariables().remove(var);
         } else if (!var.contains(".") && var.contains("*")) {
-            var = var.replaceAll("\\*", ".*");
-            Map<String, Object> vars=sharedData.getVariables();
-            List<String> todel = new ArrayList<String>();
-            for (Map.Entry<String,Object> entry : vars.entrySet()){
-                if (!entry.getKey().equals("_") && entry.getKey().matches(var)) {
-                    todel.add(entry.getKey());
-                }
-            }
-            for (String v : todel){
-                if (sharedData.hasVariable(v)) {
+            for (String v : internalFind(var)){
+                if (sharedData.hasVariable(v) && !v.equals("_") && !v.matches(REGEX_SYSTEM_VAR)) {
                     sharedData.getVariables().remove(v);
                 }
             }
@@ -165,29 +179,29 @@ public class GroovyEngine implements ScriptEngine {
             throw new IllegalArgumentException("Bad style option: " + style);
         } else {
             try {
-                out = formatInternal(options, obj);
+                out = internalHighlight(options, obj);
             } catch (Exception e) {
-                out = formatInternal(options, Utils.convert(obj));
+                out = internalHighlight(options, Utils.convert(obj));
             }
         }
         return out;
     }
 
     @SuppressWarnings("unchecked")
-    private List<AttributedString> formatInternal(Map<String, Object> options, Object obj) {
+    private List<AttributedString> internalHighlight(Map<String, Object> options, Object obj) {
         List<AttributedString> out = new ArrayList<>();
         int width = (int)options.getOrDefault("width", Integer.MAX_VALUE);
         if (obj == null) {
             // do nothing
         } else if (obj instanceof Map) {
-            out = formatMap((Map<String, Object>)obj, width);
+            out = highlightMap((Map<String, Object>)obj, width);
         } else if (obj instanceof Collection<?>) {
             Collection<?> collection = (Collection<?>)obj;
             if (!collection.isEmpty()) {
                 if (collection.size() == 1) {
                     Object elem = collection.iterator().next();
                     if (elem instanceof Map) {
-                        out = formatMap((Map<String, Object>)elem, width);
+                        out = highlightMap((Map<String, Object>)elem, width);
                     } else {
                         out.add(new AttributedString(Utils.toString(obj)));
                     }
@@ -284,7 +298,7 @@ public class GroovyEngine implements ScriptEngine {
         }
     }
 
-    private List<AttributedString> formatMap(Map<String, Object> map, int width) {
+    private List<AttributedString> highlightMap(Map<String, Object> map, int width) {
         List<AttributedString> out = new ArrayList<>();
         int max = map.keySet().stream().map(String::length).max(Integer::compareTo).get();
         for (Map.Entry<String, Object> entry : map.entrySet()) {
