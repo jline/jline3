@@ -8,6 +8,7 @@
  */
 package org.jline.builtins;
 
+import java.io.File;
 import java.util.*;
 
 import org.jline.builtins.CommandRegistry;
@@ -42,6 +43,18 @@ public class SystemRegistryImpl implements SystemRegistry {
         SystemRegistry.add(this);
     }
 
+    @Override
+    public void initialize(File script) {
+        if (consoleId != null) {
+            try {
+                consoleEngine().execute(script);
+            } catch (Exception e) {
+                System.err.println(e.getMessage());
+            }
+        }
+    }
+
+    @Override
     public Set<String> commandNames() {
         Set<String> out = new HashSet<>();
         for (CommandRegistry r : commandRegistries) {
@@ -50,6 +63,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         return out;
     }
 
+    @Override
     public Map<String, String> commandAliases() {
         Map<String, String> out = new HashMap<>();
         for (CommandRegistry r : commandRegistries) {
@@ -58,28 +72,29 @@ public class SystemRegistryImpl implements SystemRegistry {
         return out;
     }
 
+    @Override
     public List<String> commandInfo(String command) {
         int id = registryId(command);
         return id > -1 ? commandRegistries[id].commandInfo(command) : new ArrayList<>();
     }
 
+    @Override
     public boolean hasCommand(String command) {
         return registryId(command) > -1;
     }
 
+    @Override
     public Completers.SystemCompleter compileCompleters() {
         return CommandRegistry.compileCompleters(commandRegistries);
     }
 
+    @Override
     public Widgets.CmdDesc commandDescription(String command) {
         int id = registryId(command);
         return id > -1 ? commandRegistries[id].commandDescription(command) : new Widgets.CmdDesc(false);
     }
 
-    public Object execute(String command, String[] args) throws Exception {
-        return null;
-    }
-
+    @Override
     public Object invoke(String command, Object... args) throws Exception {
         Object out = null;
         if (command.startsWith(":")) {
@@ -92,6 +107,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         return out;
     }
 
+    @Override
     public Object execute(ParsedLine pl) throws Exception {
         String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
         String cmd = Parser.getCommand(pl.word());

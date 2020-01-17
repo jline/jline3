@@ -8,12 +8,15 @@
  */
 package org.jline.builtins;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.jline.reader.ParsedLine;
 
 public interface SystemRegistry extends CommandRegistry {
+
+    public void initialize(File script);
 
     Object execute(ParsedLine parsedLine) throws Exception;
 

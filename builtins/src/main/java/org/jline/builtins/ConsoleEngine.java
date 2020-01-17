@@ -8,6 +8,7 @@
  */
 package org.jline.builtins;
 
+import java.io.File;
 import java.util.Map;
 
 import org.jline.builtins.CommandRegistry;
@@ -18,6 +19,12 @@ public interface ConsoleEngine extends CommandRegistry {
     void setSystemRegistry(SystemRegistry systemRegistry);
 
     Object execute(ParsedLine parsedLine) throws Exception;
+
+    default Object execute(File script) throws Exception {
+        return execute(script, "", new String[0]);
+    }
+
+    Object execute(File script, String cmdLine, String[] args) throws Exception;
 
     Object postProcess(String line, Object result);
 

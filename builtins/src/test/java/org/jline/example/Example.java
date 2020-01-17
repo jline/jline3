@@ -12,7 +12,7 @@ import static java.time.temporal.ChronoField.HOUR_OF_DAY;
 import static java.time.temporal.ChronoField.MINUTE_OF_HOUR;
 import static org.jline.builtins.Completers.TreeCompleter.node;
 
-import java.io.FileNotFoundException;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.LocalDate;
@@ -623,6 +623,7 @@ public class Example
             ExampleCommands exampleCommands = new ExampleCommands();
             ConsoleEngine consoleEngine = new ConsoleEngineImpl(scriptEngine, parser, terminal, null);
             SystemRegistryImpl systemRegistry = new SystemRegistryImpl(consoleEngine, builtins, exampleCommands);
+            // systemRegistry.initialize(new File("./example/init.jline"));
             //
             // Command completers
             //
