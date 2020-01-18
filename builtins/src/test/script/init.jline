@@ -6,10 +6,11 @@ array=[0,1]
 
 array.each {
     println it
+    def resp
     resp=:show
     :prnt $resp
 }
 
-println $1
+println(${1})
 
 _return='ok' 

@@ -503,12 +503,21 @@ public class Builtins implements CommandRegistry {
 
     public static class CommandInput{
         String[] args;
+        Object[] xargs;
         InputStream in;
         PrintStream out;
         PrintStream err;
 
         public CommandInput(String[] args) {
             this(args, null, null, null);
+        }
+
+        public CommandInput(Object[] xargs, boolean dumb) {
+            this.xargs = xargs;
+            this.args = new String[xargs.length];
+            for (int i = 0; i < xargs.length; i++) {
+                args[i] = xargs[i].toString();
+            }
         }
 
         public CommandInput(String[] args, InputStream in, PrintStream out, PrintStream err) {
@@ -520,6 +529,10 @@ public class Builtins implements CommandRegistry {
 
         public String[] args() {
             return args;
+        }
+
+        public Object[] xargs() {
+            return xargs;
         }
 
         public InputStream in() {

@@ -120,9 +120,11 @@ public class SystemRegistryImpl implements SystemRegistry {
         } else {
             int id = registryId(cmd);
             if (id > -1) {
-                out = commandRegistries[id].execute(cmd, argv);
                 if (consoleId != null) {
+                    out = commandRegistries[id].invoke(cmd, consoleEngine().expandParameters(argv));
                     out = consoleEngine().postProcess(pl.line(), out);
+                } else {
+                    out = commandRegistries[id].execute(cmd, argv);                    
                 }
             } else if (consoleId != null) {
                 out = consoleEngine().execute(pl);

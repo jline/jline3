@@ -28,6 +28,14 @@ public interface ConsoleEngine extends CommandRegistry {
     void setSystemRegistry(SystemRegistry systemRegistry);
 
     /**
+     * Substituting args references with their values.
+     * @param args
+     * @return Substituted args
+     * @throws Exception
+     */
+    Object[] expandParameters(String[] args) throws Exception;
+        
+    /**
      * Executes parsed line that does not contain known command by the system registry.
      * If parsed line is neither JLine or ScriptEngine script it will be evaluated
      * as ScriptEngine statement.

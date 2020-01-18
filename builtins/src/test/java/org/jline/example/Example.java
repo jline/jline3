@@ -741,8 +741,14 @@ public class Example
                 }
                 catch (Exception e) {
                     AttributedStringBuilder asb = new AttributedStringBuilder();
-                    asb.append(e.getMessage(), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+                    if (e.getMessage() != null) {
+                        asb.append(e.getMessage(), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+                    } else {
+                        asb.append("Caught exception: ", AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+                        asb.append(e.getClass().getCanonicalName(), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+                    }
                     asb.toAttributedString().println(terminal);
+                    scriptEngine.put("exception", e);
                 }
             }
         }

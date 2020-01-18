@@ -165,7 +165,7 @@ public class GroovyEngine implements ScriptEngine {
     public String format(Map<String, Object> options, Object obj) {
         String out = obj instanceof String ? (String)obj : "";
         String style = (String)options.getOrDefault("style", "");
-        if (style.equals("JSON")) {
+        if (style.equalsIgnoreCase("JSON")) {
             out = Utils.toJson(obj);
         } else if (!(obj instanceof String)) {
             throw new IllegalArgumentException("Bad or missing style option: " + style);
@@ -177,7 +177,7 @@ public class GroovyEngine implements ScriptEngine {
     public List<AttributedString> highlight(Map<String, Object> options, Object obj) {
         List<AttributedString> out = new ArrayList<>();
         String style = (String)options.getOrDefault("style", "");
-        if (style.equals("JSON")) {
+        if (style.equalsIgnoreCase("JSON")) {
             throw new IllegalArgumentException("Bad style option: " + style);
         } else {
             try {

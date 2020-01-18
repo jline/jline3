@@ -86,8 +86,8 @@ public interface CommandRegistry {
     Widgets.CmdDesc commandDescription(String command);
 
     /**
-     * Execute a command entered interactively or via JLine script. Implementation of the method is required when aggregating
-     * command registries using systemRegistry.
+     * Execute a command that have only string parameters and options. Implementation of the method is required 
+     * when aggregating command registries using SystemRegistry.
      * @param command
      * @param args
      * @return result
@@ -98,8 +98,8 @@ public interface CommandRegistry {
     }
 
     /**
-     * Execute a command inside a code block or script engine script. If command has other than string arguments custom
-     * implementation is required.
+     * Execute a command. If command has other than string parameters a custom implementation is required. 
+     * This method will be called only when we have ConsoleEngine in SystemRegistry.
      * @param command
      * @param args
      * @return result
