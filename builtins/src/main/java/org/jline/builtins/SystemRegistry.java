@@ -14,24 +14,52 @@ import java.util.Map;
 
 import org.jline.reader.ParsedLine;
 
+/**
+ * Aggregate command registries and dispatch command executions.
+ *
+ * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
+ */
 public interface SystemRegistry extends CommandRegistry {
 
+    /**
+     * Initialize consoleEngine environment by executing console script
+     * @param script
+     */
     public void initialize(File script);
 
+    /**
+     * Execute a command, script or evaluate scriptEngine statement
+     * @param parsedLine
+     * @return result
+     * @throws Exception
+     */
     Object execute(ParsedLine parsedLine) throws Exception;
 
+    /**
+     * @return systemRegistry of the current thread
+     */
     static SystemRegistry get() {
         return Registeries.getInstance().getSystemRegistry();
     }
 
+    /**
+     * Add systemRegistry to the thread map
+     * @param systemRegistry
+     */
     static void add(SystemRegistry systemRegistry) {
         Registeries.getInstance().addRegistry(systemRegistry);
     }
 
+    /**
+     * Remove systemRegistry from the thread map
+     */
     static void remove() {
         Registeries.getInstance().removeRegistry();
     }
 
+    /**
+     * Manage systemRegistry store
+     */
     public class Registeries {
         private static Registeries instance = new Registeries();
         private Map<Long, SystemRegistry> systemRegisteries = new HashMap<>();

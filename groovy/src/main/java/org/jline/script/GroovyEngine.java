@@ -23,6 +23,8 @@ import groovy.lang.Script;
 
 /**
  * Implements Groovy ScriptEngine.
+ * You must be very careful when using GroovyEngine in a multithreaded environment. The Binding instance is not
+ * thread safe, and it is shared by all scripts.
  *
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */

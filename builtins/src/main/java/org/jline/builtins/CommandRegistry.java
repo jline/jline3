@@ -15,6 +15,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Store command information, compile tab completers and execute registered commands.
+ *
+ * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
+ */
 public interface CommandRegistry {
 
     /**
@@ -80,10 +85,26 @@ public interface CommandRegistry {
      */
     Widgets.CmdDesc commandDescription(String command);
 
+    /**
+     * Execute a command entered interactively or via JLine script. Implementation of the method is required when aggregating
+     * command registries using systemRegistry.
+     * @param command
+     * @param args
+     * @return result
+     * @throws Exception
+     */
     default Object execute(String command, String[] args) throws Exception {
         throw new IllegalArgumentException("CommandRegistry method execute(String command, String[] args) is not implemented!");
     }
 
+    /**
+     * Execute a command inside a code block or script engine script. If command has other than string arguments custom
+     * implementation is required.
+     * @param command
+     * @param args
+     * @return result
+     * @throws Exception
+     */
     default Object invoke(String command, Object... args) throws Exception {
         String[] _args = new String[args.length];
         for (int i = 0; i < args.length; i++) {
