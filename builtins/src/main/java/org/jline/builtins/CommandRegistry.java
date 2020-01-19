@@ -108,6 +108,9 @@ public interface CommandRegistry {
     default Object invoke(String command, Object... args) throws Exception {
         String[] _args = new String[args.length];
         for (int i = 0; i < args.length; i++) {
+            if (!(args[i] instanceof String)) {
+                throw new IllegalArgumentException();
+            }
             _args[i] = args[i].toString();
         }
         return execute(command, _args);

@@ -11,9 +11,6 @@ package org.jline.reader;
 import java.io.File;
 import java.util.*;
 
-import javax.script.ScriptEngineFactory;
-import javax.script.ScriptEngineManager;
-
 import org.jline.utils.AttributedString;
 
 /**
@@ -93,8 +90,24 @@ public interface ScriptEngine {
      */
     List<AttributedString> highlight(Map<String, Object> options, Object object);
 
-    Object expandParameter(String variable);
+    /**
+     * Substitute variable reference with its value.
+     * @param variable
+     * @return Substituted variable
+     * @throws Exception
+     */
+    default Object expandParameter(String variable) {
+        return expandParameter(variable, "");
+    }
 
+    /**
+     * Substitute variable reference with its value.
+     * @param variable
+     * @param format serialization format
+     * @return Substituted variable
+     * @throws Exception
+     */
+    Object expandParameter(String variable, String format);
     /**
      * Executes scriptEngine statement
      * @param statement
@@ -122,19 +135,4 @@ public interface ScriptEngine {
      */
     Object execute(File script, Object[] args) throws Exception;
 
-    static List<Map<String, Object>> listEngines() {
-        List<Map<String, Object>> out = new ArrayList<>();
-        ScriptEngineManager f = new ScriptEngineManager();
-        List<ScriptEngineFactory> engines = f.getEngineFactories();
-        for (ScriptEngineFactory engine : engines) {
-            Map<String,Object> e = new HashMap<>();
-            e.put("name", engine.getEngineName());
-            e.put("version", engine.getEngineVersion());
-            e.put("language", engine.getLanguageName());
-            e.put("extensions", engine.getExtensions());
-            e.put("nick-names", engine.getNames());
-            out.add(e);
-        }
-        return out;
-    }
 }

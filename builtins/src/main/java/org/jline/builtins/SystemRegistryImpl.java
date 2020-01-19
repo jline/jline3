@@ -103,6 +103,8 @@ public class SystemRegistryImpl implements SystemRegistry {
         int id = registryId(command);
         if (id > -1) {
             out = commandRegistries[id].invoke(command, args);
+        } else if (consoleId != null) {         
+            out = consoleEngine().invoke(command, args);
         }
         return out;
     }

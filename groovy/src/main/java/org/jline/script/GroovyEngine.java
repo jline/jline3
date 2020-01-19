@@ -69,16 +69,45 @@ public class GroovyEngine implements ScriptEngine {
     }
 
     @Override
-    public Object expandParameter(String variable) {
+    public Object expandParameter(String variable, String format) {
         Object out = variable;
-        if (variable.startsWith("[") && variable.endsWith("]")) {
+        if (format.equalsIgnoreCase("TXT")) {
+            // do nothing
+        } else if (format.equalsIgnoreCase("JSON")) {
+            out = Utils.toObject(variable);
+        } else if (format.equalsIgnoreCase("GROOVY")) {
             try {
                 out = execute(variable);
             } catch (Exception e) {
-                out = Utils.toObject(variable); // try json
+                throw new IllegalArgumentException(e.getMessage());
             }
-        } else if (variable.startsWith("{") && variable.endsWith("}")) {
-            out = Utils.toObject(variable);
+        } else {
+            variable = variable.trim();
+            boolean hasCurly = variable.contains("{") && variable.contains("}");
+            try {
+                if (variable.startsWith("[") && variable.endsWith("]")) {
+                    try {
+                        if (hasCurly) {
+                            out = Utils.toObject(variable); // try json
+                        } else {
+                            out = execute(variable);
+                        }
+                    } catch (Exception e) {
+                        if (hasCurly) {
+                            try {
+                                out = execute(variable);
+                            } catch (Exception e2) {
+
+                            }
+                        } else {
+                            out = Utils.toObject(variable); // try json
+                        }
+                    }
+                } else if (variable.startsWith("{") && variable.endsWith("}")) {
+                    out = Utils.toObject(variable);
+                }
+            } catch (Exception e) {
+            }
         }
         return out;
     }
@@ -193,6 +222,7 @@ public class GroovyEngine implements ScriptEngine {
     private List<AttributedString> internalHighlight(Map<String, Object> options, Object obj) {
         List<AttributedString> out = new ArrayList<>();
         int width = (int)options.getOrDefault("width", Integer.MAX_VALUE);
+        boolean rownum = options.containsKey("rownum");
         if (obj == null) {
             // do nothing
         } else if (obj instanceof Map) {
@@ -226,8 +256,11 @@ public class GroovyEngine implements ScriptEngine {
                             }
                         }
                         columns.add(0, 0);
-                        toTabStops(columns);
+                        toTabStops(columns, rownum);
                         AttributedStringBuilder asb = new AttributedStringBuilder().tabs(columns);
+                        if (rownum) {
+                            asb.append("\t");
+                        }
                         for (int i = 0; i < header.size(); i++) {
                             asb.append(header.get(i), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
                             asb.append("\t");
@@ -236,8 +269,14 @@ public class GroovyEngine implements ScriptEngine {
                             asb.setLength(width);
                         }
                         out.add(asb.toAttributedString());
+                        Integer row = 0;
                         for (Object o : collection) {
                             AttributedStringBuilder asb2 = new AttributedStringBuilder().tabs(columns);
+                            if (rownum) {
+                                asb2.append(row.toString(), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
+                                asb2.append("\t");
+                                row++;
+                            }
                             for (int i = 0; i < header.size(); i++) {
                                 Map<String, Object> m = (Map<String, Object>)o;
                                 asb2.append(Utils.toString(m.get(header.get(i))));
@@ -262,9 +301,15 @@ public class GroovyEngine implements ScriptEngine {
                                 }
                             }
                         }
-                        toTabStops(columns);
+                        toTabStops(columns, rownum);
+                        Integer row = 0;
                         for (Object o : collection) {
                             AttributedStringBuilder asb = new AttributedStringBuilder().tabs(columns);
+                            if (rownum) {
+                                asb.append(row.toString(), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
+                                asb.append("\t");
+                                row++;
+                            }
                             List<Object> inner = new ArrayList<>();
                             inner.addAll((Collection<?>)o);
                             for (int i = 0; i < inner.size(); i++) {
@@ -294,7 +339,10 @@ public class GroovyEngine implements ScriptEngine {
         return out;
     }
 
-    private void toTabStops(List<Integer> columns) {
+    private void toTabStops(List<Integer> columns, boolean rownum) {
+        if (rownum) {
+            columns.add(0, 5);
+        }
         for (int i = 1; i < columns.size(); i++) {
             columns.set(i, columns.get(i - 1) + columns.get(i));
         }

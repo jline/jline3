@@ -11,8 +11,11 @@ package org.jline.builtins;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -39,9 +42,9 @@ import org.jline.utils.AttributedStyle;
 public class ConsoleEngineImpl implements ConsoleEngine {
     public enum Command {SHOW
                        , DEL
-                       , ENGINES
                        , PRNT
-                       , ECHO};
+                       , ECHO
+                       , SLURP};
     private static final String VAR_PRNT_OPTIONS = "PRNT_OPTIONS";
     private static final String VAR_PATH = "PATH";
     private static final String VAR_NANORC = "NANORC";
@@ -71,11 +74,11 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             commandName.put(c, c.name().toLowerCase());
         }
         doNameCommand();
-        commandExecute.put(Command.ENGINES, new CommandMethods(this::engines, this::defaultCompleter));
         commandExecute.put(Command.DEL, new CommandMethods(this::del, this::defaultCompleter));
         commandExecute.put(Command.SHOW, new CommandMethods(this::show, this::defaultCompleter));
         commandExecute.put(Command.PRNT, new CommandMethods(this::prnt, this::defaultCompleter));
         commandExecute.put(Command.ECHO, new CommandMethods(this::echo, this::defaultCompleter));
+        commandExecute.put(Command.SLURP, new CommandMethods(this::slurp, this::defaultCompleter));
     }
 
     @Override
@@ -201,7 +204,18 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     private boolean isCommandLine(String line) {
         String command = Parser.getCommand(line);
-        return command.startsWith(":") && systemRegistry.hasCommand(command.substring(1));
+        boolean out = false;
+        if (command.startsWith(":")) {
+            if (systemRegistry.hasCommand(command.substring(1))) {
+                out = true;
+            } else {
+                ScriptFile sf = new ScriptFile(command.substring(1), "", new String[0]);
+                if (sf.isScript()) {
+                    out = true;
+                }
+            }
+        }
+        return out;
     }
 
     private String quote(String var) {
@@ -209,7 +223,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 || (var.startsWith("'") && var.endsWith("'"))) {
             return var;
         }
-        if (var.contains("\"")) {
+        if (var.contains("\\\"")) {
             return "'" + var + "'";
         }
         return "\"" + var + "\"";
@@ -273,7 +287,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         
         private void doArgs(String[] args) {
             List<String> _args = new ArrayList<>();
-            _args.add(script.getAbsolutePath());
+            if (isConsoleScript()) {
+                _args.add(script.getAbsolutePath());
+            }
             for (String a : args) {
                 if (isConsoleScript()) {
                     if (!a.equals(OPTION_VERBOSE)) {
@@ -322,29 +338,39 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                             line = l.trim().substring(2);
                         }
                         usage.append(line).append('\n');
-                    }                    
-                    usage.append("\n");
-                    throw new HelpException(usage.toString());
+                    }             
+                    if (usage.length() > 0) {
+                        usage.append("\n");
+                        throw new HelpException(usage.toString());
+                    } else {
+                        internalExecute();
+                    }
                 }
-            } else if (isEngineScript()) {
+            } else if (isScript()) {
+                internalExecute();
+            }
+            return true;
+        }
+        
+        private void internalExecute() throws Exception {
+            if (isEngineScript()) {
                 result = engine.execute(script, expandParameters(args));
                 result = postProcess(cmdLine, result);
             } else if (isConsoleScript()) {
                 boolean done = false;
                 String line = "";
-                try(BufferedReader br = new BufferedReader(new FileReader(script))) {
-                    for(String l; (l = br.readLine()) != null; ) {
+                try (BufferedReader br = new BufferedReader(new FileReader(script))) {
+                    for (String l; (l = br.readLine()) != null;) {
                         try {
                             line += l;
                             parser.parse(line, line.length() + 1, ParseContext.ACCEPT_LINE);
                             done = true;
                             for (int i = 1; i < args.length; i++) {
-                                line = line.replaceAll("\\s\\$" + i + "\\b"
-                                        , args[i].startsWith("$") ? (" " + expandName(args[i]) + " ")
-                                                                  : (" " + quote(args[i]) + " "));
-                                line = line.replaceAll("\\$\\{" + i + "\\}"
-                                        , args[i].startsWith("$") ? expandName(args[i])
-                                                                  : quote(args[i]));
+                                line = line.replaceAll("\\s\\$" + i + "\\b",
+                                        args[i].startsWith("$") ? (" " + expandName(args[i]) + " ")
+                                                : (" " + quote(args[i]) + " "));
+                                line = line.replaceAll("\\$\\{" + i + "\\}",
+                                        args[i].startsWith("$") ? expandName(args[i]) : quote(args[i]));
                             }
                             line = line.replaceAll("\\s\\$\\d\\b", "");
                             line = line.replaceAll("\\$\\{\\d+\\}", "");
@@ -372,7 +398,6 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                     result = postProcess(cmdLine, result);
                 }
             }
-            return true;
         }
 
         public Object getResult() {
@@ -451,21 +476,6 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return out;
     }
 
-    private String replace(String arg, String regex, int group) {
-        String out = arg;
-        if (arg.matches(regex)) {
-            Matcher argvMatcher = Pattern.compile(regex).matcher(arg);
-            if (argvMatcher.find()) {
-                if (group < 0) {
-                    out = arg.replace(arg, "");
-                } else {
-                    out = arg.replace(arg, argvMatcher.group(group));
-                }
-            }
-        }
-        return out;
-    }
-    
     @Override
     public Object postProcess(String line, Object result) {
         Object out = result;
@@ -481,7 +491,22 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     @Override
     public Object invoke(String command, Object... args) throws Exception {
         exception = null;
-        Object out = commandExecute.get(command(command)).executeFunction().apply(new Builtins.CommandInput(args, true));
+        Object out = null;
+        if (hasCommand(command)) {
+            out = commandExecute.get(command(command)).executeFunction().apply(new Builtins.CommandInput(args, true));
+        } else {
+            String[] _args = new String[args.length];
+            for (int i = 0; i < args.length; i++) {
+                if (!(args[i] instanceof String)) {
+                    throw new IllegalArgumentException();
+                }
+                _args[i] = args[i].toString();
+            }
+            ScriptFile sf = new ScriptFile(command, "", _args);
+            if (sf.execute()) {
+                out = sf.getResult();
+            }
+        }
         if (exception != null) {
             throw exception;
         }
@@ -543,11 +568,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         }
     }
 
-    public Object engines(Builtins.CommandInput input) {
-        return ScriptEngine.listEngines();
-    }
-
-    public Object show(Builtins.CommandInput input) {
+    private Object show(Builtins.CommandInput input) {
         final String[] usage = {
                 "show -  list console variables",
                 "Usage: show [VARIABLE]",
@@ -561,12 +582,12 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return engine.find(input.args().length > 0 ? input.args()[0] : null);
     }
 
-    public Object del(Builtins.CommandInput input) {
+    private Object del(Builtins.CommandInput input) {
         engine.del(input.args());
         return null;
     }
 
-    public Object echo(Builtins.CommandInput input) {
+    private Object echo(Builtins.CommandInput input) {
         final String[] usage = {
                 "echo -  print object",
                 "Usage: echo object",
@@ -584,11 +605,12 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return null;
     }
 
-    public Object prnt(Builtins.CommandInput input) {
+    private Object prnt(Builtins.CommandInput input) {
         final String[] usage = {
                 "prnt -  print object",
                 "Usage: prnt [OPTIONS] object",
                 "  -? --help                       Displays command help",
+                "  -r --rownum                     Display table row numbers",
                 "  -s --style=STYLE                Use nanorc STYLE",
                 "  -w --width=WIDTH                Display width (default terminal width)"
         };
@@ -604,11 +626,45 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         if (opt.isSet("width")) {
             options.put("width", opt.getNumber("width"));
         }
+        if (opt.isSet("rownum")) {
+            options.put("rownum", true);            
+        }
         List<Object> args = opt.argObjects();
         if (args.size() > 0) {
             println(options, args.get(0));
         }
         return null;
+    }
+    
+    private Object slurp(Builtins.CommandInput input) { 
+        final String[] usage = {
+                "slurp -  slurp file context to string",
+                "Usage: slurp [OPTIONS] file",
+                "  -? --help                       Displays command help",
+                "  -e --encoding=ENCODING          Encoding (default UTF-8)",
+                "  -f --format=FORMAT              Serialization format"
+        };
+        Options opt = Options.compile(usage).parse(input.args());
+        if (opt.isSet("help")) {
+            exception = new HelpException(opt.usage());
+            return null;
+        }
+        Object out = null;
+        try  {
+            if (!opt.args().isEmpty()){
+                Charset encoding = opt.isSet("encoding") ? Charset.forName(opt.get("encoding")): StandardCharsets.UTF_8;
+                byte[] encoded = Files.readAllBytes(Paths.get(opt.args().get(0)));
+                String format = opt.isSet("format") ? opt.get("format") : "";
+                if (format.equalsIgnoreCase("TXT")) {
+                    out = new String(encoded, encoding);
+                } else {
+                    out = engine.expandParameter(new String(encoded, encoding), format);
+                }
+            }
+        } catch (Exception e) {
+            exception = e;
+        }
+        return out;
     }
 
     private List<Completer> defaultCompleter(String command) {
