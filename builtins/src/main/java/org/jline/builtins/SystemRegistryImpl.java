@@ -103,7 +103,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         int id = registryId(command);
         if (id > -1) {
             out = commandRegistries[id].invoke(command, args);
-        } else if (consoleId != null) {         
+        } else if (consoleId != null) {
             out = consoleEngine().invoke(command, args);
         }
         return out;
@@ -111,6 +111,9 @@ public class SystemRegistryImpl implements SystemRegistry {
 
     @Override
     public Object execute(ParsedLine pl) throws Exception {
+        if (pl.line().isEmpty() || pl.line().startsWith("#")) {
+            return null;
+        }
         String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
         String cmd = Parser.getCommand(pl.word());
         Object out = null;
@@ -126,7 +129,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                     out = commandRegistries[id].invoke(cmd, consoleEngine().expandParameters(argv));
                     out = consoleEngine().postProcess(pl.line(), out);
                 } else {
-                    out = commandRegistries[id].execute(cmd, argv);                    
+                    out = commandRegistries[id].execute(cmd, argv);
                 }
             } else if (consoleId != null) {
                 out = consoleEngine().execute(pl);

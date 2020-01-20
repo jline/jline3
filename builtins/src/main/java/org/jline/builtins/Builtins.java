@@ -516,7 +516,7 @@ public class Builtins implements CommandRegistry {
             this.xargs = xargs;
             this.args = new String[xargs.length];
             for (int i = 0; i < xargs.length; i++) {
-                args[i] = xargs[i].toString();
+                args[i] = xargs[i] != null ? xargs[i].toString() : "";
             }
         }
 

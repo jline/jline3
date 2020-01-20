@@ -284,7 +284,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 throw new IllegalArgumentException("Command not found: " + command);
             }
         }
-        
+
         private void doArgs(String[] args) {
             List<String> _args = new ArrayList<>();
             if (isConsoleScript()) {
@@ -298,7 +298,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                         this.verbose = true;
                     }
                 } else {
-                    _args.add(a);                    
+                    _args.add(a);
                 }
             }
             this.args = _args.toArray(new String[0]);
@@ -315,7 +315,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         private boolean isScript() {
             return engine.getExtensions().contains(extension) || scriptExtension.equals(extension);
         }
-        
+
         public boolean execute() throws Exception {
             if (!isScript()) {
                 return false;
@@ -338,7 +338,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                             line = l.trim().substring(2);
                         }
                         usage.append(line).append('\n');
-                    }             
+                    }
                     if (usage.length() > 0) {
                         usage.append("\n");
                         throw new HelpException(usage.toString());
@@ -351,7 +351,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             }
             return true;
         }
-        
+
         private void internalExecute() throws Exception {
             if (isEngineScript()) {
                 result = engine.execute(script, expandParameters(args));
@@ -468,7 +468,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 out = engine.get(line);
             } else if (Parser.getVariable(line) == null) {
                 out = engine.execute(line);
-                engine.put("_", out);                            
+                engine.put("_", out);
             } else {
                 engine.execute(line);
             }
@@ -482,8 +482,8 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         if (Parser.getVariable(line) != null) {
             engine.put(Parser.getVariable(line), result);
             out = null;
-        } else {
-            engine.put("_", result);            
+        } else if (!Parser.getCommand(line).equals("show")) {
+            engine.put("_", result);
         }
         return out;
     }
@@ -532,19 +532,23 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         if (object == null) {
             return;
         }
-        options.putIfAbsent("width", terminal.getSize().getColumns());
-        String style = (String)options.getOrDefault("style", "");
-        int width = (int)options.get("width");
-        if (style.equalsIgnoreCase("JSON")) {
-            highlight(width, style, engine.format(options, object));
-        } else if (!style.isEmpty() && object instanceof String) {
-            highlight(width, style, (String)object);
+        if (object instanceof Exception) {
+            ((Exception) object).printStackTrace();
         } else {
-            for (AttributedString as : engine.highlight(options, object)) {
-                as.println(terminal);
+            options.putIfAbsent("width", terminal.getSize().getColumns());
+            String style = (String)options.getOrDefault("style", "");
+            int width = (int)options.get("width");
+            if (style.equalsIgnoreCase("JSON")) {
+                highlight(width, style, engine.format(options, object));
+            } else if (!style.isEmpty() && object instanceof String) {
+                highlight(width, style, (String)object);
+            } else {
+                for (AttributedString as : engine.highlight(options, object)) {
+                    as.println(terminal);
+                }
             }
+            terminal.flush();
         }
-        terminal.flush();
     }
 
     private void highlight(int width, String style, String object) {
@@ -627,7 +631,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             options.put("width", opt.getNumber("width"));
         }
         if (opt.isSet("rownum")) {
-            options.put("rownum", true);            
+            options.put("rownum", true);
         }
         List<Object> args = opt.argObjects();
         if (args.size() > 0) {
@@ -635,8 +639,8 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         }
         return null;
     }
-    
-    private Object slurp(Builtins.CommandInput input) { 
+
+    private Object slurp(Builtins.CommandInput input) {
         final String[] usage = {
                 "slurp -  slurp file context to string",
                 "Usage: slurp [OPTIONS] file",
