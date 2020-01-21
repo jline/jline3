@@ -17,18 +17,24 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.Files;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.jline.builtins.Builtins;
 import org.jline.builtins.Builtins.CommandMethods;
+import org.jline.builtins.Completers.FilesCompleter;
+import org.jline.builtins.Completers.OptDesc;
+import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.Completers.SystemCompleter;
 import org.jline.builtins.Nano.SyntaxHighlighter;
 import org.jline.builtins.Options.HelpException;
 import org.jline.reader.*;
 import org.jline.reader.Parser.ParseContext;
+import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
+import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
@@ -62,23 +68,25 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     private String scriptExtension = "jline";
     private Parser parser;
     private Terminal terminal;
+    private final Supplier<Path> workDir;
     private ConfigurationPath configPath;
 
-    public ConsoleEngineImpl(ScriptEngine engine, Parser parser, Terminal terminal, ConfigurationPath configPath) {
+    public ConsoleEngineImpl(ScriptEngine engine, Parser parser, Terminal terminal, Supplier<Path> workDir, ConfigurationPath configPath) {
         this.engine = engine;
         this.parser = parser;
         this.terminal = terminal;
+        this.workDir = workDir;
         this.configPath = configPath;
         Set<Command> cmds = new HashSet<>(EnumSet.allOf(Command.class));
         for (Command c: cmds) {
             commandName.put(c, c.name().toLowerCase());
         }
         doNameCommand();
-        commandExecute.put(Command.DEL, new CommandMethods(this::del, this::defaultCompleter));
-        commandExecute.put(Command.SHOW, new CommandMethods(this::show, this::defaultCompleter));
-        commandExecute.put(Command.PRNT, new CommandMethods(this::prnt, this::defaultCompleter));
-        commandExecute.put(Command.ECHO, new CommandMethods(this::echo, this::defaultCompleter));
-        commandExecute.put(Command.SLURP, new CommandMethods(this::slurp, this::defaultCompleter));
+        commandExecute.put(Command.DEL, new CommandMethods(this::del, this::variableCompleter));
+        commandExecute.put(Command.SHOW, new CommandMethods(this::show, this::variableCompleter));
+        commandExecute.put(Command.PRNT, new CommandMethods(this::prnt, this::prntCompleter));
+        commandExecute.put(Command.ECHO, new CommandMethods(this::echo, this::echoCompleter));
+        commandExecute.put(Command.SLURP, new CommandMethods(this::slurp, this::slurpCompleter));
     }
 
     @Override
@@ -149,7 +157,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     @Override
     public List<String> commandInfo(String command) {
-        return new ArrayList<>();
+        return doCommandInfo(command);
     }
 
     @Override
@@ -164,7 +172,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     @Override
     public Widgets.CmdDesc commandDescription(String command) {
-        return null;
+        return doCommandDescription(command);
     }
 
     @Override
@@ -482,7 +490,8 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         if (Parser.getVariable(line) != null) {
             engine.put(Parser.getVariable(line), result);
             out = null;
-        } else if (!Parser.getCommand(line).equals("show")) {
+        } else if (!Parser.getCommand(line).equals("show") && systemRegistry.hasCommand(Parser.getCommand(line))
+                && result != null) {
             engine.put("_", result);
         }
         return out;
@@ -587,6 +596,16 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     private Object del(Builtins.CommandInput input) {
+        final String[] usage = {
+                "del -  delete console variables",
+                "Usage: del [var1] ...",
+                "  -? --help                       Displays command help",
+        };
+        Options opt = Options.compile(usage).parse(input.xargs());
+        if (opt.isSet("help")) {
+            exception = new HelpException(opt.usage());
+            return null;
+        }
         engine.del(input.args());
         return null;
     }
@@ -642,7 +661,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     private Object slurp(Builtins.CommandInput input) {
         final String[] usage = {
-                "slurp -  slurp file context to string",
+                "slurp -  slurp file context to string/object",
                 "Usage: slurp [OPTIONS] file",
                 "  -? --help                       Displays command help",
                 "  -e --encoding=ENCODING          Encoding (default UTF-8)",
@@ -671,8 +690,77 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return out;
     }
 
-    private List<Completer> defaultCompleter(String command) {
-        return Arrays.asList(NullCompleter.INSTANCE);
+    public Widgets.CmdDesc doCommandDescription(String command) {
+        try {
+            invoke(command, "--help");
+        } catch (HelpException e) {
+            return Builtins.compileCommandDescription(e.getMessage());
+        } catch (Exception e) {
+
+        }
+        return null;
+    }
+
+    private List<OptDesc> commandOptions(String command) {
+        try {
+            invoke(command, "--help");
+        } catch (HelpException e) {
+            return Builtins.compileCommandOptions(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private List<String> doCommandInfo(String command) {
+        try {
+            invoke(command, "--help");
+        } catch (HelpException e) {
+            return Builtins.compileCommandInfo(e.getMessage());
+        } catch (Exception e) {
+
+        }
+        return new ArrayList<>();
+    }
+
+    private List<Completer> slurpCompleter(String command) {
+        List<Completer> completers = new ArrayList<>();
+        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
+                                           , new OptionCompleter(new FilesCompleter(workDir)
+                                                               , this::commandOptions
+                                                               , 1)
+                                            ));
+        return completers;
+    }
+
+    private List<Completer> variableCompleter(String command) {
+        List<Completer> completers = new ArrayList<>();
+        completers.add(new StringsCompleter(() -> engine.find().keySet()));
+        return completers;
+    }
+
+    private List<String> variableReferences() {
+        List<String> out = new ArrayList<>();
+        for (String v : engine.find().keySet()) {
+            out.add("$" + v);
+        }
+        return out;
+    }
+
+    private List<Completer> echoCompleter(String command) {
+        List<Completer> completers = new ArrayList<>();
+        completers.add(new StringsCompleter(this::variableReferences));
+        return completers;
+    }
+
+    private List<Completer> prntCompleter(String command) {
+        List<Completer> completers = new ArrayList<>();
+        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
+                                           , new OptionCompleter(new StringsCompleter(this::variableReferences)
+                                                               , this::commandOptions
+                                                               , 1)
+                                            ));
+        return completers;
     }
 
 }

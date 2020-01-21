@@ -621,7 +621,7 @@ public class Example
             builtins.alias("zle", "widget");
             builtins.alias("bindkey", "keymap");
             ExampleCommands exampleCommands = new ExampleCommands();
-            ConsoleEngine consoleEngine = new ConsoleEngineImpl(scriptEngine, parser, terminal, null);
+            ConsoleEngine consoleEngine = new ConsoleEngineImpl(scriptEngine, parser, terminal, ()->Paths.get(""), null);
             SystemRegistryImpl systemRegistry = new SystemRegistryImpl(consoleEngine, builtins, exampleCommands);
             // systemRegistry.initialize(new File("./example/init.jline"));
             //
