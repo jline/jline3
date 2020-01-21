@@ -13,8 +13,10 @@ import java.util.*;
 
 import org.jline.builtins.CommandRegistry;
 import org.jline.builtins.Widgets;
+import org.jline.builtins.Options.HelpException;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.Parser;
+import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedStringBuilder;
 
 /**
@@ -23,8 +25,10 @@ import org.jline.utils.AttributedStringBuilder;
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public class SystemRegistryImpl implements SystemRegistry {
+    private static final Class<?>[] BUILTIN_REGISTERIES = {Builtins.class, ConsoleEngineImpl.class};
     private final CommandRegistry[] commandRegistries;
     private Integer consoleId = null;
+    private Terminal terminal;
 
     public SystemRegistryImpl(CommandRegistry... commandRegistries) {
         this.commandRegistries = commandRegistries;
@@ -41,6 +45,10 @@ public class SystemRegistryImpl implements SystemRegistry {
             }
         }
         SystemRegistry.add(this);
+    }
+
+    public void setTerminal(Terminal terminal) {
+        this.terminal = terminal;
     }
 
     @Override
@@ -142,26 +150,97 @@ public class SystemRegistryImpl implements SystemRegistry {
         return consoleId != null ? (ConsoleEngine) commandRegistries[consoleId] : null;
     }
 
-    private void help() {
-        System.out.println("List of available commands:");
-        for (CommandRegistry r : commandRegistries) {
-            TreeSet<String> commands = new TreeSet<>(r.commandNames());
-            AttributedStringBuilder asb = new AttributedStringBuilder().tabs(2);
-            asb.append("\t");
-            asb.append(r.getClass().getSimpleName());
-            asb.append(":");
-            System.out.println(asb.toString());
-            for (String c : commands) {
-                asb = new AttributedStringBuilder().tabs(Arrays.asList(4, 20));
-                asb.append("\t");
-                asb.append(c);
-                asb.append("\t");
-                asb.append(r.commandInfo(c).size() > 0 ? r.commandInfo(c).get(0) : " ");
-                System.out.println(asb.toString());
+    private boolean isBuiltinRegistry(CommandRegistry registry) {
+        for (Class<?> c : BUILTIN_REGISTERIES) {
+            if (c == registry.getClass()) {
+                return true;
             }
         }
-        System.out.println("  Additional help:");
-        System.out.println("    <command> --help");
+        return false;
+    }
+
+    private void printHeader(String header) {
+        AttributedStringBuilder asb = new AttributedStringBuilder().tabs(2);
+        asb.append("\t");
+        asb.append(header, HelpException.defaultStyle().resolve(".ti"));
+        asb.append(":");
+        asb.toAttributedString().println(terminal);
+    }
+
+    private void printCommandInfo(String command, String info, int max) {
+        AttributedStringBuilder asb = new AttributedStringBuilder().tabs(Arrays.asList(4, max + 4));
+        asb.append("\t");
+        asb.append(command, HelpException.defaultStyle().resolve(".co"));
+        asb.append("\t");
+        asb.append(info);
+        asb.setLength(terminal.getWidth());
+        asb.toAttributedString().println(terminal);
+    }
+
+    private void printCommands(Collection<String> commands, int max) {
+        AttributedStringBuilder asb = new AttributedStringBuilder().tabs(Arrays.asList(4, max + 4));
+        int col = 0;
+        asb.append("\t");
+        col += 4;
+        boolean done = false;
+        for (String c : commands) {
+            asb.append(c, HelpException.defaultStyle().resolve(".co"));
+            asb.append("\t");
+            col += max;
+            if (col + max > terminal.getWidth()) {
+                asb.toAttributedString().println(terminal);
+                asb = new AttributedStringBuilder().tabs(Arrays.asList(4, max + 4));
+                col = 0;
+                asb.append("\t");
+                col += 4;
+                done = true;
+            } else {
+                done = false;
+            }
+        }
+        if (!done) {
+            asb.toAttributedString().println(terminal);
+        }
+    }
+
+    private String doCommandInfo(List<String> info) {
+        return info.size() > 0 ? info.get(0) : " ";
+    }
+
+    private void help() {
+        Set<String> commands = commandNames();
+        boolean withInfo = commands.size() < terminal.getHeight() ? true : false;
+        int max = Collections.max(commands, Comparator.comparing(String::length)).length() + 1;
+        TreeMap<String,String> builtinCommands = new TreeMap<>();
+        for (CommandRegistry r : commandRegistries) {
+            if (isBuiltinRegistry(r)) {
+                for (String c: r.commandNames()) {
+                    builtinCommands.put(c, doCommandInfo(r.commandInfo(c)));
+                }
+            }
+        }
+        printHeader("Builtins");
+        if (withInfo) {
+            for (Map.Entry<String, String> entry: builtinCommands.entrySet()) {
+                printCommandInfo(entry.getKey(), entry.getValue(), max);
+            }
+        } else {
+            printCommands(builtinCommands.keySet(), max);
+        }
+        for (CommandRegistry r : commandRegistries) {
+            if (isBuiltinRegistry(r)) {
+                continue;
+            }
+            TreeSet<String> cmds = new TreeSet<>(r.commandNames());
+            printHeader(r.name());
+            if (withInfo) {
+                for (String c : cmds) {
+                    printCommandInfo(c, doCommandInfo(r.commandInfo(c)), max);
+                }
+            } else {
+                printCommands(cmds, max);
+            }
+        }
     }
 
     private int registryId(String command) {

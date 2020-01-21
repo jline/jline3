@@ -623,6 +623,7 @@ public class Example
             ExampleCommands exampleCommands = new ExampleCommands();
             ConsoleEngine consoleEngine = new ConsoleEngineImpl(scriptEngine, parser, terminal, ()->Paths.get(""), null);
             SystemRegistryImpl systemRegistry = new SystemRegistryImpl(consoleEngine, builtins, exampleCommands);
+            systemRegistry.setTerminal(terminal);
             // systemRegistry.initialize(new File("./example/init.jline"));
             //
             // Command completers

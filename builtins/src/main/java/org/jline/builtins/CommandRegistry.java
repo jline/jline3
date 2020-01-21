@@ -45,6 +45,13 @@ public interface CommandRegistry {
     }
 
     /**
+     * Returns the name of this registry.
+     * @return name
+     */
+    default String name() {
+        return this.getClass().getSimpleName();
+    }
+    /**
      * Returns the command names known by this registry.
      * @return the set of known command names, excluding aliases
      */
@@ -86,7 +93,7 @@ public interface CommandRegistry {
     Widgets.CmdDesc commandDescription(String command);
 
     /**
-     * Execute a command that have only string parameters and options. Implementation of the method is required 
+     * Execute a command that have only string parameters and options. Implementation of the method is required
      * when aggregating command registries using SystemRegistry.
      * @param command
      * @param args
@@ -98,7 +105,7 @@ public interface CommandRegistry {
     }
 
     /**
-     * Execute a command. If command has other than string parameters a custom implementation is required. 
+     * Execute a command. If command has other than string parameters a custom implementation is required.
      * This method will be called only when we have ConsoleEngine in SystemRegistry.
      * @param command
      * @param args
