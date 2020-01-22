@@ -88,6 +88,7 @@
         <gogo.jline.version>1.1.4</gogo.jline.version>
         <slf4j.version>1.7.21</slf4j.version>
         <findbugs.version>3.0.2</findbugs.version>
+		<groovy.version>2.5.9</groovy.version>
 
         <surefire.argLine />
     </properties>
@@ -225,6 +226,18 @@
                 <artifactId>org.apache.felix.gogo.jline</artifactId>
                 <version>${gogo.jline.version}</version>
             </dependency>
+
+			<dependency>
+				 <groupId>org.codehaus.groovy</groupId>
+				 <artifactId>groovy</artifactId>
+				 <version>${groovy.version}</version>
+			</dependency>
+
+			<dependency>
+				 <groupId>org.codehaus.groovy</groupId>
+				 <artifactId>groovy-json</artifactId>
+				 <version>${groovy.version}</version>
+			</dependency>
 
             <dependency>
                 <groupId>org.slf4j</groupId>
@@ -375,6 +388,12 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.7.0</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.gmavenplus</groupId>
+                <artifactId>gmavenplus-plugin</artifactId>
+                <version>1.8.1</version>
             </plugin>
 
             <plugin>

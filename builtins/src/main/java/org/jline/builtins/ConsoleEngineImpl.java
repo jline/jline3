@@ -533,7 +533,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     @Override
     public void println(Object object) {
-        println(defaultPrntOptions(), object);
+        Map<String,Object> options = defaultPrntOptions();
+        options.put("exception", "message");
+        println(options, object);
     }
 
     @Override
@@ -541,23 +543,43 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         if (object == null) {
             return;
         }
-        if (object instanceof Exception) {
-            ((Exception) object).printStackTrace();
-        } else {
-            options.putIfAbsent("width", terminal.getSize().getColumns());
-            String style = (String)options.getOrDefault("style", "");
-            int width = (int)options.get("width");
-            if (style.equalsIgnoreCase("JSON")) {
-                highlight(width, style, engine.format(options, object));
-            } else if (!style.isEmpty() && object instanceof String) {
-                highlight(width, style, (String)object);
+        options.putIfAbsent("width", terminal.getSize().getColumns());
+        String style = (String) options.getOrDefault("style", "");
+        int width = (int) options.get("width");
+        if (style.equalsIgnoreCase("JSON")) {
+            highlight(width, style, engine.format(options, object));
+        } else if (!style.isEmpty() && object instanceof String) {
+            highlight(width, style, (String) object);
+        } else if (object instanceof Exception) {
+            if (options.getOrDefault("exception", "stack").equals("stack")) {
+                ((Exception) object).printStackTrace();
             } else {
-                for (AttributedString as : engine.highlight(options, object)) {
-                    as.println(terminal);
+                String message = ((Exception) object).getMessage();
+                AttributedStringBuilder asb = new AttributedStringBuilder();
+                if (message != null) {
+                    asb.append(message, AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+                } else {
+                    asb.append("Caught exception: ", AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+                    asb.append(object.getClass().getCanonicalName(), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
                 }
+                asb.toAttributedString().println(terminal);
             }
-            terminal.flush();
+        } else if (object instanceof String) {
+            highlight(AttributedStyle.YELLOW + AttributedStyle.BRIGHT, object);
+        } else if (object instanceof Number) {
+            highlight(AttributedStyle.BLUE + AttributedStyle.BRIGHT, object);
+        } else {
+            for (AttributedString as : engine.highlight(options, object)) {
+                as.println(terminal);
+            }
         }
+        terminal.flush();
+    }
+
+    private void highlight(int attrStyle, Object obj) {
+        AttributedStringBuilder asb = new AttributedStringBuilder();
+        asb.append(obj.toString(), AttributedStyle.DEFAULT.foreground(attrStyle));
+        asb.toAttributedString().println(terminal);
     }
 
     private void highlight(int width, String style, String object) {
@@ -652,6 +674,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         if (opt.isSet("rownum")) {
             options.put("rownum", true);
         }
+        options.put("exception", "stack");
         List<Object> args = opt.argObjects();
         if (args.size() > 0) {
             println(options, args.get(0));

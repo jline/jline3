@@ -22,10 +22,6 @@
 	<artifactId>jline-groovy</artifactId>
 	<name>JLine Groovy</name>
 	<url>http://maven.apache.org</url>
-	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<groovy.version>2.5.8</groovy.version>
-	</properties>
 	<dependencies>
          <dependency>
             <groupId>org.jline</groupId>
@@ -34,12 +30,10 @@
         <dependency>
              <groupId>org.codehaus.groovy</groupId>
              <artifactId>groovy</artifactId>
-             <version>${groovy.version}</version>
         </dependency>
         <dependency>
              <groupId>org.codehaus.groovy</groupId>
              <artifactId>groovy-json</artifactId>
-             <version>${groovy.version}</version>
         </dependency>
 		<dependency>
 			<groupId>junit</groupId>
@@ -53,7 +47,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.7.0</version>
                 <configuration>
                     <showWarnings>true</showWarnings>
                     <compilerArgs>
@@ -68,7 +61,6 @@
             <plugin>
                 <groupId>org.codehaus.gmavenplus</groupId>
                 <artifactId>gmavenplus-plugin</artifactId>
-                <version>1.8.1</version>
                 <executions>
                     <execution>
                         <goals>

@@ -103,6 +103,22 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     @Override
+    public Widgets.CmdDesc commandDescription(Widgets.CmdLine line) {
+        Widgets.CmdDesc out = null;
+        switch (line.getDescriptionType()) {
+        case COMMAND:
+            String cmd = Parser.getCommand(line.getArgs().get(0));
+            out = commandDescription(cmd);
+            break;
+        case METHOD:
+        case SYNTAX:
+            // TODO
+            break;
+        }
+        return out;
+    }
+    
+    @Override
     public Object invoke(String command, Object... args) throws Exception {
         Object out = null;
         if (command.startsWith(":")) {

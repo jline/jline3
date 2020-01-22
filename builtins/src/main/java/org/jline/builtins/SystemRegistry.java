@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.jline.reader.ParsedLine;
+import org.jline.builtins.Widgets;
 
 /**
  * Aggregate command registries and dispatch command executions.
@@ -28,6 +29,14 @@ public interface SystemRegistry extends CommandRegistry {
     public void initialize(File script);
 
     /**
+     * Returns a command, method or syntax description for use in the JLine Widgets framework.
+     * @param command line whose description to return
+     * @return command description for JLine TailTipWidgets to be displayed
+     *         in the terminal status bar.
+     */
+    public Widgets.CmdDesc commandDescription(Widgets.CmdLine line);
+    
+   /**
      * Execute a command, script or evaluate scriptEngine statement
      * @param parsedLine
      * @return result
