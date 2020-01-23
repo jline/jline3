@@ -26,7 +26,6 @@ import org.jline.builtins.Completers.OptDesc;
 import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.Completers.SystemCompleter;
 import org.jline.builtins.Options.HelpException;
-import org.jline.builtins.Widgets.CmdDesc;
 import org.jline.builtins.Widgets.TailTipWidgets;
 import org.jline.builtins.Widgets.TailTipWidgets.TipType;
 import org.jline.keymap.KeyMap;
@@ -88,17 +87,6 @@ public class Repl {
             return aliasCommand;
         }
 
-        public List<String> commandInfo(String command) {
-            try {
-                execute(command, new String[] {"--help"});
-            } catch (HelpException e) {
-                return Builtins.compileCommandInfo(e.getMessage());
-            } catch (Exception e) {
-
-            }
-            return new ArrayList<>();
-        }
-
         public boolean hasCommand(String command) {
             if (commandExecute.containsKey(command) || aliasCommand.containsKey(command)) {
                 return true;
@@ -129,28 +117,6 @@ public class Repl {
             commandExecute.get(command(command)).execute().accept(new Builtins.CommandInput(args));
             if (exception != null) {
                 throw exception;
-            }
-            return null;
-        }
-
-        public CmdDesc commandDescription(String command) {
-            try {
-                execute(command, new String[] {"--help"});
-            } catch (HelpException e) {
-                return Builtins.compileCommandDescription(e.getMessage());
-            } catch (Exception e) {
-
-            }
-            return null;
-        }
-
-        private List<OptDesc> commandOptions(String command) {
-            try {
-                execute(command, new String[] {"--help"});
-            } catch (HelpException e) {
-                return Builtins.compileCommandOptions(e.getMessage());
-            } catch (Exception e) {
-                e.printStackTrace();
             }
             return null;
         }
@@ -228,6 +194,17 @@ public class Repl {
             } catch (Exception e) {
                 exception = e;
             }
+        }
+
+        private List<OptDesc> commandOptions(String command) {
+            try {
+                execute(command, new String[] {"--help"});
+            } catch (HelpException e) {
+                return Builtins.compileCommandOptions(e.getMessage());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return null;
         }
 
         private List<Completer> defaultCompleter(String command) {
@@ -308,7 +285,7 @@ public class Repl {
             consoleEngine.println(terminal.getName()+": "+terminal.getType());
             while (true) {
                 try {
-                    scriptEngine.del("_*");         // delete temporary variables
+                    scriptEngine.del("_*");           // delete temporary variables
                     String line = reader.readLine(prompt, rightPrompt, (MaskingCallback) null, null);
                     line = line.trim();
                     if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) {
@@ -319,7 +296,7 @@ public class Repl {
                     consoleEngine.println(result);
                 }
                 catch (Options.HelpException e) {
-                    Options.HelpException.highlight(e.getMessage(), Options.HelpException.defaultStyle()).print(terminal);
+                    consoleEngine.println(e);         // print command help message
                 }
                 catch (UserInterruptException e) {
                     // Ignore
@@ -329,7 +306,7 @@ public class Repl {
                 }
                 catch (Exception e) {
                     consoleEngine.println(e);
-                    scriptEngine.put("exception", e);  // save exception to console variable
+                    scriptEngine.put("exception", e); // save exception to console variable
                 }
             }
         }

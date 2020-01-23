@@ -10,7 +10,9 @@ package org.jline.builtins;
 
 import org.jline.builtins.Completers;
 import org.jline.builtins.Widgets;
+import org.jline.builtins.Options.HelpException;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -67,7 +69,16 @@ public interface CommandRegistry {
      * Returns a short info about command known by this registry.
      * @return a short info about command
      */
-    List<String> commandInfo(String command);
+    default List<String> commandInfo(String command) {
+        try {
+            invoke(command, new Object[] {"--help"});
+        } catch (HelpException e) {
+            return Builtins.compileCommandInfo(e.getMessage());
+        } catch (Exception e) {
+
+        }
+        return new ArrayList<>();
+    }
 
     /**
      * Returns whether a command with the specified name is known to this registry.
@@ -90,7 +101,16 @@ public interface CommandRegistry {
      * @return command description for JLine TailTipWidgets to be displayed
      *         in the terminal status bar.
      */
-    Widgets.CmdDesc commandDescription(String command);
+    default Widgets.CmdDesc commandDescription(String command) {
+        try {
+            invoke(command, new Object[] {"--help"});
+        } catch (HelpException e) {
+            return Builtins.compileCommandDescription(e.getMessage());
+        } catch (Exception e) {
+
+        }
+        return null;
+    }
 
     /**
      * Execute a command that have only string parameters and options. Implementation of the method is required
@@ -122,4 +142,5 @@ public interface CommandRegistry {
         }
         return execute(command, _args);
     }
+
 }

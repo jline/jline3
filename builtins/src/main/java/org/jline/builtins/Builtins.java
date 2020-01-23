@@ -54,7 +54,6 @@ public class Builtins implements CommandRegistry {
     private Map<String,Command> nameCommand = new HashMap<>();
     private Map<String,String> aliasCommand = new HashMap<>();
     private final Map<Command,CommandMethods> commandExecute = new HashMap<>();
-    private Map<Command,List<String>> commandInfo = new HashMap<>();
     private LineReader reader;
     private Exception exception;
 
@@ -101,11 +100,6 @@ public class Builtins implements CommandRegistry {
 
     public Map<String, String> commandAliases() {
         return aliasCommand;
-    }
-
-    public List<String> commandInfo(String command) {
-        commandInfo.putIfAbsent(command(command), doCommandInfo(command));
-        return commandInfo.get(command(command));
     }
 
     private void doNameCommand() {
@@ -190,18 +184,6 @@ public class Builtins implements CommandRegistry {
         }
     }
 
-    public CmdDesc commandDescription(String command) {
-        List<String> args = Arrays.asList("--help");
-        try {
-            execute(command, args);
-        } catch (HelpException e) {
-            return compileCommandDescription(e.getMessage());
-        } catch (Exception e) {
-
-        }
-        return null;
-    }
-
     private List<OptDesc> commandOptions(String command) {
         List<String> args = Arrays.asList("--help");
         try {
@@ -212,18 +194,6 @@ public class Builtins implements CommandRegistry {
 
         }
         return null;
-    }
-
-    private List<String> doCommandInfo(String command) {
-        List<String> args = Arrays.asList("--help");
-        try {
-            execute(command, args);
-        } catch (HelpException e) {
-            return compileCommandInfo(e.getMessage());
-        } catch (Exception e) {
-
-        }
-        return new ArrayList<>();
     }
 
     private Terminal terminal() {

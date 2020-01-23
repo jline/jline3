@@ -29,6 +29,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     private final CommandRegistry[] commandRegistries;
     private Integer consoleId = null;
     private Terminal terminal;
+    private Map<String, List<String>> commandInfos = new HashMap<>();
 
     public SystemRegistryImpl(CommandRegistry... commandRegistries) {
         this.commandRegistries = commandRegistries;
@@ -83,7 +84,14 @@ public class SystemRegistryImpl implements SystemRegistry {
     @Override
     public List<String> commandInfo(String command) {
         int id = registryId(command);
-        return id > -1 ? commandRegistries[id].commandInfo(command) : new ArrayList<>();
+        List<String> out = new ArrayList<>();
+        if (id > -1) {
+            if (!commandInfos.containsKey(command)) {
+                commandInfos.put(command, commandRegistries[id].commandInfo(command));
+            }
+            out = commandInfos.get(command);
+        }
+        return out;
     }
 
     @Override
@@ -217,6 +225,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         if (!done) {
             asb.toAttributedString().println(terminal);
         }
+        terminal.flush();
     }
 
     private String doCommandInfo(List<String> info) {
@@ -231,7 +240,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         for (CommandRegistry r : commandRegistries) {
             if (isBuiltinRegistry(r)) {
                 for (String c: r.commandNames()) {
-                    builtinCommands.put(c, doCommandInfo(r.commandInfo(c)));
+                    builtinCommands.put(c, doCommandInfo(commandInfo(c)));
                 }
             }
         }
@@ -251,7 +260,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             printHeader(r.name());
             if (withInfo) {
                 for (String c : cmds) {
-                    printCommandInfo(c, doCommandInfo(r.commandInfo(c)), max);
+                    printCommandInfo(c, doCommandInfo(commandInfo(c)), max);
                 }
             } else {
                 printCommands(cmds, max);

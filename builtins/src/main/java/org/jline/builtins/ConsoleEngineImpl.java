@@ -156,11 +156,6 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     @Override
-    public List<String> commandInfo(String command) {
-        return doCommandInfo(command);
-    }
-
-    @Override
     public Completers.SystemCompleter compileCompleters() {
         SystemCompleter out = new SystemCompleter();
         for (Map.Entry<Command, String> entry: commandName.entrySet()) {
@@ -168,11 +163,6 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         }
         out.addAliases(aliasCommand);
         return out;
-    }
-
-    @Override
-    public Widgets.CmdDesc commandDescription(String command) {
-        return doCommandDescription(command);
     }
 
     @Override
@@ -551,7 +541,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         } else if (!style.isEmpty() && object instanceof String) {
             highlight(width, style, (String) object);
         } else if (object instanceof Exception) {
-            if (options.getOrDefault("exception", "stack").equals("stack")) {
+            if (object instanceof Options.HelpException) {
+                Options.HelpException.highlight(((Exception)object).getMessage(), Options.HelpException.defaultStyle()).print(terminal);
+            } else if (options.getOrDefault("exception", "stack").equals("stack")) {
                 ((Exception) object).printStackTrace();
             } else {
                 String message = ((Exception) object).getMessage();
@@ -713,17 +705,6 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return out;
     }
 
-    public Widgets.CmdDesc doCommandDescription(String command) {
-        try {
-            invoke(command, "--help");
-        } catch (HelpException e) {
-            return Builtins.compileCommandDescription(e.getMessage());
-        } catch (Exception e) {
-
-        }
-        return null;
-    }
-
     private List<OptDesc> commandOptions(String command) {
         try {
             invoke(command, "--help");
@@ -733,17 +714,6 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             e.printStackTrace();
         }
         return null;
-    }
-
-    private List<String> doCommandInfo(String command) {
-        try {
-            invoke(command, "--help");
-        } catch (HelpException e) {
-            return Builtins.compileCommandInfo(e.getMessage());
-        } catch (Exception e) {
-
-        }
-        return new ArrayList<>();
     }
 
     private List<Completer> slurpCompleter(String command) {
