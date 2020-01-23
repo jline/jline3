@@ -12,7 +12,7 @@ import static java.time.temporal.ChronoField.HOUR_OF_DAY;
 import static java.time.temporal.ChronoField.MINUTE_OF_HOUR;
 import static org.jline.builtins.Completers.TreeCompleter.node;
 
-import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.LocalDate;
@@ -25,9 +25,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
-import org.jline.builtins.*;
+import org.jline.builtins.Builtins;
+import org.jline.builtins.CommandRegistry;
+import org.jline.builtins.Completers;
 import org.jline.builtins.Completers.SystemCompleter;
 import org.jline.builtins.Completers.TreeCompleter;
+import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.Widgets.ArgDesc;
 import org.jline.builtins.Widgets.AutopairWidgets;
 import org.jline.builtins.Widgets.AutosuggestionWidgets;
@@ -39,14 +42,12 @@ import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.LineReader.Option;
 import org.jline.reader.LineReader.SuggestionType;
-import org.jline.reader.Parser.ParseContext;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.DefaultParser.Bracket;
 import org.jline.reader.impl.LineReaderImpl;
 import org.jline.reader.impl.completer.AggregateCompleter;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
-import org.jline.script.GroovyEngine;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.MouseEvent;
@@ -132,11 +133,33 @@ public class Example
         return tailTips;
     }
 
-    private static class DescriptionGenerator {
-        SystemRegistry systemRegistry;
+    private static class MasterRegistry {
+        private final CommandRegistry[] commandRegistries;
 
-        public DescriptionGenerator(SystemRegistry systemRegistry) {
-            this.systemRegistry = systemRegistry;
+        public MasterRegistry(CommandRegistry... commandRegistries) {
+            this.commandRegistries = commandRegistries;
+        }
+
+        public void help() {
+            System.out.println("List of available commands:");
+            for (CommandRegistry r : commandRegistries) {
+                TreeSet<String> commands = new TreeSet<>(r.commandNames());
+                AttributedStringBuilder asb = new AttributedStringBuilder().tabs(2);
+                asb.append("\t");
+                asb.append(r.getClass().getSimpleName());
+                asb.append(":");
+                System.out.println(asb.toString());
+                for (String c: commands) {
+                    asb = new AttributedStringBuilder().tabs(Arrays.asList(4,20));
+                    asb.append("\t");
+                    asb.append(c);
+                    asb.append("\t");
+                    asb.append(r.commandInfo(c).get(0));
+                    System.out.println(asb.toString());
+                }
+            }
+            System.out.println("  Additional help:");
+            System.out.println("    <command> --help");
         }
 
         public CmdDesc commandDescription(CmdLine line) {
@@ -144,7 +167,12 @@ public class Example
             switch (line.getDescriptionType()) {
             case COMMAND:
                 String cmd = Parser.getCommand(line.getArgs().get(0));
-                out = systemRegistry.commandDescription(cmd);
+                for (CommandRegistry r : commandRegistries) {
+                    if (r.hasCommand(cmd)) {
+                        out = r.commandDescription(cmd);
+                        break;
+                    }
+                }
                 break;
             case METHOD:
                 out = methodDescription(line);
@@ -607,32 +635,25 @@ public class Example
                 }
             }
             //
-            // Terminal
-            //
-            Terminal terminal = builder.build();
-            System.out.println(terminal.getName()+": "+terminal.getType());
-            System.out.println("\nhelp: list available commands");
-            //
             // Command registeries
             //
-            GroovyEngine scriptEngine = new GroovyEngine();
             Builtins builtins = new Builtins(Paths.get(""), null, null);
             builtins.rename(Builtins.Command.TTOP, "top");
             builtins.alias("zle", "widget");
             builtins.alias("bindkey", "keymap");
             ExampleCommands exampleCommands = new ExampleCommands();
-            ConsoleEngine consoleEngine = new ConsoleEngineImpl(scriptEngine, parser, terminal, ()->Paths.get(""), null);
-            SystemRegistryImpl systemRegistry = new SystemRegistryImpl(consoleEngine, builtins, exampleCommands);
-            systemRegistry.setTerminal(terminal);
-            // systemRegistry.initialize(new File("./example/init.jline"));
+            MasterRegistry masterRegistry = new MasterRegistry(builtins, exampleCommands);
             //
             // Command completers
             //
-            AggregateCompleter finalCompleter = new AggregateCompleter(systemRegistry.compileCompleters()
+            AggregateCompleter finalCompleter = new AggregateCompleter(CommandRegistry.compileCompleters(builtins, exampleCommands)
                                                                      , completer != null ? completer : NullCompleter.INSTANCE);
             //
-            // LineReader
+            // Terminal & LineReader
             //
+            Terminal terminal = builder.build();
+            System.out.println(terminal.getName()+": "+terminal.getType());
+            System.out.println("\nhelp: list available commands");
             LineReader reader = LineReaderBuilder.builder()
                     .terminal(terminal)
                     .completer(finalCompleter)
@@ -651,8 +672,7 @@ public class Example
             if (argument) {
                 tailtipWidgets = new TailTipWidgets(reader, compileTailTips(), 5, TipType.COMPLETER);
             } else {
-                DescriptionGenerator descriptionGenerator = new DescriptionGenerator(systemRegistry);
-                tailtipWidgets = new TailTipWidgets(reader, descriptionGenerator::commandDescription, 5, TipType.COMPLETER);
+                tailtipWidgets = new TailTipWidgets(reader, masterRegistry::commandDescription, 5, TipType.COMPLETER);
             }
             //
             // complete command registeries
@@ -704,7 +724,6 @@ public class Example
             //
             while (true) {
                 try {
-                    scriptEngine.del("_*");
                     String line = reader.readLine(prompt, rightPrompt, (MaskingCallback) null, null);
                     line = line.trim();
 
@@ -726,13 +745,24 @@ public class Example
                     if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) {
                         break;
                     }
-
-                    ParsedLine pl = reader.getParser().parse(line, 0, ParseContext.ACCEPT_LINE);
-                    Object result = systemRegistry.execute(pl);
-                    consoleEngine.println(result);
+                    ParsedLine pl = reader.getParser().parse(line, 0);
+                    String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
+                    String cmd = Parser.getCommand(pl.word());
+                    if ("help".equals(cmd) || "?".equals(cmd)) {
+                        masterRegistry.help();
+                    }
+                    else if (builtins.hasCommand(cmd)) {
+                        builtins.execute(cmd, argv, System.in, System.out, System.err);
+                    }
+                    else if (exampleCommands.hasCommand(cmd)) {
+                        exampleCommands.execute(cmd, argv);
+                    }
                 }
-                catch (Options.HelpException e) {
-                    Options.HelpException.highlight(e.getMessage(), Options.HelpException.defaultStyle()).print(terminal);
+                catch (HelpException e) {
+                    HelpException.highlight(e.getMessage(), HelpException.defaultStyle()).print(terminal);
+                }
+                catch (IllegalArgumentException|FileNotFoundException e) {
+                    System.out.println(e.getMessage());
                 }
                 catch (UserInterruptException e) {
                     // Ignore
@@ -741,15 +771,7 @@ public class Example
                     return;
                 }
                 catch (Exception e) {
-                    AttributedStringBuilder asb = new AttributedStringBuilder();
-                    if (e.getMessage() != null) {
-                        asb.append(e.getMessage(), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
-                    } else {
-                        asb.append("Caught exception: ", AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
-                        asb.append(e.getClass().getCanonicalName(), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
-                    }
-                    asb.toAttributedString().println(terminal);
-                    scriptEngine.put("exception", e);
+                    e.printStackTrace();
                 }
             }
         }
