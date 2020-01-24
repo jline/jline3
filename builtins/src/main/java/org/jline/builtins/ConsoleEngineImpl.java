@@ -367,11 +367,15 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                                 line = line.replaceAll("\\s\\$" + i + "\\b",
                                         args[i].startsWith("$") ? (" " + expandName(args[i]) + " ")
                                                 : (" " + quote(args[i]) + " "));
-                                line = line.replaceAll("\\$\\{" + i + "\\}",
+                                line = line.replaceAll("\\$\\{" + i + "(|:-.*)\\}",
                                         args[i].startsWith("$") ? expandName(args[i]) : quote(args[i]));
                             }
                             line = line.replaceAll("\\s\\$\\d\\b", "");
                             line = line.replaceAll("\\$\\{\\d+\\}", "");
+                            Matcher matcher=Pattern.compile("\\$\\{\\d+:-(.*?)\\}").matcher(line);
+                            if (matcher.find()) {
+                                  line = matcher.replaceAll("'$1'");
+                            }
                             if (verbose) {
                                 AttributedStringBuilder asb = new AttributedStringBuilder();
                                 asb.append(line, AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN));
