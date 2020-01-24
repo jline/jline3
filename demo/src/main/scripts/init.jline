@@ -1,0 +1,12 @@
+#
+# All imports added here are imported also to your groovy shell
+#
+import java.nio.file.*;
+
+PATH = [ROOT + 'scripts']
+
+#
+# write jnanorc configuration file
+#
+_jnanorc = Paths.get(ROOT, 'jnanorc').toFile()
+_jnanorc << 'include ' + ROOT + 'nanorc/*.nanorc\n'

@@ -13,7 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.jline.reader.ParsedLine;
-import org.jline.builtins.Widgets;
+import org.jline.terminal.Terminal;
 
 /**
  * Aggregate command registries and dispatch command executions.
@@ -21,6 +21,12 @@ import org.jline.builtins.Widgets;
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public interface SystemRegistry extends CommandRegistry {
+
+    /**
+     * Set terminal
+     * @param terminal
+     */
+    public void setTerminal(Terminal terminal);
 
     /**
      * Initialize consoleEngine environment by executing console script

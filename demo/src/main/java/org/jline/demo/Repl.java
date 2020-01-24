@@ -8,6 +8,7 @@
  */
 package org.jline.demo;
 
+import java.io.File;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,16 +22,18 @@ import org.jline.builtins.Completers;
 import org.jline.builtins.ConsoleEngine;
 import org.jline.builtins.ConsoleEngineImpl;
 import org.jline.builtins.Options;
-import org.jline.builtins.SystemRegistryImpl;
 import org.jline.builtins.Completers.OptDesc;
 import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.Completers.SystemCompleter;
 import org.jline.builtins.Options.HelpException;
+import org.jline.builtins.SystemRegistry;
+import org.jline.builtins.SystemRegistryImpl;
 import org.jline.builtins.Widgets.TailTipWidgets;
 import org.jline.builtins.Widgets.TailTipWidgets.TipType;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
 import org.jline.reader.Completer;
+import org.jline.reader.ConfigurationPath;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -51,6 +54,7 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.InfoCmp.Capability;
+import org.jline.utils.OSUtils;
 
 /**
  * Demo how to create REPL app with JLine.
@@ -243,17 +247,23 @@ public class Repl {
             //
             DefaultParser parser = new DefaultParser();
             parser.setEofOnUnclosedBracket(Bracket.CURLY, Bracket.ROUND, Bracket.SQUARE);
+            parser.setEofOnUnclosedQuote(true);
+            parser.setEscapeChars(null);
             Terminal terminal = TerminalBuilder.builder().build();
             //
             // ScriptEngine and command registeries
             //
+            File file = new File(Repl.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
+            String root = file.getCanonicalPath().replace("classes", "").replaceAll("\\\\", "/"); // forward slash works better also in windows!
             GroovyEngine scriptEngine = new GroovyEngine();
-            Builtins builtins = new Builtins(Paths.get(""), null, null);
-            ConsoleEngine consoleEngine = new ConsoleEngineImpl(scriptEngine, parser, terminal, ()->Paths.get(""), null);
+            scriptEngine.put("ROOT", root);
+            ConfigurationPath configPath = new ConfigurationPath(Paths.get(root), Paths.get(root));
+            Builtins builtins = new Builtins(Paths.get(""), configPath, null);
+            ConsoleEngine consoleEngine = new ConsoleEngineImpl(scriptEngine, parser, terminal, ()->Paths.get(""), configPath);
             MyCommands myCommands = new MyCommands();
-            SystemRegistryImpl systemRegistry = new SystemRegistryImpl(consoleEngine, builtins, myCommands);
+            SystemRegistry systemRegistry = new SystemRegistryImpl(consoleEngine, builtins, myCommands);
             systemRegistry.setTerminal(terminal);
-            // systemRegistry.initialize(new File("./example/init.jline"));
+            systemRegistry.initialize(Paths.get(root, "init.jline").toFile());
             //
             //
             // LineReader
@@ -264,9 +274,16 @@ public class Repl {
                     .parser(parser)
                     .variable(LineReader.SECONDARY_PROMPT_PATTERN, "%M%P > ")
                     .variable(LineReader.INDENTATION, 2)
+                    .variable(LineReader.LIST_MAX, 100)
+                    .variable(LineReader.HISTORY_FILE, Paths.get(root, "history"))
                     .option(Option.INSERT_BRACKET, true)
                     .option(Option.EMPTY_WORD_OPTIONS, false)
+                    .option(Option.USE_FORWARD_SLASH, true)             // use forward slash in directory separator
+                    .option(Option.DISABLE_EVENT_EXPANSION, true)
                     .build();
+            if (OSUtils.IS_WINDOWS) {
+                reader.setVariable(LineReader.BLINK_MATCHING_PAREN, 0); // if enabled cursor remains in begin parenthesis
+            }
             //
             // complete command registeries
             //

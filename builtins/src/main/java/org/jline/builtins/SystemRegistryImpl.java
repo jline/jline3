@@ -48,6 +48,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         SystemRegistry.add(this);
     }
 
+    @Override
     public void setTerminal(Terminal terminal) {
         this.terminal = terminal;
     }

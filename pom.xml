@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (c) 2002-2018, the original author or authors.
+    Copyright (c) 2002-2020, the original author or authors.
 
     This software is distributable under the BSD license. See the terms of the
     BSD license in the documentation provided with this software.
@@ -398,6 +398,12 @@
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.1.0</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>3.1.0</version>
                 <configuration>
@@ -424,7 +430,7 @@
                 <version>3.0.1</version>
                 <configuration>
                     <archive>
-                        <manifestEntries> 
+                        <manifestEntries>
                             <Bundle-Name>JLine Sources Bundle</Bundle-Name>
                             <Bundle-SymbolicName>${project.groupId}.source</Bundle-SymbolicName>
                             <Bundle-Version>${project.version}</Bundle-Version>

@@ -11,6 +11,6 @@ array.each {
     :prnt $resp
 }
 
-println(${1})
+println('hello ' + ${1:-world} + '!')
 
 _return='ok' 
