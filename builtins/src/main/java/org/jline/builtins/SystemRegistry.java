@@ -23,16 +23,16 @@ import org.jline.terminal.Terminal;
 public interface SystemRegistry extends CommandRegistry {
 
     /**
-     * Set terminal
-     * @param terminal
+     * Set command registeries
+     * @param commandRegistries
      */
-    public void setTerminal(Terminal terminal);
+    void setCommandRegistries(CommandRegistry... commandRegistries);
 
     /**
      * Initialize consoleEngine environment by executing console script
      * @param script
      */
-    public void initialize(File script);
+    void initialize(File script);
 
     /**
      * Returns a command, method or syntax description for use in the JLine Widgets framework.
@@ -40,15 +40,15 @@ public interface SystemRegistry extends CommandRegistry {
      * @return command description for JLine TailTipWidgets to be displayed
      *         in the terminal status bar.
      */
-    public Widgets.CmdDesc commandDescription(Widgets.CmdLine line);
+    Widgets.CmdDesc commandDescription(Widgets.CmdLine line);
     
    /**
      * Execute a command, script or evaluate scriptEngine statement
-     * @param parsedLine
+     * @param line
      * @return result
      * @throws Exception
      */
-    Object execute(ParsedLine parsedLine) throws Exception;
+    Object execute(String line) throws Exception;
 
     /**
      * @return systemRegistry of the current thread

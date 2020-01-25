@@ -382,13 +382,16 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                                 asb.toAttributedString().println(terminal);
                                 terminal.flush();
                             }
-                            systemRegistry.execute(parser.parse(line, 0, ParseContext.COMPLETE));
+                            systemRegistry.execute(line);
                             line = "";
                         } catch (EOFError e) {
                             done = false;
                             line += "\n";
                         } catch (SyntaxError e) {
                             throw e;
+                        } catch (EndOfFileException e) {
+                            done = true;
+                            break;
                         } catch (Exception e) {
                             throw new IllegalArgumentException(line + "\n" + e.getMessage());
                         }

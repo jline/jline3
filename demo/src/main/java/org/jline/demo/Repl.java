@@ -239,8 +239,6 @@ public class Repl {
 
 
     public static void main(String[] args) {
-        String prompt = "groovy-repl> ";
-        String rightPrompt = null;
         try {
             //
             // Parser & Terminal
@@ -254,16 +252,15 @@ public class Repl {
             // ScriptEngine and command registeries
             //
             File file = new File(Repl.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
-            String root = file.getCanonicalPath().replace("classes", "").replaceAll("\\\\", "/"); // forward slash works better also in windows!
+            String root = file.getCanonicalPath().replace("classes", "").replaceAll("\\\\", "/"); // forward slashes works better also in windows!
             GroovyEngine scriptEngine = new GroovyEngine();
             scriptEngine.put("ROOT", root);
             ConfigurationPath configPath = new ConfigurationPath(Paths.get(root), Paths.get(root));
             Builtins builtins = new Builtins(Paths.get(""), configPath, null);
             ConsoleEngine consoleEngine = new ConsoleEngineImpl(scriptEngine, parser, terminal, ()->Paths.get(""), configPath);
             MyCommands myCommands = new MyCommands();
-            SystemRegistry systemRegistry = new SystemRegistryImpl(consoleEngine, builtins, myCommands);
-            systemRegistry.setTerminal(terminal);
-            systemRegistry.initialize(Paths.get(root, "init.jline").toFile());
+            SystemRegistry systemRegistry = new SystemRegistryImpl(parser, terminal, configPath);
+            systemRegistry.setCommandRegistries(consoleEngine, builtins, myCommands);
             //
             //
             // LineReader
@@ -290,12 +287,12 @@ public class Repl {
             builtins.setLineReader(reader);
             myCommands.setLineReader(reader);
             //
-            // Tailtip widget
+            // widgets and console initialization
             //
             new TailTipWidgets(reader, systemRegistry::commandDescription, 5, TipType.COMPLETER);
-            Map<String, KeyMap<Binding>>  keyMaps = reader.getKeyMaps();
-            KeyMap<Binding> keyMap = keyMaps.get("main");
+            KeyMap<Binding> keyMap = reader.getKeyMaps().get("main");
             keyMap.bind(new Reference("tailtip-toggle"), KeyMap.alt("s"));
+            systemRegistry.initialize(Paths.get(root, "init.jline").toFile());
             //
             // REPL-loop
             //
@@ -303,17 +300,9 @@ public class Repl {
             while (true) {
                 try {
                     scriptEngine.del("_*");           // delete temporary variables
-                    String line = reader.readLine(prompt, rightPrompt, (MaskingCallback) null, null);
-                    line = line.trim();
-                    if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) {
-                        break;
-                    }
-                    ParsedLine pl = reader.getParser().parse(line, 0, ParseContext.ACCEPT_LINE);
-                    Object result = systemRegistry.execute(pl);
+                    String line = reader.readLine("groovy-repl> ");
+                    Object result = systemRegistry.execute(line);
                     consoleEngine.println(result);
-                }
-                catch (Options.HelpException e) {
-                    consoleEngine.println(e);         // print command help message
                 }
                 catch (UserInterruptException e) {
                     // Ignore

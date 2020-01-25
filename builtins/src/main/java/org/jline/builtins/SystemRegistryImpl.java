@@ -14,8 +14,11 @@ import java.util.*;
 import org.jline.builtins.CommandRegistry;
 import org.jline.builtins.Widgets;
 import org.jline.builtins.Options.HelpException;
+import org.jline.reader.ConfigurationPath;
+import org.jline.reader.EndOfFileException;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.Parser;
+import org.jline.reader.Parser.ParseContext;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedStringBuilder;
 
@@ -26,12 +29,21 @@ import org.jline.utils.AttributedStringBuilder;
  */
 public class SystemRegistryImpl implements SystemRegistry {
     private static final Class<?>[] BUILTIN_REGISTERIES = {Builtins.class, ConsoleEngineImpl.class};
-    private final CommandRegistry[] commandRegistries;
+    private CommandRegistry[] commandRegistries;
     private Integer consoleId = null;
     private Terminal terminal;
+    private Parser parser;
+    private ConfigurationPath configPath;
     private Map<String, List<String>> commandInfos = new HashMap<>();
+    
+    public SystemRegistryImpl(Parser parser, Terminal terminal, ConfigurationPath configPath) {
+        this.parser = parser;
+        this.terminal = terminal;
+        this.configPath = configPath;
+    }
 
-    public SystemRegistryImpl(CommandRegistry... commandRegistries) {
+    @Override
+    public void setCommandRegistries(CommandRegistry... commandRegistries) {
         this.commandRegistries = commandRegistries;
         for (int i = 0; i < commandRegistries.length; i++) {
             if (commandRegistries[i] instanceof ConsoleEngine) {
@@ -49,17 +61,12 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     @Override
-    public void setTerminal(Terminal terminal) {
-        this.terminal = terminal;
-    }
-
-    @Override
     public void initialize(File script) {
         if (consoleId != null) {
             try {
                 consoleEngine().execute(script);
             } catch (Exception e) {
-                System.err.println(e.getMessage());
+                consoleEngine().println(e);
             }
         }
     }
@@ -143,7 +150,8 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     @Override
-    public Object execute(ParsedLine pl) throws Exception {
+    public Object execute(String line) throws Exception {
+        ParsedLine pl = parser.parse(line, 0, ParseContext.ACCEPT_LINE);
         if (pl.line().isEmpty() || pl.line().startsWith("#")) {
             return null;
         }
@@ -153,19 +161,25 @@ public class SystemRegistryImpl implements SystemRegistry {
         if (cmd.startsWith(":")) {
             cmd = cmd.substring(1);
         }
-        if ("help".equals(cmd) || "?".equals(cmd)) {
+        if ("exit".equals(cmd)) {
+            throw new EndOfFileException();
+        } else if ("help".equals(cmd)) {
             help();
         } else {
             int id = registryId(cmd);
-            if (id > -1) {
-                if (consoleId != null) {
-                    out = commandRegistries[id].invoke(cmd, consoleEngine().expandParameters(argv));
-                    out = consoleEngine().postProcess(pl.line(), out);
-                } else {
-                    out = commandRegistries[id].execute(cmd, argv);
+            try {
+                if (id > -1) {
+                    if (consoleId != null) {
+                        out = commandRegistries[id].invoke(cmd, consoleEngine().expandParameters(argv));
+                        out = consoleEngine().postProcess(pl.line(), out);
+                    } else {
+                        out = commandRegistries[id].execute(cmd, argv);
+                    }
+                } else if (consoleId != null) {
+                    out = consoleEngine().execute(pl);
                 }
-            } else if (consoleId != null) {
-                out = consoleEngine().execute(pl);
+            } catch (HelpException e) {
+                consoleEngine().println(e);
             }
         }
         return out;
