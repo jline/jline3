@@ -13,9 +13,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.Files;
+import java.nio.file.*;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -54,7 +52,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     private static final String VAR_PRNT_OPTIONS = "PRNT_OPTIONS";
     private static final String VAR_PATH = "PATH";
     private static final String VAR_NANORC = "NANORC";
-    private static final String OPTION_HELP = "-?";
+    private static final String[] OPTION_HELP = {"-?", "--help"};
     private static final String OPTION_VERBOSE = "-v";
     private static final String HELP_END = "HELP_END";
     private static final int HELP_MAX_SIZE = 30;
@@ -164,6 +162,48 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         out.addAliases(aliasCommand);
         return out;
     }
+    
+    private Set<String> variables() {
+        return engine.find().keySet();    
+    }
+    
+    @Override
+    public List<Completer> scriptCompleters() {
+        List<Completer> out = new ArrayList<>();
+        out.add(new ArgumentCompleter(new StringsCompleter(this::variables), NullCompleter.INSTANCE));
+        out.add(new ArgumentCompleter(new StringsCompleter(this::scripts)
+                                    , new OptionCompleter(NullCompleter.INSTANCE
+                                                        , this::commandOptions
+                                                        , 1)
+                                       ));
+        return out;
+    }
+    
+    @SuppressWarnings("unchecked")
+    @Override
+    public List<String> scripts() {
+        List<String> out = new ArrayList<>();
+        try {
+            List<Path> scripts = new ArrayList<>();
+            if (engine.hasVariable(VAR_PATH)) {
+                for (String pp : (List<String>) engine.get(VAR_PATH)) {
+                    for (String e : scriptExtensions()) {
+                        String regex = pp + "/*." + e;
+                        PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + regex);
+                        Files.find(Paths.get(new File(regex).getParent()), Integer.MAX_VALUE,
+                                (path, f) -> pathMatcher.matches(path)).forEach(p -> scripts.add(p));
+                    }
+                }
+            }
+            for (Path p : scripts) {
+                String name = p.toFile().getName();
+                out.add(name.substring(0, name.lastIndexOf(".")));
+            }
+        } catch (Exception e) {
+            println(e);            
+        }
+        return out;
+    }
 
     @Override
     public Object[] expandParameters(String[] args) throws Exception {
@@ -227,6 +267,13 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return "\"" + var + "\"";
     }
 
+    private List<String> scriptExtensions() {
+        List<String>  extensions = new ArrayList<>();
+        extensions.addAll(engine.getExtensions());
+        extensions.add(scriptExtension);
+        return extensions;        
+    }
+    
     private class ScriptFile {
         private File script;
         private String extension = "";
@@ -242,12 +289,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             if (script.exists()) {
                 scriptExtension(command);
             } else if (engine.hasVariable(VAR_PATH)) {
-                List<String>  extensions = new ArrayList<>();
-                extensions.addAll(engine.getExtensions());
-                extensions.add(scriptExtension);
                 boolean found = false;
                 for (String p: (List<String>)engine.get(VAR_PATH)) {
-                    for (String e : extensions) {
+                    for (String e : scriptExtensions()) {
                         String file = command + "." + e;
                         Path path = Paths.get(p, file);
                         if (path.toFile().exists()) {
@@ -319,26 +363,31 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 return false;
             }
             result = null;
-            if (Arrays.asList(args).contains(OPTION_HELP)) {
+            if (Arrays.asList(args).contains(OPTION_HELP[0]) || Arrays.asList(args).contains(OPTION_HELP[1])) {
                 try(BufferedReader br = new BufferedReader(new FileReader(script))) {
                     int size = 0;
                     StringBuilder usage = new StringBuilder();
+                    boolean helpEnd = false;
                     for(String l; (l = br.readLine()) != null; ) {
                         size++;
                         l = l.replaceAll("\\s+$", "");
                         String line = l;
                         if (size > HELP_MAX_SIZE || line.endsWith(HELP_END)) {
+                            helpEnd = line.endsWith(HELP_END);
                             break;
                         }
                         if (l.trim().startsWith("*") || l.trim().startsWith("#")) {
-                            line = l.trim().substring(1);
-                        } else if (l.trim().startsWith("/*") || l.trim().startsWith("//")) {
                             line = l.trim().substring(2);
+                        } else if (l.trim().startsWith("/*") || l.trim().startsWith("//")) {
+                            line = l.trim().substring(3);
                         }
                         usage.append(line).append('\n');
                     }
                     if (usage.length() > 0) {
                         usage.append("\n");
+                        if (!helpEnd) {
+                            usage.insert(0, "\n");
+                        }
                         throw new HelpException(usage.toString());
                     } else {
                         internalExecute();
@@ -726,9 +775,10 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     private List<Completer> slurpCompleter(String command) {
         List<Completer> completers = new ArrayList<>();
         completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                                           , new OptionCompleter(new FilesCompleter(workDir)
-                                                               , this::commandOptions
-                                                               , 1)
+                               , new OptionCompleter(new ArgumentCompleter(new FilesCompleter(workDir)
+                                                                         , NullCompleter.INSTANCE)
+                                                   , this::commandOptions
+                                                   , 1)
                                             ));
         return completers;
     }
@@ -756,10 +806,11 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     private List<Completer> prntCompleter(String command) {
         List<Completer> completers = new ArrayList<>();
         completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                                           , new OptionCompleter(new StringsCompleter(this::variableReferences)
-                                                               , this::commandOptions
-                                                               , 1)
-                                            ));
+                       , new OptionCompleter(new ArgumentCompleter(new StringsCompleter(this::variableReferences)
+                                                                 , NullCompleter.INSTANCE)
+                                           , this::commandOptions
+                                           , 1)
+                                    ));
         return completers;
     }
 

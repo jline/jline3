@@ -267,7 +267,7 @@ public class Repl {
             //
             LineReader reader = LineReaderBuilder.builder()
                     .terminal(terminal)
-                    .completer(systemRegistry.compileCompleters())
+                    .completer(systemRegistry.completer())
                     .parser(parser)
                     .variable(LineReader.SECONDARY_PROMPT_PATTERN, "%M%P > ")
                     .variable(LineReader.INDENTATION, 2)

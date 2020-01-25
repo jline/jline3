@@ -12,6 +12,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.jline.reader.Completer;
 import org.jline.reader.ParsedLine;
 import org.jline.terminal.Terminal;
 
@@ -33,6 +34,12 @@ public interface SystemRegistry extends CommandRegistry {
      * @param script
      */
     void initialize(File script);
+
+    /**
+     * Returns command completer that includes also console variable and script completion.
+     * @return complater
+     */
+    Completer completer();
 
     /**
      * Returns a command, method or syntax description for use in the JLine Widgets framework.

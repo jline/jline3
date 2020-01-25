@@ -9,9 +9,11 @@
 package org.jline.builtins;
 
 import java.io.File;
+import java.util.List;
 import java.util.Map;
 
 import org.jline.builtins.CommandRegistry;
+import org.jline.reader.Completer;
 import org.jline.reader.ParsedLine;
 
 /**
@@ -34,7 +36,19 @@ public interface ConsoleEngine extends CommandRegistry {
      * @throws Exception
      */
     Object[] expandParameters(String[] args) throws Exception;
-        
+  
+    /**
+     * Returns all scripts found from PATH
+     * @return script names
+     */
+    List<String> scripts();
+    
+    /**
+     * Returns script and variable completers
+     * @return completers
+     */
+    List<Completer> scriptCompleters();
+    
     /**
      * Executes parsed line that does not contain known command by the system registry.
      * If parsed line is neither JLine or ScriptEngine script it will be evaluated

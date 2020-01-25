@@ -14,11 +14,13 @@ import java.util.*;
 import org.jline.builtins.CommandRegistry;
 import org.jline.builtins.Widgets;
 import org.jline.builtins.Options.HelpException;
+import org.jline.reader.Completer;
 import org.jline.reader.ConfigurationPath;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.Parser;
 import org.jline.reader.Parser.ParseContext;
+import org.jline.reader.impl.completer.AggregateCompleter;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedStringBuilder;
 
@@ -98,6 +100,8 @@ public class SystemRegistryImpl implements SystemRegistry {
                 commandInfos.put(command, commandRegistries[id].commandInfo(command));
             }
             out = commandInfos.get(command);
+        } else if (consoleId > -1 && consoleEngine().scripts().contains(command)) {
+            out = consoleEngine().commandInfo(command);
         }
         return out;
     }
@@ -111,11 +115,27 @@ public class SystemRegistryImpl implements SystemRegistry {
     public Completers.SystemCompleter compileCompleters() {
         return CommandRegistry.compileCompleters(commandRegistries);
     }
+    
+    @Override
+    public Completer completer() {
+        List<Completer> completers = new ArrayList<>(); 
+        completers.add(compileCompleters());
+        if (consoleId > -1) {
+            completers.addAll(consoleEngine().scriptCompleters());
+        }
+        return new AggregateCompleter(completers);
+    }
 
     @Override
     public Widgets.CmdDesc commandDescription(String command) {
+        Widgets.CmdDesc out = new Widgets.CmdDesc(false);
         int id = registryId(command);
-        return id > -1 ? commandRegistries[id].commandDescription(command) : new Widgets.CmdDesc(false);
+        if (id > -1) {
+            out = commandRegistries[id].commandDescription(command);
+        } else if (consoleId > -1 && consoleEngine().scripts().contains(command)) {
+            out = consoleEngine().commandDescription(command);
+        }
+        return out;
     }
 
     @Override
@@ -249,6 +269,9 @@ public class SystemRegistryImpl implements SystemRegistry {
 
     private void help() {
         Set<String> commands = commandNames();
+        if (consoleId > -1) {
+            commands.addAll(consoleEngine().scripts());
+        }
         boolean withInfo = commands.size() < terminal.getHeight() ? true : false;
         int max = Collections.max(commands, Comparator.comparing(String::length)).length() + 1;
         TreeMap<String,String> builtinCommands = new TreeMap<>();
@@ -280,6 +303,16 @@ public class SystemRegistryImpl implements SystemRegistry {
             } else {
                 printCommands(cmds, max);
             }
+        }
+        if (consoleId > -1) {
+            printHeader("Scripts");
+            if (withInfo) {
+                for (String c: consoleEngine().scripts()) {
+                    printCommandInfo(c, doCommandInfo(commandInfo(c)), max);
+                }
+            } else {
+                printCommands(consoleEngine().scripts(), max);
+            }            
         }
     }
 
