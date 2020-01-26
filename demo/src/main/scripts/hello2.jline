@@ -1,5 +1,5 @@
 # test console script
-# HELP_END
+# END_HELP
 import org.jline.utils.*
 
 println "Is Windows: " + OSUtils.IS_WINDOWS

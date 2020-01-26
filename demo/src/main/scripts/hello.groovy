@@ -1,4 +1,4 @@
-// HELP_END
+// END_HELP
 import org.jline.builtins.SystemRegistry
 import org.jline.builtins.Options;
 

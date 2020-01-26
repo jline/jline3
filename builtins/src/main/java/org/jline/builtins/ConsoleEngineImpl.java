@@ -11,6 +11,7 @@ package org.jline.builtins;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
@@ -47,14 +48,15 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     public enum Command {SHOW
                        , DEL
                        , PRNT
-                       , ECHO
+                       , ALIAS
+                       , UNALIAS
                        , SLURP};
     private static final String VAR_PRNT_OPTIONS = "PRNT_OPTIONS";
     private static final String VAR_PATH = "PATH";
     private static final String VAR_NANORC = "NANORC";
     private static final String[] OPTION_HELP = {"-?", "--help"};
     private static final String OPTION_VERBOSE = "-v";
-    private static final String HELP_END = "HELP_END";
+    private static final String END_HELP = "END_HELP";
     private static final int HELP_MAX_SIZE = 30;
     private final ScriptEngine engine;
     private Map<Command,String> commandName = new HashMap<>();
@@ -64,12 +66,18 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     private Exception exception;
     private SystemRegistry systemRegistry;
     private String scriptExtension = "jline";
-    private Parser parser;
-    private Terminal terminal;
+    private final Parser parser;
+    private final Terminal terminal;
     private final Supplier<Path> workDir;
-    private ConfigurationPath configPath;
+    private final ConfigurationPath configPath;
+    private final Map<String, String> aliases = new HashMap<>();
+    private Path aliasFile;
 
-    public ConsoleEngineImpl(ScriptEngine engine, Parser parser, Terminal terminal, Supplier<Path> workDir, ConfigurationPath configPath) {
+    @SuppressWarnings("unchecked")
+    public ConsoleEngineImpl(ScriptEngine engine
+                           , Parser parser
+                           , Terminal terminal
+                           , Supplier<Path> workDir, ConfigurationPath configPath) throws IOException {
         this.engine = engine;
         this.parser = parser;
         this.terminal = terminal;
@@ -83,8 +91,16 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         commandExecute.put(Command.DEL, new CommandMethods(this::del, this::variableCompleter));
         commandExecute.put(Command.SHOW, new CommandMethods(this::show, this::variableCompleter));
         commandExecute.put(Command.PRNT, new CommandMethods(this::prnt, this::prntCompleter));
-        commandExecute.put(Command.ECHO, new CommandMethods(this::echo, this::echoCompleter));
-        commandExecute.put(Command.SLURP, new CommandMethods(this::slurp, this::slurpCompleter));
+        commandExecute.put(Command.SLURP, new CommandMethods(this::slurpcmd, this::slurpCompleter));
+        commandExecute.put(Command.ALIAS, new CommandMethods(this::aliascmd, this::aliasCompleter));
+        commandExecute.put(Command.UNALIAS, new CommandMethods(this::unalias, this::unaliasCompleter));
+        aliasFile = configPath.getUserConfig("aliases.json");
+        if (aliasFile == null) {
+            aliasFile = configPath.getUserConfig("aliases.json", true);
+            engine.persist(aliasFile, aliases);
+        } else {
+            aliases.putAll((Map<String,String>)slurp(aliasFile));
+        }
     }
 
     @Override
@@ -112,6 +128,16 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             return true;
         }
         return false;
+    }
+
+    @Override
+    public boolean hasAlias(String name) {
+        return aliases.containsKey(name);
+    }
+    
+    @Override
+    public String getAlias(String name) {
+        return aliases.getOrDefault(name, null);
     }
 
     private void doNameCommand() {
@@ -372,8 +398,8 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                         size++;
                         l = l.replaceAll("\\s+$", "");
                         String line = l;
-                        if (size > HELP_MAX_SIZE || line.endsWith(HELP_END)) {
-                            helpEnd = line.endsWith(HELP_END);
+                        if (size > HELP_MAX_SIZE || line.endsWith(END_HELP)) {
+                            helpEnd = line.endsWith(END_HELP);
                             break;
                         }
                         if (l.trim().startsWith("*") || l.trim().startsWith("#")) {
@@ -472,10 +498,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             return null;
         }
         String[] args = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
-        String cmd = Parser.getCommand(pl.word());
-        if (cmd.startsWith(":")) {
-            cmd = cmd.substring(1);
-        }
+        String cmd = ConsoleEngine.plainCommand(Parser.getCommand(pl.word()));
         Object out = null;
         ScriptFile file = new ScriptFile(cmd, pl.line(), args);
         if (file.execute()) {
@@ -680,24 +703,6 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return null;
     }
 
-    private Object echo(Builtins.CommandInput input) {
-        final String[] usage = {
-                "echo -  print object",
-                "Usage: echo object",
-                "  -? --help                       Displays command help",
-        };
-        Options opt = Options.compile(usage).parse(input.xargs());
-        if (opt.isSet("help")) {
-            exception = new HelpException(opt.usage());
-            return null;
-        }
-        List<Object> args = opt.argObjects();
-        if (args.size() > 0) {
-            println(defaultPrntOptions(), args.get(0));
-        }
-        return null;
-    }
-
     private Object prnt(Builtins.CommandInput input) {
         final String[] usage = {
                 "prnt -  print object",
@@ -730,7 +735,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return null;
     }
 
-    private Object slurp(Builtins.CommandInput input) {
+    private Object slurpcmd(Builtins.CommandInput input) {
         final String[] usage = {
                 "slurp -  slurp file context to string/object",
                 "Usage: slurp [OPTIONS] file",
@@ -747,16 +752,80 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         try  {
             if (!opt.args().isEmpty()){
                 Charset encoding = opt.isSet("encoding") ? Charset.forName(opt.get("encoding")): StandardCharsets.UTF_8;
-                byte[] encoded = Files.readAllBytes(Paths.get(opt.args().get(0)));
                 String format = opt.isSet("format") ? opt.get("format") : "";
-                if (format.equalsIgnoreCase("TXT")) {
-                    out = new String(encoded, encoding);
-                } else {
-                    out = engine.expandParameter(new String(encoded, encoding), format);
-                }
+                out = slurp(Paths.get(opt.args().get(0)), encoding, format);
             }
         } catch (Exception e) {
             exception = e;
+        }
+        return out;
+    }
+
+    private Object slurp(Path file) throws IOException {
+        return slurp(file, StandardCharsets.UTF_8, "JSON");
+    }
+
+    private Object slurp(Path file, Charset encoding, String format) throws IOException {
+        Object out = null;
+        byte[] encoded = Files.readAllBytes(file);
+        if (format.equalsIgnoreCase("TXT")) {
+            out = new String(encoded, encoding);
+        } else {
+            out = engine.expandParameter(new String(encoded, encoding), format);
+        }
+        return out;
+    }
+
+    private Object aliascmd(Builtins.CommandInput input) {
+        final String[] usage = {
+                "alias -  create command alias",
+                "Usage: alias [ALIAS] [COMMANDLINE]",
+                "  -? --help                       Displays command help"
+        };
+        Options opt = Options.compile(usage).parse(input.args());
+        if (opt.isSet("help")) {
+            exception = new HelpException(opt.usage());
+            return null;
+        }
+        Object out = null;
+        try  {
+            List<String> args = opt.args();
+            if (args.isEmpty()) {
+                out = aliases;                
+            } else if (args.size() == 1) {
+                out = aliases.getOrDefault(args.get(0), null);
+            } else {
+                aliases.put(args.get(0), String.join(" ", args.subList(1, args.size())));
+                engine.persist(aliasFile, aliases);
+            }
+        } catch (Exception e) {
+            exception = e;
+        }
+        return out;
+    }
+
+    private Object unalias(Builtins.CommandInput input) {
+        final String[] usage = {
+                "unalias -  remove command alias",
+                "Usage: unalias [ALIAS...]",
+                "  -? --help                       Displays command help"
+        };
+        Options opt = Options.compile(usage).parse(input.args());
+        if (opt.isSet("help")) {
+            exception = new HelpException(opt.usage());
+            return null;
+        }
+        Object out = null;
+        try  {
+            for (String a : opt.args()) {
+                if (aliases.containsKey(a)) {
+                    aliases.remove(a);
+                }                
+            }
+        } catch (Exception e) {
+            exception = e;
+        } finally {
+            engine.persist(aliasFile, aliases);            
         }
         return out;
     }
@@ -775,8 +844,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     private List<Completer> slurpCompleter(String command) {
         List<Completer> completers = new ArrayList<>();
         completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                               , new OptionCompleter(new ArgumentCompleter(new FilesCompleter(workDir)
-                                                                         , NullCompleter.INSTANCE)
+                               , new OptionCompleter(new FilesCompleter(workDir)
                                                    , this::commandOptions
                                                    , 1)
                                             ));
@@ -797,20 +865,51 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return out;
     }
 
-    private List<Completer> echoCompleter(String command) {
-        List<Completer> completers = new ArrayList<>();
-        completers.add(new StringsCompleter(this::variableReferences));
-        return completers;
-    }
-
     private List<Completer> prntCompleter(String command) {
         List<Completer> completers = new ArrayList<>();
         completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                       , new OptionCompleter(new ArgumentCompleter(new StringsCompleter(this::variableReferences)
-                                                                 , NullCompleter.INSTANCE)
+                       , new OptionCompleter(new StringsCompleter(this::variableReferences)
                                            , this::commandOptions
                                            , 1)
                                     ));
+        return completers;
+    }
+
+    private static class AliasValueCompleter implements Completer {
+        private final Map<String,String> aliases;
+        
+        public AliasValueCompleter(Map<String,String> aliases) {
+            this.aliases = aliases;
+        }
+
+        @Override
+        public void complete(LineReader reader, ParsedLine commandLine, List<Candidate> candidates) {
+            assert commandLine != null;
+            assert candidates != null;
+            List<String> words = commandLine.words();
+            if (words.size() > 1) {
+                String h = words.get(words.size()-2);
+                if (h != null && h.length() > 0) {
+                     if(aliases.containsKey(h)){
+                          String v = aliases.get(h);
+                          candidates.add(new Candidate(AttributedString.stripAnsi(v)
+                                           , v, null, null, null, null, true));
+                     }
+                }
+            }
+        }
+    }
+
+    private List<Completer> aliasCompleter(String command) {
+        List<Completer> completers = new ArrayList<>();
+        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
+                , new StringsCompleter(aliases::keySet), new AliasValueCompleter(aliases), NullCompleter.INSTANCE));
+        return completers;
+    }
+
+    private List<Completer> unaliasCompleter(String command) {
+        List<Completer> completers = new ArrayList<>();
+        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE, new StringsCompleter(aliases::keySet)));
         return completers;
     }
 

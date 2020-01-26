@@ -9,6 +9,7 @@
 package org.jline.script;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.*;
 
 import org.jline.groovy.Utils;
@@ -110,6 +111,14 @@ public class GroovyEngine implements ScriptEngine {
             }
         }
         return out;
+    }
+
+    @Override
+    public void persist(Path file, Object object, String format) {
+        if (!format.equalsIgnoreCase("JSON")) {
+            throw new IllegalArgumentException();
+        }
+        Utils.persist(file, object);
     }
 
     @Override

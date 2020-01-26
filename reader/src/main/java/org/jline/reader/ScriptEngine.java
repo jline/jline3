@@ -9,6 +9,7 @@
 package org.jline.reader;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.*;
 
 import org.jline.utils.AttributedString;
@@ -108,6 +109,24 @@ public interface ScriptEngine {
      * @throws Exception
      */
     Object expandParameter(String variable, String format);
+
+    /**
+     * Persists object value to file.
+     * @param file
+     * @param object
+     */
+    default void persist(Path file, Object object) {
+        persist(file, object, "JSON");
+    }
+
+    /**
+     * Persists object value to file.
+     * @param file
+     * @param object
+     * @param format
+     */
+    void persist(Path file, Object object, String format);
+
     /**
      * Executes scriptEngine statement
      * @param statement

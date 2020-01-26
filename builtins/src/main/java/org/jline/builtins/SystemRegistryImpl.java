@@ -144,9 +144,10 @@ public class SystemRegistryImpl implements SystemRegistry {
         try {
             localExecute(command, new String[] {"--help"});
         } catch (HelpException e) {
+            exception = null;
             return Builtins.compileCommandInfo(e.getMessage());
         } catch (Exception e) {
-
+            consoleEngine().println(e);
         }
         return new ArrayList<>();
     }
@@ -207,9 +208,10 @@ public class SystemRegistryImpl implements SystemRegistry {
         try {
             localExecute(command, new String[] {"--help"});
         } catch (HelpException e) {
+            exception = null;
             return Builtins.compileCommandDescription(e.getMessage());
         } catch (Exception e) {
-
+            consoleEngine().println(e);
         }
         return null;       
     }
@@ -247,9 +249,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     @Override
     public Object invoke(String command, Object... args) throws Exception {
         Object out = null;
-        if (command.startsWith(":")) {
-            command = command.substring(1);
-        }
+        command = ConsoleEngine.plainCommand(command);
         int id = registryId(command);
         if (id > -1) {
             out = commandRegistries[id].invoke(command, args);
@@ -290,13 +290,14 @@ public class SystemRegistryImpl implements SystemRegistry {
         if (pl.line().isEmpty() || pl.line().startsWith("#")) {
             return null;
         }
+        String cmd = ConsoleEngine.plainCommand(Parser.getCommand(pl.word()));
+        if (consoleId != null && consoleEngine().hasAlias(cmd)) {
+            pl = parser.parse(line.replaceFirst(cmd, consoleEngine().getAlias(cmd)), 0, ParseContext.ACCEPT_LINE);
+            cmd = ConsoleEngine.plainCommand(Parser.getCommand(pl.word()));
+        }
         String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
-        String cmd = Parser.getCommand(pl.word());
         Object out = null;
         exception = null;
-        if (cmd.startsWith(":")) {
-            cmd = cmd.substring(1);
-        }
         if (isLocalCommand(cmd)) {
             out = localExecute(cmd, argv);
         } else {
@@ -471,9 +472,10 @@ public class SystemRegistryImpl implements SystemRegistry {
         try {
             localExecute(command, new String[] {"--help"});
         } catch (HelpException e) {
+            exception = null;
             return Builtins.compileCommandOptions(e.getMessage());
         } catch (Exception e) {
-            e.printStackTrace();
+            consoleEngine().println(e);
         }
         return null;
     }

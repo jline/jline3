@@ -8,6 +8,9 @@
  */
 package org.jline.groovy;
 
+import java.nio.charset.StandardCharsets
+import java.nio.file.Path;
+
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import groovy.json.JsonParserType
@@ -24,16 +27,20 @@ public class Utils {
         def slurper = new JsonSlurper(type: JsonParserType.LAX)
         slurper.parseText(json)
     }
-    
+
     static Object convert(Object object) {
         def slurper = new JsonSlurper()
-        slurper.parseText(JsonOutput.toJson(object)) 
+        slurper.parseText(JsonOutput.toJson(object))
     }
-    
+
     static String toJson(Object object) {
         String json = object instanceof String ? object : JsonOutput.toJson(object)
-        ((json.startsWith("{") && json.endsWith("}"))
-            || (json.startsWith("[") && json.endsWith("]"))) ? JsonOutput.prettyPrint(json) : json
+        (((json.startsWith("{") && json.endsWith("}"))
+            || (json.startsWith("[") && json.endsWith("]"))) && json.length() > 5) ? JsonOutput.prettyPrint(json) : json
     }
-    
+
+    static void persist(Path file, Object object) {
+        file.toFile().write(JsonOutput.toJson(object))
+    }
+
 }

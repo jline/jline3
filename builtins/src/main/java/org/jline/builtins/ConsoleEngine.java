@@ -24,6 +24,15 @@ import org.jline.reader.ParsedLine;
 public interface ConsoleEngine extends CommandRegistry {
 
     /**
+     * Removes command first character if it is colon
+     * @param command
+     * @return
+     */
+    static String plainCommand(String command) {
+        return command.startsWith(":") ? command.substring(1) : command; 
+    }
+
+    /**
      * Sets systemRegistry
      * @param systemRegistry
      */
@@ -42,6 +51,20 @@ public interface ConsoleEngine extends CommandRegistry {
      * @return script names
      */
     List<String> scripts();
+    
+    /**
+     * Returns true if alias 'name' exists
+     * @param alias name
+     * @return
+     */
+    boolean hasAlias(String name);
+    
+    /**
+     * Returns alias 'name' value
+     * @param alias name
+     * @return value of alias
+     */
+    String getAlias(String name);
     
     /**
      * Returns script and variable completers
