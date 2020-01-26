@@ -10,9 +10,13 @@ package org.jline.builtins;
 
 import java.io.File;
 import java.util.*;
+import java.util.stream.Collectors;
 
+import org.jline.builtins.Completers.OptDesc;
+import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.CommandRegistry;
 import org.jline.builtins.Widgets;
+import org.jline.builtins.Builtins.CommandMethods;
 import org.jline.builtins.Options.HelpException;
 import org.jline.reader.Completer;
 import org.jline.reader.ConfigurationPath;
@@ -21,6 +25,9 @@ import org.jline.reader.ParsedLine;
 import org.jline.reader.Parser;
 import org.jline.reader.Parser.ParseContext;
 import org.jline.reader.impl.completer.AggregateCompleter;
+import org.jline.reader.impl.completer.ArgumentCompleter;
+import org.jline.reader.impl.completer.NullCompleter;
+import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedStringBuilder;
 
@@ -30,18 +37,38 @@ import org.jline.utils.AttributedStringBuilder;
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public class SystemRegistryImpl implements SystemRegistry {
+    public enum Command {EXIT
+                       , HELP};
     private static final Class<?>[] BUILTIN_REGISTERIES = {Builtins.class, ConsoleEngineImpl.class};
     private CommandRegistry[] commandRegistries;
     private Integer consoleId = null;
     private Terminal terminal;
     private Parser parser;
     private ConfigurationPath configPath;
+    private Map<Command,String> commandName = new HashMap<>();
+    private Map<String,Command> nameCommand = new HashMap<>();
+    private Map<String,String> aliasCommand = new HashMap<>();
+    private final Map<Command,CommandMethods> commandExecute = new HashMap<>();
     private Map<String, List<String>> commandInfos = new HashMap<>();
+    private Exception exception;
     
     public SystemRegistryImpl(Parser parser, Terminal terminal, ConfigurationPath configPath) {
         this.parser = parser;
         this.terminal = terminal;
         this.configPath = configPath;
+        Set<Command> cmds = new HashSet<>(EnumSet.allOf(Command.class));
+        for (Command c: cmds) {
+            commandName.put(c, c.name().toLowerCase());
+        }
+        doNameCommand();
+        commandExecute.put(Command.EXIT, new CommandMethods(this::exit, this::exitCompleter));
+        commandExecute.put(Command.HELP, new CommandMethods(this::help, this::helpCompleter));
+    }
+
+    private void doNameCommand() {
+        nameCommand = commandName.entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
     }
 
     @Override
@@ -79,7 +106,12 @@ public class SystemRegistryImpl implements SystemRegistry {
         for (CommandRegistry r : commandRegistries) {
             out.addAll(r.commandNames());
         }
+        out.addAll(localCommandNames());
         return out;
+    }
+    
+    private Set<String> localCommandNames() {
+        return nameCommand.keySet();
     }
 
     @Override
@@ -88,7 +120,35 @@ public class SystemRegistryImpl implements SystemRegistry {
         for (CommandRegistry r : commandRegistries) {
             out.putAll(r.commandAliases());
         }
+        out.putAll(aliasCommand);
         return out;
+    }
+
+    private Command command(String name) {
+        Command out = null;
+        if (!isLocalCommand(name)) {
+            throw new IllegalArgumentException("Command does not exists!");
+        }
+        if (aliasCommand.containsKey(name)) {
+            name = aliasCommand.get(name);
+        }
+        if (nameCommand.containsKey(name)) {
+            out = nameCommand.get(name);
+        } else {
+            throw new IllegalArgumentException("Command does not exists!");
+        }
+        return out;
+    }
+
+    private List<String> localCommandInfo(String command) {
+        try {
+            localExecute(command, new String[] {"--help"});
+        } catch (HelpException e) {
+            return Builtins.compileCommandInfo(e.getMessage());
+        } catch (Exception e) {
+
+        }
+        return new ArrayList<>();
     }
 
     @Override
@@ -102,18 +162,32 @@ public class SystemRegistryImpl implements SystemRegistry {
             out = commandInfos.get(command);
         } else if (consoleId > -1 && consoleEngine().scripts().contains(command)) {
             out = consoleEngine().commandInfo(command);
+        } else if (isLocalCommand(command)) {
+            out = localCommandInfo(command);
         }
         return out;
     }
 
     @Override
     public boolean hasCommand(String command) {
-        return registryId(command) > -1;
+        return registryId(command) > -1 || isLocalCommand(command);
+    }
+    
+    private boolean isLocalCommand(String command) {
+        return nameCommand.containsKey(command) || aliasCommand.containsKey(command);
     }
 
     @Override
     public Completers.SystemCompleter compileCompleters() {
-        return CommandRegistry.compileCompleters(commandRegistries);
+        Completers.SystemCompleter out = CommandRegistry.aggregateCompleters(commandRegistries);
+        Completers.SystemCompleter local = new Completers.SystemCompleter();
+        for (Map.Entry<Command, String> entry: commandName.entrySet()) {
+            local.add(entry.getValue(), commandExecute.get(entry.getKey()).compileCompleter().apply(entry.getValue()));
+        }
+        local.addAliases(aliasCommand);
+        out.add(local);
+        out.compile();
+        return out;
     }
     
     @Override
@@ -125,6 +199,20 @@ public class SystemRegistryImpl implements SystemRegistry {
         }
         return new AggregateCompleter(completers);
     }
+    
+    private Widgets.CmdDesc localCommandDescription(String command) {
+        if (!isLocalCommand(command)) {
+            throw new IllegalArgumentException();
+        }
+        try {
+            localExecute(command, new String[] {"--help"});
+        } catch (HelpException e) {
+            return Builtins.compileCommandDescription(e.getMessage());
+        } catch (Exception e) {
+
+        }
+        return null;       
+    }
 
     @Override
     public Widgets.CmdDesc commandDescription(String command) {
@@ -134,6 +222,8 @@ public class SystemRegistryImpl implements SystemRegistry {
             out = commandRegistries[id].commandDescription(command);
         } else if (consoleId > -1 && consoleEngine().scripts().contains(command)) {
             out = consoleEngine().commandDescription(command);
+        } else if (isLocalCommand(command)) {
+            out = localCommandDescription(command);
         }
         return out;
     }
@@ -163,8 +253,33 @@ public class SystemRegistryImpl implements SystemRegistry {
         int id = registryId(command);
         if (id > -1) {
             out = commandRegistries[id].invoke(command, args);
+        } else if (isLocalCommand(command)) {
+            out = invoke(command, args);
         } else if (consoleId != null) {
             out = consoleEngine().invoke(command, args);
+        }
+        return out;
+    }
+    
+    @Override
+    public Object execute(String command, String[] args) throws Exception {
+        Object out = null;
+        int id = registryId(command);
+        if (id > -1) {
+            out = commandRegistries[id].execute(command, args);
+        } else if (isLocalCommand(command)) {
+            out = localExecute(command, args);
+        }
+        return out;
+    }
+    
+    public Object localExecute(String command, String[] args) throws Exception {
+        if (!isLocalCommand(command)) {
+            throw new IllegalArgumentException();
+        }
+        Object out = commandExecute.get(command(command)).executeFunction().apply(new Builtins.CommandInput(args));
+        if (exception != null) {
+            throw exception;
         }
         return out;
     }
@@ -178,13 +293,12 @@ public class SystemRegistryImpl implements SystemRegistry {
         String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
         String cmd = Parser.getCommand(pl.word());
         Object out = null;
+        exception = null;
         if (cmd.startsWith(":")) {
             cmd = cmd.substring(1);
         }
-        if ("exit".equals(cmd)) {
-            throw new EndOfFileException();
-        } else if ("help".equals(cmd)) {
-            help();
+        if (isLocalCommand(cmd)) {
+            out = localExecute(cmd, argv);
         } else {
             int id = registryId(cmd);
             try {
@@ -266,13 +380,28 @@ public class SystemRegistryImpl implements SystemRegistry {
     private String doCommandInfo(List<String> info) {
         return info.size() > 0 ? info.get(0) : " ";
     }
+    
+    private boolean isInArgs(List<String> args, String name) {
+        return args.isEmpty() || args.contains(name);
+    }
 
-    private void help() {
+    private Object help(Builtins.CommandInput input) {
+        final String[] usage = {
+                "help -  command help",
+                "Usage: help [NAME...]",
+                "  -? --help                       Displays command help",
+        };
+        Options opt = Options.compile(usage).parse(input.args());
+        if (opt.isSet("help")) {
+            exception = new HelpException(opt.usage());
+            return null;
+        }
+
         Set<String> commands = commandNames();
         if (consoleId > -1) {
             commands.addAll(consoleEngine().scripts());
         }
-        boolean withInfo = commands.size() < terminal.getHeight() ? true : false;
+        boolean withInfo = commands.size() < terminal.getHeight() || !opt.args().isEmpty() ? true : false;
         int max = Collections.max(commands, Comparator.comparing(String::length)).length() + 1;
         TreeMap<String,String> builtinCommands = new TreeMap<>();
         for (CommandRegistry r : commandRegistries) {
@@ -282,16 +411,22 @@ public class SystemRegistryImpl implements SystemRegistry {
                 }
             }
         }
-        printHeader("Builtins");
-        if (withInfo) {
-            for (Map.Entry<String, String> entry: builtinCommands.entrySet()) {
-                printCommandInfo(entry.getKey(), entry.getValue(), max);
+        for (String c : localCommandNames()) {
+            builtinCommands.put(c, doCommandInfo(commandInfo(c)));
+            exception = null;
+        }
+        if (isInArgs(opt.args(), "Builtins")) {
+            printHeader("Builtins");
+            if (withInfo) {
+                for (Map.Entry<String, String> entry : builtinCommands.entrySet()) {
+                    printCommandInfo(entry.getKey(), entry.getValue(), max);
+                }
+            } else {
+                printCommands(builtinCommands.keySet(), max);
             }
-        } else {
-            printCommands(builtinCommands.keySet(), max);
         }
         for (CommandRegistry r : commandRegistries) {
-            if (isBuiltinRegistry(r)) {
+            if (isBuiltinRegistry(r) || !isInArgs(opt.args(), r.name())) {
                 continue;
             }
             TreeSet<String> cmds = new TreeSet<>(r.commandNames());
@@ -304,7 +439,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 printCommands(cmds, max);
             }
         }
-        if (consoleId > -1) {
+        if (consoleId > -1 && isInArgs(opt.args(), "Scripts")) {
             printHeader("Scripts");
             if (withInfo) {
                 for (String c: consoleEngine().scripts()) {
@@ -314,6 +449,68 @@ public class SystemRegistryImpl implements SystemRegistry {
                 printCommands(consoleEngine().scripts(), max);
             }            
         }
+        return null;
+    }
+    
+    private Object exit(Builtins.CommandInput input) {
+        final String[] usage = {
+                "exit -  exit from app/script",
+                "Usage: exit",
+                "  -? --help                       Displays command help",
+        };
+        Options opt = Options.compile(usage).parse(input.args());
+        if (opt.isSet("help")) {
+            exception = new HelpException(opt.usage());
+        } else {
+            exception = new EndOfFileException();
+        }
+        return null;
+    }
+
+    private List<OptDesc> commandOptions(String command) {
+        try {
+            localExecute(command, new String[] {"--help"});
+        } catch (HelpException e) {
+            return Builtins.compileCommandOptions(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+    
+    private List<String> registryNames() {
+        List<String> out = new ArrayList<>();
+        out.add("Builtins");
+        if (consoleId > -1) {
+            out.add("Scripts");
+        }
+        for (CommandRegistry r : commandRegistries) {
+            if (isBuiltinRegistry(r)) {
+                continue;
+            }
+            out.add(r.name());
+        }
+        return out;
+    }
+
+    private List<Completer> helpCompleter(String command) {
+        List<Completer> completers = new ArrayList<>();
+        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
+                               , new OptionCompleter(new StringsCompleter(this::registryNames)
+                                                   , this::commandOptions
+                                                   , 1)
+                                            ));
+        return completers;
+    }
+
+    private List<Completer> exitCompleter(String command) {
+        List<Completer> completers = new ArrayList<>();
+        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
+                                , new OptionCompleter(NullCompleter.INSTANCE
+                                                    , this::commandOptions
+                                                    , 1)
+                                             ));
+        return completers;
     }
 
     private int registryId(String command) {
