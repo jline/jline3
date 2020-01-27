@@ -1,6 +1,6 @@
 <!--
 
-    Copyright (c) 2002-2017, the original author or authors.
+    Copyright (c) 2002-2020, the original author or authors.
 
     This software is distributable under the BSD license. See the terms of the
     BSD license in the documentation provided with this software.
@@ -32,7 +32,7 @@ JLine is distributed under the [BSD License](https://opensource.org/licenses/BSD
 
 # Artifacts
 
-JLine can be used with a single bundle or smaller fined grained jars.
+JLine can be used with a single bundle or smaller fine grained jars. The bundle contains all jars except `jline-groovy` that must be included in classpath if you want to use scripting capabilities.
 The big bundle is named:
 
     jline-${jline.version}.jar
@@ -44,6 +44,7 @@ You can also use finer grained jars:
 * `jline-terminal-jansi`: terminal implementations leveraging the `jansi` library
 * `jline-terminal-jna`: terminal implementations leveraging the `jna` library
 * `jline-reader`: the line reader (including completion, history, etc...)
+* `jline-groovy`: jline [ScriptEngine](https://github.com/jline/jline3/blob/master/reader/src/main/java/org/jline/reader/ScriptEngine.java) implementation using Groovy
 * `jline-style`: styling api
 * `jline-remote-ssh`: helpers for using jline with [Mina SSHD](http://mina.apache.org/sshd-project/)
 * `jline-remote-telnet`: helpers for using jline over telnet (including a telnet server implementation)
@@ -114,16 +115,17 @@ cd jline3
 
 The following artifacts are build:
 
-The big bundle includes everything and is located at:
+The big bundle includes everything (except `jline-groovy`) and is located at:
 
     jline/target/jline-${jline.version}.jar
 
-The finer grained bundles are located at:
+The fine grained bundles are located at:
 
     terminal/target/jline-terminal-${jline.version}.jar
     terminal-jansi/target/jline-jansi-${jline.version}.jar
     terminal-jna/target/jline-jna-${jline.version}.jar
     reader/target/jline-reader-${jline.version}.jar
+    groovy/target/jline-groovy-${jline.version}.jar
     style/target/jline-style-${jline.version}.jar
     builtins/target/jline-builtins-${jline.version}.jar
     remote-telnet/target/jline-remote-telnet-${jline.version}.jar
@@ -135,10 +137,14 @@ Note that all those artifacts are also installed in the local maven repository, 
 
 ## Running the demo
 
-To run the demo, simply use the following command after having build `JLine`
+To run the demo, simply use one of the following commands after having build `JLine`
 
 ```sh
+# Gogo terminal
 ./build demo
+
+# groovy REPL
+./build repl
 ```
 
 ## Continuous Integration
