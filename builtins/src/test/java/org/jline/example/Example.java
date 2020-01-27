@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019, the original author or authors.
+ * Copyright (c) 2002-2020, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -295,12 +295,13 @@ public class Example
             return out;
         }
 
-        public void execute(String command, String[] args) throws Exception {
+        public Object execute(String command, String[] args) throws Exception {
             exception = null;
             commandExecute.get(command(command)).execute().accept(new Builtins.CommandInput(args));
             if (exception != null) {
                 throw exception;
             }
+            return null;
         }
 
         public CmdDesc commandDescription(String command) {

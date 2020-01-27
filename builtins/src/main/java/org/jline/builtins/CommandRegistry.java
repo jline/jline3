@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019, the original author or authors.
+ * Copyright (c) 2002-2020, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -10,11 +10,18 @@ package org.jline.builtins;
 
 import org.jline.builtins.Completers;
 import org.jline.builtins.Widgets;
+import org.jline.builtins.Options.HelpException;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Store command information, compile tab completers and execute registered commands.
+ *
+ * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
+ */
 public interface CommandRegistry {
 
     /**
@@ -40,6 +47,13 @@ public interface CommandRegistry {
     }
 
     /**
+     * Returns the name of this registry.
+     * @return name
+     */
+    default String name() {
+        return this.getClass().getSimpleName();
+    }
+    /**
      * Returns the command names known by this registry.
      * @return the set of known command names, excluding aliases
      */
@@ -50,12 +64,21 @@ public interface CommandRegistry {
      * @return a map with alias keys and command name values
      */
     Map<String, String> commandAliases();
-    
+
     /**
      * Returns a short info about command known by this registry.
      * @return a short info about command
      */
-    List<String> commandInfo(String command);
+    default List<String> commandInfo(String command) {
+        try {
+            invoke(command, new Object[] {"--help"});
+        } catch (HelpException e) {
+            return Builtins.compileCommandInfo(e.getMessage());
+        } catch (Exception e) {
+
+        }
+        return new ArrayList<>();
+    }
 
     /**
      * Returns whether a command with the specified name is known to this registry.
@@ -67,16 +90,57 @@ public interface CommandRegistry {
     /**
      * Returns a {@code SystemCompleter} that can provide detailed completion
      * information for all registered commands.
-     * 
+     *
      * @return a SystemCompleter that can provide command completion for all registered commands
      */
     Completers.SystemCompleter compileCompleters();
 
     /**
      * Returns a command description for use in the JLine Widgets framework.
-     * @param command name of the command whose description to return 
+     * @param command name of the command whose description to return
      * @return command description for JLine TailTipWidgets to be displayed
      *         in the terminal status bar.
      */
-    Widgets.CmdDesc commandDescription(String command);
+    default Widgets.CmdDesc commandDescription(String command) {
+        try {
+            invoke(command, new Object[] {"--help"});
+        } catch (HelpException e) {
+            return Builtins.compileCommandDescription(e.getMessage());
+        } catch (Exception e) {
+
+        }
+        return null;
+    }
+
+    /**
+     * Execute a command that have only string parameters and options. Implementation of the method is required
+     * when aggregating command registries using SystemRegistry.
+     * @param command
+     * @param args
+     * @return result
+     * @throws Exception
+     */
+    default Object execute(String command, String[] args) throws Exception {
+        throw new IllegalArgumentException("CommandRegistry method execute(String command, String[] args) is not implemented!");
+    }
+
+    /**
+     * Execute a command. If command has other than string parameters a custom implementation is required.
+     * This method will be called only when we have ConsoleEngine in SystemRegistry.
+     * @param command
+     * @param args
+     * @return result
+     * @throws Exception
+     */
+    default Object invoke(String command, Object... args) throws Exception {
+        String[] _args = new String[args.length];
+        for (int i = 0; i < args.length; i++) {
+            if (!(args[i] instanceof String)) {
+                throw new IllegalArgumentException();
+            }
+            _args[i] = args[i].toString();
+        }
+        return execute(command, _args);
+    }
+
 }

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (c) 2002-2016, the original author or authors.
+    Copyright (c) 2002-2020, the original author or authors.
 
     This software is distributable under the BSD license. See the terms of the
     BSD license in the documentation provided with this software.
@@ -30,6 +30,10 @@
         <dependency>
             <groupId>org.jline</groupId>
             <artifactId>jline-style</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-groovy</artifactId>
         </dependency>
 
         <dependency>
@@ -65,9 +69,9 @@
                             <compilerArgs>
                                 <arg>-Xlint:all,-options</arg>
                                 <arg>-Werror</arg>
-                                <arg>-profile</arg>
-                                <arg>compact1</arg>
-                            </compilerArgs>
+                                <arg>-profile</arg>  <!-- mrn 27/01/2020 -->
+                                <arg>compact3</arg>  <!-- after adding jline-groovy also TTop.java started compiling here although exclusion!! -->
+                            </compilerArgs>          <!-- changed arg compact1 to compact3 to over come compiling errors -->
                         </configuration>
                     </execution>
                     <execution>

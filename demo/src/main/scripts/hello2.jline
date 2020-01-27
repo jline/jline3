@@ -1,0 +1,18 @@
+# test console script
+# END_HELP
+import org.jline.utils.*
+
+println "Is Windows: " + OSUtils.IS_WINDOWS
+
+array=[0,1]
+
+array.each {
+    println it
+    def resp
+    resp=:show
+    :prnt $resp
+}
+
+println('hello ' + ${1:-world} + '!')
+
+_return='ok' 

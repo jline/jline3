@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019, the original author or authors.
+ * Copyright (c) 2002-2020, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -54,7 +54,6 @@ public class Builtins implements CommandRegistry {
     private Map<String,Command> nameCommand = new HashMap<>();
     private Map<String,String> aliasCommand = new HashMap<>();
     private final Map<Command,CommandMethods> commandExecute = new HashMap<>();
-    private Map<Command,List<String>> commandInfo = new HashMap<>();
     private LineReader reader;
     private Exception exception;
 
@@ -103,13 +102,6 @@ public class Builtins implements CommandRegistry {
         return aliasCommand;
     }
 
-    public List<String> commandInfo(String command) {
-        if (!commandInfo.containsKey(command(command))) {
-            commandOptions(command);
-        }
-        return commandInfo.get(command(command));
-    }
-
     private void doNameCommand() {
         nameCommand = commandName.entrySet()
                 .stream()
@@ -137,6 +129,7 @@ public class Builtins implements CommandRegistry {
         aliasCommand.put(alias, command);
     }
 
+    @Override
     public boolean hasCommand(String name) {
         if (nameCommand.containsKey(name) || aliasCommand.containsKey(name)) {
             return true;
@@ -169,8 +162,14 @@ public class Builtins implements CommandRegistry {
         return out;
     }
 
-    private void execute(String command, List<String> args) throws Exception {
+    @Override
+    public Object execute(String command, String[] args) throws Exception {
+        return execute(command, Arrays.asList(args));
+    }
+
+    private Object execute(String command, List<String> args) throws Exception {
         execute(command, args, System.in, System.out, System.err);
+        return null;
     }
 
     public void execute(String command, List<String> args, InputStream in, PrintStream out, PrintStream err) throws Exception {
@@ -185,113 +184,16 @@ public class Builtins implements CommandRegistry {
         }
     }
 
-    public CmdDesc commandDescription(String command) {
-        CmdDesc out = null;
-        List<String> args = Arrays.asList("--help");
-        try {
-            execute(command, args);
-        } catch (HelpException e) {
-            List<AttributedString> main = new ArrayList<>();
-            Map<String, List<AttributedString>> options = new HashMap<>();
-            String[] msg = e.getMessage().replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n");
-            String prevOpt = null;
-            boolean mainDone = false;
-            boolean start = false;
-            for (String s: msg) {
-                if (!start) {
-                    if (s.trim().startsWith("Usage: ")) {
-                        s = s.split("Usage:")[1];
-                        start = true;
-                    } else {
-                        continue;
-                    }
-                }
-                if (s.matches("^\\s+-.*$")) {
-                    mainDone = true;
-                    int ind = s.lastIndexOf("  ");
-                    if (ind > 0) {
-                        String o = s.substring(0, ind);
-                        String d = s.substring(ind);
-                        if (o.trim().length() > 0) {
-                            prevOpt = o.trim();
-                            options.put(prevOpt, new ArrayList<>(Arrays.asList(highlightComment(d.trim()))));
-                        }
-                    }
-                } else if (s.matches("^[\\s]{20}.*$") && prevOpt != null && options.containsKey(prevOpt)) {
-                    int ind = s.lastIndexOf("  ");
-                    if (ind > 0) {
-                        options.get(prevOpt).add(highlightComment(s.substring(ind).trim()));
-                    }
-                } else {
-                    prevOpt = null;
-                }
-                if (!mainDone) {
-                    main.add(HelpException.highlightSyntax(s.trim(), HelpException.defaultStyle()));
-                }
-            }
-            out = new CmdDesc(main, ArgDesc.doArgNames(Arrays.asList("")), options);
-        } catch (Exception e) {
-
-        }
-        return out;
-    }
-
     private List<OptDesc> commandOptions(String command) {
-        List<OptDesc> out = new ArrayList<>();
         List<String> args = Arrays.asList("--help");
         try {
             execute(command, args);
         } catch (HelpException e) {
-            List<String> info = new ArrayList<>();
-            String[] msg = e.getMessage().replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n");
-            boolean start = false;
-            boolean first = true;
-            for (String s: msg) {
-                if (!start) {
-                    if (s.trim().startsWith("Usage: ")) {
-                        s = s.split("Usage:")[1];
-                        start = true;
-                    } else {
-                        if (first && s.contains(" - ")) {
-                            info.add(s.substring(s.indexOf(" - ") + 3).trim());
-                        } else {
-                            info.add(s.trim());
-                        }
-                        first = false;
-                        continue;
-                    }
-                }
-                if (s.matches("^\\s+-.*$")) {
-                    int ind = s.lastIndexOf("  ");
-                    if (ind > 0) {
-                        String[] op = s.substring(0, ind).trim().split("\\s+");
-                        String d = s.substring(ind).trim();
-                        String so = null;
-                        String lo = null;
-                        if (op.length == 1) {
-                            if (op[0].startsWith("--")) {
-                                lo = op[0];
-                            } else {
-                                so = op[0];
-                            }
-                        } else {
-                            so = op[0];
-                            lo = op[1];
-                        }
-                        lo = lo == null ? lo : lo.split("=")[0];
-                        out.add(new OptDesc(so, lo, d));
-                    }
-                }
-            }
-            commandInfo.put(command(command), info);
+            return compileCommandOptions(e.getMessage());
         } catch (Exception e) {
 
         }
-        return out;
-    }
-
-    private AttributedString highlightComment(String comment) {
-        return HelpException.highlightComment(comment, HelpException.defaultStyle());
+        return null;
     }
 
     private Terminal terminal() {
@@ -494,14 +396,129 @@ public class Builtins implements CommandRegistry {
         return completers;
     }
 
+    private static String[] splitToLines(String message) {
+        return message.replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n");
+    }
+
+    private static AttributedString highlightComment(String comment) {
+        return HelpException.highlightComment(comment, HelpException.defaultStyle());
+    }
+
+    public static CmdDesc compileCommandDescription(String helpMessage) {
+        List<AttributedString> main = new ArrayList<>();
+        Map<String, List<AttributedString>> options = new HashMap<>();
+        String[] msg = splitToLines(helpMessage);
+        String prevOpt = null;
+        boolean mainDone = false;
+        boolean start = false;
+        for (String s: msg) {
+            if (!start) {
+                if (s.trim().startsWith("Usage: ")) {
+                    s = s.split("Usage:")[1];
+                    start = true;
+                } else {
+                    continue;
+                }
+            }
+            if (s.matches("^\\s+-.*$")) {
+                mainDone = true;
+                int ind = s.lastIndexOf("  ");
+                if (ind > 0) {
+                    String o = s.substring(0, ind);
+                    String d = s.substring(ind);
+                    if (o.trim().length() > 0) {
+                        prevOpt = o.trim();
+                        options.put(prevOpt, new ArrayList<>(Arrays.asList(highlightComment(d.trim()))));
+                    }
+                }
+            } else if (s.matches("^[\\s]{20}.*$") && prevOpt != null && options.containsKey(prevOpt)) {
+                int ind = s.lastIndexOf("  ");
+                if (ind > 0) {
+                    options.get(prevOpt).add(highlightComment(s.substring(ind).trim()));
+                }
+            } else {
+                prevOpt = null;
+            }
+            if (!mainDone) {
+                main.add(HelpException.highlightSyntax(s.trim(), HelpException.defaultStyle()));
+            }
+        }
+        return new CmdDesc(main, ArgDesc.doArgNames(Arrays.asList("")), options);
+    }
+
+    public static List<OptDesc> compileCommandOptions(String helpMessage) {
+        List<OptDesc> out = new ArrayList<>();
+        String[] msg = splitToLines(helpMessage);
+        boolean start = false;
+        for (String s: msg) {
+            if (!start) {
+                if (s.trim().startsWith("Usage: ")) {
+                    s = s.split("Usage:")[1];
+                    start = true;
+                }
+                continue;
+            }
+            if (s.matches("^\\s+-.*$")) {
+                int ind = s.lastIndexOf("  ");
+                if (ind > 0) {
+                    String[] op = s.substring(0, ind).trim().split("\\s+");
+                    String d = s.substring(ind).trim();
+                    String so = null;
+                    String lo = null;
+                    if (op.length == 1) {
+                        if (op[0].startsWith("--")) {
+                            lo = op[0];
+                        } else {
+                            so = op[0];
+                        }
+                    } else {
+                        so = op[0];
+                        lo = op[1];
+                    }
+                    lo = lo == null ? lo : lo.split("=")[0];
+                    out.add(new OptDesc(so, lo, d));
+                }
+            }
+        }
+        return out;
+    }
+
+    public static List<String> compileCommandInfo(String helpMessage) {
+        List<String> out = new ArrayList<>();
+        String[] msg = splitToLines(helpMessage);
+        boolean first = true;
+        for (String s : msg) {
+            if (s.trim().startsWith("Usage: ")) {
+                break;
+            } else {
+                if (first && s.contains(" - ")) {
+                    out.add(s.substring(s.indexOf(" - ") + 3).trim());
+                } else {
+                    out.add(s.trim());
+                }
+                first = false;
+            }
+        }
+        return out;
+    }
+
     public static class CommandInput{
         String[] args;
+        Object[] xargs;
         InputStream in;
         PrintStream out;
         PrintStream err;
 
         public CommandInput(String[] args) {
             this(args, null, null, null);
+        }
+
+        public CommandInput(Object[] xargs, boolean dumb) {
+            this.xargs = xargs;
+            this.args = new String[xargs.length];
+            for (int i = 0; i < xargs.length; i++) {
+                args[i] = xargs[i] != null ? xargs[i].toString() : "";
+            }
         }
 
         public CommandInput(String[] args, InputStream in, PrintStream out, PrintStream err) {
@@ -513,6 +530,10 @@ public class Builtins implements CommandRegistry {
 
         public String[] args() {
             return args;
+        }
+
+        public Object[] xargs() {
+            return xargs;
         }
 
         public InputStream in() {
@@ -531,7 +552,13 @@ public class Builtins implements CommandRegistry {
 
     public static class CommandMethods {
         Consumer<CommandInput> execute;
+        Function<CommandInput, Object> executeFunction;
         Function<String, List<Completer>> compileCompleter;
+
+        public CommandMethods(Function<CommandInput, Object> execute,  Function<String, List<Completer>> compileCompleter) {
+            this.executeFunction = execute;
+            this.compileCompleter = compileCompleter;
+        }
 
         public CommandMethods(Consumer<CommandInput> execute,  Function<String, List<Completer>> compileCompleter) {
             this.execute = execute;
@@ -540,6 +567,10 @@ public class Builtins implements CommandRegistry {
 
         public Consumer<CommandInput> execute() {
             return execute;
+        }
+
+        public Function<CommandInput, Object> executeFunction() {
+            return executeFunction;
         }
 
         public Function<String, List<Completer>> compileCompleter() {
