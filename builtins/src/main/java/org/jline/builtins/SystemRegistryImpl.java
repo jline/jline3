@@ -51,7 +51,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     private final Map<Command,CommandMethods> commandExecute = new HashMap<>();
     private Map<String, List<String>> commandInfos = new HashMap<>();
     private Exception exception;
-    
+
     public SystemRegistryImpl(Parser parser, Terminal terminal, ConfigurationPath configPath) {
         this.parser = parser;
         this.terminal = terminal;
@@ -109,7 +109,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         out.addAll(localCommandNames());
         return out;
     }
-    
+
     private Set<String> localCommandNames() {
         return nameCommand.keySet();
     }
@@ -173,7 +173,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     public boolean hasCommand(String command) {
         return registryId(command) > -1 || isLocalCommand(command);
     }
-    
+
     private boolean isLocalCommand(String command) {
         return nameCommand.containsKey(command) || aliasCommand.containsKey(command);
     }
@@ -190,17 +190,17 @@ public class SystemRegistryImpl implements SystemRegistry {
         out.compile();
         return out;
     }
-    
+
     @Override
     public Completer completer() {
-        List<Completer> completers = new ArrayList<>(); 
+        List<Completer> completers = new ArrayList<>();
         completers.add(compileCompleters());
         if (consoleId > -1) {
             completers.addAll(consoleEngine().scriptCompleters());
         }
         return new AggregateCompleter(completers);
     }
-    
+
     private Widgets.CmdDesc localCommandDescription(String command) {
         if (!isLocalCommand(command)) {
             throw new IllegalArgumentException();
@@ -213,7 +213,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         } catch (Exception e) {
             consoleEngine().println(e);
         }
-        return null;       
+        return null;
     }
 
     @Override
@@ -245,7 +245,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         }
         return out;
     }
-    
+
     @Override
     public Object invoke(String command, Object... args) throws Exception {
         Object out = null;
@@ -260,7 +260,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         }
         return out;
     }
-    
+
     @Override
     public Object execute(String command, String[] args) throws Exception {
         Object out = null;
@@ -272,7 +272,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         }
         return out;
     }
-    
+
     public Object localExecute(String command, String[] args) throws Exception {
         if (!isLocalCommand(command)) {
             throw new IllegalArgumentException();
@@ -287,7 +287,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     @Override
     public Object execute(String line) throws Exception {
         ParsedLine pl = parser.parse(line, 0, ParseContext.ACCEPT_LINE);
-        if (pl.line().isEmpty() || pl.line().startsWith("#")) {
+        if (pl.line().isEmpty() || pl.line().trim().startsWith("#")) {
             return null;
         }
         String cmd = ConsoleEngine.plainCommand(Parser.getCommand(pl.word()));
@@ -381,7 +381,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     private String doCommandInfo(List<String> info) {
         return info.size() > 0 ? info.get(0) : " ";
     }
-    
+
     private boolean isInArgs(List<String> args, String name) {
         return args.isEmpty() || args.contains(name);
     }
@@ -448,11 +448,11 @@ public class SystemRegistryImpl implements SystemRegistry {
                 }
             } else {
                 printCommands(consoleEngine().scripts(), max);
-            }            
+            }
         }
         return null;
     }
-    
+
     private Object exit(Builtins.CommandInput input) {
         final String[] usage = {
                 "exit -  exit from app/script",
@@ -479,7 +479,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         }
         return null;
     }
-    
+
     private List<String> registryNames() {
         List<String> out = new ArrayList<>();
         out.add("Builtins");

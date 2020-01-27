@@ -134,7 +134,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     public boolean hasAlias(String name) {
         return aliases.containsKey(name);
     }
-    
+
     @Override
     public String getAlias(String name) {
         return aliases.getOrDefault(name, null);
@@ -188,11 +188,11 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         out.addAliases(aliasCommand);
         return out;
     }
-    
+
     private Set<String> variables() {
-        return engine.find().keySet();    
+        return engine.find().keySet();
     }
-    
+
     @Override
     public List<Completer> scriptCompleters() {
         List<Completer> out = new ArrayList<>();
@@ -204,7 +204,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                                        ));
         return out;
     }
-    
+
     @SuppressWarnings("unchecked")
     @Override
     public List<String> scripts() {
@@ -226,7 +226,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 out.add(name.substring(0, name.lastIndexOf(".")));
             }
         } catch (Exception e) {
-            println(e);            
+            println(e);
         }
         return out;
     }
@@ -297,9 +297,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         List<String>  extensions = new ArrayList<>();
         extensions.addAll(engine.getExtensions());
         extensions.add(scriptExtension);
-        return extensions;        
+        return extensions;
     }
-    
+
     private class ScriptFile {
         private File script;
         private String extension = "";
@@ -504,7 +504,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         if (file.execute()) {
             out = file.getResult();
         } else {
-            String line = pl.line();
+            String line = pl.line().trim();
             if (isCodeBlock(line)) {
                 StringBuilder sb = new StringBuilder();
                 for (String s: line.split("\n|\n\r")) {
@@ -791,7 +791,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         try  {
             List<String> args = opt.args();
             if (args.isEmpty()) {
-                out = aliases;                
+                out = aliases;
             } else if (args.size() == 1) {
                 out = aliases.getOrDefault(args.get(0), null);
             } else {
@@ -820,12 +820,12 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             for (String a : opt.args()) {
                 if (aliases.containsKey(a)) {
                     aliases.remove(a);
-                }                
+                }
             }
         } catch (Exception e) {
             exception = e;
         } finally {
-            engine.persist(aliasFile, aliases);            
+            engine.persist(aliasFile, aliases);
         }
         return out;
     }
@@ -877,7 +877,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     private static class AliasValueCompleter implements Completer {
         private final Map<String,String> aliases;
-        
+
         public AliasValueCompleter(Map<String,String> aliases) {
             this.aliases = aliases;
         }

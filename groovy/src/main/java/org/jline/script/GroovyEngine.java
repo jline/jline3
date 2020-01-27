@@ -11,6 +11,8 @@ package org.jline.script;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.jline.groovy.Utils;
 import org.jline.reader.ScriptEngine;
@@ -30,10 +32,17 @@ import groovy.lang.Script;
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public class GroovyEngine implements ScriptEngine {
-    private static final String REGEX_SYSTEM_VAR = "[A-Z]{1}[A-Z_]*";
+    private static final String REGEX_SYSTEM_VAR = "[A-Z]+[A-Z_]*";
+    private static final String REGEX_VAR = "[a-zA-Z_]+[a-zA-Z0-9_]*";
+    private static final Pattern PATTERN_FUNCTION_DEF=Pattern.compile("^def\\s+(" + REGEX_VAR + ")\\s*\\(([a-zA-Z0-9_ ,]*)\\)\\s*\\{(.*)?\\}(|\n)$"
+                                                                     , Pattern.DOTALL);
+    private static final Pattern PATTERN_CLASS_DEF=Pattern.compile("^class\\s+(" + REGEX_VAR + ")\\ .*?\\{.*?\\}(|\n)$"
+                                                                  , Pattern.DOTALL);
     private GroovyShell shell;
     private Binding sharedData;
-    private Map<String,String> imports = new HashMap<String,String>();
+    private Map<String,String> imports = new HashMap<>();
+    private Map<String,String> methods = new HashMap<>();
+    private Map<String,String> classes = new HashMap<>();
 
     public GroovyEngine() {
         this.sharedData = new Binding();
@@ -137,10 +146,31 @@ public class GroovyEngine implements ScriptEngine {
             imports.put(p[1].replaceAll(";", ""), statement);
         } else if (statement.equals("import")) {
             out = new ArrayList<>(imports.keySet());
+        } else if (functionDef(statement)) {
+            // do nothing
+        } else if (statement.equals("def")) {
+            out = methods;
+        } else if (statement.matches("def\\s+" + REGEX_VAR)) {
+            String name = statement.split("\\s+")[1];
+            if (methods.containsKey(name)) {
+                out = "def " + name + methods.get(name);
+            }
+        } else if (classDef(statement)) {
+            // do nothing
+        } else if (statement.equals("class")) {
+            out = classes.values();
+        } else if (statement.matches("class\\s+" + REGEX_VAR)) {
+            String name = statement.split("\\s+")[1];
+            if (classes.containsKey(name)) {
+                out = classes.get(name);
+            }
         } else {
             String e = "";
             for (Map.Entry<String, String> entry : imports.entrySet()) {
                 e += entry.getValue()+"\n";
+            }
+            for (String c : classes.values()) {
+                e += c;
             }
             e += statement;
             out = shell.evaluate(e);
@@ -172,6 +202,27 @@ public class GroovyEngine implements ScriptEngine {
         return out;
     }
 
+    private boolean functionDef (String statement) throws Exception{
+        boolean out = false;
+        Matcher m = PATTERN_FUNCTION_DEF.matcher(statement);
+        if(m.matches()){
+            out = true;
+            put(m.group(1), execute("{" + m.group(2) + "->" + m.group(3) + "}"));
+            methods.put(m.group(1), "(" + m.group(2) + ")" + "{" + m.group(3) + "}");
+        }
+        return out;
+    }
+
+    private boolean classDef (String statement) throws Exception{
+        boolean out = false;
+        Matcher m = PATTERN_CLASS_DEF.matcher(statement);
+        if(m.matches()){
+            out = true;
+            classes.put(m.group(1), statement);
+        }
+        return out;
+    }
+
     private void del(String var) {
         if (var == null) {
             return;
@@ -180,12 +231,24 @@ public class GroovyEngine implements ScriptEngine {
             imports.remove(var);
         } else if (sharedData.hasVariable(var)) {
             sharedData.getVariables().remove(var);
+            if (methods.containsKey(var)) {
+                methods.remove(var);
+            }
         } else if (!var.contains(".") && var.contains("*")) {
             for (String v : internalFind(var)){
                 if (sharedData.hasVariable(v) && !v.equals("_") && !v.matches(REGEX_SYSTEM_VAR)) {
                     sharedData.getVariables().remove(v);
+                    if (methods.containsKey(v)) {
+                        methods.remove(v);
+                    }
+                }
+                if (classes.containsKey(v)) {
+                    classes.remove(v);
                 }
             }
+        }
+        if (classes.containsKey(var)) {
+            classes.remove(var);
         }
     }
 
