@@ -1,6 +1,281 @@
 # [JLine3](https://github.com/jline/jline3)
 
 <!-- git log --pretty=format:'* [`%h`](https://github.com/jline/jline3/commit/%H) %s' -->
+## [JLine 3.13.3][3_13_3]
+[3_13_3]: https://repo1.maven.org/maven2/org/jline/jline/3.13.3/
+
+* [`37ef9925`](https://github.com/jline/jline3/commit/37ef99255a95baa7c29371cace5fd8c09f93b513) ExternalTerminal should accept attributes (eg ECHO false) in constructor, 
+and set them before starting pump thread, fixes #433
+* [`2327d649`](https://github.com/jline/jline3/commit/2327d649ceb1bc8b4a4452b7821f1f0050503bc5) Fix #492: 3.13 prevents scrolling in ConsoleZ
+* [`94a83fd1`](https://github.com/jline/jline3/commit/94a83fd1b9a196160a502fac587ef8193344a9f0) Fix wide characters displaying, fixes #431
+* [`b4ee6d93`](https://github.com/jline/jline3/commit/b4ee6d93e6df970487c406c874772a1a96ace471) Completer sorting order, fixes #419
+* [`78368e48`](https://github.com/jline/jline3/commit/78368e4891d8ef8b388386f493d0bbef22e23d22) SystemCompleter: added null check and test for variable name
+* [`0e537cb8`](https://github.com/jline/jline3/commit/0e537cb8f67c5d95c0d7496f7f620666916ec96b) Display & Candidate: added null checks to robust code, fixes #490
+* [`dfc070da`](https://github.com/jline/jline3/commit/dfc070dacc99c32e099dc8c2bd8826becfa4586a) OptionCompleter: improved short option value completion, #485
+* [`b1ec62ce`](https://github.com/jline/jline3/commit/b1ec62ce4da26e551b4d4d56a232dc65a7f8ea89) Improve Builtins commands tab completion, fixes #488
+* [`daba5586`](https://github.com/jline/jline3/commit/daba5586062a600221a49780435e928460763bda) Tab completion: require at least one character to complete command
+* [`10a8d991`](https://github.com/jline/jline3/commit/10a8d9914ead2a524451d21836c1f028f48c77e0) OptionCompleter uses now Completer to complete option values, fixes #485
+* [`2d596b8f`](https://github.com/jline/jline3/commit/2d596b8ffe4e889c4ef5f536fc8e1b79cd946ebd) Improved help highlight...
+* [`064aa776`](https://github.com/jline/jline3/commit/064aa7767aef021c9c5d026267b327f683a31ea8) OptionCompleter: complete values of short option, #485
+* [`04ec0722`](https://github.com/jline/jline3/commit/04ec072241c454136c521ceff2e5e3e78bab2cf4) Improved Example by adding a command registry
+* [`10840f8e`](https://github.com/jline/jline3/commit/10840f8e84b557bab38ca752b422c286849df01e) Improved nano and ttop commands when using on Windows terminal, fixes
+* [`238f0202`](https://github.com/jline/jline3/commit/238f020247f283ac1fdfe2863554697a2046727e) Fixed ansi clr_eos sequences on windows, #481
+* [`d0f52f09`](https://github.com/jline/jline3/commit/d0f52f091d86114a5d98eb120f92dce1533e8a0f) nano & less: translate '~' in file argument to 'user.home', fixes #483
+* [`536d841e`](https://github.com/jline/jline3/commit/536d841e637a16bcff9ae252222dcb4a48a93f98) TailTipWidgets improvement: show option description in status bar when
+* [`43c89282`](https://github.com/jline/jline3/commit/43c892823e08b712b4fa8415324c7414bd89286e) Small improvement in builtins Example
+* [`e85af0ea`](https://github.com/jline/jline3/commit/e85af0ea91458146870feaa59f3dbad8134e0c9f) CommandRegistry: added two static helper methods, #480
+* [`c36f8784`](https://github.com/jline/jline3/commit/c36f8784a0b12f8715767e7b6a17121b7d68bb2e) TailTipWidgets: auto suggests now also option values
+* [`347b1c26`](https://github.com/jline/jline3/commit/347b1c26baf340edbc6322ed64312418790edfb0) TailTipWidgets: fix IndexOutOfBoundsException exception, fixes #482
+* [`94b6fcf9`](https://github.com/jline/jline3/commit/94b6fcf901fbd5b09e339bea8128784af59dd974) Added CommandRegistry interface, fixes #480
+* [`abb6bb80`](https://github.com/jline/jline3/commit/abb6bb802c08ee0283e5c774059b05a2a0539f36) Clear Status: use clr_eol if terminal does not support clr_eos, fixes #481
+
+## [JLine 3.13.2][3_13_2]
+[3_13_2]: https://repo1.maven.org/maven2/org/jline/jline/3.13.2/
+
+* [`fea903cc`](https://github.com/jline/jline3/commit/fea903cc9e78da64d66422f07db1b7890cf18b89) Improve performances when pasting huge strings, fixes #479
+* [`7fce4d39`](https://github.com/jline/jline3/commit/7fce4d39ba997457221cfc262871bab3866c3310) Add a maximum buffer length above which advanced features are disabled, #4
+77
+* [`69197dd9`](https://github.com/jline/jline3/commit/69197dd9de729cee665c4402d17079582518f03e) Builtins: reviewed completers
+* [`6a0cb704`](https://github.com/jline/jline3/commit/6a0cb704595e61b3c67e19782220a1fb5740144c) Add LineReader option USE_FORWARD_SLASH, fixes #476
+* [`8737ca25`](https://github.com/jline/jline3/commit/8737ca25bf1a9417eae5bb5ae1ffabfcc69695f2) OptionCompleter fails if command has more than one arg, fixed.
+* [`ed0d946c`](https://github.com/jline/jline3/commit/ed0d946cf0330a476bd33febbba3efa99e008435) Merge branch 'command-assignment'
+* [`4c73a52c`](https://github.com/jline/jline3/commit/4c73a52c659807efd3e35e2f60a3ec59cd66642d) Fail to scroll candidate list, fixes #475
+* [`0b99819a`](https://github.com/jline/jline3/commit/0b99819a529eea01d2b34f6facfb3615f4e74f10) Example: use Parser.getCommand(line) everywhere
+* [`733b3e16`](https://github.com/jline/jline3/commit/733b3e16fc99420a169ecb803bf8c999b07c4a41) Builtins: do not create a new NullCompleters use NullCompleter.INSTANCE
+* [`cb6593ad`](https://github.com/jline/jline3/commit/cb6593ad152d1a3ed49e7c6a24d54b55c22db630) Merge branch 'option-completer'
+* [`e02d5112`](https://github.com/jline/jline3/commit/e02d5112a9d291759152842632e9713fa3a87882) Example: fixed NPE
+* [`9db02fe0`](https://github.com/jline/jline3/commit/9db02fe03bd3478a1bebbbdb1d188be9e0bf43fe) Merge branch 'tailtip-highlight'
+* [`55a36a84`](https://github.com/jline/jline3/commit/55a36a845762478e2906205557e6fc57392045f6) Merge pull request #471 from mattirn/builtins
+* [`96258c04`](https://github.com/jline/jline3/commit/96258c04d2adc01ac2749f499d11e6abbb2851ae) Execute builtins: we must get command=Parser.getCommand(line)
+* [`e4efe36c`](https://github.com/jline/jline3/commit/e4efe36ce25722e93b7f3740ea6de657af8d4419) Parser: added static method getCommand()
+* [`21d177a2`](https://github.com/jline/jline3/commit/21d177a226f86eb66beaf12532f7d3e0c47b3927) OptionCompleter: added Function parameter in constructor
+* [`93702902`](https://github.com/jline/jline3/commit/93702902f6814ea40c12ad61c75e1cb458bb38ce) Added OptionCompleter class
+* [`4fab621b`](https://github.com/jline/jline3/commit/4fab621b2dbcba0aa33ffb69e17b8935c8693540) TailTipWidgets: highlight command descriptions
+* [`06eb15f8`](https://github.com/jline/jline3/commit/06eb15f8ef3e3421712942ebb080e10f787dafe0) Improve builtin commands integration with JLine app
+* [`2e5820eb`](https://github.com/jline/jline3/commit/2e5820eb9f95cf18c8d008b5d059f1f49c6f1ab6) Merge pull request #456 from mattirn/tailtip-v2
+* [`40834819`](https://github.com/jline/jline3/commit/40834819166c31d1b99c540530dd8a69a5e62eda) TailTipWidgets: added boolean field command in CmdDesc class
+* [`1bb85c2f`](https://github.com/jline/jline3/commit/1bb85c2fe4973464f6427cdc1df122eb72bd74dc) tailtip-toggle: call widget redraw-line to refresh cursor position, fixes #468
+* [`129c8755`](https://github.com/jline/jline3/commit/129c8755dd888c6aff35c2797056e5fd92b8454e) widget: list also builtin widgets, fixes #467
+* [`c2a46f1a`](https://github.com/jline/jline3/commit/c2a46f1a16f1e44b8c500998c52b501ad711a3e8) Add setvar command: set lineReader variable value, fixes #466
+* [`440d57ec`](https://github.com/jline/jline3/commit/440d57ec26ef9b865212b2990e9f9501924b4b5f) StringsCompleter: changed stringsSupplier to Collection, #464
+* [`3a5d1324`](https://github.com/jline/jline3/commit/3a5d13249e8d5df1d71ea898055fb3650ab6fc4d) Merge branch 'master' into tailtip-v2
+* [`a8906604`](https://github.com/jline/jline3/commit/a89066045f5320bca30971b25b7951c30c80f63c) Extend StringsCompleter to accept a lambda for the strings, fixes #464
+* [`812ad2c5`](https://github.com/jline/jline3/commit/812ad2c5e34a0491d066403fea01d9069ebd8283) LineReaderImpl: replaced some method calls with callWidget() in order to r
+efresh TailTipWidgets description pane
+* [`4e974782`](https://github.com/jline/jline3/commit/4e9747825bd49491acc733fb0f526cba51b63801) nano: in help switch off syntax highlight, fixes #463
+* [`92be6215`](https://github.com/jline/jline3/commit/92be6215952b49e7c2a397c6844794f3e1f778c8) Merge branch 'master' into tailtip-v2
+* [`454a286a`](https://github.com/jline/jline3/commit/454a286a7ac1c36dc31a57f68aeade0ab6f0fa18) LineReaderImpl: readLine() final redisplay() do not add autosuggestions, f
+ixes #461
+* [`2189b1fb`](https://github.com/jline/jline3/commit/2189b1fbf0850b39f2d79b25e2e845f690db3998) Widgets: args() method parse in ParseContext.COMPLETE, fixes #460
+* [`b2bb7b5c`](https://github.com/jline/jline3/commit/b2bb7b5c6cb5088e68b81e273aa6e26df63dee92)  Auto indentation: fix cursor position calculation, fixes #459
+* [`2fb98453`](https://github.com/jline/jline3/commit/2fb984538832c37d738be94395d54c20a9c6730b) LineReaderImpl: clear commandsBuffer only in case of Exception, fixes #458
+* [`92c598b3`](https://github.com/jline/jline3/commit/92c598b375d58ea888ab69c8e2a0213b8d8b4d8f) Insert closing bracket only when we have two unclosed brackets, fixes #457
+* [`36bfbb6e`](https://github.com/jline/jline3/commit/36bfbb6e8ed686de20e56cc2fc9c2339dd662d54) TailTipWidgets: added setTailTips() method and field valid in CmdDesc clas
+s
+* [`c926b8b6`](https://github.com/jline/jline3/commit/c926b8b645354060ab1accb428bea7bb73211870) Highlighter: added errorIndex
+* [`9e2741cf`](https://github.com/jline/jline3/commit/9e2741cff3a64814f2dfc6e1c92c772e997cf75a) Check syntax errors on closing parenthesis
+* [`dd8098b3`](https://github.com/jline/jline3/commit/dd8098b37beff17f7b63e6f77e0279bb0891acba) FileNameCompleter catch and ignore all exceptions, fixes #453
+* [`8e47654f`](https://github.com/jline/jline3/commit/8e47654f7ae9888df90551622b1a7e9a6a419aed) Merge branch 'master' into tailtip-v2
+* [`da89fc4c`](https://github.com/jline/jline3/commit/da89fc4c22429794fc662f6cef7195395c664337) Nano SyntaxHighlighter: extended style syntax with styles bold, faint, ita
+lic, ...
+* [`3911e26d`](https://github.com/jline/jline3/commit/3911e26d5bc8ad7e16e1ea09597a99d512f7c5a9) Syntax error highlight
+* [`bbdfc0ed`](https://github.com/jline/jline3/commit/bbdfc0ed0da2b649ff250b149ce00092d1340a7e) TailTipWidgets: added support for method descriptions
+* [`7a9396da`](https://github.com/jline/jline3/commit/7a9396da2fc1f2c63528928da1500056f38fecdc) Nano: make SyntaxHighlighter public
+
+## [JLine 3.13.1][3_13_1]
+[3_13_1]: https://repo1.maven.org/maven2/org/jline/jline/3.13.1/
+
+* [`10751890`](https://github.com/jline/jline3/commit/10751890388d54ef7340bda851f80ec25475f180) Upgrade the javadoc maven plugin to avoid exception when building with new
+er JDK
+* [`59231795`](https://github.com/jline/jline3/commit/5923179584de53867fb574afb5a43d207e9297dc) Add missing dependencies to ensure correct build order in multithreaded bu
+ild
+* [`68234fc1`](https://github.com/jline/jline3/commit/68234fc11419439777fd45df76f1f25d5ecaf87f) Exception when parsing infocmp number "0", fixes #451
+* [`6116228a`](https://github.com/jline/jline3/commit/6116228abcc01458abc7e190a53d463fe4dc45b1) DefaultHistory: check index range before getting record, fixes #450
+
+## [JLine 3.13.0][3_13_0]
+[3_13_0]: https://repo1.maven.org/maven2/org/jline/jline/3.13.0/
+
+* [`1bb3f423`](https://github.com/jline/jline3/commit/1bb3f423d48c2b6feedd922650983db92c51a2e0) [FELIX-6191] [gogo][jline] The cd command should normalize the directory
+* [`e95b2c12`](https://github.com/jline/jline3/commit/e95b2c12588ab2a2c3a98eb97bf4145f3409c4aa) edit-and-execute-command: ensure commandsBuffer is empty when done
+* [`621850f4`](https://github.com/jline/jline3/commit/621850f4bcbc7713ee6574f05e3ab32ed3d4526e) TailTipWidgets: a few bug fixes and improvements
+* [`21546f91`](https://github.com/jline/jline3/commit/21546f91d5fb4a66b80ab06faf0c33c29cc925ba) Status bug fix: status border is lost after window resize.
+* [`eeff0fbd`](https://github.com/jline/jline3/commit/eeff0fbd01099c173e7bffe0d31d159a6a02d212) TailTipWidgets: improved option description
+* [`226e89e5`](https://github.com/jline/jline3/commit/226e89e5eca34ff8cc1cc34b76552d97431b384b) Merge remote-tracking branch 'upstream/master'
+* [`2ae5901b`](https://github.com/jline/jline3/commit/2ae5901b6452e306d2c8e514fa0ad03cd79314a6) TailTipWidget: added descriptions of command options
+* [`e7d15fd3`](https://github.com/jline/jline3/commit/e7d15fd3ee2d59e298d93c6b6c4202f188a53e8c) Merge pull request #445 from snuyanzin/JLINE3_COLLECTION_OF_CANDIDATES
+* [`bd23dacc`](https://github.com/jline/jline3/commit/bd23daccc4f37488d428344964033bd73c39fe72) Widgets: added javadocs
+* [`211b1b56`](https://github.com/jline/jline3/commit/211b1b5612e3dec8cb14470e6a65c5fbe8e975b8) Add constructor with collection of Candidates
+* [`389ec833`](https://github.com/jline/jline3/commit/389ec8331244e2f7bb4eb29e40e3b7ad3704e605) Widgets: Constructors throw IllegalStateException if widgets already exist
+s
+* [`38f06cd3`](https://github.com/jline/jline3/commit/38f06cd399b6ad57f8c43f4e6b1f1e0dc5e5937f) Allow contemporary use of tailTip and autopair widgets
+* [`61ff968e`](https://github.com/jline/jline3/commit/61ff968ef396962f9eaf48a256413d5e0dafed6e) Widgets refactoring: use widget aliases in place of keys rebinding
+* [`6d8d7322`](https://github.com/jline/jline3/commit/6d8d7322702125ad0ad63e712b8902d629594e2f) widget command: fix for alias (-a) and list (-l) options
+* [`6535be3b`](https://github.com/jline/jline3/commit/6535be3b0d59f3e630fc73de440a775dcb689263) Widget refactoring and fixed formatting
+* [`ca0278af`](https://github.com/jline/jline3/commit/ca0278af6f146fb249a9f546f55a254c9b4355df) Merge pull request #354 from mattirn/indentation
+* [`3025f70d`](https://github.com/jline/jline3/commit/3025f70d953f801e19781472f5cfe0b7e3ab976f) Fixed merge
+* [`d88c1c7a`](https://github.com/jline/jline3/commit/d88c1c7a862148ec2e40f9488f82b2c3e59298a5) Merge branch 'master' into indentation
+* [`f669f8bd`](https://github.com/jline/jline3/commit/f669f8bd413c8d2c4c88561e8aafb19c6eebf836) DefaultParser: Replaced '){' with ') {' ...
+* [`95b6a654`](https://github.com/jline/jline3/commit/95b6a654691f80fdb7f0c54ef78ddeb4584ddb86) Merge pull request #440 from mattirn/tmux-windows
+* [`cdbb55eb`](https://github.com/jline/jline3/commit/cdbb55eb19ef6a533d5b5f2e382e20f828c14be8) tmux: Added a couple of windows commands
+* [`2c581637`](https://github.com/jline/jline3/commit/2c581637446ad014a930a780976768b335ff0053) Status: added indication of truncated status lines and status border
+* [`5c464bce`](https://github.com/jline/jline3/commit/5c464bce1f9566aaf325cb246712fab121e66635) TailTipWidgets: bug fix & small improvements
+* [`3462231f`](https://github.com/jline/jline3/commit/3462231f74195108703fe77abdedb0b0c8e7e382) TailTipWidgets added argument descriptions, fixes #254
+* [`55567b0b`](https://github.com/jline/jline3/commit/55567b0b6a3d0e661ef18da4fa8ff046b02a1d24) Added TailTipWidgets, fixes #394
+* [`969fa1a4`](https://github.com/jline/jline3/commit/969fa1a434ba10b3ab7a6e701e97713c09619b3d) Autosuggestion using command completer data, #254
+* [`4c48c039`](https://github.com/jline/jline3/commit/4c48c039c0559638cfa2ac8ba12d3aa237d8870e) Added custom autosuggestion widgets
+* [`58d60156`](https://github.com/jline/jline3/commit/58d60156aa429f1a7b979966efde35676c4faf1d) AutopairWidgets: refactoring...
+* [`54dfee6f`](https://github.com/jline/jline3/commit/54dfee6fe756313f48ee865fd2732917662bb018) nano: now manages tabs correctly also in wrapped lines
+* [`4abce452`](https://github.com/jline/jline3/commit/4abce4520d887e6f174790b6b70abe5220775532) AutopairWidgets: now restores defaultBindings correctly
+* [`20076f29`](https://github.com/jline/jline3/commit/20076f29a50035d5ab80841d28f83176e213130b) nano: fixed bug in 'search and replace'
+* [`b996a9a1`](https://github.com/jline/jline3/commit/b996a9a10af4ed5c18462bd1aaa194c51e2835d4) Merge remote-tracking branch 'upstream/master'
+* [`4abce452`](https://github.com/jline/jline3/commit/4abce4520d887e6f174790b6b70abe5220775532) AutopairWidgets: now restores defaultBindings correctly
+* [`20076f29`](https://github.com/jline/jline3/commit/20076f29a50035d5ab80841d28f83176e213130b) nano: fixed bug in 'search and replace'
+* [`b996a9a1`](https://github.com/jline/jline3/commit/b996a9a10af4ed5c18462bd1aaa194c51e2835d4) Merge remote-tracking branch 'upstream/master'
+* [`e4839f89`](https://github.com/jline/jline3/commit/e4839f8934d4a2c7d966a0bc809dd5c66dbe7210) AutopairWidget: fixed typo & small improvements
+* [`0660ae29`](https://github.com/jline/jline3/commit/0660ae29f3af2ca3b56cdeca1530072306988e4d) Merge pull request #442 from nixel2007/fix/npe-pump
+* [`f151862b`](https://github.com/jline/jline3/commit/f151862b1be23da74d56246cca18f3d0e245eae5) Added autopair custom widgets.
+* [`c31cca7e`](https://github.com/jline/jline3/commit/c31cca7e6b4b48518c6aee5a076b00b67c7be9ea) Fix NPE
+* [`65f61c35`](https://github.com/jline/jline3/commit/65f61c357620352b271741dbde9f9da648432ea6) Merge branch 'master' into indentation
+* [`9fb78220`](https://github.com/jline/jline3/commit/9fb7822024282037bba6844fbb23afbc62872cb5) added automatic insertion of closing bracket
+* [`d9ec9e0f`](https://github.com/jline/jline3/commit/d9ec9e0f1de81ed21490ac5b04f833f84e75b10e) nano: fixed cursor position calculation
+* [`2e09ce41`](https://github.com/jline/jline3/commit/2e09ce410984a9b5b187230ed02bb566c874caa6) nano: added options tabstospaces & autoindent
+* [`ff75120f`](https://github.com/jline/jline3/commit/ff75120f3c66e922c43b5d4f9aeff40b4e3d6944) nano: refactoring...
+* [`e7da7e5b`](https://github.com/jline/jline3/commit/e7da7e5b509746f7340e9f80c5bd2b57263d0452) nano: search and replace operation
+* [`23af0afd`](https://github.com/jline/jline3/commit/23af0afd50f80c1669ad24b1f7de90cdaf371e17) nano: added tab-character management, fixed if statement
+* [`82b514e0`](https://github.com/jline/jline3/commit/82b514e0eb9b420ba4addd352fb5712c2c1900a0) nano: added tab-character management
+* [`d9ea992e`](https://github.com/jline/jline3/commit/d9ea992ebeff402367615d293edd527a01a7a842) nano & less: added key bindings and improved search log navigation
+* [`f2f911c8`](https://github.com/jline/jline3/commit/f2f911c87b630147a3dda1eceedff2bddbbb6cd9) nano & less refactoring: added usage() method
+* [`241332c1`](https://github.com/jline/jline3/commit/241332c1a9a11169ccdc1e94227a5aa7a27653c6) Added missing license header, fixes #439
+* [`c9e3f7d5`](https://github.com/jline/jline3/commit/c9e3f7d52044c5a15d08ec5776d87c87db619a56) nano & less commands: added historylog option
+* [`f22d7e79`](https://github.com/jline/jline3/commit/f22d7e79cf538f67af4ea58292ceaf5fda38fc43) tmux: NPE and ConcurrentModificationException, fixes #438
+* [`718e9df9`](https://github.com/jline/jline3/commit/718e9df9ec902181f15ccd57f872078faa436fc5) Highlight demo help
+* [`a479daf1`](https://github.com/jline/jline3/commit/a479daf1839f42255beccda938f939af308d982e) Adjusted help highlight patterns
+* [`ff1f07a1`](https://github.com/jline/jline3/commit/ff1f07a1affe6858dfddb27edc8655be91b6400d) less command: implemented search operations with spanning files
+* [`b79a4255`](https://github.com/jline/jline3/commit/b79a42551c96affb2a9d4a4db22f8c30b4097a72) nano command: implemented a few missing options
+* [`10b405ba`](https://github.com/jline/jline3/commit/10b405ba0e9e8a094859ac033745edb5ec5cd33d) Reviewed: nano and less commands wildcard file parameter
+* [`43b1e1de`](https://github.com/jline/jline3/commit/43b1e1dea003c0832f67182f725f0c25a48c50be) Merge pull request #437 from mattirn/config-path
+* [`270b52f1`](https://github.com/jline/jline3/commit/270b52f17b89b7729f4288e48bc49c77acaa0a8a) Improve (nano & less) command configuration management
+* [`4a67e7f8`](https://github.com/jline/jline3/commit/4a67e7f8584b31e954802a09cb7421ead07281e1) Fixed javadoc warnings
+* [`fd8743fa`](https://github.com/jline/jline3/commit/fd8743fa920757404174580db4f473bbe4eee295) nano command: added commandline options
+* [`0af30363`](https://github.com/jline/jline3/commit/0af3036323a79265f9425f793e287c88275f30a4) Enhanced less command with nanorc like config and syntax highlight
+* [`f9879070`](https://github.com/jline/jline3/commit/f9879070de4894ddf217dc7a79c1271e73eb02c7) Nano config file: support 'set/unset <option>'
+* [`470206b5`](https://github.com/jline/jline3/commit/470206b541bb7bb4e111e4f2cf1db48b7207864d) Nano: manage configuration file. Now support only 'include' entries.
+* [`5888c782`](https://github.com/jline/jline3/commit/5888c782eb1401e916cf173505d889a66264e363) nano syntaxHighlighter: read highlight config from nanorc files
+* [`f1e38205`](https://github.com/jline/jline3/commit/f1e38205daefe9a8ebd3b1f258fed307caa3cd05) less command: fix next/prev page operation, fixes #434
+* [`f3bea600`](https://github.com/jline/jline3/commit/f3bea600540ebe369de1887609cd67ff6a156309) Merge pull request #427 from bjab/dumb-color-fix
+* [`13708e2d`](https://github.com/jline/jline3/commit/13708e2d6baabe8a9b295b566bdb7f461ae550c8) Implemented edit-and-execute-command, fixes #430
+* [`39b61e55`](https://github.com/jline/jline3/commit/39b61e558d3f44b2fc149e342679f66451293b80) Merge pull request #432 from mattirn/openjdk
+* [`66d71a08`](https://github.com/jline/jline3/commit/66d71a089dbdb463b98dc1a1c996b4b4f3a5635b) travis: changed oraclejdk8 to openjdk8
+* [`fd6b36d7`](https://github.com/jline/jline3/commit/fd6b36d7ec74e9a1055f91c5175ad3d7f40363e9) Merge pull request #421 from mattirn/history-command
+* [`d87545d5`](https://github.com/jline/jline3/commit/d87545d5b4d4e25982838538fd81783bae2b106c) Merge branch 'master' of https://github.com/mattirn/jline3.git into histor
+y-command
+* [`2eb14ad8`](https://github.com/jline/jline3/commit/2eb14ad85365c0a43bb3f6687d0b263aae23b836) history command: implemented options -e and -s
+* [`742b0cba`](https://github.com/jline/jline3/commit/742b0cbade1a631c7e659619142ab6c57118e15f) Fix for #328 Properly register dumb-color terminal caps file
+* [`bd6bbb16`](https://github.com/jline/jline3/commit/bd6bbb16f7e57181d1f60a0f54a5c80265b06e61) nano syntaxHighlighter: removed obsolate code
+* [`61254920`](https://github.com/jline/jline3/commit/612549205d9796806e894f64c13492f7cdcc1704) nano: fixed xml highlight rule
+* [`fc3579e5`](https://github.com/jline/jline3/commit/fc3579e51fdcb066ce89557569d38b87f557840a) nano command: added syntaxHighlighter (hardcoded xml & java)
+* [`4e4969cb`](https://github.com/jline/jline3/commit/4e4969cb6eed603b3264fe51a62684663a582638) nano: insert/backspace operations ensure cursor in visible area, fixes #42
+6
+* [`9667327f`](https://github.com/jline/jline3/commit/9667327f11c7fb65e1845ea911eaa49a15928042) nano: refactoring...
+* [`2a8493df`](https://github.com/jline/jline3/commit/2a8493df85448fceadb8f6ff32592f68cd7ace4d) nano command: navigation with arrow keys on unwrapped line
+* [`d24e4e6d`](https://github.com/jline/jline3/commit/d24e4e6d11826524939a664b6eff500a28f4c23c) Merge remote-tracking branch 'upstream/master'
+* [`82e8dcbd`](https://github.com/jline/jline3/commit/82e8dcbd154622ed82e4bfdc6dc4e68cb3de082b) nano command: re-enabled non wrapping mode, fixed #120
+* [`0749251f`](https://github.com/jline/jline3/commit/0749251f4cd622869c3da0307268e898f60ed479) Merge pull request #424 from snuyanzin/patch-1
+* [`3cb846ff`](https://github.com/jline/jline3/commit/3cb846ff8345846ba9158ecaca9cf7f5dcf05f29) Typo in LineReader.java's comment
+* [`9511bfae`](https://github.com/jline/jline3/commit/9511bfae1ddf20ef4739fb2bebf1fe556362e772) nano command: added mark operations
+* [`db6a91c1`](https://github.com/jline/jline3/commit/db6a91c12cd386663258fc9ffd9fa2602c9ca91d) nano: fixed cursor position calculation in nextSearch(), fixes #423
+* [`a0305d6e`](https://github.com/jline/jline3/commit/a0305d6e94a974d5fbc9624846905fa3e945df85) nano command: added 'cut to end' operations
+* [`53fa8586`](https://github.com/jline/jline3/commit/53fa85866b521a9ddac1089307fa79c2af2e290f) nano: next/prev page operation, keep cursor in upper right corner, fixes #
+422
+* [`32a44aaf`](https://github.com/jline/jline3/commit/32a44aafd1ca1a7b189740fea72480b6c17ff806) nano command: restored computeFooter() broke in previous commit
+* [`490b623c`](https://github.com/jline/jline3/commit/490b623cc0bfd05e75b05ba909f2f37a1a9582d8) nano command: fixed endOfLine() method. Was failing with wrapped lines.
+* [`127212d4`](https://github.com/jline/jline3/commit/127212d4ab7f101b915120bd454556deed1a32ae) nano command: implemented 'go to line' operation
+* [`7e4263e8`](https://github.com/jline/jline3/commit/7e4263e8212e64eae6816157a62d10b252656e49) nano command: added copy, cut and uncut text operations
+* [`5d12bcc0`](https://github.com/jline/jline3/commit/5d12bcc0692bb6241676f7e60b8a6d2ff0452580) FilesCompleter & DirectoryCompleter: force forward slash delimiter
+* [`00891d43`](https://github.com/jline/jline3/commit/00891d4312d86d5eaeb1b24b003f5b888f4b52e2) less command: added repaint operations
+* [`f7eaabc6`](https://github.com/jline/jline3/commit/f7eaabc63f999b2c1c1c48f1a7e5af0205117363) less command: added 'Examine a new file' operation
+* [`93f63bc1`](https://github.com/jline/jline3/commit/93f63bc1d8dc386ec18ac157a5ef7a364752bfaf) Merge pull request #416 from mattirn/less-command
+* [`141743e7`](https://github.com/jline/jline3/commit/141743e7091daa314ed2a5df8428687f5c530b00) Merge branch 'mattirn-wildcard-files'
+* [`cd355cf4`](https://github.com/jline/jline3/commit/cd355cf49552e0a45b2e9271105042a3bf7b15b7) Merge branch 'wildcard-files' of https://github.com/mattirn/jline3 into ma
+ttirn-wildcard-files
+* [`032ef690`](https://github.com/jline/jline3/commit/032ef690cbca38827618f5f0b0e36da858c62e8c) Merge branch 'mattirn-history-command'
+* [`aefb02d0`](https://github.com/jline/jline3/commit/aefb02d000bd6f4e26edb8062399071dadc1dbf2) Merge branch 'history-command' of https://github.com/mattirn/jline3 into m
+attirn-history-command
+* [`434c51cc`](https://github.com/jline/jline3/commit/434c51cc8cbcc417e6075aaf0dce5f1c3ad1365d) Nano: fix saved file path, fixes #420
+* [`032445a3`](https://github.com/jline/jline3/commit/032445a3e351f5281ad2e3531dcbc14f6205247a) less command: added home and end key mappings & improved moveForward()
+* [`6e12b27b`](https://github.com/jline/jline3/commit/6e12b27bbaa99aa7ad9c0d30623204fc58ee3739) less command: added key mappings for pattern line edit
+* [`b33ea922`](https://github.com/jline/jline3/commit/b33ea9228809ab28ea7b694b48a35643e506c13b) less command: impl. file operations examine Nth file, delete and print cur
+rent file name
+* [`382062ba`](https://github.com/jline/jline3/commit/382062ba09379e409f14330152bf304f147ab0e7) less command: search '&pattern' display only matching lines
+* [`e2dd9bf6`](https://github.com/jline/jline3/commit/e2dd9bf6c64be7c4c1b17a029471a981914260f2) less command: repeat search backward operation
+* [`cff84a93`](https://github.com/jline/jline3/commit/cff84a933b0c4105fe8826169461ab720d6900ad) nano and less commands: accept wildcards in file parameter
+* [`49e646d6`](https://github.com/jline/jline3/commit/49e646d6bd59d06cf4a36bf3e0b1d79b7aead23e) history method: add currentDir parameter and pattern match uses option Pat
+tern.DOTALL
+* [`a1f2c93f`](https://github.com/jline/jline3/commit/a1f2c93fa194f7adeab0c39922b1452fa83e4d69) Extend FilesCompleter/DirectoriesCompleter to accept a lambda for the curr
+ent dir, fix for #413
+
+## [JLine 3.12.1][3_12_1]
+[3_12_1]: https://repo1.maven.org/maven2/org/jline/jline/3.12.1/
+
+* [`d5037af1`](https://github.com/jline/jline3/commit/d5037af1fb517887787e47c7662ecbfad16fd8c5) Merge pull request #412 from mattirn/issue-411
+* [`2daaf11b`](https://github.com/jline/jline3/commit/2daaf11bf23316408a560be3d1128fcfe8081315) Fix dumb terminal prompt, fixes issue #411
+
+## [JLine 3.12.0][3_12_0]
+[3_12_0]: https://repo1.maven.org/maven2/org/jline/jline/3.12.0/
+
+* [`67c14726`](https://github.com/jline/jline3/commit/67c1472671f6f77563dc607212fe1032ac05948d) Fix indentation
+* [`2fc0d902`](https://github.com/jline/jline3/commit/2fc0d90292b2d039f1cb88438ddb14addfdb9b80) The status gets created unwillingly, also fixes #403
+* [`be2dbb98`](https://github.com/jline/jline3/commit/be2dbb98949cef496f2e2d1b83f74cfda4fba9cc) Merge pull request #401 from Minecrell/printabove-ansi-reset
+* [`0376b965`](https://github.com/jline/jline3/commit/0376b965ca6e2ed6a33a17314124bcaa069e1312) Merge pull request #407 from snuyanzin/JNA_UPGRADE
+* [`0fd273ff`](https://github.com/jline/jline3/commit/0fd273ff3ba1a789071564fc14dfe16f37ee0cf3) Merge pull request #402 from snuyanzin/STRING_COMPLETER_ALLOW_CANDIDATES
+* [`c9cd33a9`](https://github.com/jline/jline3/commit/c9cd33a9f91fea11eadc225fb855edbb96755077) Fix merge problem
+* [`8fe8b4cb`](https://github.com/jline/jline3/commit/8fe8b4cb371ca335f30d2d44861f4d56bb6db67e) Merge remote-tracking branch 'mattirn/history-command'
+* [`4e87ebc0`](https://github.com/jline/jline3/commit/4e87ebc0587010fe210edc126b1c280f0105dfe1) Merge remote-tracking branch 'mattirn/multiline-editing'
+* [`b4f594ee`](https://github.com/jline/jline3/commit/b4f594ee7c11e0ce58937da84e8a7614d7be219e) Merge remote-tracking branch 'mattirn/less-command'
+* [`2655e1d0`](https://github.com/jline/jline3/commit/2655e1d097f01a4f60cc8a1be0d7e7a9abcd3aee) Merge remote-tracking branch 'mattirn/nano-command'
+* [`8bd354dc`](https://github.com/jline/jline3/commit/8bd354dc943a85fd05f95443bbd8343ee9e21c47) Merge remote-tracking branch 'mattirn/demo-watch'
+* [`fe076844`](https://github.com/jline/jline3/commit/fe076844e748608b35934ca10ec9f699d8cc694d) Merge remote-tracking branch 'mattirn/less-help'
+* [`c3f81e2e`](https://github.com/jline/jline3/commit/c3f81e2e09d9b4e55a53da94fba2cef3eab16879) Command less: do not print line numbers after EOF has been reached
+* [`2ba4c783`](https://github.com/jline/jline3/commit/2ba4c783689e572bc767b1c6340c2795832f133e) Command less: handle number param in 'next/prev file' and 'go to line'
+* [`b34b0290`](https://github.com/jline/jline3/commit/b34b0290a7c5237504629162b0dba168eac6f4a5) Command less: added help
+* [`864f2063`](https://github.com/jline/jline3/commit/864f2063255b6f1bedce1605ae4ff76d5f22b55c) Support octal in infocmp capabilities, fixes #408
+* [`740a395a`](https://github.com/jline/jline3/commit/740a395a65de28c8efd41fe6243e452d340b0f58) retry travis
+* [`9d24f655`](https://github.com/jline/jline3/commit/9d24f655b78d52a871d109f1676ff788e372ed3b) Upgrade jna to 5.3.1
+* [`fa53f654`](https://github.com/jline/jline3/commit/fa53f6546adb7f08db0d07e91d64920a7567a918) Command watch: option --interval added missing argument
+* [`a9fb9489`](https://github.com/jline/jline3/commit/a9fb9489417f5e23b749ef863bbffb60a2937f78) Allow specify Candidates with group, keys and etc for StringCompleters
+* [`44f208b3`](https://github.com/jline/jline3/commit/44f208b37b4a52567951b8e414cd663c52f3cfed) Fix issue #399: Nano editor fails to display long lines
+* [`7b3aa200`](https://github.com/jline/jline3/commit/7b3aa200b61f006338a5e1a20d5bdc0332b25c07) Avoid inserting duplicate line break in printAbove if line ends with ANSI 
+reset
+* [`31d7d9d1`](https://github.com/jline/jline3/commit/31d7d9d19fd450c8354cad7fec4a38780f1e009b) Bug fix: nano breaks if status enabled
+* [`9ef1cc25`](https://github.com/jline/jline3/commit/9ef1cc255a03ea58d6cb3705914d7dd4f5ee8c2a) Merge pull request #395 from snuyanzin/CORRECT_MSG
+* [`f1dce105`](https://github.com/jline/jline3/commit/f1dce105110836716f63ea019f9a693f687fe986) Bug fix: less fails to view first line(s) if status enabled + reviewed tab option implementation
+* [`a4acf40d`](https://github.com/jline/jline3/commit/a4acf40d1fcebdb15dc731ddd806a9ddd3fe43f3) Command less: implemented tabs option
+* [`8d1c9036`](https://github.com/jline/jline3/commit/8d1c903684e539b71a4f030427b19284658a3359) Remove duplicate 'to see' from warning message
+* [`062d25ca`](https://github.com/jline/jline3/commit/062d25ca0c2989df72bc1c1787495c713fea9a48) Fix issue-311: Multiline editing breaks if input has more lines than terminal
+* [`ea8b360e`](https://github.com/jline/jline3/commit/ea8b360e2b67d9109be992b065c37a62c4f1464c) history command: pattern argument improvements
+* [`6d2855ea`](https://github.com/jline/jline3/commit/6d2855eaa2019012cf9f5b90bc463a301baf08af) history: command arguments [first] and [last] may be specified as strings
+* [`db708373`](https://github.com/jline/jline3/commit/db7083737ec12461ce3163c4ea3dccd17e54f9ba) Merge pull request #377 from snuyanzin/JLINE3_376
+* [`4d941b59`](https://github.com/jline/jline3/commit/4d941b597d9df77597ec571ab89d2c6891089474) [JLINE3-376] Add a test indicating ArrayIndexOutOfBoundException, adaptrs fix based on review comments
+* [`985d2cd8`](https://github.com/jline/jline3/commit/985d2cd80e85cf4ee8b8d90443aa235ef13b0be9) Merge pull request #374 from mattirn/example
+* [`fd798524`](https://github.com/jline/jline3/commit/fd798524aad1be531b843990417c453622fa2daf) Merge branch 'mattirn-status-hardReset'
+* [`be0be9e7`](https://github.com/jline/jline3/commit/be0be9e71d7a19bba47cc61ac8a936c56ce9e754) Remove unneeded indentation
+* [`7e08b928`](https://github.com/jline/jline3/commit/7e08b928f6638d313ed073b135a59cb0d4c2ef2a) Merge branch 'status-hardReset' of https://github.com/mattirn/jline3 into mattirn-status-hardReset
+* [`795f2eaf`](https://github.com/jline/jline3/commit/795f2eaf90509a753999e997208371270fdb2b44) Merge pull request #386 from mattirn/jline3_384
+* [`fff801da`](https://github.com/jline/jline3/commit/fff801daffb70cffd5630c66d5496b0289ed5977) Merge branch 'tpoliaw-sessions'
+* [`c37db139`](https://github.com/jline/jline3/commit/c37db13943f3f9071f1bbcb19909f08f67d10625) Merge branch 'sessions' of https://github.com/tpoliaw/jline3 into tpoliaw-sessions
+* [`afe59b20`](https://github.com/jline/jline3/commit/afe59b207f5cad8d77e11a6fe763e27ddad24a47) Merge pull request #373 from hyee/master
+* [`85e60cb3`](https://github.com/jline/jline3/commit/85e60cb3c7eec4f32177bf90e868e23d3b21fbc9) Merge branch 'mattirn-nano-restricted'
+* [`cc6a2ace`](https://github.com/jline/jline3/commit/cc6a2ace792b3a2dd07578d559f9c05714bf4a4b) Add nano restricted mode to the demo
+* [`fd943359`](https://github.com/jline/jline3/commit/fd943359b796b157eaf6dcb672b3a8611346513a) invoke status.hardReset() after resizing terminal window
+* [`4683d8e6`](https://github.com/jline/jline3/commit/4683d8e626ccf95d62b9393820b3888491bd79fb) fix NPE: redisplay() before readLine()
+* [`860c0d64`](https://github.com/jline/jline3/commit/860c0d64a874ab7e327b0a21cc434a9aaf232149) Make ShellParams and ExecuteParams aware of the session
+* [`3424fa3f`](https://github.com/jline/jline3/commit/3424fa3fd81449fe3fc690ebaa51689bd570e431) nano: added arrow key mappings in search line editing
+* [`44153742`](https://github.com/jline/jline3/commit/44153742eeb3c46cc77b761aa6e962d1c4f0618d) nano: support backup/prepend/append & added arrow key mappings in read/write file name editing
+* [`b3990070`](https://github.com/jline/jline3/commit/b399007090bd92c572ac65383a039d120abe6cd9) Implemented nano option restricted mode
+* [`6808d75b`](https://github.com/jline/jline3/commit/6808d75be1bc81dd164b5b707aff20845d4ac4fa) added missing commands in help
+* [`6b046b86`](https://github.com/jline/jline3/commit/6b046b8613a5a545e38aeae27f96bf5f2bb217b5) clean up...
+* [`1555e65f`](https://github.com/jline/jline3/commit/1555e65f3b3e84c3433ead8a4d248c6ce81f6e01) Example: added help and completed usage
+* [`136f3c40`](https://github.com/jline/jline3/commit/136f3c401b12716685a7e167536bc4aa04898d7e) Fix completer issue(#303)
 
 ## [JLine 3.11.0][3_11_0]
 [3_11_0]: https://repo1.maven.org/maven2/org/jline/jline/3.11.0/
