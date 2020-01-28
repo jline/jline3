@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019, the original author or authors.
+ * Copyright (c) 2002-2020, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -35,6 +35,7 @@ import org.jline.reader.LineReader.Option;
 import org.jline.reader.Parser;
 import org.jline.reader.impl.completer.AggregateCompleter;
 import org.jline.reader.impl.completer.ArgumentCompleter;
+import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.reader.ParsedLine;
 import org.jline.terminal.Terminal;
@@ -720,6 +721,14 @@ public class Completers {
             return out;
         }
 
+        /**
+         * Command option description. If option does not have short/long option assign to it null value.
+         * If option does not have value set valueCompleter = NullCompleter.INSTANCE
+         * @param shortOption '-s'
+         * @param longOption '--long'
+         * @param description short option description
+         * @param valueCompleter option value completer
+         */
         public OptDesc(String shortOption, String longOption, String description, org.jline.reader.Completer valueCompleter) {
             this.shortOption = shortOption;
             this.longOption = longOption;
@@ -759,7 +768,7 @@ public class Completers {
         }
 
         protected boolean hasValue() {
-            return valueCompleter != null;
+            return valueCompleter != null && valueCompleter != NullCompleter.INSTANCE;
         }
 
         protected org.jline.reader.Completer valueCompleter() {

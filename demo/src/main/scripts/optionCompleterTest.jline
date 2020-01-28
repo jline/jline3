@@ -1,0 +1,28 @@
+import org.jline.reader.impl.completer.*
+import org.jline.reader.*
+import org.jline.builtins.Completers.OptionCompleter
+import org.jline.builtins.SystemRegistry
+
+def complete(commandLine) {
+    candidates = []
+    completer.complete(reader, parser.parse(commandLine, commandLine.length(),  Parser.ParseContext.ACCEPT_LINE), candidates)
+    candidates.each { println it.value()}
+}
+
+reader=null   // reader is not really needed here!
+parser=SystemRegistry.get().parser
+
+options=['--opt1','--opt2']
+optionValues=['--option':['val1','val2'],'--option2':['val3','val4']]
+optionCompleter = new OptionCompleter(Arrays.asList(new StringsCompleter("p1", "p11")
+                                                  , new StringsCompleter("p2", "p22"), NullCompleter.INSTANCE)
+                                    , optionValues, options, 1)
+completer = new ArgumentCompleter(new StringsCompleter("Command1"), optionCompleter)
+#
+# test completer...
+#
+complete('Comm')
+complete('Command1 --')
+complete('Command1 --option=')
+complete('Command1 --option=val1 ')
+complete('Command1 p1 ')

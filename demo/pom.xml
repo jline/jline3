@@ -124,8 +124,12 @@
                                 <resource>
                                     <directory>src/main/scripts</directory>
                                     <includes>
-                                        <include>hello*</include>
+                                        <include>*.jline</include>
+                                        <include>*.groovy</include>
                                     </includes>
+                                    <excludes>
+                                        <exclude>init.jline</exclude>
+                                    </excludes>
                                 </resource>
                             </resources>
                         </configuration>
