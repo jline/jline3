@@ -299,8 +299,9 @@ public class GroovyEngine implements ScriptEngine {
             // do nothing
         } else if (obj instanceof Map) {
             out = highlightMap((Map<String, Object>)obj, width);
-        } else if (obj instanceof Collection<?>) {
-            Collection<?> collection = (Collection<?>)obj;
+        } else if (obj instanceof Collection<?> || obj instanceof Object[]) {
+            Collection<?> collection = obj instanceof Collection<?> ? (Collection<?>)obj
+                                                                    : Arrays.asList((Object[])obj);
             if (!collection.isEmpty()) {
                 if (collection.size() == 1) {
                     Object elem = collection.iterator().next();
@@ -359,11 +360,12 @@ public class GroovyEngine implements ScriptEngine {
                             }
                             out.add(asb2.toAttributedString());
                         }
-                    } else if (elem instanceof Collection) {
+                    } else if (elem instanceof Collection || elem instanceof Object[]) {
+                        boolean isCollection = elem instanceof Collection;
                         List<Integer> columns = new ArrayList<>();
                         for (Object o : collection) {
                             List<Object> inner = new ArrayList<>();
-                            inner.addAll((Collection<?>)o);
+                            inner.addAll(isCollection ? (Collection<?>)o : Arrays.asList((Object[])o));
                             for (int i = 0; i < inner.size(); i++) {
                                 int len1 = Utils.toString(inner.get(i)).length() + 1;
                                 if (columns.size() <= i) {
@@ -383,7 +385,7 @@ public class GroovyEngine implements ScriptEngine {
                                 row++;
                             }
                             List<Object> inner = new ArrayList<>();
-                            inner.addAll((Collection<?>)o);
+                            inner.addAll(isCollection ? (Collection<?>)o : Arrays.asList((Object[])o));
                             for (int i = 0; i < inner.size(); i++) {
                                 asb.append(Utils.toString(inner.get(i)));
                                 asb.append("\t");
@@ -394,8 +396,15 @@ public class GroovyEngine implements ScriptEngine {
                             out.add(asb.toAttributedString());
                         }
                     } else {
+                        Integer row = 0;
+                        Integer tabsize = ((Integer)collection.size()).toString().length() + 1;
                         for (Object o: collection) {
-                            AttributedStringBuilder asb = new AttributedStringBuilder();
+                            AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabsize);
+                            if (rownum) {
+                                asb.append(row.toString(), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
+                                asb.append("\t");
+                                row++;
+                            }
                             asb.append(Utils.toString(o));
                             if (asb.columnLength() > width) {
                                 asb.setLength(width);

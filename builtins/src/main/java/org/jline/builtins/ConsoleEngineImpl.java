@@ -310,29 +310,36 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
         @SuppressWarnings("unchecked")
         public ScriptFile(String command, String cmdLine, String[] args) {
-            this.script = new File(command);
-            this.cmdLine = cmdLine;
-            if (script.exists()) {
-                scriptExtension(command);
-            } else if (engine.hasVariable(VAR_PATH)) {
-                boolean found = false;
-                for (String p: (List<String>)engine.get(VAR_PATH)) {
-                    for (String e : scriptExtensions()) {
-                        String file = command + "." + e;
-                        Path path = Paths.get(p, file);
-                        if (path.toFile().exists()) {
-                            script = path.toFile();
-                            scriptExtension(command);
-                            found = true;
+            if (!command.matches("[a-zA-Z0-9_-]+")) {
+                return;
+            }
+            try {
+                this.script = new File(command);
+                this.cmdLine = cmdLine;
+                if (script.exists()) {
+                    scriptExtension(command);
+                } else if (engine.hasVariable(VAR_PATH)) {
+                    boolean found = false;
+                    for (String p : (List<String>) engine.get(VAR_PATH)) {
+                        for (String e : scriptExtensions()) {
+                            String file = command + "." + e;
+                            Path path = Paths.get(p, file);
+                            if (path.toFile().exists()) {
+                                script = path.toFile();
+                                scriptExtension(command);
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (found) {
                             break;
                         }
                     }
-                    if (found) {
-                        break;
-                    }
                 }
+                doArgs(args);
+            } catch (Exception e) {
+
             }
-            doArgs(args);
         }
 
         public ScriptFile(File script, String cmdLine, String[] args) {
