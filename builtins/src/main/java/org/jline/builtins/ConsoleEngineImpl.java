@@ -401,6 +401,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                     int size = 0;
                     StringBuilder usage = new StringBuilder();
                     boolean helpEnd = false;
+                    boolean headComment = false;
                     for(String l; (l = br.readLine()) != null; ) {
                         size++;
                         l = l.replaceAll("\\s+$", "");
@@ -409,10 +410,15 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                             helpEnd = line.endsWith(END_HELP);
                             break;
                         }
-                        if (l.trim().startsWith("*") || l.trim().startsWith("#")) {
-                            line = l.trim().substring(2);
-                        } else if (l.trim().startsWith("/*") || l.trim().startsWith("//")) {
-                            line = l.trim().substring(3);
+                        if (headComment || size < 3) {
+                            String ltr = l.trim();
+                            if (ltr.startsWith("*") || ltr.startsWith("#")) {
+                                headComment = true;
+                                line = ltr.length() > 1 ? ltr.substring(2) : "";
+                            } else if (ltr.startsWith("/*") || ltr.startsWith("//")) {
+                                headComment = true;
+                                line = ltr.length() > 2 ? ltr.substring(3) : "";
+                            }
                         }
                         usage.append(line).append('\n');
                     }
