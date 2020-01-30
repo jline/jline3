@@ -5,12 +5,12 @@ import org.jline.builtins.SystemRegistry
 
 def complete(commandLine) {
     candidates = []
-    completer.complete(reader, parser.parse(commandLine, commandLine.length(),  Parser.ParseContext.ACCEPT_LINE), candidates)
+    completer.complete(null, parser.parse(commandLine, commandLine.length(),  Parser.ParseContext.ACCEPT_LINE), candidates)
     candidates.each { println it.value()}
+    null
 }
 
-reader=null   // reader is not really needed here!
-parser=SystemRegistry.get().parser
+parser = SystemRegistry.get().parser
 
 options=['--opt1','--opt2']
 optionValues=['--option':['val1','val2'],'--option2':['val3','val4']]

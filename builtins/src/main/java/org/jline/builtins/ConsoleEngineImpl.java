@@ -616,7 +616,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     @Override
     public void println(Object object) {
         Map<String,Object> options = defaultPrntOptions();
-        options.put("exception", "message");
+        options.putIfAbsent("exception", "message");
         println(options, object);
     }
 

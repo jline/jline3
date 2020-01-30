@@ -254,7 +254,14 @@ public class SystemRegistryImpl implements SystemRegistry {
         if (id > -1) {
             out = commandRegistries[id].invoke(command, args);
         } else if (isLocalCommand(command)) {
-            out = invoke(command, args);
+            String[] _args = new String[args.length];
+            for (int i = 0; i < args.length; i++) {
+                if (!(args[i] instanceof String)) {
+                    throw new IllegalArgumentException();
+                }
+                _args[i] = args[i].toString();
+            }
+            out = localExecute(command, _args);
         } else if (consoleId != null) {
             out = consoleEngine().invoke(command, args);
         }

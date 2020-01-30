@@ -435,12 +435,15 @@ public class GroovyEngine implements ScriptEngine {
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             AttributedStringBuilder asb = new AttributedStringBuilder().tabs(Arrays.asList(0, max + 1));
             asb.append(entry.getKey(), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
-            asb.append("\t");
-            asb.append(Utils.toString(entry.getValue()), AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW));
-            if (asb.columnLength() > width) {
-                asb.setLength(width);
+            for (String v : Utils.toString(entry.getValue()).split("\n")) {
+                asb.append("\t");
+                asb.append(v, AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW));
+                if (asb.columnLength() > width) {
+                    asb.setLength(width);
+                }
+                out.add(asb.toAttributedString());
+                asb = new AttributedStringBuilder().tabs(Arrays.asList(0, max + 1));
             }
-            out.add(asb.toAttributedString());
         }
         return out;
     }
