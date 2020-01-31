@@ -66,21 +66,16 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     private Exception exception;
     private SystemRegistry systemRegistry;
     private String scriptExtension = "jline";
-    private final Parser parser;
-    private final Terminal terminal;
     private final Supplier<Path> workDir;
     private final ConfigurationPath configPath;
     private final Map<String, String> aliases = new HashMap<>();
     private Path aliasFile;
+    private LineReader reader;
 
     @SuppressWarnings("unchecked")
     public ConsoleEngineImpl(ScriptEngine engine
-                           , Parser parser
-                           , Terminal terminal
                            , Supplier<Path> workDir, ConfigurationPath configPath) throws IOException {
         this.engine = engine;
-        this.parser = parser;
-        this.terminal = terminal;
         this.workDir = workDir;
         this.configPath = configPath;
         Set<Command> cmds = new HashSet<>(EnumSet.allOf(Command.class));
@@ -104,13 +99,26 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     @Override
+    public void setLineReader(LineReader reader) {
+        this.reader= reader;
+    }
+
+    private Parser parser() {
+        return reader.getParser();
+    }
+
+    private Terminal terminal() {
+        return reader.getTerminal();
+    }
+
+    @Override
     public void setSystemRegistry(SystemRegistry systemRegistry) {
         this.systemRegistry = systemRegistry;
     }
 
-    public ConsoleEngineImpl scriptExtension(String extension) {
+    @Override
+    public void setScriptExtension(String extension) {
         this.scriptExtension = extension;
-        return this;
     }
 
     @Override
@@ -449,7 +457,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                     for (String l; (l = br.readLine()) != null;) {
                         try {
                             line += l;
-                            parser.parse(line, line.length() + 1, ParseContext.ACCEPT_LINE);
+                            parser().parse(line, line.length() + 1, ParseContext.ACCEPT_LINE);
                             done = true;
                             for (int i = 1; i < args.length; i++) {
                                 line = line.replaceAll("\\s\\$" + i + "\\b",
@@ -467,8 +475,8 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                             if (verbose) {
                                 AttributedStringBuilder asb = new AttributedStringBuilder();
                                 asb.append(line, AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN));
-                                asb.toAttributedString().println(terminal);
-                                terminal.flush();
+                                asb.toAttributedString().println(terminal());
+                                terminal().flush();
                             }
                             systemRegistry.execute(line);
                             line = "";
@@ -499,6 +507,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     }
 
+    @Override
     public Object execute(File script, String cmdLine, String[] args) throws Exception {
         ScriptFile file = new ScriptFile(script, cmdLine, args);
         file.execute();
@@ -522,7 +531,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 StringBuilder sb = new StringBuilder();
                 for (String s: line.split("\n|\n\r")) {
                     if (isCommandLine(s)) {
-                        List<String> ws = parser.parse(s, 0, ParseContext.COMPLETE).words();
+                        List<String> ws = parser().parse(s, 0, ParseContext.COMPLETE).words();
                         int idx = ws.get(0).lastIndexOf(":");
                         if (idx > 0) {
                             sb.append(ws.get(0).substring(0, idx));
@@ -564,6 +573,27 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             }
         }
         return out;
+    }
+
+    @Override
+    public Object getVariable(String name) {
+        if (!engine.hasVariable(name)) {
+            throw new IllegalArgumentException("Variable " + name + " does not exists!");
+        }
+        return engine.get(name);
+    }
+
+    @Override
+    public boolean executeWidget(Object function) {
+        engine.put("_reader", reader);
+        engine.put("_widgetFunction", function);
+        try {
+            engine.execute("_widgetFunction()");
+        } catch (Exception e) {
+            println(e);
+            return false;
+        }
+        return true;
     }
 
     @Override
@@ -625,7 +655,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         if (object == null) {
             return;
         }
-        options.putIfAbsent("width", terminal.getSize().getColumns());
+        options.putIfAbsent("width", terminal().getSize().getColumns());
         String style = (String) options.getOrDefault("style", "");
         int width = (int) options.get("width");
         if (style.equalsIgnoreCase("JSON")) {
@@ -634,7 +664,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             highlight(width, style, (String) object);
         } else if (object instanceof Exception) {
             if (object instanceof Options.HelpException) {
-                Options.HelpException.highlight(((Exception)object).getMessage(), Options.HelpException.defaultStyle()).print(terminal);
+                Options.HelpException.highlight(((Exception)object).getMessage(), Options.HelpException.defaultStyle()).print(terminal());
             } else if (options.getOrDefault("exception", "stack").equals("stack")) {
                 ((Exception) object).printStackTrace();
             } else {
@@ -646,7 +676,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                     asb.append("Caught exception: ", AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
                     asb.append(object.getClass().getCanonicalName(), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
                 }
-                asb.toAttributedString().println(terminal);
+                asb.toAttributedString().println(terminal());
             }
         } else if (object instanceof String) {
             highlight(AttributedStyle.YELLOW + AttributedStyle.BRIGHT, object);
@@ -654,16 +684,16 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             highlight(AttributedStyle.BLUE + AttributedStyle.BRIGHT, object);
         } else {
             for (AttributedString as : engine.highlight(options, object)) {
-                as.println(terminal);
+                as.println(terminal());
             }
         }
-        terminal.flush();
+        terminal().flush();
     }
 
     private void highlight(int attrStyle, Object obj) {
         AttributedStringBuilder asb = new AttributedStringBuilder();
         asb.append(obj.toString(), AttributedStyle.DEFAULT.foreground(attrStyle));
-        asb.toAttributedString().println(terminal);
+        asb.toAttributedString().println(terminal());
     }
 
     private void highlight(int width, String style, String object) {
@@ -680,9 +710,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             AttributedStringBuilder asb = new AttributedStringBuilder();
             asb.append(s).setLength(width);
             if (highlighter != null) {
-                highlighter.highlight(asb).println(terminal);
+                highlighter.highlight(asb).println(terminal());
             } else {
-                asb.toAttributedString().println(terminal);
+                asb.toAttributedString().println(terminal());
             }
         }
     }

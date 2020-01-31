@@ -37,12 +37,9 @@ import org.jline.reader.ConfigurationPath;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
-import org.jline.reader.MaskingCallback;
-import org.jline.reader.ParsedLine;
 import org.jline.reader.Reference;
 import org.jline.reader.UserInterruptException;
 import org.jline.reader.LineReader.Option;
-import org.jline.reader.Parser.ParseContext;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.LineReaderImpl;
 import org.jline.reader.impl.DefaultParser.Bracket;
@@ -256,12 +253,11 @@ public class Repl {
             GroovyEngine scriptEngine = new GroovyEngine();
             scriptEngine.put("ROOT", root);
             ConfigurationPath configPath = new ConfigurationPath(Paths.get(root), Paths.get(root));
-            Builtins builtins = new Builtins(Paths.get(""), configPath, null);
-            ConsoleEngine consoleEngine = new ConsoleEngineImpl(scriptEngine, parser, terminal, ()->Paths.get(""), configPath);
+            ConsoleEngine consoleEngine = new ConsoleEngineImpl(scriptEngine, ()->Paths.get(""), configPath);
+            Builtins builtins = new Builtins(Paths.get(""), configPath,  (String fun)-> {return new ConsoleEngine.WidgetCreator(consoleEngine, fun);});
             MyCommands myCommands = new MyCommands();
             SystemRegistry systemRegistry = new SystemRegistryImpl(parser, terminal, configPath);
             systemRegistry.setCommandRegistries(consoleEngine, builtins, myCommands);
-            //
             //
             // LineReader
             //
@@ -284,6 +280,7 @@ public class Repl {
             //
             // complete command registeries
             //
+            consoleEngine.setLineReader(reader);
             builtins.setLineReader(reader);
             myCommands.setLineReader(reader);
             //
