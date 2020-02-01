@@ -110,7 +110,7 @@ public interface ConsoleEngine extends CommandRegistry {
      * Executes either JLine or ScriptEngine script.
      * @param script file
      * @param cmdLine complete command line
-     * @param svript arguments
+     * @param script arguments
      * @return script execution result
      * @throws Exception in case of error
      */
@@ -119,7 +119,7 @@ public interface ConsoleEngine extends CommandRegistry {
     /**
      * Post processes execution result. If result is to be assigned to the console variable
      * then method will return null.
-     * @param line
+     * @param command line
      * @param result to process
      * @return processed result
      */
@@ -155,15 +155,22 @@ public interface ConsoleEngine extends CommandRegistry {
     static class WidgetCreator implements Widget {
         private ConsoleEngine consoleEngine;
         private Object function;
+        private String name;
 
         public WidgetCreator(ConsoleEngine consoleEngine, String function) {
             this.consoleEngine = consoleEngine;
+            this.name = function;
             this.function = consoleEngine.getVariable(function);
         }
 
         @Override
         public boolean apply() {
             return consoleEngine.executeWidget(function);
+        }
+        
+        @Override
+        public String toString() {
+            return name;
         }
 
     }

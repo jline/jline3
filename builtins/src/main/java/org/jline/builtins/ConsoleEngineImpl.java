@@ -588,6 +588,10 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         engine.put("_reader", reader);
         engine.put("_widgetFunction", function);
         try {
+            if (engine.getEngineName().equals("GroovyEngine")) {
+                engine.execute("def _buffer() {_reader.getBuffer()}");
+                engine.execute("def _widget(w) {_reader.callWidget(w)}");
+            }
             engine.execute("_widgetFunction()");
         } catch (Exception e) {
             println(e);
