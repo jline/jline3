@@ -402,7 +402,7 @@ public class Completers {
             return useForwardSlash ? "/" :getUserDir().getFileSystem().getSeparator();
         }
 
-        protected String getDisplay(Terminal terminal, Path p) {
+        protected static String getDisplay(Terminal terminal, Path p) {
             // TODO: use $LS_COLORS for output
             String name = p.getFileName().toString();
             if (Files.isDirectory(p)) {
@@ -792,13 +792,19 @@ public class Completers {
         protected boolean completeValue(LineReader reader, final ParsedLine commandLine, List<Candidate> candidates, String curBuf, String partialValue) {
             boolean out = false;
             List<Candidate> temp = new ArrayList<>();
-            valueCompleter.complete(reader, commandLine, temp);
+            ParsedLine pl = reader.getParser().parse(partialValue, partialValue.length());
+            valueCompleter.complete(reader, pl, temp);
             for (Candidate c : temp) {
                 String v = c.value();
                 if (v.startsWith(partialValue)) {
                     out = true;
+                    String val = c.value();
+                    if (valueCompleter instanceof Completers.FilesCompleter
+                            || valueCompleter instanceof Completers.DirectoriesCompleter) {
+                        val = FileNameCompleter.getDisplay(reader.getTerminal(), Paths.get(c.value()));
+                    }
+                    candidates.add(new Candidate(curBuf + v, val, null, null, null, null, c.complete()));
                 }
-                candidates.add(new Candidate(curBuf + v, v, null, null, null, null, true));
             }
             return out;
         }
