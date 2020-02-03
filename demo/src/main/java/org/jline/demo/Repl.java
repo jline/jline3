@@ -113,9 +113,9 @@ public class Repl {
             return out;
         }
 
-        public Object execute(String command, String[] args) throws Exception {
+        public Object execute(CommandRegistry.CommandSession session, String command, String[] args) throws Exception {
             exception = null;
-            commandExecute.get(command(command)).execute().accept(new Builtins.CommandInput(args));
+            commandExecute.get(command(command)).execute().accept(new Builtins.CommandInput(args, session));
             if (exception != null) {
                 throw exception;
             }
@@ -199,7 +199,7 @@ public class Repl {
 
         private List<OptDesc> commandOptions(String command) {
             try {
-                execute(command, new String[] {"--help"});
+                execute(new CommandRegistry.CommandSession(), command, new String[] {"--help"});
             } catch (HelpException e) {
                 return Builtins.compileCommandOptions(e.getMessage());
             } catch (Exception e) {

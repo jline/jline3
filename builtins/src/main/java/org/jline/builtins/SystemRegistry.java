@@ -15,6 +15,8 @@ import java.util.Map;
 import org.jline.reader.Completer;
 import org.jline.reader.ParsedLine;
 import org.jline.terminal.Terminal;
+import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.AttributedStyle;
 
 /**
  * Aggregate command registries and dispatch command executions.
@@ -25,19 +27,19 @@ public interface SystemRegistry extends CommandRegistry {
 
     /**
      * Set command registeries
-     * @param commandRegistries
+     * @param commandRegistries defined in app
      */
     void setCommandRegistries(CommandRegistry... commandRegistries);
 
     /**
      * Initialize consoleEngine environment by executing console script
-     * @param script
+     * @param initialization script
      */
     void initialize(File script);
 
     /**
      * Returns command completer that includes also console variable and script completion.
-     * @return complater
+     * @return command completer
      */
     Completer completer();
 
@@ -51,11 +53,59 @@ public interface SystemRegistry extends CommandRegistry {
     
    /**
      * Execute a command, script or evaluate scriptEngine statement
-     * @param line
-     * @return result
+     * @param command line
+     * @return execution result
      * @throws Exception
      */
     Object execute(String line) throws Exception;
+    
+    /**
+     * 
+     * @return terminal
+     */
+    Terminal terminal();
+
+    /**
+     * Execute command with args
+     * @param command to execute
+     * @param args command arguments
+     * @return execution result
+     * @throws Exception in case of error
+     */
+    Object execute(String command, String[] args) throws Exception;
+    
+    /**
+     * Execute command with args
+     * @param command to execute
+     * @param args command arguments
+     * @return execution result
+     * @throws Exception in case of error
+     */
+    Object invoke(String command, Object... args) throws Exception;
+
+    /**
+     * Print exception 
+     * @param print stack trace if stack true otherwise message
+     * @param JLine terminal 
+     * @param exception to print
+     */
+    static void println(boolean stack, Terminal terminal, Exception exception) {
+        if (exception instanceof Options.HelpException) {
+            Options.HelpException.highlight((exception).getMessage(), Options.HelpException.defaultStyle()).print(terminal);
+        } else if (stack) {
+            exception.printStackTrace();
+        } else {
+            String message = exception.getMessage();
+            AttributedStringBuilder asb = new AttributedStringBuilder();
+            if (message != null) {
+                asb.append(message, AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+            } else {
+                asb.append("Caught exception: ", AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+                asb.append(exception.getClass().getCanonicalName(), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+            }
+            asb.toAttributedString().println(terminal);
+        }                
+    }
 
     /**
      * @return systemRegistry of the current thread

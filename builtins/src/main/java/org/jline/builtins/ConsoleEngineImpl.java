@@ -71,6 +71,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     private final Map<String, String> aliases = new HashMap<>();
     private Path aliasFile;
     private LineReader reader;
+    private boolean executing = false;
 
     @SuppressWarnings("unchecked")
     public ConsoleEngineImpl(ScriptEngine engine
@@ -100,7 +101,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     @Override
     public void setLineReader(LineReader reader) {
-        this.reader= reader;
+        this.reader = reader;
     }
 
     private Parser parser() {
@@ -108,7 +109,11 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     private Terminal terminal() {
-        return reader.getTerminal();
+        return systemRegistry.terminal();
+    }
+    
+    public boolean isExecuting() {
+        return executing;
     }
 
     @Override
@@ -210,6 +215,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                                                         , this::commandOptions
                                                         , 1)
                                        ));
+        out.add(new ArgumentCompleter(new StringsCompleter(aliases::keySet), NullCompleter.INSTANCE));
         return out;
     }
 
@@ -449,8 +455,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         private void internalExecute() throws Exception {
             if (isEngineScript()) {
                 result = engine.execute(script, expandParameters(args));
-                result = postProcess(cmdLine, result);
+                postProcess(cmdLine, result);
             } else if (isConsoleScript()) {
+                executing = true;
                 boolean done = false;
                 String line = "";
                 try (BufferedReader br = new BufferedReader(new FileReader(script))) {
@@ -487,16 +494,20 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                             throw e;
                         } catch (EndOfFileException e) {
                             done = true;
+                            executing = false;
                             break;
                         } catch (Exception e) {
+                            executing = false;
                             throw new IllegalArgumentException(line + "\n" + e.getMessage());
                         }
                     }
                     if (!done) {
+                        executing = false;
                         throw new IllegalArgumentException("Incompleted command: \n" + line);
                     }
+                    executing = false;
                     result = engine.get("_return");
-                    result = postProcess(cmdLine, result);
+                    postProcess(cmdLine, result);
                 }
             }
         }
@@ -601,24 +612,39 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     @Override
-    public Object postProcess(String line, Object result) {
+    public Object postProcess(String line, Object result, String output) {
         Object out = result;
+        if (Parser.getVariable(line) != null && result != null) {
+            engine.put("output", output);
+        }
+        if (systemRegistry.hasCommand(Parser.getCommand(line))) {
+            out = postProcess(line, Parser.getVariable(line) != null && result == null ? output : result);
+        } else if (Parser.getVariable(line) != null) {
+            if (result == null) {
+                engine.put(Parser.getVariable(line), output);
+            }
+            out = null;
+        } 
+        return out;
+    }
+    
+    private Object postProcess(String line, Object result) {
+        Object out = result instanceof String && ((String)result).trim().length() == 0 ? null : result;
         if (Parser.getVariable(line) != null) {
             engine.put(Parser.getVariable(line), result);
             out = null;
-        } else if (!Parser.getCommand(line).equals("show") && systemRegistry.hasCommand(Parser.getCommand(line))
-                && result != null) {
+        } else if (!Parser.getCommand(line).equals("show") && result != null) {
             engine.put("_", result);
         }
         return out;
     }
 
     @Override
-    public Object invoke(String command, Object... args) throws Exception {
+    public Object invoke(CommandRegistry.CommandSession session, String command, Object... args) throws Exception {
         exception = null;
         Object out = null;
         if (hasCommand(command)) {
-            out = commandExecute.get(command(command)).executeFunction().apply(new Builtins.CommandInput(args, true));
+            out = commandExecute.get(command(command)).executeFunction().apply(new Builtins.CommandInput(null, args, session));
         } else {
             String[] _args = new String[args.length];
             for (int i = 0; i < args.length; i++) {
@@ -650,7 +676,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     @Override
     public void println(Object object) {
         Map<String,Object> options = defaultPrntOptions();
-        options.putIfAbsent("exception", "message");
+        options.putIfAbsent("exception", "stack");
         println(options, object);
     }
 
@@ -667,21 +693,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         } else if (!style.isEmpty() && object instanceof String) {
             highlight(width, style, (String) object);
         } else if (object instanceof Exception) {
-            if (object instanceof Options.HelpException) {
-                Options.HelpException.highlight(((Exception)object).getMessage(), Options.HelpException.defaultStyle()).print(terminal());
-            } else if (options.getOrDefault("exception", "stack").equals("stack")) {
-                ((Exception) object).printStackTrace();
-            } else {
-                String message = ((Exception) object).getMessage();
-                AttributedStringBuilder asb = new AttributedStringBuilder();
-                if (message != null) {
-                    asb.append(message, AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
-                } else {
-                    asb.append("Caught exception: ", AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
-                    asb.append(object.getClass().getCanonicalName(), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
-                }
-                asb.toAttributedString().println(terminal());
-            }
+            SystemRegistry.println(options.getOrDefault("exception", "stack").equals("stack"), terminal(), (Exception)object);
         } else if (object instanceof String) {
             highlight(AttributedStyle.YELLOW + AttributedStyle.BRIGHT, object);
         } else if (object instanceof Number) {
@@ -879,7 +891,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     private List<OptDesc> commandOptions(String command) {
         try {
-            invoke(command, "--help");
+            invoke(new CommandSession(), command, "--help");
         } catch (HelpException e) {
             return Builtins.compileCommandOptions(e.getMessage());
         } catch (Exception e) {

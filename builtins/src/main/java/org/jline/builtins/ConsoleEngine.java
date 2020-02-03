@@ -123,7 +123,7 @@ public interface ConsoleEngine extends CommandRegistry {
      * @param result to process
      * @return processed result
      */
-    Object postProcess(String line, Object result);
+    Object postProcess(String line, Object result, String output);
 
     /**
      * Displays object.
@@ -152,6 +152,8 @@ public interface ConsoleEngine extends CommandRegistry {
      */
     boolean executeWidget(Object function);
 
+    boolean isExecuting();
+    
     static class WidgetCreator implements Widget {
         private ConsoleEngine consoleEngine;
         private Object function;
