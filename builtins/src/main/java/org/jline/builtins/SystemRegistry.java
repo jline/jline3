@@ -13,7 +13,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.jline.reader.Completer;
-import org.jline.reader.ParsedLine;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
@@ -27,13 +26,13 @@ public interface SystemRegistry extends CommandRegistry {
 
     /**
      * Set command registeries
-     * @param commandRegistries defined in app
+     * @param commandRegistries command registeries used by the application
      */
     void setCommandRegistries(CommandRegistry... commandRegistries);
 
     /**
      * Initialize consoleEngine environment by executing console script
-     * @param initialization script
+     * @param script initialization script
      */
     void initialize(File script);
 
@@ -45,49 +44,49 @@ public interface SystemRegistry extends CommandRegistry {
 
     /**
      * Returns a command, method or syntax description for use in the JLine Widgets framework.
-     * @param command line whose description to return
+     * @param line command line whose description to return
      * @return command description for JLine TailTipWidgets to be displayed
      *         in the terminal status bar.
      */
     Widgets.CmdDesc commandDescription(Widgets.CmdLine line);
-    
+
    /**
      * Execute a command, script or evaluate scriptEngine statement
-     * @param command line
+     * @param line command line to be executed
      * @return execution result
-     * @throws Exception
+     * @throws Exception in case of error
      */
     Object execute(String line) throws Exception;
-    
+
     /**
-     * 
+     *
      * @return terminal
      */
     Terminal terminal();
 
     /**
-     * Execute command with args
-     * @param command to execute
-     * @param args command arguments
-     * @return execution result
+     * Execute command with arguments
+     * @param command command to be executed
+     * @param args arguments of the command
+     * @return command execution result
      * @throws Exception in case of error
      */
     Object execute(String command, String[] args) throws Exception;
-    
+
     /**
-     * Execute command with args
-     * @param command to execute
-     * @param args command arguments
-     * @return execution result
+     * Execute command with arguments
+     * @param command command to be executed
+     * @param args arguments of the command
+     * @return command execution result
      * @throws Exception in case of error
      */
     Object invoke(String command, Object... args) throws Exception;
 
     /**
-     * Print exception 
-     * @param print stack trace if stack true otherwise message
-     * @param JLine terminal 
-     * @param exception to print
+     * Print exception
+     * @param stack print stack trace if stack true otherwise message
+     * @param terminal JLine terminal
+     * @param exception exception to be printed
      */
     static void println(boolean stack, Terminal terminal, Exception exception) {
         if (exception instanceof Options.HelpException) {
@@ -104,7 +103,7 @@ public interface SystemRegistry extends CommandRegistry {
                 asb.append(exception.getClass().getCanonicalName(), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
             }
             asb.toAttributedString().println(terminal);
-        }                
+        }
     }
 
     /**

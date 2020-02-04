@@ -26,9 +26,9 @@ import org.jline.reader.Widget;
 public interface ConsoleEngine extends CommandRegistry {
 
     /**
-     * Removes command first character if it is colon
-     * @param command name to complete
-     * @return command name without colon
+     * Removes the command name first character if it is colon
+     * @param command the name of the command to complete
+     * @return command name without starting colon
      */
     static String plainCommand(String command) {
         return command.startsWith(":") ? command.substring(1) : command;
@@ -42,47 +42,47 @@ public interface ConsoleEngine extends CommandRegistry {
 
     /**
      * Sets systemRegistry
-     * @param systemRegistry
+     * @param systemRegistry SystemRegistry
      */
     void setSystemRegistry(SystemRegistry systemRegistry);
 
     /**
      * Substituting args references with their values.
-     * @param args
-     * @return Substituted args
+     * @param args the arguments to be expanded
+     * @return expanded arguments
      * @throws Exception in case of error
      */
     Object[] expandParameters(String[] args) throws Exception;
 
     /**
      * Returns all scripts found from PATH
-     * @return script names
+     * @return script file names
      */
     List<String> scripts();
 
     /**
      * Sets file name extension used by console scripts
-     * @param console script file extension
+     * @param extension console script file extension
      */
     public void setScriptExtension(String extension);
 
     /**
      * Returns true if alias 'name' exists
-     * @param alias name
+     * @param name alias name
      * @return true if alias exists
      */
     boolean hasAlias(String name);
 
     /**
      * Returns alias 'name' value
-     * @param alias name
+     * @param name alias name
      * @return value of alias
      */
     String getAlias(String name);
 
     /**
      * Returns script and variable completers
-     * @return script completers
+     * @return script and variable completers
      */
     List<Completer> scriptCompleters();
 
@@ -90,7 +90,7 @@ public interface ConsoleEngine extends CommandRegistry {
      * Executes parsed line that does not contain known command by the system registry.
      * If parsed line is neither JLine or ScriptEngine script it will be evaluated
      * as ScriptEngine statement.
-     * @param parsed command line
+     * @param parsedLine parsed command line
      * @return command line execution result
      * @throws Exception in case of error
      */
@@ -98,7 +98,7 @@ public interface ConsoleEngine extends CommandRegistry {
 
     /**
      * Executes either JLine or ScriptEngine script.
-     * @param script file
+     * @param script script file
      * @return script execution result
      * @throws Exception in case of error
      */
@@ -108,9 +108,9 @@ public interface ConsoleEngine extends CommandRegistry {
 
     /**
      * Executes either JLine or ScriptEngine script.
-     * @param script file
+     * @param script script file
      * @param cmdLine complete command line
-     * @param script arguments
+     * @param args script arguments
      * @return script execution result
      * @throws Exception in case of error
      */
@@ -119,28 +119,29 @@ public interface ConsoleEngine extends CommandRegistry {
     /**
      * Post processes execution result. If result is to be assigned to the console variable
      * then method will return null.
-     * @param command line
-     * @param result to process
+     * @param line command line
+     * @param result command result to process
+     * @param output command redirected output
      * @return processed result
      */
     Object postProcess(String line, Object result, String output);
 
     /**
      * Displays object.
-     * @param object to print
+     * @param object object to print
      */
     void println(Object object);
 
     /**
      * Displays object.
      * @param options println options
-     * @param object to print
+     * @param object object to print
      */
     void println(Map<String, Object> options, Object object);
 
     /**
      * Get variable value
-     * @param name of variable
+     * @param name name of the variable
      * @return variable value
      */
     Object getVariable(String name);
@@ -152,8 +153,12 @@ public interface ConsoleEngine extends CommandRegistry {
      */
     boolean executeWidget(Object function);
 
+    /**
+     *
+     * @return true if consoleEngine is executing script
+     */
     boolean isExecuting();
-    
+
     static class WidgetCreator implements Widget {
         private ConsoleEngine consoleEngine;
         private Object function;
@@ -169,7 +174,7 @@ public interface ConsoleEngine extends CommandRegistry {
         public boolean apply() {
             return consoleEngine.executeWidget(function);
         }
-        
+
         @Override
         public String toString() {
             return name;
