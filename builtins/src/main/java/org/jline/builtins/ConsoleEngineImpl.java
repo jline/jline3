@@ -111,7 +111,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     private Terminal terminal() {
         return systemRegistry.terminal();
     }
-    
+
     public boolean isExecuting() {
         return executing;
     }
@@ -585,6 +585,11 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         }
         return out;
     }
+    
+    @Override
+    public void purge() {
+        engine.del("_*");
+    }
 
     @Override
     public Object getVariable(String name) {
@@ -624,10 +629,10 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 engine.put(Parser.getVariable(line), output);
             }
             out = null;
-        } 
+        }
         return out;
     }
-    
+
     private Object postProcess(String line, Object result) {
         Object out = result instanceof String && ((String)result).trim().length() == 0 ? null : result;
         if (Parser.getVariable(line) != null) {
@@ -676,7 +681,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     @Override
     public void println(Object object) {
         Map<String,Object> options = defaultPrntOptions();
-        options.putIfAbsent("exception", "stack");
+        options.putIfAbsent("exception", "message");
         println(options, object);
     }
 

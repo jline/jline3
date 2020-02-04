@@ -8,10 +8,13 @@
  */
 package org.jline.builtins;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.File;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -35,8 +38,6 @@ import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.AttributedStringBuilder;
-import org.jline.utils.AttributedStyle;
-import org.jline.utils.InfoCmp.Capability;
 
 /**
  * Aggregate command registeries.
@@ -312,7 +313,9 @@ public class SystemRegistryImpl implements SystemRegistry {
         private PrintStream origErr;
         private Terminal origTerminal;
         private ByteArrayOutputStream byteOutputStream;
+        private FileOutputStream fileOutputStream;
         private PrintStream out;
+        private InputStream in;
         private Terminal terminal;
         private String output;
         private CommandRegistry.CommandSession commandSession;
@@ -327,27 +330,64 @@ public class SystemRegistryImpl implements SystemRegistry {
             this.commandSession = new CommandRegistry.CommandSession(terminal, terminal.input(), ps, ps);
         }
 
-        public void redirect(String var) throws IOException {
+        public void redirect() throws IOException {
             byteOutputStream = new ByteArrayOutputStream();
-            out = new PrintStream(byteOutputStream);
+            doTerminal(byteOutputStream);
+        }
+
+        public void redirect(File file, boolean append) throws IOException {
+            if (!file.exists()){
+                try {
+                    file.createNewFile();
+                } catch(IOException e){
+                    (new File(file.getParent())).mkdirs();
+                    file.createNewFile();
+                }
+            }
+            fileOutputStream = new FileOutputStream(file, append);
+            doTerminal(fileOutputStream);
+        }
+
+        void doTerminal(OutputStream outputStream) throws IOException {
+            out = new PrintStream(outputStream);
             System.setOut(out);
             System.setErr(out);
-            terminal = TerminalBuilder.builder().streams(System.in, out).type(Terminal.TYPE_DUMB).build();
+            in = new ByteArrayInputStream( "".getBytes() );
+            terminal = TerminalBuilder.builder().streams(in, outputStream).type(Terminal.TYPE_DUMB).build();
             this.commandSession = new CommandRegistry.CommandSession(terminal, terminal.input(), out, out);
             redirecting = true;
         }
-
+        
         public void flush() {
             if (out == null) {
                 return;
             }
             try {
                 out.flush();
-                if (out instanceof PrintStream && byteOutputStream != null) {
+                if (byteOutputStream != null) {
                     byteOutputStream.flush();
                     output = byteOutputStream.toString();
+                } else if (fileOutputStream != null) {
+                    fileOutputStream.flush();
+                }
+            } catch (Exception e) {
+
+            }
+        }
+
+        public void close() {
+            if (out == null) {
+                return;
+            }
+            try {
+                in.close();
+                flush();
+                if (byteOutputStream != null) {
                     byteOutputStream.close();
                     byteOutputStream = null;
+                } else if (fileOutputStream != null) {
+                    fileOutputStream.close();
+                    fileOutputStream = null;
                 }
                 out.close();
                 out = null;
@@ -368,6 +408,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             if (redirecting) {
                 out = null;
                 byteOutputStream = null;
+                fileOutputStream = null;
                 output = null;
                 System.setOut(origOut);
                 System.setErr(origErr);
@@ -391,12 +432,28 @@ public class SystemRegistryImpl implements SystemRegistry {
             pl = parser.parse(line.replaceFirst(cmd, consoleEngine().getAlias(cmd)), 0, ParseContext.ACCEPT_LINE);
             cmd = ConsoleEngine.plainCommand(Parser.getCommand(pl.word()));
         }
-        String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
+        File toFile = null;
+        boolean append = false;
+        List<String> words = pl.words();
+        int lastArg = words.size();
+        for (int i = 1; i < words.size() - 1; i++) {
+            if (words.get(i).equals(">") || words.get(i).equals(">>")) {
+                lastArg = i;
+                append = words.get(i).equals(">>");
+                toFile = new File(words.get(i + 1));
+                break;
+            }
+        }
+        String[] argv = words.subList(1, lastArg).toArray(new String[0]);
         Object out = null;
         exception = null;
         try {
-            if (var != null && consoleId != null && !consoleEngine().isExecuting()) {
-                outputStream.redirect(var);
+            if ((var != null || toFile != null) && consoleId != null && !consoleEngine().isExecuting()) {
+                if (toFile != null) {
+                    outputStream.redirect(toFile, append);
+                } else {
+                    outputStream.redirect();
+                }
             }
             if (isLocalCommand(cmd)) {
                 out = localExecute(cmd, argv);
@@ -419,10 +476,18 @@ public class SystemRegistryImpl implements SystemRegistry {
             if (consoleId != null && !consoleEngine().isExecuting()) {
                 outputStream.flush();
                 out = consoleEngine().postProcess(pl.line(), out, outputStream.getOutput());
-                outputStream.reset();
             }
         }
         return out;
+    }
+    
+    public void cleanUp() {
+        if (consoleId == null) {
+            return;
+        }
+        outputStream.close();
+        outputStream.reset();
+        consoleEngine().purge();
     }
 
     private void println(Exception exception) {

@@ -147,6 +147,11 @@ public interface ConsoleEngine extends CommandRegistry {
     Object getVariable(String name);
 
     /**
+     * Delete temporary console variables
+     */
+    void purge();
+    
+    /**
      * Execute widget function
      * @param function to execute
      * @return true on success

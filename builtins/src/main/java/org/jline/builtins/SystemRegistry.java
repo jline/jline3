@@ -59,6 +59,10 @@ public interface SystemRegistry extends CommandRegistry {
     Object execute(String line) throws Exception;
 
     /**
+     * Delete temporary console variables and reset output streams
+     */
+    void cleanUp();
+    /**
      *
      * @return terminal
      */

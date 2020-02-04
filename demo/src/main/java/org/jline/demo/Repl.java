@@ -296,7 +296,7 @@ public class Repl {
             consoleEngine.println(terminal.getName()+": "+terminal.getType());
             while (true) {
                 try {
-                    scriptEngine.del("_*");           // delete temporary variables
+                    systemRegistry.cleanUp();         // delete temporary variables and reset output streams
                     String line = reader.readLine("groovy-repl> ");
                     Object result = systemRegistry.execute(line);
                     consoleEngine.println(result);
