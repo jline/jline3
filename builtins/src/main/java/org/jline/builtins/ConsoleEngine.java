@@ -15,7 +15,6 @@ import java.util.Map;
 import org.jline.builtins.CommandRegistry;
 import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
-import org.jline.reader.ParsedLine;
 import org.jline.reader.Widget;
 
 /**
@@ -87,14 +86,16 @@ public interface ConsoleEngine extends CommandRegistry {
     List<Completer> scriptCompleters();
 
     /**
-     * Executes parsed line that does not contain known command by the system registry.
-     * If parsed line is neither JLine or ScriptEngine script it will be evaluated
+     * Executes command line that does not contain known command by the system registry.
+     * If the line is neither JLine or ScriptEngine script it will be evaluated
      * as ScriptEngine statement.
-     * @param parsedLine parsed command line
+     * @param name parsed command/script name
+     * @param rawLine raw command line
+     * @param args parsed arguments of the command
      * @return command line execution result
      * @throws Exception in case of error
      */
-    Object execute(ParsedLine parsedLine) throws Exception;
+    Object execute(String name, String rawLine, String[] args) throws Exception;
 
     /**
      * Executes either JLine or ScriptEngine script.
@@ -109,12 +110,12 @@ public interface ConsoleEngine extends CommandRegistry {
     /**
      * Executes either JLine or ScriptEngine script.
      * @param script script file
-     * @param cmdLine complete command line
+     * @param rawLine raw command line
      * @param args script arguments
      * @return script execution result
      * @throws Exception in case of error
      */
-    Object execute(File script, String cmdLine, String[] args) throws Exception;
+    Object execute(File script, String rawLine, String[] args) throws Exception;
 
     /**
      * Post processes execution result. If result is to be assigned to the console variable
@@ -127,17 +128,24 @@ public interface ConsoleEngine extends CommandRegistry {
     Object postProcess(String line, Object result, String output);
 
     /**
-     * Displays object.
+     * Print object.
      * @param object object to print
      */
     void println(Object object);
 
     /**
-     * Displays object.
+     * Print object.
      * @param options println options
      * @param object object to print
      */
     void println(Map<String, Object> options, Object object);
+
+    /**
+     * Create console variable
+     * @param name name of the variable
+     * @param value value of the variable
+     */
+    void putVariable(String name, Object value);
 
     /**
      * Get variable value
@@ -150,7 +158,7 @@ public interface ConsoleEngine extends CommandRegistry {
      * Delete temporary console variables
      */
     void purge();
-    
+
     /**
      * Execute widget function
      * @param function to execute

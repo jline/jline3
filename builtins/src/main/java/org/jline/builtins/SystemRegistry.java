@@ -62,8 +62,14 @@ public interface SystemRegistry extends CommandRegistry {
      * Delete temporary console variables and reset output streams
      */
     void cleanUp();
+
     /**
-     *
+     * Print exception on terminal
+     * @param exception exception to print on terminal
+     */
+    void println(Exception exception);
+
+    /**
      * @return terminal
      */
     Terminal terminal();

@@ -332,7 +332,6 @@ public class SystemRegistryImpl implements SystemRegistry {
 
         public void redirect() throws IOException {
             byteOutputStream = new ByteArrayOutputStream();
-            doTerminal(byteOutputStream);
         }
 
         public void redirect(File file, boolean append) throws IOException {
@@ -345,10 +344,13 @@ public class SystemRegistryImpl implements SystemRegistry {
                 }
             }
             fileOutputStream = new FileOutputStream(file, append);
-            doTerminal(fileOutputStream);
         }
 
-        void doTerminal(OutputStream outputStream) throws IOException {
+        public void open() throws IOException {
+            if (redirecting || (byteOutputStream == null && fileOutputStream == null)) {
+                return;
+            }
+            OutputStream outputStream = byteOutputStream != null ? byteOutputStream : fileOutputStream;
             out = new PrintStream(outputStream);
             System.setOut(out);
             System.setErr(out);
@@ -357,7 +359,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             this.commandSession = new CommandRegistry.CommandSession(terminal, terminal.input(), out, out);
             redirecting = true;
         }
-        
+
         public void flush() {
             if (out == null) {
                 return;
@@ -404,6 +406,14 @@ public class SystemRegistryImpl implements SystemRegistry {
             return output;
         }
 
+        public boolean isRedirecting() {
+            return redirecting;
+        }
+
+        public boolean isByteStream() {
+            return redirecting && byteOutputStream != null;
+        }
+
         public void reset() {
             if (redirecting) {
                 out = null;
@@ -444,9 +454,11 @@ public class SystemRegistryImpl implements SystemRegistry {
                 break;
             }
         }
+        String rawLine = lastArg < words.size() ? words.subList(0, lastArg).stream().collect(Collectors.joining(" ")) : pl.line();
         String[] argv = words.subList(1, lastArg).toArray(new String[0]);
         Object out = null;
         exception = null;
+        boolean statement = false;
         try {
             if ((var != null || toFile != null) && consoleId != null && !consoleEngine().isExecuting()) {
                 if (toFile != null) {
@@ -454,6 +466,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 } else {
                     outputStream.redirect();
                 }
+                outputStream.open();
             }
             if (isLocalCommand(cmd)) {
                 out = localExecute(cmd, argv);
@@ -467,20 +480,25 @@ public class SystemRegistryImpl implements SystemRegistry {
                         out = commandRegistries[id].execute(outputStream.getCommandSession(), cmd, argv);
                     }
                 } else if (consoleId != null) {
-                    out = consoleEngine().execute(pl);
+                    if (outputStream.isByteStream() && !consoleEngine().scripts().contains(cmd)) {
+                        outputStream.close();
+                        outputStream.reset();
+                        statement = true;
+                    }
+                    out = consoleEngine().execute(cmd, rawLine, argv);
                 }
             }
         } catch (HelpException e) {
             println(e);
         } finally {
-            if (consoleId != null && !consoleEngine().isExecuting()) {
+            if (consoleId != null && !consoleEngine().isExecuting() && !statement) {
                 outputStream.flush();
                 out = consoleEngine().postProcess(pl.line(), out, outputStream.getOutput());
             }
         }
         return out;
     }
-    
+
     public void cleanUp() {
         if (consoleId == null) {
             return;
@@ -490,8 +508,14 @@ public class SystemRegistryImpl implements SystemRegistry {
         consoleEngine().purge();
     }
 
-    private void println(Exception exception) {
+    @Override
+    public void println(Exception exception) {
         if (consoleId != null) {
+            if (outputStream.isRedirecting()) {
+                outputStream.close();
+                outputStream.reset();
+            }
+            consoleEngine().putVariable("exception", exception);
             consoleEngine().println(exception);
         } else {
             SystemRegistry.println(false, terminal(), exception);

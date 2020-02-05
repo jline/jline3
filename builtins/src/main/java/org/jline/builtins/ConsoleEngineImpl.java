@@ -51,6 +51,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                        , ALIAS
                        , UNALIAS
                        , SLURP};
+    private static final String VAR_CONSOLE_OPTIONS = "CONSOLE_OPTIONS";
     private static final String VAR_PRNT_OPTIONS = "PRNT_OPTIONS";
     private static final String VAR_PATH = "PATH";
     private static final String VAR_NANORC = "NANORC";
@@ -526,18 +527,16 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     @Override
-    public Object execute(ParsedLine pl) throws Exception {
-        if (pl.line().trim().startsWith("#")) {
+    public Object execute(String cmd, String line, String[] args) throws Exception {
+        if (line.trim().startsWith("#")) {
             return null;
         }
-        String[] args = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
-        String cmd = ConsoleEngine.plainCommand(Parser.getCommand(pl.word()));
         Object out = null;
-        ScriptFile file = new ScriptFile(cmd, pl.line(), args);
+        ScriptFile file = new ScriptFile(cmd, line, args);
         if (file.execute()) {
             out = file.getResult();
         } else {
-            String line = pl.line().trim();
+            line = line.trim();
             if (isCodeBlock(line)) {
                 StringBuilder sb = new StringBuilder();
                 for (String s: line.split("\n|\n\r")) {
@@ -585,10 +584,15 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         }
         return out;
     }
-    
+
     @Override
     public void purge() {
         engine.del("_*");
+    }
+
+    @Override
+    public void putVariable(String name, Object value) {
+        engine.put(name, value);
     }
 
     @Override
@@ -616,17 +620,32 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return true;
     }
 
+    @SuppressWarnings("unchecked")
+    private boolean splitCommandOutput() {
+        boolean out = true;
+        try {
+            if (engine.hasVariable(VAR_CONSOLE_OPTIONS)) {
+                out = (boolean) ((Map<String, Object>) engine.get(VAR_CONSOLE_OPTIONS)).getOrDefault("splitOutput", true);
+            }
+        } catch (Exception e) {
+            println(new Exception("Bad CONSOLE_OPTION value: " + e.getMessage()));
+        }
+        return out;
+    }
+
+
     @Override
     public Object postProcess(String line, Object result, String output) {
         Object out = result;
+        Object _output = output != null && splitCommandOutput() ? output.split("\n") : output;
         if (Parser.getVariable(line) != null && result != null) {
-            engine.put("output", output);
+            engine.put("output", _output);
         }
         if (systemRegistry.hasCommand(Parser.getCommand(line))) {
-            out = postProcess(line, Parser.getVariable(line) != null && result == null ? output : result);
+            out = postProcess(line, Parser.getVariable(line) != null && result == null ? _output : result);
         } else if (Parser.getVariable(line) != null) {
             if (result == null) {
-                engine.put(Parser.getVariable(line), output);
+                engine.put(Parser.getVariable(line), _output);
             }
             out = null;
         }
