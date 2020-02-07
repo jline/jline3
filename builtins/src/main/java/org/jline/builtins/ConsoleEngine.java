@@ -63,7 +63,7 @@ public interface ConsoleEngine extends CommandRegistry {
      * Sets file name extension used by console scripts
      * @param extension console script file extension
      */
-    public void setScriptExtension(String extension);
+    void setScriptExtension(String extension);
 
     /**
      * Returns true if alias 'name' exists

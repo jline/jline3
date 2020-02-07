@@ -35,9 +35,12 @@ import org.jline.reader.impl.completer.AggregateCompleter;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Attributes.InputFlag;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.OSUtils;
 
 /**
  * Aggregate command registeries.
@@ -355,7 +358,14 @@ public class SystemRegistryImpl implements SystemRegistry {
             System.setOut(out);
             System.setErr(out);
             in = new ByteArrayInputStream( "".getBytes() );
-            terminal = TerminalBuilder.builder().streams(in, outputStream).type(Terminal.TYPE_DUMB).build();
+            Attributes attrs = new Attributes();
+            if (OSUtils.IS_WINDOWS) {
+                attrs.setInputFlag(InputFlag.IGNCR, true);
+            }
+            terminal = TerminalBuilder.builder()
+                                      .streams(in, outputStream)
+                                      .attributes(attrs)
+                                      .type(Terminal.TYPE_DUMB).build();
             this.commandSession = new CommandRegistry.CommandSession(terminal, terminal.input(), out, out);
             redirecting = true;
         }
@@ -460,10 +470,10 @@ public class SystemRegistryImpl implements SystemRegistry {
         exception = null;
         boolean statement = false;
         try {
-            if ((var != null || toFile != null) && consoleId != null && !consoleEngine().isExecuting()) {
+            if (var != null || toFile != null) {
                 if (toFile != null) {
                     outputStream.redirect(toFile, append);
-                } else {
+                } else if (consoleId != null && !consoleEngine().isExecuting()) {
                     outputStream.redirect();
                 }
                 outputStream.open();
@@ -500,23 +510,26 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     public void cleanUp() {
-        if (consoleId == null) {
-            return;
+        if (outputStream.isRedirecting()) {
+            outputStream.close();
+            outputStream.reset();
         }
-        outputStream.close();
-        outputStream.reset();
-        consoleEngine().purge();
+        if (consoleId != null) {
+            consoleEngine().purge();
+        }
     }
 
     @Override
     public void println(Exception exception) {
+        if (outputStream.isRedirecting()) {
+            outputStream.close();
+            outputStream.reset();
+        }
         if (consoleId != null) {
-            if (outputStream.isRedirecting()) {
-                outputStream.close();
-                outputStream.reset();
-            }
             consoleEngine().putVariable("exception", exception);
-            consoleEngine().println(exception);
+            Map<String, Object> options = new HashMap<>();
+            options.put("exception", "message");
+            consoleEngine().println(options, exception);
         } else {
             SystemRegistry.println(false, terminal(), exception);
         }

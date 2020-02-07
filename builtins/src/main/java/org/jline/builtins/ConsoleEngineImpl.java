@@ -241,7 +241,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 out.add(name.substring(0, name.lastIndexOf(".")));
             }
         } catch (Exception e) {
-            println(e);
+            systemRegistry.println(e);
         }
         return out;
     }
@@ -614,7 +614,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             }
             engine.execute("_widgetFunction()");
         } catch (Exception e) {
-            println(e);
+            systemRegistry.println(e);
             return false;
         }
         return true;
@@ -628,7 +628,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 out = (boolean) ((Map<String, Object>) engine.get(VAR_CONSOLE_OPTIONS)).getOrDefault("splitOutput", true);
             }
         } catch (Exception e) {
-            println(new Exception("Bad CONSOLE_OPTION value: " + e.getMessage()));
+            systemRegistry.println(new Exception("Bad CONSOLE_OPTION value: " + e.getMessage()));
         }
         return out;
     }
@@ -700,7 +700,6 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     @Override
     public void println(Object object) {
         Map<String,Object> options = defaultPrntOptions();
-        options.putIfAbsent("exception", "message");
         println(options, object);
     }
 
@@ -746,9 +745,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         }
         SyntaxHighlighter highlighter = nanorc != null ? SyntaxHighlighter.build(nanorc, style)
                                                        : null;
-        for (String s: object.split("\n")) {
+        for (String s: object.split("\\r?\\n")) {
             AttributedStringBuilder asb = new AttributedStringBuilder();
-            asb.append(s).setLength(width);
+            asb.append(s).subSequence(0, width);   // setLength(width) fill nul-chars at the end of line
             if (highlighter != null) {
                 highlighter.highlight(asb).println(terminal());
             } else {
