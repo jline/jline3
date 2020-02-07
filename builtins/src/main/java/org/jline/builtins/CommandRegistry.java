@@ -11,7 +11,10 @@ package org.jline.builtins;
 import org.jline.builtins.Completers;
 import org.jline.builtins.Widgets;
 import org.jline.builtins.Options.HelpException;
+import org.jline.terminal.Terminal;
 
+import java.io.InputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +29,7 @@ public interface CommandRegistry {
 
     /**
      * Aggregate SystemCompleters of commandRegisteries
+     * @param commandRegistries command registeries which completers is to be aggregated
      * @return uncompiled SystemCompleter
      */
     static Completers.SystemCompleter aggregateCompleters(CommandRegistry ... commandRegistries) {
@@ -38,6 +42,7 @@ public interface CommandRegistry {
 
     /**
      * Aggregate and compile SystemCompleters of commandRegisteries
+     * @param commandRegistries command registeries which completers is to be aggregated and compile
      * @return compiled SystemCompleter
      */
     static Completers.SystemCompleter compileCompleters(CommandRegistry ... commandRegistries) {
@@ -48,7 +53,7 @@ public interface CommandRegistry {
 
     /**
      * Returns the name of this registry.
-     * @return name
+     * @return the name of the registry
      */
     default String name() {
         return this.getClass().getSimpleName();
@@ -71,7 +76,7 @@ public interface CommandRegistry {
      */
     default List<String> commandInfo(String command) {
         try {
-            invoke(command, new Object[] {"--help"});
+            invoke(new CommandSession(), command, new Object[] {"--help"});
         } catch (HelpException e) {
             return Builtins.compileCommandInfo(e.getMessage());
         } catch (Exception e) {
@@ -90,7 +95,6 @@ public interface CommandRegistry {
     /**
      * Returns a {@code SystemCompleter} that can provide detailed completion
      * information for all registered commands.
-     *
      * @return a SystemCompleter that can provide command completion for all registered commands
      */
     Completers.SystemCompleter compileCompleters();
@@ -103,7 +107,7 @@ public interface CommandRegistry {
      */
     default Widgets.CmdDesc commandDescription(String command) {
         try {
-            invoke(command, new Object[] {"--help"});
+            invoke(new CommandSession(), command, new Object[] {"--help"});
         } catch (HelpException e) {
             return Builtins.compileCommandDescription(e.getMessage());
         } catch (Exception e) {
@@ -115,24 +119,26 @@ public interface CommandRegistry {
     /**
      * Execute a command that have only string parameters and options. Implementation of the method is required
      * when aggregating command registries using SystemRegistry.
-     * @param command
-     * @param args
-     * @return result
-     * @throws Exception
+     * @param session the data of the current command session
+     * @param command the name of the command
+     * @param args arguments of the command
+     * @return result of the command execution
+     * @throws Exception in case of error
      */
-    default Object execute(String command, String[] args) throws Exception {
+    default Object execute(CommandSession session, String command, String[] args) throws Exception {
         throw new IllegalArgumentException("CommandRegistry method execute(String command, String[] args) is not implemented!");
     }
 
     /**
      * Execute a command. If command has other than string parameters a custom implementation is required.
      * This method will be called only when we have ConsoleEngine in SystemRegistry.
-     * @param command
-     * @param args
-     * @return result
-     * @throws Exception
+     * @param session the data of the current command session
+     * @param command the name of the command
+     * @param args arguments of the command
+     * @return result of the command execution
+     * @throws Exception in case of error
      */
-    default Object invoke(String command, Object... args) throws Exception {
+    default Object invoke(CommandSession session, String command, Object... args) throws Exception {
         String[] _args = new String[args.length];
         for (int i = 0; i < args.length; i++) {
             if (!(args[i] instanceof String)) {
@@ -140,7 +146,49 @@ public interface CommandRegistry {
             }
             _args[i] = args[i].toString();
         }
-        return execute(command, _args);
+        return execute(session, command, _args);
+    }
+
+    public static class CommandSession {
+        private final Terminal terminal;
+        private final InputStream in;
+        private final PrintStream out;
+        private final PrintStream err;
+
+        public CommandSession() {
+            this.in = System.in;
+            this.out = System.out;
+            this.err = System.err;
+            this.terminal = null;
+        }
+
+        public CommandSession(Terminal terminal) {
+            this(terminal, terminal.input(), new PrintStream(terminal.output()), new PrintStream(terminal.output()));
+        }
+
+        public CommandSession(Terminal terminal, InputStream in, PrintStream out, PrintStream err) {
+            this.terminal = terminal;
+            this.in = in;
+            this.out = out;
+            this.err = err;
+        }
+
+        public Terminal terminal() {
+            return terminal;
+        }
+
+        public InputStream in() {
+            return in;
+        }
+
+        public PrintStream out() {
+            return out;
+        }
+
+        public PrintStream err() {
+            return err;
+        }
+
     }
 
 }

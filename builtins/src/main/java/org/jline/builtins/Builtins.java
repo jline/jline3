@@ -137,6 +137,7 @@ public class Builtins implements CommandRegistry {
         return false;
     }
 
+    @Override
     public SystemCompleter compileCompleters() {
         SystemCompleter out = new SystemCompleter();
         for (Map.Entry<Command, String> entry: commandName.entrySet()) {
@@ -163,31 +164,18 @@ public class Builtins implements CommandRegistry {
     }
 
     @Override
-    public Object execute(String command, String[] args) throws Exception {
-        return execute(command, Arrays.asList(args));
-    }
-
-    private Object execute(String command, List<String> args) throws Exception {
-        execute(command, args, System.in, System.out, System.err);
-        return null;
-    }
-
-    public void execute(String command, List<String> args, InputStream in, PrintStream out, PrintStream err) throws Exception {
-        execute(command, args.toArray(new String[0]), in, out, err);
-    }
-
-    public void execute(String command, String[] args, InputStream in, PrintStream out, PrintStream err) throws Exception {
+    public Object execute(CommandRegistry.CommandSession session, String command, String[] args) throws Exception {
         exception = null;
-        commandExecute.get(command(command)).execute().accept(new CommandInput(args, in, out, err));
+        commandExecute.get(command(command)).execute().accept(new CommandInput(args, session));
         if (exception != null) {
             throw exception;
         }
+        return null;
     }
 
     private List<OptDesc> commandOptions(String command) {
-        List<String> args = Arrays.asList("--help");
         try {
-            execute(command, args);
+            execute(new CommandRegistry.CommandSession(), command, new String[] {"--help"});
         } catch (HelpException e) {
             return compileCommandOptions(e.getMessage());
         } catch (Exception e) {
@@ -196,13 +184,9 @@ public class Builtins implements CommandRegistry {
         return null;
     }
 
-    private Terminal terminal() {
-        return reader.getTerminal();
-    }
-
     private void less(CommandInput input) {
         try {
-            Commands.less(terminal(), input.in(), input.out(), input.err(), workDir.get(), input.args());
+            Commands.less(input.terminal(), input.in(), input.out(), input.err(), workDir.get(), input.args());
         } catch (Exception e) {
             this.exception = e;
         }
@@ -210,7 +194,7 @@ public class Builtins implements CommandRegistry {
 
     private void nano(CommandInput input) {
         try {
-            Commands.nano(terminal(), input.out(), input.err(), workDir.get(), input.args(), configPath);
+            Commands.nano(input.terminal(), input.out(), input.err(), workDir.get(), input.args(), configPath);
         } catch (Exception e) {
             this.exception = e;
         }
@@ -266,7 +250,7 @@ public class Builtins implements CommandRegistry {
 
     private void ttop(CommandInput input) {
         try {
-            TTop.ttop(terminal(), input.out(), input.err(), input.args());
+            TTop.ttop(input.terminal(), input.out(), input.err(), input.args());
         } catch (Exception e) {
             this.exception = e;
         }
@@ -502,27 +486,32 @@ public class Builtins implements CommandRegistry {
         return out;
     }
 
-    public static class CommandInput{
+    public static class CommandInput {
         String[] args;
         Object[] xargs;
+        Terminal terminal;
         InputStream in;
         PrintStream out;
         PrintStream err;
 
-        public CommandInput(String[] args) {
-            this(args, null, null, null);
+        public CommandInput(String[] args, CommandRegistry.CommandSession session) {
+            this(args, null, session);
         }
 
-        public CommandInput(Object[] xargs, boolean dumb) {
-            this.xargs = xargs;
-            this.args = new String[xargs.length];
-            for (int i = 0; i < xargs.length; i++) {
-                args[i] = xargs[i] != null ? xargs[i].toString() : "";
+        public CommandInput(String[] args, Object[] xargs, CommandRegistry.CommandSession session) {
+            this(args, session.terminal(), session.in(), session.out(), session.err());
+            if (xargs != null) {
+                this.xargs = xargs;
+                this.args = new String[xargs.length];
+                for (int i = 0; i < xargs.length; i++) {
+                    this.args[i] = xargs[i] != null ? xargs[i].toString() : "";
+                }
             }
         }
 
-        public CommandInput(String[] args, InputStream in, PrintStream out, PrintStream err) {
+        public CommandInput(String[] args, Terminal terminal, InputStream in, PrintStream out, PrintStream err) {
             this.args = args;
+            this.terminal = terminal;
             this.in = in;
             this.out = out;
             this.err = err;
@@ -534,6 +523,10 @@ public class Builtins implements CommandRegistry {
 
         public Object[] xargs() {
             return xargs;
+        }
+
+        public Terminal terminal() {
+            return terminal;
         }
 
         public InputStream in() {

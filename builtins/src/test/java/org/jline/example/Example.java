@@ -295,9 +295,9 @@ public class Example
             return out;
         }
 
-        public Object execute(String command, String[] args) throws Exception {
+        public Object execute(CommandRegistry.CommandSession session, String command, String[] args) throws Exception {
             exception = null;
-            commandExecute.get(command(command)).execute().accept(new Builtins.CommandInput(args));
+            commandExecute.get(command(command)).execute().accept(new Builtins.CommandInput(args, session));
             if (exception != null) {
                 throw exception;
             }
@@ -722,6 +722,7 @@ public class Example
             //
             // REPL-loop
             //
+            CommandRegistry.CommandSession session = new CommandRegistry.CommandSession(terminal);
             while (true) {
                 try {
                     String line = reader.readLine(prompt, rightPrompt, (MaskingCallback) null, null);
@@ -752,10 +753,10 @@ public class Example
                         masterRegistry.help();
                     }
                     else if (builtins.hasCommand(cmd)) {
-                        builtins.execute(cmd, argv, System.in, System.out, System.err);
+                        builtins.execute(session, cmd, argv);
                     }
                     else if (exampleCommands.hasCommand(cmd)) {
-                        exampleCommands.execute(cmd, argv);
+                        exampleCommands.execute(session, cmd, argv);
                     }
                 }
                 catch (HelpException e) {

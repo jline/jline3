@@ -13,8 +13,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.jline.reader.Completer;
-import org.jline.reader.ParsedLine;
 import org.jline.terminal.Terminal;
+import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.AttributedStyle;
 
 /**
  * Aggregate command registries and dispatch command executions.
@@ -25,37 +26,95 @@ public interface SystemRegistry extends CommandRegistry {
 
     /**
      * Set command registeries
-     * @param commandRegistries
+     * @param commandRegistries command registeries used by the application
      */
     void setCommandRegistries(CommandRegistry... commandRegistries);
 
     /**
      * Initialize consoleEngine environment by executing console script
-     * @param script
+     * @param script initialization script
      */
     void initialize(File script);
 
     /**
      * Returns command completer that includes also console variable and script completion.
-     * @return complater
+     * @return command completer
      */
     Completer completer();
 
     /**
      * Returns a command, method or syntax description for use in the JLine Widgets framework.
-     * @param command line whose description to return
+     * @param line command line whose description to return
      * @return command description for JLine TailTipWidgets to be displayed
      *         in the terminal status bar.
      */
     Widgets.CmdDesc commandDescription(Widgets.CmdLine line);
-    
+
    /**
      * Execute a command, script or evaluate scriptEngine statement
-     * @param line
-     * @return result
-     * @throws Exception
+     * @param line command line to be executed
+     * @return execution result
+     * @throws Exception in case of error
      */
     Object execute(String line) throws Exception;
+
+    /**
+     * Delete temporary console variables and reset output streams
+     */
+    void cleanUp();
+
+    /**
+     * Print exception on terminal
+     * @param exception exception to print on terminal
+     */
+    void println(Exception exception);
+
+    /**
+     * @return terminal
+     */
+    Terminal terminal();
+
+    /**
+     * Execute command with arguments
+     * @param command command to be executed
+     * @param args arguments of the command
+     * @return command execution result
+     * @throws Exception in case of error
+     */
+    Object execute(String command, String[] args) throws Exception;
+
+    /**
+     * Execute command with arguments
+     * @param command command to be executed
+     * @param args arguments of the command
+     * @return command execution result
+     * @throws Exception in case of error
+     */
+    Object invoke(String command, Object... args) throws Exception;
+
+    /**
+     * Print exception
+     * @param stack print stack trace if stack true otherwise message
+     * @param terminal JLine terminal
+     * @param exception exception to be printed
+     */
+    static void println(boolean stack, Terminal terminal, Exception exception) {
+        if (exception instanceof Options.HelpException) {
+            Options.HelpException.highlight((exception).getMessage(), Options.HelpException.defaultStyle()).print(terminal);
+        } else if (stack) {
+            exception.printStackTrace();
+        } else {
+            String message = exception.getMessage();
+            AttributedStringBuilder asb = new AttributedStringBuilder();
+            if (message != null) {
+                asb.append(message, AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+            } else {
+                asb.append("Caught exception: ", AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+                asb.append(exception.getClass().getCanonicalName(), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+            }
+            asb.toAttributedString().println(terminal);
+        }
+    }
 
     /**
      * @return systemRegistry of the current thread

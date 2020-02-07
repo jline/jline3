@@ -51,6 +51,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                        , ALIAS
                        , UNALIAS
                        , SLURP};
+    private static final String VAR_CONSOLE_OPTIONS = "CONSOLE_OPTIONS";
     private static final String VAR_PRNT_OPTIONS = "PRNT_OPTIONS";
     private static final String VAR_PATH = "PATH";
     private static final String VAR_NANORC = "NANORC";
@@ -71,6 +72,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     private final Map<String, String> aliases = new HashMap<>();
     private Path aliasFile;
     private LineReader reader;
+    private boolean executing = false;
 
     @SuppressWarnings("unchecked")
     public ConsoleEngineImpl(ScriptEngine engine
@@ -100,7 +102,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     @Override
     public void setLineReader(LineReader reader) {
-        this.reader= reader;
+        this.reader = reader;
     }
 
     private Parser parser() {
@@ -108,7 +110,11 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     private Terminal terminal() {
-        return reader.getTerminal();
+        return systemRegistry.terminal();
+    }
+
+    public boolean isExecuting() {
+        return executing;
     }
 
     @Override
@@ -210,6 +216,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                                                         , this::commandOptions
                                                         , 1)
                                        ));
+        out.add(new ArgumentCompleter(new StringsCompleter(aliases::keySet), NullCompleter.INSTANCE));
         return out;
     }
 
@@ -234,7 +241,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 out.add(name.substring(0, name.lastIndexOf(".")));
             }
         } catch (Exception e) {
-            println(e);
+            systemRegistry.println(e);
         }
         return out;
     }
@@ -449,8 +456,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         private void internalExecute() throws Exception {
             if (isEngineScript()) {
                 result = engine.execute(script, expandParameters(args));
-                result = postProcess(cmdLine, result);
+                postProcess(cmdLine, result);
             } else if (isConsoleScript()) {
+                executing = true;
                 boolean done = false;
                 String line = "";
                 try (BufferedReader br = new BufferedReader(new FileReader(script))) {
@@ -487,16 +495,20 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                             throw e;
                         } catch (EndOfFileException e) {
                             done = true;
+                            executing = false;
                             break;
                         } catch (Exception e) {
+                            executing = false;
                             throw new IllegalArgumentException(line + "\n" + e.getMessage());
                         }
                     }
                     if (!done) {
+                        executing = false;
                         throw new IllegalArgumentException("Incompleted command: \n" + line);
                     }
+                    executing = false;
                     result = engine.get("_return");
-                    result = postProcess(cmdLine, result);
+                    postProcess(cmdLine, result);
                 }
             }
         }
@@ -515,18 +527,16 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     @Override
-    public Object execute(ParsedLine pl) throws Exception {
-        if (pl.line().trim().startsWith("#")) {
+    public Object execute(String cmd, String line, String[] args) throws Exception {
+        if (line.trim().startsWith("#")) {
             return null;
         }
-        String[] args = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
-        String cmd = ConsoleEngine.plainCommand(Parser.getCommand(pl.word()));
         Object out = null;
-        ScriptFile file = new ScriptFile(cmd, pl.line(), args);
+        ScriptFile file = new ScriptFile(cmd, line, args);
         if (file.execute()) {
             out = file.getResult();
         } else {
-            String line = pl.line().trim();
+            line = line.trim();
             if (isCodeBlock(line)) {
                 StringBuilder sb = new StringBuilder();
                 for (String s: line.split("\n|\n\r")) {
@@ -576,6 +586,16 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     @Override
+    public void purge() {
+        engine.del("_*");
+    }
+
+    @Override
+    public void putVariable(String name, Object value) {
+        engine.put(name, value);
+    }
+
+    @Override
     public Object getVariable(String name) {
         if (!engine.hasVariable(name)) {
             throw new IllegalArgumentException("Variable " + name + " does not exists!");
@@ -594,31 +614,61 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             }
             engine.execute("_widgetFunction()");
         } catch (Exception e) {
-            println(e);
+            systemRegistry.println(e);
             return false;
         }
         return true;
     }
 
+    @SuppressWarnings("unchecked")
+    private boolean splitCommandOutput() {
+        boolean out = true;
+        try {
+            if (engine.hasVariable(VAR_CONSOLE_OPTIONS)) {
+                out = (boolean) ((Map<String, Object>) engine.get(VAR_CONSOLE_OPTIONS)).getOrDefault("splitOutput", true);
+            }
+        } catch (Exception e) {
+            systemRegistry.println(new Exception("Bad CONSOLE_OPTION value: " + e.getMessage()));
+        }
+        return out;
+    }
+
+
     @Override
-    public Object postProcess(String line, Object result) {
+    public Object postProcess(String line, Object result, String output) {
         Object out = result;
+        Object _output = output != null && splitCommandOutput() ? output.split("\n") : output;
+        if (Parser.getVariable(line) != null && result != null) {
+            engine.put("output", _output);
+        }
+        if (systemRegistry.hasCommand(Parser.getCommand(line))) {
+            out = postProcess(line, Parser.getVariable(line) != null && result == null ? _output : result);
+        } else if (Parser.getVariable(line) != null) {
+            if (result == null) {
+                engine.put(Parser.getVariable(line), _output);
+            }
+            out = null;
+        }
+        return out;
+    }
+
+    private Object postProcess(String line, Object result) {
+        Object out = result instanceof String && ((String)result).trim().length() == 0 ? null : result;
         if (Parser.getVariable(line) != null) {
             engine.put(Parser.getVariable(line), result);
             out = null;
-        } else if (!Parser.getCommand(line).equals("show") && systemRegistry.hasCommand(Parser.getCommand(line))
-                && result != null) {
+        } else if (!Parser.getCommand(line).equals("show") && result != null) {
             engine.put("_", result);
         }
         return out;
     }
 
     @Override
-    public Object invoke(String command, Object... args) throws Exception {
+    public Object invoke(CommandRegistry.CommandSession session, String command, Object... args) throws Exception {
         exception = null;
         Object out = null;
         if (hasCommand(command)) {
-            out = commandExecute.get(command(command)).executeFunction().apply(new Builtins.CommandInput(args, true));
+            out = commandExecute.get(command(command)).executeFunction().apply(new Builtins.CommandInput(null, args, session));
         } else {
             String[] _args = new String[args.length];
             for (int i = 0; i < args.length; i++) {
@@ -650,7 +700,6 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     @Override
     public void println(Object object) {
         Map<String,Object> options = defaultPrntOptions();
-        options.putIfAbsent("exception", "message");
         println(options, object);
     }
 
@@ -667,21 +716,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         } else if (!style.isEmpty() && object instanceof String) {
             highlight(width, style, (String) object);
         } else if (object instanceof Exception) {
-            if (object instanceof Options.HelpException) {
-                Options.HelpException.highlight(((Exception)object).getMessage(), Options.HelpException.defaultStyle()).print(terminal());
-            } else if (options.getOrDefault("exception", "stack").equals("stack")) {
-                ((Exception) object).printStackTrace();
-            } else {
-                String message = ((Exception) object).getMessage();
-                AttributedStringBuilder asb = new AttributedStringBuilder();
-                if (message != null) {
-                    asb.append(message, AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
-                } else {
-                    asb.append("Caught exception: ", AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
-                    asb.append(object.getClass().getCanonicalName(), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
-                }
-                asb.toAttributedString().println(terminal());
-            }
+            SystemRegistry.println(options.getOrDefault("exception", "stack").equals("stack"), terminal(), (Exception)object);
         } else if (object instanceof String) {
             highlight(AttributedStyle.YELLOW + AttributedStyle.BRIGHT, object);
         } else if (object instanceof Number) {
@@ -710,9 +745,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         }
         SyntaxHighlighter highlighter = nanorc != null ? SyntaxHighlighter.build(nanorc, style)
                                                        : null;
-        for (String s: object.split("\n")) {
+        for (String s: object.split("\\r?\\n")) {
             AttributedStringBuilder asb = new AttributedStringBuilder();
-            asb.append(s).setLength(width);
+            asb.append(s).subSequence(0, width);   // setLength(width) fill nul-chars at the end of line
             if (highlighter != null) {
                 highlighter.highlight(asb).println(terminal());
             } else {
@@ -879,7 +914,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     private List<OptDesc> commandOptions(String command) {
         try {
-            invoke(command, "--help");
+            invoke(new CommandSession(), command, "--help");
         } catch (HelpException e) {
             return Builtins.compileCommandOptions(e.getMessage());
         } catch (Exception e) {

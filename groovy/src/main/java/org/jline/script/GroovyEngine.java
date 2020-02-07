@@ -339,7 +339,7 @@ public class GroovyEngine implements ScriptEngine {
                             asb.append("\t");
                         }
                         if (asb.columnLength() > width) {
-                            asb.setLength(width);
+                            asb.subSequence(0, width);
                         }
                         out.add(asb.toAttributedString());
                         Integer row = 0;
@@ -356,7 +356,7 @@ public class GroovyEngine implements ScriptEngine {
                                 asb2.append("\t");
                             }
                             if (asb2.columnLength() > width) {
-                                asb2.setLength(width);
+                                asb2.subSequence(0, width);
                             }
                             out.add(asb2.toAttributedString());
                         }
@@ -391,7 +391,7 @@ public class GroovyEngine implements ScriptEngine {
                                 asb.append("\t");
                             }
                             if (asb.columnLength() > width) {
-                                asb.setLength(width);
+                                asb.subSequence(0, width);
                             }
                             out.add(asb.toAttributedString());
                         }
@@ -407,7 +407,7 @@ public class GroovyEngine implements ScriptEngine {
                             }
                             asb.append(Utils.toString(o));
                             if (asb.columnLength() > width) {
-                                asb.setLength(width);
+                                asb.subSequence(0, width);
                             }
                             out.add(asb.toAttributedString());
                         }
@@ -435,13 +435,16 @@ public class GroovyEngine implements ScriptEngine {
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             AttributedStringBuilder asb = new AttributedStringBuilder().tabs(Arrays.asList(0, max + 1));
             asb.append(entry.getKey(), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
-            for (String v : Utils.toString(entry.getValue()).split("\n")) {
+            for (String v : Utils.toString(entry.getValue()).split("\\r?\\n")) {
                 asb.append("\t");
                 asb.append(v, AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW));
                 if (asb.columnLength() > width) {
-                    asb.setLength(width);
+                    asb.subSequence(0, width);
                 }
                 out.add(asb.toAttributedString());
+                if (map.size() > 1) {
+                    break;
+                }
                 asb = new AttributedStringBuilder().tabs(Arrays.asList(0, max + 1));
             }
         }

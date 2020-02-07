@@ -113,9 +113,9 @@ public class Repl {
             return out;
         }
 
-        public Object execute(String command, String[] args) throws Exception {
+        public Object execute(CommandRegistry.CommandSession session, String command, String[] args) throws Exception {
             exception = null;
-            commandExecute.get(command(command)).execute().accept(new Builtins.CommandInput(args));
+            commandExecute.get(command(command)).execute().accept(new Builtins.CommandInput(args, session));
             if (exception != null) {
                 throw exception;
             }
@@ -199,7 +199,7 @@ public class Repl {
 
         private List<OptDesc> commandOptions(String command) {
             try {
-                execute(command, new String[] {"--help"});
+                execute(new CommandRegistry.CommandSession(), command, new String[] {"--help"});
             } catch (HelpException e) {
                 return Builtins.compileCommandOptions(e.getMessage());
             } catch (Exception e) {
@@ -296,7 +296,7 @@ public class Repl {
             consoleEngine.println(terminal.getName()+": "+terminal.getType());
             while (true) {
                 try {
-                    scriptEngine.del("_*");           // delete temporary variables
+                    systemRegistry.cleanUp();         // delete temporary variables and reset output streams
                     String line = reader.readLine("groovy-repl> ");
                     Object result = systemRegistry.execute(line);
                     consoleEngine.println(result);
@@ -308,8 +308,7 @@ public class Repl {
                     break;
                 }
                 catch (Exception e) {
-                    consoleEngine.println(e);
-                    scriptEngine.put("exception", e); // save exception to console variable
+                    systemRegistry.println(e);        // print exception and save it to console variable
                 }
             }
         }

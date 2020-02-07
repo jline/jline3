@@ -8,7 +8,14 @@
  */
 package org.jline.builtins;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -28,8 +35,12 @@ import org.jline.reader.impl.completer.AggregateCompleter;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Attributes.InputFlag;
 import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.OSUtils;
 
 /**
  * Aggregate command registeries.
@@ -37,27 +48,29 @@ import org.jline.utils.AttributedStringBuilder;
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public class SystemRegistryImpl implements SystemRegistry {
-    public enum Command {EXIT
-                       , HELP};
-    private static final Class<?>[] BUILTIN_REGISTERIES = {Builtins.class, ConsoleEngineImpl.class};
+    public enum Command {
+        EXIT, HELP
+    };
+
+    private static final Class<?>[] BUILTIN_REGISTERIES = { Builtins.class, ConsoleEngineImpl.class };
     private CommandRegistry[] commandRegistries;
     private Integer consoleId = null;
-    private Terminal terminal;
     private Parser parser;
     private ConfigurationPath configPath;
-    private Map<Command,String> commandName = new HashMap<>();
-    private Map<String,Command> nameCommand = new HashMap<>();
-    private Map<String,String> aliasCommand = new HashMap<>();
-    private final Map<Command,CommandMethods> commandExecute = new HashMap<>();
+    private Map<Command, String> commandName = new HashMap<>();
+    private Map<String, Command> nameCommand = new HashMap<>();
+    private Map<String, String> aliasCommand = new HashMap<>();
+    private final Map<Command, CommandMethods> commandExecute = new HashMap<>();
     private Map<String, List<String>> commandInfos = new HashMap<>();
     private Exception exception;
+    private CommandOutputStream outputStream;
 
     public SystemRegistryImpl(Parser parser, Terminal terminal, ConfigurationPath configPath) {
         this.parser = parser;
-        this.terminal = terminal;
         this.configPath = configPath;
+        outputStream = new CommandOutputStream(terminal);
         Set<Command> cmds = new HashSet<>(EnumSet.allOf(Command.class));
-        for (Command c: cmds) {
+        for (Command c : cmds) {
             commandName.put(c, c.name().toLowerCase());
         }
         doNameCommand();
@@ -66,9 +79,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     private void doNameCommand() {
-        nameCommand = commandName.entrySet()
-                .stream()
-                .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+        nameCommand = commandName.entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
     }
 
     @Override
@@ -142,12 +153,12 @@ public class SystemRegistryImpl implements SystemRegistry {
 
     private List<String> localCommandInfo(String command) {
         try {
-            localExecute(command, new String[] {"--help"});
+            localExecute(command, new String[] { "--help" });
         } catch (HelpException e) {
             exception = null;
             return Builtins.compileCommandInfo(e.getMessage());
         } catch (Exception e) {
-            consoleEngine().println(e);
+            println(e);
         }
         return new ArrayList<>();
     }
@@ -182,7 +193,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     public Completers.SystemCompleter compileCompleters() {
         Completers.SystemCompleter out = CommandRegistry.aggregateCompleters(commandRegistries);
         Completers.SystemCompleter local = new Completers.SystemCompleter();
-        for (Map.Entry<Command, String> entry: commandName.entrySet()) {
+        for (Map.Entry<Command, String> entry : commandName.entrySet()) {
             local.add(entry.getValue(), commandExecute.get(entry.getKey()).compileCompleter().apply(entry.getValue()));
         }
         local.addAliases(aliasCommand);
@@ -206,12 +217,12 @@ public class SystemRegistryImpl implements SystemRegistry {
             throw new IllegalArgumentException();
         }
         try {
-            localExecute(command, new String[] {"--help"});
+            localExecute(command, new String[] { "--help" });
         } catch (HelpException e) {
             exception = null;
             return Builtins.compileCommandDescription(e.getMessage());
         } catch (Exception e) {
-            consoleEngine().println(e);
+            println(e);
         }
         return null;
     }
@@ -252,7 +263,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         command = ConsoleEngine.plainCommand(command);
         int id = registryId(command);
         if (id > -1) {
-            out = commandRegistries[id].invoke(command, args);
+            out = commandRegistries[id].invoke(commandSession(), command, args);
         } else if (isLocalCommand(command)) {
             String[] _args = new String[args.length];
             for (int i = 0; i < args.length; i++) {
@@ -263,7 +274,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             }
             out = localExecute(command, _args);
         } else if (consoleId != null) {
-            out = consoleEngine().invoke(command, args);
+            out = consoleEngine().invoke(commandSession(), command, args);
         }
         return out;
     }
@@ -273,7 +284,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         Object out = null;
         int id = registryId(command);
         if (id > -1) {
-            out = commandRegistries[id].execute(command, args);
+            out = commandRegistries[id].execute(commandSession(), command, args);
         } else if (isLocalCommand(command)) {
             out = localExecute(command, args);
         }
@@ -284,11 +295,149 @@ public class SystemRegistryImpl implements SystemRegistry {
         if (!isLocalCommand(command)) {
             throw new IllegalArgumentException();
         }
-        Object out = commandExecute.get(command(command)).executeFunction().apply(new Builtins.CommandInput(args));
+        Object out = commandExecute.get(command(command)).executeFunction()
+                .apply(new Builtins.CommandInput(args, commandSession()));
         if (exception != null) {
             throw exception;
         }
         return out;
+    }
+
+    public Terminal terminal() {
+        return commandSession().terminal();
+    }
+
+    private CommandSession commandSession() {
+        return outputStream.getCommandSession();
+    }
+
+    private static class CommandOutputStream {
+        private PrintStream origOut;
+        private PrintStream origErr;
+        private Terminal origTerminal;
+        private ByteArrayOutputStream byteOutputStream;
+        private FileOutputStream fileOutputStream;
+        private PrintStream out;
+        private InputStream in;
+        private Terminal terminal;
+        private String output;
+        private CommandRegistry.CommandSession commandSession;
+        private boolean redirecting = false;
+
+        public CommandOutputStream(Terminal terminal) {
+            this.origOut = System.out;
+            this.origErr = System.err;
+            this.origTerminal = terminal;
+            this.terminal = terminal;
+            PrintStream ps = new PrintStream(terminal.output());
+            this.commandSession = new CommandRegistry.CommandSession(terminal, terminal.input(), ps, ps);
+        }
+
+        public void redirect() throws IOException {
+            byteOutputStream = new ByteArrayOutputStream();
+        }
+
+        public void redirect(File file, boolean append) throws IOException {
+            if (!file.exists()){
+                try {
+                    file.createNewFile();
+                } catch(IOException e){
+                    (new File(file.getParent())).mkdirs();
+                    file.createNewFile();
+                }
+            }
+            fileOutputStream = new FileOutputStream(file, append);
+        }
+
+        public void open() throws IOException {
+            if (redirecting || (byteOutputStream == null && fileOutputStream == null)) {
+                return;
+            }
+            OutputStream outputStream = byteOutputStream != null ? byteOutputStream : fileOutputStream;
+            out = new PrintStream(outputStream);
+            System.setOut(out);
+            System.setErr(out);
+            in = new ByteArrayInputStream( "".getBytes() );
+            Attributes attrs = new Attributes();
+            if (OSUtils.IS_WINDOWS) {
+                attrs.setInputFlag(InputFlag.IGNCR, true);
+            }
+            terminal = TerminalBuilder.builder()
+                                      .streams(in, outputStream)
+                                      .attributes(attrs)
+                                      .type(Terminal.TYPE_DUMB).build();
+            this.commandSession = new CommandRegistry.CommandSession(terminal, terminal.input(), out, out);
+            redirecting = true;
+        }
+
+        public void flush() {
+            if (out == null) {
+                return;
+            }
+            try {
+                out.flush();
+                if (byteOutputStream != null) {
+                    byteOutputStream.flush();
+                    output = byteOutputStream.toString();
+                } else if (fileOutputStream != null) {
+                    fileOutputStream.flush();
+                }
+            } catch (Exception e) {
+
+            }
+        }
+
+        public void close() {
+            if (out == null) {
+                return;
+            }
+            try {
+                in.close();
+                flush();
+                if (byteOutputStream != null) {
+                    byteOutputStream.close();
+                    byteOutputStream = null;
+                } else if (fileOutputStream != null) {
+                    fileOutputStream.close();
+                    fileOutputStream = null;
+                }
+                out.close();
+                out = null;
+            } catch (Exception e) {
+
+            }
+        }
+
+        public CommandRegistry.CommandSession getCommandSession() {
+            return commandSession;
+        }
+
+        public String getOutput() {
+            return output;
+        }
+
+        public boolean isRedirecting() {
+            return redirecting;
+        }
+
+        public boolean isByteStream() {
+            return redirecting && byteOutputStream != null;
+        }
+
+        public void reset() {
+            if (redirecting) {
+                out = null;
+                byteOutputStream = null;
+                fileOutputStream = null;
+                output = null;
+                System.setOut(origOut);
+                System.setErr(origErr);
+                terminal = origTerminal;
+                PrintStream ps = new PrintStream(terminal.output());
+                this.commandSession = new CommandRegistry.CommandSession(terminal, terminal.input(), ps, ps);
+                redirecting = false;
+            }
+        }
     }
 
     @Override
@@ -297,34 +446,93 @@ public class SystemRegistryImpl implements SystemRegistry {
         if (pl.line().isEmpty() || pl.line().trim().startsWith("#")) {
             return null;
         }
+        String var = consoleId != null ? Parser.getVariable(line) : null;
         String cmd = ConsoleEngine.plainCommand(Parser.getCommand(pl.word()));
         if (consoleId != null && consoleEngine().hasAlias(cmd)) {
             pl = parser.parse(line.replaceFirst(cmd, consoleEngine().getAlias(cmd)), 0, ParseContext.ACCEPT_LINE);
             cmd = ConsoleEngine.plainCommand(Parser.getCommand(pl.word()));
         }
-        String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
+        File toFile = null;
+        boolean append = false;
+        List<String> words = pl.words();
+        int lastArg = words.size();
+        for (int i = 1; i < words.size() - 1; i++) {
+            if (words.get(i).equals(">") || words.get(i).equals(">>")) {
+                lastArg = i;
+                append = words.get(i).equals(">>");
+                toFile = new File(words.get(i + 1));
+                break;
+            }
+        }
+        String rawLine = lastArg < words.size() ? words.subList(0, lastArg).stream().collect(Collectors.joining(" ")) : pl.line();
+        String[] argv = words.subList(1, lastArg).toArray(new String[0]);
         Object out = null;
         exception = null;
-        if (isLocalCommand(cmd)) {
-            out = localExecute(cmd, argv);
-        } else {
-            int id = registryId(cmd);
-            try {
+        boolean statement = false;
+        try {
+            if (var != null || toFile != null) {
+                if (toFile != null) {
+                    outputStream.redirect(toFile, append);
+                } else if (consoleId != null && !consoleEngine().isExecuting()) {
+                    outputStream.redirect();
+                }
+                outputStream.open();
+            }
+            if (isLocalCommand(cmd)) {
+                out = localExecute(cmd, argv);
+            } else {
+                int id = registryId(cmd);
                 if (id > -1) {
                     if (consoleId != null) {
-                        out = commandRegistries[id].invoke(cmd, consoleEngine().expandParameters(argv));
-                        out = consoleEngine().postProcess(pl.line(), out);
+                        out = commandRegistries[id].invoke(outputStream.getCommandSession(), cmd,
+                                consoleEngine().expandParameters(argv));
                     } else {
-                        out = commandRegistries[id].execute(cmd, argv);
+                        out = commandRegistries[id].execute(outputStream.getCommandSession(), cmd, argv);
                     }
                 } else if (consoleId != null) {
-                    out = consoleEngine().execute(pl);
+                    if (outputStream.isByteStream() && !consoleEngine().scripts().contains(cmd)) {
+                        outputStream.close();
+                        outputStream.reset();
+                        statement = true;
+                    }
+                    out = consoleEngine().execute(cmd, rawLine, argv);
                 }
-            } catch (HelpException e) {
-                consoleEngine().println(e);
+            }
+        } catch (HelpException e) {
+            println(e);
+        } finally {
+            if (consoleId != null && !consoleEngine().isExecuting() && !statement) {
+                outputStream.flush();
+                out = consoleEngine().postProcess(pl.line(), out, outputStream.getOutput());
             }
         }
         return out;
+    }
+
+    public void cleanUp() {
+        if (outputStream.isRedirecting()) {
+            outputStream.close();
+            outputStream.reset();
+        }
+        if (consoleId != null) {
+            consoleEngine().purge();
+        }
+    }
+
+    @Override
+    public void println(Exception exception) {
+        if (outputStream.isRedirecting()) {
+            outputStream.close();
+            outputStream.reset();
+        }
+        if (consoleId != null) {
+            consoleEngine().putVariable("exception", exception);
+            Map<String, Object> options = new HashMap<>();
+            options.put("exception", "message");
+            consoleEngine().println(options, exception);
+        } else {
+            SystemRegistry.println(false, terminal(), exception);
+        }
     }
 
     private ConsoleEngine consoleEngine() {
@@ -345,7 +553,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         asb.append("\t");
         asb.append(header, HelpException.defaultStyle().resolve(".ti"));
         asb.append(":");
-        asb.toAttributedString().println(terminal);
+        asb.toAttributedString().println(terminal());
     }
 
     private void printCommandInfo(String command, String info, int max) {
@@ -354,8 +562,8 @@ public class SystemRegistryImpl implements SystemRegistry {
         asb.append(command, HelpException.defaultStyle().resolve(".co"));
         asb.append("\t");
         asb.append(info);
-        asb.setLength(terminal.getWidth());
-        asb.toAttributedString().println(terminal);
+        asb.setLength(terminal().getWidth());
+        asb.toAttributedString().println(terminal());
     }
 
     private void printCommands(Collection<String> commands, int max) {
@@ -368,8 +576,8 @@ public class SystemRegistryImpl implements SystemRegistry {
             asb.append(c, HelpException.defaultStyle().resolve(".co"));
             asb.append("\t");
             col += max;
-            if (col + max > terminal.getWidth()) {
-                asb.toAttributedString().println(terminal);
+            if (col + max > terminal().getWidth()) {
+                asb.toAttributedString().println(terminal());
                 asb = new AttributedStringBuilder().tabs(Arrays.asList(4, max + 4));
                 col = 0;
                 asb.append("\t");
@@ -380,9 +588,9 @@ public class SystemRegistryImpl implements SystemRegistry {
             }
         }
         if (!done) {
-            asb.toAttributedString().println(terminal);
+            asb.toAttributedString().println(terminal());
         }
-        terminal.flush();
+        terminal().flush();
     }
 
     private String doCommandInfo(List<String> info) {
@@ -394,11 +602,8 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     private Object help(Builtins.CommandInput input) {
-        final String[] usage = {
-                "help -  command help",
-                "Usage: help [NAME...]",
-                "  -? --help                       Displays command help",
-        };
+        final String[] usage = { "help -  command help", "Usage: help [NAME...]",
+                "  -? --help                       Displays command help", };
         Options opt = Options.compile(usage).parse(input.args());
         if (opt.isSet("help")) {
             exception = new HelpException(opt.usage());
@@ -409,12 +614,12 @@ public class SystemRegistryImpl implements SystemRegistry {
         if (consoleId > -1) {
             commands.addAll(consoleEngine().scripts());
         }
-        boolean withInfo = commands.size() < terminal.getHeight() || !opt.args().isEmpty() ? true : false;
+        boolean withInfo = commands.size() < terminal().getHeight() || !opt.args().isEmpty() ? true : false;
         int max = Collections.max(commands, Comparator.comparing(String::length)).length() + 1;
-        TreeMap<String,String> builtinCommands = new TreeMap<>();
+        TreeMap<String, String> builtinCommands = new TreeMap<>();
         for (CommandRegistry r : commandRegistries) {
             if (isBuiltinRegistry(r)) {
-                for (String c: r.commandNames()) {
+                for (String c : r.commandNames()) {
                     builtinCommands.put(c, doCommandInfo(commandInfo(c)));
                 }
             }
@@ -450,22 +655,20 @@ public class SystemRegistryImpl implements SystemRegistry {
         if (consoleId > -1 && isInArgs(opt.args(), "Scripts")) {
             printHeader("Scripts");
             if (withInfo) {
-                for (String c: consoleEngine().scripts()) {
+                for (String c : consoleEngine().scripts()) {
                     printCommandInfo(c, doCommandInfo(commandInfo(c)), max);
                 }
             } else {
                 printCommands(consoleEngine().scripts(), max);
             }
         }
+        terminal().flush();
         return null;
     }
 
     private Object exit(Builtins.CommandInput input) {
-        final String[] usage = {
-                "exit -  exit from app/script",
-                "Usage: exit",
-                "  -? --help                       Displays command help",
-        };
+        final String[] usage = { "exit -  exit from app/script", "Usage: exit",
+                "  -? --help                       Displays command help", };
         Options opt = Options.compile(usage).parse(input.args());
         if (opt.isSet("help")) {
             exception = new HelpException(opt.usage());
@@ -477,12 +680,12 @@ public class SystemRegistryImpl implements SystemRegistry {
 
     private List<OptDesc> commandOptions(String command) {
         try {
-            localExecute(command, new String[] {"--help"});
+            localExecute(command, new String[] { "--help" });
         } catch (HelpException e) {
             exception = null;
             return Builtins.compileCommandOptions(e.getMessage());
         } catch (Exception e) {
-            consoleEngine().println(e);
+            println(e);
         }
         return null;
     }
@@ -504,21 +707,15 @@ public class SystemRegistryImpl implements SystemRegistry {
 
     private List<Completer> helpCompleter(String command) {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                               , new OptionCompleter(new StringsCompleter(this::registryNames)
-                                                   , this::commandOptions
-                                                   , 1)
-                                            ));
+        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE,
+                new OptionCompleter(new StringsCompleter(this::registryNames), this::commandOptions, 1)));
         return completers;
     }
 
     private List<Completer> exitCompleter(String command) {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                                , new OptionCompleter(NullCompleter.INSTANCE
-                                                    , this::commandOptions
-                                                    , 1)
-                                             ));
+        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE,
+                new OptionCompleter(NullCompleter.INSTANCE, this::commandOptions, 1)));
         return completers;
     }
 
