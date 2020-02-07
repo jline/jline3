@@ -128,6 +128,11 @@ public interface ConsoleEngine extends CommandRegistry {
     Object postProcess(String line, Object result, String output);
 
     /**
+     * @param object object to print
+     */
+    void trace(Object object);
+
+    /**
      * Print object.
      * @param object object to print
      */

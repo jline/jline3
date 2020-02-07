@@ -241,7 +241,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 out.add(name.substring(0, name.lastIndexOf(".")));
             }
         } catch (Exception e) {
-            systemRegistry.println(e);
+            trace(e);
         }
         return out;
     }
@@ -262,7 +262,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     private String expandName(String name) {
-        String regexVar = "[a-zA-Z]{1,}[a-zA-Z0-9_-]*";
+        String regexVar = "[a-zA-Z_]{1,}[a-zA-Z0-9_-]*";
         String out = name;
         if (name.matches("^\\$" + regexVar)) {
             out = name.substring(1);
@@ -614,7 +614,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             }
             engine.execute("_widgetFunction()");
         } catch (Exception e) {
-            systemRegistry.println(e);
+            trace(e);
             return false;
         }
         return true;
@@ -628,7 +628,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 out = (boolean) ((Map<String, Object>) engine.get(VAR_CONSOLE_OPTIONS)).getOrDefault("splitOutput", true);
             }
         } catch (Exception e) {
-            systemRegistry.println(new Exception("Bad CONSOLE_OPTION value: " + e.getMessage()));
+            trace(new Exception("Bad CONSOLE_OPTION value: " + e.getMessage()));
         }
         return out;
     }
@@ -695,6 +695,23 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             out.putAll((Map<String,Object>)engine.get(VAR_PRNT_OPTIONS));
         }
         return out;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public void trace(Object object) {
+        boolean on = false;
+        if (engine.hasVariable(VAR_CONSOLE_OPTIONS)) {
+            on = (boolean) ((Map<String, Object>) engine.get(VAR_CONSOLE_OPTIONS)).getOrDefault("trace", false);
+        }
+        Map<String, Object> options = new HashMap<>();
+        options.put("exception", "message");
+        if (!on && object instanceof Exception) {
+            println(options, object);
+        } else if (on) {
+            options.put("exception", "stack");
+            println(options, object);
+        }
     }
 
     @Override

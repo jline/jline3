@@ -10,3 +10,6 @@ PATH = [ROOT + 'scripts']
 #
 _jnanorc = Paths.get(ROOT, 'jnanorc').toFile()
 _jnanorc << 'include ' + ROOT + 'nanorc/*.nanorc\n'
+CONSOLE_OPTIONS = [:]
+CONSOLE_OPTIONS['trace'] = true 
+CONSOLE_OPTIONS['splitOutput'] = true 
