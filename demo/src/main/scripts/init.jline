@@ -10,6 +10,20 @@ PATH = [ROOT + 'scripts']
 #
 _jnanorc = Paths.get(ROOT, 'jnanorc').toFile()
 _jnanorc << 'include ' + ROOT + 'nanorc/*.nanorc\n'
+#
+# console options
+#
 CONSOLE_OPTIONS = [:]
-CONSOLE_OPTIONS['trace'] = true 
-CONSOLE_OPTIONS['splitOutput'] = true 
+CONSOLE_OPTIONS.trace = 1 
+CONSOLE_OPTIONS.splitOutput = true
+#
+# custom Groovy pipes
+#
+pipe |.  '.collect{' '}'
+pipe |:  '.collectEntries{' '}'
+pipe |:: '.collectMany{' '}'
+pipe |?  '.findAll{' '}'
+pipe |?1 '.find{' '}'
+pipe |!  '.each{' '}'
+pipe |#  '.take(' ')'
+pipe |&  '.' ' '

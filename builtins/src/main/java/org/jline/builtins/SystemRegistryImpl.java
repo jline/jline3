@@ -107,7 +107,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             try {
                 consoleEngine().execute(script);
             } catch (Exception e) {
-                consoleEngine().println(e);
+                trace(e);
             }
         }
     }
@@ -159,7 +159,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             exception = null;
             return Builtins.compileCommandInfo(e.getMessage());
         } catch (Exception e) {
-            println(e);
+            trace(e);
         }
         return new ArrayList<>();
     }
@@ -188,6 +188,13 @@ public class SystemRegistryImpl implements SystemRegistry {
 
     private boolean isLocalCommand(String command) {
         return nameCommand.containsKey(command) || aliasCommand.containsKey(command);
+    }
+    
+    private boolean isCommandOrScript(String command) {
+        if (hasCommand(command)) {
+            return true;
+        }
+        return consoleId > -1 ? consoleEngine().scripts().contains(command) : false;
     }
 
     @Override
@@ -223,7 +230,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             exception = null;
             return Builtins.compileCommandDescription(e.getMessage());
         } catch (Exception e) {
-            println(e);
+            trace(e);
         }
         return null;
     }
@@ -480,7 +487,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                     pipes.add(words.get(i));
                     last = i;
                     lastarg = i;
-                    variable = "_temp" + i;
+                    variable = "_pipe" + (pipes.size() - 1);
                     break;
                 }
             }
@@ -496,10 +503,11 @@ public class SystemRegistryImpl implements SystemRegistry {
             List<String> arglist = new ArrayList<>();
             arglist.addAll(words.subList(first + 1, lastarg));
             if (pipes.get(pipes.size() - 1).equals("|;")) {
-                rawLine = "_temp" + (pipes.size() - 1) + "=" + rawLine;
+                rawLine = variable + "=" + rawLine;
             } else if (pipes.size() > 1 && pipes.get(pipes.size() - 2).equals("|;")) {
-                rawLine += " $_temp" + (pipes.size() - 2);
-                arglist.add("$_temp" + (pipes.size() - 2));
+                String s = isCommandOrScript(command) ? "$" : "";
+                rawLine += " " + s + "_pipe" + (pipes.size() - 2);
+                arglist.add(s + "_pipe" + (pipes.size() - 2));
             }
             String[] args = arglist.toArray(new String[0]);
             out.add(new CommandData(rawLine, command, args, variable, file, append));
@@ -508,7 +516,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         return out;
     }
 
-    private static class CommandData {
+    protected static class CommandData {
         private String rawLine;
         private String command;
         private String[] args;
@@ -617,7 +625,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                     }
                 }
             } catch (HelpException e) {
-                println(e);
+                trace(e);
             } finally {
                 if (consoleId != null && !consoleEngine().isExecuting() && !statement) {
                     outputStream.flush();
@@ -648,7 +656,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     @Override
-    public void println(Exception exception) {
+    public void trace(Exception exception) {
         if (outputStream.isRedirecting()) {
             outputStream.close();
             outputStream.reset();
@@ -811,7 +819,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             exception = null;
             return Builtins.compileCommandOptions(e.getMessage());
         } catch (Exception e) {
-            println(e);
+            trace(e);
         }
         return null;
     }

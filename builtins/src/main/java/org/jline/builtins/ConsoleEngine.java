@@ -80,6 +80,12 @@ public interface ConsoleEngine extends CommandRegistry {
     String getAlias(String name);
 
     /**
+     * Returns defined pipes
+     * @return map of defined pipes
+     */
+    Map<String,List<String>> getPipes();
+
+    /**
      * Returns script and variable completers
      * @return script and variable completers
      */

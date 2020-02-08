@@ -308,7 +308,7 @@ public class Repl {
                     break;
                 }
                 catch (Exception e) {
-                    systemRegistry.println(e);        // print exception and save it to console variable
+                    systemRegistry.trace(e);          // print exception and save it to console variable
                 }
             }
         }
