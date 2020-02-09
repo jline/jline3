@@ -31,10 +31,10 @@ public interface Parser {
 
     static String getCommand(final String line) {
         String out = null;
-        Pattern  patternCommand = Pattern.compile("^\\s*" + REGEX_VARIABLE + "=(" + REGEX_COMMAND + ")(\\s+|$)");
+        Pattern  patternCommand = Pattern.compile("^\\s*" + REGEX_VARIABLE + "=(" + REGEX_COMMAND + ")(\\s+.*|$)");
         Matcher matcher = patternCommand.matcher(line);
         if (matcher.find()) {
-            out = matcher.group(1);
+            out = matcher.group(4);
         } else {
             out = line.trim().split("\\s+")[0];
             int idx = out.indexOf("=");

@@ -966,6 +966,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             out = pipes;
         } else if (opt.args().size() != 3) {
             exception = new IllegalArgumentException("Bad number of arguments!");
+        } else if (opt.args().get(0).equals(SystemRegistryImpl.PIPE_FLIP)
+               || opt.args().get(0).equals(SystemRegistryImpl.PIPE_NAMED)) {
+            exception = new IllegalArgumentException("Reserved pipe operator");                
         } else {
             List<String> fixes = new ArrayList<>();
             fixes.add(opt.args().get(1));
