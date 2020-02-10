@@ -159,7 +159,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     @Override
     public Map<String,List<String>> getPipes() {
-        return pipes;    
+        return pipes;
     }
 
     private void doNameCommand() {
@@ -716,7 +716,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         Map<String, Object> options = new HashMap<>();
         if (level < 2) {
             options.put("exception", "message");
-        } 
+        }
         if (level == 0) {
             if (!(object instanceof Exception)) {
                 toPrint = null;
@@ -961,21 +961,21 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         if (opt.isSet("delete")) {
             for (String p : opt.args()) {
                 pipes.remove(p);
-            }            
+            }
         } else if (opt.isSet("list") || opt.args().size() == 0) {
             out = pipes;
         } else if (opt.args().size() != 3) {
             exception = new IllegalArgumentException("Bad number of arguments!");
         } else if (opt.args().get(0).equals(SystemRegistryImpl.PIPE_FLIP)
                || opt.args().get(0).equals(SystemRegistryImpl.PIPE_NAMED)) {
-            exception = new IllegalArgumentException("Reserved pipe operator");                
+            exception = new IllegalArgumentException("Reserved pipe operator");
         } else {
             List<String> fixes = new ArrayList<>();
             fixes.add(opt.args().get(1));
             fixes.add(opt.args().get(2));
             pipes.put(opt.args().get(0), fixes);
         }
-        return out;        
+        return out;
     }
 
     private List<OptDesc> commandOptions(String command) {
@@ -1068,7 +1068,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                                     , this::commandOptions
                                     , 1)
                              ));
-         return completers;        
+         return completers;
     }
 
 }

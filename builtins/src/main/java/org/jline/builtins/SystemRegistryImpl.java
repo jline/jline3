@@ -17,6 +17,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.jline.builtins.Completers.OptDesc;
@@ -191,7 +193,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     private boolean isLocalCommand(String command) {
         return nameCommand.containsKey(command) || aliasCommand.containsKey(command);
     }
-    
+
     private boolean isCommandOrScript(String command) {
         if (hasCommand(command)) {
             return true;
@@ -450,14 +452,63 @@ public class SystemRegistryImpl implements SystemRegistry {
         }
     }
 
+    private boolean isPipe(String arg, Set<String> pipes) {
+        return arg.equals(PIPE_FLIP) || arg.equals(PIPE_NAMED) || pipes.contains(arg);
+    }
+
     private List<CommandData> compileCommandLine(String commandLine) {
         List<CommandData> out = new ArrayList<>();
         ParsedLine pl = parser.parse(commandLine, 0, ParseContext.ACCEPT_LINE);
-        List<String> words = pl.words();
+        List<String> ws = pl.words();
+        List<String> words = new ArrayList<>();
+        String nextRawLine = "";
+        Map<String,List<String>> customPipes = consoleId != null ? consoleEngine().getPipes() : new HashMap<>();
+        if (consoleId != null && pl.words().contains(PIPE_NAMED)) {
+            StringBuilder sb = new StringBuilder();
+            boolean trace = false;
+            for (int i = 0 ; i < ws.size(); i++) {
+                if (ws.get(i).equals(PIPE_NAMED)) {
+                    if (i + 1 >= ws.size()) {
+                        throw new IllegalArgumentException();
+                    }
+                    if (consoleEngine().hasAlias(ws.get(i + 1))) {
+                        trace = true;
+                        List<String> args = new ArrayList<>();
+                        String pipeAlias = consoleEngine().getAlias(ws.get(++i));
+                        while (i < ws.size() - 1 && !isPipe(ws.get(i + 1), customPipes.keySet())) {
+                            args.add(ws.get(++i));
+                        }
+                        for (int j = 0; j < args.size(); j++) {
+                            pipeAlias = pipeAlias.replaceAll("\\s\\$" + j + "\\b", " " + args.get(j));
+                            pipeAlias = pipeAlias.replaceAll("\\$\\{" + j + "(|:-.*)\\}", args.get(j));
+                        }
+                        pipeAlias = pipeAlias.replaceAll("\\s\\$\\d\\b", "");
+                        pipeAlias = pipeAlias.replaceAll("\\$\\{\\d+\\}", "");
+                        Matcher matcher=Pattern.compile("\\$\\{\\d+:-(.*?)\\}").matcher(pipeAlias);
+                        if (matcher.find()) {
+                            pipeAlias = matcher.replaceAll("$1");
+                        }
+                        sb.append(pipeAlias);
+                    } else {
+                        sb.append(ws.get(i));
+                    }
+                } else {
+                    sb.append(ws.get(i));
+                }
+                sb.append(" ");
+            }
+            nextRawLine = sb.toString();
+            pl = parser.parse(nextRawLine, 0, ParseContext.ACCEPT_LINE);
+            words = pl.words();
+            if (trace) {
+                consoleEngine().trace(nextRawLine);
+            }
+        } else {
+            words = ws;
+            nextRawLine = commandLine;
+        }
         int first = 0;
         int last = words.size();
-        String nextRawLine = commandLine;
-        Map<String,List<String>> customPipes = consoleId != null ? consoleEngine().getPipes() : new HashMap<>();
         List<String> pipes = new ArrayList<>();
         String pipeSource = null;
         String rawLine = null;
@@ -499,18 +550,18 @@ public class SystemRegistryImpl implements SystemRegistry {
                     lastarg = i;
                     variable = "_pipe" + (pipes.size() - 1);
                     break;
-                } else if (  words.get(i).equals(PIPE_NAMED)                    
+                } else if (  words.get(i).equals(PIPE_NAMED)
                          || (words.get(i).matches("^.*[^a-zA-Z0-9 ].*$") && customPipes.containsKey(words.get(i)))) {
                     String pipe = words.get(i);
                     if (pipe.equals(PIPE_NAMED)) {
                         if (i + 1 >= last) {
-                            throw new IllegalArgumentException("Pipe is NULL!");                        
+                            throw new IllegalArgumentException("Pipe is NULL!");
                         }
                         pipe = words.get(i + 1);
                         if (!pipe.matches("\\w+") || !customPipes.containsKey(pipe)) {
-                            throw new IllegalArgumentException("Unknown or illegal pipe name: " + pipe);                          
+                            throw new IllegalArgumentException("Unknown or illegal pipe name: " + pipe);
                         }
-                    }                    
+                    }
                     pipes.add(pipe);
                     last = i;
                     lastarg = i;
@@ -519,7 +570,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                         pipeResult = variable;
                         variable = pipeSource;
                         pipeStart = true;
-                    }                   
+                    }
                 }
             }
             if (last == words.size()) {
@@ -560,7 +611,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                     if (pipeResult != null) {
                         rawLine = pipeResult + " = " + rawLine;
                     }
-                }                
+                }
             } else if (pipes.get(pipes.size() - 1).equals(PIPE_FLIP) || pipeStart) {
                 if (pipeStart && pipeResult != null) {
                     subLine = subLine.substring(subLine.indexOf("=") + 1);
@@ -698,7 +749,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                         }
                     }
                 } else if (consoleId != null) {
-                    consoleScript = true;                    
+                    consoleScript = true;
                 }
                 if (consoleScript) {
                     if (cmd.command().isEmpty() || !consoleEngine().scripts().contains(cmd.command())) {
@@ -706,7 +757,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                     }
                     if (statement && outputStream.isByteStream()) {
                         outputStream.close();
-                        outputStream.reset();                        
+                        outputStream.reset();
                     }
                     out = consoleEngine().execute(cmd.command(), cmd.rawLine(), cmd.args());
                 }
