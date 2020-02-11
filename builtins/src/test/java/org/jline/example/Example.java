@@ -135,9 +135,14 @@ public class Example
 
     private static class MasterRegistry {
         private final CommandRegistry[] commandRegistries;
+        private Parser parser;
 
         public MasterRegistry(CommandRegistry... commandRegistries) {
             this.commandRegistries = commandRegistries;
+        }
+
+        public void setParser(Parser parser) {
+            this.parser = parser;
         }
 
         public void help() {
@@ -166,7 +171,7 @@ public class Example
             CmdDesc out = null;
             switch (line.getDescriptionType()) {
             case COMMAND:
-                String cmd = Parser.getCommand(line.getArgs().get(0));
+                String cmd = parser.getCommand(line.getArgs().get(0));
                 for (CommandRegistry r : commandRegistries) {
                     if (r.hasCommand(cmd)) {
                         out = r.commandDescription(cmd);
@@ -643,6 +648,7 @@ public class Example
             builtins.alias("bindkey", "keymap");
             ExampleCommands exampleCommands = new ExampleCommands();
             MasterRegistry masterRegistry = new MasterRegistry(builtins, exampleCommands);
+            masterRegistry.setParser(parser);
             //
             // Command completers
             //
@@ -748,7 +754,7 @@ public class Example
                     }
                     ParsedLine pl = reader.getParser().parse(line, 0);
                     String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
-                    String cmd = Parser.getCommand(pl.word());
+                    String cmd = parser.getCommand(pl.word());
                     if ("help".equals(cmd) || "?".equals(cmd)) {
                         masterRegistry.help();
                     }

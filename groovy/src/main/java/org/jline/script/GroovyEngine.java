@@ -338,7 +338,7 @@ public class GroovyEngine implements ScriptEngine {
                             asb.append(header.get(i), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
                             asb.append("\t");
                         }
-                        out.add(asb.subSequence(0, width));
+                        out.add(truncate(asb, width));
                         Integer row = 0;
                         for (Object o : collection) {
                             AttributedStringBuilder asb2 = new AttributedStringBuilder().tabs(columns);
@@ -384,7 +384,7 @@ public class GroovyEngine implements ScriptEngine {
                                 asb.append(Utils.toString(inner.get(i)));
                                 asb.append("\t");
                             }
-                            out.add(asb.subSequence(0, width));
+                            out.add(truncate(asb, width));
                         }
                     } else {
                         Integer row = 0;
@@ -397,7 +397,7 @@ public class GroovyEngine implements ScriptEngine {
                                 row++;
                             }
                             asb.append(Utils.toString(o));
-                            out.add(asb.subSequence(0, width));
+                            out.add(truncate(asb, width));
                         }
                     }
                 }
@@ -406,6 +406,10 @@ public class GroovyEngine implements ScriptEngine {
             out.add(new AttributedString(Utils.toString(obj)));
         }
         return out;
+    }
+
+    private AttributedString truncate(AttributedStringBuilder asb, int width) {
+        return asb.columnLength() > width ? asb.subSequence(0, width) : asb.toAttributedString();
     }
 
     private void toTabStops(List<Integer> columns, boolean rownum) {
@@ -427,7 +431,7 @@ public class GroovyEngine implements ScriptEngine {
                 for (String v : Utils.toString(entry.getValue()).split("\\r?\\n")) {
                     asb.append("\t");
                     asb.append(v, AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW));
-                    out.add(asb.subSequence(0, width));
+                    out.add(truncate(asb, width));
                     asb = new AttributedStringBuilder().tabs(Arrays.asList(0, max + 1));
                 }
             } else {
@@ -437,7 +441,7 @@ public class GroovyEngine implements ScriptEngine {
                 }
                 asb.append("\t");
                 asb.append(v, AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW));
-                out.add(asb.subSequence(0, width));
+                out.add(truncate(asb, width));
             }
         }
         return out;

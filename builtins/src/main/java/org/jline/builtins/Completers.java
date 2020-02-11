@@ -32,7 +32,6 @@ import java.util.function.Supplier;
 import org.jline.reader.Candidate;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReader.Option;
-import org.jline.reader.Parser;
 import org.jline.reader.impl.completer.AggregateCompleter;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
@@ -83,7 +82,6 @@ public class Completers {
             }
         }
 
-        @SuppressWarnings("unchecked")
         protected void tryCompleteArguments(LineReader reader, ParsedLine line, List<Candidate> candidates) {
             String command = line.words().get(0);
             String resolved = environment.resolveCommand(command);
@@ -96,7 +94,6 @@ public class Completers {
             }
         }
 
-        @SuppressWarnings("unchecked")
         protected void completeCommandArguments(LineReader reader, ParsedLine line, List<Candidate> candidates, List<CompletionData> completions) {
             for (CompletionData completion : completions) {
                 boolean isOption = line.word().startsWith("-");
@@ -131,7 +128,7 @@ public class Completers {
                     } else if (res instanceof String) {
                         candidates.add(new Candidate((String) res, (String) res, null, null, null, null, true));
                     } else if (res instanceof Collection) {
-                        for (Object s : (Collection) res) {
+                        for (Object s : (Collection<?>) res) {
                             if (s instanceof Candidate) {
                                 candidates.add((Candidate) s);
                             } else if (s instanceof String) {
@@ -160,7 +157,7 @@ public class Completers {
                     } else if (res instanceof String) {
                         candidates.add(new Candidate((String) res, (String) res, null, completion.description, null, null, true));
                     } else if (res instanceof Collection) {
-                        for (Object s : (Collection) res) {
+                        for (Object s : (Collection<?>) res) {
                             if (s instanceof Candidate) {
                                 candidates.add((Candidate) s);
                             } else if (s instanceof String) {
@@ -172,7 +169,6 @@ public class Completers {
             }
         }
 
-        @SuppressWarnings("unchecked")
         protected void completeCommand(List<Candidate> candidates) {
             Set<String> commands = environment.getCommands();
             for (String command : commands) {
@@ -592,7 +588,7 @@ public class Completers {
                     int eq = buffer.indexOf('=');
                     if (eq < 0) {
                         commands.complete(reader, commandLine, candidates);
-                    } else if (buffer.substring(0, eq).matches("[a-zA-Z]{1,}[a-zA-Z0-9]*")) {
+                    } else if (reader.getParser().validVariableName(buffer.substring(0, eq))) {
                         String curBuf = buffer.substring(0, eq + 1);
                         for (String c: completers.keySet()) {
                             candidates.add(new Candidate(AttributedString.stripAnsi(curBuf+c)
@@ -600,7 +596,7 @@ public class Completers {
                         }
                     }
                 } else {
-                    String cmd = Parser.getCommand(commandLine.words().get(0));
+                    String cmd = reader.getParser().getCommand(commandLine.words().get(0));
                     if (command(cmd) != null) {
                         completers.get(command(cmd)).get(0).complete(reader, commandLine, candidates);
                     }
@@ -614,10 +610,12 @@ public class Completers {
 
         private String command(String cmd) {
             String out = null;
-            if (completers.containsKey(cmd)) {
-                out = cmd;
-            } else if (aliasCommand.containsKey(cmd)) {
-                out = aliasCommand.get(cmd);
+            if (cmd != null) {
+                if (completers.containsKey(cmd)) {
+                    out = cmd;
+                } else if (aliasCommand.containsKey(cmd)) {
+                    out = aliasCommand.get(cmd);
+                }
             }
             return out;
         }
@@ -876,7 +874,7 @@ public class Completers {
                 candidates.add(new Candidate(buffer, buffer, null, null, null, null, true));
                 return;
             }
-            String command = Parser.getCommand(words.get(0));
+            String command = reader.getParser().getCommand(words.get(0));
             if (buffer.startsWith("-")) {
                 boolean addbuff = true;
                 boolean valueCandidates = false;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019, the original author or authors.
+ * Copyright (c) 2002-2020, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -10,6 +10,8 @@ package org.jline.reader.impl;
 
 import java.util.*;
 import java.util.function.Predicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.jline.reader.CompletingParsedLine;
 import org.jline.reader.EOFError;
@@ -37,6 +39,10 @@ public class DefaultParser implements Parser {
 
     private char[] closingBrackets = null;
 
+    private String regexVariable = "[a-zA-Z_]{1,}[a-zA-Z0-9_-]*((.|\\['|\\[\\\")[a-zA-Z0-9_-]*(|'\\]|\\\"\\])){0,1}";
+    private String regexCommand = "[:]{0,1}[a-zA-Z]{1,}[a-zA-Z0-9_-]*";
+    private int commandGroup = 4;
+
     //
     // Chainable setters
     //
@@ -63,6 +69,21 @@ public class DefaultParser implements Parser {
 
     public DefaultParser eofOnEscapedNewLine(boolean eofOnEscapedNewLine) {
         this.eofOnEscapedNewLine = eofOnEscapedNewLine;
+        return this;
+    }
+
+    public DefaultParser regexVariable(String regexVariable) {
+        this.regexVariable = regexVariable;
+        return this;
+    }
+
+    public DefaultParser regexCommand(String regexCommand) {
+        this.regexCommand = regexCommand;
+        return this;
+    }
+
+    public DefaultParser commandGroup(int commandGroup) {
+        this.commandGroup = commandGroup;
         return this;
     }
 
@@ -133,6 +154,60 @@ public class DefaultParser implements Parser {
                 i++;
             }
         }
+    }
+
+    public void setRegexVariable(String regexVariable) {
+        this.regexVariable = regexVariable;
+    }
+
+    public void setRegexCommand(String regexCommand) {
+        this.regexCommand = regexCommand;
+    }
+
+    public void setCommandGroup(int commandGroup) {
+        this.commandGroup = commandGroup;
+    }
+
+    @Override
+    public boolean validCommandName(String name) {
+        return name != null && name.matches(regexCommand);
+    }
+
+    @Override
+    public boolean validVariableName(String name) {
+        return name != null && name.matches(regexVariable);
+    }
+
+
+    @Override
+    public String getCommand(final String line) {
+        String out = "";
+        Pattern  patternCommand = Pattern.compile("^\\s*" + regexVariable + "=(" + regexCommand + ")(\\s+.*|$)");
+        Matcher matcher = patternCommand.matcher(line);
+        if (matcher.find()) {
+            out = matcher.group(commandGroup);
+        } else {
+            out = line.trim().split("\\s+")[0];
+            int idx = out.indexOf("=");
+            if (idx > -1) {
+                out = out.substring(idx + 1);
+            }
+            if (!out.matches(regexCommand)) {
+                out = "";
+            }
+        }
+        return out;
+    }
+
+    @Override
+    public String getVariable(final String line) {
+        String out = null;
+        Pattern  patternCommand = Pattern.compile("^\\s*(" + regexVariable + ")\\s*=[^=~].*");
+        Matcher matcher = patternCommand.matcher(line);
+        if (matcher.find()) {
+            out = matcher.group(1);
+        }
+        return out;
     }
 
     public ParsedLine parse(final String line, final int cursor, ParseContext context) {

@@ -258,7 +258,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         Widgets.CmdDesc out = null;
         switch (line.getDescriptionType()) {
         case COMMAND:
-            String cmd = Parser.getCommand(line.getArgs().get(0));
+            String cmd = parser.getCommand(line.getArgs().get(0));
             out = commandDescription(cmd);
             break;
         case METHOD:
@@ -515,12 +515,12 @@ public class SystemRegistryImpl implements SystemRegistry {
         String pipeResult = null;
         do {
             String variable = null;
-            String command = ConsoleEngine.plainCommand(Parser.getCommand(words.get(first)));
-            if (Parser.validCommandName(command) && consoleId != null) {
-                variable = Parser.getVariable(words.get(first));
+            String command = ConsoleEngine.plainCommand(parser.getCommand(words.get(first)));
+            if (parser.validCommandName(command) && consoleId != null) {
+                variable = parser.getVariable(words.get(first));
                 if (consoleEngine().hasAlias(command)) {
                     pl = parser.parse(nextRawLine.replaceFirst(command, consoleEngine().getAlias(command)), 0, ParseContext.ACCEPT_LINE);
-                    command = ConsoleEngine.plainCommand(Parser.getCommand(pl.word()));
+                    command = ConsoleEngine.plainCommand(parser.getCommand(pl.word()));
                     words = pl.words();
                     first = 0;
                 }
@@ -731,7 +731,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                     outputStream.open();
                 }
                 boolean consoleScript = false;
-                if (Parser.validCommandName(cmd.command())) {
+                if (parser.validCommandName(cmd.command())) {
                     if (isLocalCommand(cmd.command())) {
                         out = localExecute(cmd.command(), cmd.args());
                     } else {

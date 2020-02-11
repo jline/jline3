@@ -290,9 +290,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     private boolean isCommandLine(String line) {
-        String command = Parser.getCommand(line);
+        String command = parser().getCommand(line);
         boolean out = false;
-        if (command.startsWith(":")) {
+        if (command != null && command.startsWith(":")) {
             if (systemRegistry.hasCommand(command.substring(1))) {
                 out = true;
             } else {
@@ -333,7 +333,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
         @SuppressWarnings("unchecked")
         public ScriptFile(String command, String cmdLine, String[] args) {
-            if (!command.matches("[a-zA-Z0-9_-]+")) {
+            if (!parser().validCommandName(command)) {
                 return;
             }
             try {
@@ -540,14 +540,22 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             return null;
         }
         Object out = null;
-        ScriptFile file = new ScriptFile(cmd, line, args);
-        if (file.execute()) {
+        ScriptFile file = null;
+        if (parser().validCommandName(cmd)) {
+            file = new ScriptFile(cmd, line, args);
+        } else {
+            File f = new File(line.split("\\s+")[0]);
+            if (f.exists()) {
+                file = new ScriptFile(f, line, args);
+            }
+        }
+        if (file != null && file.execute()) {
             out = file.getResult();
         } else {
             line = line.trim();
             if (isCodeBlock(line)) {
                 StringBuilder sb = new StringBuilder();
-                for (String s: line.split("\n|\n\r")) {
+                for (String s: line.split("\\r?\\n")) {
                     if (isCommandLine(s)) {
                         List<String> ws = parser().parse(s, 0, ParseContext.COMPLETE).words();
                         int idx = ws.get(0).lastIndexOf(":");
@@ -583,7 +591,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             }
             if (engine.hasVariable(line)) {
                 out = engine.get(line);
-            } else if (Parser.getVariable(line) == null) {
+            } else if (parser().getVariable(line) == null) {
                 out = engine.execute(line);
                 engine.put("_", out);
             } else {
@@ -645,15 +653,15 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     @Override
     public Object postProcess(String line, Object result, String output) {
         Object out = result;
-        Object _output = output != null && splitCommandOutput() ? output.split("\n") : output;
-        if (Parser.getVariable(line) != null && result != null) {
+        Object _output = output != null && splitCommandOutput() ? output.split("\\r?\\n") : output;
+        if (parser().getVariable(line) != null && result != null) {
             engine.put("output", _output);
         }
-        if (systemRegistry.hasCommand(Parser.getCommand(line))) {
-            out = postProcess(line, Parser.getVariable(line) != null && result == null ? _output : result);
-        } else if (Parser.getVariable(line) != null) {
+        if (systemRegistry.hasCommand(parser().getCommand(line))) {
+            out = postProcess(line, parser().getVariable(line) != null && result == null ? _output : result);
+        } else if (parser().getVariable(line) != null) {
             if (result == null) {
-                engine.put(Parser.getVariable(line), _output);
+                engine.put(parser().getVariable(line), _output);
             }
             out = null;
         }
@@ -662,10 +670,10 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     private Object postProcess(String line, Object result) {
         Object out = result instanceof String && ((String)result).trim().length() == 0 ? null : result;
-        if (Parser.getVariable(line) != null) {
-            engine.put(Parser.getVariable(line), result);
+        if (parser().getVariable(line) != null) {
+            engine.put(parser().getVariable(line), result);
             out = null;
-        } else if (!Parser.getCommand(line).equals("show") && result != null) {
+        } else if (!parser().getCommand(line).equals("show") && result != null) {
             engine.put("_", result);
         }
         return out;

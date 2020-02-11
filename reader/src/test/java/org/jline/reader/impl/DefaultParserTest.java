@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2020, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -45,6 +45,25 @@ public class DefaultParserTest {
         assertEquals(1, line.wordCursor());
         assertEquals(2, line.rawWordCursor());
         assertEquals(14, line.rawWordLength());
+    }
+
+    @Test
+    public void testCommand() {
+        DefaultParser parser = new DefaultParser();
+        assertEquals("command", parser.getCommand("variable=command"));
+        assertEquals("command", parser.getCommand("variable.key=command"));
+        assertEquals("command", parser.getCommand("variable['key']=command"));
+        assertEquals("command", parser.getCommand("variable[0]=command"));
+        assertEquals("", parser.getCommand("variable['key'] = statement"));
+    }
+
+    @Test
+    public void testVariable() {
+        DefaultParser parser = new DefaultParser();
+        assertEquals("variable", parser.getVariable("variable=command"));
+        assertEquals("variable.key", parser.getVariable("variable.key=command"));
+        assertEquals("variable['key']", parser.getVariable("variable['key']=command"));
+        assertEquals("variable['key']", parser.getVariable("variable['key'] = statement"));
     }
 
 }

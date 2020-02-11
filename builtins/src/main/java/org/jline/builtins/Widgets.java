@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019, the original author or authors.
+ * Copyright (c) 2002-2020, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -116,6 +116,10 @@ public abstract class Widgets {
             throw new InvalidParameterException("widget: no such widget " + name);
         }
         return out;
+    }
+
+    public Parser parser() {
+        return reader.getParser();
     }
 
     public KeyMap<Binding> getKeyMap() {
@@ -1036,7 +1040,7 @@ public abstract class Widgets {
                 } else {
                     if (line.length() == curPos) {
                         cmd = args != null && (args.size() > 1 || (args.size() == 1
-                                 && line.endsWith(" "))) ? Parser.getCommand(args.get(0)) : null;
+                                 && line.endsWith(" "))) ? parser().getCommand(args.get(0)) : null;
                         descType = CmdLine.DescriptionType.COMMAND;
                     }
                     int brackets = 0;
