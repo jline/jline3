@@ -80,6 +80,12 @@ public interface ConsoleEngine extends CommandRegistry {
     String getAlias(String name);
 
     /**
+     * Returns defined pipes
+     * @return map of defined pipes
+     */
+    Map<String,List<String>> getPipes();
+
+    /**
      * Returns script and variable completers
      * @return script and variable completers
      */
@@ -126,6 +132,11 @@ public interface ConsoleEngine extends CommandRegistry {
      * @return processed result
      */
     Object postProcess(String line, Object result, String output);
+
+    /**
+     * @param object object to print
+     */
+    void trace(Object object);
 
     /**
      * Print object.

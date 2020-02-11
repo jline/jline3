@@ -67,7 +67,7 @@ public interface SystemRegistry extends CommandRegistry {
      * Print exception on terminal
      * @param exception exception to print on terminal
      */
-    void println(Exception exception);
+    void trace(Exception exception);
 
     /**
      * @return terminal

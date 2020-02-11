@@ -49,6 +49,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                        , DEL
                        , PRNT
                        , ALIAS
+                       , PIPE
                        , UNALIAS
                        , SLURP};
     private static final String VAR_CONSOLE_OPTIONS = "CONSOLE_OPTIONS";
@@ -70,6 +71,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     private final Supplier<Path> workDir;
     private final ConfigurationPath configPath;
     private final Map<String, String> aliases = new HashMap<>();
+    private final Map<String, List<String>> pipes = new HashMap<>();
     private Path aliasFile;
     private LineReader reader;
     private boolean executing = false;
@@ -91,6 +93,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         commandExecute.put(Command.SLURP, new CommandMethods(this::slurpcmd, this::slurpCompleter));
         commandExecute.put(Command.ALIAS, new CommandMethods(this::aliascmd, this::aliasCompleter));
         commandExecute.put(Command.UNALIAS, new CommandMethods(this::unalias, this::unaliasCompleter));
+        commandExecute.put(Command.PIPE, new CommandMethods(this::pipe, this::pipeCompleter));
         aliasFile = configPath.getUserConfig("aliases.json");
         if (aliasFile == null) {
             aliasFile = configPath.getUserConfig("aliases.json", true);
@@ -152,6 +155,11 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     @Override
     public String getAlias(String name) {
         return aliases.getOrDefault(name, null);
+    }
+
+    @Override
+    public Map<String,List<String>> getPipes() {
+        return pipes;
     }
 
     private void doNameCommand() {
@@ -241,7 +249,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 out.add(name.substring(0, name.lastIndexOf(".")));
             }
         } catch (Exception e) {
-            systemRegistry.println(e);
+            trace(e);
         }
         return out;
     }
@@ -262,7 +270,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     private String expandName(String name) {
-        String regexVar = "[a-zA-Z]{1,}[a-zA-Z0-9_-]*";
+        String regexVar = "[a-zA-Z_]{1,}[a-zA-Z0-9_-]*";
         String out = name;
         if (name.matches("^\\$" + regexVar)) {
             out = name.substring(1);
@@ -614,7 +622,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             }
             engine.execute("_widgetFunction()");
         } catch (Exception e) {
-            systemRegistry.println(e);
+            trace(e);
             return false;
         }
         return true;
@@ -628,7 +636,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 out = (boolean) ((Map<String, Object>) engine.get(VAR_CONSOLE_OPTIONS)).getOrDefault("splitOutput", true);
             }
         } catch (Exception e) {
-            systemRegistry.println(new Exception("Bad CONSOLE_OPTION value: " + e.getMessage()));
+            trace(new Exception("Bad CONSOLE_OPTION value: " + e.getMessage()));
         }
         return out;
     }
@@ -697,6 +705,30 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return out;
     }
 
+    @SuppressWarnings("unchecked")
+    @Override
+    public void trace(final Object object) {
+        Object toPrint = object;
+        int level = 0;
+        if (engine.hasVariable(VAR_CONSOLE_OPTIONS)) {
+            level = (int) ((Map<String, Object>) engine.get(VAR_CONSOLE_OPTIONS)).getOrDefault("trace", 0);
+        }
+        Map<String, Object> options = new HashMap<>();
+        if (level < 2) {
+            options.put("exception", "message");
+        }
+        if (level == 0) {
+            if (!(object instanceof Exception)) {
+                toPrint = null;
+            }
+        } else if (level == 1) {
+            if (object instanceof SystemRegistryImpl.CommandData) {
+                toPrint = ((SystemRegistryImpl.CommandData)object).rawLine();
+            }
+        }
+        println(options, toPrint);
+    }
+
     @Override
     public void println(Object object) {
         Map<String,Object> options = defaultPrntOptions();
@@ -747,11 +779,11 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                                                        : null;
         for (String s: object.split("\\r?\\n")) {
             AttributedStringBuilder asb = new AttributedStringBuilder();
-            asb.append(s).subSequence(0, width);   // setLength(width) fill nul-chars at the end of line
+            asb.append(s);
             if (highlighter != null) {
                 highlighter.highlight(asb).println(terminal());
             } else {
-                asb.toAttributedString().println(terminal());
+                asb.subSequence(0, width).println(terminal());
             }
         }
     }
@@ -900,14 +932,48 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         Object out = null;
         try  {
             for (String a : opt.args()) {
-                if (aliases.containsKey(a)) {
-                    aliases.remove(a);
-                }
+                aliases.remove(a);
             }
         } catch (Exception e) {
             exception = e;
         } finally {
             engine.persist(aliasFile, aliases);
+        }
+        return out;
+    }
+
+    private Object pipe(Builtins.CommandInput input) {
+        final String[] usage = {
+                "pipe -  create/delete pipe operator",
+                "Usage: pipe [OPERATOR] [PREFIX] [POSTFIX]",
+                "       pipe --list",
+                "       pipe --delete [OPERATOR...]",
+                "  -? --help                       Displays command help",
+                "  -d --delete                     Delete pipe operator",
+                "  -l --list                       List pipe operators",
+        };
+        Options opt = Options.compile(usage).parse(input.args());
+        if (opt.isSet("help")) {
+            exception = new HelpException(opt.usage());
+            return null;
+        }
+        Object out = null;
+        if (opt.isSet("delete")) {
+            for (String p : opt.args()) {
+                pipes.remove(p);
+            }
+        } else if (opt.isSet("list") || opt.args().size() == 0) {
+            out = pipes;
+        } else if (opt.args().size() != 3) {
+            exception = new IllegalArgumentException("Bad number of arguments!");
+        } else if (opt.args().get(0).equals(SystemRegistryImpl.PIPE_FLIP)
+               || opt.args().get(0).equals(SystemRegistryImpl.PIPE_NAMED)) {
+            exception = new IllegalArgumentException("Reserved pipe operator");
+        } else {
+            List<String> fixes = new ArrayList<>();
+            fixes.add(opt.args().get(1));
+            fixes.add(opt.args().get(2));
+            pipes.put(opt.args().get(0), fixes);
         }
         return out;
     }
@@ -918,7 +984,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         } catch (HelpException e) {
             return Builtins.compileCommandOptions(e.getMessage());
         } catch (Exception e) {
-            e.printStackTrace();
+            trace(e);
         }
         return null;
     }
@@ -993,6 +1059,16 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         List<Completer> completers = new ArrayList<>();
         completers.add(new ArgumentCompleter(NullCompleter.INSTANCE, new StringsCompleter(aliases::keySet)));
         return completers;
+    }
+
+    private List<Completer> pipeCompleter(String command) {
+        List<Completer> completers = new ArrayList<>();
+        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
+                , new OptionCompleter(NullCompleter.INSTANCE
+                                    , this::commandOptions
+                                    , 1)
+                             ));
+         return completers;
     }
 
 }

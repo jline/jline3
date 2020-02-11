@@ -12,7 +12,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public interface Parser {
-    static final String REGEX_VARIABLE = "[a-zA-Z_]{1,}[a-zA-Z0-9_-]*";
+    static final String REGEX_VARIABLE = "[a-zA-Z_]{1,}[a-zA-Z0-9_-]*((.|\\['|\\[\\\")[a-zA-Z0-9_-]*(|'\\]|\\\"\\])){0,1}";
     static final String REGEX_COMMAND = "[:]{0,1}[a-zA-Z]{1,}[a-zA-Z0-9_-]*";
 
     ParsedLine parse(String line, int cursor, ParseContext context) throws SyntaxError;
@@ -25,21 +25,29 @@ public interface Parser {
         return ch == '\\';
     }
 
+    public static boolean validCommandName(String name) {
+        return name.matches(REGEX_COMMAND);
+    }
+
     static String getCommand(final String line) {
         String out = null;
-        Pattern  patternCommand = Pattern.compile("^\\s*" + REGEX_VARIABLE + "=(" + REGEX_COMMAND + ")(\\s+|$)");
+        Pattern  patternCommand = Pattern.compile("^\\s*" + REGEX_VARIABLE + "=(" + REGEX_COMMAND + ")(\\s+.*|$)");
         Matcher matcher = patternCommand.matcher(line);
         if (matcher.find()) {
-            out = matcher.group(1);
+            out = matcher.group(4);
         } else {
             out = line.trim().split("\\s+")[0];
+            int idx = out.indexOf("=");
+            if (idx > -1) {
+                out = out.substring(idx + 1);
+            }
         }
         return out;
     }
 
     static String getVariable(final String line) {
         String out = null;
-        Pattern  patternCommand = Pattern.compile("^\\s*(" + REGEX_VARIABLE + ")\\s*=[^=].*");
+        Pattern  patternCommand = Pattern.compile("^\\s*(" + REGEX_VARIABLE + ")\\s*=[^=~].*");
         Matcher matcher = patternCommand.matcher(line);
         if (matcher.find()) {
             out = matcher.group(1);

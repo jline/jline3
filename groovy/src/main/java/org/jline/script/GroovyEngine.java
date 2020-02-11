@@ -338,10 +338,7 @@ public class GroovyEngine implements ScriptEngine {
                             asb.append(header.get(i), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
                             asb.append("\t");
                         }
-                        if (asb.columnLength() > width) {
-                            asb.subSequence(0, width);
-                        }
-                        out.add(asb.toAttributedString());
+                        out.add(asb.subSequence(0, width));
                         Integer row = 0;
                         for (Object o : collection) {
                             AttributedStringBuilder asb2 = new AttributedStringBuilder().tabs(columns);
@@ -355,10 +352,7 @@ public class GroovyEngine implements ScriptEngine {
                                 asb2.append(Utils.toString(m.get(header.get(i))));
                                 asb2.append("\t");
                             }
-                            if (asb2.columnLength() > width) {
-                                asb2.subSequence(0, width);
-                            }
-                            out.add(asb2.toAttributedString());
+                            out.add(asb2.subSequence(0, width));
                         }
                     } else if (elem instanceof Collection || elem instanceof Object[]) {
                         boolean isCollection = elem instanceof Collection;
@@ -390,10 +384,7 @@ public class GroovyEngine implements ScriptEngine {
                                 asb.append(Utils.toString(inner.get(i)));
                                 asb.append("\t");
                             }
-                            if (asb.columnLength() > width) {
-                                asb.subSequence(0, width);
-                            }
-                            out.add(asb.toAttributedString());
+                            out.add(asb.subSequence(0, width));
                         }
                     } else {
                         Integer row = 0;
@@ -406,10 +397,7 @@ public class GroovyEngine implements ScriptEngine {
                                 row++;
                             }
                             asb.append(Utils.toString(o));
-                            if (asb.columnLength() > width) {
-                                asb.subSequence(0, width);
-                            }
-                            out.add(asb.toAttributedString());
+                            out.add(asb.subSequence(0, width));
                         }
                     }
                 }
@@ -435,17 +423,21 @@ public class GroovyEngine implements ScriptEngine {
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             AttributedStringBuilder asb = new AttributedStringBuilder().tabs(Arrays.asList(0, max + 1));
             asb.append(entry.getKey(), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
-            for (String v : Utils.toString(entry.getValue()).split("\\r?\\n")) {
+            if (map.size() == 1) {
+                for (String v : Utils.toString(entry.getValue()).split("\\r?\\n")) {
+                    asb.append("\t");
+                    asb.append(v, AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW));
+                    out.add(asb.subSequence(0, width));
+                    asb = new AttributedStringBuilder().tabs(Arrays.asList(0, max + 1));
+                }
+            } else {
+                String v = Utils.toString(entry.getValue());
+                if (v.contains("\n")) {
+                    v = Arrays.asList(v.split("\\r?\\n")).toString();
+                }
                 asb.append("\t");
                 asb.append(v, AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW));
-                if (asb.columnLength() > width) {
-                    asb.subSequence(0, width);
-                }
-                out.add(asb.toAttributedString());
-                if (map.size() > 1) {
-                    break;
-                }
-                asb = new AttributedStringBuilder().tabs(Arrays.asList(0, max + 1));
+                out.add(asb.subSequence(0, width));
             }
         }
         return out;
