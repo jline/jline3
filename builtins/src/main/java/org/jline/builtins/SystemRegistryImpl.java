@@ -54,8 +54,10 @@ public class SystemRegistryImpl implements SystemRegistry {
     public enum Command {
         EXIT, HELP
     };
-    protected final static String PIPE_FLIP = "|;";
-    protected final static String PIPE_NAMED = "|*";
+
+    public enum Pipe {
+        FLIP, NAMED
+    }
 
     private static final Class<?>[] BUILTIN_REGISTERIES = { Builtins.class, ConsoleEngineImpl.class };
     private CommandRegistry[] commandRegistries;
@@ -65,6 +67,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     private Map<Command, String> commandName = new HashMap<>();
     private Map<String, Command> nameCommand = new HashMap<>();
     private Map<String, String> aliasCommand = new HashMap<>();
+    private Map<Pipe, String> pipeName = new HashMap<>();
     private final Map<Command, CommandMethods> commandExecute = new HashMap<>();
     private Map<String, List<String>> commandInfos = new HashMap<>();
     private Exception exception;
@@ -79,12 +82,26 @@ public class SystemRegistryImpl implements SystemRegistry {
             commandName.put(c, c.name().toLowerCase());
         }
         doNameCommand();
+        pipeName.put(Pipe.FLIP, "|;");
+        pipeName.put(Pipe.NAMED, "|");
         commandExecute.put(Command.EXIT, new CommandMethods(this::exit, this::exitCompleter));
         commandExecute.put(Command.HELP, new CommandMethods(this::help, this::helpCompleter));
     }
 
     private void doNameCommand() {
         nameCommand = commandName.entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+    }
+
+    public void rename(Pipe pipe, String name) {
+        if (name.matches("/w+") || pipeName.containsValue(name)) {
+            throw new IllegalArgumentException();
+        }
+        pipeName.put(pipe, name);
+    }
+
+    @Override
+    public Collection<String> getPipeNames() {
+        return pipeName.values();
     }
 
     @Override
@@ -259,7 +276,9 @@ public class SystemRegistryImpl implements SystemRegistry {
         switch (line.getDescriptionType()) {
         case COMMAND:
             String cmd = parser.getCommand(line.getArgs().get(0));
-            out = commandDescription(cmd);
+            if (isCommandOrScript(cmd) && !hasPipes(line.getArgs())) {
+                out = commandDescription(cmd);
+            }
             break;
         case METHOD:
         case SYNTAX:
@@ -452,8 +471,18 @@ public class SystemRegistryImpl implements SystemRegistry {
         }
     }
 
+    private boolean hasPipes(Collection<String> args) {
+        Map<String,List<String>> customPipes = consoleId != null ? consoleEngine().getPipes() : new HashMap<>();
+        for (String a : args) {
+            if (isPipe(a, customPipes.keySet())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean isPipe(String arg, Set<String> pipes) {
-        return arg.equals(PIPE_FLIP) || arg.equals(PIPE_NAMED) || pipes.contains(arg);
+        return pipeName.containsValue(arg) || pipes.contains(arg);
     }
 
     private List<CommandData> compileCommandLine(String commandLine) {
@@ -463,11 +492,11 @@ public class SystemRegistryImpl implements SystemRegistry {
         List<String> words = new ArrayList<>();
         String nextRawLine = "";
         Map<String,List<String>> customPipes = consoleId != null ? consoleEngine().getPipes() : new HashMap<>();
-        if (consoleId != null && pl.words().contains(PIPE_NAMED)) {
+        if (consoleId != null && pl.words().contains(pipeName.get(Pipe.NAMED))) {
             StringBuilder sb = new StringBuilder();
             boolean trace = false;
             for (int i = 0 ; i < ws.size(); i++) {
-                if (ws.get(i).equals(PIPE_NAMED)) {
+                if (ws.get(i).equals(pipeName.get(Pipe.NAMED))) {
                     if (i + 1 >= ws.size()) {
                         throw new IllegalArgumentException();
                     }
@@ -541,7 +570,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                     last = i + 1;
                     lastarg = i;
                     break;
-                } else if (words.get(i).equals(PIPE_FLIP)) {
+                } else if (words.get(i).equals(pipeName.get(Pipe.FLIP))) {
                     if (variable != null || file != null || pipeResult != null || consoleId == null) {
                         throw new IllegalArgumentException();
                     }
@@ -550,10 +579,10 @@ public class SystemRegistryImpl implements SystemRegistry {
                     lastarg = i;
                     variable = "_pipe" + (pipes.size() - 1);
                     break;
-                } else if (  words.get(i).equals(PIPE_NAMED)
+                } else if (  words.get(i).equals(pipeName.get(Pipe.NAMED))
                          || (words.get(i).matches("^.*[^a-zA-Z0-9 ].*$") && customPipes.containsKey(words.get(i)))) {
                     String pipe = words.get(i);
-                    if (pipe.equals(PIPE_NAMED)) {
+                    if (pipe.equals(pipeName.get(Pipe.NAMED))) {
                         if (i + 1 >= last) {
                             throw new IllegalArgumentException("Pipe is NULL!");
                         }
@@ -600,7 +629,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                     rawLine += fixes.get(0) + subLine + fixes.get(1);
                     statement = true;
                 }
-                if (pipes.get(pipes.size() - 1).equals(PIPE_FLIP)) {
+                if (pipes.get(pipes.size() - 1).equals(pipeName.get(Pipe.FLIP))) {
                     done = true;
                     pipeSource = null;
                     rawLine = variable + " = " + rawLine;
@@ -612,7 +641,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                         rawLine = pipeResult + " = " + rawLine;
                     }
                 }
-            } else if (pipes.get(pipes.size() - 1).equals(PIPE_FLIP) || pipeStart) {
+            } else if (pipes.get(pipes.size() - 1).equals(pipeName.get(Pipe.FLIP)) || pipeStart) {
                 if (pipeStart && pipeResult != null) {
                     subLine = subLine.substring(subLine.indexOf("=") + 1);
                 }
@@ -633,7 +662,7 @@ public class SystemRegistryImpl implements SystemRegistry {
 
     private String flipArgument(final String command, final String subLine, final List<String> pipes, List<String> arglist) {
         String out = null;
-        if (pipes.size() > 1 && pipes.get(pipes.size() - 2).equals(PIPE_FLIP)) {
+        if (pipes.size() > 1 && pipes.get(pipes.size() - 2).equals(pipeName.get(Pipe.FLIP))) {
             String s = isCommandOrScript(command) ? "$" : "";
             out = subLine + " " + s + "_pipe" + (pipes.size() - 2);
             arglist.add(s + "_pipe" + (pipes.size() - 2));

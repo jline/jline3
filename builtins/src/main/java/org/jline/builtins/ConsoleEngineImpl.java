@@ -654,14 +654,15 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     public Object postProcess(String line, Object result, String output) {
         Object out = result;
         Object _output = output != null && splitCommandOutput() ? output.split("\\r?\\n") : output;
-        if (parser().getVariable(line) != null && result != null) {
+        String consoleVar = parser().getVariable(line);
+        if (consoleVar != null && result != null) {
             engine.put("output", _output);
         }
         if (systemRegistry.hasCommand(parser().getCommand(line))) {
-            out = postProcess(line, parser().getVariable(line) != null && result == null ? _output : result);
-        } else if (parser().getVariable(line) != null) {
+            out = postProcess(line, consoleVar != null && result == null ? _output : result);
+        } else if (consoleVar != null) {
             if (result == null) {
-                engine.put(parser().getVariable(line), _output);
+                saveResult(consoleVar, _output);
             }
             out = null;
         }
@@ -670,13 +671,27 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     private Object postProcess(String line, Object result) {
         Object out = result instanceof String && ((String)result).trim().length() == 0 ? null : result;
-        if (parser().getVariable(line) != null) {
-            engine.put(parser().getVariable(line), result);
+        String consoleVar = parser().getVariable(line);
+        if (consoleVar != null) {
+            saveResult(consoleVar, result);
             out = null;
         } else if (!parser().getCommand(line).equals("show") && result != null) {
             engine.put("_", result);
         }
         return out;
+    }
+
+    private void saveResult(String var, Object result) {
+        if (var.contains(".") || var.contains("[")) {
+            engine.put("_executionResult", result);
+            try {
+                engine.execute(var + " = _executionResult");
+            } catch (Exception e) {
+                trace(e);
+            }
+        } else {
+            engine.put(var, result);
+        }
     }
 
     @Override
@@ -917,6 +932,13 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             } else if (args.size() == 1) {
                 out = aliases.getOrDefault(args.get(0), null);
             } else {
+                for (int i = 1; i < args.size(); i++) {
+                    for (int j = 0; j < 10; j++) {
+                        args.set(i, args.get(i).replaceAll("%" + j , "\\$" + j));
+                        args.set(i, args.get(i).replaceAll("%\\{" + j + "\\}", "\\$\\{" + j + "\\}"));
+                        args.set(i, args.get(i).replaceAll("%\\{" + j + ":-", "\\$\\{" + j + ":-"));
+                    }
+                }
                 aliases.put(args.get(0), String.join(" ", args.subList(1, args.size())));
                 engine.persist(aliasFile, aliases);
             }
@@ -957,7 +979,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 "       pipe --list",
                 "       pipe --delete [OPERATOR...]",
                 "  -? --help                       Displays command help",
-                "  -d --delete                     Delete pipe operator",
+                "  -d --delete                     Delete pipe operators",
                 "  -l --list                       List pipe operators",
         };
         Options opt = Options.compile(usage).parse(input.args());
@@ -967,15 +989,18 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         }
         Object out = null;
         if (opt.isSet("delete")) {
-            for (String p : opt.args()) {
-                pipes.remove(p);
+            if ( opt.args().size() == 1 && opt.args().get(0).equals("*")) {
+                pipes.clear();
+            } else {
+                for (String p: opt.args()) {
+                    pipes.remove(p.trim());
+                }
             }
         } else if (opt.isSet("list") || opt.args().size() == 0) {
             out = pipes;
         } else if (opt.args().size() != 3) {
             exception = new IllegalArgumentException("Bad number of arguments!");
-        } else if (opt.args().get(0).equals(SystemRegistryImpl.PIPE_FLIP)
-               || opt.args().get(0).equals(SystemRegistryImpl.PIPE_NAMED)) {
+        } else if (systemRegistry.getPipeNames().contains(opt.args().get(0))) {
             exception = new IllegalArgumentException("Reserved pipe operator");
         } else {
             List<String> fixes = new ArrayList<>();

@@ -9,6 +9,7 @@
 package org.jline.builtins;
 
 import java.io.File;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,6 +36,12 @@ public interface SystemRegistry extends CommandRegistry {
      * @param script initialization script
      */
     void initialize(File script);
+
+    /**
+     *
+     * @return pipe names defined in systemRegistry
+     */
+    Collection<String> getPipeNames();
 
     /**
      * Returns command completer that includes also console variable and script completion.

@@ -39,7 +39,7 @@ public class DefaultParser implements Parser {
 
     private char[] closingBrackets = null;
 
-    private String regexVariable = "[a-zA-Z_]{1,}[a-zA-Z0-9_-]*((.|\\['|\\[\\\")[a-zA-Z0-9_-]*(|'\\]|\\\"\\])){0,1}";
+    private String regexVariable = "[a-zA-Z_]{1,}[a-zA-Z0-9_-]*((.|\\['|\\[\\\"|\\[)[a-zA-Z0-9_-]*(|'\\]|\\\"\\]|\\])){0,1}";
     private String regexCommand = "[:]{0,1}[a-zA-Z]{1,}[a-zA-Z0-9_-]*";
     private int commandGroup = 4;
 

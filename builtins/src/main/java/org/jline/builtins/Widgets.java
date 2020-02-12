@@ -604,6 +604,7 @@ public abstract class Widgets {
         private TipType tipType;
         private int descriptionSize = 0;
         private boolean descriptionEnabled = true;
+        private boolean descriptionCache = true;
 
         /**
          * Creates tailtip widgets used in command line suggestions. Suggestions are created using a command
@@ -732,6 +733,10 @@ public abstract class Widgets {
             }
         }
 
+        public void setDescriptionCache(boolean cache) {
+            this.descriptionCache = cache;
+        }
+
         /*
          * widgets
          */
@@ -816,7 +821,7 @@ public abstract class Widgets {
             }
             String lastArg = "";
             prevArg = args.get(args.size() - 1);
-            if (!prevChar().equals(" ")) {
+            if (!prevChar().equals(" ") && args.size() > 1) {
                 lastArg = args.get(args.size() - 1);
                 prevArg = args.get(args.size() - 2);
             }
@@ -1007,6 +1012,7 @@ public abstract class Widgets {
         private class CommandDescriptions {
             Map<String,CmdDesc> descriptions = new HashMap<>();
             Map<String,CmdDesc> temporaryDescs = new HashMap<>();
+            Map<String,CmdDesc> volatileDescs = new HashMap<>();
             Function<CmdLine,CmdDesc> descFun;
 
             public CommandDescriptions(Map<String,CmdDesc> descriptions) {
@@ -1072,19 +1078,23 @@ public abstract class Widgets {
                         }
                     }
                 }
-                if (cmd != null && !descriptions.containsKey(cmd) && !temporaryDescs.containsKey(cmd)
-                        && descFun != null) {
-                    if (descType == CmdLine.DescriptionType.COMMAND) {
+                if (cmd != null && descFun != null) {
+                    if (!descriptionCache && descType == CmdLine.DescriptionType.COMMAND) {
                         CmdDesc c = descFun.apply(new CmdLine(line, head, tail, args, descType));
-                        if (c != null) {
-                            descriptions.put(cmd, c);
+                        volatileDescs.put(cmd, c);
+                    } else if (!descriptions.containsKey(cmd) && !temporaryDescs.containsKey(cmd)) {
+                        if (descType == CmdLine.DescriptionType.COMMAND) {
+                            CmdDesc c = descFun.apply(new CmdLine(line, head, tail, args, descType));
+                            if (c != null) {
+                                descriptions.put(cmd, c);
+                            } else {
+                                temporaryDescs.put(cmd, c);
+                            }
+                        } else if (descType == CmdLine.DescriptionType.METHOD) {
+                            temporaryDescs.put(cmd, descFun.apply(new CmdLine(line, head, tail, args, descType)));
                         } else {
-                            temporaryDescs.put(cmd, c);
+                            temporaryDescs.put(cmd, descFun.apply(new CmdLine(line, head, tail, args, descType)));
                         }
-                    } else if (descType == CmdLine.DescriptionType.METHOD) {
-                        temporaryDescs.put(cmd, descFun.apply(new CmdLine(line, head, tail, args, descType)));
-                    } else {
-                        temporaryDescs.put(cmd, descFun.apply(new CmdLine(line, head, tail, args, descType)));
                     }
                 }
                 return new Pair<String,Boolean>(cmd, descType == CmdLine.DescriptionType.COMMAND ? true : false);
@@ -1096,6 +1106,9 @@ public abstract class Widgets {
                     out = descriptions.get(command);
                 } else if (temporaryDescs.containsKey(command)) {
                     out = temporaryDescs.get(command);
+                } else if (volatileDescs.containsKey(command)) {
+                    out = volatileDescs.get(command);
+                    volatileDescs.remove(command);
                 }
                 return out;
             }
@@ -1103,6 +1116,7 @@ public abstract class Widgets {
             public void clearTemporaryDescs() {
                 temporaryDescs = new HashMap<>();
             }
+
         }
 
     }
