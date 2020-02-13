@@ -14,7 +14,7 @@ _jnanorc << 'include ' + ROOT + 'nanorc/*.nanorc\n'
 # console options
 #
 CONSOLE_OPTIONS = [:]
-CONSOLE_OPTIONS.trace = 1 
+CONSOLE_OPTIONS.trace = 1
 CONSOLE_OPTIONS.splitOutput = true
 #
 # custom Groovy pipes
@@ -29,4 +29,14 @@ pipe |!  '.each{' '}'
 pipe |#  '.take(' ')'
 pipe |&  '.' ' '
 pipe grep '.collect{it.toString()}.findAll{it=~/' '/}'
+alias null '|& identity{}' 
 alias xargs '|; %{0} %{1} %{2} %{3} %{4} %{5} %{6} %{7} %{8} %{9}'
+#
+# create test-widget and bind it to ctrl-alt-x 
+#
+def _testWidget() {
+    def name = _buffer().toString().split('\\s+')[0]
+    _widget "$name"
+}
+widget -N test-widget _testWidget 
+keymap '^[^x' test-widget

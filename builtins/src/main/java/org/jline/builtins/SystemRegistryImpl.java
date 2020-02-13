@@ -56,7 +56,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     };
 
     public enum Pipe {
-        FLIP, NAMED
+        FLIP, NAMED, AND, OR
     }
 
     private static final Class<?>[] BUILTIN_REGISTERIES = { Builtins.class, ConsoleEngineImpl.class };
@@ -84,6 +84,8 @@ public class SystemRegistryImpl implements SystemRegistry {
         doNameCommand();
         pipeName.put(Pipe.FLIP, "|;");
         pipeName.put(Pipe.NAMED, "|");
+        pipeName.put(Pipe.AND, "&&");
+        pipeName.put(Pipe.OR, "||");
         commandExecute.put(Command.EXIT, new CommandMethods(this::exit, this::exitCompleter));
         commandExecute.put(Command.HELP, new CommandMethods(this::help, this::helpCompleter));
     }
@@ -511,7 +513,8 @@ public class SystemRegistryImpl implements SystemRegistry {
                             pipeAlias = pipeAlias.replaceAll("\\s\\$" + j + "\\b", " " + args.get(j));
                             pipeAlias = pipeAlias.replaceAll("\\$\\{" + j + "(|:-.*)\\}", args.get(j));
                         }
-                        pipeAlias = pipeAlias.replaceAll("\\s\\$\\d\\b", "");
+                        pipeAlias = pipeAlias.replaceAll("\\s+\\$\\d\\b", "");
+                        pipeAlias = pipeAlias.replaceAll("\\s+\\$\\{\\d+\\}", "");
                         pipeAlias = pipeAlias.replaceAll("\\$\\{\\d+\\}", "");
                         Matcher matcher=Pattern.compile("\\$\\{\\d+:-(.*?)\\}").matcher(pipeAlias);
                         if (matcher.find()) {
@@ -600,6 +603,14 @@ public class SystemRegistryImpl implements SystemRegistry {
                         variable = pipeSource;
                         pipeStart = true;
                     }
+                } else if (words.get(i).equals(pipeName.get(Pipe.OR)) || words.get(i).equals(pipeName.get(Pipe.AND))) {
+                    pipes.add(words.get(i));
+                    last = i;
+                    lastarg = i;
+                    if (pipeResult != null) {
+                        variable = pipeResult;
+                        pipeResult = null;
+                    }
                 }
             }
             if (last == words.size()) {
@@ -629,10 +640,14 @@ public class SystemRegistryImpl implements SystemRegistry {
                     rawLine += fixes.get(0) + subLine + fixes.get(1);
                     statement = true;
                 }
-                if (pipes.get(pipes.size() - 1).equals(pipeName.get(Pipe.FLIP))) {
+                if (pipes.get(pipes.size() - 1).equals(pipeName.get(Pipe.FLIP))
+                        || pipes.get(pipes.size() - 1).equals(pipeName.get(Pipe.AND))
+                        || pipes.get(pipes.size() - 1).equals(pipeName.get(Pipe.OR))) {
                     done = true;
                     pipeSource = null;
-                    rawLine = variable + " = " + rawLine;
+                    if (variable != null) {
+                        rawLine = variable + " = " + rawLine;
+                    }
                 }
                 if (last + 1 >= words.size() || file != null) {
                     done = true;
@@ -652,7 +667,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             }
             if (done) {
                 String[] args = statement ? new String[] {} : arglist.toArray(new String[0]);
-                out.add(new CommandData(rawLine, statement ? "" : command, args, variable, file, append));
+                out.add(new CommandData(rawLine, statement ? "" : command, args, variable, file, append, pipes.get(pipes.size() - 1)));
                 rawLine = null;
             }
             first = last + 1;
@@ -679,14 +694,16 @@ public class SystemRegistryImpl implements SystemRegistry {
         private File file;
         private boolean append;
         private String variable;
+        private String pipe;
 
-        public CommandData(String rawLine, String command, String[] args, String variable, File file, boolean append) {
+        public CommandData(String rawLine, String command, String[] args, String variable, File file, boolean append, String pipe) {
             this.rawLine = rawLine;
             this.command = command;
             this.args = args;
             this.variable = variable;
             this.file = file;
             this.append = append;
+            this.pipe = pipe;
         }
 
         public File file() {
@@ -713,6 +730,10 @@ public class SystemRegistryImpl implements SystemRegistry {
             return rawLine;
         }
 
+        public String pipe() {
+            return pipe;
+        }
+
         @Override
         public String toString() {
             StringBuilder sb = new StringBuilder();
@@ -728,6 +749,8 @@ public class SystemRegistryImpl implements SystemRegistry {
             sb.append("file:").append(file);
             sb.append(", ");
             sb.append("append:").append(append);
+            sb.append(", ");
+            sb.append("pipe:").append(pipe);
             sb.append("]");
             return sb.toString();
         }
@@ -741,12 +764,11 @@ public class SystemRegistryImpl implements SystemRegistry {
         }
         Object out = null;
         boolean statement = false;
-        List<CommandData> cmds = compileCommandLine(line);
-        for (CommandData cmd : cmds) {
+        for (CommandData cmd : compileCommandLine(line)) {
             try {
                 outputStream.close();
                 outputStream.reset();
-                if (cmds.size() > 1) {
+                if (!consoleEngine().isExecuting()) {
                     trace(cmd);
                 }
                 exception = null;
@@ -789,6 +811,14 @@ public class SystemRegistryImpl implements SystemRegistry {
                         outputStream.reset();
                     }
                     out = consoleEngine().execute(cmd.command(), cmd.rawLine(), cmd.args());
+                }
+                if (cmd.pipe().equals(pipeName.get(Pipe.OR)) || cmd.pipe().equals(pipeName.get(Pipe.AND))) {
+                    consoleEngine().putVariable("_executionResult", out);
+                    boolean status = (boolean)consoleEngine().execute("", "_executionResult ? true : false", new String[] {}); // Groovy syntax!!!!
+                    if (   (cmd.pipe().equals(pipeName.get(Pipe.OR)) && status)
+                        || (cmd.pipe().equals(pipeName.get(Pipe.AND)) && !status)) {
+                        break;
+                    }
                 }
             } catch (HelpException e) {
                 trace(e);
