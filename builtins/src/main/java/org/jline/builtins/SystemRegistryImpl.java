@@ -493,6 +493,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         List<String> ws = pl.words();
         List<String> words = new ArrayList<>();
         String nextRawLine = "";
+        ArgsParser argsParser = new ArgsParser();
         Map<String,List<String>> customPipes = consoleId != null ? consoleEngine().getPipes() : new HashMap<>();
         if (consoleId != null && pl.words().contains(pipeName.get(Pipe.NAMED))) {
             StringBuilder sb = new StringBuilder();
@@ -522,10 +523,10 @@ public class SystemRegistryImpl implements SystemRegistry {
                         }
                         sb.append(pipeAlias);
                     } else {
-                        sb.append(ws.get(i));
+                        sb.append(argsParser.arg2Line(ws.get(i)));
                     }
                 } else {
-                    sb.append(ws.get(i));
+                    sb.append(argsParser.arg2Line(ws.get(i)));
                 }
                 sb.append(" ");
             }
@@ -562,8 +563,12 @@ public class SystemRegistryImpl implements SystemRegistry {
             File file = null;
             boolean append = false;
             boolean pipeStart = false;
-            for (int i = first + 1; i < last; i++) {
-                if (words.get(i).equals(">") || words.get(i).equals(">>")) {
+            argsParser = new ArgsParser();
+            for (int i = first; i < last; i++) {
+                argsParser.next(words.get(i));
+                if (argsParser.isEnclosed()) {
+                    // do nothing
+                } else if (words.get(i).equals(">") || words.get(i).equals(">>")) {
                     pipes.add(words.get(i));
                     append = words.get(i).equals(">>");
                     if (i + 2 != last) {
@@ -616,11 +621,12 @@ public class SystemRegistryImpl implements SystemRegistry {
             if (last == words.size()) {
                 pipes.add("END_PIPE");
             }
+            argsParser = new ArgsParser();
             String subLine = last < words.size() || first > 0
-                    ? words.subList(first, lastarg).stream().collect(Collectors.joining(" "))
+                    ? argsParser.join(words.subList(first, lastarg))
                     : pl.line();
             if (last + 1 < words.size()) {
-                nextRawLine = words.subList(last + 1, words.size()).stream().collect(Collectors.joining(" "));
+                nextRawLine = argsParser.join(words.subList(last + 1, words.size()));
             }
             boolean done = true;
             boolean statement = false;
@@ -673,6 +679,82 @@ public class SystemRegistryImpl implements SystemRegistry {
             first = last + 1;
         } while (first < words.size());
         return out;
+    }
+
+    private static class ArgsParser {
+        private int round = 0;
+        private int curly = 0;
+        private int square = 0;
+        private boolean quoted;
+        private boolean doubleQuoted;
+        private boolean unquotedSpace;
+        private boolean hasQuote;
+
+        public ArgsParser() {}
+
+        public void next(String arg) {
+            unquotedSpace = false;
+            hasQuote = false;
+            char prevChar = ' ';
+            for (int i = 0; i < arg.length(); i++) {
+                char c = arg.charAt(i);
+                if (prevChar != '\\') {
+                    if (!quoted && !doubleQuoted) {
+                        if (c == '(') {
+                            round++;
+                        } else if (c == ')') {
+                            round--;
+                        } else if (c == '{') {
+                            curly++;
+                        } else if (c == '}') {
+                            curly--;
+                        } else if (c == '[') {
+                            square++;
+                        } else if (c == ']') {
+                            square--;
+                        } else if (c == '"') {
+                            doubleQuoted = true;
+                        } else if (c == '\'') {
+                            quoted = true;
+                            hasQuote = true;
+                        } else if (c == ' ') {
+                            unquotedSpace = true;
+                        }
+                    } else if (quoted && c == '\'') {
+                        quoted = false;
+                    } else if (doubleQuoted && c == '"') {
+                        doubleQuoted = false;
+                    }
+                }
+                prevChar = c;
+            }
+        }
+
+        public boolean isEnclosed() {
+            return round != 0 || curly != 0 || square != 0 || quoted || doubleQuoted;
+        }
+
+        public String join(List<String> words) {
+            StringBuilder sb = new StringBuilder();
+            boolean first = true;
+            for (String w : words) {
+                if (!first) {
+                    sb.append(" ");
+                }
+                sb.append(arg2Line(w));
+                first = false;
+            }
+            return sb.toString();
+        }
+
+        public String arg2Line(String arg) {
+            String out = arg;
+            next(arg);
+            if (unquotedSpace) {
+                out = hasQuote ? "\"" + out + "\"" : "'" + out + "'";
+            }
+            return out;
+        }
     }
 
     private String flipArgument(final String command, final String subLine, final List<String> pipes, List<String> arglist) {
@@ -812,8 +894,11 @@ public class SystemRegistryImpl implements SystemRegistry {
                     }
                     out = consoleEngine().execute(cmd.command(), cmd.rawLine(), cmd.args());
                 }
-                if (cmd.pipe().equals(pipeName.get(Pipe.OR)) || cmd.pipe().equals(pipeName.get(Pipe.AND))) {
+                if (consoleId != null && cmd.pipe().equals(pipeName.get(Pipe.OR)) || cmd.pipe().equals(pipeName.get(Pipe.AND))) {
+                    out = postProcess(cmd, statement, out);
+                    consoleEngine().println(out);
                     consoleEngine().putVariable("_executionResult", out);
+                    out = null;
                     boolean status = (boolean)consoleEngine().execute("", "_executionResult ? true : false", new String[] {}); // Groovy syntax!!!!
                     if (   (cmd.pipe().equals(pipeName.get(Pipe.OR)) && status)
                         || (cmd.pipe().equals(pipeName.get(Pipe.AND)) && !status)) {
@@ -823,11 +908,19 @@ public class SystemRegistryImpl implements SystemRegistry {
             } catch (HelpException e) {
                 trace(e);
             } finally {
-                if (consoleId != null && !consoleEngine().isExecuting() && !statement) {
-                    outputStream.flush();
-                    out = consoleEngine().postProcess(cmd.rawLine(), out, outputStream.getOutput());
+                if (consoleId != null && !consoleEngine().isExecuting()) {
+                    out = postProcess(cmd, statement, out);
                 }
             }
+        }
+        return out;
+    }
+
+    private Object postProcess(CommandData cmd, boolean statement, Object result) {
+        Object out = result;
+        if (!statement) {
+            outputStream.flush();
+            out = consoleEngine().postProcess(cmd.rawLine(), result, outputStream.getOutput());
         }
         return out;
     }
