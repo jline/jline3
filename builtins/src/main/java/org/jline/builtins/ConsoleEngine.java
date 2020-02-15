@@ -131,7 +131,7 @@ public interface ConsoleEngine extends CommandRegistry {
      * @param output command redirected output
      * @return processed result
      */
-    Object postProcess(String line, Object result, String output);
+    ExecutionResult postProcess(String line, Object result, String output);
 
     /**
      * @param object object to print
@@ -182,6 +182,24 @@ public interface ConsoleEngine extends CommandRegistry {
      * @return true if consoleEngine is executing script
      */
     boolean isExecuting();
+    
+    static class ExecutionResult {
+        final int status;
+        final Object result;
+        
+        public ExecutionResult(int status, Object result) {
+            this.status = status;
+            this.result = result;
+        }
+        
+        public int status() {
+            return status;
+        }
+        
+        public Object result() {
+            return result;
+        }
+    }
 
     static class WidgetCreator implements Widget {
         private ConsoleEngine consoleEngine;

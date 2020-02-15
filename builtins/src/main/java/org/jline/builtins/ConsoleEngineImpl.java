@@ -632,6 +632,8 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         } catch (Exception e) {
             trace(e);
             return false;
+        } finally {
+            purge();
         }
         return true;
     }
@@ -651,9 +653,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
 
     @Override
-    public Object postProcess(String line, Object result, String output) {
-        Object out = result;
-        Object _output = output != null && splitCommandOutput() ? output.split("\\r?\\n") : output;
+    public ExecutionResult postProcess(String line, Object result, String output) {
+        ExecutionResult out = new ExecutionResult(1, null);
+        Object _output = output != null && !output.trim().isEmpty() && splitCommandOutput() ? output.split("\\r?\\n") : output;
         String consoleVar = parser().getVariable(line);
         if (consoleVar != null && result != null) {
             engine.put("output", _output);
@@ -661,37 +663,40 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         if (systemRegistry.hasCommand(parser().getCommand(line))) {
             out = postProcess(line, consoleVar != null && result == null ? _output : result);
         } else if (consoleVar != null) {
-            if (result == null) {
-                saveResult(consoleVar, _output);
-            }
-            out = null;
+            int status = saveResult(consoleVar, result == null ? _output : result);
+            out = new ExecutionResult(status, null);
         }
         return out;
     }
 
-    private Object postProcess(String line, Object result) {
-        Object out = result instanceof String && ((String)result).trim().length() == 0 ? null : result;
+    private ExecutionResult postProcess(String line, Object result) {
+        int status = 0;
+        Object out = result != null && result instanceof String && ((String)result).trim().isEmpty() ? null : result;
         String consoleVar = parser().getVariable(line);
         if (consoleVar != null) {
-            saveResult(consoleVar, result);
+            status = saveResult(consoleVar, result);
             out = null;
         } else if (!parser().getCommand(line).equals("show") && result != null) {
-            engine.put("_", result);
+            status = saveResult("_", result);
         }
-        return out;
+        return new ExecutionResult(status, out);
     }
 
-    private void saveResult(String var, Object result) {
-        if (var.contains(".") || var.contains("[")) {
+    private int saveResult(String var, Object result) {
+        int out = 0;
+        try {
             engine.put("_executionResult", result);
-            try {
+            if (var.contains(".") || var.contains("[")) {
                 engine.execute(var + " = _executionResult");
-            } catch (Exception e) {
-                trace(e);
+            } else {
+                engine.put(var, result);
             }
-        } else {
-            engine.put(var, result);
+            out = (int) engine.execute("_executionResult ? 0 : 1");
+        } catch (Exception e) {
+            trace(e);
+            out = 1;
         }
+        return out;
     }
 
     @Override

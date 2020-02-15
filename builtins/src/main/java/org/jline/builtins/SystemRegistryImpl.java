@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 import org.jline.builtins.Completers.OptDesc;
 import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.CommandRegistry;
+import org.jline.builtins.ConsoleEngine.ExecutionResult;
 import org.jline.builtins.Widgets;
 import org.jline.builtins.Builtins.CommandMethods;
 import org.jline.builtins.Options.HelpException;
@@ -559,24 +560,23 @@ public class SystemRegistryImpl implements SystemRegistry {
                 }
             }
             last = words.size();
-            int lastarg = last;
             File file = null;
             boolean append = false;
             boolean pipeStart = false;
             argsParser = new ArgsParser();
+            List<String> _words = new ArrayList<>();
             for (int i = first; i < last; i++) {
                 argsParser.next(words.get(i));
                 if (argsParser.isEnclosed()) {
-                    // do nothing
+                    _words.add(words.get(i));
                 } else if (words.get(i).equals(">") || words.get(i).equals(">>")) {
                     pipes.add(words.get(i));
                     append = words.get(i).equals(">>");
-                    if (i + 2 != last) {
+                    if (i + 1 >= last) {
                         throw new IllegalArgumentException();
                     }
                     file = new File(words.get(i + 1));
                     last = i + 1;
-                    lastarg = i;
                     break;
                 } else if (words.get(i).equals(pipeName.get(Pipe.FLIP))) {
                     if (variable != null || file != null || pipeResult != null || consoleId == null) {
@@ -584,7 +584,6 @@ public class SystemRegistryImpl implements SystemRegistry {
                     }
                     pipes.add(words.get(i));
                     last = i;
-                    lastarg = i;
                     variable = "_pipe" + (pipes.size() - 1);
                     break;
                 } else if (  words.get(i).equals(pipeName.get(Pipe.NAMED))
@@ -601,21 +600,35 @@ public class SystemRegistryImpl implements SystemRegistry {
                     }
                     pipes.add(pipe);
                     last = i;
-                    lastarg = i;
                     if (pipeSource == null) {
                         pipeSource = "_pipe" + (pipes.size() - 1);
                         pipeResult = variable;
                         variable = pipeSource;
                         pipeStart = true;
                     }
+                    break;
                 } else if (words.get(i).equals(pipeName.get(Pipe.OR)) || words.get(i).equals(pipeName.get(Pipe.AND))) {
-                    pipes.add(words.get(i));
-                    last = i;
-                    lastarg = i;
                     if (pipeResult != null) {
+                        pipes.add(words.get(i));
                         variable = pipeResult;
                         pipeResult = null;
+                    } else if (pipeSource != null
+                            || variable != null
+                            || pipes.size() > 0 && (
+                                   pipes.get(pipes.size() - 1).equals(">") 
+                                || pipes.get(pipes.size() - 1).equals(">>"))) {
+                        pipes.add(words.get(i));                        
+                    } else {
+                        pipes.add(pipeName.get(Pipe.FLIP));
+                        pipeSource = "_pipe" + (pipes.size() - 1);
+                        variable = pipeSource;
+                        pipeStart = true;
+                        i = i - 1;
                     }
+                    last = i;
+                    break;
+                } else {
+                    _words.add(words.get(i));
                 }
             }
             if (last == words.size()) {
@@ -623,7 +636,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             }
             argsParser = new ArgsParser();
             String subLine = last < words.size() || first > 0
-                    ? argsParser.join(words.subList(first, lastarg))
+                    ? argsParser.join(_words)
                     : pl.line();
             if (last + 1 < words.size()) {
                 nextRawLine = argsParser.join(words.subList(last + 1, words.size()));
@@ -631,7 +644,9 @@ public class SystemRegistryImpl implements SystemRegistry {
             boolean done = true;
             boolean statement = false;
             List<String> arglist = new ArrayList<>();
-            arglist.addAll(words.subList(first + 1, lastarg));
+            if (_words.size() > 0) {
+                arglist.addAll(_words.subList(1, _words.size()));
+            }
             if (rawLine != null || (pipes.size() > 1 && customPipes.containsKey(pipes.get(pipes.size() - 2)))) {
                 done = false;
                 if (rawLine == null) {
@@ -762,7 +777,9 @@ public class SystemRegistryImpl implements SystemRegistry {
         if (pipes.size() > 1 && pipes.get(pipes.size() - 2).equals(pipeName.get(Pipe.FLIP))) {
             String s = isCommandOrScript(command) ? "$" : "";
             out = subLine + " " + s + "_pipe" + (pipes.size() - 2);
-            arglist.add(s + "_pipe" + (pipes.size() - 2));
+            if (!command.isEmpty()) {
+                arglist.add(s + "_pipe" + (pipes.size() - 2));
+            }
         } else {
             out = subLine;
         }
@@ -895,13 +912,12 @@ public class SystemRegistryImpl implements SystemRegistry {
                     out = consoleEngine().execute(cmd.command(), cmd.rawLine(), cmd.args());
                 }
                 if (consoleId != null && cmd.pipe().equals(pipeName.get(Pipe.OR)) || cmd.pipe().equals(pipeName.get(Pipe.AND))) {
-                    out = postProcess(cmd, statement, out);
-                    consoleEngine().println(out);
-                    consoleEngine().putVariable("_executionResult", out);
+                    ExecutionResult er = postProcess(cmd, statement, out);
+                    consoleEngine().println(er.result());
                     out = null;
-                    boolean status = (boolean)consoleEngine().execute("", "_executionResult ? true : false", new String[] {}); // Groovy syntax!!!!
-                    if (   (cmd.pipe().equals(pipeName.get(Pipe.OR)) && status)
-                        || (cmd.pipe().equals(pipeName.get(Pipe.AND)) && !status)) {
+                    boolean success = er.status() == 0 ? true : false;
+                    if (   (cmd.pipe().equals(pipeName.get(Pipe.OR)) && success)
+                        || (cmd.pipe().equals(pipeName.get(Pipe.AND)) && !success)) {
                         break;
                     }
                 }
@@ -909,15 +925,15 @@ public class SystemRegistryImpl implements SystemRegistry {
                 trace(e);
             } finally {
                 if (consoleId != null && !consoleEngine().isExecuting()) {
-                    out = postProcess(cmd, statement, out);
+                    out = postProcess(cmd, statement, out).result();
                 }
             }
         }
         return out;
     }
 
-    private Object postProcess(CommandData cmd, boolean statement, Object result) {
-        Object out = result;
+    private ExecutionResult postProcess(CommandData cmd, boolean statement, Object result) {
+        ExecutionResult out = new ExecutionResult(result != null ? 0 : 1, result);
         if (!statement) {
             outputStream.flush();
             out = consoleEngine().postProcess(cmd.rawLine(), result, outputStream.getOutput());
