@@ -490,11 +490,10 @@ public class SystemRegistryImpl implements SystemRegistry {
 
     private List<CommandData> compileCommandLine(String commandLine) {
         List<CommandData> out = new ArrayList<>();
-        ParsedLine pl = parser.parse(commandLine, 0, ParseContext.ACCEPT_LINE);
+        ParsedLine pl = parser.parse(commandLine, 0, ParseContext.SPLIT_LINE);
         List<String> ws = pl.words();
         List<String> words = new ArrayList<>();
         String nextRawLine = "";
-        ArgsParser argsParser = new ArgsParser();
         Map<String,List<String>> customPipes = consoleId != null ? consoleEngine().getPipes() : new HashMap<>();
         if (consoleId != null && pl.words().contains(pipeName.get(Pipe.NAMED))) {
             StringBuilder sb = new StringBuilder();
@@ -524,15 +523,15 @@ public class SystemRegistryImpl implements SystemRegistry {
                         }
                         sb.append(pipeAlias);
                     } else {
-                        sb.append(argsParser.arg2Line(ws.get(i)));
+                        sb.append(ws.get(i));
                     }
                 } else {
-                    sb.append(argsParser.arg2Line(ws.get(i)));
+                    sb.append(ws.get(i));
                 }
                 sb.append(" ");
             }
             nextRawLine = sb.toString();
-            pl = parser.parse(nextRawLine, 0, ParseContext.ACCEPT_LINE);
+            pl = parser.parse(nextRawLine, 0, ParseContext.SPLIT_LINE);
             words = pl.words();
             if (trace) {
                 consoleEngine().trace(nextRawLine);
@@ -553,7 +552,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             if (parser.validCommandName(command) && consoleId != null) {
                 variable = parser.getVariable(words.get(first));
                 if (consoleEngine().hasAlias(command)) {
-                    pl = parser.parse(nextRawLine.replaceFirst(command, consoleEngine().getAlias(command)), 0, ParseContext.ACCEPT_LINE);
+                    pl = parser.parse(nextRawLine.replaceFirst(command, consoleEngine().getAlias(command)), 0, ParseContext.SPLIT_LINE);
                     command = ConsoleEngine.plainCommand(parser.getCommand(pl.word()));
                     words = pl.words();
                     first = 0;
@@ -563,7 +562,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             File file = null;
             boolean append = false;
             boolean pipeStart = false;
-            argsParser = new ArgsParser();
+            ArgsParser argsParser = new ArgsParser();
             List<String> _words = new ArrayList<>();
             for (int i = first; i < last; i++) {
                 argsParser.next(words.get(i));
@@ -634,12 +633,11 @@ public class SystemRegistryImpl implements SystemRegistry {
             if (last == words.size()) {
                 pipes.add("END_PIPE");
             }
-            argsParser = new ArgsParser();
             String subLine = last < words.size() || first > 0
-                    ? argsParser.join(_words)
+                    ? _words.stream().collect(Collectors.joining(" "))
                     : pl.line();
             if (last + 1 < words.size()) {
-                nextRawLine = argsParser.join(words.subList(last + 1, words.size()));
+                nextRawLine = words.subList(last + 1, words.size()).stream().collect(Collectors.joining(" "));
             }
             boolean done = true;
             boolean statement = false;
@@ -687,7 +685,13 @@ public class SystemRegistryImpl implements SystemRegistry {
                 rawLine = flipArgument(command, subLine, pipes, arglist);
             }
             if (done) {
-                String[] args = statement ? new String[] {} : arglist.toArray(new String[0]);
+                String[] args = new String[] {};
+                if (!statement) {
+                    ParsedLine plf = parser.parse(rawLine, 0, ParseContext.ACCEPT_LINE);
+                    if (plf.words().size() > 1) {
+                        args = plf.words().subList(1, plf.words().size()).toArray(new String[0]);
+                    }
+                }
                 out.add(new CommandData(rawLine, statement ? "" : command, args, variable, file, append, pipes.get(pipes.size() - 1)));
                 rawLine = null;
             }
@@ -702,14 +706,10 @@ public class SystemRegistryImpl implements SystemRegistry {
         private int square = 0;
         private boolean quoted;
         private boolean doubleQuoted;
-        private boolean unquotedSpace;
-        private boolean hasQuote;
 
         public ArgsParser() {}
 
         public void next(String arg) {
-            unquotedSpace = false;
-            hasQuote = false;
             char prevChar = ' ';
             for (int i = 0; i < arg.length(); i++) {
                 char c = arg.charAt(i);
@@ -731,9 +731,6 @@ public class SystemRegistryImpl implements SystemRegistry {
                             doubleQuoted = true;
                         } else if (c == '\'') {
                             quoted = true;
-                            hasQuote = true;
-                        } else if (c == ' ') {
-                            unquotedSpace = true;
                         }
                     } else if (quoted && c == '\'') {
                         quoted = false;
@@ -749,27 +746,6 @@ public class SystemRegistryImpl implements SystemRegistry {
             return round != 0 || curly != 0 || square != 0 || quoted || doubleQuoted;
         }
 
-        public String join(List<String> words) {
-            StringBuilder sb = new StringBuilder();
-            boolean first = true;
-            for (String w : words) {
-                if (!first) {
-                    sb.append(" ");
-                }
-                sb.append(arg2Line(w));
-                first = false;
-            }
-            return sb.toString();
-        }
-
-        public String arg2Line(String arg) {
-            String out = arg;
-            next(arg);
-            if (unquotedSpace) {
-                out = hasQuote ? "\"" + out + "\"" : "'" + out + "'";
-            }
-            return out;
-        }
     }
 
     private String flipArgument(final String command, final String subLine, final List<String> pipes, List<String> arglist) {

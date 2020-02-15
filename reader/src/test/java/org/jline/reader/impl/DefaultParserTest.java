@@ -10,6 +10,7 @@ package org.jline.reader.impl;
 
 import org.jline.reader.CompletingParsedLine;
 import org.jline.reader.ParsedLine;
+import org.jline.reader.Parser.ParseContext;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -66,4 +67,14 @@ public class DefaultParserTest {
         assertEquals("variable['key']", parser.getVariable("variable['key'] = statement"));
     }
 
+    @Test
+    public void testSplitLine() {
+        DefaultParser parser = new DefaultParser();
+        CompletingParsedLine line = (CompletingParsedLine) parser.parse("foo second\\ param \"quoted param\"", 0, ParseContext.SPLIT_LINE);
+        assertNotNull(line);
+        assertNotNull(line.words());
+        assertEquals("foo", line.words().get(0));
+        assertEquals("second\\ param", line.words().get(1));
+        assertEquals("\"quoted param\"", line.words().get(2));
+    }
 }

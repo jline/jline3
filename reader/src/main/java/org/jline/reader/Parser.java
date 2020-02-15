@@ -70,6 +70,12 @@ public interface Parser {
          */
         ACCEPT_LINE,
 
+        /** Parsed words will have all characters present in input line
+         * including quotes and escape chars.
+         * May throw EOFError in which case we have incomplete input.
+         */
+        SPLIT_LINE,
+
         /** Parse to find completions (typically after a Tab).
          * We should tolerate and ignore errors.
          */

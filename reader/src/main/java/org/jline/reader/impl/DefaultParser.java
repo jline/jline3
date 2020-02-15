@@ -238,12 +238,15 @@ public class DefaultParser implements Parser {
                 quoteStart = i;
                 if (current.length()==0) {
                     quotedWord = true;
+                    if (context == ParseContext.SPLIT_LINE) {
+                        current.append(line.charAt(i));
+                    }
                 } else {
                     current.append(line.charAt(i));
                 }
             } else if (quoteStart >= 0 && line.charAt(quoteStart) == line.charAt(i) && !isEscaped(line, i)) {
                 // End quote block
-                if (!quotedWord) {
+                if (!quotedWord || context == ParseContext.SPLIT_LINE) {
                     current.append(line.charAt(i));
                 } else if (rawWordCursor >= 0 && rawWordLength < 0) {
                     rawWordLength = i - rawWordStart + 1;
@@ -266,6 +269,8 @@ public class DefaultParser implements Parser {
                     if (quoteStart < 0) {
                         bracketChecker.check(line, i);
                     }
+                } else if (context == ParseContext.SPLIT_LINE) {
+                    current.append(line.charAt(i));
                 }
             }
         }
