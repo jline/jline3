@@ -911,9 +911,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 if (consoleId != null && cmd.pipe().equals(pipeName.get(Pipe.OR)) || cmd.pipe().equals(pipeName.get(Pipe.AND))) {
                     ExecutionResult er = postProcess(cmd, statement, out);
                     postProcessed = true;
-                    if (!consoleEngine().isExecuting()) {
-                        consoleEngine().println(er.result());
-                    }
+                    consoleEngine().println(er.result());
                     out = null;
                     boolean success = er.status() == 0 ? true : false;
                     if (   (cmd.pipe().equals(pipeName.get(Pipe.OR)) && success)
@@ -924,8 +922,11 @@ public class SystemRegistryImpl implements SystemRegistry {
             } catch (HelpException e) {
                 trace(e);
             } finally {
-                if (!postProcessed && consoleId != null && !consoleEngine().isExecuting()) {
+                if (!postProcessed && consoleId != null) {
                     out = postProcess(cmd, statement, out).result();
+                    if (consoleEngine().isExecuting()) {
+                        consoleEngine().println(out);                        
+                    }
                 }
             }
         }

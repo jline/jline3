@@ -32,7 +32,8 @@ pipe grep '.collect{it.toString()}.findAll{it=~/' '/}'
 alias null '|& identity{}' 
 alias xargs '|; %{0} %{1} %{2} %{3} %{4} %{5} %{6} %{7} %{8} %{9}'
 #
-# create test-widget and bind it to ctrl-alt-x 
+# create test-widget and bind it to ctrl-alt-x
+# It will read widget name from buffer and execute it
 #
 def _testWidget() {
     def name = _buffer().toString().split('\\s+')[0]
@@ -40,3 +41,18 @@ def _testWidget() {
 }
 widget -N test-widget _testWidget 
 keymap '^[^x' test-widget
+#
+# create _tailtip-toggle widget that changes also maximum candidates to display
+#
+def _tailTipToggle() {
+    def al = _reader.getWidgets().get('accept-line').toString()
+    def enabled = al == '_tailtip-accept-line' ? true : false
+    if (enabled) {
+        _reader.setVariable('LIST_MAX',100)
+    } else {
+        _reader.setVariable('LIST_MAX',50)
+    }
+    _widget 'tailtip-toggle'
+}
+widget -N _tailtip-toggle _tailTipToggle
+keymap '^[s' _tailtip-toggle

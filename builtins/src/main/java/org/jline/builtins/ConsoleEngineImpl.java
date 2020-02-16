@@ -455,7 +455,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                         internalExecute();
                     }
                 }
-            } else if (isScript()) {
+            } else {
                 internalExecute();
             }
             return true;
@@ -464,7 +464,6 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         private void internalExecute() throws Exception {
             if (isEngineScript()) {
                 result = engine.execute(script, expandParameters(args));
-                postProcess(cmdLine, result);
             } else if (isConsoleScript()) {
                 executing = true;
                 boolean done = false;
@@ -523,6 +522,28 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
         public Object getResult() {
             return result;
+        }
+
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append("[");
+            try {
+                sb.append("script:").append(script.getCanonicalPath());
+            } catch (Exception e) {
+                sb.append(e.getMessage());
+            }
+            sb.append(", ");
+            sb.append("extension:").append(extension);
+            sb.append(", ");
+            sb.append("cmdLine:").append(cmdLine);
+            sb.append(", ");
+            sb.append("args:").append(Arrays.asList(args));
+            sb.append(", ");
+            sb.append("verbose:").append(verbose);
+            sb.append(", ");
+            sb.append("result:").append(result);
+            sb.append("]");
+            return sb.toString();
         }
 
     }
@@ -639,11 +660,11 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     @SuppressWarnings("unchecked")
-    private boolean splitCommandOutput() {
-        boolean out = true;
+    private <T>T consoleOption(String option, T defval) {
+        T out = defval;
         try {
             if (engine.hasVariable(VAR_CONSOLE_OPTIONS)) {
-                out = (boolean) ((Map<String, Object>) engine.get(VAR_CONSOLE_OPTIONS)).getOrDefault("splitOutput", true);
+                out = (T) ((Map<String, Object>) engine.get(VAR_CONSOLE_OPTIONS)).getOrDefault(option, defval);
             }
         } catch (Exception e) {
             trace(new Exception("Bad CONSOLE_OPTION value: " + e.getMessage()));
@@ -651,20 +672,21 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return out;
     }
 
-
     @Override
     public ExecutionResult postProcess(String line, Object result, String output) {
         ExecutionResult out = new ExecutionResult(1, null);
-        Object _output = output != null && !output.trim().isEmpty() && splitCommandOutput() ? output.split("\\r?\\n") : output;
+        Object _output = output != null && !output.trim().isEmpty() && consoleOption("splitOutput", true) 
+                         ? output.split("\\r?\\n") : output;
         String consoleVar = parser().getVariable(line);
         if (consoleVar != null && result != null) {
             engine.put("output", _output);
         }
         if (systemRegistry.hasCommand(parser().getCommand(line))) {
             out = postProcess(line, consoleVar != null && result == null ? _output : result);
-        } else if (consoleVar != null) {
-            int status = saveResult(consoleVar, result == null ? _output : result);
-            out = new ExecutionResult(status, null);
+        } else {
+            Object _result = result == null ? _output : result;
+            int status = saveResult(consoleVar, _result);
+            out = new ExecutionResult(status, consoleVar != null ? null : _result);
         }
         return out;
     }
@@ -686,10 +708,12 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         int out = 0;
         try {
             engine.put("_executionResult", result);
-            if (var.contains(".") || var.contains("[")) {
-                engine.execute(var + " = _executionResult");
-            } else {
-                engine.put(var, result);
+            if (var != null) {
+                if (var.contains(".") || var.contains("[")) {
+                    engine.execute(var + " = _executionResult");
+                } else {
+                    engine.put(var, result);
+                }
             }
             out = (int) engine.execute("_executionResult ? 0 : 1");
         } catch (Exception e) {
@@ -737,10 +761,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     @Override
     public void trace(final Object object) {
         Object toPrint = object;
-        int level = 0;
-        if (engine.hasVariable(VAR_CONSOLE_OPTIONS)) {
-            level = (int) ((Map<String, Object>) engine.get(VAR_CONSOLE_OPTIONS)).getOrDefault("trace", 0);
-        }
+        int level = consoleOption("trace", 0);
         Map<String, Object> options = new HashMap<>();
         if (level < 2) {
             options.put("exception", "message");
