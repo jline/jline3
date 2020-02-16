@@ -8,6 +8,8 @@
  */
 package org.jline.builtins;
 
+import static org.jline.keymap.KeyMap.ctrl;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -391,7 +393,8 @@ public class SystemRegistryImpl implements SystemRegistry {
             out = new PrintStream(outputStream);
             System.setOut(out);
             System.setErr(out);
-            in = new ByteArrayInputStream( "".getBytes() );
+            String input = ctrl('X') + "q";
+            in = new ByteArrayInputStream( input.getBytes() );
             Attributes attrs = new Attributes();
             if (OSUtils.IS_WINDOWS) {
                 attrs.setInputFlag(InputFlag.IGNCR, true);
@@ -466,11 +469,17 @@ public class SystemRegistryImpl implements SystemRegistry {
                 output = null;
                 System.setOut(origOut);
                 System.setErr(origErr);
+                terminal = null;
                 terminal = origTerminal;
                 PrintStream ps = new PrintStream(terminal.output());
                 this.commandSession = new CommandRegistry.CommandSession(terminal, terminal.input(), ps, ps);
                 redirecting = false;
             }
+        }
+
+        public void closeAndReset() {
+            close();
+            reset();
         }
     }
 
@@ -562,6 +571,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             File file = null;
             boolean append = false;
             boolean pipeStart = false;
+            boolean skipPipe = false;
             ArgsParser argsParser = new ArgsParser();
             List<String> _words = new ArrayList<>();
             for (int i = first; i < last; i++) {
@@ -613,10 +623,14 @@ public class SystemRegistryImpl implements SystemRegistry {
                         pipeResult = null;
                     } else if (pipeSource != null
                             || variable != null
-                            || pipes.size() > 0 && (
+                            ) {
+                        pipes.add(words.get(i));                                                
+                    } else if (pipes.size() > 0 && (
                                    pipes.get(pipes.size() - 1).equals(">") 
                                 || pipes.get(pipes.size() - 1).equals(">>"))) {
-                        pipes.add(words.get(i));                        
+                        pipes.remove(pipes.size() - 1);
+                        out.get(out.size() - 1).setPipe(words.get(i));
+                        skipPipe = true;
                     } else {
                         pipes.add(pipeName.get(Pipe.FLIP));
                         pipeSource = "_pipe" + (pipes.size() - 1);
@@ -632,6 +646,9 @@ public class SystemRegistryImpl implements SystemRegistry {
             }
             if (last == words.size()) {
                 pipes.add("END_PIPE");
+            } else if (skipPipe) {
+                first = last + 1;
+                continue;
             }
             String subLine = last < words.size() || first > 0
                     ? _words.stream().collect(Collectors.joining(" "))
@@ -781,6 +798,10 @@ public class SystemRegistryImpl implements SystemRegistry {
             this.pipe = pipe;
         }
 
+        public void setPipe(String pipe) {
+            this.pipe = pipe;
+        }
+
         public File file() {
             return file;
         }
@@ -839,15 +860,16 @@ public class SystemRegistryImpl implements SystemRegistry {
         }
         Object out = null;
         boolean statement = false;
+        boolean postProcessed = false;
         for (CommandData cmd : compileCommandLine(line)) {
             try {
-                outputStream.close();
-                outputStream.reset();
+                outputStream.closeAndReset();
                 if (!consoleEngine().isExecuting()) {
                     trace(cmd);
                 }
                 exception = null;
                 statement = false;
+                postProcessed = false;
                 if (cmd.variable() != null || cmd.file() != null) {
                     if (cmd.file() != null) {
                         outputStream.redirect(cmd.file(), cmd.append());
@@ -882,14 +904,16 @@ public class SystemRegistryImpl implements SystemRegistry {
                         statement = true;
                     }
                     if (statement && outputStream.isByteStream()) {
-                        outputStream.close();
-                        outputStream.reset();
+                        outputStream.closeAndReset();
                     }
                     out = consoleEngine().execute(cmd.command(), cmd.rawLine(), cmd.args());
                 }
                 if (consoleId != null && cmd.pipe().equals(pipeName.get(Pipe.OR)) || cmd.pipe().equals(pipeName.get(Pipe.AND))) {
                     ExecutionResult er = postProcess(cmd, statement, out);
-                    consoleEngine().println(er.result());
+                    postProcessed = true;
+                    if (!consoleEngine().isExecuting()) {
+                        consoleEngine().println(er.result());
+                    }
                     out = null;
                     boolean success = er.status() == 0 ? true : false;
                     if (   (cmd.pipe().equals(pipeName.get(Pipe.OR)) && success)
@@ -900,7 +924,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             } catch (HelpException e) {
                 trace(e);
             } finally {
-                if (consoleId != null && !consoleEngine().isExecuting()) {
+                if (!postProcessed && consoleId != null && !consoleEngine().isExecuting()) {
                     out = postProcess(cmd, statement, out).result();
                 }
             }
@@ -910,7 +934,14 @@ public class SystemRegistryImpl implements SystemRegistry {
 
     private ExecutionResult postProcess(CommandData cmd, boolean statement, Object result) {
         ExecutionResult out = new ExecutionResult(result != null ? 0 : 1, result);
-        if (!statement) {
+        if (cmd.file() != null) {
+            int status = 1;
+            if (cmd.file().exists()) {
+                long delta = new Date().getTime() - cmd.file().lastModified();
+                status = delta < 100 ? 0 : 1;
+            }
+            out = new ExecutionResult(status, null);
+        } else if (!statement) {
             outputStream.flush();
             out = consoleEngine().postProcess(cmd.rawLine(), result, outputStream.getOutput());
         }
@@ -919,8 +950,7 @@ public class SystemRegistryImpl implements SystemRegistry {
 
     public void cleanUp() {
         if (outputStream.isRedirecting()) {
-            outputStream.close();
-            outputStream.reset();
+            outputStream.closeAndReset();
         }
         if (consoleId != null) {
             consoleEngine().purge();
@@ -939,8 +969,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     @Override
     public void trace(Exception exception) {
         if (outputStream.isRedirecting()) {
-            outputStream.close();
-            outputStream.reset();
+            outputStream.closeAndReset();
         }
         if (consoleId != null) {
             consoleEngine().putVariable("exception", exception);
