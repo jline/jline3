@@ -134,6 +134,13 @@ public interface ConsoleEngine extends CommandRegistry {
     ExecutionResult postProcess(String line, Object result, String output);
 
     /**
+     * Post processes execution result.
+     * @param result command result to process
+     * @return processed result
+     */
+    ExecutionResult postProcess(Object result);
+
+    /**
      * @param object object to print
      */
     void trace(Object object);
@@ -182,20 +189,20 @@ public interface ConsoleEngine extends CommandRegistry {
      * @return true if consoleEngine is executing script
      */
     boolean isExecuting();
-    
+
     static class ExecutionResult {
         final int status;
         final Object result;
-        
+
         public ExecutionResult(int status, Object result) {
             this.status = status;
             this.result = result;
         }
-        
+
         public int status() {
             return status;
         }
-        
+
         public Object result() {
             return result;
         }

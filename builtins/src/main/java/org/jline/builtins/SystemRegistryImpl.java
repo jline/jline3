@@ -482,6 +482,11 @@ public class SystemRegistryImpl implements SystemRegistry {
             reset();
         }
     }
+    
+    private boolean isPipe(String arg) {
+        Map<String,List<String>> customPipes = consoleId != null ? consoleEngine().getPipes() : new HashMap<>();
+        return isPipe(arg, customPipes.keySet());
+    }
 
     private boolean hasPipes(Collection<String> args) {
         Map<String,List<String>> customPipes = consoleId != null ? consoleEngine().getPipes() : new HashMap<>();
@@ -556,15 +561,17 @@ public class SystemRegistryImpl implements SystemRegistry {
         String rawLine = null;
         String pipeResult = null;
         do {
-            String variable = null;
             String command = ConsoleEngine.plainCommand(parser.getCommand(words.get(first)));
+            String variable = variable = parser.getVariable(words.get(first));
             if (parser.validCommandName(command) && consoleId != null) {
-                variable = parser.getVariable(words.get(first));
                 if (consoleEngine().hasAlias(command)) {
-                    pl = parser.parse(nextRawLine.replaceFirst(command, consoleEngine().getAlias(command)), 0, ParseContext.SPLIT_LINE);
-                    command = ConsoleEngine.plainCommand(parser.getCommand(pl.word()));
-                    words = pl.words();
-                    first = 0;
+                    String value = consoleEngine().getAlias(command).split("\\s+")[0];
+                    if (!isPipe(value)) {
+                        pl = parser.parse(nextRawLine.replaceFirst(command, consoleEngine().getAlias(command)), 0, ParseContext.SPLIT_LINE);
+                        command = ConsoleEngine.plainCommand(parser.getCommand(pl.word()));
+                        words = pl.words();
+                        first = 0;
+                    }
                 }
             }
             last = words.size();
@@ -617,16 +624,10 @@ public class SystemRegistryImpl implements SystemRegistry {
                     }
                     break;
                 } else if (words.get(i).equals(pipeName.get(Pipe.OR)) || words.get(i).equals(pipeName.get(Pipe.AND))) {
-                    if (pipeResult != null) {
+                    if (variable != null || pipeSource != null) {
                         pipes.add(words.get(i));
-                        variable = pipeResult;
-                        pipeResult = null;
-                    } else if (pipeSource != null
-                            || variable != null
-                            ) {
-                        pipes.add(words.get(i));                                                
                     } else if (pipes.size() > 0 && (
-                                   pipes.get(pipes.size() - 1).equals(">") 
+                                   pipes.get(pipes.size() - 1).equals(">")
                                 || pipes.get(pipes.size() - 1).equals(">>"))) {
                         pipes.remove(pipes.size() - 1);
                         out.get(out.size() - 1).setPipe(words.get(i));
@@ -634,6 +635,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                     } else {
                         pipes.add(pipeName.get(Pipe.FLIP));
                         pipeSource = "_pipe" + (pipes.size() - 1);
+                        pipeResult = variable;
                         variable = pipeSource;
                         pipeStart = true;
                         i = i - 1;
@@ -710,6 +712,11 @@ public class SystemRegistryImpl implements SystemRegistry {
                     }
                 }
                 out.add(new CommandData(rawLine, statement ? "" : command, args, variable, file, append, pipes.get(pipes.size() - 1)));
+                if ( pipes.get(pipes.size() - 1).equals(pipeName.get(Pipe.AND))
+                  || pipes.get(pipes.size() - 1).equals(pipeName.get(Pipe.OR))) {
+                    pipeSource = null;
+                    pipeResult = null;
+                }
                 rawLine = null;
             }
             first = last + 1;
@@ -861,7 +868,9 @@ public class SystemRegistryImpl implements SystemRegistry {
         Object out = null;
         boolean statement = false;
         boolean postProcessed = false;
-        for (CommandData cmd : compileCommandLine(line)) {
+        List<CommandData> cmds = compileCommandLine(line);
+        for (int i = 0; i < cmds.size(); i++) {
+            CommandData cmd = cmds.get(i);
             try {
                 outputStream.closeAndReset();
                 if (!consoleEngine().isExecuting()) {
@@ -921,11 +930,23 @@ public class SystemRegistryImpl implements SystemRegistry {
                 }
             } catch (HelpException e) {
                 trace(e);
+            } catch (Exception e) {
+                if (cmd.pipe().equals(pipeName.get(Pipe.OR))) {
+                    trace(e);
+                    postProcessed = true;
+                } else if (cmd.pipe().equals(pipeName.get(Pipe.FLIP))
+                        && i + 1 < cmds.size() && cmds.get(i + 1).pipe().equals(pipeName.get(Pipe.OR)) ) {
+                    i++;
+                    trace(e);
+                    postProcessed = true;
+                } else {
+                    throw e;
+                }
             } finally {
                 if (!postProcessed && consoleId != null) {
                     out = postProcess(cmd, statement, out).result();
                     if (consoleEngine().isExecuting()) {
-                        consoleEngine().println(out);                        
+                        consoleEngine().println(out);
                     }
                 }
             }
@@ -945,6 +966,10 @@ public class SystemRegistryImpl implements SystemRegistry {
         } else if (!statement) {
             outputStream.flush();
             out = consoleEngine().postProcess(cmd.rawLine(), result, outputStream.getOutput());
+        } else if (cmd.variable() != null) {
+            out = consoleEngine().postProcess(consoleEngine().getVariable(cmd.variable()));
+        } else {
+            out = consoleEngine().postProcess(result);
         }
         return out;
     }

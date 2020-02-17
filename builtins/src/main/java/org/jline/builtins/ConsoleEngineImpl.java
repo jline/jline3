@@ -675,7 +675,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     @Override
     public ExecutionResult postProcess(String line, Object result, String output) {
         ExecutionResult out = new ExecutionResult(1, null);
-        Object _output = output != null && !output.trim().isEmpty() && consoleOption("splitOutput", true) 
+        Object _output = output != null && !output.trim().isEmpty() && consoleOption("splitOutput", true)
                          ? output.split("\\r?\\n") : output;
         String consoleVar = parser().getVariable(line);
         if (consoleVar != null && result != null) {
@@ -698,10 +698,19 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         if (consoleVar != null) {
             status = saveResult(consoleVar, result);
             out = null;
-        } else if (!parser().getCommand(line).equals("show") && result != null) {
-            status = saveResult("_", result);
+        } else if (!parser().getCommand(line).equals("show")) {
+            if (result != null) {
+                status = saveResult("_", result);
+            } else {
+                status = 1;
+            }
         }
         return new ExecutionResult(status, out);
+    }
+
+    @Override
+    public ExecutionResult postProcess(Object result) {
+        return new ExecutionResult(saveResult(null, result), result);
     }
 
     private int saveResult(String var, Object result) {
@@ -812,8 +821,11 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     private void highlight(int attrStyle, Object obj) {
         AttributedStringBuilder asb = new AttributedStringBuilder();
-        asb.append(obj.toString(), AttributedStyle.DEFAULT.foreground(attrStyle));
-        asb.toAttributedString().println(terminal());
+        String tp = obj.toString();
+        if (!tp.isEmpty()) {
+            asb.append(tp, AttributedStyle.DEFAULT.foreground(attrStyle));
+            asb.toAttributedString().println(terminal());
+        }
     }
 
     private void highlight(int width, String style, String object) {
