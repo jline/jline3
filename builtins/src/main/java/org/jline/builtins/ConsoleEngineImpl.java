@@ -219,7 +219,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     public List<Completer> scriptCompleters() {
         List<Completer> out = new ArrayList<>();
         out.add(new ArgumentCompleter(new StringsCompleter(this::variables), NullCompleter.INSTANCE));
-        out.add(new ArgumentCompleter(new StringsCompleter(this::scripts)
+        out.add(new ArgumentCompleter(new StringsCompleter(this::scriptNames)
                                     , new OptionCompleter(NullCompleter.INSTANCE
                                                         , this::commandOptions
                                                         , 1)
@@ -228,10 +228,14 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return out;
     }
 
+    private Set<String> scriptNames() {
+        return scripts().keySet();
+    }
+
     @SuppressWarnings("unchecked")
     @Override
-    public List<String> scripts() {
-        List<String> out = new ArrayList<>();
+    public Map<String, Boolean> scripts() {
+        Map<String, Boolean> out = new HashMap<>();
         try {
             List<Path> scripts = new ArrayList<>();
             if (engine.hasVariable(VAR_PATH)) {
@@ -246,7 +250,8 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             }
             for (Path p : scripts) {
                 String name = p.toFile().getName();
-                out.add(name.substring(0, name.lastIndexOf(".")));
+                int idx = name.lastIndexOf(".");
+                out.put(name.substring(0, idx), name.substring(idx + 1).equals(scriptExtension));
             }
         } catch (Exception e) {
             trace(e);
@@ -639,6 +644,11 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         }
         return engine.get(name);
     }
+    
+    @Override
+    public boolean hasVariable(String name) {
+        return engine.hasVariable(name);
+    }
 
     @Override
     public boolean executeWidget(Object function) {
@@ -686,7 +696,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         } else {
             Object _result = result == null ? _output : result;
             int status = saveResult(consoleVar, _result);
-            out = new ExecutionResult(status, consoleVar != null ? null : _result);
+            out = new ExecutionResult(status, consoleVar != null && !consoleVar.startsWith("_") ? null : _result);
         }
         return out;
     }
@@ -697,7 +707,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         String consoleVar = parser().getVariable(line);
         if (consoleVar != null) {
             status = saveResult(consoleVar, result);
-            out = null;
+            if (!consoleVar.startsWith("_")) {
+                out = null;
+            }
         } else if (!parser().getCommand(line).equals("show")) {
             if (result != null) {
                 status = saveResult("_", result);

@@ -55,9 +55,9 @@ public interface ConsoleEngine extends CommandRegistry {
 
     /**
      * Returns all scripts found from PATH
-     * @return script file names
+     * @return map keys have script file names and value is true if it is console script
      */
-    List<String> scripts();
+    Map<String, Boolean> scripts();
 
     /**
      * Sets file name extension used by console scripts
@@ -171,6 +171,13 @@ public interface ConsoleEngine extends CommandRegistry {
      * @return variable value
      */
     Object getVariable(String name);
+
+    /**
+     * Test if variable with name exists
+     * @param name name of the variable
+     * @return true if variable with name exists 
+     */
+    boolean hasVariable(String name);
 
     /**
      * Delete temporary console variables

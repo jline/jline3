@@ -190,6 +190,10 @@ public class SystemRegistryImpl implements SystemRegistry {
         return new ArrayList<>();
     }
 
+    private Set<String> scripts() {
+        return consoleEngine().scripts().keySet();
+    }
+
     @Override
     public List<String> commandInfo(String command) {
         int id = registryId(command);
@@ -199,7 +203,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 commandInfos.put(command, commandRegistries[id].commandInfo(command));
             }
             out = commandInfos.get(command);
-        } else if (consoleId > -1 && consoleEngine().scripts().contains(command)) {
+        } else if (consoleId > -1 && scripts().contains(command)) {
             out = consoleEngine().commandInfo(command);
         } else if (isLocalCommand(command)) {
             out = localCommandInfo(command);
@@ -220,7 +224,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         if (hasCommand(command)) {
             return true;
         }
-        return consoleId > -1 ? consoleEngine().scripts().contains(command) : false;
+        return consoleId > -1 ? scripts().contains(command) : false;
     }
 
     @Override
@@ -267,7 +271,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         int id = registryId(command);
         if (id > -1) {
             out = commandRegistries[id].commandDescription(command);
-        } else if (consoleId > -1 && consoleEngine().scripts().contains(command)) {
+        } else if (consoleId > -1 && scripts().contains(command)) {
             out = consoleEngine().commandDescription(command);
         } else if (isLocalCommand(command)) {
             out = localCommandDescription(command);
@@ -482,7 +486,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             reset();
         }
     }
-    
+
     private boolean isPipe(String arg) {
         Map<String,List<String>> customPipes = consoleId != null ? consoleEngine().getPipes() : new HashMap<>();
         return isPipe(arg, customPipes.keySet());
@@ -509,6 +513,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         List<String> words = new ArrayList<>();
         String nextRawLine = "";
         Map<String,List<String>> customPipes = consoleId != null ? consoleEngine().getPipes() : new HashMap<>();
+        Map<String, Boolean> scripts = consoleEngine().scripts();
         if (consoleId != null && pl.words().contains(pipeName.get(Pipe.NAMED))) {
             StringBuilder sb = new StringBuilder();
             boolean trace = false;
@@ -562,7 +567,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         String pipeResult = null;
         do {
             String command = ConsoleEngine.plainCommand(parser.getCommand(words.get(first)));
-            String variable = variable = parser.getVariable(words.get(first));
+            String variable = parser.getVariable(words.get(first));
             if (parser.validCommandName(command) && consoleId != null) {
                 if (consoleEngine().hasAlias(command)) {
                     String value = consoleEngine().getAlias(command).split("\\s+")[0];
@@ -573,6 +578,9 @@ public class SystemRegistryImpl implements SystemRegistry {
                         first = 0;
                     }
                 }
+            }
+            if (!hasCommand(command) && scripts.getOrDefault(command, false)) {
+                 throw new IllegalArgumentException("Console scripts cannot be used in pipe!");
             }
             last = words.size();
             File file = null;
@@ -633,12 +641,11 @@ public class SystemRegistryImpl implements SystemRegistry {
                         out.get(out.size() - 1).setPipe(words.get(i));
                         skipPipe = true;
                     } else {
-                        pipes.add(pipeName.get(Pipe.FLIP));
+                        pipes.add(words.get(i));
                         pipeSource = "_pipe" + (pipes.size() - 1);
                         pipeResult = variable;
                         variable = pipeSource;
                         pipeStart = true;
-                        i = i - 1;
                     }
                     last = i;
                     break;
@@ -909,7 +916,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                     consoleScript = true;
                 }
                 if (consoleScript) {
-                    if (cmd.command().isEmpty() || !consoleEngine().scripts().contains(cmd.command())) {
+                    if (cmd.command().isEmpty() || !scripts().contains(cmd.command())) {
                         statement = true;
                     }
                     if (statement && outputStream.isByteStream()) {
@@ -965,9 +972,18 @@ public class SystemRegistryImpl implements SystemRegistry {
             out = new ExecutionResult(status, null);
         } else if (!statement) {
             outputStream.flush();
+            outputStream.close();
             out = consoleEngine().postProcess(cmd.rawLine(), result, outputStream.getOutput());
+            outputStream.reset();            
         } else if (cmd.variable() != null) {
-            out = consoleEngine().postProcess(consoleEngine().getVariable(cmd.variable()));
+            if (consoleEngine().hasVariable(cmd.variable())) {
+                out = consoleEngine().postProcess(consoleEngine().getVariable(cmd.variable()));
+            } else {
+                out = consoleEngine().postProcess(result);
+            }
+            if (!cmd.variable().startsWith("_")) {
+                out = new ExecutionResult(out.status(), null);
+            }
         } else {
             out = consoleEngine().postProcess(result);
         }
@@ -1082,7 +1098,7 @@ public class SystemRegistryImpl implements SystemRegistry {
 
         Set<String> commands = commandNames();
         if (consoleId > -1) {
-            commands.addAll(consoleEngine().scripts());
+            commands.addAll(scripts());
         }
         boolean withInfo = commands.size() < terminal().getHeight() || !opt.args().isEmpty() ? true : false;
         int max = Collections.max(commands, Comparator.comparing(String::length)).length() + 1;
@@ -1125,11 +1141,11 @@ public class SystemRegistryImpl implements SystemRegistry {
         if (consoleId > -1 && isInArgs(opt.args(), "Scripts")) {
             printHeader("Scripts");
             if (withInfo) {
-                for (String c : consoleEngine().scripts()) {
+                for (String c : scripts()) {
                     printCommandInfo(c, doCommandInfo(commandInfo(c)), max);
                 }
             } else {
-                printCommands(consoleEngine().scripts(), max);
+                printCommands(scripts(), max);
             }
         }
         terminal().flush();
