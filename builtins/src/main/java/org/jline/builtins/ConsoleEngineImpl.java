@@ -498,7 +498,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                                 asb.toAttributedString().println(terminal());
                                 terminal().flush();
                             }
-                            systemRegistry.execute(line);
+                            println(systemRegistry.execute(line));
                             line = "";
                         } catch (EOFError e) {
                             done = false;
@@ -507,7 +507,8 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                             throw e;
                         } catch (EndOfFileException e) {
                             done = true;
-                            executing = false;
+                            result = engine.get("_return");
+                            postProcess(cmdLine, result);
                             break;
                         } catch (Exception e) {
                             executing = false;
@@ -519,8 +520,6 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                         throw new IllegalArgumentException("Incompleted command: \n" + line);
                     }
                     executing = false;
-                    result = engine.get("_return");
-                    postProcess(cmdLine, result);
                 }
             }
         }

@@ -11,8 +11,8 @@ array.each {
     def resp
     resp=:show
     :prnt $resp
-}
+}.identity{}
 
 println('hello ' + ${1:-world} + '!')
 
-_return='ok' 
+exit 'ok' 

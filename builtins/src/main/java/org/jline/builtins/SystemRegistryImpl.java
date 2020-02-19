@@ -75,6 +75,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     private Map<String, List<String>> commandInfos = new HashMap<>();
     private Exception exception;
     private CommandOutputStream outputStream;
+    private ScriptStore scriptStore = new ScriptStore();
 
     public SystemRegistryImpl(Parser parser, Terminal terminal, ConfigurationPath configPath) {
         this.parser = parser;
@@ -119,6 +120,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 } else {
                     this.consoleId = i;
                     ((ConsoleEngine) commandRegistries[i]).setSystemRegistry(this);
+                    this.scriptStore = new ScriptStore((ConsoleEngine)commandRegistries[i]);
                 }
             } else if (commandRegistries[i] instanceof SystemRegistry) {
                 throw new IllegalArgumentException();
@@ -190,10 +192,6 @@ public class SystemRegistryImpl implements SystemRegistry {
         return new ArrayList<>();
     }
 
-    private Set<String> scripts() {
-        return consoleEngine().scripts().keySet();
-    }
-
     @Override
     public List<String> commandInfo(String command) {
         int id = registryId(command);
@@ -203,7 +201,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 commandInfos.put(command, commandRegistries[id].commandInfo(command));
             }
             out = commandInfos.get(command);
-        } else if (consoleId > -1 && scripts().contains(command)) {
+        } else if (scriptStore.hasScript(command)) {
             out = consoleEngine().commandInfo(command);
         } else if (isLocalCommand(command)) {
             out = localCommandInfo(command);
@@ -224,7 +222,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         if (hasCommand(command)) {
             return true;
         }
-        return consoleId > -1 ? scripts().contains(command) : false;
+        return scriptStore.hasScript(command);
     }
 
     @Override
@@ -271,7 +269,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         int id = registryId(command);
         if (id > -1) {
             out = commandRegistries[id].commandDescription(command);
-        } else if (consoleId > -1 && scripts().contains(command)) {
+        } else if (scriptStore.hasScript(command)) {
             out = consoleEngine().commandDescription(command);
         } else if (isLocalCommand(command)) {
             out = localCommandDescription(command);
@@ -513,7 +511,6 @@ public class SystemRegistryImpl implements SystemRegistry {
         List<String> words = new ArrayList<>();
         String nextRawLine = "";
         Map<String,List<String>> customPipes = consoleId != null ? consoleEngine().getPipes() : new HashMap<>();
-        Map<String, Boolean> scripts = consoleEngine().scripts();
         if (consoleId != null && pl.words().contains(pipeName.get(Pipe.NAMED))) {
             StringBuilder sb = new StringBuilder();
             boolean trace = false;
@@ -565,169 +562,182 @@ public class SystemRegistryImpl implements SystemRegistry {
         String pipeSource = null;
         String rawLine = null;
         String pipeResult = null;
-        do {
-            String command = ConsoleEngine.plainCommand(parser.getCommand(words.get(first)));
-            String variable = parser.getVariable(words.get(first));
-            if (parser.validCommandName(command) && consoleId != null) {
-                if (consoleEngine().hasAlias(command)) {
-                    String value = consoleEngine().getAlias(command).split("\\s+")[0];
-                    if (!isPipe(value)) {
-                        pl = parser.parse(nextRawLine.replaceFirst(command, consoleEngine().getAlias(command)), 0, ParseContext.SPLIT_LINE);
-                        command = ConsoleEngine.plainCommand(parser.getCommand(pl.word()));
-                        words = pl.words();
-                        first = 0;
+        boolean pipeLine = hasPipes(words) || words.contains(">") || words.contains(">>");
+        if (!pipeLine) {
+            String[] args = new String[] {};
+            ParsedLine plf = parser.parse(nextRawLine, 0, ParseContext.ACCEPT_LINE);
+            if (plf.words().size() > 1) {
+                args = plf.words().subList(1, plf.words().size()).toArray(new String[0]);
+            }
+            String command = ConsoleEngine.plainCommand(parser.getCommand(plf.words().get(0)));
+            String variable = parser.getVariable(plf.words().get(0));
+            out.add(new CommandData(nextRawLine, command, args, variable, null, false,""));
+        } else {
+            do {
+                String command = ConsoleEngine.plainCommand(parser.getCommand(words.get(first)));
+                String variable = parser.getVariable(words.get(first));
+                if (parser.validCommandName(command) && consoleId != null) {
+                    if (consoleEngine().hasAlias(command)) {
+                        String value = consoleEngine().getAlias(command).split("\\s+")[0];
+                        if (!isPipe(value)) {
+                            pl = parser.parse(nextRawLine.replaceFirst(command, consoleEngine().getAlias(command)), 0,
+                                    ParseContext.SPLIT_LINE);
+                            command = ConsoleEngine.plainCommand(parser.getCommand(pl.word()));
+                            words = pl.words();
+                            first = 0;
+                        }
                     }
                 }
-            }
-            if (!hasCommand(command) && scripts.getOrDefault(command, false)) {
-                 throw new IllegalArgumentException("Console scripts cannot be used in pipe!");
-            }
-            last = words.size();
-            File file = null;
-            boolean append = false;
-            boolean pipeStart = false;
-            boolean skipPipe = false;
-            ArgsParser argsParser = new ArgsParser();
-            List<String> _words = new ArrayList<>();
-            for (int i = first; i < last; i++) {
-                argsParser.next(words.get(i));
-                if (argsParser.isEnclosed()) {
-                    _words.add(words.get(i));
-                } else if (words.get(i).equals(">") || words.get(i).equals(">>")) {
-                    pipes.add(words.get(i));
-                    append = words.get(i).equals(">>");
-                    if (i + 1 >= last) {
-                        throw new IllegalArgumentException();
-                    }
-                    file = new File(words.get(i + 1));
-                    last = i + 1;
-                    break;
-                } else if (words.get(i).equals(pipeName.get(Pipe.FLIP))) {
-                    if (variable != null || file != null || pipeResult != null || consoleId == null) {
-                        throw new IllegalArgumentException();
-                    }
-                    pipes.add(words.get(i));
-                    last = i;
-                    variable = "_pipe" + (pipes.size() - 1);
-                    break;
-                } else if (  words.get(i).equals(pipeName.get(Pipe.NAMED))
-                         || (words.get(i).matches("^.*[^a-zA-Z0-9 ].*$") && customPipes.containsKey(words.get(i)))) {
-                    String pipe = words.get(i);
-                    if (pipe.equals(pipeName.get(Pipe.NAMED))) {
+                if (scriptStore.isConsoleScript(command)) {
+                    throw new IllegalArgumentException("Console scripts cannot be used in pipe!");
+                }
+                last = words.size();
+                File file = null;
+                boolean append = false;
+                boolean pipeStart = false;
+                boolean skipPipe = false;
+                ArgsParser argsParser = new ArgsParser();
+                List<String> _words = new ArrayList<>();
+                for (int i = first; i < last; i++) {
+                    argsParser.next(words.get(i));
+                    if (argsParser.isEnclosed()) {
+                        _words.add(words.get(i));
+                    } else if (words.get(i).equals(">") || words.get(i).equals(">>")) {
+                        pipes.add(words.get(i));
+                        append = words.get(i).equals(">>");
                         if (i + 1 >= last) {
-                            throw new IllegalArgumentException("Pipe is NULL!");
+                            throw new IllegalArgumentException();
                         }
-                        pipe = words.get(i + 1);
-                        if (!pipe.matches("\\w+") || !customPipes.containsKey(pipe)) {
-                            throw new IllegalArgumentException("Unknown or illegal pipe name: " + pipe);
+                        file = new File(words.get(i + 1));
+                        last = i + 1;
+                        break;
+                    } else if (words.get(i).equals(pipeName.get(Pipe.FLIP))) {
+                        if (variable != null || file != null || pipeResult != null || consoleId == null) {
+                            throw new IllegalArgumentException();
                         }
-                    }
-                    pipes.add(pipe);
-                    last = i;
-                    if (pipeSource == null) {
-                        pipeSource = "_pipe" + (pipes.size() - 1);
-                        pipeResult = variable;
-                        variable = pipeSource;
-                        pipeStart = true;
-                    }
-                    break;
-                } else if (words.get(i).equals(pipeName.get(Pipe.OR)) || words.get(i).equals(pipeName.get(Pipe.AND))) {
-                    if (variable != null || pipeSource != null) {
                         pipes.add(words.get(i));
-                    } else if (pipes.size() > 0 && (
-                                   pipes.get(pipes.size() - 1).equals(">")
+                        last = i;
+                        variable = "_pipe" + (pipes.size() - 1);
+                        break;
+                    } else if (words.get(i).equals(pipeName.get(Pipe.NAMED))
+                            || (words.get(i).matches("^.*[^a-zA-Z0-9 ].*$") && customPipes.containsKey(words.get(i)))) {
+                        String pipe = words.get(i);
+                        if (pipe.equals(pipeName.get(Pipe.NAMED))) {
+                            if (i + 1 >= last) {
+                                throw new IllegalArgumentException("Pipe is NULL!");
+                            }
+                            pipe = words.get(i + 1);
+                            if (!pipe.matches("\\w+") || !customPipes.containsKey(pipe)) {
+                                throw new IllegalArgumentException("Unknown or illegal pipe name: " + pipe);
+                            }
+                        }
+                        pipes.add(pipe);
+                        last = i;
+                        if (pipeSource == null) {
+                            pipeSource = "_pipe" + (pipes.size() - 1);
+                            pipeResult = variable;
+                            variable = pipeSource;
+                            pipeStart = true;
+                        }
+                        break;
+                    } else if (words.get(i).equals(pipeName.get(Pipe.OR))
+                            || words.get(i).equals(pipeName.get(Pipe.AND))) {
+                        if (variable != null || pipeSource != null) {
+                            pipes.add(words.get(i));
+                        } else if (pipes.size() > 0 && (pipes.get(pipes.size() - 1).equals(">")
                                 || pipes.get(pipes.size() - 1).equals(">>"))) {
-                        pipes.remove(pipes.size() - 1);
-                        out.get(out.size() - 1).setPipe(words.get(i));
-                        skipPipe = true;
+                            pipes.remove(pipes.size() - 1);
+                            out.get(out.size() - 1).setPipe(words.get(i));
+                            skipPipe = true;
+                        } else {
+                            pipes.add(words.get(i));
+                            pipeSource = "_pipe" + (pipes.size() - 1);
+                            pipeResult = variable;
+                            variable = pipeSource;
+                            pipeStart = true;
+                        }
+                        last = i;
+                        break;
                     } else {
-                        pipes.add(words.get(i));
-                        pipeSource = "_pipe" + (pipes.size() - 1);
-                        pipeResult = variable;
-                        variable = pipeSource;
-                        pipeStart = true;
+                        _words.add(words.get(i));
                     }
-                    last = i;
-                    break;
+                }
+                if (last == words.size()) {
+                    pipes.add("END_PIPE");
+                } else if (skipPipe) {
+                    first = last + 1;
+                    continue;
+                }
+                String subLine = last < words.size() || first > 0 ? _words.stream().collect(Collectors.joining(" "))
+                        : pl.line();
+                if (last + 1 < words.size()) {
+                    nextRawLine = words.subList(last + 1, words.size()).stream().collect(Collectors.joining(" "));
+                }
+                boolean done = true;
+                boolean statement = false;
+                List<String> arglist = new ArrayList<>();
+                if (_words.size() > 0) {
+                    arglist.addAll(_words.subList(1, _words.size()));
+                }
+                if (rawLine != null || (pipes.size() > 1 && customPipes.containsKey(pipes.get(pipes.size() - 2)))) {
+                    done = false;
+                    if (rawLine == null) {
+                        rawLine = pipeSource;
+                    }
+                    if (customPipes.containsKey(pipes.get(pipes.size() - 2))) {
+                        List<String> fixes = customPipes.get(pipes.get(pipes.size() - 2));
+                        if (pipes.get(pipes.size() - 2).matches("\\w+")) {
+                            int idx = subLine.indexOf(" ");
+                            subLine = idx > 0 ? subLine.substring(idx + 1) : "";
+                        }
+                        rawLine += fixes.get(0) + subLine + fixes.get(1);
+                        statement = true;
+                    }
+                    if (pipes.get(pipes.size() - 1).equals(pipeName.get(Pipe.FLIP))
+                            || pipes.get(pipes.size() - 1).equals(pipeName.get(Pipe.AND))
+                            || pipes.get(pipes.size() - 1).equals(pipeName.get(Pipe.OR))) {
+                        done = true;
+                        pipeSource = null;
+                        if (variable != null) {
+                            rawLine = variable + " = " + rawLine;
+                        }
+                    }
+                    if (last + 1 >= words.size() || file != null) {
+                        done = true;
+                        pipeSource = null;
+                        if (pipeResult != null) {
+                            rawLine = pipeResult + " = " + rawLine;
+                        }
+                    }
+                } else if (pipes.get(pipes.size() - 1).equals(pipeName.get(Pipe.FLIP)) || pipeStart) {
+                    if (pipeStart && pipeResult != null) {
+                        subLine = subLine.substring(subLine.indexOf("=") + 1);
+                    }
+                    rawLine = flipArgument(command, subLine, pipes, arglist);
+                    rawLine = variable + "=" + rawLine;
                 } else {
-                    _words.add(words.get(i));
+                    rawLine = flipArgument(command, subLine, pipes, arglist);
                 }
-            }
-            if (last == words.size()) {
-                pipes.add("END_PIPE");
-            } else if (skipPipe) {
+                if (done) {
+                    String[] args = new String[] {};
+                    if (!statement) {
+                        ParsedLine plf = parser.parse(rawLine, 0, ParseContext.ACCEPT_LINE);
+                        if (plf.words().size() > 1) {
+                            args = plf.words().subList(1, plf.words().size()).toArray(new String[0]);
+                        }
+                    }
+                    out.add(new CommandData(rawLine, statement ? "" : command, args, variable, file, append,
+                            pipes.get(pipes.size() - 1)));
+                    if (pipes.get(pipes.size() - 1).equals(pipeName.get(Pipe.AND))
+                            || pipes.get(pipes.size() - 1).equals(pipeName.get(Pipe.OR))) {
+                        pipeSource = null;
+                        pipeResult = null;
+                    }
+                    rawLine = null;
+                }
                 first = last + 1;
-                continue;
-            }
-            String subLine = last < words.size() || first > 0
-                    ? _words.stream().collect(Collectors.joining(" "))
-                    : pl.line();
-            if (last + 1 < words.size()) {
-                nextRawLine = words.subList(last + 1, words.size()).stream().collect(Collectors.joining(" "));
-            }
-            boolean done = true;
-            boolean statement = false;
-            List<String> arglist = new ArrayList<>();
-            if (_words.size() > 0) {
-                arglist.addAll(_words.subList(1, _words.size()));
-            }
-            if (rawLine != null || (pipes.size() > 1 && customPipes.containsKey(pipes.get(pipes.size() - 2)))) {
-                done = false;
-                if (rawLine == null) {
-                    rawLine = pipeSource;
-                }
-                if (customPipes.containsKey(pipes.get(pipes.size() - 2))) {
-                    List<String> fixes = customPipes.get(pipes.get(pipes.size() - 2));
-                    if (pipes.get(pipes.size() - 2).matches("\\w+")) {
-                        int idx = subLine.indexOf(" ");
-                        subLine = idx > 0 ? subLine.substring(idx + 1) : "";
-                    }
-                    rawLine += fixes.get(0) + subLine + fixes.get(1);
-                    statement = true;
-                }
-                if (pipes.get(pipes.size() - 1).equals(pipeName.get(Pipe.FLIP))
-                        || pipes.get(pipes.size() - 1).equals(pipeName.get(Pipe.AND))
-                        || pipes.get(pipes.size() - 1).equals(pipeName.get(Pipe.OR))) {
-                    done = true;
-                    pipeSource = null;
-                    if (variable != null) {
-                        rawLine = variable + " = " + rawLine;
-                    }
-                }
-                if (last + 1 >= words.size() || file != null) {
-                    done = true;
-                    pipeSource = null;
-                    if (pipeResult != null) {
-                        rawLine = pipeResult + " = " + rawLine;
-                    }
-                }
-            } else if (pipes.get(pipes.size() - 1).equals(pipeName.get(Pipe.FLIP)) || pipeStart) {
-                if (pipeStart && pipeResult != null) {
-                    subLine = subLine.substring(subLine.indexOf("=") + 1);
-                }
-                rawLine = flipArgument(command, subLine, pipes, arglist);
-                rawLine = variable + "=" + rawLine;
-            } else {
-                rawLine = flipArgument(command, subLine, pipes, arglist);
-            }
-            if (done) {
-                String[] args = new String[] {};
-                if (!statement) {
-                    ParsedLine plf = parser.parse(rawLine, 0, ParseContext.ACCEPT_LINE);
-                    if (plf.words().size() > 1) {
-                        args = plf.words().subList(1, plf.words().size()).toArray(new String[0]);
-                    }
-                }
-                out.add(new CommandData(rawLine, statement ? "" : command, args, variable, file, append, pipes.get(pipes.size() - 1)));
-                if ( pipes.get(pipes.size() - 1).equals(pipeName.get(Pipe.AND))
-                  || pipes.get(pipes.size() - 1).equals(pipeName.get(Pipe.OR))) {
-                    pipeSource = null;
-                    pipeResult = null;
-                }
-                rawLine = null;
-            }
-            first = last + 1;
-        } while (first < words.size());
+            } while (first < words.size());
+        }
         return out;
     }
 
@@ -867,6 +877,36 @@ public class SystemRegistryImpl implements SystemRegistry {
 
     }
 
+    private static class ScriptStore {
+        ConsoleEngine engine;
+        Map<String, Boolean> scripts = new HashMap<>();
+
+        public ScriptStore() {}
+
+        public ScriptStore(ConsoleEngine engine) {
+            this.engine = engine;
+        }
+
+        public void refresh() {
+            if (engine != null) {
+                scripts = engine.scripts();
+            }
+        }
+
+        public boolean hasScript(String name) {
+            return scripts.containsKey(name);
+        }
+
+        public boolean isConsoleScript(String name) {
+            return scripts.getOrDefault(name, false);
+        }
+
+        public Set<String> getScripts() {
+            return scripts.keySet();
+        }
+
+    }
+
     @Override
     public Object execute(String line) throws Exception {
         if (line.isEmpty() || line.trim().startsWith("#")) {
@@ -875,6 +915,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         Object out = null;
         boolean statement = false;
         boolean postProcessed = false;
+        scriptStore.refresh();
         List<CommandData> cmds = compileCommandLine(line);
         for (int i = 0; i < cmds.size(); i++) {
             CommandData cmd = cmds.get(i);
@@ -886,10 +927,10 @@ public class SystemRegistryImpl implements SystemRegistry {
                 exception = null;
                 statement = false;
                 postProcessed = false;
-                if (cmd.variable() != null || cmd.file() != null) {
+                if ((cmd.variable() != null || cmd.file() != null) && !scriptStore.isConsoleScript(cmd.command())) {
                     if (cmd.file() != null) {
                         outputStream.redirect(cmd.file(), cmd.append());
-                    } else if (consoleId != null && !consoleEngine().isExecuting()) {
+                    } else if (consoleId != null) {
                         outputStream.redirect();
                     }
                     outputStream.open();
@@ -916,7 +957,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                     consoleScript = true;
                 }
                 if (consoleScript) {
-                    if (cmd.command().isEmpty() || !scripts().contains(cmd.command())) {
+                    if (cmd.command().isEmpty() || !scriptStore.hasScript(cmd.command())) {
                         statement = true;
                     }
                     if (statement && outputStream.isByteStream()) {
@@ -952,9 +993,6 @@ public class SystemRegistryImpl implements SystemRegistry {
             } finally {
                 if (!postProcessed && consoleId != null) {
                     out = postProcess(cmd, statement, out).result();
-                    if (consoleEngine().isExecuting()) {
-                        consoleEngine().println(out);
-                    }
                 }
             }
         }
@@ -1097,9 +1135,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         }
 
         Set<String> commands = commandNames();
-        if (consoleId > -1) {
-            commands.addAll(scripts());
-        }
+        commands.addAll(scriptStore.getScripts());
         boolean withInfo = commands.size() < terminal().getHeight() || !opt.args().isEmpty() ? true : false;
         int max = Collections.max(commands, Comparator.comparing(String::length)).length() + 1;
         TreeMap<String, String> builtinCommands = new TreeMap<>();
@@ -1141,11 +1177,11 @@ public class SystemRegistryImpl implements SystemRegistry {
         if (consoleId > -1 && isInArgs(opt.args(), "Scripts")) {
             printHeader("Scripts");
             if (withInfo) {
-                for (String c : scripts()) {
+                for (String c : scriptStore.getScripts()) {
                     printCommandInfo(c, doCommandInfo(commandInfo(c)), max);
                 }
             } else {
-                printCommands(scripts(), max);
+                printCommands(scriptStore.getScripts(), max);
             }
         }
         terminal().flush();
@@ -1153,12 +1189,22 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     private Object exit(Builtins.CommandInput input) {
-        final String[] usage = { "exit -  exit from app/script", "Usage: exit",
-                "  -? --help                       Displays command help", };
+        final String[] usage = { "exit -  exit from app/script"
+                               , "Usage: exit [OBJECT]"
+                               , "  -? --help                       Displays command help"
+                          };
         Options opt = Options.compile(usage).parse(input.args());
         if (opt.isSet("help")) {
             exception = new HelpException(opt.usage());
         } else {
+            if (!opt.args().isEmpty() && consoleId != null) {
+                try {
+                    Object[] ret = consoleEngine().expandParameters(opt.args().toArray(new String[0]));
+                    consoleEngine().putVariable("_return", ret.length == 1 ? ret[0] : ret);
+                } catch (Exception e) {
+                    trace(e);
+                }
+            }
             exception = new EndOfFileException();
         }
         return null;
