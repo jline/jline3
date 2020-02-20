@@ -722,8 +722,8 @@ public class Completers {
         /**
          * Command option description. If option does not have short/long option assign to it null value.
          * If option does not have value set valueCompleter = NullCompleter.INSTANCE
-         * @param shortOption '-s'
-         * @param longOption '--long'
+         * @param shortOption short option
+         * @param longOption  long option
          * @param description short option description
          * @param valueCompleter option value completer
          */
@@ -734,14 +734,32 @@ public class Completers {
             this.valueCompleter = valueCompleter;
         }
 
+        /**
+         * Command option description. If option does not have short/long option assign to it null value.
+         * If option does not have value set valueCompleter = NullCompleter.INSTANCE
+         * @param shortOption short option
+         * @param longOption long option
+         * @param valueCompleter option value completer
+         */
         public OptDesc(String shortOption, String longOption, org.jline.reader.Completer valueCompleter) {
             this(shortOption, longOption, null, valueCompleter);
         }
 
+        /**
+         * Command option description. If option does not have short/long option assign to it null value.
+         * @param shortOption short option
+         * @param longOption long option
+         * @param description short option description
+         */
         public OptDesc(String shortOption, String longOption, String description) {
             this(shortOption, longOption, description, null);
         }
 
+        /**
+         * Command option description. If option does not have short/long option assign to it null value.
+         * @param shortOption short option
+         * @param longOption long option
+         */
         public OptDesc(String shortOption, String longOption) {
             this(shortOption, longOption, null, null);
         }
@@ -761,7 +779,7 @@ public class Completers {
             return shortOption;
         }
 
-        protected String description() {
+        public String description() {
             return description;
         }
 
@@ -823,42 +841,91 @@ public class Completers {
         private List<org.jline.reader.Completer> argsCompleters = new ArrayList<>();
         private int startPos;
 
+        /**
+         * OptionCompleter completes command options and parameters. OptionCompleter should be used as an argument of ArgumentCompleter
+         * @param completer command parameter completer
+         * @param commandOptions command options descriptions
+         * @param startPos OptionCompleter position in ArgumentCompleter parameters
+         */
         public OptionCompleter(org.jline.reader.Completer completer, Function<String,Collection<OptDesc>> commandOptions, int startPos) {
             this.startPos = startPos;
             this.commandOptions = commandOptions;
             this.argsCompleters.add(completer);
         }
 
+        /**
+         * OptionCompleter completes command options and parameters. OptionCompleter should be used as an argument of ArgumentCompleter
+         * @param completers command parameters completers
+         * @param commandOptions command options descriptions
+         * @param startPos OptionCompleter position in ArgumentCompleter parameters
+         */
         public OptionCompleter(List<org.jline.reader.Completer> completers, Function<String,Collection<OptDesc>> commandOptions, int startPos) {
             this.startPos = startPos;
             this.commandOptions = commandOptions;
             this.argsCompleters = new ArrayList<>(completers);
         }
 
+        /**
+         * OptionCompleter completes command options and parameters. OptionCompleter should be used as an argument of ArgumentCompleter
+         * @param completers command parameters completers
+         * @param optionValues command value options as map key and its possible values as map value
+         * @param options command options that do not have value
+         * @param startPos OptionCompleter position in ArgumentCompleter parameters
+         */
         public OptionCompleter(List<org.jline.reader.Completer> completers, Map<String,List<String>> optionValues, Collection<String> options, int startPos) {
             this(optionValues, options, startPos);
             this.argsCompleters = new ArrayList<>(completers);
         }
 
+        /**
+         * OptionCompleter completes command options and parameters. OptionCompleter should be used as an argument of ArgumentCompleter
+         * @param completer command parameter completer
+         * @param optionValues command value options as map key and its possible values as map value
+         * @param options command options that do not have value
+         * @param startPos OptionCompleter position in ArgumentCompleter parameters
+         */
         public OptionCompleter(org.jline.reader.Completer completer, Map<String,List<String>> optionValues, Collection<String> options, int startPos) {
             this(optionValues, options, startPos);
             this.argsCompleters.add(completer);
         }
 
+        /**
+         * OptionCompleter completes command options and parameters. OptionCompleter should be used as an argument of ArgumentCompleter
+         * @param optionValues command value options as map key and its possible values as map value
+         * @param options command options that do not have value
+         * @param startPos OptionCompleter position in ArgumentCompleter parameters
+         */
         public OptionCompleter(Map<String,List<String>> optionValues, Collection<String> options, int startPos) {
             this(OptDesc.compile(optionValues, options), startPos);
         }
 
+        /**
+         * OptionCompleter completes command options and parameters. OptionCompleter should be used as an argument of ArgumentCompleter
+         * @param completer command parameter completer
+         * @param options command options that do not have value
+         * @param startPos OptionCompleter position in ArgumentCompleter parameters
+         */
         public OptionCompleter(org.jline.reader.Completer completer, Collection<OptDesc> options, int startPos) {
             this(options, startPos);
             this.argsCompleters.add(completer);
         }
 
+        /**
+         * OptionCompleter completes command options and parameters. OptionCompleter should be used as an argument of ArgumentCompleter
+         * @param completers command parameters completers
+         * @param options command options that do not have value
+         * @param startPos OptionCompleter position in ArgumentCompleter parameters
+         */
         public OptionCompleter(List<org.jline.reader.Completer> completers, Collection<OptDesc> options, int startPos) {
             this(options, startPos);
             this.argsCompleters = new ArrayList<>(completers);
         }
 
+        /**
+         * OptionCompleter completes command options and parameters. OptionCompleter should be used as an argument of ArgumentCompleter
+         * @param options command options that do not have value
+         * @param startPos OptionCompleter position in ArgumentCompleter parameters
+         */
         public OptionCompleter(Collection<OptDesc> options, int startPos) {
             this.options = options;
             this.startPos = startPos;
