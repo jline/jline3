@@ -1012,7 +1012,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             outputStream.flush();
             outputStream.close();
             out = consoleEngine().postProcess(cmd.rawLine(), result, outputStream.getOutput());
-            outputStream.reset();            
+            outputStream.reset();
         } else if (cmd.variable() != null) {
             if (consoleEngine().hasVariable(cmd.variable())) {
                 out = consoleEngine().postProcess(consoleEngine().getVariable(cmd.variable()));
@@ -1055,7 +1055,26 @@ public class SystemRegistryImpl implements SystemRegistry {
             consoleEngine().putVariable("exception", exception);
             consoleEngine().trace(exception);
         } else {
-            SystemRegistry.println(false, terminal(), exception);
+            trace(false, exception);
+        }
+    }
+
+    @Override
+    public void trace(boolean stack, Exception exception) {
+        if (exception instanceof Options.HelpException) {
+            Options.HelpException.highlight((exception).getMessage(), Options.HelpException.defaultStyle()).print(terminal());
+        } else if (stack) {
+            exception.printStackTrace();
+        } else {
+            String message = exception.getMessage();
+            AttributedStringBuilder asb = new AttributedStringBuilder();
+            if (message != null) {
+                asb.append(message, AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+            } else {
+                asb.append("Caught exception: ", AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+                asb.append(exception.getClass().getCanonicalName(), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+            }
+            asb.toAttributedString().println(terminal());
         }
     }
 

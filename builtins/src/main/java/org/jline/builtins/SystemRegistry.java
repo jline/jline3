@@ -77,6 +77,13 @@ public interface SystemRegistry extends CommandRegistry {
     void trace(Exception exception);
 
     /**
+     * Print exception on terminal
+     * @param stack print stack trace if stack true otherwise message
+     * @param exception exception to be printed
+     */
+    void trace(boolean stack, Exception exception);
+
+    /**
      * @return terminal
      */
     Terminal terminal();
@@ -98,30 +105,6 @@ public interface SystemRegistry extends CommandRegistry {
      * @throws Exception in case of error
      */
     Object invoke(String command, Object... args) throws Exception;
-
-    /**
-     * Print exception
-     * @param stack print stack trace if stack true otherwise message
-     * @param terminal JLine terminal
-     * @param exception exception to be printed
-     */
-    static void println(boolean stack, Terminal terminal, Exception exception) {
-        if (exception instanceof Options.HelpException) {
-            Options.HelpException.highlight((exception).getMessage(), Options.HelpException.defaultStyle()).print(terminal);
-        } else if (stack) {
-            exception.printStackTrace();
-        } else {
-            String message = exception.getMessage();
-            AttributedStringBuilder asb = new AttributedStringBuilder();
-            if (message != null) {
-                asb.append(message, AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
-            } else {
-                asb.append("Caught exception: ", AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
-                asb.append(exception.getClass().getCanonicalName(), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
-            }
-            asb.toAttributedString().println(terminal);
-        }
-    }
 
     /**
      * @return systemRegistry of the current thread

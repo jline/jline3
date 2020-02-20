@@ -643,7 +643,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         }
         return engine.get(name);
     }
-    
+
     @Override
     public boolean hasVariable(String name) {
         return engine.hasVariable(name);
@@ -817,7 +817,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         } else if (!style.isEmpty() && object instanceof String) {
             highlight(width, style, (String) object);
         } else if (object instanceof Exception) {
-            SystemRegistry.println(options.getOrDefault("exception", "stack").equals("stack"), terminal(), (Exception)object);
+            systemRegistry.trace(options.getOrDefault("exception", "stack").equals("stack"), (Exception)object);
         } else if (object instanceof String) {
             highlight(AttributedStyle.YELLOW + AttributedStyle.BRIGHT, object);
         } else if (object instanceof Number) {
