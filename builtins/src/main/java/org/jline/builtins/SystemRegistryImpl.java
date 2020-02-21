@@ -504,6 +504,19 @@ public class SystemRegistryImpl implements SystemRegistry {
         return pipeName.containsValue(arg) || pipes.contains(arg);
     }
 
+    private boolean isCommandAlias(String command) {
+        if (consoleId == null || !parser.validCommandName(command) || !consoleEngine().hasAlias(command)) {
+            return false;
+        }
+        String value = consoleEngine().getAlias(command).split("\\s+")[0];
+        return !isPipe(value);        
+    }
+    
+    private String replaceCommandAlias(String variable, String command, String rawLine) {
+        return variable == null ? rawLine.replaceFirst(command + "(\\b|$)", consoleEngine().getAlias(command))
+                                : rawLine.replaceFirst("=" + command + "(\\b|$)", "=" + consoleEngine().getAlias(command));
+    }
+    
     private List<CommandData> compileCommandLine(String commandLine) {
         List<CommandData> out = new ArrayList<>();
         ParsedLine pl = parser.parse(commandLine, 0, ParseContext.SPLIT_LINE);
@@ -564,29 +577,28 @@ public class SystemRegistryImpl implements SystemRegistry {
         String pipeResult = null;
         boolean pipeLine = hasPipes(words) || words.contains(">") || words.contains(">>");
         if (!pipeLine) {
+            String command = ConsoleEngine.plainCommand(parser.getCommand(words.get(0)));
+            String variable = parser.getVariable(words.get(0));            
             String[] args = new String[] {};
+            if (isCommandAlias(command)) {
+                nextRawLine = replaceCommandAlias(variable, command, nextRawLine);
+            }
             ParsedLine plf = parser.parse(nextRawLine, 0, ParseContext.ACCEPT_LINE);
             if (plf.words().size() > 1) {
                 args = plf.words().subList(1, plf.words().size()).toArray(new String[0]);
             }
-            String command = ConsoleEngine.plainCommand(parser.getCommand(plf.words().get(0)));
-            String variable = parser.getVariable(plf.words().get(0));
+            command = ConsoleEngine.plainCommand(parser.getCommand(plf.words().get(0)));
             out.add(new CommandData(nextRawLine, command, args, variable, null, false,""));
         } else {
             do {
                 String command = ConsoleEngine.plainCommand(parser.getCommand(words.get(first)));
                 String variable = parser.getVariable(words.get(first));
-                if (parser.validCommandName(command) && consoleId != null) {
-                    if (consoleEngine().hasAlias(command)) {
-                        String value = consoleEngine().getAlias(command).split("\\s+")[0];
-                        if (!isPipe(value)) {
-                            pl = parser.parse(nextRawLine.replaceFirst(command, consoleEngine().getAlias(command)), 0,
+                if (isCommandAlias(command)) {
+                    pl = parser.parse(replaceCommandAlias(variable, command, nextRawLine), 0,
                                     ParseContext.SPLIT_LINE);
-                            command = ConsoleEngine.plainCommand(parser.getCommand(pl.word()));
-                            words = pl.words();
-                            first = 0;
-                        }
-                    }
+                    command = ConsoleEngine.plainCommand(parser.getCommand(pl.word()));
+                    words = pl.words();
+                    first = 0;
                 }
                 if (scriptStore.isConsoleScript(command)) {
                     throw new IllegalArgumentException("Console scripts cannot be used in pipe!");
