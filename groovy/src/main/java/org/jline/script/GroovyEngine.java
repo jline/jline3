@@ -42,7 +42,6 @@ public class GroovyEngine implements ScriptEngine {
     private Binding sharedData;
     private Map<String,String> imports = new HashMap<>();
     private Map<String,String> methods = new HashMap<>();
-    private Map<String,String> classes = new HashMap<>();
 
     public GroovyEngine() {
         this.sharedData = new Binding();
@@ -155,24 +154,15 @@ public class GroovyEngine implements ScriptEngine {
             if (methods.containsKey(name)) {
                 out = "def " + name + methods.get(name);
             }
-        } else if (classDef(statement)) {
-            // do nothing
-        } else if (statement.equals("class")) {
-            out = classes.values();
-        } else if (statement.matches("class\\s+" + REGEX_VAR)) {
-            String name = statement.split("\\s+")[1];
-            if (classes.containsKey(name)) {
-                out = classes.get(name);
-            }
         } else {
             String e = "";
             for (Map.Entry<String, String> entry : imports.entrySet()) {
                 e += entry.getValue()+"\n";
             }
-            for (String c : classes.values()) {
-                e += c;
-            }
             e += statement;
+            if (classDef(statement)) {
+                e += "; null";
+            }
             out = shell.evaluate(e);
         }
         return out;
@@ -214,13 +204,7 @@ public class GroovyEngine implements ScriptEngine {
     }
 
     private boolean classDef (String statement) throws Exception{
-        boolean out = false;
-        Matcher m = PATTERN_CLASS_DEF.matcher(statement);
-        if(m.matches()){
-            out = true;
-            classes.put(m.group(1), statement);
-        }
-        return out;
+        return PATTERN_CLASS_DEF.matcher(statement).matches();
     }
 
     private void del(String var) {
@@ -242,13 +226,7 @@ public class GroovyEngine implements ScriptEngine {
                         methods.remove(v);
                     }
                 }
-                if (classes.containsKey(v)) {
-                    classes.remove(v);
-                }
             }
-        }
-        if (classes.containsKey(var)) {
-            classes.remove(var);
         }
     }
 
