@@ -16,9 +16,6 @@ import java.util.regex.Pattern;
 
 import org.jline.groovy.Utils;
 import org.jline.reader.ScriptEngine;
-import org.jline.utils.AttributedString;
-import org.jline.utils.AttributedStringBuilder;
-import org.jline.utils.AttributedStyle;
 
 import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
@@ -241,187 +238,18 @@ public class GroovyEngine implements ScriptEngine {
     }
 
     @Override
-    public String format(Map<String, Object> options, Object obj) {
-        String out = obj instanceof String ? (String)obj : "";
-        String style = (String)options.getOrDefault("style", "");
-        if (style.equalsIgnoreCase("JSON")) {
-            out = Utils.toJson(obj);
-        } else if (!(obj instanceof String)) {
-            throw new IllegalArgumentException("Bad or missing style option: " + style);
-        }
-        return out;
+    public String toJson(Object obj) {
+        return Utils.toJson(obj);
     }
 
     @Override
-    public List<AttributedString> highlight(Map<String, Object> options, Object obj) {
-        List<AttributedString> out = new ArrayList<>();
-        String style = (String)options.getOrDefault("style", "");
-        if (style.equalsIgnoreCase("JSON")) {
-            throw new IllegalArgumentException("Bad style option: " + style);
-        } else {
-            try {
-                out = internalHighlight(options, obj);
-            } catch (Exception e) {
-                out = internalHighlight(options, Utils.convert(obj));
-            }
-        }
-        return out;
+    public String toString(Object obj) {
+        return Utils.toString(obj);
     }
 
-    @SuppressWarnings("unchecked")
-    private List<AttributedString> internalHighlight(Map<String, Object> options, Object obj) {
-        List<AttributedString> out = new ArrayList<>();
-        int width = (int)options.getOrDefault("width", Integer.MAX_VALUE);
-        boolean rownum = options.containsKey("rownum");
-        if (obj == null) {
-            // do nothing
-        } else if (obj instanceof Map) {
-            out = highlightMap((Map<String, Object>)obj, width);
-        } else if (obj instanceof Collection<?> || obj instanceof Object[]) {
-            Collection<?> collection = obj instanceof Collection<?> ? (Collection<?>)obj
-                                                                    : Arrays.asList((Object[])obj);
-            if (!collection.isEmpty()) {
-                if (collection.size() == 1) {
-                    Object elem = collection.iterator().next();
-                    if (elem instanceof Map) {
-                        out = highlightMap((Map<String, Object>)elem, width);
-                    } else {
-                        out.add(new AttributedString(Utils.toString(obj)));
-                    }
-                } else {
-                    Object elem = collection.iterator().next();
-                    if (elem instanceof Map) {
-                        Map<String, Object> map = (Map<String, Object>)elem;
-                        List<String> header = new ArrayList<>();
-                        header.addAll(map.keySet());
-                        List<Integer> columns = new ArrayList<>();
-                        for (int i = 0; i < header.size(); i++) {
-                            columns.add(header.get(i).length() + 1);
-                        }
-                        for (Object o : collection) {
-                            for (int i = 0; i < header.size(); i++) {
-                                Map<String, Object> m = (Map<String, Object>)o;
-                                if (Utils.toString(m.get(header.get(i))).length() > columns.get(i) - 1) {
-                                    columns.set(i, Utils.toString(m.get(header.get(i))).length() + 1);
-                                }
-                            }
-                        }
-                        columns.add(0, 0);
-                        toTabStops(columns, rownum);
-                        AttributedStringBuilder asb = new AttributedStringBuilder().tabs(columns);
-                        if (rownum) {
-                            asb.append("\t");
-                        }
-                        for (int i = 0; i < header.size(); i++) {
-                            asb.append(header.get(i), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
-                            asb.append("\t");
-                        }
-                        out.add(truncate(asb, width));
-                        Integer row = 0;
-                        for (Object o : collection) {
-                            AttributedStringBuilder asb2 = new AttributedStringBuilder().tabs(columns);
-                            if (rownum) {
-                                asb2.append(row.toString(), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
-                                asb2.append("\t");
-                                row++;
-                            }
-                            for (int i = 0; i < header.size(); i++) {
-                                Map<String, Object> m = (Map<String, Object>)o;
-                                asb2.append(Utils.toString(m.get(header.get(i))));
-                                asb2.append("\t");
-                            }
-                            out.add(asb2.subSequence(0, width));
-                        }
-                    } else if (elem instanceof Collection || elem instanceof Object[]) {
-                        boolean isCollection = elem instanceof Collection;
-                        List<Integer> columns = new ArrayList<>();
-                        for (Object o : collection) {
-                            List<Object> inner = new ArrayList<>();
-                            inner.addAll(isCollection ? (Collection<?>)o : Arrays.asList((Object[])o));
-                            for (int i = 0; i < inner.size(); i++) {
-                                int len1 = Utils.toString(inner.get(i)).length() + 1;
-                                if (columns.size() <= i) {
-                                    columns.add(len1);
-                                } else if (len1 > columns.get(i)) {
-                                    columns.set(i, len1);
-                                }
-                            }
-                        }
-                        toTabStops(columns, rownum);
-                        Integer row = 0;
-                        for (Object o : collection) {
-                            AttributedStringBuilder asb = new AttributedStringBuilder().tabs(columns);
-                            if (rownum) {
-                                asb.append(row.toString(), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
-                                asb.append("\t");
-                                row++;
-                            }
-                            List<Object> inner = new ArrayList<>();
-                            inner.addAll(isCollection ? (Collection<?>)o : Arrays.asList((Object[])o));
-                            for (int i = 0; i < inner.size(); i++) {
-                                asb.append(Utils.toString(inner.get(i)));
-                                asb.append("\t");
-                            }
-                            out.add(truncate(asb, width));
-                        }
-                    } else {
-                        Integer row = 0;
-                        Integer tabsize = ((Integer)collection.size()).toString().length() + 1;
-                        for (Object o: collection) {
-                            AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabsize);
-                            if (rownum) {
-                                asb.append(row.toString(), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
-                                asb.append("\t");
-                                row++;
-                            }
-                            asb.append(Utils.toString(o));
-                            out.add(truncate(asb, width));
-                        }
-                    }
-                }
-            }
-        } else {
-            out.add(new AttributedString(Utils.toString(obj)));
-        }
-        return out;
+    @Override
+    public Object convert(Object obj) {
+        return Utils.convert(obj);
     }
 
-    private AttributedString truncate(AttributedStringBuilder asb, int width) {
-        return asb.columnLength() > width ? asb.subSequence(0, width) : asb.toAttributedString();
-    }
-
-    private void toTabStops(List<Integer> columns, boolean rownum) {
-        if (rownum) {
-            columns.add(0, 5);
-        }
-        for (int i = 1; i < columns.size(); i++) {
-            columns.set(i, columns.get(i - 1) + columns.get(i));
-        }
-    }
-
-    private List<AttributedString> highlightMap(Map<String, Object> map, int width) {
-        List<AttributedString> out = new ArrayList<>();
-        int max = map.keySet().stream().map(String::length).max(Integer::compareTo).get();
-        for (Map.Entry<String, Object> entry : map.entrySet()) {
-            AttributedStringBuilder asb = new AttributedStringBuilder().tabs(Arrays.asList(0, max + 1));
-            asb.append(entry.getKey(), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
-            if (map.size() == 1) {
-                for (String v : Utils.toString(entry.getValue()).split("\\r?\\n")) {
-                    asb.append("\t");
-                    asb.append(v, AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW));
-                    out.add(truncate(asb, width));
-                    asb = new AttributedStringBuilder().tabs(Arrays.asList(0, max + 1));
-                }
-            } else {
-                String v = Utils.toString(entry.getValue());
-                if (v.contains("\n")) {
-                    v = Arrays.asList(v.split("\\r?\\n")).toString();
-                }
-                asb.append("\t");
-                asb.append(v, AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW));
-                out.add(truncate(asb, width));
-            }
-        }
-        return out;
-    }
 }

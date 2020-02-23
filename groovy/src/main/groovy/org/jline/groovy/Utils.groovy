@@ -29,6 +29,9 @@ public class Utils {
     }
 
     static Object convert(Object object) {
+        if (object instanceof String) {
+            return object;
+        }
         def slurper = new JsonSlurper()
         slurper.parseText(JsonOutput.toJson(object))
     }

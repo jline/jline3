@@ -76,20 +76,25 @@ public interface ScriptEngine {
     void del(String... vars);
 
     /**
-     * Prepares formatted string of the object.
-     * @param options for string formatting
-     * @param object to display
-     * @return formatted string
+     * Converts object to JSON string.
+     * @param object object to convert to JSON
+     * @return formatted JSON string
      */
-    String format(Map<String, Object> options, Object object);
+    String toJson(Object object);
 
     /**
-     * Prepares highlighted string of the object
-     * @param options for highlighting
-     * @param object to highlight
-     * @return highlighted string
+     * Converts object to string.
+     * @param object object to convert to string
+     * @return object string value
      */
-    List<AttributedString> highlight(Map<String, Object> options, Object object);
+    String toString(Object object);
+
+    /**
+     * Converts object by serializing and deserializing it.
+     * @param object object to convert
+     * @return converted object
+     */
+    Object convert(Object object);
 
     /**
      * Substitute variable reference with its value.
