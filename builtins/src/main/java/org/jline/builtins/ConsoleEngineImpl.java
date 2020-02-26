@@ -253,8 +253,15 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 int idx = name.lastIndexOf(".");
                 out.put(name.substring(0, idx), name.substring(idx + 1).equals(scriptExtension));
             }
+        } catch (NoSuchFileException e) {
+            error("Failed reading PATH. No file found: " + e.getMessage());
+        } catch (InvalidPathException e) {
+            error("Failed reading PATH. Invalid path:");
+            error(e.toString());
         } catch (Exception e) {
+            error("Failed reading PATH:");
             trace(e);
+            engine.put("exception", e);
         }
         return out;
     }
@@ -372,7 +379,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
         public ScriptFile(File script, String cmdLine, String[] args) {
             if (!script.exists()) {
-                throw new IllegalArgumentException();
+                throw new IllegalArgumentException("Script file not found!");
             }
             this.script = script;
             this.cmdLine = cmdLine;
@@ -471,12 +478,17 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 result = engine.execute(script, expandParameters(args));
             } else if (isConsoleScript()) {
                 executing = true;
-                boolean done = false;
+                boolean done = true;
                 String line = "";
                 try (BufferedReader br = new BufferedReader(new FileReader(script))) {
                     for (String l; (l = br.readLine()) != null;) {
+                        if (l.trim().isEmpty() || l.trim().startsWith("#")) {
+                            done = true;
+                            continue;
+                        }
                         try {
                             line += l;
+                            done = false;
                             parser().parse(line, line.length() + 1, ParseContext.ACCEPT_LINE);
                             done = true;
                             for (int i = 1; i < args.length; i++) {
@@ -777,7 +789,6 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return out;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public void trace(final Object object) {
         Object toPrint = object;
@@ -798,6 +809,10 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         println(options, toPrint);
     }
 
+    private void error(String message) {
+        highlight(AttributedStyle.RED, message).println(terminal());
+    }
+
     @Override
     public void println(Object object) {
         Map<String,Object> options = defaultPrntOptions();
@@ -813,15 +828,15 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         String style = (String) options.getOrDefault("style", "");
         int width = (int) options.get("width");
         if (style.equalsIgnoreCase("JSON")) {
-            highlight(width, style, engine.toJson(object));
+            highlightAndPrint(width, style, engine.toJson(object));
         } else if (!style.isEmpty() && object instanceof String) {
-            highlight(width, style, (String) object);
+            highlightAndPrint(width, style, (String) object);
         } else if (object instanceof Exception) {
             systemRegistry.trace(options.getOrDefault("exception", "stack").equals("stack"), (Exception)object);
         } else if (object instanceof String) {
-            highlight(AttributedStyle.YELLOW + AttributedStyle.BRIGHT, object);
+            highlight(AttributedStyle.YELLOW + AttributedStyle.BRIGHT, object).println(terminal());
         } else if (object instanceof Number) {
-            highlight(AttributedStyle.BLUE + AttributedStyle.BRIGHT, object);
+            highlight(AttributedStyle.BLUE + AttributedStyle.BRIGHT, object).println(terminal());
         } else {
             for (AttributedString as : highlight(options, object)) {
                 as.println(terminal());
@@ -830,16 +845,18 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         terminal().flush();
     }
 
-    private void highlight(int attrStyle, Object obj) {
+    private AttributedString highlight(int attrStyle, Object obj) {
+        AttributedString out = new AttributedString("");
         AttributedStringBuilder asb = new AttributedStringBuilder();
         String tp = obj.toString();
         if (!tp.isEmpty()) {
             asb.append(tp, AttributedStyle.DEFAULT.foreground(attrStyle));
-            asb.toAttributedString().println(terminal());
+            out = asb.toAttributedString();
         }
+        return out;
     }
 
-    private void highlight(int width, String style, String object) {
+    private void highlightAndPrint(int width, String style, String object) {
         Path nanorc = configPath != null ? configPath.getConfig("jnanorc") : null;
         if (engine.hasVariable(VAR_NANORC)) {
             nanorc = Paths.get((String)engine.get(VAR_NANORC));
@@ -860,18 +877,8 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         }
     }
 
-    private List<AttributedString> highlight(Map<String, Object> options, Object obj) {
-        List<AttributedString> out = new ArrayList<>();
-        try {
-            out = internalHighlight(options, obj);
-        } catch (Exception e) {
-            out = internalHighlight(options, engine.convert(obj));
-        }
-        return out;
-    }
-
     @SuppressWarnings("unchecked")
-    private List<AttributedString> internalHighlight(Map<String, Object> options, Object obj) {
+    private List<AttributedString> highlight(Map<String, Object> options, Object obj) {
         List<AttributedString> out = new ArrayList<>();
         int width = (int)options.getOrDefault("width", Integer.MAX_VALUE);
         boolean rownum = options.containsKey("rownum");
