@@ -12,8 +12,6 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.*;
 
-import org.jline.utils.AttributedString;
-
 /**
  * Manage scriptEngine variables, statements and script execution.
  *
@@ -88,13 +86,6 @@ public interface ScriptEngine {
      * @return object string value
      */
     String toString(Object object);
-
-    /**
-     * Converts object by serializing and deserializing it.
-     * @param object object to convert
-     * @return converted object
-     */
-    Object convert(Object object);
 
     /**
      * Substitute variable reference with its value.

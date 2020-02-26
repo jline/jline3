@@ -247,9 +247,4 @@ public class GroovyEngine implements ScriptEngine {
         return Utils.toString(obj);
     }
 
-    @Override
-    public Object convert(Object obj) {
-        return Utils.convert(obj);
-    }
-
 }
