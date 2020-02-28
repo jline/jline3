@@ -213,8 +213,8 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         throw new UnsupportedOperationException("Can not resize windows terminal");
     }
 
-    public void close() throws IOException {
-        super.close();
+    protected void doClose() throws IOException {
+        super.doClose();
         closing = true;
         if (pump != null) {
             pump.interrupt();

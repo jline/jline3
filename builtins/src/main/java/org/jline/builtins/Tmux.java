@@ -1865,8 +1865,8 @@ public class Tmux {
                     masterOutput,
                     null) {
                 @Override
-                public void close() throws IOException {
-                    super.close();
+                protected void doClose() throws IOException {
+                    super.doClose();
                     closer.accept(VirtualConsole.this);
                 }
             };

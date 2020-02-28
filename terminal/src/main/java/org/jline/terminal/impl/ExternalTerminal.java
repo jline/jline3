@@ -83,10 +83,10 @@ public class ExternalTerminal extends LineDisciplineTerminal {
         }
     }
 
-    public void close() throws IOException {
+    protected void doClose() throws IOException {
         if (closed.compareAndSet(false, true)) {
             pause();
-            super.close();
+            super.doClose();
         }
     }
 
