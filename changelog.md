@@ -1,6 +1,90 @@
 # [JLine3](https://github.com/jline/jline3)
-
 <!-- git log --pretty=format:'* [`%h`](https://github.com/jline/jline3/commit/%H) %s' -->
+
+## [JLine 3.14.0][3_14_0]
+[3_14_0]: https://repo1.maven.org/maven2/org/jline/jline/3.14.0/
+
+* [`c3317bc8`](https://github.com/jline/jline3/commit/c3317bc8b72a78dbf55d58ee79160ef8649e3f07) Track the system terminal, fixes #508
+* [`1362e89f`](https://github.com/jline/jline3/commit/1362e89fe4550410708907d8519104a36fb29d51) Add a github workflow
+* [`459733e2`](https://github.com/jline/jline3/commit/459733e2c648bf358aca38c7ac2c861268ac54c6) ScriptEngine: removed convert() method
+* [`c1415305`](https://github.com/jline/jline3/commit/c1415305c9325528c5b3b94cd19ff9d5f2c8f9e0) ConsoleEngineImpl: refactoring & minor fixes and improvements
+* [`6b8d8bcd`](https://github.com/jline/jline3/commit/6b8d8bcd95c2a9ce8e79a11112586a510798d510) ScriptEngine refactoring: removed highlight() and format() methods. Moved methods
+* [`dc1885cf`](https://github.com/jline/jline3/commit/dc1885cf159d458b72b0741b11e0114b6bfb71ea) SystemRegistryImpl: refactoring...
+* [`60a831cc`](https://github.com/jline/jline3/commit/60a831cc4d2737c90a008836602bfde7c043c844) GroovyEngine: reviewed class statement evaluation
+* [`d73cfeaa`](https://github.com/jline/jline3/commit/d73cfeaa573fd4a6401d78ceeae29c4573530ac5) alias command: fixed alias replacement
+* [`2a433640`](https://github.com/jline/jline3/commit/2a433640bde7a585e4ecb95c192dc734aff57da9) Refactoring: removed static println method from SystemRegistry
+* [`23c29aa8`](https://github.com/jline/jline3/commit/23c29aa844d378d2924ae0b64e3ac7288c16a383) Added javadocs
+* [`d0276266`](https://github.com/jline/jline3/commit/d0276266098eac900c3b298ea9686884d356980c) Console script use exit command to return value and minor improvements
+* [`01811210`](https://github.com/jline/jline3/commit/0181121072a30cc6e2e7a000c46693021f8acb04) REPL console: improved exit status evaluation & pipe line compilation
+* [`9109f983`](https://github.com/jline/jline3/commit/9109f9839bee8c4ac9709b6a1ce0f297830a3db3) REPL console: calculate exit status also for groovy statements and
+* [`88e451bb`](https://github.com/jline/jline3/commit/88e451bb62d02dbf58f0da6834cb532070dac15e) REPL demo: added an other example script and widget
+* [`2b7bb5b5`](https://github.com/jline/jline3/commit/2b7bb5b5ade5ec3cd6e4b9fa5057cae2c6a8ab28) Bump groovy to 3.0.0
+* [`bd23b4fb`](https://github.com/jline/jline3/commit/bd23b4fb7f30ea7c06ddbc1e2e59ba9697fb79fa) REPL console: command exit status evaluation when redirecting to file
+* [`9b0c9874`](https://github.com/jline/jline3/commit/9b0c9874644e0814136cdd565aba194d10ea0d99) Parser: added SPLIT_LINE context
+* [`8b28847d`](https://github.com/jline/jline3/commit/8b28847d890b8a908ecccc2f33ada7b2bcede79f) REPL console: improved command exit status evaluation
+* [`811c2f08`](https://github.com/jline/jline3/commit/811c2f08db0d0ba9d08524e01d8cd53a498074e0) REPL console: improved pipe line parsing
+* [`6f357e9a`](https://github.com/jline/jline3/commit/6f357e9af3437ab5ba55c8783b8d28d7327c3136) ConsoleEngine: added pipe operators && and || and test-widget in demo
+* [`8a5513e3`](https://github.com/jline/jline3/commit/8a5513e306d28d5e803fe16260d4d46fdcd9852a) ConsoleEngine: renamed named pipe operator to | and various improvemen
+ts
+* [`bb952c51`](https://github.com/jline/jline3/commit/bb952c517f4f730e84fdcedf62e91b8defdd03c4) Refactoring: Changed Parser static methods to non static
+* [`1354c230`](https://github.com/jline/jline3/commit/1354c230c71adf10d2a6006dd388534e88a881bd) Merge pull request #511 from mattirn/fun-pipes
+* [`96c2801a`](https://github.com/jline/jline3/commit/96c2801a2fcac84c77c98579ea5d3f5b5886b59c) Implemented pipe line alias
+* [`95ff1327`](https://github.com/jline/jline3/commit/95ff132739db030d4cdf88763ddadc72b65adfcc) Implemented named pipe operator '|* <name>'
+* [`8c03cdf3`](https://github.com/jline/jline3/commit/8c03cdf3c7488a536d73b956be29488643402253) Compile command-line with custom pipes
+* [`ef3d00cd`](https://github.com/jline/jline3/commit/ef3d00cde42b3d5f0ab597c02da30ef4c2e8cd53) Added pipe command
+* [`b38c2ab7`](https://github.com/jline/jline3/commit/b38c2ab7d46ced78aa709dfa0b3d2db99d366009) Implemented pipe operator |; that flips around the command and argumen
+t:
+* [`b471f94a`](https://github.com/jline/jline3/commit/b471f94ac142fb33c6bde315063dfb27c7aa2911) Merge pull request #507 from mattirn/output-redirection
+* [`9bf0efea`](https://github.com/jline/jline3/commit/9bf0efea8ed303e3e07b7773f3f83eb2e629ed19) Groovy-REPL: A few small improvements
+* [`a78b2346`](https://github.com/jline/jline3/commit/a78b2346e8ecbbdccb5ed2f7b866ed9312874277) Command output redirection to file, step II
+* [`abdd4322`](https://github.com/jline/jline3/commit/abdd432258ca6233e28604ff39847677e859b3d3) Command output redirection to file
+* [`cea2ea9a`](https://github.com/jline/jline3/commit/cea2ea9a73ecfc1b5db5ba8e877379513fad16aa) Improved javadoc comments
+* [`31b3ea14`](https://github.com/jline/jline3/commit/31b3ea14c6ee82874d0f2fa48dab982fc476a396) Command output redirection to variable
+* [`58c38580`](https://github.com/jline/jline3/commit/58c385801d6beabab8c6bb504736122ee18feb6f) Fixed filename option value tab completion, fixes #504
+* [`1fed8189`](https://github.com/jline/jline3/commit/1fed8189df8ac60f6de6c0e1b63dd5cb97566776) ConsoleEngineImpl: Added a couple of helpers in widget execution, #503
+* [`ab7f094d`](https://github.com/jline/jline3/commit/ab7f094da5edd2038af6657caca966797d40799a) ConsoleEngine: Add support for widget execution, fixes #503
+* [`1bcf06f1`](https://github.com/jline/jline3/commit/1bcf06f1611e4e94f41c7da2d85a06219c95d025) Small improvements...
+* [`29077a28`](https://github.com/jline/jline3/commit/29077a2817076203d5608bf2169d5678303d54b4) ConsoleEngineImpl: fixed StringIndexOutOfBoundsException
+* [`33dad4a4`](https://github.com/jline/jline3/commit/33dad4a4f6b5182d6939938794f6eab30252390d) Improved script file detection and printing
+* [`09f14e5d`](https://github.com/jline/jline3/commit/09f14e5da0c1905a692a2130298f1b401e5315ea) OptionCompleter: added a test, script and improved comment
+* [`4ae7e843`](https://github.com/jline/jline3/commit/4ae7e8430f38ea24bdc274ddd6ad926db7c7a0c8) Updated README
+* [`ee43eeb2`](https://github.com/jline/jline3/commit/ee43eeb2645ca019fc58e187fd3cb8f569581857) Merge pull request #499 from mattirn/jline-script
+* [`f445ed84`](https://github.com/jline/jline3/commit/f445ed8402a4117e78ddf489f8e0da0bdbeb0fe3) GroovyEngine: added support for function and and class implementation
+* [`104ba603`](https://github.com/jline/jline3/commit/104ba603dcbc65991f81fd1405cbd93786b40f53) Added comment in builtins pom and removed jline-groovy from jline pom
+* [`7c3a8e3a`](https://github.com/jline/jline3/commit/7c3a8e3a6c9a4e8e100940c5a1bc3eef59100cdc) ConsoleEngineImpl: added alias and unalias commands
+* [`84cf18e4`](https://github.com/jline/jline3/commit/84cf18e428619f8da07096a2e6d87019dd8ecf85) SystemRegistryImpl: tab completion for local commands & improved help
+* [`5320ef38`](https://github.com/jline/jline3/commit/5320ef3866408130796cffad6646ddbceb17b6ac) Variables and scripts tab completion
+* [`4b040eb6`](https://github.com/jline/jline3/commit/4b040eb681633175aec6579a23481a81da695584) Refactoring...
+* [`a67db91a`](https://github.com/jline/jline3/commit/a67db91afa34f42ee9f3e4a378593ba3961ceb09) REPL demo: initialization & added example scripts
+* [`fe80245a`](https://github.com/jline/jline3/commit/fe80245a9cacc7ce71899b294d2cba928cf40a40) Improved parameter expansion
+* [`4e93fdbc`](https://github.com/jline/jline3/commit/4e93fdbc73a55ce45cb32bfd0fb34e86f2549913) Example: removed scriptEngine, consoleEngine & systemRegistry
+* [`d1a11344`](https://github.com/jline/jline3/commit/d1a11344b3f3dd16e63fced88e8ab9c2a3f9a259) Refactoring...
+* [`c77a3766`](https://github.com/jline/jline3/commit/c77a37667869fb33530261a4e63a389c9a3f2e55) Added Groovy REPL in demo
+* [`ce13d2a8`](https://github.com/jline/jline3/commit/ce13d2a84ad77bfddffddae85f6e259b57dd4755) SystemRegistry: improved help
+* [`e753abe2`](https://github.com/jline/jline3/commit/e753abe20cc3c355f5d3645d019d8b6fcd28ef88) ConsoleEngineImpl: implemented command completers
+* [`82a9eb0a`](https://github.com/jline/jline3/commit/82a9eb0aff36e522a383d5b24c1b36db3d4c32cf) 'prnt <exception>' prints now stack trace
+* [`1e289b63`](https://github.com/jline/jline3/commit/1e289b630e0f0a32e055122436558ea93da8e76a) added slurp command + removed obsolete code
+* [`4276a8b1`](https://github.com/jline/jline3/commit/4276a8b1d5a9f2fa0875fb6d7d6830467579df5f) Script execution: added builtin options -? and -v.
+* [`9546e896`](https://github.com/jline/jline3/commit/9546e896cee646526a0c2892ddfa3be1cc1b55df) Added comments
+* [`a526e18d`](https://github.com/jline/jline3/commit/a526e18d62051376f90f56fcc0b42e3ebda11be8) SystemRegistry: added method initialize()
+* [`af2d980a`](https://github.com/jline/jline3/commit/af2d980a12634b0dfb926a88ca2664537d191ab2) Console command 'del *' does not delete SYSTEM_VARS
+* [`c279d610`](https://github.com/jline/jline3/commit/c279d61083f23eef5f240af82da1aa96338e17af) ConsoleEngine: implemented invoke() method
+* [`5863651c`](https://github.com/jline/jline3/commit/5863651c6f911490f12d07a3d3da166032795143) Manage console variable PATH
+* [`b1e1ff93`](https://github.com/jline/jline3/commit/b1e1ff936afb24190a294bcf7079b7209f4562eb) Improved parameter expansion
+* [`82932326`](https://github.com/jline/jline3/commit/82932326b92e6d37aee04be260a2cbf40a5db648) ConsoleEngine: implemented prnt and echo commands
+* [`8065b9ac`](https://github.com/jline/jline3/commit/8065b9acb7a7746b65d106ea58bce37724d2118d) GroovyEngine: added SuppressWarnings annotations
+* [`7be7b2b0`](https://github.com/jline/jline3/commit/7be7b2b02dc3b23e3a5d5ee0eebe107c660dd676) Execute command inside code block
+* [`5dbec17a`](https://github.com/jline/jline3/commit/5dbec17aec73d6ba0d772f0796141ebecdf7141d) Improved repl printing, step II
+* [`0b7b8e35`](https://github.com/jline/jline3/commit/0b7b8e353721701e9760b3c2f2673d5e9b2c0461) Fixed compilation
+* [`e2616451`](https://github.com/jline/jline3/commit/e26164515989853ce3038acb6541f7cb83218f9e) Merge branch 'master' into jline-script
+* [`634ebb79`](https://github.com/jline/jline3/commit/634ebb7978daa4576ef6d77e2eb51a1d07e237f8) Improved repl printing
+* [`47c0373d`](https://github.com/jline/jline3/commit/47c0373db4d7c058468791fcdc3801d31f5fc362) Commandline expansion inside code block
+* [`1cc42a46`](https://github.com/jline/jline3/commit/1cc42a46b969a4179cd3d044043b5544af15eea2) Parameter expansion & refactoring...
+* [`57c9a619`](https://github.com/jline/jline3/commit/57c9a619fb02c806e3db497012cb3eda99d8908e) Added Master CommandRegistry
+* [`55c16240`](https://github.com/jline/jline3/commit/55c1624051350ed1bd27285d1c6d2affcb8a6f91) Implemented simple script execution
+* [`939c1d75`](https://github.com/jline/jline3/commit/939c1d750f5da32c99983f3cfa1269c165060157) refactoring...
+* [`5e0eb5e2`](https://github.com/jline/jline3/commit/5e0eb5e269fb502ff5bb1d8609f8ddd771a0123e) jline-script
+
 ## [JLine 3.13.3][3_13_3]
 [3_13_3]: https://repo1.maven.org/maven2/org/jline/jline/3.13.3/
 
@@ -279,6 +363,7 @@ reset
 
 ## [JLine 3.11.0][3_11_0]
 [3_11_0]: https://repo1.maven.org/maven2/org/jline/jline/3.11.0/
+
 * [`ded05b8`](https://github.com/jline/jline3/commit/ded05b86f83c0a9499f103216ff600cca701a2b4) Rewrite the built-in function help highlighter to avoid manipulating ansi sequences directly
 * [`2a4646a`](https://github.com/jline/jline3/commit/2a4646a33ddf2837b700de37ee809c22762cc74d) Add a method to style matching strings with groups
 * [`4c66dfd`](https://github.com/jline/jline3/commit/4c66dfd175027a96ed3cd2f8456236f679b6293a) Add print()/println() methods to AttributedCharSequence to print to the terminal
@@ -308,6 +393,7 @@ reset
 
 ## [JLine 3.10.0][3_10_0]
 [3_10_0]: https://repo1.maven.org/maven2/org/jline/jline/3.10.0/
+
 * [`b65cfe2`](https://github.com/jline/jline3/commit/b65cfe2ff9f8971c2834862b11e7aa3d9add9996) Upgrade to latest gogo and sshd
 * [`310c846`](https://github.com/jline/jline3/commit/310c8462a8dca3d86cf47f14888969c738ff07ec) Merge pull request #353 from mattirn/brackets
 * [`9a2e06d`](https://github.com/jline/jline3/commit/9a2e06da300eea8639f00bb5b9d3c5dde1768239) DefaultParser: do not check brackets if inside quotes
@@ -371,22 +457,26 @@ reset
 
 ## [JLine 3.9.0][3_9_0]
 [3_9_0]: https://repo1.maven.org/maven2/org/jline/jline/3.9.0/
+
 * [`d5fc7e8`](https://github.com/jline/jline3/commit/d5fc7e82b5b99a04b11cd2154884180cb2fe5d10) Provide an api to print output asynchronously above the prompt, fixes #292
 * [`cd29a53`](https://github.com/jline/jline3/commit/cd29a53dbc78bd25087956473b207bdc9cf89d94) Add option to disable timestamps for history file
 * [`b537a73`](https://github.com/jline/jline3/commit/b537a7385a94f9ccf71e19a7419c144adae37a58) Switch to 3.9.0-SNAPSHOT
 
 ## [JLine 3.8.2][3_8_2]
 [3_8_2]: https://repo1.maven.org/maven2/org/jline/jline/3.8.2/
+
 * [`62d6088`](https://github.com/jline/jline3/commit/62d6088010561caa305efc90d840ad4847466844) Fix ConEmu support for 256 colors, fixes #294
 
 ## [JLine 3.8.1][3_8_1]
 [3_8_1]: https://repo1.maven.org/maven2/org/jline/jline/3.8.1/
+
 * [`0fb40ab`](https://github.com/jline/jline3/commit/0fb40ab0b58015ad1e21af01d28513081c9421a1) [maven-release-plugin] prepare release jline-parent-3.8.1
 * [`b5a643d`](https://github.com/jline/jline3/commit/b5a643de48f701a8088bb0e1b0cfaf4a52dde068) Autocomplete options are shown in random order, fixes #290
 * [`a802712`](https://github.com/jline/jline3/commit/a802712d025fd8f065241098360dcc20dd796a98) Fix reflection problem
 
 ## [JLine 3.8.0][3_8_0]
 [3_8_0]: https://repo1.maven.org/maven2/org/jline/jline/3.8.0/
+
 * [`0beae63`](https://github.com/jline/jline3/commit/0beae63a6ac53cb04a58dc6880bc8381b498db55) Upgrade to gogo 1.1.0
 * [`12b992f`](https://github.com/jline/jline3/commit/12b992f2c192b53d8897b99f6302c0d5dc406bf6) Improvement the ExternalTerminal to read multiple bytes in one go
 * [`27de765`](https://github.com/jline/jline3/commit/27de76521d3ee2e7685b88b986cecbeff4f028b2) Provide a status bar, fixes #286
@@ -405,6 +495,7 @@ reset
 
 ## [JLine 3.7.1][3_7_1]
 [3_7_1]: https://repo1.maven.org/maven2/org/jline/jline/3.7.1/
+
 * [`24b5660`](https://github.com/jline/jline3/commit/24b5660669c235e02190363f8c4c827daa1943ff) Extract io exception checking in a method
 * [`5bb4939`](https://github.com/jline/jline3/commit/5bb4939662029ffba7f03f34bca9d8d8ffbae95d) Fix build for jdk 10
 * [`14c87f4`](https://github.com/jline/jline3/commit/14c87f479033b2b050054ff0ed58d82c1153d95e) Convert groovy source files to java
@@ -427,6 +518,7 @@ reset
 
 ## [JLine 3.7.0][3_7_0]
 [3_7_0]: https://repo1.maven.org/maven2/org/jline/jline/3.7.0/
+
 * [`e4d5fd6`](https://github.com/jline/jline3/commit/e4d5fd69b7421b184f8f4f79a6f8b46cc6326b69) Upgrade maven plugins
 * [`c4cbea8`](https://github.com/jline/jline3/commit/c4cbea89715b84deef8fe8f8031165b3b13192e9) Add changelog
 * [`b838d17`](https://github.com/jline/jline3/commit/b838d1754a009b180b473e85d36671a15be43186) Upgrade to jansi 1.17.1
