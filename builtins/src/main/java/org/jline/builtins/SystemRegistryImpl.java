@@ -64,7 +64,7 @@ public class SystemRegistryImpl implements SystemRegistry {
 
     private static final Class<?>[] BUILTIN_REGISTERIES = { Builtins.class, ConsoleEngineImpl.class };
     private CommandRegistry[] commandRegistries;
-    private Integer consoleId = null;
+    private Integer consoleId;
     private Parser parser;
     private ConfigurationPath configPath;
     private Map<Command, String> commandName = new HashMap<>();
@@ -242,7 +242,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     public Completer completer() {
         List<Completer> completers = new ArrayList<>();
         completers.add(compileCompleters());
-        if (consoleId > -1) {
+        if (consoleId != null) {
             completers.addAll(consoleEngine().scriptCompleters());
         }
         return new AggregateCompleter(completers);
@@ -992,7 +992,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             CommandData cmd = cmds.get(i);
             try {
                 outputStream.closeAndReset();
-                if (!consoleEngine().isExecuting()) {
+                if (consoleId != null && !consoleEngine().isExecuting()) {
                     trace(cmd);
                 }
                 exception = null;
@@ -1262,7 +1262,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 printCommands(cmds, max);
             }
         }
-        if (consoleId > -1 && isInArgs(opt.args(), "Scripts")) {
+        if (consoleId != null && isInArgs(opt.args(), "Scripts")) {
             printHeader("Scripts");
             if (withInfo) {
                 for (String c : scriptStore.getScripts()) {
@@ -1313,7 +1313,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     private List<String> registryNames() {
         List<String> out = new ArrayList<>();
         out.add("Builtins");
-        if (consoleId > -1) {
+        if (consoleId != null) {
             out.add("Scripts");
         }
         for (CommandRegistry r : commandRegistries) {

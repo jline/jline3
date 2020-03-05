@@ -15,7 +15,6 @@ import org.jline.terminal.Terminal;
 
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -82,7 +81,7 @@ public interface CommandRegistry {
         } catch (Exception e) {
 
         }
-        return new ArrayList<>();
+        throw new IllegalArgumentException("default CommandRegistry.commandInfo() method must be overridden in class " + this.getClass().getCanonicalName());
     }
 
     /**
@@ -113,7 +112,7 @@ public interface CommandRegistry {
         } catch (Exception e) {
 
         }
-        return null;
+        throw new IllegalArgumentException("default CommandRegistry.commandDescription() method must be overridden in class " + this.getClass().getCanonicalName());
     }
 
     /**
