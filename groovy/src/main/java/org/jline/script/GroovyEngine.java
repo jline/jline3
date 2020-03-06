@@ -247,4 +247,8 @@ public class GroovyEngine implements ScriptEngine {
         return Utils.toString(obj);
     }
 
+    public Map<Object,Object> toMap(Object obj) {
+        return Utils.toMap(obj);
+    }
+
 }

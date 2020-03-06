@@ -88,6 +88,13 @@ public interface ScriptEngine {
     String toString(Object object);
 
     /**
+     * Converts object fields to map.
+     * @param object object to convert to map
+     * @return object fields map
+     */
+    Map<Object,Object> toMap(Object object);
+
+    /**
      * Substitute variable reference with its value.
      * @param variable
      * @return Substituted variable

@@ -28,12 +28,8 @@ public class Utils {
         slurper.parseText(json)
     }
 
-    static Object convert(Object object) {
-        if (object instanceof String) {
-            return object;
-        }
-        def slurper = new JsonSlurper()
-        slurper.parseText(JsonOutput.toJson(object))
+    static Map<Object,Object> toMap(Object object) {
+        object.properties
     }
 
     static String toJson(Object object) {
