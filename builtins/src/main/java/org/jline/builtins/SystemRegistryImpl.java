@@ -509,14 +509,14 @@ public class SystemRegistryImpl implements SystemRegistry {
             return false;
         }
         String value = consoleEngine().getAlias(command).split("\\s+")[0];
-        return !isPipe(value);        
+        return !isPipe(value);
     }
-    
+
     private String replaceCommandAlias(String variable, String command, String rawLine) {
         return variable == null ? rawLine.replaceFirst(command + "(\\b|$)", consoleEngine().getAlias(command))
                                 : rawLine.replaceFirst("=" + command + "(\\b|$)", "=" + consoleEngine().getAlias(command));
     }
-    
+
     private List<CommandData> compileCommandLine(String commandLine) {
         List<CommandData> out = new ArrayList<>();
         ArgsParser ap = new ArgsParser();
@@ -608,7 +608,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                         if (i + 1 >= last) {
                             throw new IllegalArgumentException();
                         }
-                        file = new File(words.get(i + 1));
+                        file = redirectFile(words.get(i + 1));
                         last = i + 1;
                         break;
                     } else if (words.get(i).equals(pipeName.get(Pipe.FLIP))) {
@@ -739,6 +739,16 @@ public class SystemRegistryImpl implements SystemRegistry {
         return out;
     }
 
+    private File redirectFile(String name) {
+        File out = null;
+        if (name.equals("null")) {
+            out = OSUtils.IS_WINDOWS ? new File("NUL") : new File("/dev/null");
+        } else {
+            out = new File(name);
+        }
+        return out;
+    }
+
     private static class ArgsParser {
         private int round = 0;
         private int curly = 0;
@@ -751,7 +761,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         private List<String> args;
 
         public ArgsParser() {}
-        
+
         private void reset() {
             round = 0;
             curly = 0;
@@ -796,7 +806,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         private boolean isEnclosed() {
             return round == 0 && curly == 0 && square == 0 && !quoted && !doubleQuoted;
         }
-        
+
         private void enclosedArgs(List<String> words) {
             args = new ArrayList<>();
             reset();
@@ -818,7 +828,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 }
             }
             if (!first) {
-                args.add(sb.toString());                
+                args.add(sb.toString());
             }
         }
 
@@ -830,7 +840,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             if (!parser.validCommandName(command)) {
                 this.command = "";
             }
-            this.variable = parser.getVariable(args.get(0));                      
+            this.variable = parser.getVariable(args.get(0));
         }
 
         public String line() {
@@ -874,7 +884,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         private String variable;
         private String pipe;
 
-        public CommandData (Parser parser, boolean statement, String rawLine, String variable, File file, boolean append, String pipe) {        
+        public CommandData (Parser parser, boolean statement, String rawLine, String variable, File file, boolean append, String pipe) {
             this.rawLine = rawLine;
             this.variable = variable;
             this.file = file;
