@@ -54,6 +54,13 @@ public interface ConsoleEngine extends CommandRegistry {
     Object[] expandParameters(String[] args) throws Exception;
 
     /**
+     * Substitutes command line with system registry invoke method call.
+     * @param line command line to be expanded
+     * @return expanded command line
+     */
+    String expandCommandLine(String line);
+
+    /**
      * Returns all scripts found from PATH
      * @return map keys have script file names and value is true if it is console script
      */

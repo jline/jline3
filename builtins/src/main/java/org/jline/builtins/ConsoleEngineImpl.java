@@ -305,10 +305,14 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         String command = parser().getCommand(line);
         boolean out = false;
         if (command != null && command.startsWith(":")) {
-            if (systemRegistry.hasCommand(command.substring(1))) {
+            command = command.substring(1);
+            if (hasAlias(command)) {
+                command = getAlias(command);
+            }
+            if (systemRegistry.hasCommand(command)) {
                 out = true;
             } else {
-                ScriptFile sf = new ScriptFile(command.substring(1), "", new String[0]);
+                ScriptFile sf = new ScriptFile(command, "", new String[0]);
                 if (sf.isScript()) {
                     out = true;
                 }
@@ -572,6 +576,45 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     @Override
+    public String expandCommandLine(String line) {
+        String out = null;
+        if (isCommandLine(line)) {
+            StringBuilder sb = new StringBuilder();
+            List<String> ws = parser().parse(line, 0, ParseContext.COMPLETE).words();
+            int idx = ws.get(0).lastIndexOf(":");
+            if (idx > 0) {
+                sb.append(ws.get(0).substring(0, idx));
+            }
+            String[] argv = new String[ws.size()];
+            for (int i = 1; i < ws.size(); i++) {
+                argv[i] = ws.get(i);
+                if (argv[i].startsWith("${")) {
+                    Matcher argvMatcher = Pattern.compile("\\$\\{(.*)}").matcher(argv[i]);
+                    if (argvMatcher.find()) {
+                        argv[i] = argv[i].replace(argv[i], argvMatcher.group(1));
+                    }
+                } else if (argv[i].startsWith("$")) {
+                    argv[i] = argv[i].substring(1);
+                } else {
+                    argv[i] = quote(argv[i]);
+                }
+            }
+            String cmd = hasAlias(ws.get(0).substring(idx + 1)) ? getAlias(ws.get(0).substring(idx + 1)) 
+                                                                : ws.get(0).substring(idx + 1);
+            sb.append("org.jline.builtins.SystemRegistry.get().invoke('" + cmd + "'");
+            for (int i = 1; i < argv.length; i++) {
+                sb.append(", ");
+                sb.append(argv[i]);
+            }
+            sb.append(")");
+            out = sb.toString();
+        } else {
+            out = line;
+        }
+        return out;
+    }
+
+    @Override
     public Object execute(String cmd, String line, String[] args) throws Exception {
         if (line.trim().startsWith("#")) {
             return null;
@@ -593,35 +636,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             if (isCodeBlock(line)) {
                 StringBuilder sb = new StringBuilder();
                 for (String s: line.split("\\r?\\n")) {
-                    if (isCommandLine(s)) {
-                        List<String> ws = parser().parse(s, 0, ParseContext.COMPLETE).words();
-                        int idx = ws.get(0).lastIndexOf(":");
-                        if (idx > 0) {
-                            sb.append(ws.get(0).substring(0, idx));
-                        }
-                        String[] argv = new String[ws.size()];
-                        for (int i = 1; i < ws.size(); i++) {
-                            argv[i] = ws.get(i);
-                            if (argv[i].startsWith("${")) {
-                                Matcher argvMatcher = Pattern.compile("\\$\\{(.*)}").matcher(argv[i]);
-                                if (argvMatcher.find()) {
-                                    argv[i] = argv[i].replace(argv[i], argvMatcher.group(1));
-                                }
-                            } else if (argv[i].startsWith("$")) {
-                                argv[i] = argv[i].substring(1);
-                            } else {
-                                argv[i] = quote(argv[i]);
-                            }
-                        }
-                        sb.append("org.jline.builtins.SystemRegistry.get().invoke('" + ws.get(0).substring(idx + 1) + "'");
-                        for (int i = 1; i < argv.length; i++) {
-                            sb.append(", ");
-                            sb.append(argv[i]);
-                        }
-                        sb.append(")");
-                    } else {
-                        sb.append(s);
-                    }
+                    sb.append(expandCommandLine(s));
                     sb.append("\n");
                 }
                 line = sb.toString();

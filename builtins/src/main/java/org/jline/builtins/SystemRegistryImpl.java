@@ -581,16 +581,21 @@ public class SystemRegistryImpl implements SystemRegistry {
             // compile pipe line
             //
             do {
-                String command = ConsoleEngine.plainCommand(parser.getCommand(words.get(first)));
+                String rawCommand = parser.getCommand(words.get(first));
+                String command = ConsoleEngine.plainCommand(rawCommand);
                 String variable = parser.getVariable(words.get(first));
+                boolean aliasCommand = false;
                 if (isCommandAlias(command)) {
                     ap.parse(parser, replaceCommandAlias(variable, command, nextRawLine));
+                    rawCommand = ap.rawCommand();
                     command = ap.command();
                     words = ap.args();
                     first = 0;
+                    aliasCommand = true;
                 }
-                if (scriptStore.isConsoleScript(command)) {
-                    throw new IllegalArgumentException("Console scripts cannot be used in pipe!");
+                if (((first > 0 && isCommandOrScript(command)) || (first == 0 && scriptStore.isConsoleScript(command))) 
+                       && !rawCommand.startsWith(":") ) {
+                    throw new IllegalArgumentException("Commands must be used in pipes with colon prefix!");
                 }
                 last = words.size();
                 File file = null;
@@ -693,7 +698,9 @@ public class SystemRegistryImpl implements SystemRegistry {
                             int idx = subLine.indexOf(" ");
                             subLine = idx > 0 ? subLine.substring(idx + 1) : "";
                         }
-                        rawLine += fixes.get(0) + subLine + fixes.get(1);
+                        rawLine += fixes.get(0) 
+                                     + (consoleId != null ? consoleEngine().expandCommandLine(subLine) : subLine) 
+                                 + fixes.get(1);
                         statement = true;
                     }
                     if (pipes.get(pipes.size() - 1).equals(pipeName.get(Pipe.FLIP))
@@ -836,7 +843,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             this.line = line;
             ParsedLine pl = parser.parse(line, 0, ParseContext.SPLIT_LINE);
             enclosedArgs(pl.words());
-            this.command = ConsoleEngine.plainCommand(parser.getCommand(args.get(0)));
+            this.command = parser.getCommand(args.get(0));
             if (!parser.validCommandName(command)) {
                 this.command = "";
             }
@@ -848,6 +855,10 @@ public class SystemRegistryImpl implements SystemRegistry {
         }
 
         public String command() {
+            return ConsoleEngine.plainCommand(command);
+        }
+        
+        public String rawCommand() {
             return command;
         }
 
