@@ -584,14 +584,12 @@ public class SystemRegistryImpl implements SystemRegistry {
                 String rawCommand = parser.getCommand(words.get(first));
                 String command = ConsoleEngine.plainCommand(rawCommand);
                 String variable = parser.getVariable(words.get(first));
-                boolean aliasCommand = false;
                 if (isCommandAlias(command)) {
                     ap.parse(parser, replaceCommandAlias(variable, command, nextRawLine));
                     rawCommand = ap.rawCommand();
                     command = ap.command();
                     words = ap.args();
                     first = 0;
-                    aliasCommand = true;
                 }
                 if (((first > 0 && isCommandOrScript(command)) || (first == 0 && scriptStore.isConsoleScript(command))) 
                        && !rawCommand.startsWith(":") ) {
@@ -1011,6 +1009,9 @@ public class SystemRegistryImpl implements SystemRegistry {
         List<CommandData> cmds = compileCommandLine(line);
         for (int i = 0; i < cmds.size(); i++) {
             CommandData cmd = cmds.get(i);
+            if (cmd.file() != null && scriptStore.isConsoleScript(cmd.command())) {
+                throw new IllegalArgumentException("Console script output cannot be redirected!");
+            }
             try {
                 outputStream.closeAndReset();
                 if (consoleId != null && !consoleEngine().isExecuting()) {
@@ -1019,7 +1020,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 exception = null;
                 statement = false;
                 postProcessed = false;
-                if ((cmd.variable() != null || cmd.file() != null) && !scriptStore.isConsoleScript(cmd.command())) {
+                if (cmd.variable() != null || cmd.file() != null) {
                     if (cmd.file() != null) {
                         outputStream.redirect(cmd.file(), cmd.append());
                     } else if (consoleId != null) {

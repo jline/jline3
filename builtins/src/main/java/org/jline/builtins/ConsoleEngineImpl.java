@@ -820,6 +820,10 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             if (object instanceof SystemRegistryImpl.CommandData) {
                 toPrint = ((SystemRegistryImpl.CommandData)object).rawLine();
             }
+        } else if (level > 1) {
+            if (object instanceof SystemRegistryImpl.CommandData) {
+                toPrint = ((SystemRegistryImpl.CommandData)object).toString();
+            }
         }
         println(options, toPrint);
     }
