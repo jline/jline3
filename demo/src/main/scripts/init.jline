@@ -9,7 +9,7 @@ PATH = [ROOT + 'scripts']
 # create jnanorc configuration file
 #
 _jnanorc = Paths.get(ROOT, 'jnanorc').toFile()
-_jnanorc << 'include ' + ROOT + 'nanorc/*.nanorc\n'
+_jnanorc << 'include ' + ROOT + 'nanorc/*.nanorc\n' > null
 #
 # console options
 #

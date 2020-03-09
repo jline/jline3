@@ -8,13 +8,21 @@
  */
 package org.jline.demo;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.jline.builtins.Builtins;
 import org.jline.builtins.CommandRegistry;
@@ -65,11 +73,14 @@ public class Repl {
         private final Map<String,Builtins.CommandMethods> commandExecute = new HashMap<>();
         private Map<String,String> aliasCommand = new HashMap<>();
         private Exception exception;
+        private Supplier<Path> workDir;
 
-        public MyCommands() {
+        public MyCommands(Supplier<Path> workDir) {
+            this.workDir = workDir;
             commandExecute.put("tput", new Builtins.CommandMethods(this::tput, this::tputCompleter));
             commandExecute.put("testkey", new Builtins.CommandMethods(this::testkey, this::defaultCompleter));
             commandExecute.put("clear", new Builtins.CommandMethods(this::clear, this::defaultCompleter));
+            commandExecute.put("!", new Builtins.CommandMethods(this::shell, this::defaultCompleter));
         }
 
         public void setLineReader(LineReader reader) {
@@ -197,6 +208,52 @@ public class Repl {
             }
         }
 
+        private void executeCmnd(List<String> args) throws Exception {
+            ProcessBuilder builder = new ProcessBuilder();
+            List<String> _args = new ArrayList<>();
+            if (OSUtils.IS_WINDOWS) {
+                _args.add("cmd.exe");
+                _args.add("/c");
+            } else {
+                _args.add("sh");
+                _args.add("-c");
+            }
+            _args.add(args.stream().collect(Collectors.joining(" ")));
+            builder.command(_args);
+            builder.directory(workDir.get().toFile());
+            Process process = builder.start();
+            StreamGobbler streamGobbler = new StreamGobbler(process.getInputStream(), System.out::println);
+            new Thread(streamGobbler).start();
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                throw new Exception("Failed to execute: " + String.join(" ", args.subList(2, args.size())));
+            }
+        }
+
+        private void shell(Builtins.CommandInput input) {
+            final String[] usage = { "!<command> -  execute shell command"
+                                   , "Usage: !<command>"
+                                   , "  -? --help                       Displays command help" };
+            try {
+                Options opt = Options.compile(usage).parse(input.args());
+                if (opt.isSet("help") && opt.args().isEmpty()) {
+                    exception = new HelpException(opt.usage());
+                    return;
+                }
+            } catch (Exception e) {
+                // ignore
+            }
+            List<String> argv = new ArrayList<>();
+            argv.addAll(Arrays.asList(input.args()));
+            if (!argv.isEmpty()) {
+                try {
+                    executeCmnd(argv);
+                } catch (Exception e) {
+                    exception = e;
+                }
+            }
+        }
+
         private List<OptDesc> commandOptions(String command) {
             try {
                 execute(new CommandRegistry.CommandSession(), command, new String[] {"--help"});
@@ -234,6 +291,26 @@ public class Repl {
 
     }
 
+    private static class StreamGobbler implements Runnable {
+        private InputStream inputStream;
+        private Consumer<String> consumer;
+
+        public StreamGobbler(InputStream inputStream, Consumer<String> consumer) {
+            this.inputStream = inputStream;
+            this.consumer = consumer;
+        }
+
+        @Override
+        public void run() {
+            new BufferedReader(new InputStreamReader(inputStream)).lines()
+              .forEach(consumer);
+        }
+    }
+
+    private static Path workDir() {
+        return Paths.get(System.getProperty("user.dir"));
+    }
+
     public static void main(String[] args) {
         try {
             //
@@ -243,6 +320,7 @@ public class Repl {
             parser.setEofOnUnclosedBracket(Bracket.CURLY, Bracket.ROUND, Bracket.SQUARE);
             parser.setEofOnUnclosedQuote(true);
             parser.setEscapeChars(null);
+            parser.setRegexCommand("[:]{0,1}[a-zA-Z!]{1,}\\S*");    // change default regex to support shell commands
             Terminal terminal = TerminalBuilder.builder().build();
             //
             // ScriptEngine and command registeries
@@ -252,9 +330,9 @@ public class Repl {
             GroovyEngine scriptEngine = new GroovyEngine();
             scriptEngine.put("ROOT", root);
             ConfigurationPath configPath = new ConfigurationPath(Paths.get(root), Paths.get(root));
-            ConsoleEngine consoleEngine = new ConsoleEngineImpl(scriptEngine, ()->Paths.get(""), configPath);
-            Builtins builtins = new Builtins(Paths.get(""), configPath,  (String fun)-> {return new ConsoleEngine.WidgetCreator(consoleEngine, fun);});
-            MyCommands myCommands = new MyCommands();
+            ConsoleEngine consoleEngine = new ConsoleEngineImpl(scriptEngine, Repl::workDir, configPath);
+            Builtins builtins = new Builtins(Repl::workDir, configPath,  (String fun)-> {return new ConsoleEngine.WidgetCreator(consoleEngine, fun);});
+            MyCommands myCommands = new MyCommands(Repl::workDir);
             SystemRegistry systemRegistry = new SystemRegistryImpl(parser, terminal, configPath);
             systemRegistry.setCommandRegistries(consoleEngine, builtins, myCommands);
             //
@@ -274,7 +352,7 @@ public class Repl {
                     .option(Option.DISABLE_EVENT_EXPANSION, true)
                     .build();
             if (OSUtils.IS_WINDOWS) {
-                reader.setVariable(LineReader.BLINK_MATCHING_PAREN, 0); // if enabled cursor remains in begin parenthesis
+                reader.setVariable(LineReader.BLINK_MATCHING_PAREN, 0); // if enabled cursor remains in begin parenthesis (gitbash)
             }
             //
             // complete command registeries
@@ -298,6 +376,7 @@ public class Repl {
                 try {
                     systemRegistry.cleanUp();         // delete temporary variables and reset output streams
                     String line = reader.readLine("groovy-repl> ");
+                    line = parser.getCommand(line).startsWith("!") ? line.replaceFirst("!", "! ") : line;
                     Object result = systemRegistry.execute(line);
                     consoleEngine.println(result);
                 }
