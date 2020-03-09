@@ -182,17 +182,13 @@ public class DefaultParser implements Parser {
     @Override
     public String getCommand(final String line) {
         String out = "";
-        Pattern  patternCommand = Pattern.compile("^\\s*" + regexVariable + "=(" + regexCommand + ")(\\s+.*|$)");
+        Pattern  patternCommand = Pattern.compile("^\\s*" + regexVariable + "=(" + regexCommand + ")(\\s+|$)");
         Matcher matcher = patternCommand.matcher(line);
         if (matcher.find()) {
             out = matcher.group(commandGroup);
         } else {
             out = line.trim().split("\\s+")[0];
-            int idx = out.indexOf("=");
-            if (idx > -1) {
-                out = out.substring(idx + 1);
-            }
-            if (!out.matches(regexCommand)) {
+            if (out.contains("=") || !out.matches(regexCommand)) {
                 out = "";
             }
         }
