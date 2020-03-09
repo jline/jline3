@@ -46,7 +46,6 @@ import org.jline.utils.AttributedStyle;
 import org.jline.utils.Curses;
 import org.jline.utils.Display;
 import org.jline.utils.InfoCmp.Capability;
-import org.jline.utils.Levenshtein;
 import org.jline.utils.Log;
 import org.jline.utils.Status;
 import org.jline.utils.StyleResolver;
@@ -58,6 +57,8 @@ import static org.jline.keymap.KeyMap.del;
 import static org.jline.keymap.KeyMap.esc;
 import static org.jline.keymap.KeyMap.range;
 import static org.jline.keymap.KeyMap.translate;
+import static org.jline.reader.MatcherFactory.simpleMatcher;
+import static org.jline.reader.MatcherFactory.typoMatcher;
 
 /**
  * A reader for terminal applications. It supports custom tab-completion,
@@ -168,6 +169,8 @@ public class LineReaderImpl implements LineReader, Flushable
     protected final Map<String, Object> variables;
     protected History history = new DefaultHistory();
     protected Completer completer = null;
+
+    protected MatcherFactory matcherFactory = new MatcherFactory();
     protected Highlighter highlighter = new DefaultHighlighter();
     protected Parser parser = new DefaultParser();
     protected Expander expander = new DefaultExpander();
@@ -386,6 +389,22 @@ public class LineReaderImpl implements LineReader, Flushable
      */
     public Completer getCompleter() {
         return completer;
+    }
+
+    /**
+     * Sets the matcher factory.
+     */
+    public void setMatcherFactory(MatcherFactory matcherFactory) {
+        this.matcherFactory = matcherFactory;
+    }
+
+    /**
+     * Returns the matcher factory.
+     *
+     * @return the matcher factory
+     */
+    public MatcherFactory getMatcherFactory() {
+        return matcherFactory;
     }
 
     //
@@ -1056,8 +1075,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
     @Override
     public boolean isSet(Option option) {
-        Boolean b = options.get(option);
-        return b != null ? b : option.isDef();
+        return option.isSet(options);
     }
 
     @Override
@@ -4448,51 +4466,12 @@ public class LineReaderImpl implements LineReader, Flushable
         }
 
         // Find matchers
-        // TODO: glob completion
-        List<Function<Map<String, List<Candidate>>,
-                      Map<String, List<Candidate>>>> matchers;
-        Predicate<String> exact;
-        if (prefix) {
-            String wd = line.word();
-            String wdi = caseInsensitive ? wd.toLowerCase() : wd;
-            String wp = wdi.substring(0, line.wordCursor());
-            matchers = Arrays.asList(
-                    simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).startsWith(wp)),
-                    simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).contains(wp)),
-                    typoMatcher(wp, errors, caseInsensitive)
-            );
-            exact = s -> caseInsensitive ? s.equalsIgnoreCase(wp) : s.equals(wp);
-        } else if (isSet(Option.COMPLETE_IN_WORD)) {
-            String wd = line.word();
-            String wdi = caseInsensitive ? wd.toLowerCase() : wd;
-            String wp = wdi.substring(0, line.wordCursor());
-            String ws = wdi.substring(line.wordCursor());
-            Pattern p1 = Pattern.compile(Pattern.quote(wp) + ".*" + Pattern.quote(ws) + ".*");
-            Pattern p2 = Pattern.compile(".*" + Pattern.quote(wp) + ".*" + Pattern.quote(ws) + ".*");
-            matchers = Arrays.asList(
-                    simpleMatcher(s -> p1.matcher(caseInsensitive ? s.toLowerCase() : s).matches()),
-                    simpleMatcher(s -> p2.matcher(caseInsensitive ? s.toLowerCase() : s).matches()),
-                    typoMatcher(wdi, errors, caseInsensitive)
-            );
-            exact = s -> caseInsensitive ? s.equalsIgnoreCase(wd) : s.equals(wd);
-        } else {
-            String wd = line.word();
-            String wdi = caseInsensitive ? wd.toLowerCase() : wd;
-            if (isSet(Option.EMPTY_WORD_OPTIONS) || wd.length() > 0) {
-                matchers = Arrays.asList(
-                        simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).startsWith(wdi)),
-                        simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).contains(wdi)),
-                        typoMatcher(wdi, errors, caseInsensitive)
-                );
-            } else {
-                matchers = Collections.singletonList(simpleMatcher(s -> !s.startsWith("-")));
-            }
-            exact = s -> caseInsensitive ? s.equalsIgnoreCase(wd) : s.equals(wd);
-        }
+        Matchers matchers = defaultMatchers(prefix, line, caseInsensitive, errors);
+        matcherFactory.updateMatchers(prefix, line, options, errors, getOriginalGroupName(), matchers.getMatchers());
         // Find matching candidates
         Map<String, List<Candidate>> matching = Collections.emptyMap();
         for (Function<Map<String, List<Candidate>>,
-                      Map<String, List<Candidate>>> matcher : matchers) {
+                      Map<String, List<Candidate>>> matcher : matchers.getMatchers().values()) {
             matching = matcher.apply(sortedCandidates);
             if (!matching.isEmpty()) {
                 break;
@@ -4525,7 +4504,7 @@ public class LineReaderImpl implements LineReader, Flushable
             else if (isSet(Option.RECOGNIZE_EXACT)) {
                 completion = matching.values().stream().flatMap(Collection::stream)
                         .filter(Candidate::complete)
-                        .filter(c -> exact.test(c.value()))
+                        .filter(c -> matchers.getExact().test(c.value()))
                         .findFirst().orElse(null);
             }
             // Complete and exit
@@ -4620,6 +4599,45 @@ public class LineReaderImpl implements LineReader, Flushable
         }
     }
 
+    private Matchers defaultMatchers(boolean prefix, CompletingParsedLine line, boolean caseInsensitive, int errors) {
+        // TODO: glob completion
+        LinkedHashMap<Matchers.MatcherType, Function<Map<String, List<Candidate>>,
+                      Map<String, List<Candidate>>>> matchersMap = new LinkedHashMap<>();
+        Predicate<String> exact;
+        if (prefix) {
+            String wd = line.word();
+            String wdi = caseInsensitive ? wd.toLowerCase() : wd;
+            String wp = wdi.substring(0, line.wordCursor());
+            matchersMap.put(Matchers.StandardMatcherType.PREFIX_STARTS_WITH, simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).startsWith(wp)));
+            matchersMap.put(Matchers.StandardMatcherType.PREFIX_CONTAINS, simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).contains(wp)));
+            matchersMap.put(Matchers.StandardMatcherType.TYPO, typoMatcher(wp, errors, caseInsensitive, getOriginalGroupName()));
+            exact = s -> caseInsensitive ? s.equalsIgnoreCase(wp) : s.equals(wp);
+        } else if (isSet(Option.COMPLETE_IN_WORD)) {
+            String wd = line.word();
+            String wdi = caseInsensitive ? wd.toLowerCase() : wd;
+            String wp = wdi.substring(0, line.wordCursor());
+            String ws = wdi.substring(line.wordCursor());
+            Pattern p1 = Pattern.compile(Pattern.quote(wp) + ".*" + Pattern.quote(ws) + ".*");
+            Pattern p2 = Pattern.compile(".*" + Pattern.quote(wp) + ".*" + Pattern.quote(ws) + ".*");
+            matchersMap.put(Matchers.StandardMatcherType.IN_WORD_STARTS_WITH, simpleMatcher(s -> p1.matcher(caseInsensitive ? s.toLowerCase() : s).matches()));
+            matchersMap.put(Matchers.StandardMatcherType.IN_WORD_CONTAINS, simpleMatcher(s -> p2.matcher(caseInsensitive ? s.toLowerCase() : s).matches()));
+            matchersMap.put(Matchers.StandardMatcherType.IN_WORD_TYPO, typoMatcher(wdi, errors, caseInsensitive, getOriginalGroupName()));
+            exact = s -> caseInsensitive ? s.equalsIgnoreCase(wd) : s.equals(wd);
+        } else {
+            String wd = line.word();
+            String wdi = caseInsensitive ? wd.toLowerCase() : wd;
+            if (isSet(Option.EMPTY_WORD_OPTIONS) || wd.length() > 0) {
+                matchersMap.put(Matchers.StandardMatcherType.STARTS_WITH, simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).startsWith(wdi)));
+                matchersMap.put(Matchers.StandardMatcherType.CONTAINS, simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).contains(wdi)));
+                matchersMap.put(Matchers.StandardMatcherType.TYPO, typoMatcher(wdi, errors, caseInsensitive, getOriginalGroupName()));
+            } else {
+                matchersMap.put(Matchers.StandardMatcherType.EMPTY_WORD, simpleMatcher(s -> !s.startsWith("-")));
+            }
+            exact = s -> caseInsensitive ? s.equalsIgnoreCase(wd) : s.equals(wd);
+        }
+        return new Matchers(exact, matchersMap);
+    }
+
     private CompletingParsedLine wrap(ParsedLine line) {
         if (line instanceof CompletingParsedLine) {
             return (CompletingParsedLine) line;
@@ -4658,7 +4676,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
     protected Comparator<Candidate> getCandidateComparator(boolean caseInsensitive, String word) {
         String wdi = caseInsensitive ? word.toLowerCase() : word;
-        ToIntFunction<String> wordDistance = w -> distance(wdi, caseInsensitive ? w.toLowerCase() : w);
+        ToIntFunction<String> wordDistance = w -> ReaderUtils.distance(wdi, caseInsensitive ? w.toLowerCase() : w);
         return Comparator
                 .comparing(Candidate::value, Comparator.comparingInt(wordDistance))
                 .thenComparing(Comparator.naturalOrder());
@@ -4702,37 +4720,6 @@ public class LineReaderImpl implements LineReader, Flushable
                             first.descr(), first.suffix(), null, first.complete()));
                 }
             }
-        }
-    }
-
-    private Function<Map<String, List<Candidate>>,
-                     Map<String, List<Candidate>>> simpleMatcher(Predicate<String> pred) {
-        return m -> m.entrySet().stream()
-                .filter(e -> pred.test(e.getKey()))
-                .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
-    }
-
-    private Function<Map<String, List<Candidate>>,
-                     Map<String, List<Candidate>>> typoMatcher(String word, int errors, boolean caseInsensitive) {
-        return m -> {
-            Map<String, List<Candidate>> map = m.entrySet().stream()
-                    .filter(e -> distance(word, caseInsensitive ? e.getKey() : e.getKey().toLowerCase()) < errors)
-                    .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
-            if (map.size() > 1) {
-                map.computeIfAbsent(word, w -> new ArrayList<>())
-                        .add(new Candidate(word, word, getOriginalGroupName(), null, null, null, false));
-            }
-            return map;
-        };
-    }
-
-    private int distance(String word, String cand) {
-        if (word.length() < cand.length()) {
-            int d1 = Levenshtein.distance(word, cand.substring(0, Math.min(cand.length(), word.length())));
-            int d2 = Levenshtein.distance(word, cand);
-            return Math.min(d1, d2);
-        } else {
-            return Levenshtein.distance(word, cand);
         }
     }
 

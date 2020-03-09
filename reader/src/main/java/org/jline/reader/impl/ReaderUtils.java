@@ -9,6 +9,7 @@
 package org.jline.reader.impl;
 
 import org.jline.reader.LineReader;
+import org.jline.utils.Levenshtein;
 
 public class ReaderUtils {
 
@@ -67,4 +68,13 @@ public class ReaderUtils {
         return nb;
     }
 
+    public static int distance(String word, String cand) {
+        if (word.length() < cand.length()) {
+            int d1 = Levenshtein.distance(word, cand.substring(0, Math.min(cand.length(), word.length())));
+            int d2 = Levenshtein.distance(word, cand);
+            return Math.min(d1, d2);
+        } else {
+            return Levenshtein.distance(word, cand);
+        }
+    }
 }

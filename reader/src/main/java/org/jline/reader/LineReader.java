@@ -467,6 +467,11 @@ public interface LineReader {
             this.def = def;
         }
 
+        public final boolean isSet(Map<Option, Boolean> options) {
+            Boolean b = options.get(this);
+            return b != null ? b : this.isDef();
+        }
+
         public boolean isDef() {
             return def;
         }
