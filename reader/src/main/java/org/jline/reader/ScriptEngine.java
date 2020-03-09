@@ -92,7 +92,7 @@ public interface ScriptEngine {
      * @param object object to convert to map
      * @return object fields map
      */
-    Map<Object,Object> toMap(Object object);
+    Map<String,Object> toMap(Object object);
 
     /**
      * Substitute variable reference with its value.

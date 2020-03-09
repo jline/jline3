@@ -28,7 +28,7 @@ public class Utils {
         slurper.parseText(json)
     }
 
-    static Map<Object,Object> toMap(Object object) {
+    static Map<String,Object> toMap(Object object) {
         object.properties
     }
 

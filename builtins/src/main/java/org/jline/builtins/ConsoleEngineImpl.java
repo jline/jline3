@@ -896,6 +896,11 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         }
     }
 
+    private Map<String,Object> keyToString(Map<Object,Object> map) {
+        return map.entrySet().stream()
+                .collect(Collectors.toMap(e -> e.getKey().toString(), Map.Entry::getValue));   
+    }
+
     @SuppressWarnings("unchecked")
     private List<AttributedString> highlight(Map<String, Object> options, Object obj) {
         List<AttributedString> out = new ArrayList<>();
@@ -904,7 +909,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         if (obj == null) {
             // do nothing
         } else if (obj instanceof Map) {
-            out = highlightMap((Map<Object, Object>)obj, width);
+            out = highlightMap(keyToString((Map<Object, Object>)obj), width);
         } else if (obj instanceof Collection<?> || obj instanceof Object[]) {
             Collection<?> collection = obj instanceof Collection<?> ? (Collection<?>)obj
                                                                     : Arrays.asList((Object[])obj);
@@ -912,7 +917,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 if (collection.size() == 1) {
                     Object elem = collection.iterator().next();
                     if (elem instanceof Map) {
-                        out = highlightMap((Map<Object, Object>)elem, width);
+                        out = highlightMap(keyToString((Map<Object, Object>)elem), width);
                     } else if (canConvert(elem)){
                         out = highlightMap(engine.toMap(elem), width);
                     } else {
@@ -922,15 +927,15 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                     Object elem = collection.iterator().next();
                     boolean convert = canConvert(elem);
                     if (elem instanceof Map || convert) {
-                        Map<Object, Object> map = convert ? engine.toMap(elem): (Map<Object, Object>)elem;
-                        List<String> header = map.keySet().stream().map(k->k.toString()).collect(Collectors.toList());
+                        Map<String, Object> map = convert ? engine.toMap(elem): keyToString((Map<Object, Object>)elem);
+                        List<String> header = map.keySet().stream().collect(Collectors.toList());
                         List<Integer> columns = new ArrayList<>();
                         for (int i = 0; i < header.size(); i++) {
                             columns.add(header.get(i).length() + 1);
                         }
                         for (Object o : collection) {
                             for (int i = 0; i < header.size(); i++) {
-                                Map<Object, Object> m = convert ? engine.toMap(o) : (Map<Object, Object>)o;
+                                Map<String, Object> m = convert ? engine.toMap(o) : keyToString((Map<Object, Object>)o);
                                 if (engine.toString(m.get(header.get(i))).length() > columns.get(i) - 1) {
                                     columns.set(i, engine.toString(m.get(header.get(i))).length() + 1);
                                 }
@@ -956,7 +961,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                                 row++;
                             }
                             for (int i = 0; i < header.size(); i++) {
-                                Map<Object, Object> m = convert ? engine.toMap(o) : (Map<Object, Object>)o;
+                                Map<String, Object> m = convert ? engine.toMap(o) : keyToString((Map<Object, Object>)o);
                                 asb2.append(engine.toString(m.get(header.get(i))));
                                 asb2.append("\t");
                             }
@@ -1040,12 +1045,12 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         }
     }
 
-    private List<AttributedString> highlightMap(Map<Object, Object> map, int width) {
+    private List<AttributedString> highlightMap(Map<String, Object> map, int width) {
         List<AttributedString> out = new ArrayList<>();
-        int max = map.keySet().stream().map(k->k.toString()).map(String::length).max(Integer::compareTo).get();
-        for (Map.Entry<Object, Object> entry : map.entrySet()) {
+        int max = map.keySet().stream().map(String::length).max(Integer::compareTo).get();
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
             AttributedStringBuilder asb = new AttributedStringBuilder().tabs(Arrays.asList(0, max + 1));
-            asb.append(entry.getKey().toString(), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
+            asb.append(entry.getKey(), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
             if (map.size() == 1) {
                 for (String v : engine.toString(entry.getValue()).split("\\r?\\n")) {
                     asb.append("\t");

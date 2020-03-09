@@ -591,8 +591,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                     words = ap.args();
                     first = 0;
                 }
-                if (((first > 0 && isCommandOrScript(command)) || (first == 0 && scriptStore.isConsoleScript(command))) 
-                       && !rawCommand.startsWith(":") ) {
+                if (scriptStore.isConsoleScript(command) && !rawCommand.startsWith(":") ) {
                     throw new IllegalArgumentException("Commands must be used in pipes with colon prefix!");
                 }
                 last = words.size();
