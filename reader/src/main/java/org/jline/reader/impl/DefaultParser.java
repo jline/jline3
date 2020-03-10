@@ -188,7 +188,7 @@ public class DefaultParser implements Parser {
             out = matcher.group(commandGroup);
         } else {
             out = line.trim().split("\\s+")[0];
-            if (out.contains("=") || !out.matches(regexCommand)) {
+            if (!out.matches(regexCommand)) {
                 out = "";
             }
         }

@@ -41,7 +41,7 @@ public interface Parser {
             out = matcher.group(1);
         } else {
             out = line.trim().split("\\s+")[0];
-            if (out.contains("=") || !out.matches(REGEX_COMMAND)) {
+            if (!out.matches(REGEX_COMMAND)) {
                 out = "";
             }
         }
