@@ -951,7 +951,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             Collection<?> collection = obj instanceof Collection<?> ? (Collection<?>)obj
                                                                     : Arrays.asList((Object[])obj);
             if (!collection.isEmpty()) {
-                if (collection.size() == 1) {
+                if (collection.size() == 1 && !options.containsKey("oneRowTable")) {
                     Object elem = collection.iterator().next();
                     if (elem instanceof Map) {
                         out = highlightMap(keyToString((Map<Object, Object>)elem), width);
@@ -965,10 +965,28 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                     boolean convert = canConvert(elem);
                     if (elem instanceof Map || convert) {
                         Map<String, Object> map = convert ? engine.toMap(elem): keyToString((Map<Object, Object>)elem);
-                        List<String> header = map.keySet().stream().collect(Collectors.toList());
+                        List<String> _header = null;
+                        if (options.containsKey("columns")) {
+                            _header = (List<String>)options.get("columns");
+                        } else {
+                            _header = map.keySet().stream().collect(Collectors.toList());
+                        }
+                        List<String> header = new ArrayList<>();
                         List<Integer> columns = new ArrayList<>();
-                        for (int i = 0; i < header.size(); i++) {
-                            columns.add(header.get(i).length() + 1);
+                        for (int i = 0; i < _header.size(); i++) {
+                            if (!map.containsKey(_header.get(i))) {
+                                continue;
+                            }
+                            Object val = map.get(_header.get(i));
+                            if (options.containsKey("columns")) {
+                                if (!((List<String>)options.get("columns")).contains(_header.get(i))) {
+                                    continue;
+                                }
+                            } else if (!options.containsKey("structsOnTable") && (val == null || !simpleObject(val))) {
+                                continue;
+                            }
+                            header.add(_header.get(i));
+                            columns.add(_header.get(i).length() + 1);
                         }
                         for (Object o : collection) {
                             for (int i = 0; i < header.size(); i++) {
@@ -1060,10 +1078,17 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return out;
     }
 
+    private boolean collectionObject(Object obj) {
+        return obj instanceof Map || obj instanceof Iterable || obj instanceof Object[] || obj instanceof Collection;
+    }
+
+    private boolean simpleObject(Object obj) {
+        return obj instanceof Number || obj instanceof String || obj instanceof Date || obj instanceof File
+                || obj instanceof Boolean || obj instanceof Enum;
+    }
+
     private boolean canConvert(Object obj) {
-        if (obj instanceof Number || obj instanceof Map || obj instanceof Iterable || obj instanceof String
-                || obj instanceof Date || obj instanceof File || obj instanceof Boolean || obj instanceof Object[]
-                || obj instanceof Collection || obj instanceof Enum) {
+        if (simpleObject(obj) || collectionObject(obj)) {
             return false;
         }
         return true;
@@ -1142,7 +1167,10 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 "prnt -  print object",
                 "Usage: prnt [OPTIONS] object",
                 "  -? --help                       Displays command help",
+                "     --columns=COLUMNS,...        Display given columns on table",
+                "     --oneRowTable                Display one row data on table",
                 "  -r --rownum                     Display table row numbers",
+                "     --structsOnTable             Display structs and lists on table",
                 "  -s --style=STYLE                Use nanorc STYLE",
                 "  -w --width=WIDTH                Display width (default terminal width)"
         };
@@ -1160,6 +1188,15 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         }
         if (opt.isSet("rownum")) {
             options.put("rownum", true);
+        }
+        if (opt.isSet("oneRowTable")) {
+            options.put("oneRowTable", true);
+        }
+        if (opt.isSet("structsOnTable")) {
+            options.put("structsOnTable", true);
+        }
+        if (opt.isSet("columns")) {
+            options.put("columns", Arrays.asList(opt.get("columns").split(",")));
         }
         options.put("exception", "stack");
         List<Object> args = opt.argObjects();

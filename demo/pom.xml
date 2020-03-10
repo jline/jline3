@@ -165,6 +165,7 @@
                                     <directory>src/main/scripts</directory>
                                     <includes>
                                         <include>init.jline</include>
+                                        <include>data.json</include>
                                     </includes>
                                 </resource>
                             </resources>
