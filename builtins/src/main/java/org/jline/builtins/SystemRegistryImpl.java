@@ -542,6 +542,8 @@ public class SystemRegistryImpl implements SystemRegistry {
                             pipeAlias = pipeAlias.replaceAll("\\s\\$" + j + "\\b", " " + args.get(j));
                             pipeAlias = pipeAlias.replaceAll("\\$\\{" + j + "(|:-.*)\\}", args.get(j));
                         }
+                        pipeAlias = pipeAlias.replaceAll("\\$\\{@\\}", consoleEngine().expandToList(args));
+                        pipeAlias = pipeAlias.replaceAll("\\$@", consoleEngine().expandToList(args));
                         pipeAlias = pipeAlias.replaceAll("\\s+\\$\\d\\b", "");
                         pipeAlias = pipeAlias.replaceAll("\\s+\\$\\{\\d+\\}", "");
                         pipeAlias = pipeAlias.replaceAll("\\$\\{\\d+\\}", "");
@@ -695,8 +697,8 @@ public class SystemRegistryImpl implements SystemRegistry {
                             int idx = subLine.indexOf(" ");
                             subLine = idx > 0 ? subLine.substring(idx + 1) : "";
                         }
-                        rawLine += fixes.get(0) 
-                                     + (consoleId != null ? consoleEngine().expandCommandLine(subLine) : subLine) 
+                        rawLine += fixes.get(0)
+                                     + (consoleId != null ? consoleEngine().expandCommandLine(subLine) : subLine)
                                  + fixes.get(1);
                         statement = true;
                     }
@@ -854,7 +856,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         public String command() {
             return ConsoleEngine.plainCommand(command);
         }
-        
+
         public String rawCommand() {
             return command;
         }

@@ -13,6 +13,9 @@ array.each {
     :prnt $resp
 }.identity{}
 
+params = $@
+prnt -s JSON $params
+
 println('hello ' + ${1:-world} + '!')
 
 exit 'ok' 

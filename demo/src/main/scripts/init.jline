@@ -32,6 +32,9 @@ pipe grep '.collect{it.toString()}.findAll{it=~/' '/}'
 alias null '|& identity{}' 
 alias xargs '|; %{0} %{1} %{2} %{3} %{4} %{5} %{6} %{7} %{8} %{9}'
 alias to    '|; %{0} ='
+alias select '|. def m = it; def out = [:]; %{@}.each{def v = m; it.split("\\.").each{v=v[it]}; out.put(it,v)}; out'
+alias sort '|& sort{def p = %{@}; p[0].startsWith("-") ? -it[p[0].substring(1)] : it[p[0]]}'
+alias distinct '|& unique()'
 #
 # create test-widget and bind it to ctrl-alt-x
 # It will read widget name from buffer and execute it
@@ -40,7 +43,7 @@ def _testWidget() {
     def name = _buffer().toString().split('\\s+')[0]
     _widget "$name"
 }
-widget -N test-widget _testWidget 
+widget -N test-widget _testWidget
 keymap '^[^x' test-widget
 #
 # create _tailtip-toggle widget that changes also maximum candidates to display

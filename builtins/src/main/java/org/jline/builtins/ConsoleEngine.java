@@ -61,6 +61,13 @@ public interface ConsoleEngine extends CommandRegistry {
     String expandCommandLine(String line);
 
     /**
+     * Expands parameter list to string
+     * @param params list of script parameters
+     * @return expanded parameters list
+     */
+    String expandToList(List<String> params);
+
+    /**
      * Returns all scripts found from PATH
      * @return map keys have script file names and value is true if it is console script
      */
@@ -182,7 +189,7 @@ public interface ConsoleEngine extends CommandRegistry {
     /**
      * Test if variable with name exists
      * @param name name of the variable
-     * @return true if variable with name exists 
+     * @return true if variable with name exists
      */
     boolean hasVariable(String name);
 

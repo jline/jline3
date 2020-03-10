@@ -281,6 +281,32 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return out;
     }
 
+    private String expandToList(String[] args) {
+        return expandToList(Arrays.asList(args));
+    }
+
+    @Override
+    public String expandToList(List<String> params) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+        boolean first = true;
+        for (int j = 0; j < params.size(); j++) {
+            if (!first) {
+                sb.append(",");
+            }
+            if (params.get(j).equalsIgnoreCase("true") || params.get(j).equalsIgnoreCase("false") || params.get(j).equalsIgnoreCase("null")) {
+                sb.append(params.get(j).toLowerCase());
+            } else if (params.get(j).matches("-?\\d+(\\.\\d+)?")) {
+                sb.append(params.get(j));
+            } else {
+                sb.append(params.get(j).startsWith("$") ? params.get(j).substring(1) : quote(params.get(j)));
+            }
+            first = false;
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
     private String expandName(String name) {
         String regexVar = "[a-zA-Z_]{1,}[a-zA-Z0-9_-]*";
         String out = name;
@@ -502,6 +528,8 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                                 line = line.replaceAll("\\$\\{" + i + "(|:-.*)\\}",
                                         args[i].startsWith("$") ? expandName(args[i]) : quote(args[i]));
                             }
+                            line = line.replaceAll("\\$\\{@\\}", expandToList(args));
+                            line = line.replaceAll("\\$@", expandToList(args));
                             line = line.replaceAll("\\s\\$\\d\\b", "");
                             line = line.replaceAll("\\$\\{\\d+\\}", "");
                             Matcher matcher=Pattern.compile("\\$\\{\\d+:-(.*?)\\}").matcher(line);
@@ -599,7 +627,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                     argv[i] = quote(argv[i]);
                 }
             }
-            String cmd = hasAlias(ws.get(0).substring(idx + 1)) ? getAlias(ws.get(0).substring(idx + 1)) 
+            String cmd = hasAlias(ws.get(0).substring(idx + 1)) ? getAlias(ws.get(0).substring(idx + 1))
                                                                 : ws.get(0).substring(idx + 1);
             sb.append("org.jline.builtins.SystemRegistry.get().invoke('" + cmd + "'");
             for (int i = 1; i < argv.length; i++) {
@@ -897,8 +925,17 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     private Map<String,Object> keyToString(Map<Object,Object> map) {
-        return map.entrySet().stream()
-                .collect(Collectors.toMap(e -> e.getKey().toString(), Map.Entry::getValue));   
+        Map<String,Object> out = new HashMap<>();
+        for (Map.Entry<Object,Object> entry : map.entrySet()) {
+            if (entry.getKey() instanceof String) {
+                out.put((String)entry.getKey(), entry.getValue());
+            } else if (entry.getKey() != null) {
+                out.put(entry.getKey().toString(), entry.getValue());
+            } else {
+                out.put("null", entry.getValue());
+            }
+        }
+        return out;
     }
 
     @SuppressWarnings("unchecked")
@@ -1192,14 +1229,15 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             } else if (args.size() == 1) {
                 out = aliases.getOrDefault(args.get(0), null);
             } else {
-                for (int i = 1; i < args.size(); i++) {
-                    for (int j = 0; j < 10; j++) {
-                        args.set(i, args.get(i).replaceAll("%" + j , "\\$" + j));
-                        args.set(i, args.get(i).replaceAll("%\\{" + j + "\\}", "\\$\\{" + j + "\\}"));
-                        args.set(i, args.get(i).replaceAll("%\\{" + j + ":-", "\\$\\{" + j + ":-"));
-                    }
+                String alias = String.join(" ", args.subList(1, args.size()));
+                for (int j = 0; j < 10; j++) {
+                    alias = alias.replaceAll("%" + j , "\\$" + j);
+                    alias = alias.replaceAll("%\\{" + j + "\\}", "\\$\\{" + j + "\\}");
+                    alias = alias.replaceAll("%\\{" + j + ":-", "\\$\\{" + j + ":-");
                 }
-                aliases.put(args.get(0), String.join(" ", args.subList(1, args.size())));
+                alias = alias.replaceAll("%@" , "\\$@");
+                alias = alias.replaceAll("%\\{@\\}", "\\$\\{@\\}");
+                aliases.put(args.get(0), alias);
                 engine.persist(aliasFile, aliases);
             }
         } catch (Exception e) {

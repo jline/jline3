@@ -20,7 +20,7 @@ public class Utils {
     private Utils() {}
 
     static String toString(Object object) {
-        object.toString()
+        object ? object.toString() : 'null'
     }
 
     static Object toObject(String json) {
@@ -29,7 +29,7 @@ public class Utils {
     }
 
     static Map<String,Object> toMap(Object object) {
-        object.properties
+        object ? object.properties : null
     }
 
     static String toJson(Object object) {
