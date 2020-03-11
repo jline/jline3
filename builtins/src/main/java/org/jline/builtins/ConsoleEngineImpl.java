@@ -282,7 +282,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     private String expandToList(String[] args) {
-        return expandToList(Arrays.asList(args));
+        return expandToList(Arrays.asList(args).subList(1, args.length));
     }
 
     @Override
@@ -296,7 +296,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             }
             if (params.get(j).equalsIgnoreCase("true") || params.get(j).equalsIgnoreCase("false") || params.get(j).equalsIgnoreCase("null")) {
                 sb.append(params.get(j).toLowerCase());
-            } else if (params.get(j).matches("-?\\d+(\\.\\d+)?")) {
+            } else if (isNumber(params.get(j))) {
                 sb.append(params.get(j));
             } else {
                 sb.append(params.get(j).startsWith("$") ? params.get(j).substring(1) : quote(params.get(j)));
@@ -321,6 +321,10 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             }
         }
         return out;
+    }
+
+    private boolean isNumber(String str) {
+        return str.matches("-?\\d+(\\.\\d+)?");
     }
 
     private boolean isCodeBlock(String line) {
@@ -924,7 +928,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         }
     }
 
-    private Map<String,Object> keyToString(Map<Object,Object> map) {
+    private Map<String,Object> keysToString(Map<Object,Object> map) {
         Map<String,Object> out = new HashMap<>();
         for (Map.Entry<Object,Object> entry : map.entrySet()) {
             if (entry.getKey() instanceof String) {
@@ -939,6 +943,60 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     @SuppressWarnings("unchecked")
+    private Object mapValue(String key, Map<String,Object> map) {
+        String[] keys = key.split("\\.");
+        Object out = map.get(keys[0]);
+        if (keys.length > 1) {
+            for (int i = 1; i < keys.length ; i++) {
+                if (out instanceof Map) {
+                    Map<String,Object> m = keysToString((Map<Object,Object>)out);
+                    out = m.get(keys[i]);
+                } else if (out == null) {
+                    break;
+                } else if (canConvert(out)) {
+                    out = engine.toMap(out).get(keys[i]);
+                } else {
+                    break;
+                }
+            }
+        }
+        return out;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> optionList(String key, Map<String,Object> options) {
+        List<String> out = new ArrayList<>();
+        if (options.containsKey(key)) {
+            if (options.get(key) instanceof String) {
+                out.addAll(Arrays.asList(((String)options.get(key)).split(",")));
+            } else if (options.get(key) instanceof Collection) {
+                out.addAll((Collection<String>)options.get(key));
+            } else {
+                throw new IllegalArgumentException("Unsupported option list type: " + options.get(key).getClass());
+            }
+        }
+        return out;
+    }
+
+    private boolean hasMatch(List<String> regexes, String value) {
+        for (String r: regexes) {
+            if (value.matches(r)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String addPadding(String str, int width) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = str.length(); i < width; i++) {
+            sb.append(" ");
+        }
+        sb.append(str);
+        return sb.toString();
+    }
+
+    @SuppressWarnings("unchecked")
     private List<AttributedString> highlight(Map<String, Object> options, Object obj) {
         List<AttributedString> out = new ArrayList<>();
         int width = (int)options.getOrDefault("width", Integer.MAX_VALUE);
@@ -946,7 +1004,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         if (obj == null) {
             // do nothing
         } else if (obj instanceof Map) {
-            out = highlightMap(keyToString((Map<Object, Object>)obj), width);
+            out = highlightMap(keysToString((Map<Object, Object>)obj), width);
         } else if (obj instanceof Collection<?> || obj instanceof Object[]) {
             Collection<?> collection = obj instanceof Collection<?> ? (Collection<?>)obj
                                                                     : Arrays.asList((Object[])obj);
@@ -954,7 +1012,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 if (collection.size() == 1 && !options.containsKey("oneRowTable")) {
                     Object elem = collection.iterator().next();
                     if (elem instanceof Map) {
-                        out = highlightMap(keyToString((Map<Object, Object>)elem), width);
+                        out = highlightMap(keysToString((Map<Object, Object>)elem), width);
                     } else if (canConvert(elem)){
                         out = highlightMap(engine.toMap(elem), width);
                     } else {
@@ -964,43 +1022,49 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                     Object elem = collection.iterator().next();
                     boolean convert = canConvert(elem);
                     if (elem instanceof Map || convert) {
-                        Map<String, Object> map = convert ? engine.toMap(elem): keyToString((Map<Object, Object>)elem);
+                        Map<String, Object> map = convert ? engine.toMap(elem): keysToString((Map<Object, Object>)elem);
                         List<String> _header = null;
+                        List<String> columnsIn = optionList("columnsIn", options);
+                        List<String> columnsOut = optionList("columnsOut", options);
                         if (options.containsKey("columns")) {
                             _header = (List<String>)options.get("columns");
                         } else {
-                            _header = map.keySet().stream().collect(Collectors.toList());
+                            _header = columnsIn;
+                            _header.addAll(map.keySet().stream().filter(k -> !columnsIn.contains(k) && !hasMatch(columnsOut, k))
+                                               .collect(Collectors.toList()));
                         }
                         List<String> header = new ArrayList<>();
                         List<Integer> columns = new ArrayList<>();
                         for (int i = 0; i < _header.size(); i++) {
-                            if (!map.containsKey(_header.get(i))) {
+                            if (!map.containsKey(_header.get(i).split("\\.")[0])) {
                                 continue;
                             }
-                            Object val = map.get(_header.get(i));
                             if (options.containsKey("columns")) {
-                                if (!((List<String>)options.get("columns")).contains(_header.get(i))) {
+                                // do nothing
+                            } else if (!options.containsKey("structsOnTable")) {
+                                Object val = mapValue(_header.get(i), map);
+                                if (val == null || !simpleObject(val)) {
                                     continue;
                                 }
-                            } else if (!options.containsKey("structsOnTable") && (val == null || !simpleObject(val))) {
-                                continue;
                             }
                             header.add(_header.get(i));
                             columns.add(_header.get(i).length() + 1);
                         }
                         for (Object o : collection) {
                             for (int i = 0; i < header.size(); i++) {
-                                Map<String, Object> m = convert ? engine.toMap(o) : keyToString((Map<Object, Object>)o);
+                                Map<String, Object> m = convert ? engine.toMap(o) : keysToString((Map<Object, Object>)o);
                                 if (engine.toString(m.get(header.get(i))).length() > columns.get(i) - 1) {
-                                    columns.set(i, engine.toString(m.get(header.get(i))).length() + 1);
+                                    columns.set(i, engine.toString(mapValue(header.get(i), m)).length() + 1);
                                 }
                             }
                         }
                         columns.add(0, 0);
                         toTabStops(columns, rownum);
                         AttributedStringBuilder asb = new AttributedStringBuilder().tabs(columns);
+                        int firstColumn = 0;
                         if (rownum) {
                             asb.append("\t");
+                            firstColumn = 1;
                         }
                         for (int i = 0; i < header.size(); i++) {
                             asb.append(header.get(i), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
@@ -1011,13 +1075,17 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                         for (Object o : collection) {
                             AttributedStringBuilder asb2 = new AttributedStringBuilder().tabs(columns);
                             if (rownum) {
-                                asb2.append(row.toString(), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
+                                asb2.append(addPadding(row.toString(), columns.get(1) - 1), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
                                 asb2.append("\t");
                                 row++;
                             }
                             for (int i = 0; i < header.size(); i++) {
-                                Map<String, Object> m = convert ? engine.toMap(o) : keyToString((Map<Object, Object>)o);
-                                asb2.append(engine.toString(m.get(header.get(i))));
+                                Map<String, Object> m = convert ? engine.toMap(o) : keysToString((Map<Object, Object>)o);
+                                String v = engine.toString(mapValue(header.get(i), m));
+                                if (isNumber(v)) {
+                                    v = addPadding(v, columns.get(firstColumn + i + 1) - columns.get(firstColumn + i) - 1);
+                                }
+                                asb2.append(v);
                                 asb2.append("\t");
                             }
                             out.add(asb2.subSequence(0, width));
@@ -1039,17 +1107,22 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                         }
                         toTabStops(columns, rownum);
                         Integer row = 0;
+                        int firstColumn = rownum ? 1 : 0;
                         for (Object o : collection) {
                             AttributedStringBuilder asb = new AttributedStringBuilder().tabs(columns);
                             if (rownum) {
-                                asb.append(row.toString(), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
+                                asb.append(addPadding(row.toString(), columns.get(1) - 1), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
                                 asb.append("\t");
                                 row++;
                             }
                             List<Object> inner = new ArrayList<>();
                             inner.addAll(isCollection ? (Collection<?>)o : Arrays.asList((Object[])o));
                             for (int i = 0; i < inner.size(); i++) {
-                                asb.append(engine.toString(inner.get(i)));
+                                String v = engine.toString(inner.get(i));
+                                if (isNumber(v)) {
+                                    v = addPadding(v, columns.get(firstColumn + i + 1) - columns.get(firstColumn + i) - 1);
+                                }
+                                asb.append(v);
                                 asb.append("\t");
                             }
                             out.add(truncate(asb, width));
@@ -1060,7 +1133,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                         for (Object o: collection) {
                             AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabsize);
                             if (rownum) {
-                                asb.append(row.toString(), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
+                                asb.append(addPadding(row.toString(), tabsize - 1), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
                                 asb.append("\t");
                                 row++;
                             }
