@@ -157,4 +157,13 @@ public interface ScriptEngine {
      */
     Object execute(File script, Object[] args) throws Exception;
 
+    /**
+     * Executes scriptEngine closure
+     * @param closure
+     * @param args
+     * @return
+     * @throws Exception
+     */
+    Object execute(Object closure, Object... args);
+
 }

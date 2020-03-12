@@ -18,6 +18,7 @@ import org.jline.groovy.Utils;
 import org.jline.reader.ScriptEngine;
 
 import groovy.lang.Binding;
+import groovy.lang.Closure;
 import groovy.lang.GroovyShell;
 import groovy.lang.Script;
 
@@ -163,6 +164,14 @@ public class GroovyEngine implements ScriptEngine {
             out = shell.evaluate(e);
         }
         return out;
+    }
+
+    @Override
+    public Object execute(Object closure, Object... args) {
+        if (!(closure instanceof Closure)) {
+            throw new IllegalArgumentException();
+        }
+        return ((Closure<?>)closure).call(args);
     }
 
     @Override
