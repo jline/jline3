@@ -26,7 +26,7 @@ def _reader2map(reader){
   out['othersGroupName'] = reader.othersGroupName
   out['keyMap'] = reader.keyMap
   out['autosuggestion'] = reader.autosuggestion
-  out['terminalDumb'] = reader.terminalDumb
+  out['terminal.kind'] = reader.terminal.kind
   out
 }
 
@@ -35,7 +35,7 @@ def _reader2string(reader){
   out += 'othersGroupName:' + reader.othersGroupName + ', '
   out += 'keyMap:' + reader.keyMap + ', '
   out += 'autosuggestion:' + reader.autosuggestion + ', '
-  out += 'terminalDumb:' + reader.terminalDumb
+  out += 'terminal.kind:' + reader.terminal.kind
   out += ']'
   out
 }

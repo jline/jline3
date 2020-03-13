@@ -959,7 +959,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     @SuppressWarnings("unchecked")
-    private Object mapValue(String key, Map<String,Object> map) {
+    private Object mapValue(Map<String, Object> options, String key, Map<String,Object> map) {
         String[] keys = key.split("\\.");
         Object out = map.get(keys[0]);
         if (keys.length > 1) {
@@ -968,6 +968,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                     Map<String,Object> m = keysToString((Map<Object,Object>)out);
                     out = m.get(keys[i]);
                 } else if (out == null) {
+                    if (i == 1) {
+                        out = map.get(key);
+                    }
                     break;
                 } else if (canConvert(out)) {
                     out = engine.toMap(out).get(keys[i]);
@@ -975,6 +978,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                     break;
                 }
             }
+        }
+        if (!(out instanceof Map) && canConvert(out)){
+            out = objectToMap(options, out);
         }
         return out;
     }
@@ -1145,7 +1151,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                             if (options.containsKey("columns")) {
                                 // do nothing
                             } else if (!options.containsKey("structsOnTable")) {
-                                Object val = mapValue(_header.get(i), map);
+                                Object val = mapValue(options, _header.get(i), map);
                                 if (val == null || !simpleObject(val)) {
                                     continue;
                                 }
@@ -1161,7 +1167,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                             for (int i = 0; i < header.size(); i++) {
                                 Map<String, Object> m = convert ? objectToMap(options, o) : keysToString((Map<Object, Object>)o);
                                 if (engine.toString(m.get(header.get(i))).length() > columns.get(i) - 1) {
-                                    columns.set(i, highlightValue(options, header.get(i), mapValue(header.get(i), m)).columnLength() + 1);
+                                    columns.set(i, highlightValue(options, header.get(i), mapValue(options, header.get(i), m)).columnLength() + 1);
                                 }
                             }
                         }
@@ -1188,7 +1194,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                             }
                             for (int i = 0; i < header.size(); i++) {
                                 Map<String, Object> m = convert ? objectToMap(options, o) : keysToString((Map<Object, Object>)o);
-                                AttributedString v = highlightValue(options, header.get(i), mapValue(header.get(i), m));
+                                AttributedString v = highlightValue(options, header.get(i), mapValue(options, header.get(i), m));
                                 if (isNumber(v.toString())) {
                                     v = addPadding(v, columns.get(firstColumn + i + 1) - columns.get(firstColumn + i) - 1);
                                 }
@@ -1264,11 +1270,11 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     private boolean simpleObject(Object obj) {
         return obj instanceof Number || obj instanceof String || obj instanceof Date || obj instanceof File
-                || obj instanceof Boolean || obj instanceof Enum;
+                || obj instanceof Boolean || obj instanceof Enum || obj instanceof Class;
     }
 
     private boolean canConvert(Object obj) {
-        if (simpleObject(obj) || collectionObject(obj)) {
+        if (obj == null || simpleObject(obj) || collectionObject(obj)) {
             return false;
         }
         return true;
@@ -1289,25 +1295,30 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     private List<AttributedString> highlightMap(Map<String, Object> options, Map<String, Object> map, int width) {
         List<AttributedString> out = new ArrayList<>();
+        AttributedStyle defaultStyle = AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW);
         int max = map.keySet().stream().map(String::length).max(Integer::compareTo).get();
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             AttributedStringBuilder asb = new AttributedStringBuilder().tabs(Arrays.asList(0, max + 1));
             asb.append(entry.getKey(), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
+            AttributedString val = highlightValue(options, entry.getKey(), mapValue(options, entry.getKey(), map), defaultStyle);
             if (map.size() == 1) {
-                for (String v : engine.toString(entry.getValue()).split("\\r?\\n")) {
-                    asb.append("\t");
-                    asb.append(v, AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW));
-                    out.add(truncate(asb, width));
-                    asb = new AttributedStringBuilder().tabs(Arrays.asList(0, max + 1));
+                asb.append("\t");
+                if (val.contains('\n')) {
+                    for (String v : val.toString().split("\\r?\\n")) {
+                        asb.append(v, defaultStyle);
+                        out.add(truncate(asb, width));
+                        asb = new AttributedStringBuilder().tabs(Arrays.asList(0, max + 1));
+                    }
+                } else {
+                    asb.append(val);
+                    out.add(truncate(asb, width));                    
                 }
             } else {
-                AttributedStyle defaultStyle = AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW);
-                AttributedString v = highlightValue(options, entry.getKey(), entry.getValue(), defaultStyle);
-                if (v.contains('\n')) {
-                    v = new AttributedString(Arrays.asList(v.toString().split("\\r?\\n")).toString(), defaultStyle);
+                if (val.contains('\n')) {
+                    val = new AttributedString(Arrays.asList(val.toString().split("\\r?\\n")).toString(), defaultStyle);
                 }
                 asb.append("\t");
-                asb.append(v);
+                asb.append(val);
                 out.add(truncate(asb, width));
             }
         }
