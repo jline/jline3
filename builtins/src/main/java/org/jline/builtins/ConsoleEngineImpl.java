@@ -269,8 +269,16 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     @Override
     public Object[] expandParameters(String[] args) throws Exception {
         Object[] out = new Object[args.length];
+        String regexPath = "(.*)\\$\\{(.*?)\\}(/.*)";
         for (int i = 0; i < args.length; i++) {
-            if (args[i].startsWith("${")) {
+            if (args[i].matches(regexPath)) {
+                Matcher matcher = Pattern.compile(regexPath).matcher(args[i]);
+                if (matcher.find()) {
+                    out[i] = matcher.group(1) + (String)engine.get(matcher.group(2)) + matcher.group(3);
+                } else {
+                    throw new IllegalArgumentException();
+                }
+            } else if (args[i].startsWith("${")) {
                 out[i] = engine.execute(expandName(args[i]));
             } else if (args[i].startsWith("$")) {
                 out[i] = engine.get(expandName(args[i]));
@@ -536,7 +544,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                             line = line.replaceAll("\\$@", expandToList(args));
                             line = line.replaceAll("\\s\\$\\d\\b", "");
                             line = line.replaceAll("\\$\\{\\d+\\}", "");
-                            Matcher matcher=Pattern.compile("\\$\\{\\d+:-(.*?)\\}").matcher(line);
+                            Matcher matcher = Pattern.compile("\\$\\{\\d+:-(.*?)\\}").matcher(line);
                             if (matcher.find()) {
                                   line = matcher.replaceAll("'$1'");
                             }
