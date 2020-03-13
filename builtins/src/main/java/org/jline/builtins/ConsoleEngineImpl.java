@@ -1035,8 +1035,10 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     @SuppressWarnings("unchecked")
     private String objectToString(Map<String, Object> options, Object obj) {
         Map<Class<?>, Object> toString = options.containsKey("objectToString") ? (Map<Class<?>, Object>)options.get("objectToString")
-                                                                         : new HashMap<>();;
-        if (toString.containsKey(obj.getClass())) {
+                                                                               : new HashMap<>();
+        if (obj == null) {
+            return "null";
+        } else if (toString.containsKey(obj.getClass())) {
             return (String)engine.execute(toString.get(obj.getClass()), obj);
         } else if (objectToString.containsKey(obj.getClass())) {
             return objectToString.get(obj.getClass()).apply(obj);
@@ -1044,46 +1046,55 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return engine.toString(obj);
     }
 
+    private AttributedString highlightValue(Map<String, Object> options
+                                          , String column
+                                          , Object obj, AttributedStyle defaultStyle) {
+        AttributedString out = highlightValue(options, column, obj);
+        boolean doDefault = true;
+        for (int i = 0; i < out.columnLength(); i++) {
+            if (out.styleAt(i).getStyle() != AttributedStyle.DEFAULT.getStyle()) {
+                doDefault = false;
+                break;
+            }
+        }
+        return doDefault ? new AttributedString(out, defaultStyle) : out;
+    }
+
     @SuppressWarnings("unchecked")
     private AttributedString highlightValue(Map<String, Object> options, String column, Object obj) {
-        AttributedString out = new AttributedString("");
-        Object raw = stringDemanded(options, obj) ? objectToString(options, obj) : obj;
-        boolean done = false;
+        AttributedString out = null;
+        Object raw = options.containsKey("toString") ? objectToString(options, obj) : obj;
+        Map<String, Object> hv = options.containsKey("highlightValue") ? (Map<String, Object>)options.get("highlightValue")
+                                                                       : new HashMap<>();
         if (column != null) {
-            Map<String, Object> hv = options.containsKey("highlightValue") ? (Map<String, Object>)options.get("highlightValue")
-                                                                                      : new HashMap<>();;
             for (Map.Entry<String,Object> entry : hv.entrySet()) {
-                if (column.matches(entry.getKey())) {
+                if (!entry.getKey().equals("*") && column.matches(entry.getKey())) {
                     out = (AttributedString)engine.execute(hv.get(entry.getKey()), raw);
-                    done = true;
                     break;
                 }
             }
-            if (!done) {
+            if (out == null) {
                 for (Map.Entry<String,Function<Object,AttributedString>> entry : highlightValue.entrySet()) {
-                    if (column.matches(entry.getKey())) {
+                    if (!entry.getKey().equals("*") && column.matches(entry.getKey())) {
                         out = highlightValue.get(entry.getKey()).apply(raw);
-                        done = true;
                         break;
                     }
                 }
             }
         }
-        if (!done) {
+        if (out == null) {
             if (raw instanceof String) {
                 out = new AttributedString(columnValue((String)raw));
             } else {
                 out = new AttributedString(columnValue(objectToString(options, raw)));
             }
         }
+        if (hv.containsKey("*")) {
+            out = (AttributedString)engine.execute(hv.get("*"), out);
+        } else if (highlightValue.containsKey("*")) {
+            out = highlightValue.get("*").apply(out);
+        }
         return out;
-    }
-
-    @SuppressWarnings("unchecked")
-    private boolean stringDemanded(Map<String, Object> options, Object obj) {
-        Map<Class<?>, Object> toString = options.containsKey("objectToString") ? (Map<Class<?>, Object>)options.get("objectToString")
-                : new HashMap<>();;
-        return toString.containsKey(obj.getClass()) || objectToString.containsKey(obj.getClass());
     }
 
     @SuppressWarnings("unchecked")
@@ -1094,7 +1105,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         if (obj == null) {
             // do nothing
         } else if (obj instanceof Map) {
-            out = highlightMap(keysToString((Map<Object, Object>)obj), width);
+            out = highlightMap(options, keysToString((Map<Object, Object>)obj), width);
         } else if (obj instanceof Collection<?> || obj instanceof Object[]) {
             Collection<?> collection = obj instanceof Collection<?> ? (Collection<?>)obj
                                                                     : Arrays.asList((Object[])obj);
@@ -1102,9 +1113,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 if (collection.size() == 1 && !options.containsKey("oneRowTable")) {
                     Object elem = collection.iterator().next();
                     if (elem instanceof Map) {
-                        out = highlightMap(keysToString((Map<Object, Object>)elem), width);
-                    } else if (canConvert(elem) && !stringDemanded(options, obj)){
-                        out = highlightMap(objectToMap(options, elem), width);
+                        out = highlightMap(options, keysToString((Map<Object, Object>)elem), width);
+                    } else if (canConvert(elem) && !options.containsKey("toString")){
+                        out = highlightMap(options, objectToMap(options, elem), width);
                     } else {
                         out.add(new AttributedString(objectToString(options, obj)));
                     }
@@ -1239,8 +1250,8 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                     }
                 }
             }
-        } else if (canConvert(obj) && !stringDemanded(options, obj)) {
-            out = highlightMap(objectToMap(options, obj), width);
+        } else if (canConvert(obj) && !options.containsKey("toString")) {
+            out = highlightMap(options, objectToMap(options, obj), width);
         } else {
             out.add(new AttributedString(objectToString(options, obj)));
         }
@@ -1276,7 +1287,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         }
     }
 
-    private List<AttributedString> highlightMap(Map<String, Object> map, int width) {
+    private List<AttributedString> highlightMap(Map<String, Object> options, Map<String, Object> map, int width) {
         List<AttributedString> out = new ArrayList<>();
         int max = map.keySet().stream().map(String::length).max(Integer::compareTo).get();
         for (Map.Entry<String, Object> entry : map.entrySet()) {
@@ -1290,12 +1301,13 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                     asb = new AttributedStringBuilder().tabs(Arrays.asList(0, max + 1));
                 }
             } else {
-                String v = engine.toString(entry.getValue());
-                if (v.contains("\n")) {
-                    v = Arrays.asList(v.split("\\r?\\n")).toString();
+                AttributedStyle defaultStyle = AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW);
+                AttributedString v = highlightValue(options, entry.getKey(), entry.getValue(), defaultStyle);
+                if (v.contains('\n')) {
+                    v = new AttributedString(Arrays.asList(v.toString().split("\\r?\\n")).toString(), defaultStyle);
                 }
                 asb.append("\t");
-                asb.append(v, AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW));
+                asb.append(v);
                 out.add(truncate(asb, width));
             }
         }
@@ -1342,6 +1354,8 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 "  -r --rownum                     Display table row numbers",
                 "     --structsOnTable             Display structs and lists on table",
                 "  -s --style=STYLE                Use nanorc STYLE",
+                "     --toString                   use object's toString() method to get print value",
+                "                                  DEFAULT: object's fields are put to property map before printing",
                 "  -w --width=WIDTH                Display width (default terminal width)"
         };
         Options opt = Options.compile(usage).parse(input.xargs());
@@ -1352,6 +1366,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         Map<String, Object> options = defaultPrntOptions();
         if (opt.isSet("style")) {
             options.put("style", opt.get("style"));
+        }
+        if (opt.isSet("toString")) {
+            options.put("toString", true);
         }
         if (opt.isSet("width")) {
             options.put("width", opt.getNumber("width"));
