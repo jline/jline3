@@ -17,6 +17,45 @@ CONSOLE_OPTIONS = [:]
 CONSOLE_OPTIONS.trace = 1
 CONSOLE_OPTIONS.splitOutput = true
 #
+# customize prnt command
+#
+def _number2date(number){
+  def out = null
+  try {
+    out = number instanceof Long ? new Date(number) : number
+  } catch (Exception e) {
+    out = number
+  }
+  new org.jline.utils.AttributedString(out.toString())
+}
+
+def _reader2map(reader){
+  out = [:]
+  out['othersGroupName'] = reader.othersGroupName
+  out['keyMap'] = reader.keyMap
+  out['autosuggestion'] = reader.autosuggestion
+  out['terminalDumb'] = reader.terminalDumb
+  out
+}
+
+def _reader2string(reader){
+  out = "["
+  out += 'othersGroupName:' + reader.othersGroupName + ', '
+  out += 'keyMap:' + reader.keyMap + ', '
+  out += 'autosuggestion:' + reader.autosuggestion + ', '
+  out += 'terminalDumb:' + reader.terminalDumb
+  out += ']'
+  out
+}
+
+PRNT_OPTIONS = [:]
+PRNT_OPTIONS['objectToMap'] = [:]
+PRNT_OPTIONS['objectToString'] = [:]
+PRNT_OPTIONS['highlightValue'] = [:]
+PRNT_OPTIONS['objectToMap'].put(org.jline.reader.impl.LineReaderImpl, _reader2map)
+PRNT_OPTIONS['objectToString'].put(org.jline.reader.impl.LineReaderImpl, _reader2string)
+PRNT_OPTIONS['highlightValue'].put('time.*', _number2date)
+#
 # custom Groovy pipes
 #
 pipe --delete *
