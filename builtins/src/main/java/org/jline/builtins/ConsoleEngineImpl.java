@@ -107,14 +107,26 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         }
     }
 
+    /**
+     * Override ScriptEngine toMap() method
+     * @param objectToMap key: object class, value: toMap function
+     */
     public void setObjectToMap(Map<Class<?>, Function<Object, Map<String,Object>>> objectToMap) {
         this.objectToMap = objectToMap;
     }
 
+    /**
+     * Override ScriptEngine toString() method
+     * @param objectToString key: object class, value: toString function
+     */
     public void setObjectToString(Map<Class<?>, Function<Object, String>> objectToString) {
         this.objectToString = objectToString;
     }
 
+    /**
+     * Highlight column value
+     * @param highlightValue key: regex for column name, value: highlight function  
+     */
     public void setHighlightValue(Map<String, Function<Object, AttributedString>> highlightValue) {
         this.highlightValue = highlightValue;
     }
@@ -1130,6 +1142,25 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         }
         return out;
     }
+    
+    @SuppressWarnings("unchecked")
+    private List<Object> objectToList(Object obj) {
+        List<Object> out = new ArrayList<>();
+        if (obj instanceof List) {
+            out = (List<Object>)obj;
+        } else if (obj instanceof Collection) {
+            out.addAll((Collection<Object>) obj);
+        } else if (obj instanceof Object[]) {
+            out.addAll(Arrays.asList((Object[]) obj));
+        } else if (obj instanceof Iterator) {
+            ((Iterator) obj).forEachRemaining(out::add);
+        } else if (obj instanceof Iterable) {
+            ((Iterable) obj).forEach(out::add);
+        } else {
+            out.add(obj);
+        }
+        return out;
+    }
 
     @SuppressWarnings("unchecked")
     private List<AttributedString> highlight(Map<String, Object> options, Object obj) {
@@ -1140,9 +1171,8 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             // do nothing
         } else if (obj instanceof Map) {
             out = highlightMap(options, keysToString((Map<Object, Object>)obj), width);
-        } else if (obj instanceof Collection<?> || obj instanceof Object[]) {
-            Collection<?> collection = obj instanceof Collection<?> ? (Collection<?>)obj
-                                                                    : Arrays.asList((Object[])obj);
+        } else if (collectionObject(obj)) {
+            List<Object> collection = objectToList(obj);
             if (!collection.isEmpty()) {
                 if (collection.size() == 1 && !options.containsKey("oneRowTable")) {
                     Object elem = collection.iterator().next();
@@ -1151,12 +1181,12 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                     } else if (canConvert(elem) && !options.containsKey("toString")){
                         out = highlightMap(options, objectToMap(options, elem), width);
                     } else {
-                        out.add(new AttributedString(objectToString(options, obj)));
+                        out.add(highlightValue(options, null, objectToString(options, obj)));
                     }
                 } else {
                     Object elem = collection.iterator().next();
                     boolean convert = canConvert(elem);
-                    if (elem instanceof Map || convert) {
+                    if ((elem instanceof Map || convert) && !options.containsKey("toString")) {
                         Map<String, Object> map = convert ? objectToMap(options, elem) : keysToString((Map<Object, Object>)elem);
                         List<String> _header = null;
                         List<String> columnsIn = optionList("columnsIn", options);
@@ -1231,12 +1261,10 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                             }
                             out.add(asb2.subSequence(0, width));
                         }
-                    } else if (elem instanceof Collection || elem instanceof Object[]) {
-                        boolean isCollection = elem instanceof Collection;
+                    } else if (collectionObject(elem)  && !options.containsKey("toString")) {
                         List<Integer> columns = new ArrayList<>();
                         for (Object o : collection) {
-                            List<Object> inner = new ArrayList<>();
-                            inner.addAll(isCollection ? (Collection<?>)o : Arrays.asList((Object[])o));
+                            List<Object> inner = objectToList(o);
                             for (int i = 0; i < inner.size(); i++) {
                                 int len1 = engine.toString(inner.get(i)).length() + 1;
                                 if (columns.size() <= i) {
@@ -1256,8 +1284,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                                 asb.append("\t");
                                 row++;
                             }
-                            List<Object> inner = new ArrayList<>();
-                            inner.addAll(isCollection ? (Collection<?>)o : Arrays.asList((Object[])o));
+                            List<Object> inner = objectToList(o);
                             for (int i = 0; i < inner.size(); i++) {
                                 AttributedString v = highlightValue(options, null, inner.get(i));
                                 if (isNumber(v.toString())) {
@@ -1278,7 +1305,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                                 asb.append("\t");
                                 row++;
                             }
-                            asb.append(objectToString(options, o));
+                            asb.append(highlightValue(options, null, objectToString(options, o)));
                             out.add(truncate(asb, width));
                         }
                     }
@@ -1293,7 +1320,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     private boolean collectionObject(Object obj) {
-        return obj instanceof Map || obj instanceof Iterable || obj instanceof Object[] || obj instanceof Collection;
+        return obj instanceof Iterator || obj instanceof Iterable || obj instanceof Object[] || obj instanceof Collection;
     }
 
     private boolean simpleObject(Object obj) {
@@ -1302,7 +1329,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     private boolean canConvert(Object obj) {
-        if (obj == null || obj instanceof Class || simpleObject(obj) || collectionObject(obj)) {
+        if (obj == null || obj instanceof Class || obj instanceof Map ||  simpleObject(obj) || collectionObject(obj)) {
             return false;
         }
         return true;
@@ -1316,9 +1343,12 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         if (rownum) {
             columns.add(0, 5);
         }
+        int delta = 5;
         for (int i = 1; i < columns.size(); i++) {
+            delta =  columns.get(i);
             columns.set(i, columns.get(i - 1) + columns.get(i));
         }
+        columns.add(columns.get(columns.size() - 1) + delta);
     }
 
     private List<AttributedString> highlightMap(Map<String, Object> options, Map<String, Object> map, int width) {
