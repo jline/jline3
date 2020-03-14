@@ -17,7 +17,6 @@ _jnanorc << 'include ' + ROOT + 'nanorc/*.nanorc\n' > null
 #
 CONSOLE_OPTIONS = [:]
 CONSOLE_OPTIONS.trace = 1
-CONSOLE_OPTIONS.splitOutput = true
 #
 # customize prnt command
 #

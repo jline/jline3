@@ -744,12 +744,26 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     @SuppressWarnings("unchecked")
+    private Map<String,Object> consoleOptions() {
+        return engine.hasVariable(VAR_CONSOLE_OPTIONS) ? (Map<String, Object>) engine.get(VAR_CONSOLE_OPTIONS) 
+                                                       : new HashMap<>();
+    }
+
+    @SuppressWarnings("unchecked")
     private <T>T consoleOption(String option, T defval) {
         T out = defval;
         try {
-            if (engine.hasVariable(VAR_CONSOLE_OPTIONS)) {
-                out = (T) ((Map<String, Object>) engine.get(VAR_CONSOLE_OPTIONS)).getOrDefault(option, defval);
-            }
+            out = (T) consoleOptions().getOrDefault(option, defval);
+        } catch (Exception e) {
+            trace(new Exception("Bad CONSOLE_OPTION value: " + e.getMessage()));
+        }
+        return out;
+    }
+
+    private boolean consoleOption(String option) {
+        boolean out = false;
+        try {
+            out = consoleOptions().containsKey(option);
         } catch (Exception e) {
             trace(new Exception("Bad CONSOLE_OPTION value: " + e.getMessage()));
         }
@@ -759,7 +773,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     @Override
     public ExecutionResult postProcess(String line, Object result, String output) {
         ExecutionResult out = new ExecutionResult(1, null);
-        Object _output = output != null && !output.trim().isEmpty() && consoleOption("splitOutput", true)
+        Object _output = output != null && !output.trim().isEmpty() && !consoleOption("no-splittedOutput")
                          ? output.split("\\r?\\n") : output;
         String consoleVar = parser().getVariable(line);
         if (consoleVar != null && result != null) {
@@ -960,18 +974,16 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     @SuppressWarnings("unchecked")
     private Object mapValue(Map<String, Object> options, String key, Map<String,Object> map) {
-        String[] keys = key.split("\\.");
-        Object out = map.get(keys[0]);
-        if (keys.length > 1) {
-            for (int i = 1; i < keys.length ; i++) {
+        Object out = null;
+        if (map.containsKey(key)) {
+            out = map.get(key);
+        } else if (key.contains(".")) {
+            String[] keys = key.split("\\.");
+            out = map.get(keys[0]);
+            for (int i = 1; i < keys.length; i++) {
                 if (out instanceof Map) {
-                    Map<String,Object> m = keysToString((Map<Object,Object>)out);
+                    Map<String, Object> m = keysToString((Map<Object, Object>) out);
                     out = m.get(keys[i]);
-                } else if (out == null) {
-                    if (i == 1) {
-                        out = map.get(key);
-                    }
-                    break;
                 } else if (canConvert(out)) {
                     out = engine.toMap(out).get(keys[i]);
                 } else {
@@ -1048,8 +1060,20 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             return (String)engine.execute(toString.get(obj.getClass()), obj);
         } else if (objectToString.containsKey(obj.getClass())) {
             return objectToString.get(obj.getClass()).apply(obj);
+        } else if (obj instanceof Class) {
+            return ((Class)obj).getName();
         }
         return engine.toString(obj);
+    }
+
+    private AttributedString highlightMapValue(Map<String, Object> options, String key, Map<String, Object> map) {
+        return highlightValue(options, key, mapValue(options, key, map));
+    }
+
+    private AttributedString highlightMapValue(Map<String,Object> options
+                                             , String key
+                                             , Map<String,Object> map, AttributedStyle defaultStyle ) {
+        return highlightValue(options, key, mapValue(options, key, map), defaultStyle);
     }
 
     private AttributedString highlightValue(Map<String, Object> options
@@ -1057,11 +1081,15 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                                           , Object obj, AttributedStyle defaultStyle) {
         AttributedString out = highlightValue(options, column, obj);
         boolean doDefault = true;
-        for (int i = 0; i < out.columnLength(); i++) {
-            if (out.styleAt(i).getStyle() != AttributedStyle.DEFAULT.getStyle()) {
-                doDefault = false;
-                break;
+        if (defaultStyle != null) {
+            for (int i = 0; i < out.columnLength(); i++) {
+                if (out.styleAt(i).getStyle() != AttributedStyle.DEFAULT.getStyle()) {
+                    doDefault = false;
+                    break;
+                }
             }
+        } else {
+            doDefault = false;
         }
         return doDefault ? new AttributedString(out, defaultStyle) : out;
     }
@@ -1167,7 +1195,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                             for (int i = 0; i < header.size(); i++) {
                                 Map<String, Object> m = convert ? objectToMap(options, o) : keysToString((Map<Object, Object>)o);
                                 if (engine.toString(m.get(header.get(i))).length() > columns.get(i) - 1) {
-                                    columns.set(i, highlightValue(options, header.get(i), mapValue(options, header.get(i), m)).columnLength() + 1);
+                                    columns.set(i, highlightMapValue(options, header.get(i), m).columnLength() + 1);
                                 }
                             }
                         }
@@ -1194,7 +1222,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                             }
                             for (int i = 0; i < header.size(); i++) {
                                 Map<String, Object> m = convert ? objectToMap(options, o) : keysToString((Map<Object, Object>)o);
-                                AttributedString v = highlightValue(options, header.get(i), mapValue(options, header.get(i), m));
+                                AttributedString v = highlightMapValue(options, header.get(i), m);
                                 if (isNumber(v.toString())) {
                                     v = addPadding(v, columns.get(firstColumn + i + 1) - columns.get(firstColumn + i) - 1);
                                 }
@@ -1259,7 +1287,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         } else if (canConvert(obj) && !options.containsKey("toString")) {
             out = highlightMap(options, objectToMap(options, obj), width);
         } else {
-            out.add(new AttributedString(objectToString(options, obj)));
+            out.add(highlightValue(options, null, objectToString(options, obj)));
         }
         return out;
     }
@@ -1270,11 +1298,11 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     private boolean simpleObject(Object obj) {
         return obj instanceof Number || obj instanceof String || obj instanceof Date || obj instanceof File
-                || obj instanceof Boolean || obj instanceof Enum || obj instanceof Class;
+                || obj instanceof Boolean || obj instanceof Enum;
     }
 
     private boolean canConvert(Object obj) {
-        if (obj == null || simpleObject(obj) || collectionObject(obj)) {
+        if (obj == null || obj instanceof Class || simpleObject(obj) || collectionObject(obj)) {
             return false;
         }
         return true;
@@ -1300,7 +1328,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             AttributedStringBuilder asb = new AttributedStringBuilder().tabs(Arrays.asList(0, max + 1));
             asb.append(entry.getKey(), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
-            AttributedString val = highlightValue(options, entry.getKey(), mapValue(options, entry.getKey(), map), defaultStyle);
+            AttributedString val = highlightMapValue(options, entry.getKey(), map, defaultStyle);
             if (map.size() == 1) {
                 asb.append("\t");
                 if (val.contains('\n')) {
