@@ -13,6 +13,10 @@ array.each {
     :prnt $resp
 }.identity{}
 
+_reader = org.jline.builtins.SystemRegistry.get().consoleEngine().reader
+prnt $_reader
+prnt --toString $_reader
+
 params = $@
 prnt -s JSON $params
 

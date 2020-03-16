@@ -1,7 +1,9 @@
 #
 # All imports added here are imported also to your groovy shell
 #
-import java.nio.file.*;
+import java.nio.file.*
+import java.util.regex.*
+import org.jline.utils.*
 
 PATH = [ROOT + 'scripts']
 
@@ -15,7 +17,60 @@ _jnanorc << 'include ' + ROOT + 'nanorc/*.nanorc\n' > null
 #
 CONSOLE_OPTIONS = [:]
 CONSOLE_OPTIONS.trace = 1
-CONSOLE_OPTIONS.splitOutput = true
+#
+# customize prnt command
+#
+def _reader2map(reader){
+  def out = [:]
+  out['othersGroupName'] = reader.othersGroupName
+  out['keyMap'] = reader.keyMap
+  out['autosuggestion'] = reader.autosuggestion
+  out['terminal.kind'] = reader.terminal.kind
+  out
+}
+
+def _reader2string(reader){
+  def out = "["
+  out += 'othersGroupName:' + reader.othersGroupName + ', '
+  out += 'keyMap:' + reader.keyMap + ', '
+  out += 'autosuggestion:' + reader.autosuggestion + ', '
+  out += 'terminal.kind:' + reader.terminal.kind
+  out += ']'
+  out
+}
+
+def _number2date(number){
+  def out = null
+  try {
+    out = number instanceof Long ? new Date(number) : number
+  } catch (Exception e) {
+    out = number
+  }
+  new AttributedString(out.toString())
+}
+
+def _orgJline(p) {
+  def out = p
+  if (p.toString().matches('org.jline.*')) {
+    def m = Pattern.compile('(org.jline)(.*)').matcher(p.toString())
+    if (m.find()) {
+      def asb = new AttributedStringBuilder()
+      asb.append(m.group(1),AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW + AttributedStyle.BRIGHT))
+      asb.append(m.group(2))
+      out = asb.toAttributedString()
+    }
+  }
+  out
+}
+
+PRNT_OPTIONS = [:]
+PRNT_OPTIONS['objectToMap'] = [:]
+PRNT_OPTIONS['objectToString'] = [:]
+PRNT_OPTIONS['highlightValue'] = [:]
+PRNT_OPTIONS['objectToMap'].put(org.jline.reader.impl.LineReaderImpl, _reader2map)
+PRNT_OPTIONS['objectToString'].put(org.jline.reader.impl.LineReaderImpl, _reader2string)
+PRNT_OPTIONS['highlightValue'].put('time.*', _number2date)
+PRNT_OPTIONS['highlightValue'].put('*', _orgJline)
 #
 # custom Groovy pipes
 #

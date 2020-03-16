@@ -29,7 +29,13 @@ public class Utils {
     }
 
     static Map<String,Object> toMap(Object object) {
-        object != null ? object.properties : null
+        def out = [:]
+        if (object instanceof Closure) {
+            out['closure'] = object.getClass().getName()
+        } else {
+            out = object != null ? object.properties : null
+        }
+        out
     }
 
     static String toJson(Object object) {
