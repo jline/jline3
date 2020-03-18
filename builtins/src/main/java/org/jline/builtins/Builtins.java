@@ -166,7 +166,7 @@ public class Builtins implements CommandRegistry {
     @Override
     public Object execute(CommandRegistry.CommandSession session, String command, String[] args) throws Exception {
         exception = null;
-        commandExecute.get(command(command)).execute().accept(new CommandInput(args, session));
+        commandExecute.get(command(command)).execute().accept(new CommandInput(command, args, session));
         if (exception != null) {
             throw exception;
         }
@@ -487,6 +487,7 @@ public class Builtins implements CommandRegistry {
     }
 
     public static class CommandInput {
+        String command;
         String[] args;
         Object[] xargs;
         Terminal terminal;
@@ -494,12 +495,12 @@ public class Builtins implements CommandRegistry {
         PrintStream out;
         PrintStream err;
 
-        public CommandInput(String[] args, CommandRegistry.CommandSession session) {
-            this(args, null, session);
+        public CommandInput(String command, String[] args, CommandRegistry.CommandSession session) {
+            this(command, args, null, session);
         }
 
-        public CommandInput(String[] args, Object[] xargs, CommandRegistry.CommandSession session) {
-            this(args, session.terminal(), session.in(), session.out(), session.err());
+        public CommandInput(String command, String[] args, Object[] xargs, CommandRegistry.CommandSession session) {
+            this(command, args, session.terminal(), session.in(), session.out(), session.err());
             if (xargs != null) {
                 this.xargs = xargs;
                 this.args = new String[xargs.length];
@@ -509,12 +510,17 @@ public class Builtins implements CommandRegistry {
             }
         }
 
-        public CommandInput(String[] args, Terminal terminal, InputStream in, PrintStream out, PrintStream err) {
+        public CommandInput(String command, String[] args, Terminal terminal, InputStream in, PrintStream out, PrintStream err) {
+            this.command = command;
             this.args = args;
             this.terminal = terminal;
             this.in = in;
             this.out = out;
             this.err = err;
+        }
+
+        public String command() {
+            return command;
         }
 
         public String[] args() {
@@ -539,6 +545,10 @@ public class Builtins implements CommandRegistry {
 
         public PrintStream err() {
             return err;
+        }
+
+        public CommandRegistry.CommandSession session() {
+            return new CommandRegistry.CommandSession(terminal, in, out, err);
         }
 
     }

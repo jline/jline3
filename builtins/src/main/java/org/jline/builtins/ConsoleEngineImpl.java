@@ -857,7 +857,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         exception = null;
         Object out = null;
         if (hasCommand(command)) {
-            out = commandExecute.get(command(command)).executeFunction().apply(new Builtins.CommandInput(null, args, session));
+            out = commandExecute.get(command(command)).executeFunction().apply(new Builtins.CommandInput(command, null, args, session));
         } else {
             String[] _args = new String[args.length];
             for (int i = 0; i < args.length; i++) {
@@ -1262,8 +1262,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                             for (Object o : collection) {
                                 AttributedStringBuilder asb2 = new AttributedStringBuilder().tabs(columns);
                                 if (rownum) {
-                                    asb2.append(addPadding(row.toString(), columns.get(1) - 1), AttributedStyle.DEFAULT
+                                    asb2.append(row.toString(), AttributedStyle.DEFAULT
                                             .foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
+                                    asb2.append(":");
                                     asb2.append("\t");
                                     row++;
                                 }
@@ -1299,8 +1300,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                             for (Object o : collection) {
                                 AttributedStringBuilder asb = new AttributedStringBuilder().tabs(columns);
                                 if (rownum) {
-                                    asb.append(addPadding(row.toString(), columns.get(1) - 1), AttributedStyle.DEFAULT
+                                    asb.append(row.toString(), AttributedStyle.DEFAULT
                                             .foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
+                                    asb.append(":");
                                     asb.append("\t");
                                     row++;
                                 }
@@ -1342,8 +1344,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         for (Object o : collection) {
             AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabsize);
             if (options.containsKey("rownum")) {
-                asb.append(addPadding(row.toString(), tabsize - 1), AttributedStyle.DEFAULT
+                asb.append(row.toString(), AttributedStyle.DEFAULT
                         .foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
+                asb.append(":");
                 asb.append("\t");
                 row++;
             }

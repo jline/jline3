@@ -302,7 +302,7 @@ public class Example
 
         public Object execute(CommandRegistry.CommandSession session, String command, String[] args) throws Exception {
             exception = null;
-            commandExecute.get(command(command)).execute().accept(new Builtins.CommandInput(args, session));
+            commandExecute.get(command(command)).execute().accept(new Builtins.CommandInput(command, args, session));
             if (exception != null) {
                 throw exception;
             }
