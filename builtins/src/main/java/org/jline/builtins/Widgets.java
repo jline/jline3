@@ -841,6 +841,8 @@ public abstract class Widgets {
                 }
             } else if (!prevChar().equals(" ")) {
                 doTailTip = false;
+            } else if (cmdDesc != null) {
+                doDescription(cmdDesc.getMainDescription(descriptionSize));
             }
             if (cmdDesc != null) {
                 if (lastArg.startsWith("-")) {
