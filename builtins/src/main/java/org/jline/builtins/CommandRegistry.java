@@ -75,7 +75,11 @@ public interface CommandRegistry {
      */
     default List<String> commandInfo(String command) {
         try {
-            invoke(new CommandSession(), command, new Object[] {"--help"});
+            Object[] args = {"--help"};
+            if (command.equals("help")) {
+                args = new Object[] {};
+            }
+            invoke(new CommandSession(), command, args);
         } catch (HelpException e) {
             return Builtins.compileCommandInfo(e.getMessage());
         } catch (Exception e) {

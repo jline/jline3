@@ -34,8 +34,8 @@ import org.jline.builtins.Completers.OptDesc;
 import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.Completers.SystemCompleter;
 import org.jline.builtins.Options.HelpException;
-import org.jline.builtins.SystemRegistry;
 import org.jline.builtins.SystemRegistryImpl;
+import org.jline.builtins.Widgets;
 import org.jline.builtins.Widgets.TailTipWidgets;
 import org.jline.builtins.Widgets.TailTipWidgets.TipType;
 import org.jline.keymap.KeyMap;
@@ -67,6 +67,146 @@ import org.jline.utils.OSUtils;
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public class Repl {
+
+    private static class SubCommands implements CommandRegistry {
+        private final Map<String,Builtins.CommandMethods> commandExecute = new HashMap<>();
+        private Exception exception;
+
+        public SubCommands() {
+            commandExecute.put("cmd1", new Builtins.CommandMethods(this::cmd1, this::defaultCompleter));
+            commandExecute.put("cmd2", new Builtins.CommandMethods(this::cmd2, this::defaultCompleter));
+            commandExecute.put("cmd3", new Builtins.CommandMethods(this::cmd3, this::defaultCompleter));
+            commandExecute.put("help", new Builtins.CommandMethods(this::help, this::defaultCompleter));
+        }
+
+        public Set<String> commandNames() {
+            return commandExecute.keySet();
+        }
+
+        @Override
+        public Map<String, String> commandAliases() {
+            return new HashMap<>();
+        }
+
+        public boolean hasCommand(String command) {
+            return commandExecute.containsKey(command);
+        }
+
+        private String command(String name) {
+            return commandExecute.containsKey(name) ? name : null;
+        }
+
+        @Override
+        public Widgets.CmdDesc commandDescription(String command) {
+            Widgets.CmdDesc out = new Widgets.CmdDesc();
+            if (!hasCommand(command)) {
+                return out;
+            }
+            try {
+                String[] args = new String[] {};
+                if (!command.equals("help")) {
+                    args = new String[] {"--help"};
+                }
+                execute(new CommandSession(), command, args);
+            } catch (HelpException e) {
+                out = Builtins.compileCommandDescription(e.getMessage());
+            } catch (Exception e) {
+            }
+            return out;
+        }
+
+
+        private void cmd1(Builtins.CommandInput input) {
+            final String[] usage = {
+                    "cmd1 -  cmd1",
+                    "Usage: cmd1",
+                    "  -? --help                       Displays command help"
+            };
+            Options opt = Options.compile(usage).parse(input.args());
+            if (opt.isSet("help")) {
+                exception = new HelpException(opt.usage());
+                return;
+            }
+        }
+
+        private void cmd2(Builtins.CommandInput input) {
+            final String[] usage = {
+                    "cmd2 -  cmd2",
+                    "Usage: cmd2",
+                    "  -? --help                       Displays command help"
+            };
+            Options opt = Options.compile(usage).parse(input.args());
+            if (opt.isSet("help")) {
+                exception = new HelpException(opt.usage());
+                return;
+            }
+        }
+
+        private void cmd3(Builtins.CommandInput input) {
+            final String[] usage = {
+                    "cmd3 -  cmd3",
+                    "Usage: cmd3",
+                    "  -? --help                       Displays command help"
+            };
+            Options opt = Options.compile(usage).parse(input.args());
+            if (opt.isSet("help")) {
+                exception = new HelpException(opt.usage());
+                return;
+            }
+        }
+
+        private void help(Builtins.CommandInput input) {
+            final String[] usage = {
+                    " -  execute cmd subcommands",
+                    "Usage: cmd1",
+                    "       cmd2",
+                    "       cmd3",
+                    "       help",
+            };
+            Options opt = Options.compile(usage).parse(input.args());
+            exception = new HelpException(opt.usage());
+            return;
+        }
+
+        public Object execute(CommandRegistry.CommandSession session, String command, String[] args) throws Exception {
+            exception = null;
+            commandExecute.get(command(command)).execute().accept(new Builtins.CommandInput(command, args, session));
+            if (exception != null) {
+                throw exception;
+            }
+            return null;
+        }
+
+        public Completers.SystemCompleter compileCompleters() {
+            SystemCompleter out = new SystemCompleter();
+            for (String c : commandExecute.keySet()) {
+                out.add(c, commandExecute.get(c).compileCompleter().apply(c));
+            }
+            return out;
+        }
+
+        private List<OptDesc> commandOptions(String command) {
+            try {
+                execute(new CommandRegistry.CommandSession(), command, new String[] {"--help"});
+            } catch (HelpException e) {
+                return Builtins.compileCommandOptions(e.getMessage());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+
+        private List<Completer> defaultCompleter(String command) {
+            List<Completer> completers = new ArrayList<>();
+            completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
+                                               , new OptionCompleter(NullCompleter.INSTANCE
+                                                                   , this::commandOptions
+                                                                   , 1)
+                                                ));
+            return completers;
+        }
+
+    }
 
     private static class MyCommands implements CommandRegistry {
         private LineReader reader;
@@ -333,7 +473,8 @@ public class Repl {
             ConsoleEngine consoleEngine = new ConsoleEngineImpl(scriptEngine, Repl::workDir, configPath);
             Builtins builtins = new Builtins(Repl::workDir, configPath,  (String fun)-> {return new ConsoleEngine.WidgetCreator(consoleEngine, fun);});
             MyCommands myCommands = new MyCommands(Repl::workDir);
-            SystemRegistry systemRegistry = new SystemRegistryImpl(parser, terminal, configPath);
+            SystemRegistryImpl systemRegistry = new SystemRegistryImpl(parser, terminal, configPath);
+            systemRegistry.register("command", new SubCommands());
             systemRegistry.setCommandRegistries(consoleEngine, builtins, myCommands);
             //
             // LineReader
