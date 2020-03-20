@@ -310,14 +310,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         if (id > -1) {
             out = commandRegistries[id].invoke(commandSession(), command, args);
         } else if (isLocalCommand(command)) {
-            String[] _args = new String[args.length];
-            for (int i = 0; i < args.length; i++) {
-                if (!(args[i] instanceof String)) {
-                    throw new IllegalArgumentException();
-                }
-                _args[i] = args[i].toString();
-            }
-            out = localExecute(command, _args);
+            out = localExecute(command, args);
         } else if (consoleId != null) {
             out = consoleEngine().invoke(commandSession(), command, args);
         }
@@ -336,12 +329,12 @@ public class SystemRegistryImpl implements SystemRegistry {
         return out;
     }
 
-    public Object localExecute(String command, String[] args) throws Exception {
+    public Object localExecute(String command, Object[] args) throws Exception {
         if (!isLocalCommand(command)) {
             throw new IllegalArgumentException();
         }
         Object out = commandExecute.get(command).executeFunction()
-                .apply(new Builtins.CommandInput(command, args, commandSession()));
+                .apply(new Builtins.CommandInput(command, null, args, commandSession()));
         if (exception != null) {
             throw exception;
         }
@@ -1039,7 +1032,8 @@ public class SystemRegistryImpl implements SystemRegistry {
                 boolean consoleScript = false;
                 if (parser.validCommandName(cmd.command())) {
                     if (isLocalCommand(cmd.command())) {
-                        out = localExecute(cmd.command(), cmd.args());
+                        out = localExecute(cmd.command()
+                                , consoleId != null ? consoleEngine().expandParameters(cmd.args()) : cmd.args());
                     } else {
                         int id = registryId(cmd.command());
                         if (id > -1) {
@@ -1342,9 +1336,9 @@ public class SystemRegistryImpl implements SystemRegistry {
     private Object subcommand(Builtins.CommandInput input) {
         Object out = null;
         try {
-            out = subcommands.get(input.command()).execute(input.session()
+            out = subcommands.get(input.command()).invoke(input.session()
                                                          , input.args()[0]
-                                                         , Arrays.copyOfRange(input.args(), 1, input.args().length));
+                                                         , Arrays.copyOfRange(input.xargs(), 1, input.xargs().length));
         } catch (Exception e) {
             exception = e;
         }
@@ -1365,15 +1359,15 @@ public class SystemRegistryImpl implements SystemRegistry {
 
     private List<String> registryNames() {
         List<String> out = new ArrayList<>();
+        out.add("System");
         out.add("Builtins");
         if (consoleId != null) {
             out.add("Scripts");
         }
         for (CommandRegistry r : commandRegistries) {
-            if (isBuiltinRegistry(r)) {
-                continue;
+            if (!isBuiltinRegistry(r)) {
+                out.add(r.name());
             }
-            out.add(r.name());
         }
         return out;
     }

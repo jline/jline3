@@ -103,11 +103,11 @@ public class Repl {
                 return out;
             }
             try {
-                String[] args = new String[] {};
+                Object[] args = new Object[] {};
                 if (!command.equals("help")) {
-                    args = new String[] {"--help"};
+                    args = new Object[] {"--help"};
                 }
-                execute(new CommandSession(), command, args);
+                invoke(new CommandSession(), command, args);
             } catch (HelpException e) {
                 out = Builtins.compileCommandDescription(e.getMessage());
             } catch (Exception e) {
@@ -115,66 +115,72 @@ public class Repl {
             return out;
         }
 
-
-        private void cmd1(Builtins.CommandInput input) {
+        private Object cmd1(Builtins.CommandInput input) {
             final String[] usage = {
-                    "cmd1 -  cmd1",
-                    "Usage: cmd1",
+                    "cmd1 -  cmd1 parse args, return opt.argObjects().get(0)",
+                    "Usage: cmd1 [OBJECT]",
                     "  -? --help                       Displays command help"
             };
             Options opt = Options.compile(usage).parse(input.args());
             if (opt.isSet("help")) {
                 exception = new HelpException(opt.usage());
-                return;
+                return null;
             }
+            List<Object> xargs = opt.argObjects();
+            return xargs.size() > 0 ? xargs.get(0) : null;
         }
 
-        private void cmd2(Builtins.CommandInput input) {
+        private Object cmd2(Builtins.CommandInput input) {
             final String[] usage = {
-                    "cmd2 -  cmd2",
+                    "cmd2 -  cmd2 parse xargs, return opt.args().get(0)",
                     "Usage: cmd2",
                     "  -? --help                       Displays command help"
             };
-            Options opt = Options.compile(usage).parse(input.args());
+            Options opt = Options.compile(usage).parse(input.xargs());
             if (opt.isSet("help")) {
                 exception = new HelpException(opt.usage());
-                return;
+                return null;
             }
+            List<String> args = opt.args();
+            return args.size() > 0 ? args.get(0) : null;
         }
 
-        private void cmd3(Builtins.CommandInput input) {
+        private Object cmd3(Builtins.CommandInput input) {
             final String[] usage = {
-                    "cmd3 -  cmd3",
-                    "Usage: cmd3",
+                    "cmd3 -  cmd3 parse xargs, return opt.argObjects().get(0)",
+                    "Usage: cmd3 [OBJECT]",
                     "  -? --help                       Displays command help"
             };
-            Options opt = Options.compile(usage).parse(input.args());
+            Options opt = Options.compile(usage).parse(input.xargs());
             if (opt.isSet("help")) {
                 exception = new HelpException(opt.usage());
-                return;
+                return null;
             }
+            List<Object> xargs = opt.argObjects();
+            return xargs.size() > 0 ? xargs.get(0) : null;
         }
 
-        private void help(Builtins.CommandInput input) {
+        private Object help(Builtins.CommandInput input) {
             final String[] usage = {
                     " -  execute cmd subcommands",
-                    "Usage: cmd1",
-                    "       cmd2",
-                    "       cmd3",
-                    "       help",
+                    "Usage: cmd1 [OBJECT]",
+                    "       cmd2 [OBJECT]",
+                    "       cmd3 [OBJECT]",
+                    "       help"
             };
             Options opt = Options.compile(usage).parse(input.args());
             exception = new HelpException(opt.usage());
-            return;
+            return null;
         }
 
-        public Object execute(CommandRegistry.CommandSession session, String command, String[] args) throws Exception {
+        @Override
+        public Object invoke(CommandSession session, String command, Object... args) throws Exception {
             exception = null;
-            commandExecute.get(command(command)).execute().accept(new Builtins.CommandInput(command, args, session));
+            Object out = commandExecute.get(command(command)).executeFunction().apply(new Builtins.CommandInput(command, null, args, session));
             if (exception != null) {
                 throw exception;
             }
-            return null;
+            return out;
         }
 
         public Completers.SystemCompleter compileCompleters() {
@@ -187,7 +193,7 @@ public class Repl {
 
         private List<OptDesc> commandOptions(String command) {
             try {
-                execute(new CommandRegistry.CommandSession(), command, new String[] {"--help"});
+                invoke(new CommandRegistry.CommandSession(), command, new Object[] {"--help"});
             } catch (HelpException e) {
                 return Builtins.compileCommandOptions(e.getMessage());
             } catch (Exception e) {
