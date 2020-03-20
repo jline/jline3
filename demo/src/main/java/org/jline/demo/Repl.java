@@ -93,7 +93,14 @@ public class Repl {
         }
 
         private String command(String name) {
-            return commandExecute.containsKey(name) ? name : null;
+            String out = name;
+            if (name.equals("-?") || name.equals("--help")) {
+                out = "help";
+            }
+            if (!hasCommand(out)) {
+                throw new IllegalArgumentException("Unknown command: " + name);
+            }
+            return out;
         }
 
         @Override
@@ -117,7 +124,7 @@ public class Repl {
 
         private Object cmd1(Builtins.CommandInput input) {
             final String[] usage = {
-                    "cmd1 -  cmd1 parse args, return opt.argObjects().get(0)",
+                    "cmd1 -  cmd1 parse input.args, return opt.argObjects[0]",
                     "Usage: cmd1 [OBJECT]",
                     "  -? --help                       Displays command help"
             };
@@ -132,7 +139,7 @@ public class Repl {
 
         private Object cmd2(Builtins.CommandInput input) {
             final String[] usage = {
-                    "cmd2 -  cmd2 parse xargs, return opt.args().get(0)",
+                    "cmd2 -  cmd2 parse input.xargs, return opt.args[0]",
                     "Usage: cmd2",
                     "  -? --help                       Displays command help"
             };
@@ -147,7 +154,7 @@ public class Repl {
 
         private Object cmd3(Builtins.CommandInput input) {
             final String[] usage = {
-                    "cmd3 -  cmd3 parse xargs, return opt.argObjects().get(0)",
+                    "cmd3 -  cmd3 parse input.xargs, return opt.argObjects[0]",
                     "Usage: cmd3 [OBJECT]",
                     "  -? --help                       Displays command help"
             };
@@ -162,11 +169,13 @@ public class Repl {
 
         private Object help(Builtins.CommandInput input) {
             final String[] usage = {
-                    " -  execute cmd subcommands",
-                    "Usage: cmd1 [OBJECT]",
-                    "       cmd2 [OBJECT]",
-                    "       cmd3 [OBJECT]",
-                    "       help"
+                    " -  demonstrates object parameter usages. ",
+                    "    cmd3 manage correctly object parameters",
+                    "    while cmd1 & cmd2 works only with string parameters",
+                    "Summary: " + commandInfo("cmd1").get(0),
+                    "         " + commandInfo("cmd2").get(0),
+                    "         " + commandInfo("cmd3").get(0),
+                    "         help show subcommands help"
             };
             Options opt = Options.compile(usage).parse(input.args());
             exception = new HelpException(opt.usage());

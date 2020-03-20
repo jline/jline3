@@ -538,9 +538,10 @@ public class Options {
             return new StyleResolver(colors::get);
         }
 
-        public static AttributedString highlight(String msg, StyleResolver resolver) {
-            Matcher tm = Pattern.compile("(^|\\n)(Usage:)").matcher(msg);
+        public static AttributedString highlight(String msg, StyleResolver resolver) {            
+            Matcher tm = Pattern.compile("(^|\\n)(Usage|Summary)(:)").matcher(msg);
             if (tm.find()) {
+                boolean subcommand = tm.group(2).equals("Summary");
                 AttributedStringBuilder asb = new AttributedStringBuilder(msg.length());
                 // Command
                 AttributedStringBuilder acommand = new AttributedStringBuilder()
@@ -549,9 +550,9 @@ public class Options {
                                 Collections.singletonList(resolver.resolve(".co")));
                 asb.append(acommand);
                 // Title
-                asb.styled(resolver.resolve(".ti"), "Usage").append(":");
+                asb.styled(resolver.resolve(".ti"), tm.group(2)).append(":");
                 // Syntax
-                for (String line : msg.substring(tm.end(2)).split("\n")) {
+                for (String line : msg.substring(tm.end(3)).split("\n")) {
                     int ind = line.lastIndexOf("  ");
                     String syntax, comment;
                     if (ind > 20) {
@@ -562,7 +563,7 @@ public class Options {
                         comment = "";
 
                     }
-                    asb.append(_highlightSyntax(syntax, resolver));
+                    asb.append(_highlightSyntax(syntax, resolver, subcommand));
                     asb.append(_highlightComment(comment, resolver));
                     asb.append("\n");
                 }
@@ -572,15 +573,19 @@ public class Options {
             }
         }
 
+        public static AttributedString highlightSyntax(String syntax, StyleResolver resolver, boolean subcommands) {
+            return _highlightSyntax(syntax, resolver, subcommands).toAttributedString();
+        }
+
         public static AttributedString highlightSyntax(String syntax, StyleResolver resolver) {
-            return _highlightSyntax(syntax, resolver).toAttributedString();
+            return _highlightSyntax(syntax, resolver, false).toAttributedString();
         }
 
         public static AttributedString highlightComment(String comment, StyleResolver resolver) {
             return _highlightComment(comment, resolver).toAttributedString();
         }
 
-        private static AttributedStringBuilder _highlightSyntax(String syntax, StyleResolver resolver) {
+        private static AttributedStringBuilder _highlightSyntax(String syntax, StyleResolver resolver, boolean subcommand) {
             StringBuilder indent = new StringBuilder();
             for (char c : syntax.toCharArray()) {
                 if (c != ' ') {
@@ -590,14 +595,16 @@ public class Options {
             }
             AttributedStringBuilder asyntax = new AttributedStringBuilder().append(syntax.substring(indent.length()));
             // command
-            asyntax.styleMatches(Pattern.compile("(?:^)([a-z]+[a-z-]*){1}\\b"),
+            asyntax.styleMatches(Pattern.compile("(?:^)([a-z]+[a-z0-9-]*){1}\\b"),
                     Collections.singletonList(resolver.resolve(".co")));
-            // argument
-            asyntax.styleMatches(Pattern.compile("(?:<|\\[|\\s|=)([A-Za-z]+[A-Za-z_-]*){1}\\b"),
-                    Collections.singletonList(resolver.resolve(".ar")));
-            // option
-            asyntax.styleMatches(Pattern.compile("(?:^|\\s|\\[)(-\\$|-\\?|[-]{1,2}[A-Za-z-]+\\b){1}"),
-                    Collections.singletonList(resolver.resolve(".op")));
+            if (!subcommand) {
+                // argument
+                asyntax.styleMatches(Pattern.compile("(?:<|\\[|\\s|=)([A-Za-z]+[A-Za-z_-]*){1}\\b"),
+                        Collections.singletonList(resolver.resolve(".ar")));
+                // option
+                asyntax.styleMatches(Pattern.compile("(?:^|\\s|\\[)(-\\$|-\\?|[-]{1,2}[A-Za-z-]+\\b){1}"),
+                        Collections.singletonList(resolver.resolve(".op")));
+            }
             return new AttributedStringBuilder().append(indent).append(asyntax);
         }
 

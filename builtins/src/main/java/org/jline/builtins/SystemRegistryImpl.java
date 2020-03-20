@@ -1337,8 +1337,9 @@ public class SystemRegistryImpl implements SystemRegistry {
         Object out = null;
         try {
             out = subcommands.get(input.command()).invoke(input.session()
-                                                         , input.args()[0]
-                                                         , Arrays.copyOfRange(input.xargs(), 1, input.xargs().length));
+                                         , input.args().length > 0 ? input.args()[0] : "help"
+                                         , input.xargs().length > 1 ? Arrays.copyOfRange(input.xargs(), 1, input.xargs().length)
+                                                                    : new Object[] {});
         } catch (Exception e) {
             exception = e;
         }

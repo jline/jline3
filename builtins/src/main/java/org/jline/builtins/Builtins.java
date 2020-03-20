@@ -15,6 +15,8 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.jline.builtins.Completers.FilesCompleter;
@@ -380,30 +382,50 @@ public class Builtins implements CommandRegistry {
         return completers;
     }
 
-    private static String[] splitToLines(String message) {
-        return message.replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n");
-    }
-
     private static AttributedString highlightComment(String comment) {
         return HelpException.highlightComment(comment, HelpException.defaultStyle());
+    }
+
+    private static String[] helpLines(String helpMessage, boolean body) {
+        return new HelpLines(helpMessage, body).lines();
+    }
+
+    private static class HelpLines {
+        private String helpMessage;
+        private boolean body;
+        private boolean subcommands;
+
+        public HelpLines(String helpMessage, boolean body) {
+            this.helpMessage = helpMessage;
+            this.body = body;
+        }
+
+        public String[] lines() {
+            String out = "";
+            Matcher tm = Pattern.compile("(^|\\n)(Usage|Summary)(:)").matcher(helpMessage);
+            if (tm.find()) {
+                subcommands = tm.group(2).matches("Summary");
+                if (body) {
+                    out = helpMessage.substring(tm.end(3));
+                } else {
+                    out = helpMessage.substring(0,tm.start(1));
+                }
+            }
+            return out.split("\\r?\\n");
+        }
+
+        public boolean subcommands() {
+            return subcommands;
+        }
     }
 
     public static CmdDesc compileCommandDescription(String helpMessage) {
         List<AttributedString> main = new ArrayList<>();
         Map<String, List<AttributedString>> options = new HashMap<>();
-        String[] msg = splitToLines(helpMessage);
         String prevOpt = null;
         boolean mainDone = false;
-        boolean start = false;
-        for (String s: msg) {
-            if (!start) {
-                if (s.trim().startsWith("Usage: ")) {
-                    s = s.split("Usage:")[1];
-                    start = true;
-                } else {
-                    continue;
-                }
-            }
+        HelpLines hl = new HelpLines(helpMessage, true);
+        for (String s : hl.lines()) {
             if (s.matches("^\\s+-.*$")) {
                 mainDone = true;
                 int ind = s.lastIndexOf("  ");
@@ -424,7 +446,7 @@ public class Builtins implements CommandRegistry {
                 prevOpt = null;
             }
             if (!mainDone) {
-                main.add(HelpException.highlightSyntax(s.trim(), HelpException.defaultStyle()));
+                main.add(HelpException.highlightSyntax(s.trim(), HelpException.defaultStyle(), hl.subcommands()));
             }
         }
         return new CmdDesc(main, ArgDesc.doArgNames(Arrays.asList("")), options);
@@ -432,16 +454,7 @@ public class Builtins implements CommandRegistry {
 
     public static List<OptDesc> compileCommandOptions(String helpMessage) {
         List<OptDesc> out = new ArrayList<>();
-        String[] msg = splitToLines(helpMessage);
-        boolean start = false;
-        for (String s: msg) {
-            if (!start) {
-                if (s.trim().startsWith("Usage: ")) {
-                    s = s.split("Usage:")[1];
-                    start = true;
-                }
-                continue;
-            }
+        for (String s : helpLines(helpMessage, true)) {
             if (s.matches("^\\s+-.*$")) {
                 int ind = s.lastIndexOf("  ");
                 if (ind > 0) {
@@ -469,19 +482,14 @@ public class Builtins implements CommandRegistry {
 
     public static List<String> compileCommandInfo(String helpMessage) {
         List<String> out = new ArrayList<>();
-        String[] msg = splitToLines(helpMessage);
         boolean first = true;
-        for (String s : msg) {
-            if (s.trim().startsWith("Usage: ")) {
-                break;
+        for (String s  : helpLines(helpMessage, false)) {
+            if (first && s.contains(" - ")) {
+                out.add(s.substring(s.indexOf(" - ") + 3).trim());
             } else {
-                if (first && s.contains(" - ")) {
-                    out.add(s.substring(s.indexOf(" - ") + 3).trim());
-                } else {
-                    out.add(s.trim());
-                }
-                first = false;
+                out.add(s.trim());
             }
+            first = false;
         }
         return out;
     }
