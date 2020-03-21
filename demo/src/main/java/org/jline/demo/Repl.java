@@ -103,28 +103,9 @@ public class Repl {
             return out;
         }
 
-        @Override
-        public Widgets.CmdDesc commandDescription(String command) {
-            Widgets.CmdDesc out = new Widgets.CmdDesc();
-            if (!hasCommand(command)) {
-                return out;
-            }
-            try {
-                Object[] args = new Object[] {};
-                if (!command.equals("help")) {
-                    args = new Object[] {"--help"};
-                }
-                invoke(new CommandSession(), command, args);
-            } catch (HelpException e) {
-                out = Builtins.compileCommandDescription(e.getMessage());
-            } catch (Exception e) {
-            }
-            return out;
-        }
-
         private Object cmd1(Builtins.CommandInput input) {
             final String[] usage = {
-                    "cmd1 -  cmd1 parse input.args, return opt.argObjects[0]",
+                    "cmd1 -  parse input.args, return opt.argObjects[0]",
                     "Usage: cmd1 [OBJECT]",
                     "  -? --help                       Displays command help"
             };
@@ -139,7 +120,7 @@ public class Repl {
 
         private Object cmd2(Builtins.CommandInput input) {
             final String[] usage = {
-                    "cmd2 -  cmd2 parse input.xargs, return opt.args[0]",
+                    "cmd2 -  parse input.xargs, return opt.args[0]",
                     "Usage: cmd2",
                     "  -? --help                       Displays command help"
             };
@@ -154,7 +135,7 @@ public class Repl {
 
         private Object cmd3(Builtins.CommandInput input) {
             final String[] usage = {
-                    "cmd3 -  cmd3 parse input.xargs, return opt.argObjects[0]",
+                    "cmd3 -  parse input.xargs, return opt.argObjects[0]",
                     "Usage: cmd3 [OBJECT]",
                     "  -? --help                       Displays command help"
             };
@@ -169,13 +150,13 @@ public class Repl {
 
         private Object help(Builtins.CommandInput input) {
             final String[] usage = {
-                    " -  demonstrates object parameter usages. ",
+                    "help -  show summary of subcommands",
+                    "    demonstrates object parameter usages.",
                     "    cmd3 manage correctly object parameters",
                     "    while cmd1 & cmd2 works only with string parameters",
-                    "Summary: " + commandInfo("cmd1").get(0),
-                    "         " + commandInfo("cmd2").get(0),
-                    "         " + commandInfo("cmd3").get(0),
-                    "         help show subcommands help"
+                    "Summary: cmd1 " + commandInfo("cmd1").get(0),
+                    "         cmd2 " + commandInfo("cmd2").get(0),
+                    "         cmd3 " + commandInfo("cmd3").get(0)
             };
             Options opt = Options.compile(usage).parse(input.args());
             exception = new HelpException(opt.usage());

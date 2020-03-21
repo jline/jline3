@@ -287,8 +287,16 @@ public class SystemRegistryImpl implements SystemRegistry {
             if (isCommandOrScript(cmd) && !hasPipes(line.getArgs())) {
                 if (subcommands.containsKey(cmd)) {
                     List<String> args = line.getArgs();
-                    String c = args.size() > 1 ? args.get(1) : "help";
-                    out = subcommands.get(cmd).commandDescription(c);
+                    String c = args.size() > 1 ? args.get(1) : null;
+                    if (c == null || subcommands.get(cmd).hasCommand(c)) {
+                        if (c !=null && c.equals("help")) {
+                            out = null;   
+                        } else {
+                            out = subcommands.get(cmd).commandDescription(c);
+                        }
+                    } else {
+                        out = new Widgets.CmdDesc();
+                    }
                 } else {
                     out = commandDescription(cmd);
                 }
