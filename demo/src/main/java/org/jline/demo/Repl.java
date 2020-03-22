@@ -158,8 +158,12 @@ public class Repl {
                     "         cmd2 " + commandInfo("cmd2").get(0),
                     "         cmd3 " + commandInfo("cmd3").get(0)
             };
-            Options opt = Options.compile(usage).parse(input.args());
-            exception = new HelpException(opt.usage());
+            exception = null;
+            try {
+                Options opt = Options.compile(usage).parse(input.args());
+                exception = new HelpException(opt.usage());
+            } catch (Exception e) {
+            }
             return null;
         }
 

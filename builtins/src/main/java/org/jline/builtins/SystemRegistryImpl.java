@@ -289,13 +289,16 @@ public class SystemRegistryImpl implements SystemRegistry {
                     List<String> args = line.getArgs();
                     String c = args.size() > 1 ? args.get(1) : null;
                     if (c == null || subcommands.get(cmd).hasCommand(c)) {
-                        if (c !=null && c.equals("help")) {
+                        if (c != null && c.equals("help")) {
                             out = null;   
                         } else {
                             out = subcommands.get(cmd).commandDescription(c);
                         }
                     } else {
-                        out = new Widgets.CmdDesc();
+                        out = subcommands.get(cmd).commandDescription(null);
+                    }
+                    if (out != null) {
+                        out.setSubcommand(true);
                     }
                 } else {
                     out = commandDescription(cmd);
