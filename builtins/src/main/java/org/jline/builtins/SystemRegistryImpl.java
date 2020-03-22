@@ -54,9 +54,6 @@ import org.jline.utils.OSUtils;
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public class SystemRegistryImpl implements SystemRegistry {
-    public enum Command {
-        EXIT, HELP
-    };
 
     public enum Pipe {
         FLIP, NAMED, AND, OR
@@ -67,11 +64,9 @@ public class SystemRegistryImpl implements SystemRegistry {
     private Integer consoleId;
     private Parser parser;
     private ConfigurationPath configPath;
-    private Map<Command, String> commandName = new HashMap<>();
-    private Map<String, Command> nameCommand = new HashMap<>();
-    private Map<String, String> aliasCommand = new HashMap<>();
+    private Map<String,CommandRegistry> subcommands = new HashMap<>();
     private Map<Pipe, String> pipeName = new HashMap<>();
-    private final Map<Command, CommandMethods> commandExecute = new HashMap<>();
+    private final Map<String, CommandMethods> commandExecute = new HashMap<>();
     private Map<String, List<String>> commandInfos = new HashMap<>();
     private Exception exception;
     private CommandOutputStream outputStream;
@@ -81,21 +76,12 @@ public class SystemRegistryImpl implements SystemRegistry {
         this.parser = parser;
         this.configPath = configPath;
         outputStream = new CommandOutputStream(terminal);
-        Set<Command> cmds = new HashSet<>(EnumSet.allOf(Command.class));
-        for (Command c : cmds) {
-            commandName.put(c, c.name().toLowerCase());
-        }
-        doNameCommand();
         pipeName.put(Pipe.FLIP, "|;");
         pipeName.put(Pipe.NAMED, "|");
         pipeName.put(Pipe.AND, "&&");
         pipeName.put(Pipe.OR, "||");
-        commandExecute.put(Command.EXIT, new CommandMethods(this::exit, this::exitCompleter));
-        commandExecute.put(Command.HELP, new CommandMethods(this::help, this::helpCompleter));
-    }
-
-    private void doNameCommand() {
-        nameCommand = commandName.entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+        commandExecute.put("exit", new CommandMethods(this::exit, this::exitCompleter));
+        commandExecute.put("help", new CommandMethods(this::help, this::helpCompleter));
     }
 
     public void rename(Pipe pipe, String name) {
@@ -151,7 +137,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     private Set<String> localCommandNames() {
-        return nameCommand.keySet();
+        return commandExecute.keySet();
     }
 
     @Override
@@ -160,29 +146,26 @@ public class SystemRegistryImpl implements SystemRegistry {
         for (CommandRegistry r : commandRegistries) {
             out.putAll(r.commandAliases());
         }
-        out.putAll(aliasCommand);
         return out;
     }
 
-    private Command command(String name) {
-        Command out = null;
-        if (!isLocalCommand(name)) {
-            throw new IllegalArgumentException("Command does not exists!");
-        }
-        if (aliasCommand.containsKey(name)) {
-            name = aliasCommand.get(name);
-        }
-        if (nameCommand.containsKey(name)) {
-            out = nameCommand.get(name);
-        } else {
-            throw new IllegalArgumentException("Command does not exists!");
-        }
-        return out;
+    /**
+     * Register subcommand registry
+     * @param command main command
+     * @param subcommandRegistry subcommand registry
+     */
+    public void register(String command, CommandRegistry subcommandRegistry) {
+        subcommands.put(command, subcommandRegistry);
+        commandExecute.put(command, new Builtins.CommandMethods(this::subcommand, this::emptyCompleter));
     }
 
     private List<String> localCommandInfo(String command) {
         try {
-            localExecute(command, new String[] { "--help" });
+            if (subcommands.containsKey(command)) {
+                return subcommands.get(command).commandInfo("help");
+            } else {
+                localExecute(command, new String[] { "--help" });
+            }
         } catch (HelpException e) {
             exception = null;
             return Builtins.compileCommandInfo(e.getMessage());
@@ -215,7 +198,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     private boolean isLocalCommand(String command) {
-        return nameCommand.containsKey(command) || aliasCommand.containsKey(command);
+        return commandExecute.containsKey(command);
     }
 
     private boolean isCommandOrScript(String command) {
@@ -229,10 +212,28 @@ public class SystemRegistryImpl implements SystemRegistry {
     public Completers.SystemCompleter compileCompleters() {
         Completers.SystemCompleter out = CommandRegistry.aggregateCompleters(commandRegistries);
         Completers.SystemCompleter local = new Completers.SystemCompleter();
-        for (Map.Entry<Command, String> entry : commandName.entrySet()) {
-            local.add(entry.getValue(), commandExecute.get(entry.getKey()).compileCompleter().apply(entry.getValue()));
+        for (String command : commandExecute.keySet()) {
+            if (subcommands.containsKey(command)) {
+                for(Map.Entry<String,List<Completer>> entry : subcommands.get(command).compileCompleters().getCompleters().entrySet()) {
+                    for (Completer cc : entry.getValue()) {
+                        if (!(cc instanceof ArgumentCompleter)) {
+                            throw new IllegalArgumentException();
+                        }
+                        List<Completer> cmps = ((ArgumentCompleter)cc).getCompleters();
+                        cmps.add(0, NullCompleter.INSTANCE);
+                        cmps.set(1, new StringsCompleter(entry.getKey()));
+                        Completer last = cmps.get(cmps.size() - 1);
+                        if (last instanceof OptionCompleter) {
+                            ((OptionCompleter)last).setStartPos(cmps.size() - 1);
+                            cmps.set(cmps.size() - 1, last);
+                        }
+                        local.add(command, new ArgumentCompleter(cmps));
+                    }
+                }
+            } else {
+                local.add(command, commandExecute.get(command).compileCompleter().apply(command));
+            }
         }
-        local.addAliases(aliasCommand);
         out.add(local);
         out.compile();
         return out;
@@ -284,7 +285,24 @@ public class SystemRegistryImpl implements SystemRegistry {
         case COMMAND:
             String cmd = parser.getCommand(line.getArgs().get(0));
             if (isCommandOrScript(cmd) && !hasPipes(line.getArgs())) {
-                out = commandDescription(cmd);
+                if (subcommands.containsKey(cmd)) {
+                    List<String> args = line.getArgs();
+                    String c = args.size() > 1 ? args.get(1) : null;
+                    if (c == null || subcommands.get(cmd).hasCommand(c)) {
+                        if (c != null && c.equals("help")) {
+                            out = null;   
+                        } else {
+                            out = subcommands.get(cmd).commandDescription(c);
+                        }
+                    } else {
+                        out = subcommands.get(cmd).commandDescription(null);
+                    }
+                    if (out != null) {
+                        out.setSubcommand(true);
+                    }
+                } else {
+                    out = commandDescription(cmd);
+                }
             }
             break;
         case METHOD:
@@ -303,14 +321,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         if (id > -1) {
             out = commandRegistries[id].invoke(commandSession(), command, args);
         } else if (isLocalCommand(command)) {
-            String[] _args = new String[args.length];
-            for (int i = 0; i < args.length; i++) {
-                if (!(args[i] instanceof String)) {
-                    throw new IllegalArgumentException();
-                }
-                _args[i] = args[i].toString();
-            }
-            out = localExecute(command, _args);
+            out = localExecute(command, args);
         } else if (consoleId != null) {
             out = consoleEngine().invoke(commandSession(), command, args);
         }
@@ -329,12 +340,12 @@ public class SystemRegistryImpl implements SystemRegistry {
         return out;
     }
 
-    public Object localExecute(String command, String[] args) throws Exception {
+    public Object localExecute(String command, Object[] args) throws Exception {
         if (!isLocalCommand(command)) {
             throw new IllegalArgumentException();
         }
-        Object out = commandExecute.get(command(command)).executeFunction()
-                .apply(new Builtins.CommandInput(args, commandSession()));
+        Object out = commandExecute.get(command).executeFunction()
+                .apply(new Builtins.CommandInput(command, null, args, commandSession()));
         if (exception != null) {
             throw exception;
         }
@@ -1032,7 +1043,8 @@ public class SystemRegistryImpl implements SystemRegistry {
                 boolean consoleScript = false;
                 if (parser.validCommandName(cmd.command())) {
                     if (isLocalCommand(cmd.command())) {
-                        out = localExecute(cmd.command(), cmd.args());
+                        out = localExecute(cmd.command()
+                                , consoleId != null ? consoleEngine().expandParameters(cmd.args()) : cmd.args());
                     } else {
                         int id = registryId(cmd.command());
                         if (id > -1) {
@@ -1250,6 +1262,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         boolean withInfo = commands.size() < terminal().getHeight() || !opt.args().isEmpty() ? true : false;
         int max = Collections.max(commands, Comparator.comparing(String::length)).length() + 1;
         TreeMap<String, String> builtinCommands = new TreeMap<>();
+        TreeMap<String, String> systemCommands = new TreeMap<>();
         for (CommandRegistry r : commandRegistries) {
             if (isBuiltinRegistry(r)) {
                 for (String c : r.commandNames()) {
@@ -1258,8 +1271,18 @@ public class SystemRegistryImpl implements SystemRegistry {
             }
         }
         for (String c : localCommandNames()) {
-            builtinCommands.put(c, doCommandInfo(commandInfo(c)));
+            systemCommands.put(c, doCommandInfo(commandInfo(c)));
             exception = null;
+        }
+        if (isInArgs(opt.args(), "System")) {
+            printHeader("System");
+            if (withInfo) {
+                for (Map.Entry<String, String> entry : systemCommands.entrySet()) {
+                    printCommandInfo(entry.getKey(), entry.getValue(), max);
+                }
+            } else {
+                printCommands(systemCommands.keySet(), max);
+            }
         }
         if (isInArgs(opt.args(), "Builtins")) {
             printHeader("Builtins");
@@ -1321,6 +1344,19 @@ public class SystemRegistryImpl implements SystemRegistry {
         return null;
     }
 
+    private Object subcommand(Builtins.CommandInput input) {
+        Object out = null;
+        try {
+            out = subcommands.get(input.command()).invoke(input.session()
+                                         , input.args().length > 0 ? input.args()[0] : "help"
+                                         , input.xargs().length > 1 ? Arrays.copyOfRange(input.xargs(), 1, input.xargs().length)
+                                                                    : new Object[] {});
+        } catch (Exception e) {
+            exception = e;
+        }
+        return out;
+    }
+
     private List<OptDesc> commandOptions(String command) {
         try {
             localExecute(command, new String[] { "--help" });
@@ -1335,17 +1371,21 @@ public class SystemRegistryImpl implements SystemRegistry {
 
     private List<String> registryNames() {
         List<String> out = new ArrayList<>();
+        out.add("System");
         out.add("Builtins");
         if (consoleId != null) {
             out.add("Scripts");
         }
         for (CommandRegistry r : commandRegistries) {
-            if (isBuiltinRegistry(r)) {
-                continue;
+            if (!isBuiltinRegistry(r)) {
+                out.add(r.name());
             }
-            out.add(r.name());
         }
         return out;
+    }
+
+    private List<Completer> emptyCompleter(String command) {
+        return new ArrayList<>();
     }
 
     private List<Completer> helpCompleter(String command) {

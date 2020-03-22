@@ -12,12 +12,11 @@ import org.jline.builtins.Completers;
 import org.jline.builtins.Widgets;
 import org.jline.builtins.Options.HelpException;
 import org.jline.terminal.Terminal;
+import org.jline.utils.AttributedString;
 
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Store command information, compile tab completers and execute registered commands.
@@ -75,7 +74,11 @@ public interface CommandRegistry {
      */
     default List<String> commandInfo(String command) {
         try {
-            invoke(new CommandSession(), command, new Object[] {"--help"});
+            Object[] args = {"--help"};
+            if (command.equals("help")) {
+                args = new Object[] {};
+            }
+            invoke(new CommandSession(), command, args);
         } catch (HelpException e) {
             return Builtins.compileCommandInfo(e.getMessage());
         } catch (Exception e) {
@@ -106,7 +109,19 @@ public interface CommandRegistry {
      */
     default Widgets.CmdDesc commandDescription(String command) {
         try {
-            invoke(new CommandSession(), command, new Object[] {"--help"});
+            if (command != null) {
+                invoke(new CommandSession(), command, new Object[] {"--help"});
+            } else {
+                List<AttributedString> main = new ArrayList<>();
+                Map<String, List<AttributedString>> options = new HashMap<>();
+                for (String c : new TreeSet<String>(commandNames())) {
+                    for (String info : commandInfo(c)) {
+                        main.add(HelpException.highlightSyntax(c + " -  " + info, HelpException.defaultStyle(), true));
+                        break;
+                    }
+                }
+                return new Widgets.CmdDesc(main, Widgets.ArgDesc.doArgNames(Arrays.asList("")), options);
+            }
         } catch (HelpException e) {
             return Builtins.compileCommandDescription(e.getMessage());
         } catch (Exception e) {

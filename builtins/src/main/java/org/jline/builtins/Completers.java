@@ -931,6 +931,10 @@ public class Completers {
             this.startPos = startPos;
         }
 
+        public void setStartPos(int startPos) {
+            this.startPos = startPos;
+        }
+
         @Override
         public void complete(LineReader reader, final ParsedLine commandLine, List<Candidate> candidates) {
             assert commandLine != null;
@@ -941,7 +945,7 @@ public class Completers {
                 candidates.add(new Candidate(buffer, buffer, null, null, null, null, true));
                 return;
             }
-            String command = reader.getParser().getCommand(words.get(0));
+            String command = reader.getParser().getCommand(words.get(words.size() - startPos));
             if (buffer.startsWith("-")) {
                 boolean addbuff = true;
                 boolean valueCandidates = false;

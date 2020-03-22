@@ -841,6 +841,9 @@ public abstract class Widgets {
                 }
             } else if (!prevChar().equals(" ")) {
                 doTailTip = false;
+                doDescription(cmdDesc.getMainDescription(descriptionSize, cmdDesc.isSubcommand() ? lastArg : null));
+            } else if (cmdDesc != null) {
+                doDescription(cmdDesc.getMainDescription(descriptionSize));
             }
             if (cmdDesc != null) {
                 if (lastArg.startsWith("-")) {
@@ -879,7 +882,7 @@ public abstract class Widgets {
                                 d = cmdDesc.getOptionDescription(prevArg, descriptionSize);
                             }
                             if (d == null || d.isEmpty()) {
-                                d = cmdDesc.getMainDescription(descriptionSize);
+                                d = cmdDesc.getMainDescription(descriptionSize, cmdDesc.isSubcommand() ? lastArg : null);
                             }
                             doDescription(d);
                         }
@@ -1217,6 +1220,7 @@ public abstract class Widgets {
         private int errorIndex = -1;
         private boolean valid = true;
         private boolean command = false;
+        private boolean subcommand = false;
 
         public CmdDesc() {
             command = false;
@@ -1254,6 +1258,14 @@ public abstract class Widgets {
             return command;
         }
 
+        public void setSubcommand(boolean subcommand) {
+            this.subcommand = subcommand;
+        }
+
+        protected boolean isSubcommand() {
+            return subcommand;
+        }
+
         public CmdDesc mainDesc(List<AttributedString> mainDesc) {
             this.mainDesc = new ArrayList<>(mainDesc);
             return this;
@@ -1284,10 +1296,14 @@ public abstract class Widgets {
         }
 
         protected List<AttributedString> getMainDescription(int descriptionSize) {
+            return  getMainDescription(descriptionSize, null);   
+        }
+
+        protected List<AttributedString> getMainDescription(int descriptionSize, String lastArg) {
             List<AttributedString> out = new ArrayList<>();
             if (mainDesc == null) {
                 // do nothing
-            } else if (mainDesc.size() <= descriptionSize) {
+            } else if (mainDesc.size() <= descriptionSize && lastArg == null) {
                 out = mainDesc;
             } else {
                 int tabs = 0;
@@ -1304,6 +1320,9 @@ public abstract class Widgets {
                     descList.add(new AttributedString(""));
                 }
                 for (AttributedString as: mainDesc) {
+                    if (lastArg != null && !as.toString().startsWith(lastArg)) {
+                        continue;
+                    }
                     AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
                     asb.append(descList.get(row));
                     asb.append(as);
