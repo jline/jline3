@@ -353,6 +353,10 @@ public final class TerminalBuilder {
                         exception.addSuppressed(t);
                     }
                 }
+                if (terminal == null && !jna && !jansi && (dumb == null || !dumb)) {
+                    throw new IllegalStateException("Unable to create a system terminal. On windows, either "
+                            + "JNA or JANSI library is required.  Make sure to add one of those in the classpath.");
+                }
             } else {
                 if (terminal == null && jna) {
                     try {
