@@ -290,7 +290,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                     String c = args.size() > 1 ? args.get(1) : null;
                     if (c == null || subcommands.get(cmd).hasCommand(c)) {
                         if (c != null && c.equals("help")) {
-                            out = null;   
+                            out = null;
                         } else {
                             out = subcommands.get(cmd).commandDescription(c);
                         }
@@ -1009,6 +1009,36 @@ public class SystemRegistryImpl implements SystemRegistry {
 
     }
 
+    @SuppressWarnings("serial")
+    private static class UnknownCommandException extends Exception {
+
+    }
+
+    private Object execute(String command, String rawLine, String[] args) throws Exception {
+        if (!parser.validCommandName(command)) {
+            throw new UnknownCommandException();
+        }
+        Object out = null;
+        if (isLocalCommand(command)) {
+            out = localExecute(command, consoleId != null ? consoleEngine().expandParameters(args) : args);
+        } else {
+            int id = registryId(command);
+            if (id > -1) {
+                if (consoleId != null) {
+                    out = commandRegistries[id].invoke(outputStream.getCommandSession(), command,
+                            consoleEngine().expandParameters(args));
+                } else {
+                    out = commandRegistries[id].execute(outputStream.getCommandSession(), command, args);
+                }
+            } else if (scriptStore.hasScript(command)) {
+                out = consoleEngine().execute(command, rawLine, args);
+            } else {
+                throw new UnknownCommandException();
+            }
+        }
+        return out;
+    }
+
     @Override
     public Object execute(String line) throws Exception {
         if (line.isEmpty() || line.trim().startsWith("#")) {
@@ -1041,32 +1071,14 @@ public class SystemRegistryImpl implements SystemRegistry {
                     outputStream.open();
                 }
                 boolean consoleScript = false;
-                if (parser.validCommandName(cmd.command())) {
-                    if (isLocalCommand(cmd.command())) {
-                        out = localExecute(cmd.command()
-                                , consoleId != null ? consoleEngine().expandParameters(cmd.args()) : cmd.args());
-                    } else {
-                        int id = registryId(cmd.command());
-                        if (id > -1) {
-                            if (consoleId != null) {
-                                out = commandRegistries[id].invoke(outputStream.getCommandSession(), cmd.command(),
-                                        consoleEngine().expandParameters(cmd.args()));
-                            } else {
-                                out = commandRegistries[id].execute(outputStream.getCommandSession(), cmd.command(),
-                                        cmd.args());
-                            }
-                        } else {
-                            consoleScript = true;
-                        }
-                    }
-                } else {
+                try {
+                    out = execute(cmd.command(), cmd.rawLine(), cmd.args());
+                } catch (UnknownCommandException e) {
                     consoleScript = true;
                 }
                 if (consoleId != null) {
                     if (consoleScript) {
-                        if (cmd.command().isEmpty() || !scriptStore.hasScript(cmd.command())) {
-                            statement = true;
-                        }
+                        statement = cmd.command().isEmpty() || !scriptStore.hasScript(cmd.command());
                         if (statement && outputStream.isByteStream()) {
                             outputStream.closeAndReset();
                         }
@@ -1243,7 +1255,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         return info.size() > 0 ? info.get(0) : " ";
     }
 
-    private boolean isInArgs(List<String> args, String name) {
+    private boolean isInTopics(List<String> args, String name) {
         return args.isEmpty() || args.contains(name);
     }
 
@@ -1256,10 +1268,30 @@ public class SystemRegistryImpl implements SystemRegistry {
             exception = new HelpException(opt.usage());
             return null;
         }
+        boolean doTopic = false;
+        if (!opt.args().isEmpty() && opt.args().size() == 1) {
+            try {
+                String[] args = {"--help"};
+                String command = opt.args().get(0);
+                execute(command, command + " " + args[0], args);
+            } catch (UnknownCommandException e) {
+                doTopic = true;
+            } catch (Exception e) {
+                exception = e;
+            }
+        } else {
+            doTopic = true;
+        }
+        if (doTopic) {
+            helpTopic(opt.args());
+        }
+        return null;
+    }
 
+    private void helpTopic(List<String> topics) {
         Set<String> commands = commandNames();
         commands.addAll(scriptStore.getScripts());
-        boolean withInfo = commands.size() < terminal().getHeight() || !opt.args().isEmpty() ? true : false;
+        boolean withInfo = commands.size() < terminal().getHeight() || !topics.isEmpty() ? true : false;
         int max = Collections.max(commands, Comparator.comparing(String::length)).length() + 1;
         TreeMap<String, String> builtinCommands = new TreeMap<>();
         TreeMap<String, String> systemCommands = new TreeMap<>();
@@ -1274,7 +1306,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             systemCommands.put(c, doCommandInfo(commandInfo(c)));
             exception = null;
         }
-        if (isInArgs(opt.args(), "System")) {
+        if (isInTopics(topics, "System")) {
             printHeader("System");
             if (withInfo) {
                 for (Map.Entry<String, String> entry : systemCommands.entrySet()) {
@@ -1284,7 +1316,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 printCommands(systemCommands.keySet(), max);
             }
         }
-        if (isInArgs(opt.args(), "Builtins")) {
+        if (isInTopics(topics, "Builtins")) {
             printHeader("Builtins");
             if (withInfo) {
                 for (Map.Entry<String, String> entry : builtinCommands.entrySet()) {
@@ -1295,7 +1327,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             }
         }
         for (CommandRegistry r : commandRegistries) {
-            if (isBuiltinRegistry(r) || !isInArgs(opt.args(), r.name())) {
+            if (isBuiltinRegistry(r) || !isInTopics(topics, r.name())) {
                 continue;
             }
             TreeSet<String> cmds = new TreeSet<>(r.commandNames());
@@ -1308,7 +1340,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 printCommands(cmds, max);
             }
         }
-        if (consoleId != null && isInArgs(opt.args(), "Scripts")) {
+        if (consoleId != null && isInTopics(topics, "Scripts")) {
             printHeader("Scripts");
             if (withInfo) {
                 for (String c : scriptStore.getScripts()) {
@@ -1319,7 +1351,6 @@ public class SystemRegistryImpl implements SystemRegistry {
             }
         }
         terminal().flush();
-        return null;
     }
 
     private Object exit(Builtins.CommandInput input) {
@@ -1381,6 +1412,8 @@ public class SystemRegistryImpl implements SystemRegistry {
                 out.add(r.name());
             }
         }
+        out.addAll(commandNames());
+        out.addAll(scriptStore.getScripts());
         return out;
     }
 
@@ -1390,8 +1423,11 @@ public class SystemRegistryImpl implements SystemRegistry {
 
     private List<Completer> helpCompleter(String command) {
         List<Completer> completers = new ArrayList<>();
+        List<Completer> params = new ArrayList<>();
+        params.add(new StringsCompleter(this::registryNames));
+        params.add(NullCompleter.INSTANCE);
         completers.add(new ArgumentCompleter(NullCompleter.INSTANCE,
-                new OptionCompleter(new StringsCompleter(this::registryNames), this::commandOptions, 1)));
+                new OptionCompleter(params, this::commandOptions, 1)));
         return completers;
     }
 
