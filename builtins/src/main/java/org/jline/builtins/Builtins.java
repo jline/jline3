@@ -410,6 +410,8 @@ public class Builtins implements CommandRegistry {
                 } else {
                     out = helpMessage.substring(0,tm.start(1));
                 }
+            } else if (!body) {
+                out = helpMessage;
             }
             return out.split("\\r?\\n");
         }

@@ -945,7 +945,7 @@ public class Completers {
                 candidates.add(new Candidate(buffer, buffer, null, null, null, null, true));
                 return;
             }
-            String command = reader.getParser().getCommand(words.get(words.size() - startPos));
+            String command = reader.getParser().getCommand(words.get(startPos - 1));
             if (buffer.startsWith("-")) {
                 boolean addbuff = true;
                 boolean valueCandidates = false;
