@@ -61,6 +61,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     private static final String OPTION_VERBOSE = "-v";
     private static final String END_HELP = "END_HELP";
     private static final int HELP_MAX_SIZE = 30;
+    private static final int PRNT_MAX_ROWS = 100000;
     private final ScriptEngine engine;
     private Map<Command,String> commandName = new HashMap<>();
     private Map<String,Command> nameCommand = new HashMap<>();
@@ -883,6 +884,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         if (engine.hasVariable(VAR_PRNT_OPTIONS)) {
             out.putAll((Map<String,Object>)engine.get(VAR_PRNT_OPTIONS));
         }
+        out.putIfAbsent("maxrows", PRNT_MAX_ROWS);
         return out;
     }
 
@@ -1041,10 +1043,6 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return false;
     }
 
-    private AttributedString addPadding(String str, int width) {
-        return addPadding(new AttributedString(str), width);
-    }
-
     private AttributedString addPadding(AttributedString str, int width) {
         AttributedStringBuilder sb = new AttributedStringBuilder();
         for (int i = str.columnLength(); i < width; i++) {
@@ -1081,7 +1079,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         } else if (objectToString.containsKey(obj.getClass())) {
             return objectToString.get(obj.getClass()).apply(obj);
         } else if (obj instanceof Class) {
-            return ((Class)obj).getName();
+            return ((Class<?>)obj).getName();
         }
         return engine.toString(obj);
     }
@@ -1102,10 +1100,12 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         AttributedString out = highlightValue(options, column, obj);
         boolean doDefault = true;
         if (defaultStyle != null) {
-            for (int i = 0; i < out.columnLength(); i++) {
-                if (out.styleAt(i).getStyle() != AttributedStyle.DEFAULT.getStyle()) {
-                    doDefault = false;
-                    break;
+            if (simpleObject(obj)) {
+                for (int i = 0; i < out.columnLength(); i++) {
+                    if (out.styleAt(i).getStyle() != AttributedStyle.DEFAULT.getStyle()) {
+                        doDefault = false;
+                        break;
+                    }
                 }
             }
         } else {
@@ -1120,7 +1120,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         Object raw = options.containsKey("toString") ? objectToString(options, obj) : obj;
         Map<String, Object> hv = options.containsKey("highlightValue") ? (Map<String, Object>)options.get("highlightValue")
                                                                        : new HashMap<>();
-        if (column != null) {
+        if (column != null && simpleObject(raw)) {
             for (Map.Entry<String,Object> entry : hv.entrySet()) {
                 if (!entry.getKey().equals("*") && column.matches(entry.getKey())) {
                     out = (AttributedString)engine.execute(hv.get(entry.getKey()), raw);
@@ -1143,12 +1143,34 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 out = new AttributedString(columnValue(objectToString(options, raw)));
             }
         }
-        if (hv.containsKey("*")) {
-            out = (AttributedString)engine.execute(hv.get("*"), out);
-        } else if (highlightValue.containsKey("*")) {
-            out = highlightValue.get("*").apply(out);
+        if (simpleObject(raw)) {
+            if (hv.containsKey("*")) {
+                out = (AttributedString) engine.execute(hv.get("*"), out);
+            } else if (highlightValue.containsKey("*")) {
+                out = highlightValue.get("*").apply(out);
+            }
         }
-        return out;
+        return truncateValue(options, out);
+    }
+
+    private AttributedString truncateValue(Map<String, Object> options, AttributedString value) {
+        if (value.columnLength() > (int)options.getOrDefault("maxColumnWidth", Integer.MAX_VALUE)) {
+            AttributedStringBuilder asb = new AttributedStringBuilder();
+            asb.append(value.subSequence(0, (int)options.get("maxColumnWidth") - 3));
+            asb.append("...");
+            return asb.toAttributedString();
+        }
+        return value;
+    }
+
+    private String truncateValue(int maxWidth, String value) {
+        if (value.length() > maxWidth) {
+            StringBuilder asb = new StringBuilder();
+            asb.append(value.subSequence(0, maxWidth - 3));
+            asb.append("...");
+            return asb.toString();
+        }
+        return value;
     }
 
     @SuppressWarnings("unchecked")
@@ -1161,9 +1183,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         } else if (obj instanceof Object[]) {
             out.addAll(Arrays.asList((Object[]) obj));
         } else if (obj instanceof Iterator) {
-            ((Iterator) obj).forEachRemaining(out::add);
+            ((Iterator<?>) obj).forEachRemaining(out::add);
         } else if (obj instanceof Iterable) {
-            ((Iterable) obj).forEach(out::add);
+            ((Iterable<?>) obj).forEach(out::add);
         } else {
             out.add(obj);
         }
@@ -1181,6 +1203,10 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             out = highlightMap(options, keysToString((Map<Object, Object>)obj), width);
         } else if (collectionObject(obj)) {
             List<Object> collection = objectToList(obj);
+            if (collection.size() > (int)options.get("maxrows")) {
+                trace("Truncated output: " + (int)options.get("maxrows") + "/" + collection.size());
+                collection = collection.subList(collection.size() - (int)options.get("maxrows"), collection.size());
+            }
             if (!collection.isEmpty()) {
                 if (collection.size() == 1 && !options.containsKey("oneRowTable")) {
                     Object elem = collection.iterator().next();
@@ -1239,13 +1265,14 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                                 for (int i = 0; i < header.size(); i++) {
                                     Map<String, Object> m = convert ? objectToMap(options, o)
                                                                     : keysToString((Map<Object, Object>) o);
-                                    if (engine.toString(m.get(header.get(i))).length() > columns.get(i) - 1) {
-                                        columns.set(i, highlightMapValue(options, header.get(i), m).columnLength() + 1);
+                                    int cw = highlightMapValue(options, header.get(i), m).columnLength();
+                                    if (cw > columns.get(i) - 1) {
+                                        columns.set(i, cw + 1);
                                     }
                                 }
                             }
                             columns.add(0, 0);
-                            toTabStops(columns, rownum);
+                            toTabStops(columns, collection.size(), rownum);
                             AttributedStringBuilder asb = new AttributedStringBuilder().tabs(columns);
                             int firstColumn = 0;
                             if (rownum) {
@@ -1294,7 +1321,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                                     }
                                 }
                             }
-                            toTabStops(columns, rownum);
+                            toTabStops(columns, collection.size(), rownum);
                             Integer row = 0;
                             int firstColumn = rownum ? 1 : 0;
                             for (Object o : collection) {
@@ -1376,11 +1403,22 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return asb.columnLength() > width ? asb.subSequence(0, width) : asb.toAttributedString();
     }
 
-    private void toTabStops(List<Integer> columns, boolean rownum) {
-        if (rownum) {
-            columns.add(0, 5);
+    private int digits(int number) {
+        if (number < 100) {
+            return number < 10 ? 1 : 2;
+        } else if (number < 1000) {
+            return 3;
+        } else {
+            return number < 10000 ? 4 : 5;
         }
+    }
+
+    private void toTabStops(List<Integer> columns, int rows, boolean rownum) {
         int delta = 5;
+        if (rownum) {
+            delta = digits(rows) + 2;
+            columns.add(0, delta);
+        }
         for (int i = 1; i < columns.size(); i++) {
             delta =  columns.get(i);
             columns.set(i, columns.get(i - 1) + columns.get(i));
@@ -1392,9 +1430,13 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         List<AttributedString> out = new ArrayList<>();
         AttributedStyle defaultStyle = AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW);
         int max = map.keySet().stream().map(String::length).max(Integer::compareTo).get();
+        if (max > (int)options.getOrDefault("maxColumnWidth", Integer.MAX_VALUE)) {
+            max = (int)options.get("maxColumnWidth");
+        }
+        options.remove("maxColumnWidth");
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             AttributedStringBuilder asb = new AttributedStringBuilder().tabs(Arrays.asList(0, max + 1));
-            asb.append(entry.getKey(), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
+            asb.append(truncateValue(max, entry.getKey()), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
             AttributedString val = highlightMapValue(options, entry.getKey(), map, defaultStyle);
             if (map.size() == 1) {
                 asb.append("\t");
@@ -1456,6 +1498,8 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 "  -? --help                       Displays command help",
                 "  -a --all                        Ignore columnsOut configuration",
                 "  -c --columns=COLUMNS,...        Display given columns on table",
+                "     --maxColumnWidth=WIDTH       Maximum column width",
+                "     --maxrows=ROWS               Maximum number of rows on table",
                 "     --oneRowTable                Display one row data on table",
                 "  -r --rownum                     Display table row numbers",
                 "     --structsOnTable             Display structs and lists on table",
@@ -1493,6 +1537,12 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         }
         if (opt.isSet("all")) {
             options.put("all", true);
+        }
+        if (opt.isSet("maxrows")) {
+            options.put("maxrows", opt.getNumber("maxrows"));
+        }
+        if (opt.isSet("maxColumnWidth")) {
+            options.put("maxColumnWidth", opt.getNumber("maxColumnWidth"));
         }
         options.put("exception", "stack");
         List<Object> args = opt.argObjects();
