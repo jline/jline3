@@ -162,7 +162,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     private List<String> localCommandInfo(String command) {
         try {
             if (subcommands.containsKey(command)) {
-                return subcommands.get(command).commandInfo("help");
+                registryHelp(subcommands.get(command));
             } else {
                 localExecute(command, new String[] { "--help" });
             }
@@ -1375,13 +1375,43 @@ public class SystemRegistryImpl implements SystemRegistry {
         return null;
     }
 
+    private void registryHelp(CommandRegistry registry) throws Exception {
+        List<Integer> tabs = new ArrayList<>();
+        tabs.add(0);
+        tabs.add(9);
+        int max = registry.commandNames().stream().map(String::length).max(Integer::compareTo).get();
+        tabs.add(10 + max);
+        AttributedStringBuilder sb = new AttributedStringBuilder().tabs(tabs);
+        sb.append(" -  ");
+        sb.append(registry.name());
+        sb.append(" registry");
+        sb.append("\n");
+        boolean first = true;
+        for (String c : new TreeSet<String>(registry.commandNames())) {
+            if (first) {
+                sb.append("Summary:");
+                first = false;
+            }
+            sb.append("\t");
+            sb.append(c);
+            sb.append("\t");
+            sb.append(registry.commandInfo(c).get(0));
+            sb.append("\n");
+        }
+        throw new HelpException(sb.toString());
+    }
+
     private Object subcommand(Builtins.CommandInput input) {
         Object out = null;
         try {
-            out = subcommands.get(input.command()).invoke(input.session()
-                                         , input.args().length > 0 ? input.args()[0] : "help"
+            if (input.args().length > 0 && subcommands.get(input.command()).hasCommand(input.args()[0])) {
+                out = subcommands.get(input.command()).invoke(input.session()
+                                         , input.args()[0] 
                                          , input.xargs().length > 1 ? Arrays.copyOfRange(input.xargs(), 1, input.xargs().length)
                                                                     : new Object[] {});
+            } else {
+                registryHelp(subcommands.get(input.command()));
+            }
         } catch (Exception e) {
             exception = e;
         }

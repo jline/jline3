@@ -546,7 +546,7 @@ public class Options {
                 // Command
                 AttributedStringBuilder acommand = new AttributedStringBuilder()
                         .append(msg.substring(0, tm.start(2)))
-                        .styleMatches(Pattern.compile("(?:^\\s*)([a-z]+[a-z-]*){1}\\b"),
+                        .styleMatches(Pattern.compile("(?:^\\s*)([a-z]+[a-zA-Z0-9-]*){1}\\b"),
                                 Collections.singletonList(resolver.resolve(".co")));
                 asb.append(acommand);
                 // Title
@@ -595,7 +595,7 @@ public class Options {
             }
             AttributedStringBuilder asyntax = new AttributedStringBuilder().append(syntax.substring(indent.length()));
             // command
-            asyntax.styleMatches(Pattern.compile("(?:^)([a-z]+[a-z0-9-]*){1}\\b"),
+            asyntax.styleMatches(Pattern.compile("(?:^)([a-z]+[a-zA-Z0-9-]*){1}\\b"),
                     Collections.singletonList(resolver.resolve(".co")));
             if (!subcommand) {
                 // argument

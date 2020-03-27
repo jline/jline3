@@ -68,107 +68,17 @@ import org.jline.utils.OSUtils;
  */
 public class Repl {
 
-    private static class SubCommands implements CommandRegistry {
-        private final Map<String,Builtins.CommandMethods> commandExecute = new HashMap<>();
-        private Exception exception;
+    /**
+     * Command execute and tab completer compiler methods for CommandRegistry
+     * which have commands that will return execution value
+     */
+    private static abstract class ObjectCommand extends AbstractCommandRegistry {
 
-        public SubCommands() {
-            commandExecute.put("cmd1", new Builtins.CommandMethods(this::cmd1, this::defaultCompleter));
-            commandExecute.put("cmd2", new Builtins.CommandMethods(this::cmd2, this::defaultCompleter));
-            commandExecute.put("cmd3", new Builtins.CommandMethods(this::cmd3, this::defaultCompleter));
-            commandExecute.put("help", new Builtins.CommandMethods(this::help, this::defaultCompleter));
+        public ObjectCommand() {
+            super();
         }
 
-        public Set<String> commandNames() {
-            return commandExecute.keySet();
-        }
-
-        @Override
-        public Map<String, String> commandAliases() {
-            return new HashMap<>();
-        }
-
-        public boolean hasCommand(String command) {
-            return commandExecute.containsKey(command);
-        }
-
-        private String command(String name) {
-            String out = name;
-            if (name.equals("-?") || name.equals("--help")) {
-                out = "help";
-            }
-            if (!hasCommand(out)) {
-                throw new IllegalArgumentException("Unknown command: " + name);
-            }
-            return out;
-        }
-
-        private Object cmd1(Builtins.CommandInput input) {
-            final String[] usage = {
-                    "cmd1 -  parse input.args, return opt.argObjects[0]",
-                    "Usage: cmd1 [OBJECT]",
-                    "  -? --help                       Displays command help"
-            };
-            Options opt = Options.compile(usage).parse(input.args());
-            if (opt.isSet("help")) {
-                exception = new HelpException(opt.usage());
-                return null;
-            }
-            List<Object> xargs = opt.argObjects();
-            return xargs.size() > 0 ? xargs.get(0) : null;
-        }
-
-        private Object cmd2(Builtins.CommandInput input) {
-            final String[] usage = {
-                    "cmd2 -  parse input.xargs, return opt.args[0]",
-                    "Usage: cmd2",
-                    "  -? --help                       Displays command help"
-            };
-            Options opt = Options.compile(usage).parse(input.xargs());
-            if (opt.isSet("help")) {
-                exception = new HelpException(opt.usage());
-                return null;
-            }
-            List<String> args = opt.args();
-            return args.size() > 0 ? args.get(0) : null;
-        }
-
-        private Object cmd3(Builtins.CommandInput input) {
-            final String[] usage = {
-                    "cmd3 -  parse input.xargs, return opt.argObjects[0]",
-                    "Usage: cmd3 [OBJECT]",
-                    "  -? --help                       Displays command help"
-            };
-            Options opt = Options.compile(usage).parse(input.xargs());
-            if (opt.isSet("help")) {
-                exception = new HelpException(opt.usage());
-                return null;
-            }
-            List<Object> xargs = opt.argObjects();
-            return xargs.size() > 0 ? xargs.get(0) : null;
-        }
-
-        private Object help(Builtins.CommandInput input) {
-            final String[] usage = {
-                    "help -  show summary of subcommands",
-                    "    demonstrates object parameter usages.",
-                    "    cmd3 manage correctly object parameters",
-                    "    while cmd1 & cmd2 works only with string parameters",
-                    "Summary: cmd1 " + commandInfo("cmd1").get(0),
-                    "         cmd2 " + commandInfo("cmd2").get(0),
-                    "         cmd3 " + commandInfo("cmd3").get(0)
-            };
-            exception = null;
-            try {
-                Options opt = Options.compile(usage).parse(input.args());
-                exception = new HelpException(opt.usage());
-            } catch (Exception e) {
-            }
-            return null;
-        }
-
-        @Override
-        public Object invoke(CommandSession session, String command, Object... args) throws Exception {
+        public Object invoke(CommandRegistry.CommandSession session, String command, Object... args) throws Exception {
             exception = null;
             Object out = commandExecute.get(command(command)).executeFunction().apply(new Builtins.CommandInput(command, null, args, session));
             if (exception != null) {
@@ -177,15 +87,7 @@ public class Repl {
             return out;
         }
 
-        public Completers.SystemCompleter compileCompleters() {
-            SystemCompleter out = new SystemCompleter();
-            for (String c : commandExecute.keySet()) {
-                out.add(c, commandExecute.get(c).compileCompleter().apply(c));
-            }
-            return out;
-        }
-
-        private List<OptDesc> commandOptions(String command) {
+        protected List<OptDesc> commandOptions(String command) {
             try {
                 invoke(new CommandRegistry.CommandSession(), command, new Object[] {"--help"});
             } catch (HelpException e) {
@@ -196,7 +98,7 @@ public class Repl {
             return null;
         }
 
-        private List<Completer> defaultCompleter(String command) {
+        protected List<Completer> defaultCompleter(String command) {
             List<Completer> completers = new ArrayList<>();
             completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
                                                , new OptionCompleter(NullCompleter.INSTANCE
@@ -208,28 +110,58 @@ public class Repl {
 
     }
 
-    private static class MyCommands implements CommandRegistry {
-        private LineReader reader;
-        private final Map<String,Builtins.CommandMethods> commandExecute = new HashMap<>();
-        private Map<String,String> aliasCommand = new HashMap<>();
-        private Exception exception;
-        private Supplier<Path> workDir;
+    /**
+     * Command execute and tab completer compilers methods for CommandRegistry
+     * which have commands that will not return execution value
+     */
+    private static abstract class VoidCommand extends AbstractCommandRegistry {
 
-        public MyCommands(Supplier<Path> workDir) {
-            this.workDir = workDir;
-            commandExecute.put("tput", new Builtins.CommandMethods(this::tput, this::tputCompleter));
-            commandExecute.put("testkey", new Builtins.CommandMethods(this::testkey, this::defaultCompleter));
-            commandExecute.put("clear", new Builtins.CommandMethods(this::clear, this::defaultCompleter));
-            commandExecute.put("!", new Builtins.CommandMethods(this::shell, this::defaultCompleter));
+        public VoidCommand() {
+            super();
         }
 
-        public void setLineReader(LineReader reader) {
-            this.reader = reader;
+        public Object execute(CommandRegistry.CommandSession session, String command, String[] args) throws Exception {
+            exception = null;
+            commandExecute.get(command(command)).execute().accept(new Builtins.CommandInput(command, args, session));
+            if (exception != null) {
+                throw exception;
+            }
+            return null;
         }
 
-        private Terminal terminal() {
-            return reader.getTerminal();
+        protected List<OptDesc> commandOptions(String command) {
+            try {
+                execute(new CommandRegistry.CommandSession(), command, new String[] {"--help"});
+            } catch (HelpException e) {
+                return Builtins.compileCommandOptions(e.getMessage());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return null;
         }
+
+        protected List<Completer> defaultCompleter(String command) {
+            List<Completer> completers = new ArrayList<>();
+            completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
+                                               , new OptionCompleter(NullCompleter.INSTANCE
+                                                                   , this::commandOptions
+                                                                   , 1)
+                                                ));
+            return completers;
+        }
+
+    }
+
+    /**
+     *
+     *
+     */
+    private static abstract class AbstractCommandRegistry {
+        protected final Map<String,Builtins.CommandMethods> commandExecute = new HashMap<>();
+        protected Exception exception;
+        protected Map<String,String> aliasCommand = new HashMap<>();
+
+        public AbstractCommandRegistry() {}
 
         public Set<String> commandNames() {
             return commandExecute.keySet();
@@ -246,7 +178,7 @@ public class Repl {
             return false;
         }
 
-        private String command(String name) {
+        protected String command(String name) {
             if (commandExecute.containsKey(name)) {
                 return name;
             } else if (aliasCommand.containsKey(name)) {
@@ -264,13 +196,104 @@ public class Repl {
             return out;
         }
 
-        public Object execute(CommandRegistry.CommandSession session, String command, String[] args) throws Exception {
-            exception = null;
-            commandExecute.get(command(command)).execute().accept(new Builtins.CommandInput(command, args, session));
-            if (exception != null) {
-                throw exception;
+        public Options parseOptions(String[] usage, Object[] args) throws HelpException {
+            Options opt = Options.compile(usage).parse(args);
+            if (opt.isSet("help")) {
+                throw new HelpException(opt.usage());
             }
-            return null;
+            return opt;
+        }
+
+    }
+
+    /**
+     * CommandRegistry that have commands which manage in different way command parameters.
+     *
+     */
+    private static class SubCommands extends ObjectCommand implements CommandRegistry {
+
+        public SubCommands() {
+            super();
+            commandExecute.put("cmdKo1", new Builtins.CommandMethods(this::cmd1, this::defaultCompleter));
+            commandExecute.put("cmdKo2", new Builtins.CommandMethods(this::cmd2, this::defaultCompleter));
+            commandExecute.put("cmdOk", new Builtins.CommandMethods(this::cmd3, this::defaultCompleter));
+        }
+
+        private Object cmd1(Builtins.CommandInput input) {
+            final String[] usage = {
+                    "cmdKo1 -  parse input.args, return opt.argObjects[0]",
+                    "          works only with string parameters",
+                    "Usage: cmdKo1 [OBJECT]",
+                    "  -? --help                       Displays command help"
+            };
+            Object out = null;
+            try {
+                Options opt = parseOptions(usage, input.args());
+                List<Object> xargs = opt.argObjects();
+                out = xargs.size() > 0 ? xargs.get(0) : null;
+            } catch (Exception e) {
+                exception = e;
+            }
+            return out;
+        }
+
+        private Object cmd2(Builtins.CommandInput input) {
+            final String[] usage = {
+                    "cmdKo2 -  parse input.xargs, return opt.args[0]",
+                    "          works only with string parameters",
+                    "Usage: cmdKo2 [OBJECT]",
+                    "  -? --help                       Displays command help"
+            };
+            Object out = null;
+            try {
+                Options opt = parseOptions(usage, input.xargs());
+                List<String> args = opt.args();
+                out = args.size() > 0 ? args.get(0) : null;
+            } catch (Exception e) {
+                exception = e;
+            }
+            return out;
+        }
+
+        private Object cmd3(Builtins.CommandInput input) {
+            final String[] usage = {
+                    "cmdOk -  parse input.xargs, return opt.argObjects[0]",
+                    "         manage correctly object parameters",
+                    "Usage: cmdOk [OBJECT]",
+                    "  -? --help                       Displays command help"
+            };
+            Object out = null;
+            try {
+                Options opt = parseOptions(usage, input.xargs());
+                List<Object> xargs = opt.argObjects();
+                out = xargs.size() > 0 ? xargs.get(0) : null;
+            } catch (Exception e) {
+                exception = e;
+            }
+            return out;
+        }
+
+    }
+
+    private static class MyCommands extends VoidCommand implements CommandRegistry {
+        private LineReader reader;
+        private Supplier<Path> workDir;
+
+        public MyCommands(Supplier<Path> workDir) {
+            super();
+            this.workDir = workDir;
+            commandExecute.put("tput", new Builtins.CommandMethods(this::tput, this::tputCompleter));
+            commandExecute.put("testkey", new Builtins.CommandMethods(this::testkey, this::defaultCompleter));
+            commandExecute.put("clear", new Builtins.CommandMethods(this::clear, this::defaultCompleter));
+            commandExecute.put("!", new Builtins.CommandMethods(this::shell, this::defaultCompleter));
+        }
+
+        public void setLineReader(LineReader reader) {
+            this.reader = reader;
+        }
+
+        private Terminal terminal() {
+            return reader.getTerminal();
         }
 
         private void tput(Builtins.CommandInput input) {
@@ -279,14 +302,9 @@ public class Repl {
                     "Usage: tput [CAPABILITY]",
                     "  -? --help                       Displays command help"
             };
-            Options opt = Options.compile(usage).parse(input.args());
-            if (opt.isSet("help")) {
-                exception = new HelpException(opt.usage());
-                return;
-            }
-
-            List<String> argv = opt.args();
             try {
+                Options opt = parseOptions(usage, input.args());
+                List<String> argv = opt.args();
                 if (argv.size() == 1) {
                     Capability vcap = Capability.byName(argv.get(0));
                     if (vcap != null) {
@@ -308,12 +326,8 @@ public class Repl {
                     "Usage: testkey",
                     "  -? --help                       Displays command help"
             };
-            Options opt = Options.compile(usage).parse(input.args());
-            if (opt.isSet("help")) {
-                exception = new HelpException(opt.usage());
-                return;
-            }
             try {
+                parseOptions(usage, input.args());
                 terminal().writer().write("Input the key event(Enter to complete): ");
                 terminal().writer().flush();
                 StringBuilder sb = new StringBuilder();
@@ -335,12 +349,8 @@ public class Repl {
                     "Usage: clear",
                     "  -? --help                       Displays command help"
             };
-            Options opt = Options.compile(usage).parse(input.args());
-            if (opt.isSet("help")) {
-                exception = new HelpException(opt.usage());
-                return;
-            }
             try {
+                parseOptions(usage, input.args());
                 terminal().puts(Capability.clear_screen);
                 terminal().flush();
             } catch (Exception e) {
@@ -375,11 +385,10 @@ public class Repl {
                                    , "Usage: !<command>"
                                    , "  -? --help                       Displays command help" };
             try {
-                Options opt = Options.compile(usage).parse(input.args());
-                if (opt.isSet("help") && opt.args().isEmpty()) {
-                    exception = new HelpException(opt.usage());
-                    return;
-                }
+                parseOptions(usage, input.args());
+            } catch (HelpException e) {
+                exception = e;
+                return;
             } catch (Exception e) {
                 // ignore
             }
@@ -392,27 +401,6 @@ public class Repl {
                     exception = e;
                 }
             }
-        }
-
-        private List<OptDesc> commandOptions(String command) {
-            try {
-                execute(new CommandRegistry.CommandSession(), command, new String[] {"--help"});
-            } catch (HelpException e) {
-                return Builtins.compileCommandOptions(e.getMessage());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            return null;
-        }
-
-        private List<Completer> defaultCompleter(String command) {
-            List<Completer> completers = new ArrayList<>();
-            completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                                               , new OptionCompleter(NullCompleter.INSTANCE
-                                                                   , this::commandOptions
-                                                                   , 1)
-                                                ));
-            return completers;
         }
 
         private Set<String> capabilities() {
