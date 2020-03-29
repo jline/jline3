@@ -113,9 +113,29 @@ public interface ConsoleEngine extends CommandRegistry {
      */
     List<Completer> scriptCompleters();
 
+    /**
+     * Persist object to file
+     * @param file file where object should be written
+     * @param object object to persist
+     */
     public void persist(Path file, Object object);
 
+    /**
+     * Read object from file
+     * @param file file from where object should be read
+     * @return object
+     * @throws IOException
+     */
     public Object slurp(Path file) throws IOException;
+
+    /**
+     * Read console option value
+     * @param <T> option type
+     * @param option option name
+     * @param defval default value
+     * @return option value
+     */
+    public <T>T consoleOption(String option, T defval);
 
     /**
      * Executes command line that does not contain known command by the system registry.

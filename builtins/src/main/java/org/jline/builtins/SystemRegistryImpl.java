@@ -1517,9 +1517,10 @@ public class SystemRegistryImpl implements SystemRegistry {
                     doCandidates(candidates, names.fields(), curBuf, "", param);
                 } else if (names.encloseBy(param).length() == 1) {
                     lastDelim++;
+                    String postFix = names.encloseBy(param);
                     param = buffer.substring(lastDelim + 1);
                     curBuf = buffer.substring(0, lastDelim + 1);
-                    doCandidates(candidates, names.quoted(), curBuf, names.encloseBy(param), param);
+                    doCandidates(candidates, names.quoted(), curBuf, postFix, param);
                 } else {
                     doCandidates(candidates, names.fieldsAndValues(), curBuf, "", param);
                 }
@@ -1543,7 +1544,6 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     private class NamesAndValues {
-        private static final int MAX_SIZE = 100;
         private final String[] delims = {"&", "\\|", "\\{", "\\}", "\\[", "\\]", "\\(", "\\)"
                 , "\\+", "-", "\\*", "=", ">", "<", "~", "!", ":", ",", ";"};
 
@@ -1725,17 +1725,18 @@ public class SystemRegistryImpl implements SystemRegistry {
             return out;
         }
 
-        private void truncate(String where) {
-            if (names.get(where).size() > MAX_SIZE) {
-                names.put(where, names.get(where).subList(0, MAX_SIZE));
+        private void truncate(String where, int maxSize) {
+            if (names.get(where).size() > maxSize) {
+                names.put(where, names.get(where).subList(0, maxSize));
             }
         }
 
         public void save() {
             if (consoleEngine() != null && fileNames != null) {
-                truncate("fields");
-                truncate("values");
-                truncate("quoted");
+                int maxSize = consoleEngine().consoleOption("maxValueNames", 100);
+                truncate("fields", maxSize);
+                truncate("values", maxSize);
+                truncate("quoted", maxSize);
                 consoleEngine().persist(fileNames, names);
             }
         }

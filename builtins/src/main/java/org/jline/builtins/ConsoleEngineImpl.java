@@ -791,7 +791,8 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     @SuppressWarnings("unchecked")
-    private <T>T consoleOption(String option, T defval) {
+    @Override
+    public <T>T consoleOption(String option, T defval) {
         T out = defval;
         try {
             out = (T) consoleOptions().getOrDefault(option, defval);
