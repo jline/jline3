@@ -18,11 +18,15 @@ import java.io.OutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
+import java.nio.file.Path;
 import java.util.*;
+import java.util.Map.Entry;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.jline.builtins.Completers.FilesCompleter;
 import org.jline.builtins.Completers.OptDesc;
 import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.CommandRegistry;
@@ -30,11 +34,7 @@ import org.jline.builtins.ConsoleEngine.ExecutionResult;
 import org.jline.builtins.Widgets;
 import org.jline.builtins.Builtins.CommandMethods;
 import org.jline.builtins.Options.HelpException;
-import org.jline.reader.Completer;
-import org.jline.reader.ConfigurationPath;
-import org.jline.reader.EndOfFileException;
-import org.jline.reader.ParsedLine;
-import org.jline.reader.Parser;
+import org.jline.reader.*;
 import org.jline.reader.Parser.ParseContext;
 import org.jline.reader.impl.completer.AggregateCompleter;
 import org.jline.reader.impl.completer.ArgumentCompleter;
@@ -44,6 +44,7 @@ import org.jline.terminal.Attributes;
 import org.jline.terminal.Attributes.InputFlag;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 import org.jline.utils.OSUtils;
@@ -71,9 +72,12 @@ public class SystemRegistryImpl implements SystemRegistry {
     private Exception exception;
     private CommandOutputStream outputStream;
     private ScriptStore scriptStore = new ScriptStore();
+    private NamesAndValues names = new NamesAndValues();
+    private Supplier<Path> workDir;
 
-    public SystemRegistryImpl(Parser parser, Terminal terminal, ConfigurationPath configPath) {
+    public SystemRegistryImpl(Parser parser, Terminal terminal, Supplier<Path> workDir, ConfigurationPath configPath) {
         this.parser = parser;
+        this.workDir = workDir;
         this.configPath = configPath;
         outputStream = new CommandOutputStream(terminal);
         pipeName.put(Pipe.FLIP, "|;");
@@ -107,6 +111,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                     this.consoleId = i;
                     ((ConsoleEngine) commandRegistries[i]).setSystemRegistry(this);
                     this.scriptStore = new ScriptStore((ConsoleEngine)commandRegistries[i]);
+                    this.names = new NamesAndValues(configPath);
                 }
             } else if (commandRegistries[i] instanceof SystemRegistry) {
                 throw new IllegalArgumentException();
@@ -245,6 +250,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         completers.add(compileCompleters());
         if (consoleId != null) {
             completers.addAll(consoleEngine().scriptCompleters());
+            completers.add(new PipelineCompleter().doCompleter());
         }
         return new AggregateCompleter(completers);
     }
@@ -284,7 +290,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         switch (line.getDescriptionType()) {
         case COMMAND:
             String cmd = parser.getCommand(line.getArgs().get(0));
-            if (isCommandOrScript(cmd) && !hasPipes(line.getArgs())) {
+            if (isCommandOrScript(cmd) && !names.hasPipes(line.getArgs())) {
                 if (subcommands.containsKey(cmd)) {
                     List<String> args = line.getArgs();
                     String c = args.size() > 1 ? args.get(1) : null;
@@ -496,31 +502,12 @@ public class SystemRegistryImpl implements SystemRegistry {
         }
     }
 
-    private boolean isPipe(String arg) {
-        Map<String,List<String>> customPipes = consoleId != null ? consoleEngine().getPipes() : new HashMap<>();
-        return isPipe(arg, customPipes.keySet());
-    }
-
-    private boolean hasPipes(Collection<String> args) {
-        Map<String,List<String>> customPipes = consoleId != null ? consoleEngine().getPipes() : new HashMap<>();
-        for (String a : args) {
-            if (isPipe(a, customPipes.keySet()) || a.contains(">") || a.contains(">>")) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean isPipe(String arg, Set<String> pipes) {
-        return pipeName.containsValue(arg) || pipes.contains(arg);
-    }
-
     private boolean isCommandAlias(String command) {
         if (consoleId == null || !parser.validCommandName(command) || !consoleEngine().hasAlias(command)) {
             return false;
         }
         String value = consoleEngine().getAlias(command).split("\\s+")[0];
-        return !isPipe(value);
+        return !names.isPipe(value);
     }
 
     private String replaceCommandAlias(String variable, String command, String rawLine) {
@@ -546,7 +533,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                         trace = true;
                         List<String> args = new ArrayList<>();
                         String pipeAlias = consoleEngine().getAlias(ws.get(++i));
-                        while (i < ws.size() - 1 && !isPipe(ws.get(i + 1), customPipes.keySet())) {
+                        while (i < ws.size() - 1 && !names.isPipe(ws.get(i + 1), customPipes.keySet())) {
                             args.add(ws.get(++i));
                         }
                         for (int j = 0; j < args.size(); j++) {
@@ -584,7 +571,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         String pipeSource = null;
         String rawLine = null;
         String pipeResult = null;
-        if (!hasPipes(words)) {
+        if (!names.hasPipes(words)) {
             if (isCommandAlias(ap.command())) {
                 nextRawLine = replaceCommandAlias(ap.variable(), ap.command(), nextRawLine);
             }
@@ -1047,6 +1034,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         Object out = null;
         boolean statement = false;
         boolean postProcessed = false;
+        int errorCount = 0;
         scriptStore.refresh();
         List<CommandData> cmds = compileCommandLine(line);
         for (int i = 0; i < cmds.size(); i++) {
@@ -1099,6 +1087,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             } catch (HelpException e) {
                 trace(e);
             } catch (Exception e) {
+                errorCount++;
                 if (cmd.pipe().equals(pipeName.get(Pipe.OR))) {
                     trace(e);
                     postProcessed = true;
@@ -1110,6 +1099,9 @@ public class SystemRegistryImpl implements SystemRegistry {
                     out = postProcess(cmd, statement, out).result();
                 }
             }
+        }
+        if (errorCount == 0) {
+            names.extractNames(line);
         }
         return out;
     }
@@ -1191,6 +1183,11 @@ public class SystemRegistryImpl implements SystemRegistry {
             }
             asb.toAttributedString().println(terminal());
         }
+    }
+
+    @Override
+    public void close() {
+        names.save();
     }
 
     private ConsoleEngine consoleEngine() {
@@ -1406,7 +1403,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         try {
             if (input.args().length > 0 && subcommands.get(input.command()).hasCommand(input.args()[0])) {
                 out = subcommands.get(input.command()).invoke(input.session()
-                                         , input.args()[0] 
+                                         , input.args()[0]
                                          , input.xargs().length > 1 ? Arrays.copyOfRange(input.xargs(), 1, input.xargs().length)
                                                                     : new Object[] {});
             } else {
@@ -1476,4 +1473,272 @@ public class SystemRegistryImpl implements SystemRegistry {
         }
         return -1;
     }
+
+    private class PipelineCompleter implements Completer {
+
+        public PipelineCompleter() {}
+
+        public Completer doCompleter() {
+            ArgumentCompleter out = new ArgumentCompleter(this);
+            out.setStrict(false);
+            return out;
+        }
+
+        @Override
+        public void complete(LineReader reader, ParsedLine commandLine, List<Candidate> candidates) {
+            assert commandLine != null;
+            assert candidates != null;
+            if (commandLine.wordIndex() < 2 || !names.hasPipes(commandLine.words())) {
+                return;
+            }
+            String pWord = commandLine.words().get(commandLine.wordIndex() - 1);
+            if (pWord.equals(pipeName.get(Pipe.NAMED))) {
+                for (String name : names.namedPipes()) {
+                    candidates.add(new Candidate(name, name, null, null, null, null, true));
+                }
+            } else if (pWord.equals(">") || pWord.equals(">>")) {
+                Completer c = new FilesCompleter(workDir);
+                c.complete(reader, commandLine, candidates);
+            } else {
+                String buffer = commandLine.word().substring(0, commandLine.wordCursor());
+                String param = buffer;
+                String curBuf = "";
+                int lastDelim = names.indexOfLastDelim(buffer);
+                if (lastDelim > - 1) {
+                    param = buffer.substring(lastDelim + 1);
+                    curBuf = buffer.substring(0, lastDelim + 1);
+                }
+                if (param.length() == 0) {
+                    doCandidates(candidates, names.fieldsAndValues(), curBuf, "", "");
+                } else if (param.contains(".")) {
+                    int point = buffer.lastIndexOf(".");
+                    param = buffer.substring(point + 1);
+                    curBuf = buffer.substring(0, point + 1);
+                    doCandidates(candidates, names.fields(), curBuf, "", param);
+                } else if (names.encloseBy(param).length() == 1) {
+                    lastDelim++;
+                    param = buffer.substring(lastDelim + 1);
+                    curBuf = buffer.substring(0, lastDelim + 1);
+                    doCandidates(candidates, names.quoted(), curBuf, names.encloseBy(param), param);
+                } else {
+                    doCandidates(candidates, names.fieldsAndValues(), curBuf, "", param);
+                }
+
+            }
+        }
+
+        private void doCandidates(List<Candidate> candidates
+                                , Collection<String> fields, String curBuf, String postFix, String hint) {
+            if (fields == null) {
+                return;
+            }
+            for (String s : fields) {
+                if (s != null && s.startsWith(hint)) {
+                    candidates.add(new Candidate(AttributedString.stripAnsi(curBuf + s + postFix), s, null, null, null,
+                            null, false));
+                }
+            }
+        }
+
+    }
+
+    private class NamesAndValues {
+        private static final int MAX_SIZE = 100;
+        private final String[] delims = {"&", "\\|", "\\{", "\\}", "\\[", "\\]", "\\(", "\\)"
+                , "\\+", "-", "\\*", "=", ">", "<", "~", "!", ":", ",", ";"};
+
+        private Path fileNames;
+        private Map<String,List<String>> names = new HashMap<>();
+        private List<String> namedPipes;
+
+        public NamesAndValues() {}
+
+        @SuppressWarnings("unchecked")
+        public NamesAndValues(ConfigurationPath configPath) {
+            names.put("fields", new ArrayList<>());
+            names.put("values", new ArrayList<>());
+            names.put("quoted", new ArrayList<>());
+            if (configPath != null) {
+                try {
+                    fileNames = configPath.getUserConfig("pipeline-names.json", true);
+                    Map<String,List<String>> temp = (Map<String,List<String>>)consoleEngine().slurp(fileNames);
+                    for (Entry<String, List<String>> entry : temp.entrySet()) {
+                        names.get(entry.getKey()).addAll((Collection<? extends String>)entry.getValue());
+                    }
+                } catch (Exception e) {
+                }
+            }
+        }
+
+        public boolean isPipe(String arg) {
+            Map<String,List<String>> customPipes = consoleId != null ? consoleEngine().getPipes() : new HashMap<>();
+            return isPipe(arg, customPipes.keySet());
+        }
+
+        public boolean hasPipes(Collection<String> args) {
+            Map<String,List<String>> customPipes = consoleId != null ? consoleEngine().getPipes() : new HashMap<>();
+            for (String a : args) {
+                if (isPipe(a, customPipes.keySet()) || a.contains(">") || a.contains(">>")) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private boolean isPipe(String arg, Set<String> pipes) {
+            return pipeName.containsValue(arg) || pipes.contains(arg);
+        }
+
+        public void extractNames(String line) {
+            if (parser.getCommand(line).equals("pipe")) {
+                return;
+            }
+            ArgsParser ap = new ArgsParser();
+            ap.parse(parser, line);
+            List<String> args = ap.args();
+            int pipeId = 0;
+            for (String a : args) {
+                if (isPipe(a)) {
+                    break;
+                }
+                pipeId++;
+            }
+            if (pipeId  < args.size()) {
+                StringBuilder sb = new StringBuilder();
+                int redirectPipe = -1;
+                for (int i = pipeId + 1; i < args.size(); i++) {
+                    String arg = args.get(i);
+                    if (!isPipe(arg) && !namedPipes().contains(arg) && !arg.matches("(-){1,2}\\w+")
+                            && !arg.matches("\\d+") && redirectPipe != i - 1) {
+                        if (arg.equals(">") || arg.equals(">>")) {
+                            redirectPipe = i;
+                        } else if (arg.matches("\\w+(\\(\\)){0,1}")) {
+                            addValues(arg);
+                        } else {
+                            sb.append(arg);
+                            sb.append(" ");
+                        }
+                    } else {
+                        redirectPipe = -1;
+                    }
+                }
+                if (sb.length() > 0) {
+                    String rest = sb.toString();
+                    for (String d : delims) {
+                        rest = rest.replaceAll(d, " ");
+                    }
+                    String[] words = rest.split("\\s+");
+                    for (String w : words) {
+                        if (!w.matches("\\d+")) {
+                            if (isQuoted(w)) {
+                                addQuoted(w.substring(1, w.length() - 1));
+                            } else if (w.contains(".")) {
+                                for (String f : w.split("\\.")) {
+                                    if (!f.matches("\\d+") && f.matches("\\w+")) {
+                                        addFields(f);
+                                    }
+                                }
+                            } else if (w.matches("\\w+")) {
+                                addValues(w);
+                            }
+                        }
+                    }
+                }
+            }
+            namedPipes = null;
+        }
+
+        public String encloseBy(String param) {
+            boolean quoted = param.length() > 0 && (
+                       param.startsWith("\"")
+                    || param.startsWith("'")
+                    || param.startsWith("/"));
+            if (quoted && param.length() > 1) {
+                quoted = !param.endsWith(Character.toString(param.charAt(0)));
+            }
+            return quoted ? Character.toString(param.charAt(0)) : "";
+        }
+
+        private boolean isQuoted(String word) {
+            if ((word.startsWith("\"") && word.endsWith("\""))
+                    || (word.startsWith("'") && word.endsWith("'"))
+                    || (word.startsWith("/") && word.endsWith("/"))) {
+                return true;
+            }
+            return false;
+        }
+
+        public int indexOfLastDelim(String word){
+            int out = -1;
+            for (String d: delims) {
+                int x = word.lastIndexOf(d.replace("\\", ""));
+                if (x > out) {
+                    out = x;
+                }
+            }
+            return out;
+        }
+
+        private void addFields(String field) {
+            add("fields", field);
+        }
+
+        private void addValues(String arg) {
+            add("values", arg);
+        }
+
+        private void addQuoted(String arg) {
+            add("quoted", arg);
+        }
+
+        private void add(String where, String value) {
+            if (value.length() < 3) {
+                return;
+            }
+            names.get(where).remove(value);
+            names.get(where).add(0, value);
+        }
+
+        public List<String> namedPipes() {
+            if (namedPipes == null) {
+                namedPipes = consoleId != null ? consoleEngine().getNamedPipes() : new ArrayList<>();
+            }
+            return namedPipes;
+        }
+
+        public List<String> values() {
+            return names.get("values");
+        }
+
+        public List<String> fields() {
+            return names.get("fields");
+        }
+
+        public List<String> quoted() {
+            return names.get("quoted");
+        }
+
+        private Set<String> fieldsAndValues() {
+            Set<String> out = new HashSet<>();
+            out.addAll(fields());
+            out.addAll(values());
+            return out;
+        }
+
+        private void truncate(String where) {
+            if (names.get(where).size() > MAX_SIZE) {
+                names.put(where, names.get(where).subList(0, MAX_SIZE));
+            }
+        }
+
+        public void save() {
+            if (consoleEngine() != null && fileNames != null) {
+                truncate("fields");
+                truncate("values");
+                truncate("quoted");
+                consoleEngine().persist(fileNames, names);
+            }
+        }
+    }
+
 }

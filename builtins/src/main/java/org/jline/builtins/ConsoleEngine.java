@@ -9,6 +9,8 @@
 package org.jline.builtins;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -100,10 +102,20 @@ public interface ConsoleEngine extends CommandRegistry {
     Map<String,List<String>> getPipes();
 
     /**
+     * Returns named pipe names
+     * @return list of named pipe names
+     */
+    List<String> getNamedPipes();
+
+    /**
      * Returns script and variable completers
      * @return script and variable completers
      */
     List<Completer> scriptCompleters();
+
+    public void persist(Path file, Object object);
+
+    public Object slurp(Path file) throws IOException;
 
     /**
      * Executes command line that does not contain known command by the system registry.

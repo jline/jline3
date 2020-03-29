@@ -102,7 +102,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         aliasFile = configPath.getUserConfig("aliases.json");
         if (aliasFile == null) {
             aliasFile = configPath.getUserConfig("aliases.json", true);
-            engine.persist(aliasFile, aliases);
+            persist(aliasFile, aliases);
         } else {
             aliases.putAll((Map<String,String>)slurp(aliasFile));
         }
@@ -189,6 +189,26 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     @Override
     public Map<String,List<String>> getPipes() {
         return pipes;
+    }
+
+    @Override
+    public List<String> getNamedPipes() {
+        List<String> out = new ArrayList<>();
+        List<String> opers = new ArrayList<>();
+        for (String p : pipes.keySet()) {
+            if (p.matches("[a-zA-Z0-9]+")) {
+                out.add(p);
+            } else {
+                opers.add(p);
+            }
+        }
+        opers.addAll(systemRegistry.getPipeNames());
+        for (Map.Entry<String,String> entry : aliases.entrySet()) {
+            if (opers.contains(entry.getValue().split(" ")[0])) {
+                out.add(entry.getKey());
+            }
+        }
+        return out;
     }
 
     private void doNameCommand() {
@@ -1611,7 +1631,13 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return out;
     }
 
-    private Object slurp(Path file) throws IOException {
+    @Override
+    public void persist(Path file, Object object) {
+        engine.persist(file, object);
+    }
+
+    @Override
+    public Object slurp(Path file) throws IOException {
         return slurp(file, StandardCharsets.UTF_8, "JSON");
     }
 
@@ -1654,7 +1680,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 alias = alias.replaceAll("%@" , "\\$@");
                 alias = alias.replaceAll("%\\{@\\}", "\\$\\{@\\}");
                 aliases.put(args.get(0), alias);
-                engine.persist(aliasFile, aliases);
+                persist(aliasFile, aliases);
             }
         } catch (Exception e) {
             exception = e;
@@ -1681,7 +1707,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         } catch (Exception e) {
             exception = e;
         } finally {
-            engine.persist(aliasFile, aliases);
+            persist(aliasFile, aliases);
         }
         return out;
     }

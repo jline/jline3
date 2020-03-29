@@ -461,7 +461,7 @@ public class Repl {
             ConsoleEngine consoleEngine = new ConsoleEngineImpl(scriptEngine, Repl::workDir, configPath);
             Builtins builtins = new Builtins(Repl::workDir, configPath,  (String fun)-> {return new ConsoleEngine.WidgetCreator(consoleEngine, fun);});
             MyCommands myCommands = new MyCommands(Repl::workDir);
-            SystemRegistryImpl systemRegistry = new SystemRegistryImpl(parser, terminal, configPath);
+            SystemRegistryImpl systemRegistry = new SystemRegistryImpl(parser, terminal, Repl::workDir, configPath);
             systemRegistry.register("command", new SubCommands());
             systemRegistry.setCommandRegistries(consoleEngine, builtins, myCommands);
             //
@@ -519,6 +519,7 @@ public class Repl {
                     systemRegistry.trace(e);          // print exception and save it to console variable
                 }
             }
+            systemRegistry.close();                   // persist pipeline completer names etc
         }
         catch (Throwable t) {
             t.printStackTrace();

@@ -32,6 +32,13 @@ public interface SystemRegistry extends CommandRegistry {
     void setCommandRegistries(CommandRegistry... commandRegistries);
 
     /**
+     * Register subcommand registry
+     * @param command main command
+     * @param subcommandRegistry subcommand registry
+     */
+    public void register(String command, CommandRegistry subcommandRegistry);
+
+    /**
      * Initialize consoleEngine environment by executing console script
      * @param script initialization script
      */
@@ -106,6 +113,10 @@ public interface SystemRegistry extends CommandRegistry {
      */
     Object invoke(String command, Object... args) throws Exception;
 
+    /**
+     * Orderly close SystemRegistry. 
+     */
+    void close();
     /**
      * @return systemRegistry of the current thread
      */
