@@ -1093,14 +1093,14 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     private String objectToString(Map<String, Object> options, Object obj) {
         Map<Class<?>, Object> toString = options.containsKey("objectToString") ? (Map<Class<?>, Object>)options.get("objectToString")
                                                                                : new HashMap<>();
-        if (obj == null) {
-            return "null";
-        } else if (toString.containsKey(obj.getClass())) {
-            return (String)engine.execute(toString.get(obj.getClass()), obj);
-        } else if (objectToString.containsKey(obj.getClass())) {
-            return objectToString.get(obj.getClass()).apply(obj);
-        } else if (obj instanceof Class) {
-            return ((Class<?>)obj).getName();
+        if (obj != null) {
+            if (toString.containsKey(obj.getClass())) {
+                return (String) engine.execute(toString.get(obj.getClass()), obj);
+            } else if (objectToString.containsKey(obj.getClass())) {
+                return objectToString.get(obj.getClass()).apply(obj);
+            } else if (obj instanceof Class) {
+                return ((Class<?>) obj).getName();
+            }
         }
         return engine.toString(obj);
     }
@@ -1115,6 +1115,15 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return highlightValue(options, key, mapValue(options, key, map), defaultStyle);
     }
 
+    private boolean isHighlighted(AttributedString value) {
+        for (int i = 0; i < value.columnLength(); i++) {
+            if (value.styleAt(i).getStyle() != AttributedStyle.DEFAULT.getStyle()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private AttributedString highlightValue(Map<String, Object> options
                                           , String column
                                           , Object obj, AttributedStyle defaultStyle) {
@@ -1122,12 +1131,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         boolean doDefault = true;
         if (defaultStyle != null) {
             if (simpleObject(obj)) {
-                for (int i = 0; i < out.columnLength(); i++) {
-                    if (out.styleAt(i).getStyle() != AttributedStyle.DEFAULT.getStyle()) {
-                        doDefault = false;
-                        break;
-                    }
-                }
+                doDefault = !isHighlighted(out);
             }
         } else {
             doDefault = false;
@@ -1138,7 +1142,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     @SuppressWarnings("unchecked")
     private AttributedString highlightValue(Map<String, Object> options, String column, Object obj) {
         AttributedString out = null;
-        Object raw = options.containsKey("toString") ? objectToString(options, obj) : obj;
+        Object raw = options.containsKey("toString") && obj != null ? objectToString(options, obj) : obj;
         Map<String, Object> hv = options.containsKey("highlightValue") ? (Map<String, Object>)options.get("highlightValue")
                                                                        : new HashMap<>();
         if (column != null && simpleObject(raw)) {
@@ -1164,10 +1168,12 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 out = new AttributedString(columnValue(objectToString(options, raw)));
             }
         }
-        if (simpleObject(raw)) {
+        if ((simpleObject(raw) || raw == null) && (hv.containsKey("*") || highlightValue.containsKey("*"))
+                && !isHighlighted(out)) {
             if (hv.containsKey("*")) {
                 out = (AttributedString) engine.execute(hv.get("*"), out);
-            } else if (highlightValue.containsKey("*")) {
+            }
+            if (highlightValue.containsKey("*")) {
                 out = highlightValue.get("*").apply(out);
             }
         }
@@ -1213,22 +1219,16 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return out;
     }
 
-    private boolean similarSets(Set<String> c1, Set<String> c2, double threshold) {
-        boolean out;
-        if (c1.size() > c2.size()) {
-            out = c1.containsAll(c2);
-        } else {
-            out = c2.containsAll(c1);
-        }
+    private boolean similarSets(Set<String> ref, Set<String> c2, double threshold) {
+        boolean out = c2.containsAll(ref);
         if (!out) {
             int matches = 0;
-            for (String s : c1.size() > c2.size() ? c1 : c2) {
-                if (c1.size() > c2.size() ? c2.contains(s) : c1.contains(s)) {
+            for (String s : ref) {
+                if (c2.contains(s)) {
                     matches += 1;
                 }
             }
-            int max = c1.size() > c2.size() ? c1.size() : c2.size();
-            double r = (1.0*matches)/max;
+            double r = (1.0*matches)/ref.size();
             out = r > threshold;
         }
         return out;
@@ -1281,7 +1281,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                             List<String> header = new ArrayList<>();
                             List<Integer> columns = new ArrayList<>();
                             int headerWidth = 0;
-                            Set<String> refKeys = map.keySet();
+                            Set<String> refKeys = new HashSet<>();
                             for (int i = 0; i < _header.size(); i++) {
                                 if (!map.containsKey(_header.get(i).split("\\.")[0])) {
                                     continue;
@@ -1294,6 +1294,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                                         continue;
                                     }
                                 }
+                                refKeys.add(_header.get(i).split("\\.")[0]);
                                 header.add(_header.get(i));
                                 columns.add(_header.get(i).length() + 1);
                                 headerWidth += _header.get(i).length() + 1;
@@ -1309,13 +1310,10 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                                 mapSimilarity = ((java.math.BigDecimal)options.get("mapSimilarity")).doubleValue();
                             }
                             for (Object o : collection) {
-                                if (o.getClass() != elem.getClass()) {
-                                    throw new Exception("Not homogenous object list!");
-                                }
                                 Map<String, Object> m = convert ? objectToMap(options, o)
                                                                 : keysToString((Map<Object, Object>) o);
-                                if (o instanceof Map && !similarSets(m.keySet(), refKeys, mapSimilarity)) {
-                                    throw new Exception("Not homogenous map list!");
+                                if (o instanceof Map && !similarSets(refKeys, m.keySet(), mapSimilarity)) {
+                                    throw new Exception("Not homogenous list!");
                                 }
                                 for (int i = 0; i < header.size(); i++) {
                                     int cw = highlightMapValue(options, header.get(i), m).columnLength();
