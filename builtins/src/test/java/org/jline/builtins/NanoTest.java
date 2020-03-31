@@ -16,6 +16,7 @@ import org.junit.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 
 public class NanoTest {
 
@@ -29,7 +30,8 @@ public class NanoTest {
         }
         terminal.processInputByte(KeyMap.ctrl('X').getBytes()[0]);
         terminal.processInputByte('n');
-        Nano nano = new Nano(terminal, new File("target/test.txt"));
+        String[] argv = {"--ignorercfiles"};
+        Nano nano = new Nano(terminal, Paths.get("target/test.txt"), Options.compile(Nano.usage()).parse(argv));
         nano.run();
     }
 }
