@@ -33,21 +33,21 @@ public interface ScriptEngine {
 
     /**
      * Tests if console variable exists
-     * @param name
+     * @param name variable name
      * @return true if variable exists
      */
     boolean hasVariable(String name);
 
     /**
      * Creates variable
-     * @param name of the variable
-     * @param value of the variable
+     * @param name variable name
+     * @param value value
      */
     void put(String name, Object value);
 
     /**
      * Gets variable value
-     * @param name of the variable
+     * @param name variable name
      * @return value of the variable
      */
     Object get(String name);
@@ -62,27 +62,27 @@ public interface ScriptEngine {
 
     /**
      * Gets all the variables that match the name. Name can contain * wild cards.
-     * @param name of the variable
-     * @return map of the variables
+     * @param name variable name
+     * @return map the variables
      */
     Map<String,Object> find(String name);
 
     /**
      * Deletes variables. Variable name cab contain * wild cards.
-     * @param vars
+     * @param vars variables to be delted
      */
     void del(String... vars);
 
     /**
-     * Converts object to JSON string.
-     * @param object object to convert to JSON
+     * Serialize object to JSON string.
+     * @param object object to serialize to JSON
      * @return formatted JSON string
      */
     String toJson(Object object);
 
     /**
      * Converts object to string.
-     * @param object object to convert to string
+     * @param object object to converts to string
      * @return object string value
      */
     String toString(Object object);
@@ -95,28 +95,26 @@ public interface ScriptEngine {
     Map<String,Object> toMap(Object object);
 
     /**
-     * Substitute variable reference with its value.
-     * @param variable
-     * @return Substituted variable
-     * @throws Exception
+     * Deserialize value
+     * @param value value to deserialize
+     * @return deserialized value
      */
-    default Object expandParameter(String variable) {
-        return expandParameter(variable, "");
+    default Object deserialize(String value) {
+        return deserialize(value, "");
     }
 
     /**
-     * Substitute variable reference with its value.
-     * @param variable
+     * Deserialize value
+     * @param value value to deserialize
      * @param format serialization format
-     * @return Substituted variable
-     * @throws Exception
+     * @return deserialized value
      */
-    Object expandParameter(String variable, String format);
+    Object deserialize(String value, String format);
 
     /**
      * Persists object value to file.
-     * @param file
-     * @param object
+     * @param file file
+     * @param object object
      */
     default void persist(Path file, Object object) {
         persist(file, object, "JSON");
@@ -124,15 +122,15 @@ public interface ScriptEngine {
 
     /**
      * Persists object value to file.
-     * @param file
-     * @param object
-     * @param format
+     * @param file file
+     * @param object object
+     * @param format serialization format
      */
     void persist(Path file, Object object, String format);
 
     /**
      * Executes scriptEngine statement
-     * @param statement
+     * @param statement statement
      * @return result
      * @throws Exception
      */
@@ -140,7 +138,7 @@ public interface ScriptEngine {
 
     /**
      * Executes scriptEngine script
-     * @param script
+     * @param script script
      * @return result
      * @throws Exception
      */
@@ -150,19 +148,18 @@ public interface ScriptEngine {
 
     /**
      * Executes scriptEngine script
-     * @param script
-     * @param args
-     * @return
+     * @param script script
+     * @param args arguments
+     * @return result
      * @throws Exception
      */
     Object execute(File script, Object[] args) throws Exception;
 
     /**
      * Executes scriptEngine closure
-     * @param closure
-     * @param args
-     * @return
-     * @throws Exception
+     * @param closure closure
+     * @param args arguments
+     * @return result
      */
     Object execute(Object closure, Object... args);
 

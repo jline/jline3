@@ -332,7 +332,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             } else if (args[i].startsWith("$")) {
                 out[i] = engine.get(expandName(args[i]));
             } else {
-                out[i] = engine.expandParameter(args[i]);
+                out[i] = engine.deserialize(args[i]);
             }
         }
         return out;
@@ -1646,7 +1646,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         if (format.equalsIgnoreCase("TXT")) {
             out = new String(encoded, encoding);
         } else {
-            out = engine.expandParameter(new String(encoded, encoding), format);
+            out = engine.deserialize(new String(encoded, encoding), format);
         }
         return out;
     }

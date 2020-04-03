@@ -76,7 +76,7 @@ public class GroovyEngine implements ScriptEngine {
     }
 
     @Override
-    public Object expandParameter(String variable, String format) {
+    public Object deserialize(String variable, String format) {
         Object out = variable;
         if (format.equalsIgnoreCase("TXT")) {
             // do nothing
