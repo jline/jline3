@@ -1530,7 +1530,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     private Object del(Builtins.CommandInput input) {
         final String[] usage = {
-                "del -  delete console variables",
+                "del -  delete console variables, methods, classes and imports",
                 "Usage: del [var1] ...",
                 "  -? --help                       Displays command help",
         };
@@ -1763,9 +1763,16 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     private List<Completer> slurpCompleter(String command) {
         List<Completer> completers = new ArrayList<>();
+        List<OptDesc> optDescs = commandOptions("slurp");
+        for (OptDesc o : optDescs) {
+            if (o.shortOption() != null && o.shortOption().equals("-f")) {
+                o.setValueCompleter(new StringsCompleter("TXT", "JSON", "GROOVY"));
+                break;
+            }
+        }
         completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
                                , new OptionCompleter(new FilesCompleter(workDir)
-                                                   , this::commandOptions
+                                                   , optDescs
                                                    , 1)
                                             ));
         return completers;
