@@ -9,8 +9,8 @@
 package org.jline.groovy;
 
 import java.nio.charset.StandardCharsets
-import java.nio.file.Path;
-
+import java.nio.file.Path
+import org.jline.script.GroovyEngine.Format
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import groovy.json.JsonParserType
@@ -44,8 +44,14 @@ public class Utils {
             || (json.startsWith("[") && json.endsWith("]"))) && json.length() > 5) ? JsonOutput.prettyPrint(json) : json
     }
 
-    static void persist(Path file, Object object) {
-        file.toFile().write(JsonOutput.toJson(object))
+    static void persist(Path file, Object object, Format format) {
+        if (format == Format.JSON) {
+            file.toFile().write(JsonOutput.toJson(object))
+        } else if (format == Format.NONE) {
+            file.toFile().write(toString(object))
+        } else {
+            throw new IllegalArgumentException();
+        }
     }
 
 }

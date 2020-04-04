@@ -100,7 +100,7 @@ public interface ScriptEngine {
      * @return deserialized value
      */
     default Object deserialize(String value) {
-        return deserialize(value, "");
+        return deserialize(value, null);
     }
 
     /**
@@ -112,13 +112,23 @@ public interface ScriptEngine {
     Object deserialize(String value, String format);
 
     /**
+     *
+     * @return Supported serialization formats
+     */
+    List<String> getSerializationFormats();
+
+    /**
+    *
+    * @return Supported deserialization formats
+    */
+   List<String> getDeserializationFormats();
+
+    /**
      * Persists object value to file.
      * @param file file
      * @param object object
      */
-    default void persist(Path file, Object object) {
-        persist(file, object, "JSON");
-    }
+    void persist(Path file, Object object);
 
     /**
      * Persists object value to file.

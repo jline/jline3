@@ -1621,7 +1621,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         try  {
             if (!opt.args().isEmpty()){
                 Charset encoding = opt.isSet("encoding") ? Charset.forName(opt.get("encoding")): StandardCharsets.UTF_8;
-                String format = opt.isSet("format") ? opt.get("format") : "";
+                String format = opt.isSet("format") ? opt.get("format") : engine.getSerializationFormats().get(0);
                 out = slurp(Paths.get(opt.args().get(0)), encoding, format);
             }
         } catch (Exception e) {
@@ -1637,18 +1637,12 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     @Override
     public Object slurp(Path file) throws IOException {
-        return slurp(file, StandardCharsets.UTF_8, "JSON");
+        return slurp(file, StandardCharsets.UTF_8, engine.getSerializationFormats().get(0));
     }
 
     private Object slurp(Path file, Charset encoding, String format) throws IOException {
-        Object out = null;
         byte[] encoded = Files.readAllBytes(file);
-        if (format.equalsIgnoreCase("TXT")) {
-            out = new String(encoded, encoding);
-        } else {
-            out = engine.deserialize(new String(encoded, encoding), format);
-        }
-        return out;
+        return engine.deserialize(new String(encoded, encoding), format);
     }
 
     private Object aliascmd(Builtins.CommandInput input) {
@@ -1766,7 +1760,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         List<OptDesc> optDescs = commandOptions("slurp");
         for (OptDesc o : optDescs) {
             if (o.shortOption() != null && o.shortOption().equals("-f")) {
-                o.setValueCompleter(new StringsCompleter("TXT", "JSON", "GROOVY"));
+                o.setValueCompleter(new StringsCompleter(engine.getDeserializationFormats()));
                 break;
             }
         }

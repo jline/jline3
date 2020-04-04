@@ -30,6 +30,7 @@ import groovy.lang.Script;
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public class GroovyEngine implements ScriptEngine {
+    public enum Format {JSON, GROOVY, NONE};
     private static final String REGEX_SYSTEM_VAR = "[A-Z]+[A-Z_]*";
     private static final String REGEX_VAR = "[a-zA-Z_]+[a-zA-Z0-9_]*";
     private static final Pattern PATTERN_FUNCTION_DEF=Pattern.compile("^def\\s+(" + REGEX_VAR + ")\\s*\\(([a-zA-Z0-9_ ,]*)\\)\\s*\\{(.*)?\\}(|\n)$"
@@ -76,42 +77,53 @@ public class GroovyEngine implements ScriptEngine {
     }
 
     @Override
-    public Object deserialize(String variable, String format) {
-        Object out = variable;
-        if (format.equalsIgnoreCase("TXT")) {
+    public List<String> getSerializationFormats() {
+        return Arrays.asList(Format.JSON.toString(), Format.NONE.toString());
+    }
+
+    @Override
+    public List<String> getDeserializationFormats() {
+        return Arrays.asList(Format.JSON.toString(), Format.GROOVY.toString(), Format.NONE.toString());
+    }
+
+    @Override
+    public Object deserialize(String value, String formatStr) {
+        Object out = value;
+        Format format = formatStr != null && !formatStr.isEmpty() ? Format.valueOf(formatStr.toUpperCase()) : null;
+        if (format == Format.NONE) {
             // do nothing
-        } else if (format.equalsIgnoreCase("JSON")) {
-            out = Utils.toObject(variable);
-        } else if (format.equalsIgnoreCase("GROOVY")) {
+        } else if (format == Format.JSON) {
+            out = Utils.toObject(value);
+        } else if (format == Format.GROOVY) {
             try {
-                out = execute(variable);
+                out = execute(value);
             } catch (Exception e) {
                 throw new IllegalArgumentException(e.getMessage());
             }
         } else {
-            variable = variable.trim();
-            boolean hasCurly = variable.contains("{") && variable.contains("}");
+            value = value.trim();
+            boolean hasCurly = value.contains("{") && value.contains("}");
             try {
-                if (variable.startsWith("[") && variable.endsWith("]")) {
+                if (value.startsWith("[") && value.endsWith("]")) {
                     try {
                         if (hasCurly) {
-                            out = Utils.toObject(variable); // try json
+                            out = Utils.toObject(value); // try json
                         } else {
-                            out = execute(variable);
+                            out = execute(value);
                         }
                     } catch (Exception e) {
                         if (hasCurly) {
                             try {
-                                out = execute(variable);
+                                out = execute(value);
                             } catch (Exception e2) {
 
                             }
                         } else {
-                            out = Utils.toObject(variable); // try json
+                            out = Utils.toObject(value); // try json
                         }
                     }
-                } else if (variable.startsWith("{") && variable.endsWith("}")) {
-                    out = Utils.toObject(variable);
+                } else if (value.startsWith("{") && value.endsWith("}")) {
+                    out = Utils.toObject(value);
                 }
             } catch (Exception e) {
             }
@@ -120,11 +132,13 @@ public class GroovyEngine implements ScriptEngine {
     }
 
     @Override
+    public void persist(Path file, Object object) {
+        persist(file, object, getSerializationFormats().get(0));
+    }
+
+    @Override
     public void persist(Path file, Object object, String format) {
-        if (!format.equalsIgnoreCase("JSON")) {
-            throw new IllegalArgumentException();
-        }
-        Utils.persist(file, object);
+        Utils.persist(file, object, Format.valueOf(format.toUpperCase()));
     }
 
     @Override
