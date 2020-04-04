@@ -879,7 +879,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         exception = null;
         Object out = null;
         if (hasCommand(command)) {
-            out = commandExecute.get(command(command)).executeFunction().apply(new Builtins.CommandInput(command, null, args, session));
+            out = commandExecute.get(command(command)).executeFunction().apply(new Builtins.CommandInput(command, args, session));
         } else {
             String[] _args = new String[args.length];
             for (int i = 0; i < args.length; i++) {

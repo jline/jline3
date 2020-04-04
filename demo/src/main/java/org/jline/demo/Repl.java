@@ -35,7 +35,6 @@ import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.Completers.SystemCompleter;
 import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.SystemRegistryImpl;
-import org.jline.builtins.Widgets;
 import org.jline.builtins.Widgets.TailTipWidgets;
 import org.jline.builtins.Widgets.TailTipWidgets.TipType;
 import org.jline.keymap.KeyMap;
@@ -80,7 +79,7 @@ public class Repl {
 
         public Object invoke(CommandRegistry.CommandSession session, String command, Object... args) throws Exception {
             exception = null;
-            Object out = commandExecute.get(command(command)).executeFunction().apply(new Builtins.CommandInput(command, null, args, session));
+            Object out = commandExecute.get(command(command)).executeFunction().apply(new Builtins.CommandInput(command, args, session));
             if (exception != null) {
                 throw exception;
             }

@@ -351,7 +351,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             throw new IllegalArgumentException();
         }
         Object out = commandExecute.get(command).executeFunction()
-                .apply(new Builtins.CommandInput(command, null, args, commandSession()));
+                          .apply(new Builtins.CommandInput(command, args, commandSession()));
         if (exception != null) {
             throw exception;
         }

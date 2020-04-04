@@ -505,12 +505,7 @@ public class Builtins implements CommandRegistry {
         PrintStream out;
         PrintStream err;
 
-        public CommandInput(String command, String[] args, CommandRegistry.CommandSession session) {
-            this(command, args, null, session);
-        }
-
-        public CommandInput(String command, String[] args, Object[] xargs, CommandRegistry.CommandSession session) {
-            this(command, args, session.terminal(), session.in(), session.out(), session.err());
+        public CommandInput(String command, Object[] xargs, CommandRegistry.CommandSession session) {
             if (xargs != null) {
                 this.xargs = xargs;
                 this.args = new String[xargs.length];
@@ -518,15 +513,15 @@ public class Builtins implements CommandRegistry {
                     this.args[i] = xargs[i] != null ? xargs[i].toString() : null;
                 }
             }
+            this.command = command;
+            this.terminal = session.terminal();
+            this.in = session.in();
+            this.out = session.out();
+            this.err = session.err();
         }
 
-        public CommandInput(String command, String[] args, Terminal terminal, InputStream in, PrintStream out, PrintStream err) {
-            this.command = command;
-            this.args = args;
-            this.terminal = terminal;
-            this.in = in;
-            this.out = out;
-            this.err = err;
+        public CommandInput(String command, Object[] args, Terminal terminal, InputStream in, PrintStream out, PrintStream err) {
+            this(command, args, new CommandRegistry.CommandSession(terminal, in, out, err));
         }
 
         public String command() {
