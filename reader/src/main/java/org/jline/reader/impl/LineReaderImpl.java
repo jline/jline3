@@ -5644,10 +5644,28 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     public boolean beginPaste() {
-        String str = doReadStringUntil(BRACKETED_PASTE_END);
+        final Object SELF_INSERT = new Object();
+        final Object END_PASTE = new Object();
+        KeyMap<Object> keyMap = new KeyMap<>();
+        keyMap.setUnicode(SELF_INSERT);
+        keyMap.setNomatch(SELF_INSERT);
+        keyMap.setAmbiguousTimeout(0);
+        keyMap.bind(END_PASTE, BRACKETED_PASTE_END);
+        StringBuilder sb = new StringBuilder();
+        while (true) {
+            Object b = doReadBinding(keyMap, null);
+            if (b == END_PASTE) {
+                break;
+            }
+            String s = getLastBinding();
+            if ("\r".equals(s)) {
+            s = "\n";
+            }
+            sb.append(s);
+        }
         regionActive = RegionType.PASTE;
         regionMark = getBuffer().cursor();
-        getBuffer().write(str.replace('\r', '\n'));
+        getBuffer().write(sb.toString().replace('\r', '\n'));
         return true;
     }
 
