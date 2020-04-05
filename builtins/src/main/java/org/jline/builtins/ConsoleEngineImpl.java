@@ -564,6 +564,15 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             return true;
         }
 
+        private String expandParameterName(String parameter) {
+            if (parameter.startsWith("$")) {
+                return expandName(parameter);            
+            } else if (isNumber(parameter)) {
+                return parameter;
+            }
+            return quote(parameter);
+        }
+
         private void internalExecute() throws Exception {
             if (isEngineScript()) {
                 result = engine.execute(script, expandParameters(args));
@@ -584,10 +593,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                             done = true;
                             for (int i = 1; i < args.length; i++) {
                                 line = line.replaceAll("\\s\\$" + i + "\\b",
-                                        args[i].startsWith("$") ? (" " + expandName(args[i]) + " ")
-                                                : (" " + quote(args[i]) + " "));
+                                             (" " + expandParameterName(args[i]) + " "));
                                 line = line.replaceAll("\\$\\{" + i + "(|:-.*)\\}",
-                                        args[i].startsWith("$") ? expandName(args[i]) : quote(args[i]));
+                                             expandParameterName(args[i]));
                             }
                             line = line.replaceAll("\\$\\{@\\}", expandToList(args));
                             line = line.replaceAll("\\$@", expandToList(args));
@@ -595,7 +603,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                             line = line.replaceAll("\\$\\{\\d+\\}", "");
                             Matcher matcher = Pattern.compile("\\$\\{\\d+:-(.*?)\\}").matcher(line);
                             if (matcher.find()) {
-                                  line = matcher.replaceAll("'$1'");
+                                line = matcher.replaceAll(expandParameterName(matcher.group(1)));
                             }
                             if (verbose) {
                                 AttributedStringBuilder asb = new AttributedStringBuilder();
