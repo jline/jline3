@@ -1,6 +1,57 @@
 # [JLine3](https://github.com/jline/jline3)
 <!-- git log --pretty=format:'* [`%h`](https://github.com/jline/jline3/commit/%H) %s' -->
 
+## [JLine 3.14.1][3_14_1]
+[3_14_1]: https://repo1.maven.org/maven2/org/jline/jline/3.14.1/
+
+* [`81b6eade`](https://github.com/jline/jline3/commit/81b6eadeed147dcfe563ca7f18695064c1b5bab4) Fix signing
+* [`df9f1f91`](https://github.com/jline/jline3/commit/df9f1f9133539c6715b407e5dc80a280d75fd395) Fix broken paste with remote connections, fixes #514
+* [`88c28ae2`](https://github.com/jline/jline3/commit/88c28ae2a660b521552ffa4b5b508ac63446212c) REPL parameter expansion, do not add quote chars on numeric parameters
+* [`5438565f`](https://github.com/jline/jline3/commit/5438565f582b127d013f93baecc9d754c0156587) ScriptEngine added methods: getSerializationFormats() and
+* [`664eef8f`](https://github.com/jline/jline3/commit/664eef8fa4adc023fea9c787c4df1271a1892ab1) Refactoring Builtins.CommandInput
+* [`3cac1ad7`](https://github.com/jline/jline3/commit/3cac1ad7cc68de1a67d4fd0fff7af38a4a026d52) Refactoring and improved java docs
+* [`e381d1b2`](https://github.com/jline/jline3/commit/e381d1b24db3db63ec724f5e4cfe38704d9174a8) ConsoleEngineImpl: improved command completer and help
+* [`db9f36e5`](https://github.com/jline/jline3/commit/db9f36e578b219a94a73b41691de797470118186) NanoTest: ignore nanorc files
+* [`f0d7f238`](https://github.com/jline/jline3/commit/f0d7f23802c93eb721dd04402b4e48683c80ff85) prnt command: reviewed map similarity comparison and value highlight
+* [`f6e3c083`](https://github.com/jline/jline3/commit/f6e3c083eca4c5ddccc144c57150706959211abe) pipeline completer: added console option maxValueNames
+* [`0e55bb51`](https://github.com/jline/jline3/commit/0e55bb51bd00702a52123ba77e0d8e39319c5eaf) REPL console: added pipeline tab completer
+* [`817c59a9`](https://github.com/jline/jline3/commit/817c59a9285ea45cb447384578d85e3690f0ff50) Bump groovy to 3.0.2
+* [`2c46ae0a`](https://github.com/jline/jline3/commit/2c46ae0ada2013fe161f708596d6df47d10df4d8) Refactored repl demo and improved registered sub-command help
+* [`8467b077`](https://github.com/jline/jline3/commit/8467b077310ac987c687772b1755067e85ffc951) prnt command: added more checks in table print decision
+* [`38a909c0`](https://github.com/jline/jline3/commit/38a909c0ec1be56865944797a889caff21b98ba3) SystemRegistryImpl: improved help
+* [`33f76291`](https://github.com/jline/jline3/commit/33f76291585396f47518002d9a3b03c03485fea0) prnt command: added options maxrows and maxColumnWidth
+* [`c191801f`](https://github.com/jline/jline3/commit/c191801f2de1c9f7d5de219d4f0c9851c6c76ef7) Fix two regressions caused by pull request #518:
+* [`d3336a04`](https://github.com/jline/jline3/commit/d3336a04718610b7eb7e2ba062bed029c27458e4) Merge pull request #518 from mattirn/subcommand
+* [`f71d2c0d`](https://github.com/jline/jline3/commit/f71d2c0dd706b5b88ee75e841c9055622224d5e5) Update TerminalBuilder.java
+* [`9696f11f`](https://github.com/jline/jline3/commit/9696f11fbb5b123445d6739451abbee4ced5b9ec) TailTip widget: improved sub-commands summary info description
+* [`7318cf11`](https://github.com/jline/jline3/commit/7318cf1196c8ae6fac2ca43c6700952f0053e232) CommandRegistry: added registry command summary in default
+* [`9ea33bed`](https://github.com/jline/jline3/commit/9ea33bedb114105235747bffbf5ca64124231499) Improved subcommands help
+* [`b00a9a03`](https://github.com/jline/jline3/commit/b00a9a03a7fa36fe6c83780450570d4a374c4cfe) subcommands: added support for object parameters
+* [`5a249551`](https://github.com/jline/jline3/commit/5a2495511f3a4601443e66c80473daa09ef44b7e) Command autosuggestion: support subcommands
+* [`c2d2087d`](https://github.com/jline/jline3/commit/c2d2087dd0054cf50f14c7e04b56a118057067ef) SystemRegistry: register and manage subcommands execution and completion
+* [`c4632055`](https://github.com/jline/jline3/commit/c4632055305c7b9cffd35f0f22383184b81e7fdf) Builtins.CommandInput: added field command
+* [`9b7842ba`](https://github.com/jline/jline3/commit/9b7842ba964fa458a2261c863b63f9d9f2590035) Merge pull request #517 from mattirn/prnt-customize
+* [`1feab624`](https://github.com/jline/jline3/commit/1feab6241026212d624df53b767e896588a35e78) prnt command: improved heterogeneous object list printing
+* [`c41e2df5`](https://github.com/jline/jline3/commit/c41e2df51726e19253de99ea500871ad1d61692b) prnt command: improved Iterator and Iterable object printing
+* [`af82e2cf`](https://github.com/jline/jline3/commit/af82e2cfc59bc0e5314792ecf4419f83d2fbebfc) Refactoring object printing
+* [`9430ba01`](https://github.com/jline/jline3/commit/9430ba01ea07871d9a9131839e986966e4e4b50e) prnt command: improved map printing
+* [`45234086`](https://github.com/jline/jline3/commit/4523408679914ccb4dc177279adc192f723e057c) prnt command: added option toString and custom highlight map values
+* [`07b2df9f`](https://github.com/jline/jline3/commit/07b2df9fb322c2babdef6b8545aa5176cbb7ee8e) Expand parameter in file path, fixes #516
+* [`f30e34b2`](https://github.com/jline/jline3/commit/f30e34b2994d24a2e6cf7bc1b4b6e521914c4e90) prnt command customization
+* [`02c7f67c`](https://github.com/jline/jline3/commit/02c7f67ce13acc567c4fc673c65203e23834eabf) ScriptEngine: added method to execute closure
+* [`bc331f89`](https://github.com/jline/jline3/commit/bc331f8958524374e9eb4c6b115fe3ddabe953ec) prnt command: added configuration options columnsIn and columnsOut
+* [`eedaff33`](https://github.com/jline/jline3/commit/eedaff33b61a327599bd970962cf9599971c2c2a) prnt command: added options oneRowTable, structsOnTable and columns
+* [`6e61b976`](https://github.com/jline/jline3/commit/6e61b976b8d115fea25b20f82f8a48ea96e48cf9) Parser: fixed getCommand() method, step II
+* [`71e35644`](https://github.com/jline/jline3/commit/71e35644a6799a79bd033539bdc08cea84ffa0a3) REPL console: parameter ${@} expansion and two new pipes in demo
+* [`89123999`](https://github.com/jline/jline3/commit/891239993a26f4dc87f4bb4f723da9957975d6a3) REPL demo: added command to execute shell commands
+* [`c9e16309`](https://github.com/jline/jline3/commit/c9e16309696f7b0f054516a98ca5e6cb1cda60e4) Parser: fixed getCommand() method
+* [`61693df3`](https://github.com/jline/jline3/commit/61693df3cf26a97782cdbcebb50570a5eb1cb89a) Refactoring object printing
+* [`b8d7936b`](https://github.com/jline/jline3/commit/b8d7936b9826fa8bf6ad65b247d7720206b578ca) REPL console: throw Exception if redirecting console script output
+* [`6fbdb250`](https://github.com/jline/jline3/commit/6fbdb250b390214441381be7cf1c25c7a6f13e48) REPL console: allow the use of console scripts in pipe line
+* [`01e0c542`](https://github.com/jline/jline3/commit/01e0c542326cf4a2239820cda2da6dd7d2952b72) REPL console: improved object printing
+* [`089f9898`](https://github.com/jline/jline3/commit/089f9898538f16324532f960721bd3b0e94d6f59) REPL console: redirect output to null device (command > null)
+* [`e839b9c5`](https://github.com/jline/jline3/commit/e839b9c56fa2ffaf1b9c6f6b5cc22ecd553836b4) Fix NPE when use SystemRegistry without ConsoleEngine, fixes #515
+
 ## [JLine 3.14.0][3_14_0]
 [3_14_0]: https://repo1.maven.org/maven2/org/jline/jline/3.14.0/
 
