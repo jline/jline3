@@ -103,13 +103,24 @@ public interface CommandRegistry {
 
     /**
      * Returns a command description for use in the JLine Widgets framework.
+     * Default method must be overriden to return subcommand descriptions.
+     * @param args commandline arguments
+     * @return command description for JLine TailTipWidgets to be displayed
+     *         in the terminal status bar.
+     */
+    default Widgets.CmdDesc commandDescription(List<String> args) {
+        return !args.isEmpty() ? commandDescription(args.get(0)) : commandDescription("");    
+    }
+    
+    /**
+     * Returns a command description for use in the JLine Widgets framework.
      * @param command name of the command whose description to return
      * @return command description for JLine TailTipWidgets to be displayed
      *         in the terminal status bar.
      */
     default Widgets.CmdDesc commandDescription(String command) {
         try {
-            if (command != null) {
+            if (command != null && !command.isEmpty()) {
                 invoke(new CommandSession(), command, new Object[] {"--help"});
             } else {
                 List<AttributedString> main = new ArrayList<>();

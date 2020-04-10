@@ -271,11 +271,12 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     @Override
-    public Widgets.CmdDesc commandDescription(String command) {
+    public Widgets.CmdDesc commandDescription(List<String> args) {
         Widgets.CmdDesc out = new Widgets.CmdDesc(false);
+        String command = args.get(0);
         int id = registryId(command);
         if (id > -1) {
-            out = commandRegistries[id].commandDescription(command);
+            out = commandRegistries[id].commandDescription(args);
         } else if (scriptStore.hasScript(command)) {
             out = consoleEngine().commandDescription(command);
         } else if (isLocalCommand(command)) {
@@ -291,8 +292,8 @@ public class SystemRegistryImpl implements SystemRegistry {
         case COMMAND:
             String cmd = parser.getCommand(line.getArgs().get(0));
             if (isCommandOrScript(cmd) && !names.hasPipes(line.getArgs())) {
+                List<String> args = line.getArgs();
                 if (subcommands.containsKey(cmd)) {
-                    List<String> args = line.getArgs();
                     String c = args.size() > 1 ? args.get(1) : null;
                     if (c == null || subcommands.get(cmd).hasCommand(c)) {
                         if (c != null && c.equals("help")) {
@@ -301,13 +302,14 @@ public class SystemRegistryImpl implements SystemRegistry {
                             out = subcommands.get(cmd).commandDescription(c);
                         }
                     } else {
-                        out = subcommands.get(cmd).commandDescription(null);
+                        out = subcommands.get(cmd).commandDescription("");
                     }
                     if (out != null) {
                         out.setSubcommand(true);
                     }
                 } else {
-                    out = commandDescription(cmd);
+                    args.set(0, cmd);
+                    out = commandDescription(args);
                 }
             }
             break;
