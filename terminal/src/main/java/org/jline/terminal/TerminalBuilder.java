@@ -317,12 +317,32 @@ public final class TerminalBuilder {
             IllegalStateException exception = new IllegalStateException("Unable to create a system terminal");
             Terminal terminal = null;
             if (OSUtils.IS_WINDOWS) {
-                boolean cygwinTerm = "cygwin".equals(System.getenv("TERM"));
                 boolean ansiPassThrough = OSUtils.IS_CONEMU;
+                boolean winConsole = true;
+                if (terminal == null && jna) {
+                    try {
+                        JnaSupport support = load(JnaSupport.class);
+                        winConsole = support.isWindowsConsole();
+                        terminal = support.winSysTerminal(name, type, ansiPassThrough, encoding, codepage, nativeSignals, signalHandler, paused);
+                    } catch (Throwable t) {
+                        Log.debug("Error creating JNA based terminal: ", t.getMessage(), t);
+                        exception.addSuppressed(t);
+                    }
+                }
+                if (terminal == null && jansi) {
+                    try {
+                        JansiSupport support = load(JansiSupport.class);
+                        winConsole = support.isWindowsConsole();
+                        terminal = support.winSysTerminal(name, type, ansiPassThrough, encoding, codepage, nativeSignals, signalHandler, paused);
+                    } catch (Throwable t) {
+                        Log.debug("Error creating JANSI based terminal: ", t.getMessage(), t);
+                        exception.addSuppressed(t);
+                    }
+                }
                 //
                 // Cygwin support
                 //
-                if ((OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM) && exec && !cygwinTerm) {
+                if (terminal == null && exec && (OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM) && winConsole) {
                     try {
                         Pty pty = ExecPty.current();
                         // Cygwin defaults to XTERM, but actually supports 256 colors,
@@ -335,22 +355,6 @@ public final class TerminalBuilder {
                         // Ignore if not a tty
                         Log.debug("Error creating EXEC based terminal: ", e.getMessage(), e);
                         exception.addSuppressed(e);
-                    }
-                }
-                if (terminal == null && jna) {
-                    try {
-                        terminal = load(JnaSupport.class).winSysTerminal(name, type, ansiPassThrough, encoding, codepage, nativeSignals, signalHandler, paused);
-                    } catch (Throwable t) {
-                        Log.debug("Error creating JNA based terminal: ", t.getMessage(), t);
-                        exception.addSuppressed(t);
-                    }
-                }
-                if (terminal == null && jansi) {
-                    try {
-                        terminal = load(JansiSupport.class).winSysTerminal(name, type, ansiPassThrough, encoding, codepage, nativeSignals, signalHandler, paused);
-                    } catch (Throwable t) {
-                        Log.debug("Error creating JANSI based terminal: ", t.getMessage(), t);
-                        exception.addSuppressed(t);
                     }
                 }
                 if (terminal == null && !jna && !jansi && (dumb == null || !dumb)) {

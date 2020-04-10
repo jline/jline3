@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019, the original author or authors.
+ * Copyright (c) 2002-2020, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -19,7 +19,6 @@ import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
-import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.OSUtils;
@@ -65,6 +64,16 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
             terminal.resume();
         }
         return terminal;
+    }
+
+    public static boolean isWindowsConsole() {
+        try {
+            IntByReference mode = new IntByReference();
+            Kernel32.INSTANCE.GetConsoleMode(consoleOut, mode);
+            return true;
+        } catch (LastErrorException e) {
+            return false;
+        }
     }
 
     JnaWinSysTerminal(Writer writer, String name, String type, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {

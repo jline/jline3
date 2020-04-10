@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019, the original author or authors.
+ * Copyright (c) 2002-2020, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -22,7 +22,6 @@ import org.fusesource.jansi.internal.Kernel32.KEY_EVENT_RECORD;
 import org.fusesource.jansi.internal.WindowsSupport;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
-import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
 import org.jline.terminal.impl.jansi.JansiSupportImpl;
 import org.jline.utils.InfoCmp;
@@ -70,6 +69,12 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
             terminal.resume();
         }
         return terminal;
+    }
+
+    public static boolean isWindowsConsole() {
+        long console = GetStdHandle(STD_OUTPUT_HANDLE);
+        int[] mode = new int[1];
+        return Kernel32.GetConsoleMode(console, mode) == 0;
     }
 
     JansiWinSysTerminal(Writer writer, String name, String type, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
