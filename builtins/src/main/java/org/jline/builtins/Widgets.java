@@ -37,7 +37,7 @@ import org.jline.utils.AttributedStyle;
 import org.jline.utils.Status;
 
 /**
- * Brackets/quotes autopairing and command autosuggestion widgets for jline applications.
+ * Create custom widgets by extending Widgets class
  *
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
@@ -54,6 +54,11 @@ public abstract class Widgets {
         this.reader = reader;
     }
 
+    /**
+     * Add widget to the LineReader
+     * @param name the name of widget
+     * @param widget widget
+     */
     public void addWidget(String name, Widget widget) {
         reader.getWidgets().put(name, namedWidget(name, widget));
     }
@@ -71,6 +76,11 @@ public abstract class Widgets {
         };
     }
 
+    /**
+     * Call widget. System widget will be call if the name does not start with '_' or ends with '-toggle' 
+     * i.e. '.' will be added at the beginning of the name.
+     * @param name widget name
+     */
     public void callWidget(String name) {
         if (!name.startsWith("_") && !name.endsWith("-toggle")) {
             name = "." + name;
@@ -78,6 +88,10 @@ public abstract class Widgets {
         reader.callWidget(name);
     }
 
+    /**
+     * Bind widget to ctrl-alt-x and execute it
+     * @param name widget name
+     */
     public void executeWidget(String name) {
         // WORK-AROUND
         getKeyMap().bind(new Reference(name), alt(ctrl('X')));
@@ -88,14 +102,29 @@ public abstract class Widgets {
         // widget(name).apply();
     }
 
+    /**
+     * Create alias to widget
+     * @param orig widget orginal name
+     * @param alias alias name
+     */
     public void aliasWidget(String orig, String alias) {
         reader.getWidgets().put(alias, widget(orig));
     }
 
+    /**
+     * 
+     * @param name widget name or alias
+     * @return widget name
+     */
     public String getWidget(String name) {
         return widget(name).toString();
     }
 
+    /**
+     * 
+     * @param name widget name or alias
+     * @return true if widget exists
+     */
     public boolean existsWidget(String name) {
         try {
             widget(name);
@@ -118,74 +147,144 @@ public abstract class Widgets {
         return out;
     }
 
+    /**
+     * 
+     * @return The LineRearer Parser
+     */
     public Parser parser() {
         return reader.getParser();
     }
 
+    /**
+     * 
+     * @return The LineReader Main KeyMap
+     */
     public KeyMap<Binding> getKeyMap() {
         return reader.getKeyMaps().get(LineReader.MAIN);
     }
 
+    /**
+     * 
+     * @return The LineReader Buffer
+     */
     public Buffer buffer() {
         return reader.getBuffer();
     }
 
+    /**
+     * 
+     * @param buffer buffer that will be copied to the LineReader Buffer
+     */
     public void replaceBuffer(Buffer buffer) {
         reader.getBuffer().copyFrom(buffer);
     }
 
+    /**
+     * 
+     * @return command line arguments
+     */
     public List<String> args() {
         return reader.getParser().parse(buffer().toString(), 0, ParseContext.COMPLETE).words();
     }
 
+    /**
+     * 
+     * @return Buffer's previous character
+     */
     public String prevChar() {
         return String.valueOf((char)reader.getBuffer().prevChar());
     }
 
+    /**
+     * 
+     * @return Buffer's current character
+     */
     public String currChar() {
         return String.valueOf((char)reader.getBuffer().currChar());
     }
 
+    /**
+     * 
+     * @return LineReader's last binding
+     */
     public String lastBinding() {
         return reader.getLastBinding();
     }
 
+    /**
+     * 
+     * @param string string to be written into LineReader Buffer
+     */
     public void putString(String string) {
         reader.getBuffer().write(string);
     }
 
+    /**
+     * 
+     * @return Command line tail tip.
+     */
     public String tailTip() {
         return reader.getTailTip();
     }
 
+    /**
+     * 
+     * @param tailTip tail tip to be added to the command line
+     */
     public void setTailTip(String tailTip) {
         reader.setTailTip(tailTip);
     }
 
+    /**
+     * 
+     * @param errorPattern error pattern to be set LineReader Highlighter
+     */
     public void setErrorPattern(Pattern errorPattern) {
         reader.getHighlighter().setErrorPattern(errorPattern);
     }
 
+    /**
+     * 
+     * @param errorIndex error index to be set LineReader Highlighter
+     */
     public void setErrorIndex(int errorIndex) {
         reader.getHighlighter().setErrorIndex(errorIndex);
     }
 
+    /**
+     *  Clears command line tail tip
+     */
     public void clearTailTip() {
         reader.setTailTip("");
     }
 
+    /**
+     * 
+     * @param type type to be set to the LineReader autosuggestion
+     */
     public void setSuggestionType(SuggestionType type) {
         reader.setAutosuggestion(type);
     }
 
+    /**
+     * 
+     * @param desc Text to be dispalyed on terminal status bar 
+     */
     public void addDescription(List<AttributedString> desc) {
         Status.getStatus(reader.getTerminal()).update(desc);
     }
 
+    /**
+     *  Clears terminal status bar
+     */
     public void clearDescription() {
         initDescription(0);
     }
 
+    /**
+     * Initialize terminal status bar
+     * @param size Terminal status bar size in rows
+     */
     public void initDescription(int size) {
         Status status = Status.getStatus(reader.getTerminal(), false);
         if (size > 0) {
@@ -209,6 +308,9 @@ public abstract class Widgets {
         }
     }
 
+    /**
+     *  Remove terminal status bar
+     */
     public void destroyDescription() {
         initDescription(-1);
     }
@@ -604,7 +706,7 @@ public abstract class Widgets {
         private TipType tipType;
         private int descriptionSize = 0;
         private boolean descriptionEnabled = true;
-        private boolean descriptionCache = true;
+        private boolean descriptionCache = false;
 
         /**
          * Creates tailtip widgets used in command line suggestions. Suggestions are created using a command

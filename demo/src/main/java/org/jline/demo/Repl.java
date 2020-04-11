@@ -491,8 +491,7 @@ public class Repl {
             //
             // widgets and console initialization
             //
-            TailTipWidgets ttw = new TailTipWidgets(reader, systemRegistry::commandDescription, 5, TipType.COMPLETER);
-            ttw.setDescriptionCache(false);
+            new TailTipWidgets(reader, systemRegistry::commandDescription, 5, TipType.COMPLETER);
             KeyMap<Binding> keyMap = reader.getKeyMaps().get("main");
             keyMap.bind(new Reference("tailtip-toggle"), KeyMap.alt("s"));
             systemRegistry.initialize(Paths.get(root, "init.jline").toFile());
