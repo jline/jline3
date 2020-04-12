@@ -56,6 +56,8 @@ import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.script.GroovyEngine;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.terminal.Terminal.Signal;
+import org.jline.terminal.Terminal.SignalHandler;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.OSUtils;
@@ -449,6 +451,8 @@ public class Repl {
             parser.setEscapeChars(null);
             parser.setRegexCommand("[:]{0,1}[a-zA-Z!]{1,}\\S*");    // change default regex to support shell commands
             Terminal terminal = TerminalBuilder.builder().build();
+            Thread executeThread = Thread.currentThread();
+            terminal.handle(Signal.INT, signal -> executeThread.interrupt());
             //
             // ScriptEngine and command registeries
             //

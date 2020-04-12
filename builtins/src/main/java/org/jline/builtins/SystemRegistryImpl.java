@@ -1080,8 +1080,8 @@ public class SystemRegistryImpl implements SystemRegistry {
                         consoleEngine().println(er.result());
                         out = null;
                         boolean success = er.status() == 0 ? true : false;
-                        if (   (cmd.pipe().equals(pipeName.get(Pipe.OR)) && success)
-                            || (cmd.pipe().equals(pipeName.get(Pipe.AND)) && !success)) {
+                        if ((cmd.pipe().equals(pipeName.get(Pipe.OR)) && success)
+                                || (cmd.pipe().equals(pipeName.get(Pipe.AND)) && !success)) {
                             break;
                         }
                     }
