@@ -519,8 +519,8 @@ public class SystemRegistryImpl implements SystemRegistry {
 
     private List<CommandData> compileCommandLine(String commandLine) {
         List<CommandData> out = new ArrayList<>();
-        ArgsParser ap = new ArgsParser();
-        ap.parse(parser, commandLine);
+        ArgsParser ap = new ArgsParser(parser);
+        ap.parse(commandLine);
         //
         // manage pipe aliases
         //
@@ -560,7 +560,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 }
                 sb.append(" ");
             }
-            ap.parse(parser, sb.toString());
+            ap.parse(sb.toString());
             if (trace) {
                 consoleEngine().trace(ap.line());
             }
@@ -577,7 +577,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             if (isCommandAlias(ap.command())) {
                 nextRawLine = replaceCommandAlias(ap.variable(), ap.command(), nextRawLine);
             }
-            out.add(new CommandData(parser, false, nextRawLine, ap.variable(), null, false,""));
+            out.add(new CommandData(ap, false, nextRawLine, ap.variable(), null, false,""));
         } else {
             //
             // compile pipe line
@@ -587,7 +587,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 String command = ConsoleEngine.plainCommand(rawCommand);
                 String variable = parser.getVariable(words.get(first));
                 if (isCommandAlias(command)) {
-                    ap.parse(parser, replaceCommandAlias(variable, command, nextRawLine));
+                    ap.parse(replaceCommandAlias(variable, command, nextRawLine));
                     rawCommand = ap.rawCommand();
                     command = ap.command();
                     words = ap.args();
@@ -731,7 +731,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                     //
                     // add composed command to return list
                     //
-                    out.add(new CommandData(parser, statement, rawLine, variable, file, append, pipes.get(pipes.size() - 1)));
+                    out.add(new CommandData(ap, statement, rawLine, variable, file, append, pipes.get(pipes.size() - 1)));
                     if (pipes.get(pipes.size() - 1).equals(pipeName.get(Pipe.AND))
                             || pipes.get(pipes.size() - 1).equals(pipeName.get(Pipe.OR))) {
                         pipeSource = null;
@@ -765,8 +765,11 @@ public class SystemRegistryImpl implements SystemRegistry {
         private String command;
         private String variable;
         private List<String> args;
+        private Parser parser;
 
-        public ArgsParser() {}
+        public ArgsParser(Parser parser) {
+            this.parser = parser;
+        }
 
         private void reset() {
             round = 0;
@@ -780,7 +783,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             char prevChar = ' ';
             for (int i = 0; i < arg.length(); i++) {
                 char c = arg.charAt(i);
-                if (prevChar != '\\') {
+                if (!parser.isEscapeChar(prevChar)) {
                     if (!quoted && !doubleQuoted) {
                         if (c == '(') {
                             round++;
@@ -838,7 +841,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             }
         }
 
-        public void parse(Parser parser, String line) {
+        public void parse(String line) {
             this.line = line;
             ParsedLine pl = parser.parse(line, 0, ParseContext.SPLIT_LINE);
             enclosedArgs(pl.words());
@@ -869,6 +872,32 @@ public class SystemRegistryImpl implements SystemRegistry {
             return args;
         }
 
+        private int closingQuote(String arg) {
+            int out = -1;
+            char prevChar = ' ';
+            for (int i = 1; i < arg.length(); i++) {
+                char c = arg.charAt(i);
+                if (!parser.isEscapeChar(prevChar)) {
+                    if (c == arg.charAt(0)) {
+                        out = i;
+                        break;
+                    }
+                }
+                prevChar = c;
+            }
+            return out;
+        }
+
+        private String unquote(String arg) {
+            if (arg.length() > 1 && (arg.startsWith("\"") && arg.endsWith("\""))
+                    || (arg.startsWith("'") && arg.endsWith("'"))) {
+                if (closingQuote(arg) == arg.length() - 1) {
+                    return arg.substring(1, arg.length() -1);
+                }
+            }
+            return arg;
+        }
+
     }
 
     private String flipArgument(final String command, final String subLine, final List<String> pipes, List<String> arglist) {
@@ -894,22 +923,23 @@ public class SystemRegistryImpl implements SystemRegistry {
         private String variable;
         private String pipe;
 
-        public CommandData (Parser parser, boolean statement, String rawLine, String variable, File file, boolean append, String pipe) {
+        public CommandData(ArgsParser parser, boolean statement, String rawLine, String variable, File file, boolean append, String pipe) {
             this.rawLine = rawLine;
             this.variable = variable;
             this.file = file;
             this.append = append;
             this.pipe = pipe;
             this.args = new String[] {};
+            this.command = "";
             if (!statement) {
-                ParsedLine plf = parser.parse(rawLine, 0, ParseContext.ACCEPT_LINE);
-                if (plf.words().size() > 1) {
-                    this.args = plf.words().subList(1, plf.words().size()).toArray(new String[0]);
+                parser.parse(rawLine);
+                this.command = parser.command();
+                if (parser.args().size() > 1) {
+                    this.args = new String[parser.args().size() - 1];
+                    for (int i = 1; i < parser.args().size(); i++) {
+                        args[i - 1] = parser.unquote(parser.args().get(i));
+                    }
                 }
-                this.command = ConsoleEngine.plainCommand(parser.getCommand(plf.words().get(0)));
-            } else {
-                this.args = new String[] {};
-                this.command = "";
             }
         }
 
@@ -1595,8 +1625,8 @@ public class SystemRegistryImpl implements SystemRegistry {
             if (parser.getCommand(line).equals("pipe")) {
                 return;
             }
-            ArgsParser ap = new ArgsParser();
-            ap.parse(parser, line);
+            ArgsParser ap = new ArgsParser(parser);
+            ap.parse(line);
             List<String> args = ap.args();
             int pipeId = 0;
             for (String a : args) {
