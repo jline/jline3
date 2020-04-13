@@ -39,6 +39,7 @@ import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
+import org.jline.utils.Log;
 
 /**
  * Manage console variables, commands and script execution.
@@ -947,8 +948,10 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     @Override
     public void println(Object object) {
+        long start = new Date().getTime();
         Map<String,Object> options = defaultPrntOptions();
         println(options, object);
+        Log.debug("println: ", new Date().getTime() - start, " msec");
     }
 
     @Override

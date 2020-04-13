@@ -42,12 +42,9 @@ import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Attributes.InputFlag;
+import org.jline.utils.*;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
-import org.jline.utils.AttributedString;
-import org.jline.utils.AttributedStringBuilder;
-import org.jline.utils.AttributedStyle;
-import org.jline.utils.OSUtils;
 
 /**
  * Aggregate command registeries.
@@ -423,6 +420,8 @@ public class SystemRegistryImpl implements SystemRegistry {
             terminal = TerminalBuilder.builder()
                                       .streams(in, outputStream)
                                       .attributes(attrs)
+                                      .jna(false)
+                                      .jansi(false)
                                       .type(Terminal.TYPE_DUMB).build();
             this.commandSession = new CommandRegistry.CommandSession(terminal, terminal.input(), out, out);
             redirecting = true;
@@ -1063,6 +1062,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         if (line.isEmpty() || line.trim().startsWith("#")) {
             return null;
         }
+        long start = new Date().getTime();
         Object out = null;
         boolean statement = false;
         boolean postProcessed = false;
@@ -1135,6 +1135,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         if (errorCount == 0) {
             names.extractNames(line);
         }
+        Log.debug("execute: ", new Date().getTime() - start, " msec");
         return out;
     }
 
@@ -1214,6 +1215,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 asb.append(exception.getClass().getCanonicalName(), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
             }
             asb.toAttributedString().println(terminal());
+            Log.debug("Stack: ", exception);
         }
     }
 
