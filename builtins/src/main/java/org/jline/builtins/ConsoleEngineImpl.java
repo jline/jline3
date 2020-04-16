@@ -63,6 +63,8 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     private static final String END_HELP = "END_HELP";
     private static final int HELP_MAX_SIZE = 30;
     private static final int PRNT_MAX_ROWS = 100000;
+    private static final int PRNT_MAX_DEPTH = 1;
+    private static final int PRNT_INDENTION = 4;
     private final ScriptEngine engine;
     private Map<Command,String> commandName = new HashMap<>();
     private Map<String,Command> nameCommand = new HashMap<>();
@@ -567,7 +569,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
         private String expandParameterName(String parameter) {
             if (parameter.startsWith("$")) {
-                return expandName(parameter);            
+                return expandName(parameter);
             } else if (isNumber(parameter)) {
                 return parameter;
             }
@@ -915,6 +917,8 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             out.putAll((Map<String,Object>)engine.get(VAR_PRNT_OPTIONS));
         }
         out.putIfAbsent("maxrows", PRNT_MAX_ROWS);
+        out.putIfAbsent("maxDepth", PRNT_MAX_DEPTH);
+        out.putIfAbsent("indention", PRNT_INDENTION);
         return out;
     }
 
@@ -939,7 +943,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 toPrint = ((SystemRegistryImpl.CommandData)object).toString();
             }
         }
-        println(options, toPrint);
+        internalPrintln(options, toPrint);
     }
 
     private void error(String message) {
@@ -949,13 +953,19 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     @Override
     public void println(Object object) {
         long start = new Date().getTime();
-        Map<String,Object> options = defaultPrntOptions();
-        println(options, object);
+        internalPrintln(defaultPrntOptions(), object);
         Log.debug("println: ", new Date().getTime() - start, " msec");
     }
 
     @Override
     public void println(Map<String, Object> options, Object object) {
+        for (Map.Entry<String, Object> entry : defaultPrntOptions().entrySet()) {
+            options.putIfAbsent(entry.getKey(), entry.getValue());
+        }
+        internalPrintln(options, object);
+    }
+
+    private void internalPrintln(Map<String, Object> options, Object object) {
         if (object == null) {
             return;
         }
@@ -1491,38 +1501,61 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     private List<AttributedString> highlightMap(Map<String, Object> options, Map<String, Object> map, int width) {
         List<AttributedString> out = new ArrayList<>();
+        highlightMap(options, map, width, 0, out);
+        return out;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void highlightMap(Map<String, Object> options
+                            , Map<String, Object> map, int width, int depth, List<AttributedString> out) {
         AttributedStyle defaultStyle = AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW);
         int max = map.keySet().stream().map(String::length).max(Integer::compareTo).get();
         if (max > (int)options.getOrDefault("maxColumnWidth", Integer.MAX_VALUE)) {
             max = (int)options.get("maxColumnWidth");
         }
-        options.remove("maxColumnWidth");
+        Map<String, Object> mapOptions = new HashMap<>();
+        mapOptions.putAll(options);
+        mapOptions.remove("maxColumnWidth");
+        int indent = (int)options.get("indention");
+        int maxDepth = (int)options.get("maxDepth");
         for (Map.Entry<String, Object> entry : map.entrySet()) {
-            AttributedStringBuilder asb = new AttributedStringBuilder().tabs(Arrays.asList(0, max + 1));
-            asb.append(truncateValue(max, entry.getKey()), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
-            AttributedString val = highlightMapValue(options, entry.getKey(), map, defaultStyle);
-            if (map.size() == 1) {
+            AttributedStringBuilder asb = new AttributedStringBuilder().tabs(Arrays.asList(0, depth*indent, depth*indent + max + 1));
+            if (depth != 0) {
                 asb.append("\t");
-                if (val.contains('\n')) {
-                    for (String v : val.toString().split("\\r?\\n")) {
-                        asb.append(v, defaultStyle);
+            }
+            asb.append(truncateValue(max, entry.getKey()), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
+            Object elem = entry.getValue();
+            boolean convert = canConvert(elem);
+            if (depth < maxDepth && (elem instanceof Map || convert) && !options.containsKey("toString")) {
+                out.add(truncate(asb, width));
+                Map<String, Object> childMap = convert ? objectToMap(options, elem)
+                                                       : keysToString((Map<Object, Object>) elem);
+                highlightMap(options, childMap, width, depth + 1, out);
+            } else {
+                AttributedString val = highlightMapValue(mapOptions, entry.getKey(), map, defaultStyle);
+                if (map.size() == 1) {
+                    asb.append("\t");
+                    if (val.contains('\n')) {
+                        for (String v : val.toString().split("\\r?\\n")) {
+                            asb.append(v, defaultStyle);
+                            out.add(truncate(asb, width));
+                            asb = new AttributedStringBuilder().tabs(Arrays.asList(0, max + 1));
+                        }
+                    } else {
+                        asb.append(val);
                         out.add(truncate(asb, width));
-                        asb = new AttributedStringBuilder().tabs(Arrays.asList(0, max + 1));
                     }
                 } else {
+                    if (val.contains('\n')) {
+                        val = new AttributedString(Arrays.asList(val.toString().split("\\r?\\n")).toString(),
+                                defaultStyle);
+                    }
+                    asb.append("\t");
                     asb.append(val);
                     out.add(truncate(asb, width));
                 }
-            } else {
-                if (val.contains('\n')) {
-                    val = new AttributedString(Arrays.asList(val.toString().split("\\r?\\n")).toString(), defaultStyle);
-                }
-                asb.append("\t");
-                asb.append(val);
-                out.add(truncate(asb, width));
             }
         }
-        return out;
     }
 
     private Object show(Builtins.CommandInput input) {
@@ -1536,7 +1569,10 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             exception = new HelpException(opt.usage());
             return null;
         }
-        return engine.find(input.args().length > 0 ? input.args()[0] : null);
+        Map<String, Object> options = defaultPrntOptions();
+        options.put("maxDepth", 0);
+        internalPrintln(options, engine.find(input.args().length > 0 ? input.args()[0] : null));
+        return null;
     }
 
     private Object del(Builtins.CommandInput input) {
@@ -1561,7 +1597,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 "  -? --help                       Displays command help",
                 "  -a --all                        Ignore columnsOut configuration",
                 "  -c --columns=COLUMNS,...        Display given columns on table",
+                "  -i --indention=IDENTION         Indention size",
                 "     --maxColumnWidth=WIDTH       Maximum column width",
+                "  -d --maxDepth=DEPTH             Maximum depth objects are resolved",
                 "     --maxrows=ROWS               Maximum number of rows on table",
                 "     --oneRowTable                Display one row data on table",
                 "  -r --rownum                     Display table row numbers",
@@ -1607,10 +1645,16 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         if (opt.isSet("maxColumnWidth")) {
             options.put("maxColumnWidth", opt.getNumber("maxColumnWidth"));
         }
+        if (opt.isSet("maxDepth")) {
+            options.put("maxDepth", opt.getNumber("maxDepth"));
+        }
+        if (opt.isSet("indention")) {
+            options.put("indention", opt.getNumber("indention"));
+        }
         options.put("exception", "stack");
         List<Object> args = opt.argObjects();
         if (args.size() > 0) {
-            println(options, args.get(0));
+            internalPrintln(options, args.get(0));
         }
         return null;
     }
