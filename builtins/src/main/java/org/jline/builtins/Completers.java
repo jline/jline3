@@ -398,7 +398,7 @@ public class Completers {
             return useForwardSlash ? "/" :getUserDir().getFileSystem().getSeparator();
         }
 
-        protected static String getDisplay(Terminal terminal, Path p) {
+        protected String getDisplay(Terminal terminal, Path p) {
             // TODO: use $LS_COLORS for output
             String name = p.getFileName().toString();
             if (Files.isDirectory(p)) {
@@ -688,9 +688,8 @@ public class Completers {
                 if (v.startsWith(partialValue)) {
                     out = true;
                     String val = c.value();
-                    if (valueCompleter instanceof Completers.FilesCompleter
-                            || valueCompleter instanceof Completers.DirectoriesCompleter) {
-                        val = FileNameCompleter.getDisplay(reader.getTerminal(), Paths.get(c.value()));
+                    if (valueCompleter instanceof Completers.FileNameCompleter) {
+                        val = ((Completers.FileNameCompleter)valueCompleter).getDisplay(reader.getTerminal(), Paths.get(c.value()));
                     }
                     candidates.add(new Candidate(curBuf + v, val, null, null, null, null, c.complete()));
                 }

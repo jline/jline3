@@ -1298,27 +1298,27 @@ public class SystemRegistryImpl extends AbstractCommandRegistry implements Syste
         final String[] usage = { "help -  command help"
                                , "Usage: help [TOPIC...]",
                                  "  -? --help                       Displays command help", };
-        Options opt = Options.compile(usage).parse(input.args());
-        if (opt.isSet("help")) {
-            exception = new HelpException(opt.usage());
-            return null;
-        }
-        boolean doTopic = false;
-        if (!opt.args().isEmpty() && opt.args().size() == 1) {
-            try {
-                String[] args = {"--help"};
-                String command = opt.args().get(0);
-                execute(command, command + " " + args[0], args);
-            } catch (UnknownCommandException e) {
+        try {
+            Options opt = parseOptions(usage, input.args());
+            boolean doTopic = false;
+            if (!opt.args().isEmpty() && opt.args().size() == 1) {
+                try {
+                    String[] args = {"--help"};
+                    String command = opt.args().get(0);
+                    execute(command, command + " " + args[0], args);
+                } catch (UnknownCommandException e) {
+                    doTopic = true;
+                } catch (Exception e) {
+                    exception = e;
+                }
+            } else {
                 doTopic = true;
-            } catch (Exception e) {
-                exception = e;
             }
-        } else {
-            doTopic = true;
-        }
-        if (doTopic) {
-            helpTopic(opt.args());
+            if (doTopic) {
+                helpTopic(opt.args());
+            }
+        } catch (Exception e) {
+            exception = e;
         }
         return null;
     }
@@ -1393,10 +1393,9 @@ public class SystemRegistryImpl extends AbstractCommandRegistry implements Syste
                                , "Usage: exit [OBJECT]"
                                , "  -? --help                       Displays command help"
                           };
-        Options opt = Options.compile(usage).parse(input.args());
-        if (opt.isSet("help")) {
-            exception = new HelpException(opt.usage());
-        } else {
+        
+        try {
+            Options opt = parseOptions(usage, input.args());
             if (!opt.args().isEmpty() && consoleId != null) {
                 try {
                     Object[] ret = consoleEngine().expandParameters(opt.args().toArray(new String[0]));
@@ -1406,6 +1405,8 @@ public class SystemRegistryImpl extends AbstractCommandRegistry implements Syste
                 }
             }
             exception = new EndOfFileException();
+        } catch (Exception e) {
+            exception = e;
         }
         return null;
     }
@@ -1453,7 +1454,8 @@ public class SystemRegistryImpl extends AbstractCommandRegistry implements Syste
         return out;
     }
 
-    private List<OptDesc> commandOptions(String command) {
+    @Override
+    public List<OptDesc> commandOptions(String command) {
         try {
             localExecute(command, new String[] { "--help" });
         } catch (HelpException e) {

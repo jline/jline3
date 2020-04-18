@@ -1586,14 +1586,14 @@ public class ConsoleEngineImpl extends AbstractCommandRegistry implements Consol
                 "Usage: show [VARIABLE]",
                 "  -? --help                       Displays command help",
         };
-        Options opt = Options.compile(usage).parse(input.args());
-        if (opt.isSet("help")) {
-            exception = new HelpException(opt.usage());
-            return null;
+        try {
+            Options opt = parseOptions(usage, input.args());
+            Map<String, Object> options = defaultPrntOptions();
+            options.put("maxDepth", 0);
+            internalPrintln(options, engine.find(input.args().length > 0 ? input.args()[0] : null));
+        } catch (Exception e) {
+            exception = e;
         }
-        Map<String, Object> options = defaultPrntOptions();
-        options.put("maxDepth", 0);
-        internalPrintln(options, engine.find(input.args().length > 0 ? input.args()[0] : null));
         return null;
     }
 
@@ -1603,12 +1603,12 @@ public class ConsoleEngineImpl extends AbstractCommandRegistry implements Consol
                 "Usage: del [var1] ...",
                 "  -? --help                       Displays command help",
         };
-        Options opt = Options.compile(usage).parse(input.xargs());
-        if (opt.isSet("help")) {
-            exception = new HelpException(opt.usage());
-            return null;
+        try {
+            Options opt = parseOptions(usage, input.args());
+            engine.del(input.args());
+        } catch (Exception e) {
+            exception = e;
         }
-        engine.del(input.args());
         return null;
     }
 
@@ -1633,58 +1633,58 @@ public class ConsoleEngineImpl extends AbstractCommandRegistry implements Consol
                 "                                  DEFAULT: object's fields are put to property map before printing",
                 "  -w --width=WIDTH                Display width (default terminal width)"
         };
-        Options opt = Options.compile(usage).parse(input.xargs());
-        if (opt.isSet("help")) {
-            exception = new HelpException(opt.usage());
-            return null;
-        }
-        Map<String, Object> options = defaultPrntOptions();
-        if (opt.isSet("style")) {
-            options.put("style", opt.get("style"));
-        }
-        if (opt.isSet("toString")) {
-            options.put("toString", true);
-        }
-        if (opt.isSet("width")) {
-            options.put("width", opt.getNumber("width"));
-        }
-        if (opt.isSet("rownum")) {
-            options.put("rownum", true);
-        }
-        if (opt.isSet("oneRowTable")) {
-            options.put("oneRowTable", true);
-        }
-        if (opt.isSet("structsOnTable")) {
-            options.put("structsOnTable", true);
-        }
-        if (opt.isSet("columns")) {
-            options.put("columns", Arrays.asList(opt.get("columns").split(",")));
-        }
-        if (opt.isSet("exclude")) {
-            options.put("exclude", Arrays.asList(opt.get("exclude").split(",")));
-        }
-        if (opt.isSet("include")) {
-            options.put("include", Arrays.asList(opt.get("include").split(",")));
-        }
-        if (opt.isSet("all")) {
-            options.put("all", true);
-        }
-        if (opt.isSet("maxrows")) {
-            options.put("maxrows", opt.getNumber("maxrows"));
-        }
-        if (opt.isSet("maxColumnWidth")) {
-            options.put("maxColumnWidth", opt.getNumber("maxColumnWidth"));
-        }
-        if (opt.isSet("maxDepth")) {
-            options.put("maxDepth", opt.getNumber("maxDepth"));
-        }
-        if (opt.isSet("indention")) {
-            options.put("indention", opt.getNumber("indention"));
-        }
-        options.put("exception", "stack");
-        List<Object> args = opt.argObjects();
-        if (args.size() > 0) {
-            internalPrintln(options, args.get(0));
+        try {
+            Options opt = parseOptions(usage, input.args());
+            Map<String, Object> options = defaultPrntOptions();
+            if (opt.isSet("style")) {
+                options.put("style", opt.get("style"));
+            }
+            if (opt.isSet("toString")) {
+                options.put("toString", true);
+            }
+            if (opt.isSet("width")) {
+                options.put("width", opt.getNumber("width"));
+            }
+            if (opt.isSet("rownum")) {
+                options.put("rownum", true);
+            }
+            if (opt.isSet("oneRowTable")) {
+                options.put("oneRowTable", true);
+            }
+            if (opt.isSet("structsOnTable")) {
+                options.put("structsOnTable", true);
+            }
+            if (opt.isSet("columns")) {
+                options.put("columns", Arrays.asList(opt.get("columns").split(",")));
+            }
+            if (opt.isSet("exclude")) {
+                options.put("exclude", Arrays.asList(opt.get("exclude").split(",")));
+            }
+            if (opt.isSet("include")) {
+                options.put("include", Arrays.asList(opt.get("include").split(",")));
+            }
+            if (opt.isSet("all")) {
+                options.put("all", true);
+            }
+            if (opt.isSet("maxrows")) {
+                options.put("maxrows", opt.getNumber("maxrows"));
+            }
+            if (opt.isSet("maxColumnWidth")) {
+                options.put("maxColumnWidth", opt.getNumber("maxColumnWidth"));
+            }
+            if (opt.isSet("maxDepth")) {
+                options.put("maxDepth", opt.getNumber("maxDepth"));
+            }
+            if (opt.isSet("indention")) {
+                options.put("indention", opt.getNumber("indention"));
+            }
+            options.put("exception", "stack");
+            List<Object> args = opt.argObjects();
+            if (args.size() > 0) {
+                internalPrintln(options, args.get(0));
+            }
+        } catch (Exception e) {
+            exception = e;
         }
         return null;
     }
@@ -1697,13 +1697,9 @@ public class ConsoleEngineImpl extends AbstractCommandRegistry implements Consol
                 "  -e --encoding=ENCODING          Encoding (default UTF-8)",
                 "  -f --format=FORMAT              Serialization format"
         };
-        Options opt = Options.compile(usage).parse(input.args());
-        if (opt.isSet("help")) {
-            exception = new HelpException(opt.usage());
-            return null;
-        }
         Object out = null;
-        try  {
+        try {
+            Options opt = parseOptions(usage, input.args());
             if (!opt.args().isEmpty()){
                 Charset encoding = opt.isSet("encoding") ? Charset.forName(opt.get("encoding")): StandardCharsets.UTF_8;
                 String format = opt.isSet("format") ? opt.get("format") : engine.getSerializationFormats().get(0);
@@ -1736,13 +1732,9 @@ public class ConsoleEngineImpl extends AbstractCommandRegistry implements Consol
                 "Usage: alias [ALIAS] [COMMANDLINE]",
                 "  -? --help                       Displays command help"
         };
-        Options opt = Options.compile(usage).parse(input.args());
-        if (opt.isSet("help")) {
-            exception = new HelpException(opt.usage());
-            return null;
-        }
         Object out = null;
-        try  {
+        try {
+            Options opt = parseOptions(usage, input.args());
             List<String> args = opt.args();
             if (args.isEmpty()) {
                 out = aliases;
@@ -1772,22 +1764,16 @@ public class ConsoleEngineImpl extends AbstractCommandRegistry implements Consol
                 "Usage: unalias [ALIAS...]",
                 "  -? --help                       Displays command help"
         };
-        Options opt = Options.compile(usage).parse(input.args());
-        if (opt.isSet("help")) {
-            exception = new HelpException(opt.usage());
-            return null;
-        }
-        Object out = null;
-        try  {
+        try {
+            Options opt = parseOptions(usage, input.args());
             for (String a : opt.args()) {
                 aliases.remove(a);
             }
+            persist(aliasFile, aliases);
         } catch (Exception e) {
             exception = e;
-        } finally {
-            persist(aliasFile, aliases);
         }
-        return out;
+        return null;
     }
 
     private Object pipe(Builtins.CommandInput input) {
@@ -1800,36 +1786,37 @@ public class ConsoleEngineImpl extends AbstractCommandRegistry implements Consol
                 "  -d --delete                     Delete pipe operators",
                 "  -l --list                       List pipe operators",
         };
-        Options opt = Options.compile(usage).parse(input.args());
-        if (opt.isSet("help")) {
-            exception = new HelpException(opt.usage());
-            return null;
-        }
         Object out = null;
-        if (opt.isSet("delete")) {
-            if ( opt.args().size() == 1 && opt.args().get(0).equals("*")) {
-                pipes.clear();
-            } else {
-                for (String p: opt.args()) {
-                    pipes.remove(p.trim());
+        try {
+            Options opt = parseOptions(usage, input.args());
+            if (opt.isSet("delete")) {
+                if ( opt.args().size() == 1 && opt.args().get(0).equals("*")) {
+                    pipes.clear();
+                } else {
+                    for (String p: opt.args()) {
+                        pipes.remove(p.trim());
+                    }
                 }
+            } else if (opt.isSet("list") || opt.args().size() == 0) {
+                out = pipes;
+            } else if (opt.args().size() != 3) {
+                exception = new IllegalArgumentException("Bad number of arguments!");
+            } else if (systemRegistry.getPipeNames().contains(opt.args().get(0))) {
+                exception = new IllegalArgumentException("Reserved pipe operator");
+            } else {
+                List<String> fixes = new ArrayList<>();
+                fixes.add(opt.args().get(1));
+                fixes.add(opt.args().get(2));
+                pipes.put(opt.args().get(0), fixes);
             }
-        } else if (opt.isSet("list") || opt.args().size() == 0) {
-            out = pipes;
-        } else if (opt.args().size() != 3) {
-            exception = new IllegalArgumentException("Bad number of arguments!");
-        } else if (systemRegistry.getPipeNames().contains(opt.args().get(0))) {
-            exception = new IllegalArgumentException("Reserved pipe operator");
-        } else {
-            List<String> fixes = new ArrayList<>();
-            fixes.add(opt.args().get(1));
-            fixes.add(opt.args().get(2));
-            pipes.put(opt.args().get(0), fixes);
+        } catch (Exception e) {
+            exception = e;
         }
         return out;
     }
 
-    private List<OptDesc> commandOptions(String command) {
+    @Override
+    public List<OptDesc> commandOptions(String command) {
         try {
             invoke(new CommandSession(), command, "--help");
         } catch (HelpException e) {

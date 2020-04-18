@@ -67,30 +67,21 @@ public class Repl {
      * Command execute and tab completer compiler methods for CommandRegistry
      * which have commands that will return execution value
      */
-    private static abstract class ObjectCommand extends AbstractCommandRegistry {
+    private static abstract class ObjectCommand extends org.jline.builtins.AbstractCommandRegistry {
+        protected Exception exception;
 
         public ObjectCommand() {
             super();
         }
 
+        @Override
         public Object invoke(CommandRegistry.CommandSession session, String command, Object... args) throws Exception {
             exception = null;
-            Object out = commandExecute.get(command(command)).executeFunction().apply(new Builtins.CommandInput(command, args, session));
+            Object out = getCommandMethods(command).executeFunction().apply(new Builtins.CommandInput(command, args, session));
             if (exception != null) {
                 throw exception;
             }
             return out;
-        }
-
-        protected List<OptDesc> commandOptions(String command) {
-            try {
-                invoke(new CommandRegistry.CommandSession(), command, new Object[] {"--help"});
-            } catch (HelpException e) {
-                return Builtins.compileCommandOptions(e.getMessage());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            return null;
         }
 
         protected List<Completer> defaultCompleter(String command) {
@@ -109,30 +100,10 @@ public class Repl {
      * Command execute and tab completer compilers methods for CommandRegistry
      * which have commands that will not return execution value
      */
-    private static abstract class VoidCommand extends AbstractCommandRegistry {
+    private static abstract class VoidCommand extends org.jline.builtins.AbstractCommandRegistry {
 
         public VoidCommand() {
             super();
-        }
-
-        public Object execute(CommandRegistry.CommandSession session, String command, String[] args) throws Exception {
-            exception = null;
-            commandExecute.get(command(command)).execute().accept(new Builtins.CommandInput(command, args, session));
-            if (exception != null) {
-                throw exception;
-            }
-            return null;
-        }
-
-        protected List<OptDesc> commandOptions(String command) {
-            try {
-                execute(new CommandRegistry.CommandSession(), command, new String[] {"--help"});
-            } catch (HelpException e) {
-                return Builtins.compileCommandOptions(e.getMessage());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            return null;
         }
 
         protected List<Completer> defaultCompleter(String command) {
@@ -148,54 +119,6 @@ public class Repl {
     }
 
     /**
-     *
-     *
-     */
-    private static abstract class AbstractCommandRegistry extends org.jline.builtins.AbstractCommandRegistry {
-        protected final Map<String,Builtins.CommandMethods> commandExecute = new HashMap<>();
-        protected Exception exception;
-        protected Map<String,String> aliasCommand = new HashMap<>();
-
-        public AbstractCommandRegistry() {
-            super();
-        }
-
-        public Set<String> commandNames() {
-            return commandExecute.keySet();
-        }
-
-        public Map<String, String> commandAliases() {
-            return aliasCommand;
-        }
-
-        public boolean hasCommand(String command) {
-            if (commandExecute.containsKey(command) || aliasCommand.containsKey(command)) {
-                return true;
-            }
-            return false;
-        }
-
-        protected String command(String name) {
-            if (commandExecute.containsKey(name)) {
-                return name;
-            } else if (aliasCommand.containsKey(name)) {
-                return aliasCommand.get(name);
-            }
-            return null;
-        }
-
-        public SystemCompleter compileCompleters() {
-            SystemCompleter out = new SystemCompleter();
-            for (String c : commandExecute.keySet()) {
-                out.add(c, commandExecute.get(c).compileCompleter().apply(c));
-            }
-            out.addAliases(aliasCommand);
-            return out;
-        }
-
-    }
-
-    /**
      * CommandRegistry that have commands which manage in different way command parameters.
      *
      */
@@ -203,9 +126,11 @@ public class Repl {
 
         public SubCommands() {
             super();
+            Map<String,Builtins.CommandMethods> commandExecute = new HashMap<>();
             commandExecute.put("cmdKo1", new Builtins.CommandMethods(this::cmd1, this::defaultCompleter));
             commandExecute.put("cmdKo2", new Builtins.CommandMethods(this::cmd2, this::defaultCompleter));
             commandExecute.put("cmdOk", new Builtins.CommandMethods(this::cmd3, this::defaultCompleter));
+            registerCommands(commandExecute);
         }
 
         private Object cmd1(Builtins.CommandInput input) {
@@ -271,10 +196,12 @@ public class Repl {
         public MyCommands(Supplier<Path> workDir) {
             super();
             this.workDir = workDir;
+            Map<String,Builtins.CommandMethods> commandExecute = new HashMap<>();
             commandExecute.put("tput", new Builtins.CommandMethods(this::tput, this::tputCompleter));
             commandExecute.put("testkey", new Builtins.CommandMethods(this::testkey, this::defaultCompleter));
             commandExecute.put("clear", new Builtins.CommandMethods(this::clear, this::defaultCompleter));
             commandExecute.put("!", new Builtins.CommandMethods(this::shell, this::defaultCompleter));
+            registerCommands(commandExecute);
         }
 
         public void setLineReader(LineReader reader) {
@@ -305,7 +232,7 @@ public class Repl {
                     terminal().writer().println("Usage: tput [CAPABILITY]");
                 }
             } catch (Exception e) {
-                exception = e;
+                saveException(e);
             }
         }
 
@@ -328,7 +255,7 @@ public class Repl {
                 terminal().writer().println(KeyMap.display(sb.toString()));
                 terminal().writer().flush();
             } catch (Exception e) {
-                exception = e;
+                saveException(e);
             }
         }
 
@@ -343,7 +270,7 @@ public class Repl {
                 terminal().puts(Capability.clear_screen);
                 terminal().flush();
             } catch (Exception e) {
-                exception = e;
+                saveException(e);
             }
         }
 
@@ -376,7 +303,7 @@ public class Repl {
             try {
                 parseOptions(usage, input.args());
             } catch (HelpException e) {
-                exception = e;
+                saveException(e);
                 return;
             } catch (Exception e) {
                 // ignore
@@ -387,7 +314,7 @@ public class Repl {
                 try {
                     executeCmnd(argv);
                 } catch (Exception e) {
-                    exception = e;
+                    saveException(e);
                 }
             }
         }
