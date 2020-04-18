@@ -919,6 +919,8 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         out.putIfAbsent("maxrows", PRNT_MAX_ROWS);
         out.putIfAbsent("maxDepth", PRNT_MAX_DEPTH);
         out.putIfAbsent("indention", PRNT_INDENTION);
+        out.putIfAbsent("columnsOut", new ArrayList<String>());
+        out.putIfAbsent("columnsIn", new ArrayList<String>());
         return out;
     }
 
@@ -965,9 +967,23 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         internalPrintln(options, object);
     }
 
+    @SuppressWarnings("unchecked")
     private void internalPrintln(Map<String, Object> options, Object object) {
         if (object == null) {
             return;
+        }
+        if (options.containsKey("exclude")) {
+            List<String> colOut = optionList("exclude", options);
+            List<String> colIn = optionList("columnsIn", options);
+            colIn.removeAll(colOut);
+            colOut.addAll((List<String>)options.get("columnsOut"));
+            options.put("columnsIn", colIn);
+            options.put("columnsOut", colOut);
+        }
+        if (options.containsKey("include")) {
+            List<String> colIn = optionList("include", options);
+            colIn.addAll((List<String>)options.get("columnsIn"));
+            options.put("columnsIn", colIn);
         }
         options.putIfAbsent("width", terminal().getSize().getColumns());
         String style = (String) options.getOrDefault("style", "");
@@ -1070,7 +1086,8 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             } else if (options.get(key) instanceof Collection) {
                 out.addAll((Collection<String>)options.get(key));
             } else {
-                throw new IllegalArgumentException("Unsupported option list type: " + options.get(key).getClass());
+                throw new IllegalArgumentException("Unsupported option list: {key: " + key
+                                                 + ", type: " + options.get(key).getClass() + "}");
             }
         }
         return out;
@@ -1304,7 +1321,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                             int headerWidth = 0;
                             Set<String> refKeys = new HashSet<>();
                             for (int i = 0; i < _header.size(); i++) {
-                                if (!map.containsKey(_header.get(i).split("\\.")[0])) {
+                                if (!map.containsKey(_header.get(i).split("\\.")[0]) && !map.containsKey(_header.get(i))) {
                                     continue;
                                 }
                                 if (options.containsKey("columns")) {
@@ -1315,7 +1332,8 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                                         continue;
                                     }
                                 }
-                                refKeys.add(_header.get(i).split("\\.")[0]);
+                                String rk = map.containsKey(_header.get(i)) ? _header.get(i) : _header.get(i).split("\\.")[0];
+                                refKeys.add(rk);
                                 header.add(_header.get(i));
                                 columns.add(_header.get(i).length() + 1);
                                 headerWidth += _header.get(i).length() + 1;
@@ -1597,7 +1615,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 "  -? --help                       Displays command help",
                 "  -a --all                        Ignore columnsOut configuration",
                 "  -c --columns=COLUMNS,...        Display given columns on table",
-                "  -i --indention=IDENTION         Indention size",
+                "  -e --exclude=COLUMNS,...        Exclude given columns on table",
+                "  -i --include=COLUMNS,...        Include given columns on table",
+                "     --indention=IDENTION         Indention size",
                 "     --maxColumnWidth=WIDTH       Maximum column width",
                 "  -d --maxDepth=DEPTH             Maximum depth objects are resolved",
                 "     --maxrows=ROWS               Maximum number of rows on table",
@@ -1635,6 +1655,12 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         }
         if (opt.isSet("columns")) {
             options.put("columns", Arrays.asList(opt.get("columns").split(",")));
+        }
+        if (opt.isSet("exclude")) {
+            options.put("exclude", Arrays.asList(opt.get("exclude").split(",")));
+        }
+        if (opt.isSet("include")) {
+            options.put("include", Arrays.asList(opt.get("include").split(",")));
         }
         if (opt.isSet("all")) {
             options.put("all", true);
