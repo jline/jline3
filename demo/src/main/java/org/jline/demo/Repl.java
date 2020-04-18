@@ -32,20 +32,13 @@ import org.jline.builtins.ConsoleEngineImpl;
 import org.jline.builtins.Options;
 import org.jline.builtins.Completers.OptDesc;
 import org.jline.builtins.Completers.OptionCompleter;
-import org.jline.builtins.Completers.SystemCompleter;
 import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.SystemRegistryImpl;
 import org.jline.builtins.Widgets.TailTipWidgets;
 import org.jline.builtins.Widgets.TailTipWidgets.TipType;
+import org.jline.console.ConfigurationPath;
 import org.jline.keymap.KeyMap;
-import org.jline.reader.Binding;
-import org.jline.reader.Completer;
-import org.jline.reader.ConfigurationPath;
-import org.jline.reader.EndOfFileException;
-import org.jline.reader.LineReader;
-import org.jline.reader.LineReaderBuilder;
-import org.jline.reader.Reference;
-import org.jline.reader.UserInterruptException;
+import org.jline.reader.*;
 import org.jline.reader.LineReader.Option;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.LineReaderImpl;
@@ -53,6 +46,7 @@ import org.jline.reader.impl.DefaultParser.Bracket;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
+import org.jline.reader.impl.completer.SystemCompleter;
 import org.jline.script.GroovyEngine;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
@@ -188,7 +182,7 @@ public class Repl {
             return null;
         }
 
-        public Completers.SystemCompleter compileCompleters() {
+        public SystemCompleter compileCompleters() {
             SystemCompleter out = new SystemCompleter();
             for (String c : commandExecute.keySet()) {
                 out.add(c, commandExecute.get(c).compileCompleter().apply(c));

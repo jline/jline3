@@ -6,7 +6,7 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.reader;
+package org.jline.console;
 
 import java.io.IOException;
 import java.nio.file.Path;

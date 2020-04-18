@@ -34,12 +34,15 @@ import org.jline.builtins.ConsoleEngine.ExecutionResult;
 import org.jline.builtins.Widgets;
 import org.jline.builtins.Builtins.CommandMethods;
 import org.jline.builtins.Options.HelpException;
+import org.jline.console.CmdDesc;
+import org.jline.console.ConfigurationPath;
 import org.jline.reader.*;
 import org.jline.reader.Parser.ParseContext;
 import org.jline.reader.impl.completer.AggregateCompleter;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
+import org.jline.reader.impl.completer.SystemCompleter;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Attributes.InputFlag;
 import org.jline.utils.*;
@@ -211,9 +214,9 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     @Override
-    public Completers.SystemCompleter compileCompleters() {
-        Completers.SystemCompleter out = CommandRegistry.aggregateCompleters(commandRegistries);
-        Completers.SystemCompleter local = new Completers.SystemCompleter();
+    public SystemCompleter compileCompleters() {
+        SystemCompleter out = CommandRegistry.aggregateCompleters(commandRegistries);
+        SystemCompleter local = new SystemCompleter();
         for (String command : commandExecute.keySet()) {
             if (subcommands.containsKey(command)) {
                 for(Map.Entry<String,List<Completer>> entry : subcommands.get(command).compileCompleters().getCompleters().entrySet()) {
@@ -252,7 +255,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         return new AggregateCompleter(completers);
     }
 
-    private Widgets.CmdDesc localCommandDescription(String command) {
+    private CmdDesc localCommandDescription(String command) {
         if (!isLocalCommand(command)) {
             throw new IllegalArgumentException();
         }
@@ -268,8 +271,8 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     @Override
-    public Widgets.CmdDesc commandDescription(List<String> args) {
-        Widgets.CmdDesc out = new Widgets.CmdDesc(false);
+    public CmdDesc commandDescription(List<String> args) {
+        CmdDesc out = new CmdDesc(false);
         String command = args.get(0);
         int id = registryId(command);
         if (id > -1) {
@@ -283,8 +286,8 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     @Override
-    public Widgets.CmdDesc commandDescription(Widgets.CmdLine line) {
-        Widgets.CmdDesc out = null;
+    public CmdDesc commandDescription(Widgets.CmdLine line) {
+        CmdDesc out = null;
         switch (line.getDescriptionType()) {
         case COMMAND:
             String cmd = parser.getCommand(line.getArgs().get(0));

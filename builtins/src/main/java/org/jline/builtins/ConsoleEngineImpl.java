@@ -27,14 +27,16 @@ import org.jline.builtins.Builtins.CommandMethods;
 import org.jline.builtins.Completers.FilesCompleter;
 import org.jline.builtins.Completers.OptDesc;
 import org.jline.builtins.Completers.OptionCompleter;
-import org.jline.builtins.Completers.SystemCompleter;
 import org.jline.builtins.Nano.SyntaxHighlighter;
 import org.jline.builtins.Options.HelpException;
+import org.jline.console.ConfigurationPath;
+import org.jline.console.ScriptEngine;
 import org.jline.reader.*;
 import org.jline.reader.Parser.ParseContext;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
+import org.jline.reader.impl.completer.SystemCompleter;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
@@ -254,7 +256,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     @Override
-    public Completers.SystemCompleter compileCompleters() {
+    public SystemCompleter compileCompleters() {
         SystemCompleter out = new SystemCompleter();
         for (Map.Entry<Command, String> entry: commandName.entrySet()) {
             out.add(entry.getValue(), commandExecute.get(entry.getKey()).compileCompleter().apply(entry.getValue()));

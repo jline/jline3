@@ -8,9 +8,11 @@
  */
 package org.jline.builtins;
 
-import org.jline.builtins.Completers;
 import org.jline.builtins.Widgets;
 import org.jline.builtins.Options.HelpException;
+import org.jline.console.ArgDesc;
+import org.jline.console.CmdDesc;
+import org.jline.reader.impl.completer.SystemCompleter;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 
@@ -30,8 +32,8 @@ public interface CommandRegistry {
      * @param commandRegistries command registeries which completers is to be aggregated
      * @return uncompiled SystemCompleter
      */
-    static Completers.SystemCompleter aggregateCompleters(CommandRegistry ... commandRegistries) {
-        Completers.SystemCompleter out = new Completers.SystemCompleter();
+    static SystemCompleter aggregateCompleters(CommandRegistry ... commandRegistries) {
+        SystemCompleter out = new SystemCompleter();
         for (CommandRegistry r: commandRegistries) {
             out.add(r.compileCompleters());
         }
@@ -43,8 +45,8 @@ public interface CommandRegistry {
      * @param commandRegistries command registeries which completers is to be aggregated and compile
      * @return compiled SystemCompleter
      */
-    static Completers.SystemCompleter compileCompleters(CommandRegistry ... commandRegistries) {
-        Completers.SystemCompleter out = aggregateCompleters(commandRegistries);
+    static SystemCompleter compileCompleters(CommandRegistry ... commandRegistries) {
+        SystemCompleter out = aggregateCompleters(commandRegistries);
         out.compile();
         return out;
     }
@@ -99,7 +101,7 @@ public interface CommandRegistry {
      * information for all registered commands.
      * @return a SystemCompleter that can provide command completion for all registered commands
      */
-    Completers.SystemCompleter compileCompleters();
+    SystemCompleter compileCompleters();
 
     /**
      * Returns a command description for use in the JLine Widgets framework.
@@ -108,7 +110,7 @@ public interface CommandRegistry {
      * @return command description for JLine TailTipWidgets to be displayed
      *         in the terminal status bar.
      */
-    default Widgets.CmdDesc commandDescription(List<String> args) {
+    default CmdDesc commandDescription(List<String> args) {
         return !args.isEmpty() ? commandDescription(args.get(0)) : commandDescription("");    
     }
     
@@ -118,7 +120,7 @@ public interface CommandRegistry {
      * @return command description for JLine TailTipWidgets to be displayed
      *         in the terminal status bar.
      */
-    default Widgets.CmdDesc commandDescription(String command) {
+    default CmdDesc commandDescription(String command) {
         try {
             if (command != null && !command.isEmpty()) {
                 invoke(new CommandSession(), command, new Object[] {"--help"});
@@ -131,7 +133,7 @@ public interface CommandRegistry {
                         break;
                     }
                 }
-                return new Widgets.CmdDesc(main, Widgets.ArgDesc.doArgNames(Arrays.asList("")), options);
+                return new CmdDesc(main, ArgDesc.doArgNames(Arrays.asList("")), options);
             }
         } catch (HelpException e) {
             return Builtins.compileCommandDescription(e.getMessage());

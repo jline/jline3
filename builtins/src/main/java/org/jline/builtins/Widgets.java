@@ -21,6 +21,8 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 
 import org.jline.builtins.Options.HelpException;
+import org.jline.console.ArgDesc;
+import org.jline.console.CmdDesc;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
 import org.jline.reader.Buffer;
@@ -77,7 +79,7 @@ public abstract class Widgets {
     }
 
     /**
-     * Call widget. System widget will be call if the name does not start with '_' or ends with '-toggle' 
+     * Call widget. System widget will be call if the name does not start with '_' or ends with '-toggle'
      * i.e. '.' will be added at the beginning of the name.
      * @param name widget name
      */
@@ -112,7 +114,7 @@ public abstract class Widgets {
     }
 
     /**
-     * 
+     *
      * @param name widget name or alias
      * @return widget name
      */
@@ -121,7 +123,7 @@ public abstract class Widgets {
     }
 
     /**
-     * 
+     *
      * @param name widget name or alias
      * @return true if widget exists
      */
@@ -148,7 +150,7 @@ public abstract class Widgets {
     }
 
     /**
-     * 
+     *
      * @return The LineRearer Parser
      */
     public Parser parser() {
@@ -156,7 +158,7 @@ public abstract class Widgets {
     }
 
     /**
-     * 
+     *
      * @return The LineReader Main KeyMap
      */
     public KeyMap<Binding> getKeyMap() {
@@ -164,7 +166,7 @@ public abstract class Widgets {
     }
 
     /**
-     * 
+     *
      * @return The LineReader Buffer
      */
     public Buffer buffer() {
@@ -172,7 +174,7 @@ public abstract class Widgets {
     }
 
     /**
-     * 
+     *
      * @param buffer buffer that will be copied to the LineReader Buffer
      */
     public void replaceBuffer(Buffer buffer) {
@@ -180,7 +182,7 @@ public abstract class Widgets {
     }
 
     /**
-     * 
+     *
      * @return command line arguments
      */
     public List<String> args() {
@@ -188,7 +190,7 @@ public abstract class Widgets {
     }
 
     /**
-     * 
+     *
      * @return Buffer's previous character
      */
     public String prevChar() {
@@ -196,7 +198,7 @@ public abstract class Widgets {
     }
 
     /**
-     * 
+     *
      * @return Buffer's current character
      */
     public String currChar() {
@@ -204,7 +206,7 @@ public abstract class Widgets {
     }
 
     /**
-     * 
+     *
      * @return LineReader's last binding
      */
     public String lastBinding() {
@@ -212,7 +214,7 @@ public abstract class Widgets {
     }
 
     /**
-     * 
+     *
      * @param string string to be written into LineReader Buffer
      */
     public void putString(String string) {
@@ -220,7 +222,7 @@ public abstract class Widgets {
     }
 
     /**
-     * 
+     *
      * @return Command line tail tip.
      */
     public String tailTip() {
@@ -228,7 +230,7 @@ public abstract class Widgets {
     }
 
     /**
-     * 
+     *
      * @param tailTip tail tip to be added to the command line
      */
     public void setTailTip(String tailTip) {
@@ -236,7 +238,7 @@ public abstract class Widgets {
     }
 
     /**
-     * 
+     *
      * @param errorPattern error pattern to be set LineReader Highlighter
      */
     public void setErrorPattern(Pattern errorPattern) {
@@ -244,7 +246,7 @@ public abstract class Widgets {
     }
 
     /**
-     * 
+     *
      * @param errorIndex error index to be set LineReader Highlighter
      */
     public void setErrorIndex(int errorIndex) {
@@ -259,7 +261,7 @@ public abstract class Widgets {
     }
 
     /**
-     * 
+     *
      * @param type type to be set to the LineReader autosuggestion
      */
     public void setSuggestionType(SuggestionType type) {
@@ -267,8 +269,8 @@ public abstract class Widgets {
     }
 
     /**
-     * 
-     * @param desc Text to be dispalyed on terminal status bar 
+     *
+     * @param desc Text to be dispalyed on terminal status bar
      */
     public void addDescription(List<AttributedString> desc) {
         Status.getStatus(reader.getTerminal()).update(desc);
@@ -902,7 +904,7 @@ public abstract class Widgets {
                         doCommandTailTip(widget, cmdDesc, args);
                     }
                 } else {
-                    doDescription(cmdDesc.getMainDescription(descriptionSize));
+                    doDescription(compileMainDescription(cmdDesc, descriptionSize));
                     setErrorPattern(cmdDesc.getErrorPattern());
                     setErrorIndex(cmdDesc.getErrorIndex());
                 }
@@ -943,23 +945,23 @@ public abstract class Widgets {
                 }
             } else if (!prevChar().equals(" ")) {
                 doTailTip = false;
-                doDescription(cmdDesc.getMainDescription(descriptionSize, cmdDesc.isSubcommand() ? lastArg : null));
+                doDescription(compileMainDescription(cmdDesc, descriptionSize, cmdDesc.isSubcommand() ? lastArg : null));
             } else if (cmdDesc != null) {
-                doDescription(cmdDesc.getMainDescription(descriptionSize));
+                doDescription(compileMainDescription(cmdDesc, descriptionSize));
             }
             if (cmdDesc != null) {
                 if (lastArg.startsWith("-")) {
                     if (lastArg.matches("-[a-zA-Z]{1}[a-zA-Z0-9]+")) {
                         if (cmdDesc.optionWithValue(lastArg.substring(0,2))) {
-                            doDescription(cmdDesc.getOptionDescription(lastArg.substring(0,2), descriptionSize));
+                            doDescription(compileOptionDescription(cmdDesc, lastArg.substring(0,2), descriptionSize));
                             setTipType(tipType);
                         } else {
-                            doDescription(cmdDesc.getOptionDescription("-" + lastArg.substring(lastArg.length() - 1), descriptionSize));
+                            doDescription(compileOptionDescription(cmdDesc, "-" + lastArg.substring(lastArg.length() - 1), descriptionSize));
                             setSuggestionType(SuggestionType.TAIL_TIP);
                             noCompleters = true;
                         }
                     } else {
-                        doDescription(cmdDesc.getOptionDescription(lastArg, descriptionSize));
+                        doDescription(compileOptionDescription(cmdDesc, lastArg, descriptionSize));
                         if (!lastArg.contains("=")) {
                             setSuggestionType(SuggestionType.TAIL_TIP);
                             noCompleters = true;
@@ -981,10 +983,10 @@ public abstract class Widgets {
                             if (!prevArg.matches("-[a-zA-Z]{1}") || !cmdDesc.optionWithValue(prevArg)) {
                                 d = params.get(bpsize - 1).getDescription();
                             } else {
-                                d = cmdDesc.getOptionDescription(prevArg, descriptionSize);
+                                d = compileOptionDescription(cmdDesc, prevArg, descriptionSize);
                             }
                             if (d == null || d.isEmpty()) {
-                                d = cmdDesc.getMainDescription(descriptionSize, cmdDesc.isSubcommand() ? lastArg : null);
+                                d = compileMainDescription(cmdDesc, descriptionSize, cmdDesc.isSubcommand() ? lastArg : null);
                             }
                             doDescription(d);
                         }
@@ -1112,6 +1114,158 @@ public abstract class Widgets {
                 setSuggestionType(SuggestionType.TAIL_TIP);
             }
             enabled = true;
+        }
+
+        private List<AttributedString> compileMainDescription(CmdDesc cmdDesc, int descriptionSize) {
+            return  compileMainDescription(cmdDesc, descriptionSize, null);
+        }
+
+        private List<AttributedString> compileMainDescription(CmdDesc cmdDesc, int descriptionSize, String lastArg) {
+            List<AttributedString> out = new ArrayList<>();
+            List<AttributedString> mainDesc = cmdDesc.getMainDesc();
+            if (mainDesc == null) {
+                // do nothing
+            } else if (mainDesc.size() <= descriptionSize && lastArg == null) {
+                out = mainDesc;
+            } else {
+                int tabs = 0;
+                int row = 0;
+                for (AttributedString as: mainDesc) {
+                    if (as.columnLength() >= tabs) {
+                        tabs = as.columnLength() + 2;
+                    }
+                    row++;
+                }
+                row = 0;
+                List<AttributedString> descList = new ArrayList<>();
+                for (int i = 0; i < descriptionSize; i++) {
+                    descList.add(new AttributedString(""));
+                }
+                for (AttributedString as: mainDesc) {
+                    if (lastArg != null && !as.toString().startsWith(lastArg)) {
+                        continue;
+                    }
+                    AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
+                    asb.append(descList.get(row));
+                    asb.append(as);
+                    asb.append("\t");
+                    descList.remove(row);
+                    descList.add(row, asb.toAttributedString());
+                    row++;
+                    if (row >= descriptionSize) {
+                        row = 0;
+                    }
+                }
+                out = new ArrayList<>(descList);
+            }
+            return out;
+        }
+
+        private List<AttributedString> compileOptionDescription(CmdDesc cmdDesc, String opt, int descriptionSize) {
+            List<AttributedString> out = new ArrayList<>();
+            Map<String, List<AttributedString>> optsDesc = cmdDesc.getOptsDesc();
+
+            if (!opt.startsWith("-")) {
+                return out;
+            } else {
+                int ind = opt.indexOf("=");
+                if (ind > 0) {
+                    opt = opt.substring(0, ind);
+                }
+            }
+            List<String> matched = new ArrayList<>();
+            int tabs = 0;
+            for (String key: optsDesc.keySet()) {
+                for (String k: key.split("\\s+")) {
+                    if (k.trim().startsWith(opt)) {
+                        matched.add(key);
+                        if (key.length() >= tabs) {
+                            tabs = key.length() + 2;
+                        }
+                        break;
+                    }
+                }
+            }
+            if (matched.size() == 1) {
+                out.add(highlightOption(matched.get(0)));
+                for (AttributedString as: optsDesc.get(matched.get(0))) {
+                    AttributedStringBuilder asb = new AttributedStringBuilder().tabs(8);
+                    asb.append("\t");
+                    asb.append(as);
+                    out.add(asb.toAttributedString());
+                }
+            } else if (matched.size() <= descriptionSize) {
+                for (String key: matched) {
+                    AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
+                    asb.append(highlightOption(key));
+                    asb.append("\t");
+                    asb.append(cmdDesc.optionDescription(key));
+                    out.add(asb.toAttributedString());
+                }
+            } else if (matched.size() <= 2*descriptionSize) {
+                List<AttributedString> keyList = new ArrayList<>();
+                int row = 0;
+                int columnWidth = 2*tabs;
+                while (columnWidth < 50) {
+                    columnWidth += tabs;
+                }
+                for (String key: matched) {
+                    AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
+                    if (row < descriptionSize) {
+                        asb.append(highlightOption(key));
+                        asb.append("\t");
+                        asb.append(cmdDesc.optionDescription(key));
+                        if (asb.columnLength() > columnWidth - 2) {
+                            AttributedString trunc = asb.columnSubSequence(0, columnWidth - 5);
+                            asb = new AttributedStringBuilder().tabs(tabs);
+                            asb.append(trunc);
+                            asb.append("...", new AttributedStyle(AttributedStyle.INVERSE));
+                            asb.append("  ");
+                        } else {
+                            for (int i = asb.columnLength(); i < columnWidth; i++) {
+                                asb.append(" ");
+                            }
+                        }
+                        keyList.add(asb.toAttributedString().columnSubSequence(0, columnWidth));
+                    } else {
+                        asb.append(keyList.get(row - descriptionSize));
+                        asb.append(highlightOption(key));
+                        asb.append("\t");
+                        asb.append(cmdDesc.optionDescription(key));
+                        keyList.remove(row - descriptionSize);
+                        keyList.add(row - descriptionSize, asb.toAttributedString());
+
+                    }
+                    row++;
+                }
+                out = new ArrayList<>(keyList);
+            } else {
+                List<AttributedString> keyList = new ArrayList<>();
+                for (int i = 0; i < descriptionSize; i++) {
+                    keyList.add(new AttributedString(""));
+                }
+                int row = 0;
+                for (String key: matched) {
+                    AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
+                    asb.append(keyList.get(row));
+                    asb.append(highlightOption(key));
+                    asb.append("\t");
+                    keyList.remove(row);
+                    keyList.add(row, asb.toAttributedString());
+                    row++;
+                    if (row >= descriptionSize) {
+                        row = 0;
+                    }
+                }
+                out = new ArrayList<>(keyList);
+            }
+            return out;
+        }
+
+        private AttributedString highlightOption(String option) {
+            return new AttributedStringBuilder()
+                    .append(option, HelpException.defaultStyle().resolve(".op"))
+                    .toAttributedString();
         }
 
         private class CommandDescriptions {
@@ -1281,286 +1435,6 @@ public abstract class Widgets {
 
         public DescriptionType getDescriptionType() {
             return descType;
-        }
-    }
-
-    public static class ArgDesc {
-        private String name;
-        private List<AttributedString> description = new ArrayList<AttributedString>();
-
-        public ArgDesc(String name) {
-            this(name, new ArrayList<AttributedString>());
-        }
-
-        public ArgDesc(String name, List<AttributedString> description) {
-            this.name = name;
-            this.description = new ArrayList<>(description);
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public List<AttributedString> getDescription() {
-            return description;
-        }
-
-        public static List<ArgDesc> doArgNames(List<String> names) {
-            List<ArgDesc> out = new ArrayList<>();
-            for (String n: names) {
-                out.add(new ArgDesc(n));
-            }
-            return out;
-        }
-    }
-
-    public static class CmdDesc {
-        private List<AttributedString> mainDesc;
-        private List<ArgDesc> argsDesc;
-        private TreeMap<String,List<AttributedString>> optsDesc;
-        private Pattern errorPattern;
-        private int errorIndex = -1;
-        private boolean valid = true;
-        private boolean command = false;
-        private boolean subcommand = false;
-
-        public CmdDesc() {
-            command = false;
-        }
-
-        public CmdDesc(boolean valid) {
-            this.valid = valid;
-        }
-
-        public CmdDesc(List<ArgDesc> argsDesc) {
-            this(new ArrayList<>(), argsDesc, new HashMap<>());
-        }
-
-        public CmdDesc(List<ArgDesc> argsDesc, Map<String,List<AttributedString>> optsDesc) {
-            this(new ArrayList<>(), argsDesc, optsDesc);
-        }
-
-        public CmdDesc(List<AttributedString> mainDesc, List<ArgDesc> argsDesc, Map<String,List<AttributedString>> optsDesc) {
-            this.argsDesc = new ArrayList<>(argsDesc);
-            this.optsDesc = new TreeMap<>(optsDesc);
-            if (mainDesc.isEmpty() && optsDesc.containsKey("main")) {
-                this.mainDesc = new ArrayList<>(optsDesc.get("main"));
-                this.optsDesc.remove("main");
-            } else {
-                this.mainDesc = new ArrayList<>(mainDesc);
-            }
-            this.command = true;
-        }
-
-        protected boolean isValid() {
-            return valid;
-        }
-
-        protected boolean isCommand() {
-            return command;
-        }
-
-        public void setSubcommand(boolean subcommand) {
-            this.subcommand = subcommand;
-        }
-
-        protected boolean isSubcommand() {
-            return subcommand;
-        }
-
-        public CmdDesc mainDesc(List<AttributedString> mainDesc) {
-            this.mainDesc = new ArrayList<>(mainDesc);
-            return this;
-        }
-
-        public void setMainDesc(List<AttributedString> mainDesc) {
-            this.mainDesc = new ArrayList<>(mainDesc);
-        }
-
-        public void setErrorPattern(Pattern errorPattern) {
-            this.errorPattern = errorPattern;
-        }
-
-        public Pattern getErrorPattern() {
-            return errorPattern;
-        }
-
-        public void setErrorIndex(int errorIndex) {
-            this.errorIndex = errorIndex;
-        }
-
-        public int getErrorIndex() {
-            return errorIndex;
-        }
-
-        protected List<ArgDesc> getArgsDesc() {
-            return argsDesc;
-        }
-
-        protected List<AttributedString> getMainDescription(int descriptionSize) {
-            return  getMainDescription(descriptionSize, null);   
-        }
-
-        protected List<AttributedString> getMainDescription(int descriptionSize, String lastArg) {
-            List<AttributedString> out = new ArrayList<>();
-            if (mainDesc == null) {
-                // do nothing
-            } else if (mainDesc.size() <= descriptionSize && lastArg == null) {
-                out = mainDesc;
-            } else {
-                int tabs = 0;
-                int row = 0;
-                for (AttributedString as: mainDesc) {
-                    if (as.columnLength() >= tabs) {
-                        tabs = as.columnLength() + 2;
-                    }
-                    row++;
-                }
-                row = 0;
-                List<AttributedString> descList = new ArrayList<>();
-                for (int i = 0; i < descriptionSize; i++) {
-                    descList.add(new AttributedString(""));
-                }
-                for (AttributedString as: mainDesc) {
-                    if (lastArg != null && !as.toString().startsWith(lastArg)) {
-                        continue;
-                    }
-                    AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
-                    asb.append(descList.get(row));
-                    asb.append(as);
-                    asb.append("\t");
-                    descList.remove(row);
-                    descList.add(row, asb.toAttributedString());
-                    row++;
-                    if (row >= descriptionSize) {
-                        row = 0;
-                    }
-                }
-                out = new ArrayList<>(descList);
-            }
-            return out;
-        }
-
-        protected List<AttributedString> getOptionDescription(String opt, int descriptionSize) {
-            List<AttributedString> out = new ArrayList<>();
-            if (!opt.startsWith("-")) {
-                return out;
-            } else {
-                int ind = opt.indexOf("=");
-                if (ind > 0) {
-                    opt = opt.substring(0, ind);
-                }
-            }
-            List<String> matched = new ArrayList<>();
-            int tabs = 0;
-            for (String key: optsDesc.keySet()) {
-                for (String k: key.split("\\s+")) {
-                    if (k.trim().startsWith(opt)) {
-                        matched.add(key);
-                        if (key.length() >= tabs) {
-                            tabs = key.length() + 2;
-                        }
-                        break;
-                    }
-                }
-            }
-            if (matched.size() == 1) {
-                out.add(highlightOption(matched.get(0)));
-                for (AttributedString as: optsDesc.get(matched.get(0))) {
-                    AttributedStringBuilder asb = new AttributedStringBuilder().tabs(8);
-                    asb.append("\t");
-                    asb.append(as);
-                    out.add(asb.toAttributedString());
-                }
-            } else if (matched.size() <= descriptionSize) {
-                for (String key: matched) {
-                    AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
-                    asb.append(highlightOption(key));
-                    asb.append("\t");
-                    asb.append(optionDescription(key));
-                    out.add(asb.toAttributedString());
-                }
-            } else if (matched.size() <= 2*descriptionSize) {
-                List<AttributedString> keyList = new ArrayList<>();
-                int row = 0;
-                int columnWidth = 2*tabs;
-                while (columnWidth < 50) {
-                    columnWidth += tabs;
-                }
-                for (String key: matched) {
-                    AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
-                    if (row < descriptionSize) {
-                        asb.append(highlightOption(key));
-                        asb.append("\t");
-                        asb.append(optionDescription(key));
-                        if (asb.columnLength() > columnWidth - 2) {
-                            AttributedString trunc = asb.columnSubSequence(0, columnWidth - 5);
-                            asb = new AttributedStringBuilder().tabs(tabs);
-                            asb.append(trunc);
-                            asb.append("...", new AttributedStyle(AttributedStyle.INVERSE));
-                            asb.append("  ");
-                        } else {
-                            for (int i = asb.columnLength(); i < columnWidth; i++) {
-                                asb.append(" ");
-                            }
-                        }
-                        keyList.add(asb.toAttributedString().columnSubSequence(0, columnWidth));
-                    } else {
-                        asb.append(keyList.get(row - descriptionSize));
-                        asb.append(highlightOption(key));
-                        asb.append("\t");
-                        asb.append(optionDescription(key));
-                        keyList.remove(row - descriptionSize);
-                        keyList.add(row - descriptionSize, asb.toAttributedString());
-
-                    }
-                    row++;
-                }
-                out = new ArrayList<>(keyList);
-            } else {
-                List<AttributedString> keyList = new ArrayList<>();
-                for (int i = 0; i < descriptionSize; i++) {
-                    keyList.add(new AttributedString(""));
-                }
-                int row = 0;
-                for (String key: matched) {
-                    AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
-                    asb.append(keyList.get(row));
-                    asb.append(highlightOption(key));
-                    asb.append("\t");
-                    keyList.remove(row);
-                    keyList.add(row, asb.toAttributedString());
-                    row++;
-                    if (row >= descriptionSize) {
-                        row = 0;
-                    }
-                }
-                out = new ArrayList<>(keyList);
-            }
-            return out;
-        }
-
-        protected boolean optionWithValue(String option) {
-            for (String key: optsDesc.keySet()) {
-                if (key.matches("(^|.*\\s)" + option + "($|=.*|\\s.*)")) {
-                    if (key.contains("=")) {
-                        return true;
-                    } else {
-                        return false;
-                    }
-                }
-            }
-            return false;
-        }
-
-        private AttributedString optionDescription(String key) {
-            return optsDesc.get(key).size() > 0 ? optsDesc.get(key).get(0) : new AttributedString("");
-        }
-
-        private AttributedString highlightOption(String option) {
-            return new AttributedStringBuilder()
-                    .append(option, HelpException.defaultStyle().resolve(".op"))
-                    .toAttributedString();
         }
     }
 

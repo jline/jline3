@@ -28,16 +28,15 @@ import java.util.regex.Pattern;
 import org.jline.builtins.Builtins;
 import org.jline.builtins.CommandRegistry;
 import org.jline.builtins.Completers;
-import org.jline.builtins.Completers.SystemCompleter;
 import org.jline.builtins.Completers.TreeCompleter;
 import org.jline.builtins.Options.HelpException;
-import org.jline.builtins.Widgets.ArgDesc;
 import org.jline.builtins.Widgets.AutopairWidgets;
 import org.jline.builtins.Widgets.AutosuggestionWidgets;
-import org.jline.builtins.Widgets.CmdDesc;
 import org.jline.builtins.Widgets.CmdLine;
 import org.jline.builtins.Widgets.TailTipWidgets;
 import org.jline.builtins.Widgets.TailTipWidgets.TipType;
+import org.jline.console.ArgDesc;
+import org.jline.console.CmdDesc;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.LineReader.Option;
@@ -48,6 +47,7 @@ import org.jline.reader.impl.LineReaderImpl;
 import org.jline.reader.impl.completer.AggregateCompleter;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
+import org.jline.reader.impl.completer.SystemCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.MouseEvent;
@@ -291,7 +291,7 @@ public class Example
             return null;
         }
 
-        public Completers.SystemCompleter compileCompleters() {
+        public SystemCompleter compileCompleters() {
             SystemCompleter out = new SystemCompleter();
             for (String c : commandExecute.keySet()) {
                 out.add(c, commandExecute.get(c).compileCompleter().apply(c));

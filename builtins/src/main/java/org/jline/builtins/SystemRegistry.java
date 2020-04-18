@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.jline.console.CmdDesc;
 import org.jline.reader.Completer;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedStringBuilder;
@@ -62,7 +63,7 @@ public interface SystemRegistry extends CommandRegistry {
      * @return command description for JLine TailTipWidgets to be displayed
      *         in the terminal status bar.
      */
-    Widgets.CmdDesc commandDescription(Widgets.CmdLine line);
+    CmdDesc commandDescription(Widgets.CmdLine line);
 
    /**
      * Execute a command, script or evaluate scriptEngine statement
