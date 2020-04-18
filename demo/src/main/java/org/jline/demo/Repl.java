@@ -25,7 +25,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.jline.builtins.Builtins;
-import org.jline.builtins.CommandRegistry;
 import org.jline.builtins.Completers;
 import org.jline.builtins.ConsoleEngine;
 import org.jline.builtins.ConsoleEngineImpl;
@@ -36,6 +35,7 @@ import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.SystemRegistryImpl;
 import org.jline.builtins.Widgets.TailTipWidgets;
 import org.jline.builtins.Widgets.TailTipWidgets.TipType;
+import org.jline.console.CommandRegistry;
 import org.jline.console.ConfigurationPath;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
@@ -151,12 +151,14 @@ public class Repl {
      *
      *
      */
-    private static abstract class AbstractCommandRegistry {
+    private static abstract class AbstractCommandRegistry extends org.jline.builtins.AbstractCommandRegistry {
         protected final Map<String,Builtins.CommandMethods> commandExecute = new HashMap<>();
         protected Exception exception;
         protected Map<String,String> aliasCommand = new HashMap<>();
 
-        public AbstractCommandRegistry() {}
+        public AbstractCommandRegistry() {
+            super();
+        }
 
         public Set<String> commandNames() {
             return commandExecute.keySet();
@@ -189,14 +191,6 @@ public class Repl {
             }
             out.addAliases(aliasCommand);
             return out;
-        }
-
-        public Options parseOptions(String[] usage, Object[] args) throws HelpException {
-            Options opt = Options.compile(usage).parse(args);
-            if (opt.isSet("help")) {
-                throw new HelpException(opt.usage());
-            }
-            return opt;
         }
 
     }

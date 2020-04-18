@@ -6,15 +6,10 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.builtins;
+package org.jline.console;
 
-import org.jline.builtins.Widgets;
-import org.jline.builtins.Options.HelpException;
-import org.jline.console.ArgDesc;
-import org.jline.console.CmdDesc;
 import org.jline.reader.impl.completer.SystemCompleter;
 import org.jline.terminal.Terminal;
-import org.jline.utils.AttributedString;
 
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -74,20 +69,7 @@ public interface CommandRegistry {
      * Returns a short info about command known by this registry.
      * @return a short info about command
      */
-    default List<String> commandInfo(String command) {
-        try {
-            Object[] args = {"--help"};
-            if (command.equals("help")) {
-                args = new Object[] {};
-            }
-            invoke(new CommandSession(), command, args);
-        } catch (HelpException e) {
-            return Builtins.compileCommandInfo(e.getMessage());
-        } catch (Exception e) {
-
-        }
-        throw new IllegalArgumentException("default CommandRegistry.commandInfo() method must be overridden in class " + this.getClass().getCanonicalName());
-    }
+    List<String> commandInfo(String command);
 
     /**
      * Returns whether a command with the specified name is known to this registry.
@@ -111,37 +93,16 @@ public interface CommandRegistry {
      *         in the terminal status bar.
      */
     default CmdDesc commandDescription(List<String> args) {
-        return !args.isEmpty() ? commandDescription(args.get(0)) : commandDescription("");    
+        return !args.isEmpty() ? commandDescription(args.get(0)) : commandDescription("");
     }
-    
+
     /**
      * Returns a command description for use in the JLine Widgets framework.
      * @param command name of the command whose description to return
      * @return command description for JLine TailTipWidgets to be displayed
      *         in the terminal status bar.
      */
-    default CmdDesc commandDescription(String command) {
-        try {
-            if (command != null && !command.isEmpty()) {
-                invoke(new CommandSession(), command, new Object[] {"--help"});
-            } else {
-                List<AttributedString> main = new ArrayList<>();
-                Map<String, List<AttributedString>> options = new HashMap<>();
-                for (String c : new TreeSet<String>(commandNames())) {
-                    for (String info : commandInfo(c)) {
-                        main.add(HelpException.highlightSyntax(c + " -  " + info, HelpException.defaultStyle(), true));
-                        break;
-                    }
-                }
-                return new CmdDesc(main, ArgDesc.doArgNames(Arrays.asList("")), options);
-            }
-        } catch (HelpException e) {
-            return Builtins.compileCommandDescription(e.getMessage());
-        } catch (Exception e) {
-
-        }
-        throw new IllegalArgumentException("default CommandRegistry.commandDescription() method must be overridden in class " + this.getClass().getCanonicalName());
-    }
+    CmdDesc commandDescription(String command);
 
     /**
      * Execute a command that have only string parameters and options. Implementation of the method is required

@@ -29,12 +29,12 @@ import java.util.stream.Collectors;
 import org.jline.builtins.Completers.FilesCompleter;
 import org.jline.builtins.Completers.OptDesc;
 import org.jline.builtins.Completers.OptionCompleter;
-import org.jline.builtins.CommandRegistry;
 import org.jline.builtins.ConsoleEngine.ExecutionResult;
 import org.jline.builtins.Widgets;
 import org.jline.builtins.Builtins.CommandMethods;
 import org.jline.builtins.Options.HelpException;
 import org.jline.console.CmdDesc;
+import org.jline.console.CommandRegistry;
 import org.jline.console.ConfigurationPath;
 import org.jline.reader.*;
 import org.jline.reader.Parser.ParseContext;
@@ -54,7 +54,7 @@ import org.jline.terminal.TerminalBuilder;
  *
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
-public class SystemRegistryImpl implements SystemRegistry {
+public class SystemRegistryImpl extends AbstractCommandRegistry implements SystemRegistry {
 
     public enum Pipe {
         FLIP, NAMED, AND, OR
@@ -76,6 +76,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     private Supplier<Path> workDir;
 
     public SystemRegistryImpl(Parser parser, Terminal terminal, Supplier<Path> workDir, ConfigurationPath configPath) {
+        super();
         this.parser = parser;
         this.workDir = workDir;
         this.configPath = configPath;

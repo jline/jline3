@@ -26,7 +26,6 @@ import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 import org.jline.builtins.Builtins;
-import org.jline.builtins.CommandRegistry;
 import org.jline.builtins.Completers;
 import org.jline.builtins.Completers.TreeCompleter;
 import org.jline.builtins.Options.HelpException;
@@ -37,6 +36,7 @@ import org.jline.builtins.Widgets.TailTipWidgets;
 import org.jline.builtins.Widgets.TailTipWidgets.TipType;
 import org.jline.console.ArgDesc;
 import org.jline.console.CmdDesc;
+import org.jline.console.CommandRegistry;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.LineReader.Option;

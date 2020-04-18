@@ -29,6 +29,7 @@ import org.jline.builtins.Completers.OptDesc;
 import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.Nano.SyntaxHighlighter;
 import org.jline.builtins.Options.HelpException;
+import org.jline.console.CommandRegistry;
 import org.jline.console.ConfigurationPath;
 import org.jline.console.ScriptEngine;
 import org.jline.reader.*;
@@ -48,7 +49,7 @@ import org.jline.utils.Log;
  *
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
-public class ConsoleEngineImpl implements ConsoleEngine {
+public class ConsoleEngineImpl extends AbstractCommandRegistry implements ConsoleEngine {
     public enum Command {SHOW
                        , DEL
                        , PRNT
@@ -89,6 +90,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     @SuppressWarnings("unchecked")
     public ConsoleEngineImpl(ScriptEngine engine
                            , Supplier<Path> workDir, ConfigurationPath configPath) throws IOException {
+        super();
         this.engine = engine;
         this.workDir = workDir;
         this.configPath = configPath;

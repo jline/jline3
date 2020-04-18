@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.jline.console.CmdDesc;
+import org.jline.console.CommandRegistry;
 import org.jline.reader.Completer;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedStringBuilder;

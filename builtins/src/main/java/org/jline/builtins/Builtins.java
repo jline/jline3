@@ -25,6 +25,7 @@ import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.Options.HelpException;
 import org.jline.console.ArgDesc;
 import org.jline.console.CmdDesc;
+import org.jline.console.CommandRegistry;
 import org.jline.console.ConfigurationPath;
 import org.jline.reader.*;
 import org.jline.reader.LineReader.Option;
@@ -40,7 +41,7 @@ import org.jline.utils.AttributedString;
  *
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
-public class Builtins implements CommandRegistry {
+public class Builtins extends AbstractCommandRegistry implements CommandRegistry {
     public enum Command {NANO
                        , LESS
                        , HISTORY
@@ -73,6 +74,7 @@ public class Builtins implements CommandRegistry {
     }
 
     public Builtins(Set<Command> commands, Supplier<Path> workDir, ConfigurationPath configpath, Function<String, Widget> widgetCreator) {
+        super();
         this.configPath = configpath;
         this.widgetCreator = widgetCreator;
         this.workDir = workDir;
