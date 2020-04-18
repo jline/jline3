@@ -8,6 +8,8 @@
  */
 package org.jline.builtins;
 
+import static org.jline.style.StyleSourceHelper.LS_COLORS;
+
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Array;
@@ -24,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -36,6 +39,10 @@ import org.jline.reader.impl.completer.AggregateCompleter;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
+import org.jline.style.MemoryStyleSource;
+import org.jline.style.StyleResolver;
+import org.jline.style.StyleSource;
+import org.jline.style.StyleSourceHelper;
 import org.jline.reader.ParsedLine;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
@@ -330,7 +337,8 @@ public class Completers {
      */
     public static class FileNameCompleter implements org.jline.reader.Completer
     {
-
+     //TODO: get StyleSource from a CompletionEnvironment
+     protected   static StyleSource  source =   StyleSourceHelper.fromAnsiStyleDefinition(StyleSourceHelper.LS_COLORS, StyleSourceHelper.DEFAULT_LS_COLORS);
         public void complete(LineReader reader, ParsedLine commandLine, final List<Candidate> candidates) {
             assert commandLine != null;
             assert candidates != null;
@@ -363,10 +371,10 @@ public class Completers {
                         if (Files.isDirectory(p)) {
                             candidates.add(
                                     new Candidate(value + (reader.isSet(LineReader.Option.AUTO_PARAM_SLASH) ? sep : ""),
-                                            getDisplay(reader.getTerminal(), p), null, null,
+                                            getDisplay(reader.getTerminal(), p,source), null, null,
                                             reader.isSet(LineReader.Option.AUTO_REMOVE_SLASH) ? sep : null, null, false));
                         } else {
-                            candidates.add(new Candidate(value, getDisplay(reader.getTerminal(), p), null, null, null, null,
+                            candidates.add(new Candidate(value, getDisplay(reader.getTerminal(), p,source), null, null, null, null,
                                     true));
                         }
                     });
@@ -398,21 +406,40 @@ public class Completers {
             return useForwardSlash ? "/" :getUserDir().getFileSystem().getSeparator();
         }
 
-        protected static String getDisplay(Terminal terminal, Path p) {
-            // TODO: use $LS_COLORS for output
+        protected static String getDisplay(Terminal terminal, Path p, StyleSource styleSource) {
             String name = p.getFileName().toString();
-            if (Files.isDirectory(p)) {
-                AttributedStringBuilder sb = new AttributedStringBuilder();
-                sb.styled(AttributedStyle.BOLD.foreground(AttributedStyle.RED), name);
-                sb.append("/");
-                name = sb.toAnsi(terminal);
-            } else if (Files.isSymbolicLink(p)) {
-                AttributedStringBuilder sb = new AttributedStringBuilder();
-                sb.styled(AttributedStyle.BOLD.foreground(AttributedStyle.RED), name);
-                sb.append("@");
-                name = sb.toAnsi(terminal);
+            String type;
+            String suffix;
+
+            if (Files.isSymbolicLink(p)) {
+                type = "sl";
+                suffix = "@";
+            } else if (Files.isDirectory(p)) {
+                type = "dr";
+                suffix = "/";
+            } else if (Files.isExecutable(p)) {
+                type = "ex";
+                suffix = "*";
+            } else if (Files.isRegularFile(p)) {
+                type = "fi";
+                suffix = "";
+            } else {
+                type = "ot";
+                suffix = "";
             }
-            return name;
+            return Optional.ofNullable(styleSource).map(s -> {
+                StyleResolver resolver = new StyleResolver(
+                    s, LS_COLORS);
+
+                AttributedStringBuilder sb = new AttributedStringBuilder();
+                sb.styled(resolver.resolve("." + type), name);
+                sb.append(suffix);
+                return sb.toAnsi(terminal);
+            }).orElse(name);
+         }
+
+        protected static String getDisplay(Terminal terminal, Path p) {
+            return getDisplay(terminal, p, null);
         }
 
     }
@@ -817,7 +844,7 @@ public class Completers {
                     String val = c.value();
                     if (valueCompleter instanceof Completers.FilesCompleter
                             || valueCompleter instanceof Completers.DirectoriesCompleter) {
-                        val = FileNameCompleter.getDisplay(reader.getTerminal(), Paths.get(c.value()));
+                        val = FileNameCompleter.getDisplay(reader.getTerminal(), Paths.get(c.value()),FileNameCompleter.source);
                     }
                     candidates.add(new Candidate(curBuf + v, val, null, null, null, null, c.complete()));
                 }

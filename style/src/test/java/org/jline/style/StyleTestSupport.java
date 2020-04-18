@@ -15,11 +15,11 @@ import org.junit.Before;
  */
 public abstract class StyleTestSupport {
 
-    protected MemoryStyleSource source;
+    protected StyleSource source;
 
     @Before
     public void setUp() {
-        this.source = new MemoryStyleSource();
+        source = new MemoryStyleSource();
     }
 
 }
