@@ -22,12 +22,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.jline.builtins.Builtins.CommandMethods;
 import org.jline.builtins.Completers.FilesCompleter;
 import org.jline.builtins.Completers.OptDesc;
 import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.Nano.SyntaxHighlighter;
 import org.jline.builtins.Options.HelpException;
+import org.jline.console.CommandInput;
+import org.jline.console.CommandMethods;
 import org.jline.console.CommandRegistry;
 import org.jline.console.ConfigurationPath;
 import org.jline.console.ScriptEngine;
@@ -47,7 +48,7 @@ import org.jline.utils.Log;
  *
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
-public class ConsoleEngineImpl extends AbstractCommandRegistry implements ConsoleEngine {
+public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEngine {
     public enum Command {SHOW
                        , DEL
                        , PRNT
@@ -824,7 +825,7 @@ public class ConsoleEngineImpl extends AbstractCommandRegistry implements Consol
         exception = null;
         Object out = null;
         if (hasCommand(command)) {
-            out = getCommandMethods(command).executeFunction().apply(new Builtins.CommandInput(command, args, session));
+            out = getCommandMethods(command).executeFunction().apply(new CommandInput(command, args, session));
         } else {
             String[] _args = new String[args.length];
             for (int i = 0; i < args.length; i++) {
@@ -1510,7 +1511,7 @@ public class ConsoleEngineImpl extends AbstractCommandRegistry implements Consol
         }
     }
 
-    private Object show(Builtins.CommandInput input) {
+    private Object show(CommandInput input) {
         final String[] usage = {
                 "show -  list console variables",
                 "Usage: show [VARIABLE]",
@@ -1527,7 +1528,7 @@ public class ConsoleEngineImpl extends AbstractCommandRegistry implements Consol
         return null;
     }
 
-    private Object del(Builtins.CommandInput input) {
+    private Object del(CommandInput input) {
         final String[] usage = {
                 "del -  delete console variables, methods, classes and imports",
                 "Usage: del [var1] ...",
@@ -1542,7 +1543,7 @@ public class ConsoleEngineImpl extends AbstractCommandRegistry implements Consol
         return null;
     }
 
-    private Object prnt(Builtins.CommandInput input) {
+    private Object prnt(CommandInput input) {
         final String[] usage = {
                 "prnt -  print object",
                 "Usage: prnt [OPTIONS] object",
@@ -1619,7 +1620,7 @@ public class ConsoleEngineImpl extends AbstractCommandRegistry implements Consol
         return null;
     }
 
-    private Object slurpcmd(Builtins.CommandInput input) {
+    private Object slurpcmd(CommandInput input) {
         final String[] usage = {
                 "slurp -  slurp file context to string/object",
                 "Usage: slurp [OPTIONS] file",
@@ -1656,7 +1657,7 @@ public class ConsoleEngineImpl extends AbstractCommandRegistry implements Consol
         return engine.deserialize(new String(encoded, encoding), format);
     }
 
-    private Object aliascmd(Builtins.CommandInput input) {
+    private Object aliascmd(CommandInput input) {
         final String[] usage = {
                 "alias -  create command alias",
                 "Usage: alias [ALIAS] [COMMANDLINE]",
@@ -1688,7 +1689,7 @@ public class ConsoleEngineImpl extends AbstractCommandRegistry implements Consol
         return out;
     }
 
-    private Object unalias(Builtins.CommandInput input) {
+    private Object unalias(CommandInput input) {
         final String[] usage = {
                 "unalias -  remove command alias",
                 "Usage: unalias [ALIAS...]",
@@ -1706,7 +1707,7 @@ public class ConsoleEngineImpl extends AbstractCommandRegistry implements Consol
         return null;
     }
 
-    private Object pipe(Builtins.CommandInput input) {
+    private Object pipe(CommandInput input) {
         final String[] usage = {
                 "pipe -  create/delete pipe operator",
                 "Usage: pipe [OPERATOR] [PREFIX] [POSTFIX]",

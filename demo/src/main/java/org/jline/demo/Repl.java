@@ -24,7 +24,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import org.jline.builtins.AbstractCommandRegistry;
+import org.jline.builtins.JlineCommandRegistry;
 import org.jline.builtins.Builtins;
 import org.jline.builtins.ConsoleEngine;
 import org.jline.builtins.ConsoleEngineImpl;
@@ -34,6 +34,9 @@ import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.SystemRegistryImpl;
 import org.jline.builtins.Widgets.TailTipWidgets;
 import org.jline.builtins.Widgets.TailTipWidgets.TipType;
+import org.jline.console.AbstractCommandRegistry;
+import org.jline.console.CommandInput;
+import org.jline.console.CommandMethods;
 import org.jline.console.CommandRegistry;
 import org.jline.console.ConfigurationPath;
 import org.jline.keymap.KeyMap;
@@ -64,18 +67,18 @@ public class Repl {
      * CommandRegistry that have commands which manage in different way command parameters.
      *
      */
-    private static class SubCommands extends AbstractCommandRegistry implements CommandRegistry {
+    private static class SubCommands extends JlineCommandRegistry implements CommandRegistry {
 
         public SubCommands() {
             super();
-            Map<String,Builtins.CommandMethods> commandExecute = new HashMap<>();
-            commandExecute.put("cmdKo1", new Builtins.CommandMethods(this::cmd1, this::defaultCompleter));
-            commandExecute.put("cmdKo2", new Builtins.CommandMethods(this::cmd2, this::defaultCompleter));
-            commandExecute.put("cmdOk", new Builtins.CommandMethods(this::cmd3, this::defaultCompleter));
+            Map<String,CommandMethods> commandExecute = new HashMap<>();
+            commandExecute.put("cmdKo1", new CommandMethods(this::cmd1, this::defaultCompleter));
+            commandExecute.put("cmdKo2", new CommandMethods(this::cmd2, this::defaultCompleter));
+            commandExecute.put("cmdOk", new CommandMethods(this::cmd3, this::defaultCompleter));
             registerCommands(commandExecute);
         }
 
-        private Object cmd1(Builtins.CommandInput input) {
+        private Object cmd1(CommandInput input) {
             final String[] usage = {
                     "cmdKo1 -  parse input.args, return opt.argObjects[0]",
                     "          works only with string parameters",
@@ -93,7 +96,7 @@ public class Repl {
             return out;
         }
 
-        private Object cmd2(Builtins.CommandInput input) {
+        private Object cmd2(CommandInput input) {
             final String[] usage = {
                     "cmdKo2 -  parse input.xargs, return opt.args[0]",
                     "          works only with string parameters",
@@ -111,7 +114,7 @@ public class Repl {
             return out;
         }
 
-        private Object cmd3(Builtins.CommandInput input) {
+        private Object cmd3(CommandInput input) {
             final String[] usage = {
                     "cmdOk -  parse input.xargs, return opt.argObjects[0]",
                     "         manage correctly object parameters",
@@ -131,18 +134,18 @@ public class Repl {
 
     }
 
-    private static class MyCommands extends AbstractCommandRegistry implements CommandRegistry {
+    private static class MyCommands extends JlineCommandRegistry implements CommandRegistry {
         private LineReader reader;
         private Supplier<Path> workDir;
 
         public MyCommands(Supplier<Path> workDir) {
             super();
             this.workDir = workDir;
-            Map<String,Builtins.CommandMethods> commandExecute = new HashMap<>();
-            commandExecute.put("tput", new Builtins.CommandMethods(this::tput, this::tputCompleter));
-            commandExecute.put("testkey", new Builtins.CommandMethods(this::testkey, this::defaultCompleter));
-            commandExecute.put("clear", new Builtins.CommandMethods(this::clear, this::defaultCompleter));
-            commandExecute.put("!", new Builtins.CommandMethods(this::shell, this::defaultCompleter));
+            Map<String,CommandMethods> commandExecute = new HashMap<>();
+            commandExecute.put("tput", new CommandMethods(this::tput, this::tputCompleter));
+            commandExecute.put("testkey", new CommandMethods(this::testkey, this::defaultCompleter));
+            commandExecute.put("clear", new CommandMethods(this::clear, this::defaultCompleter));
+            commandExecute.put("!", new CommandMethods(this::shell, this::defaultCompleter));
             registerCommands(commandExecute);
         }
 
@@ -154,7 +157,7 @@ public class Repl {
             return reader.getTerminal();
         }
 
-        private void tput(Builtins.CommandInput input) {
+        private void tput(CommandInput input) {
             final String[] usage = {
                     "tput -  put terminal capability",
                     "Usage: tput [CAPABILITY]",
@@ -178,7 +181,7 @@ public class Repl {
             }
         }
 
-        private void testkey(Builtins.CommandInput input) {
+        private void testkey(CommandInput input) {
             final String[] usage = {
                     "testkey -  display the key events",
                     "Usage: testkey",
@@ -201,7 +204,7 @@ public class Repl {
             }
         }
 
-        private void clear(Builtins.CommandInput input) {
+        private void clear(CommandInput input) {
             final String[] usage = {
                     "clear -  clear terminal",
                     "Usage: clear",
@@ -238,7 +241,7 @@ public class Repl {
             }
         }
 
-        private void shell(Builtins.CommandInput input) {
+        private void shell(CommandInput input) {
             final String[] usage = { "!<command> -  execute shell command"
                                    , "Usage: !<command>"
                                    , "  -? --help                       Displays command help" };

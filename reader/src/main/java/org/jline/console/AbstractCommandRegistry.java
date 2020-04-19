@@ -6,102 +6,33 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.builtins;
+package org.jline.console;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.jline.console.ArgDesc;
-import org.jline.console.CmdDesc;
-import org.jline.console.CommandRegistry;
-import org.jline.utils.AttributedString;
-
-import org.jline.builtins.Options;
-import org.jline.builtins.Builtins.Command;
-import org.jline.builtins.Builtins.CommandInput;
-import org.jline.builtins.Builtins.CommandMethods;
-import org.jline.builtins.Completers.OptDesc;
-import org.jline.builtins.Completers.OptionCompleter;
-import org.jline.builtins.Options.HelpException;
 import org.jline.console.CommandRegistry.CommandSession;
-import org.jline.reader.Completer;
-import org.jline.reader.impl.completer.ArgumentCompleter;
-import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.SystemCompleter;
 
+/**
+ * CommandRegistry common methods.
+ *
+ * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
+ */
 public abstract class AbstractCommandRegistry {
     private CmdRegistry cmdRegistry;
     private Exception exception;
-    
+
     public AbstractCommandRegistry() {}
-        
+
     public <T extends Enum<T>>  void registerCommands(Map<T,String> commandName, Map<T,CommandMethods> commandExecute) {
         cmdRegistry = new EnumCmdRegistry<T>(commandName, commandExecute);
     }
 
     public void registerCommands(Map<String,CommandMethods> commandExecute) {
         cmdRegistry = new NameCmdRegistry(commandExecute);
-    }
-
-    public List<String> commandInfo(String command) {
-        try {
-            Object[] args = {"--help"};
-            if (command.equals("help")) {
-                args = new Object[] {};
-            }
-            invoke(new CommandSession(), command, args);
-        } catch (HelpException e) {
-            return Builtins.compileCommandInfo(e.getMessage());
-        } catch (Exception e) {
-
-        }
-        throw new IllegalArgumentException("default CommandRegistry.commandInfo() method must be overridden in class "
-                                          + this.getClass().getCanonicalName());
-    }
-
-    public CmdDesc commandDescription(String command) {
-        try {
-            if (command != null && !command.isEmpty()) {
-                invoke(new CommandSession(), command, new Object[] {"--help"});
-            } else {
-                List<AttributedString> main = new ArrayList<>();
-                Map<String, List<AttributedString>> options = new HashMap<>();
-                for (String c : new TreeSet<String>(commandNames())) {
-                    for (String info : commandInfo(c)) {
-                        main.add(HelpException.highlightSyntax(c + " -  " + info, HelpException.defaultStyle(), true));
-                        break;
-                    }
-                }
-                return new CmdDesc(main, ArgDesc.doArgNames(Arrays.asList("")), options);
-            }
-        } catch (HelpException e) {
-            return Builtins.compileCommandDescription(e.getMessage());
-        } catch (Exception e) {
-
-        }
-        throw new IllegalArgumentException("default CommandRegistry.commandDescription() method must be overridden in class "
-                                          + this.getClass().getCanonicalName());
-    }
-    
-    public List<OptDesc> commandOptions(String command) {
-        try {
-            invoke(new CommandRegistry.CommandSession(), command, "--help");
-        } catch (HelpException e) {
-            return Builtins.compileCommandOptions(e.getMessage());
-        } catch (Exception e) {
-
-        }
-        return null;
-    }
-
-    public List<Completer> defaultCompleter(String command) {
-        List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                                           , new OptionCompleter(NullCompleter.INSTANCE
-                                                               , this::commandOptions
-                                                               , 1)
-                                            ));
-        return completers;
     }
 
     public Object execute(CommandRegistry.CommandSession session, String command, String[] args) throws Exception {
@@ -112,7 +43,7 @@ public abstract class AbstractCommandRegistry {
         }
         return null;
     }
-        
+
     public Object invoke(CommandSession session, String command, Object... args) throws Exception {
         Object out = null;
         exception = null;
@@ -127,24 +58,16 @@ public abstract class AbstractCommandRegistry {
             }
             methods.execute().accept(new CommandInput(command, _args, session));
         } else {
-            out = methods.executeFunction().apply(new CommandInput(command, args, session));            
+            out = methods.executeFunction().apply(new CommandInput(command, args, session));
         }
         if (exception != null) {
             throw exception;
         }
         return out;
     }
-    
+
     public void saveException(Exception exception) {
         this.exception = exception;
-    }
-
-    public Options parseOptions(String[] usage, Object[] args) throws HelpException {
-        Options opt = Options.compile(usage).parse(args);
-        if (opt.isSet("help")) {
-            throw new HelpException(opt.usage());
-        }
-        return opt;
     }
 
     public boolean hasCommand(String command) {
@@ -158,19 +81,19 @@ public abstract class AbstractCommandRegistry {
     public Map<String, String> commandAliases() {
         return cmdRegistry.commandAliases();
     }
-    
+
     public <V extends Enum<V>> void rename(V command, String newName) {
         cmdRegistry.rename(command, newName);
     }
-    
+
     public void alias(String alias, String command) {
-        cmdRegistry.alias(alias, command);        
+        cmdRegistry.alias(alias, command);
     }
-    
+
     public SystemCompleter compileCompleters() {
         return cmdRegistry.compileCompleters();
     }
-    
+
     public CommandMethods getCommandMethods(String command) {
         return cmdRegistry.getCommandMethods(command);
     }
@@ -184,7 +107,7 @@ public abstract class AbstractCommandRegistry {
         SystemCompleter compileCompleters();
         CommandMethods getCommandMethods(String command);
     }
-    
+
     private static class  EnumCmdRegistry<T extends Enum<T>> implements CmdRegistry {
         private Map<T,String> commandName;
         private Map<String,T> nameCommand = new HashMap<>();
@@ -202,7 +125,7 @@ public abstract class AbstractCommandRegistry {
                     .stream()
                     .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
         }
-        
+
         public Set<String> commandNames() {
             return nameCommand.keySet();
         }
@@ -264,21 +187,21 @@ public abstract class AbstractCommandRegistry {
         public CommandMethods getCommandMethods(String command) {
             return commandExecute.get(command(command));
         }
-        
+
     }
 
     private static class NameCmdRegistry implements CmdRegistry {
         private Map<String,CommandMethods> commandExecute;
         private Map<String,String> aliasCommand = new HashMap<>();
-        
+
         public NameCmdRegistry(Map<String,CommandMethods> commandExecute) {
-            this.commandExecute = commandExecute;            
+            this.commandExecute = commandExecute;
         }
 
         public Set<String> commandNames() {
             return commandExecute.keySet();
         }
-        
+
         public Map<String, String> commandAliases() {
             return aliasCommand;
         }
@@ -324,5 +247,5 @@ public abstract class AbstractCommandRegistry {
         }
 
     }
-    
+
 }

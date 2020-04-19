@@ -31,9 +31,11 @@ import org.jline.builtins.Completers.OptDesc;
 import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.ConsoleEngine.ExecutionResult;
 import org.jline.builtins.Widgets;
-import org.jline.builtins.Builtins.CommandMethods;
 import org.jline.builtins.Options.HelpException;
+import org.jline.console.AbstractCommandRegistry;
 import org.jline.console.CmdDesc;
+import org.jline.console.CommandInput;
+import org.jline.console.CommandMethods;
 import org.jline.console.CommandRegistry;
 import org.jline.console.ConfigurationPath;
 import org.jline.reader.*;
@@ -161,7 +163,7 @@ public class SystemRegistryImpl implements SystemRegistry {
      */
     public void register(String command, CommandRegistry subcommandRegistry) {
         subcommands.put(command, subcommandRegistry);
-        commandExecute.put(command, new Builtins.CommandMethods(this::subcommand, this::emptyCompleter));
+        commandExecute.put(command, new CommandMethods(this::subcommand, this::emptyCompleter));
     }
 
     private List<String> localCommandInfo(String command) {
@@ -358,7 +360,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             throw new IllegalArgumentException();
         }
         Object out = commandExecute.get(command).executeFunction()
-                          .apply(new Builtins.CommandInput(command, args, commandSession()));
+                          .apply(new CommandInput(command, args, commandSession()));
         if (exception != null) {
             throw exception;
         }
@@ -1306,7 +1308,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         return opt;
     }
 
-    private Object help(Builtins.CommandInput input) {
+    private Object help(CommandInput input) {
         final String[] usage = { "help -  command help"
                                , "Usage: help [TOPIC...]",
                                  "  -? --help                       Displays command help", };
@@ -1400,7 +1402,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         terminal().flush();
     }
 
-    private Object exit(Builtins.CommandInput input) {
+    private Object exit(CommandInput input) {
         final String[] usage = { "exit -  exit from app/script"
                                , "Usage: exit [OBJECT]"
                                , "  -? --help                       Displays command help"
@@ -1449,7 +1451,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         throw new HelpException(sb.toString());
     }
 
-    private Object subcommand(Builtins.CommandInput input) {
+    private Object subcommand(CommandInput input) {
         Object out = null;
         try {
             if (input.args().length > 0 && subcommands.get(input.command()).hasCommand(input.args()[0])) {

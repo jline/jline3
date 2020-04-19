@@ -36,6 +36,8 @@ import org.jline.builtins.Widgets.TailTipWidgets;
 import org.jline.builtins.Widgets.TailTipWidgets.TipType;
 import org.jline.console.ArgDesc;
 import org.jline.console.CmdDesc;
+import org.jline.console.CommandInput;
+import org.jline.console.CommandMethods;
 import org.jline.console.CommandRegistry;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
@@ -222,18 +224,18 @@ public class Example
         private AutosuggestionWidgets autosuggestionWidgets;
         private TailTipWidgets tailtipWidgets;
         private AutopairWidgets autopairWidgets;
-        private final Map<String,Builtins.CommandMethods> commandExecute = new HashMap<>();
+        private final Map<String,CommandMethods> commandExecute = new HashMap<>();
         private final Map<String,List<String>> commandInfo = new HashMap<>();
         private Map<String,String> aliasCommand = new HashMap<>();
         private Exception exception;
 
         public ExampleCommands() {
-            commandExecute.put("tput", new Builtins.CommandMethods(this::tput, this::tputCompleter));
-            commandExecute.put("testkey", new Builtins.CommandMethods(this::testkey, this::defaultCompleter));
-            commandExecute.put("clear", new Builtins.CommandMethods(this::clear, this::defaultCompleter));
-            commandExecute.put("sleep", new Builtins.CommandMethods(this::sleep, this::defaultCompleter));
-            commandExecute.put("autopair", new Builtins.CommandMethods(this::autopair, this::defaultCompleter));
-            commandExecute.put("autosuggestion", new Builtins.CommandMethods(this::autosuggestion, this::autosuggestionCompleter));
+            commandExecute.put("tput", new CommandMethods(this::tput, this::tputCompleter));
+            commandExecute.put("testkey", new CommandMethods(this::testkey, this::defaultCompleter));
+            commandExecute.put("clear", new CommandMethods(this::clear, this::defaultCompleter));
+            commandExecute.put("sleep", new CommandMethods(this::sleep, this::defaultCompleter));
+            commandExecute.put("autopair", new CommandMethods(this::autopair, this::defaultCompleter));
+            commandExecute.put("autosuggestion", new CommandMethods(this::autosuggestion, this::autosuggestionCompleter));
 
             commandInfo.put("tput", Arrays.asList("set terminal capability"));
             commandInfo.put("testkey", Arrays.asList("display key events"));
@@ -302,7 +304,7 @@ public class Example
 
         public Object execute(CommandRegistry.CommandSession session, String command, String[] args) throws Exception {
             exception = null;
-            commandExecute.get(command(command)).execute().accept(new Builtins.CommandInput(command, args, session));
+            commandExecute.get(command(command)).execute().accept(new CommandInput(command, args, session));
             if (exception != null) {
                 throw exception;
             }
@@ -314,7 +316,7 @@ public class Example
             return new CmdDesc(false);
         }
 
-        private void tput(Builtins.CommandInput input) {
+        private void tput(CommandInput input) {
             String[] argv = input.args();
             try {
                 if (argv.length == 1 && !argv[0].equals("--help") && !argv[0].equals("-?")) {
@@ -332,7 +334,7 @@ public class Example
             }
         }
 
-        private void testkey(Builtins.CommandInput input) {
+        private void testkey(CommandInput input) {
             try {
                 terminal().writer().write("Input the key event(Enter to complete): ");
                 terminal().writer().flush();
@@ -349,7 +351,7 @@ public class Example
             }
         }
 
-        private void clear(Builtins.CommandInput input) {
+        private void clear(CommandInput input) {
             try {
                 terminal().puts(Capability.clear_screen);
                 terminal().flush();
@@ -358,7 +360,7 @@ public class Example
             }
         }
 
-        private void sleep(Builtins.CommandInput input) {
+        private void sleep(CommandInput input) {
             try {
                 Thread.sleep(3000);
             } catch (Exception e) {
@@ -366,7 +368,7 @@ public class Example
             }
         }
 
-        private void autopair(Builtins.CommandInput input) {
+        private void autopair(CommandInput input) {
             try {
                 terminal().writer().print("Autopair widgets are ");
                 if (autopairWidgets.toggle()) {
@@ -379,7 +381,7 @@ public class Example
             }
         }
 
-        private void autosuggestion(Builtins.CommandInput input) {
+        private void autosuggestion(CommandInput input) {
             String[] argv = input.args();
             try {
                 if (argv.length > 0) {
