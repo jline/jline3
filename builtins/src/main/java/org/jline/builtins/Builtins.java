@@ -17,9 +17,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
-import org.jline.builtins.Builtins.CommandMethods;
 import org.jline.builtins.Completers.FilesCompleter;
 import org.jline.builtins.Completers.OptDesc;
 import org.jline.builtins.Completers.OptionCompleter;
@@ -33,7 +31,6 @@ import org.jline.reader.LineReader.Option;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
-import org.jline.reader.impl.completer.SystemCompleter;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 
@@ -89,11 +86,11 @@ public class Builtins extends AbstractCommandRegistry implements CommandRegistry
         commandExecute.put(Command.LESS, new CommandMethods(this::less, this::lessCompleter));
         commandExecute.put(Command.HISTORY, new CommandMethods(this::history, this::historyCompleter));
         commandExecute.put(Command.WIDGET, new CommandMethods(this::widget, this::widgetCompleter));
-        commandExecute.put(Command.KEYMAP, new CommandMethods(this::keymap, this::keymapCompleter));
+        commandExecute.put(Command.KEYMAP, new CommandMethods(this::keymap, this::defaultCompleter));
         commandExecute.put(Command.SETOPT, new CommandMethods(this::setopt, this::setoptCompleter));
         commandExecute.put(Command.SETVAR, new CommandMethods(this::setvar, this::setvarCompleter));
         commandExecute.put(Command.UNSETOPT, new CommandMethods(this::unsetopt, this::unsetoptCompleter));
-        commandExecute.put(Command.TTOP, new CommandMethods(this::ttop, this::ttopCompleter));
+        commandExecute.put(Command.TTOP, new CommandMethods(this::ttop, this::defaultCompleter));
         registerCommands(commandName, commandExecute);
     }
 
@@ -256,16 +253,6 @@ public class Builtins extends AbstractCommandRegistry implements CommandRegistry
         return completers;
     }
 
-    private List<Completer> keymapCompleter(String name) {
-        List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                                            , new OptionCompleter(NullCompleter.INSTANCE
-                                                                , this::commandOptions
-                                                                , 1)
-                        ));
-        return completers;
-    }
-
     private List<Completer> setvarCompleter(String name) {
         List<Completer> completers = new ArrayList<>();
         completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
@@ -287,18 +274,8 @@ public class Builtins extends AbstractCommandRegistry implements CommandRegistry
         return completers;
     }
 
-    private List<Completer> ttopCompleter(String name) {
-        List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                                            , new OptionCompleter(NullCompleter.INSTANCE
-                                                                , this::commandOptions
-                                                                , 1)
-                                    ));
-        return completers;
-    }
-
     //
-    // utils
+    // Utils for helpMessage parsing
     //
     private static AttributedString highlightComment(String comment) {
         return HelpException.highlightComment(comment, HelpException.defaultStyle());
@@ -503,7 +480,7 @@ public class Builtins extends AbstractCommandRegistry implements CommandRegistry
             return compileCompleter;
         }
 
-        public boolean isVoid() {
+        public boolean isConsumer() {
             return execute != null;
         }
     }

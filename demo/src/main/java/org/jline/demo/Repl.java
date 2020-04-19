@@ -24,12 +24,11 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.jline.builtins.AbstractCommandRegistry;
 import org.jline.builtins.Builtins;
-import org.jline.builtins.Completers;
 import org.jline.builtins.ConsoleEngine;
 import org.jline.builtins.ConsoleEngineImpl;
 import org.jline.builtins.Options;
-import org.jline.builtins.Completers.OptDesc;
 import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.SystemRegistryImpl;
@@ -46,12 +45,10 @@ import org.jline.reader.impl.DefaultParser.Bracket;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
-import org.jline.reader.impl.completer.SystemCompleter;
 import org.jline.script.GroovyEngine;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.Terminal.Signal;
-import org.jline.terminal.Terminal.SignalHandler;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.OSUtils;
@@ -64,65 +61,10 @@ import org.jline.utils.OSUtils;
 public class Repl {
 
     /**
-     * Command execute and tab completer compiler methods for CommandRegistry
-     * which have commands that will return execution value
-     */
-    private static abstract class ObjectCommand extends org.jline.builtins.AbstractCommandRegistry {
-        protected Exception exception;
-
-        public ObjectCommand() {
-            super();
-        }
-
-        @Override
-        public Object invoke(CommandRegistry.CommandSession session, String command, Object... args) throws Exception {
-            exception = null;
-            Object out = getCommandMethods(command).executeFunction().apply(new Builtins.CommandInput(command, args, session));
-            if (exception != null) {
-                throw exception;
-            }
-            return out;
-        }
-
-        protected List<Completer> defaultCompleter(String command) {
-            List<Completer> completers = new ArrayList<>();
-            completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                                               , new OptionCompleter(NullCompleter.INSTANCE
-                                                                   , this::commandOptions
-                                                                   , 1)
-                                                ));
-            return completers;
-        }
-
-    }
-
-    /**
-     * Command execute and tab completer compilers methods for CommandRegistry
-     * which have commands that will not return execution value
-     */
-    private static abstract class VoidCommand extends org.jline.builtins.AbstractCommandRegistry {
-
-        public VoidCommand() {
-            super();
-        }
-
-        protected List<Completer> defaultCompleter(String command) {
-            List<Completer> completers = new ArrayList<>();
-            completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                                               , new OptionCompleter(NullCompleter.INSTANCE
-                                                                   , this::commandOptions
-                                                                   , 1)
-                                                ));
-            return completers;
-        }
-
-    }
-
-    /**
      * CommandRegistry that have commands which manage in different way command parameters.
      *
      */
-    private static class SubCommands extends ObjectCommand implements CommandRegistry {
+    private static class SubCommands extends AbstractCommandRegistry implements CommandRegistry {
 
         public SubCommands() {
             super();
@@ -146,7 +88,7 @@ public class Repl {
                 List<Object> xargs = opt.argObjects();
                 out = xargs.size() > 0 ? xargs.get(0) : null;
             } catch (Exception e) {
-                exception = e;
+                saveException(e);
             }
             return out;
         }
@@ -164,7 +106,7 @@ public class Repl {
                 List<String> args = opt.args();
                 out = args.size() > 0 ? args.get(0) : null;
             } catch (Exception e) {
-                exception = e;
+                saveException(e);
             }
             return out;
         }
@@ -182,14 +124,14 @@ public class Repl {
                 List<Object> xargs = opt.argObjects();
                 out = xargs.size() > 0 ? xargs.get(0) : null;
             } catch (Exception e) {
-                exception = e;
+                saveException(e);
             }
             return out;
         }
 
     }
 
-    private static class MyCommands extends VoidCommand implements CommandRegistry {
+    private static class MyCommands extends AbstractCommandRegistry implements CommandRegistry {
         private LineReader reader;
         private Supplier<Path> workDir;
 

@@ -54,7 +54,7 @@ import org.jline.terminal.TerminalBuilder;
  *
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
-public class SystemRegistryImpl extends AbstractCommandRegistry implements SystemRegistry {
+public class SystemRegistryImpl implements SystemRegistry {
 
     public enum Pipe {
         FLIP, NAMED, AND, OR
@@ -76,7 +76,6 @@ public class SystemRegistryImpl extends AbstractCommandRegistry implements Syste
     private Supplier<Path> workDir;
 
     public SystemRegistryImpl(Parser parser, Terminal terminal, Supplier<Path> workDir, ConfigurationPath configPath) {
-        super();
         this.parser = parser;
         this.workDir = workDir;
         this.configPath = configPath;
@@ -271,6 +270,11 @@ public class SystemRegistryImpl extends AbstractCommandRegistry implements Syste
         return null;
     }
 
+    @Override
+    public CmdDesc commandDescription(String command) {
+        return commandDescription(Arrays.asList(command));
+    }
+    
     @Override
     public CmdDesc commandDescription(List<String> args) {
         CmdDesc out = new CmdDesc(false);
@@ -1294,6 +1298,14 @@ public class SystemRegistryImpl extends AbstractCommandRegistry implements Syste
         return args.isEmpty() || args.contains(name);
     }
 
+    private Options parseOptions(String[] usage, Object[] args) throws HelpException {
+        Options opt = Options.compile(usage).parse(args);
+        if (opt.isSet("help")) {
+            throw new HelpException(opt.usage());
+        }
+        return opt;
+    }
+
     private Object help(Builtins.CommandInput input) {
         final String[] usage = { "help -  command help"
                                , "Usage: help [TOPIC...]",
@@ -1454,8 +1466,7 @@ public class SystemRegistryImpl extends AbstractCommandRegistry implements Syste
         return out;
     }
 
-    @Override
-    public List<OptDesc> commandOptions(String command) {
+    private List<OptDesc> commandOptions(String command) {
         try {
             localExecute(command, new String[] { "--help" });
         } catch (HelpException e) {

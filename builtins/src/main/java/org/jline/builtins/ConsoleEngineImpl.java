@@ -22,7 +22,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.jline.builtins.Builtins;
 import org.jline.builtins.Builtins.CommandMethods;
 import org.jline.builtins.Completers.FilesCompleter;
 import org.jline.builtins.Completers.OptDesc;
@@ -37,7 +36,6 @@ import org.jline.reader.Parser.ParseContext;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
-import org.jline.reader.impl.completer.SystemCompleter;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
@@ -69,10 +67,6 @@ public class ConsoleEngineImpl extends AbstractCommandRegistry implements Consol
     private static final int PRNT_MAX_DEPTH = 1;
     private static final int PRNT_INDENTION = 4;
     private final ScriptEngine engine;
-    private Map<Command,String> commandName = new HashMap<>();
-    private Map<String,Command> nameCommand = new HashMap<>();
-    private Map<String,String> aliasCommand = new HashMap<>();
-    private final Map<Command,CommandMethods> commandExecute = new HashMap<>();
     private Map<Class<?>, Function<Object, Map<String,Object>>> objectToMap = new HashMap<>();
     private Map<Class<?>, Function<Object, String>> objectToString = new HashMap<>();
     private Map<String, Function<Object, AttributedString>> highlightValue = new HashMap<>();
@@ -94,18 +88,19 @@ public class ConsoleEngineImpl extends AbstractCommandRegistry implements Consol
         this.engine = engine;
         this.workDir = workDir;
         this.configPath = configPath;
+        Map<Command,String> commandName = new HashMap<>();
+        Map<Command,CommandMethods> commandExecute = new HashMap<>();
         Set<Command> cmds = new HashSet<>(EnumSet.allOf(Command.class));
         for (Command c: cmds) {
             commandName.put(c, c.name().toLowerCase());
         }
-        doNameCommand();
         commandExecute.put(Command.DEL, new CommandMethods(this::del, this::variableCompleter));
         commandExecute.put(Command.SHOW, new CommandMethods(this::show, this::variableCompleter));
         commandExecute.put(Command.PRNT, new CommandMethods(this::prnt, this::prntCompleter));
         commandExecute.put(Command.SLURP, new CommandMethods(this::slurpcmd, this::slurpCompleter));
         commandExecute.put(Command.ALIAS, new CommandMethods(this::aliascmd, this::aliasCompleter));
         commandExecute.put(Command.UNALIAS, new CommandMethods(this::unalias, this::unaliasCompleter));
-        commandExecute.put(Command.PIPE, new CommandMethods(this::pipe, this::pipeCompleter));
+        commandExecute.put(Command.PIPE, new CommandMethods(this::pipe, this::defaultCompleter));
         aliasFile = configPath.getUserConfig("aliases.json");
         if (aliasFile == null) {
             aliasFile = configPath.getUserConfig("aliases.json", true);
@@ -113,6 +108,7 @@ public class ConsoleEngineImpl extends AbstractCommandRegistry implements Consol
         } else {
             aliases.putAll((Map<String,String>)slurp(aliasFile));
         }
+        registerCommands(commandName, commandExecute);
     }
 
     /**
@@ -167,23 +163,6 @@ public class ConsoleEngineImpl extends AbstractCommandRegistry implements Consol
     }
 
     @Override
-    public Set<String> commandNames() {
-        return nameCommand.keySet();
-    }
-
-    public Map<String, String> commandAliases() {
-        return aliasCommand;
-    }
-
-    @Override
-    public boolean hasCommand(String name) {
-        if (nameCommand.containsKey(name) || aliasCommand.containsKey(name)) {
-            return true;
-        }
-        return false;
-    }
-
-    @Override
     public boolean hasAlias(String name) {
         return aliases.containsKey(name);
     }
@@ -215,55 +194,6 @@ public class ConsoleEngineImpl extends AbstractCommandRegistry implements Consol
                 out.add(entry.getKey());
             }
         }
-        return out;
-    }
-
-    private void doNameCommand() {
-        nameCommand = commandName.entrySet()
-                .stream()
-                .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
-    }
-
-    private Command command(String name) {
-        Command out = null;
-        if (!hasCommand(name)) {
-            throw new IllegalArgumentException("Command does not exists!");
-        }
-        if (aliasCommand.containsKey(name)) {
-            name = aliasCommand.get(name);
-        }
-        if (nameCommand.containsKey(name)) {
-            out = nameCommand.get(name);
-        } else {
-            throw new IllegalArgumentException("Command does not exists!");
-        }
-        return out;
-    }
-
-    public void rename(Command command, String newName) {
-        if (nameCommand.containsKey(newName)) {
-            throw new IllegalArgumentException("Duplicate command name!");
-        } else if (!commandName.containsKey(command)) {
-            throw new IllegalArgumentException("Command does not exists!");
-        }
-        commandName.put(command, newName);
-        doNameCommand();
-    }
-
-    public void alias(String alias, String command) {
-        if (!nameCommand.keySet().contains(command)) {
-            throw new IllegalArgumentException("Command does not exists!");
-        }
-        aliasCommand.put(alias, command);
-    }
-
-    @Override
-    public SystemCompleter compileCompleters() {
-        SystemCompleter out = new SystemCompleter();
-        for (Map.Entry<Command, String> entry: commandName.entrySet()) {
-            out.add(entry.getValue(), commandExecute.get(entry.getKey()).compileCompleter().apply(entry.getValue()));
-        }
-        out.addAliases(aliasCommand);
         return out;
     }
 
@@ -894,7 +824,7 @@ public class ConsoleEngineImpl extends AbstractCommandRegistry implements Consol
         exception = null;
         Object out = null;
         if (hasCommand(command)) {
-            out = commandExecute.get(command(command)).executeFunction().apply(new Builtins.CommandInput(command, args, session));
+            out = getCommandMethods(command).executeFunction().apply(new Builtins.CommandInput(command, args, session));
         } else {
             String[] _args = new String[args.length];
             for (int i = 0; i < args.length; i++) {
@@ -1815,18 +1745,6 @@ public class ConsoleEngineImpl extends AbstractCommandRegistry implements Consol
         return out;
     }
 
-    @Override
-    public List<OptDesc> commandOptions(String command) {
-        try {
-            invoke(new CommandSession(), command, "--help");
-        } catch (HelpException e) {
-            return Builtins.compileCommandOptions(e.getMessage());
-        } catch (Exception e) {
-            trace(e);
-        }
-        return null;
-    }
-
     private List<Completer> slurpCompleter(String command) {
         List<Completer> completers = new ArrayList<>();
         List<OptDesc> optDescs = commandOptions("slurp");
@@ -1895,25 +1813,25 @@ public class ConsoleEngineImpl extends AbstractCommandRegistry implements Consol
 
     private List<Completer> aliasCompleter(String command) {
         List<Completer> completers = new ArrayList<>();
+        List<Completer> params = new ArrayList<>();
+        params.add(new StringsCompleter(aliases::keySet));
+        params.add(new AliasValueCompleter(aliases));
         completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                , new StringsCompleter(aliases::keySet), new AliasValueCompleter(aliases), NullCompleter.INSTANCE));
+                , new OptionCompleter(params
+                                    , this::commandOptions
+                                    , 1)
+                             ));
         return completers;
     }
 
     private List<Completer> unaliasCompleter(String command) {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE, new StringsCompleter(aliases::keySet)));
-        return completers;
-    }
-
-    private List<Completer> pipeCompleter(String command) {
-        List<Completer> completers = new ArrayList<>();
         completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                , new OptionCompleter(NullCompleter.INSTANCE
+                , new OptionCompleter(new StringsCompleter(aliases::keySet)
                                     , this::commandOptions
                                     , 1)
                              ));
-         return completers;
+        return completers;
     }
 
 }

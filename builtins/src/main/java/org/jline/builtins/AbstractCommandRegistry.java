@@ -21,8 +21,12 @@ import org.jline.builtins.Builtins.Command;
 import org.jline.builtins.Builtins.CommandInput;
 import org.jline.builtins.Builtins.CommandMethods;
 import org.jline.builtins.Completers.OptDesc;
+import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.Options.HelpException;
 import org.jline.console.CommandRegistry.CommandSession;
+import org.jline.reader.Completer;
+import org.jline.reader.impl.completer.ArgumentCompleter;
+import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.SystemCompleter;
 
 public abstract class AbstractCommandRegistry {
@@ -36,7 +40,7 @@ public abstract class AbstractCommandRegistry {
     }
 
     public void registerCommands(Map<String,CommandMethods> commandExecute) {
-        cmdRegistry = new StringCmdRegistry(commandExecute);
+        cmdRegistry = new NameCmdRegistry(commandExecute);
     }
 
     public List<String> commandInfo(String command) {
@@ -90,6 +94,16 @@ public abstract class AbstractCommandRegistry {
         return null;
     }
 
+    public List<Completer> defaultCompleter(String command) {
+        List<Completer> completers = new ArrayList<>();
+        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
+                                           , new OptionCompleter(NullCompleter.INSTANCE
+                                                               , this::commandOptions
+                                                               , 1)
+                                            ));
+        return completers;
+    }
+
     public Object execute(CommandRegistry.CommandSession session, String command, String[] args) throws Exception {
         exception = null;
         getCommandMethods(command).execute().accept(new CommandInput(command, args, session));
@@ -100,14 +114,25 @@ public abstract class AbstractCommandRegistry {
     }
         
     public Object invoke(CommandSession session, String command, Object... args) throws Exception {
-        String[] _args = new String[args.length];
-        for (int i = 0; i < args.length; i++) {
-            if (!(args[i] instanceof String)) {
-                throw new IllegalArgumentException();
+        Object out = null;
+        exception = null;
+        CommandMethods methods = getCommandMethods(command);
+        if (methods.isConsumer()) {
+            String[] _args = new String[args.length];
+            for (int i = 0; i < args.length; i++) {
+                if (!(args[i] instanceof String)) {
+                    throw new IllegalArgumentException();
+                }
+                _args[i] = args[i].toString();
             }
-            _args[i] = args[i].toString();
+            methods.execute().accept(new CommandInput(command, _args, session));
+        } else {
+            out = methods.executeFunction().apply(new CommandInput(command, args, session));            
         }
-        return execute(session, command, _args);
+        if (exception != null) {
+            throw exception;
+        }
+        return out;
     }
     
     public void saveException(Exception exception) {
@@ -242,11 +267,11 @@ public abstract class AbstractCommandRegistry {
         
     }
 
-    private static class StringCmdRegistry implements CmdRegistry {
+    private static class NameCmdRegistry implements CmdRegistry {
         private Map<String,CommandMethods> commandExecute;
         private Map<String,String> aliasCommand = new HashMap<>();
         
-        public StringCmdRegistry(Map<String,CommandMethods> commandExecute) {
+        public NameCmdRegistry(Map<String,CommandMethods> commandExecute) {
             this.commandExecute = commandExecute;            
         }
 
