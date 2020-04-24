@@ -29,12 +29,16 @@ import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.utils.AttributedString;
 
+import groovy.console.ui.Console;
+import groovy.console.ui.ObjectBrowser;
+
 public class GroovyCommand extends AbstractCommandRegistry implements CommandRegistry {
-    public enum Command {INSPECT}
+    public enum Command {INSPECT, CONSOLE}
     private GroovyEngine engine;
     private Printer printer;
     private final Map<Command,CmdDesc> commandDescs = new HashMap<>();
     private final Map<Command,List<String>> commandInfos = new HashMap<>();
+    private boolean consoleUi;
 
     public GroovyCommand(GroovyEngine engine, Printer printer) {
         this(null, engine, printer);
@@ -43,6 +47,11 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
     public GroovyCommand(Set<Command> commands, GroovyEngine engine, Printer printer) {
         this.engine = engine;
         this.printer = printer;
+        try {
+            Class.forName("groovy.console.ui.ObjectBrowser");
+            consoleUi = true;
+        } catch (Exception e) {
+        }
         Set<Command> cmds = new HashSet<>();
         Map<Command,String> commandName = new HashMap<>();
         Map<Command,CommandMethods> commandExecute = new HashMap<>();
@@ -51,12 +60,17 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         } else {
             cmds = new HashSet<>(commands);
         }
+        if (!consoleUi) {
+            cmds.remove(Command.CONSOLE);
+        }
         for (Command c: cmds) {
             commandName.put(c, c.name().toLowerCase());
         }
         commandExecute.put(Command.INSPECT, new CommandMethods(this::inspect, this::inspectCompleter));
+        commandExecute.put(Command.CONSOLE, new CommandMethods(this::console, this::consoleCompleter));
         registerCommands(commandName, commandExecute);
         commandDescs.put(Command.INSPECT, inspectCmdDesc());
+        commandDescs.put(Command.CONSOLE, consoleCmdDesc());
     }
 
     @Override
@@ -69,6 +83,23 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
     public CmdDesc commandDescription(String command) {
         Command cmd = (Command)registeredCommand(command);
         return commandDescs.get(cmd);
+    }
+
+    public void console(CommandInput input) {
+        if (input.args().length > 1) {
+            throw new IllegalArgumentException("Wrong number of command parameters: " + input.args().length);
+        }
+        if (input.args().length == 1) {
+            String arg = input.args()[0];
+            if (arg.equals("-?") || arg.equals("--help")) {
+                printer.println(commandDescs.get(Command.CONSOLE));
+                return;
+            } else {
+                throw new IllegalArgumentException("Unknown command parameter: " + input.args()[0]);
+            }
+        }
+        Console c = new Console();
+        c.run();
     }
 
     public Object inspect(CommandInput input) {
@@ -91,33 +122,53 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         if (input.args().length < id + 1) {
             throw new IllegalArgumentException("Wrong number of command parameters: " + input.args().length);
         }
-        Object obj = input.xargs()[id];
-        ObjectInspector inspector = new ObjectInspector(obj);
-        Object out = option;
-        if (option.equals("-m") || option.equals("--methods")) {
-            out = inspector.methods();
-        } else if (option.equals("-n") || option.equals("--metaMethods")) {
-            out = inspector.metaMethods();
-        } else if (option.equals("-i") || option.equals("--info")) {
-            out = inspector.properties();
-        } else if (option.equals("-g") || option.equals("--gui")) {
-//            groovy.inspect.swingui.ObjectBrowser.inspect(obj);
-        } else {
-            throw new IllegalArgumentException("Unknown option: " + option);
+        try {
+            Object obj = input.xargs()[id];
+            ObjectInspector inspector = new ObjectInspector(obj);
+            Object out = option;
+            if (option.equals("-m") || option.equals("--methods")) {
+                out = inspector.methods();
+            } else if (option.equals("-n") || option.equals("--metaMethods")) {
+                out = inspector.metaMethods();
+            } else if (option.equals("-i") || option.equals("--info")) {
+                out = inspector.properties();
+            } else if (consoleUi && (option.equals("-g") || option.equals("--gui"))) {
+                ObjectBrowser.inspect(obj);
+            } else {
+                throw new IllegalArgumentException("Unknown option: " + option);
+            }
+            Map<String,Object> options = new HashMap<>();
+            options.put(Printer.SKIP_DEFAULT_OPTIONS, true);
+            options.put(Printer.COLUMNS, ObjectInspector.METHOD_COLUMNS);
+            options.put(Printer.MAX_DEPTH, 1);
+            options.put(Printer.INDENTION, 4);
+            printer.println(options, out);
+        } catch (Exception e) {
+            saveException(e);
         }
-        Map<String,Object> options = new HashMap<>();
-        options.put(Printer.SKIP_DEFAULT_OPTIONS, true);
-        options.put(Printer.COLUMNS, ObjectInspector.METHOD_COLUMNS);
-        options.put(Printer.MAX_DEPTH, 1);
-        options.put(Printer.INDENTION, 4);
-        printer.println(options, out);
         return null;
+    }
+
+    private CmdDesc consoleCmdDesc() {
+        Map<String,List<AttributedString>> optDescs = new HashMap<>();
+        optDescs.put("-? --help", doDescription ("Displays command help"));
+        CmdDesc out = new CmdDesc(new ArrayList<>(), optDescs);
+        List<AttributedString> mainDesc = new ArrayList<>();
+        List<String> info = new ArrayList<>();
+        info.add("Launch Groovy console");
+        commandInfos.put(Command.CONSOLE, info);
+        mainDesc.add(new AttributedString("console -  " + info.get(0)));
+        mainDesc.add(new AttributedString("Usage: console"));
+        out.setMainDesc(mainDesc);
+        return out;
     }
 
     private CmdDesc inspectCmdDesc() {
         Map<String,List<AttributedString>> optDescs = new HashMap<>();
         optDescs.put("-? --help", doDescription ("Displays command help"));
-        optDescs.put("-g --gui", doDescription ("Open object browser"));
+        if (consoleUi) {
+            optDescs.put("-g --gui", doDescription ("Launch object browser"));
+        }
         optDescs.put("-i --info", doDescription ("Object class info"));
         optDescs.put("-m --methods", doDescription ("List object methods"));
         optDescs.put("-n --metaMethods", doDescription ("List object metaMethads"));
@@ -163,6 +214,15 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
                                                    , new StringsCompleter("--help", "--methods", "--metaMethods", "--gui", "--info"
                                                                          ,"-?", "-n", "-m", "-i", "-g")
                                                    , new StringsCompleter(this::variables)
+                                                   , NullCompleter.INSTANCE);
+        out.add(ac);
+        return out;
+    }
+
+    public List<Completer> consoleCompleter(String command) {
+        List<Completer> out = new ArrayList<>();
+        ArgumentCompleter ac = new ArgumentCompleter(NullCompleter.INSTANCE
+                                                   , new StringsCompleter("--help", "-?")
                                                    , NullCompleter.INSTANCE);
         out.add(ac);
         return out;

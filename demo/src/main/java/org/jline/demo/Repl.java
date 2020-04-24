@@ -54,6 +54,7 @@ import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.Terminal.Signal;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.InfoCmp.Capability;
+
 import org.jline.utils.OSUtils;
 
 /**
@@ -383,6 +384,18 @@ public class Repl {
                 }
             }
             systemRegistry.close();                   // persist pipeline completer names etc
+
+            Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
+            boolean groovyRunning=false;              // check Groovy GUI apps
+            for (Thread t : threadSet) {
+                if (t.getName().startsWith("AWT-Shut")) {
+                    groovyRunning = true;
+                    break;
+                }
+            }
+            if (groovyRunning) {
+                consoleEngine.println("Please, close Groovy Consoles/Object Browsers!");
+            }
         }
         catch (Throwable t) {
             t.printStackTrace();

@@ -84,6 +84,11 @@
         </dependency>
 
         <dependency>
+             <groupId>org.codehaus.groovy</groupId>
+             <artifactId>groovy-console</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>

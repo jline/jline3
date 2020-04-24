@@ -1234,7 +1234,8 @@ public class SystemRegistryImpl implements SystemRegistry {
             String message = exception.getMessage();
             AttributedStringBuilder asb = new AttributedStringBuilder();
             if (message != null) {
-                asb.append(message, AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+                String m = exception.getClass().getSimpleName() + ": " + message; 
+                asb.append(m, AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
             } else {
                 asb.append("Caught exception: ", AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
                 asb.append(exception.getClass().getCanonicalName(), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));

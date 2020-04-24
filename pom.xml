@@ -88,7 +88,7 @@
         <gogo.jline.version>1.1.4</gogo.jline.version>
         <slf4j.version>1.7.21</slf4j.version>
         <findbugs.version>3.0.2</findbugs.version>
-        <groovy.version>3.0.2</groovy.version>
+        <groovy.version>3.0.3</groovy.version>
 
         <surefire.argLine />
     </properties>
@@ -236,6 +236,12 @@
             <dependency>
                 <groupId>org.codehaus.groovy</groupId>
                 <artifactId>groovy-json</artifactId>
+                <version>${groovy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.codehaus.groovy</groupId>
+                <artifactId>groovy-console</artifactId>
                 <version>${groovy.version}</version>
             </dependency>
 
