@@ -1440,8 +1440,18 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
 
     public List<AttributedString> highlightList(Map<String, Object> options, List<Object> collection, int width) {
         List<AttributedString> out = new ArrayList<>();
+        highlightList(options, collection, width, 0, out);
+        return out;
+    }
+
+    public void highlightList(Map<String, Object> options
+                            , List<Object> collection, int width, int depth, List<AttributedString> out) {
         Integer row = 0;
-        Integer tabsize = digits(collection.size()) + 2;
+        int indent = (int)options.get(Printer.INDENTION);
+        int tabsize = indent*depth;
+        if (options.containsKey(Printer.ROWNUM)) {
+            tabsize += digits(collection.size()) + 2;
+        }
         options.remove(Printer.MAX_COLUMN_WIDTH);
         for (Object o : collection) {
             AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabsize);
@@ -1449,13 +1459,14 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 asb.append(row.toString(), AttributedStyle.DEFAULT
                         .foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
                 asb.append(":");
-                asb.append("\t");
                 row++;
+            }
+            if (tabsize != 0) {
+                asb.append("\t");
             }
             asb.append(highlightValue(options, null, objectToString(options, o)));
             out.add(truncate(asb, width));
         }
-        return out;
     }
 
     private boolean collectionObject(Object obj) {
@@ -1530,12 +1541,27 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                                    , AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
             Object elem = entry.getValue();
             boolean convert = canConvert(elem);
-            if (depth < maxDepth && (elem instanceof Map || convert) && !options.containsKey(Printer.TO_STRING)) {
-                out.add(truncate(asb, width));
-                Map<String, Object> childMap = convert ? objectToMap(options, elem)
-                                                       : keysToString((Map<Object, Object>) elem);
-                highlightMap(options, childMap, width, depth + 1, out);
-            } else {
+            boolean highlightValue = true;
+            if (depth < maxDepth && !options.containsKey(Printer.TO_STRING)) {
+                if (elem instanceof Map || convert) {
+                    out.add(truncate(asb, width));
+                    Map<String, Object> childMap = convert ? objectToMap(options, elem)
+                                                           : keysToString((Map<Object, Object>) elem);
+                    highlightMap(options, childMap, width, depth + 1, out);
+                    highlightValue = false;
+                } else if (collectionObject(elem)) {
+                    List<Object> collection = objectToList(elem);
+                    if (!collection.isEmpty()) {
+                        out.add(truncate(asb, width));
+                        Map<String, Object> listOptions = new HashMap<>();
+                        listOptions.putAll(options);
+                        listOptions.put(Printer.TO_STRING, true);
+                        highlightList(listOptions, collection, width, depth + 1, out);
+                        highlightValue = false;
+                    }
+                }                
+            }
+            if (highlightValue) {
                 AttributedString val = highlightMapValue(mapOptions, entry.getKey(), map, defaultStyle);
                 if (map.size() == 1) {
                     asb.append("\t");

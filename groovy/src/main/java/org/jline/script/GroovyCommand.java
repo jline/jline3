@@ -108,6 +108,8 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         Map<String,Object> options = new HashMap<>();
         options.put(Printer.SKIP_DEFAULT_OPTIONS, true);
         options.put(Printer.COLUMNS, ObjectInspector.METHOD_COLUMNS);
+        options.put(Printer.MAX_DEPTH, 1);
+        options.put(Printer.INDENTION, 4);
         printer.println(options, out);
         return null;
     }
