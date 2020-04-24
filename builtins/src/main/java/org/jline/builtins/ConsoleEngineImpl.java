@@ -27,10 +27,12 @@ import org.jline.builtins.Completers.OptDesc;
 import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.Nano.SyntaxHighlighter;
 import org.jline.builtins.Options.HelpException;
+import org.jline.console.CmdDesc;
 import org.jline.console.CommandInput;
 import org.jline.console.CommandMethods;
 import org.jline.console.CommandRegistry;
 import org.jline.console.ConfigurationPath;
+import org.jline.console.Printer;
 import org.jline.console.ScriptEngine;
 import org.jline.reader.*;
 import org.jline.reader.Parser.ParseContext;
@@ -48,7 +50,7 @@ import org.jline.utils.Log;
  *
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
-public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEngine {
+public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEngine, Printer {
     public enum Command {SHOW
                        , DEL
                        , PRNT
@@ -846,16 +848,16 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String,Object> defaultPrntOptions() {
+    private Map<String,Object> defaultPrntOptions(boolean skipDefault) {
         Map<String, Object> out = new HashMap<>();
-        if (engine.hasVariable(VAR_PRNT_OPTIONS)) {
+        if (!skipDefault && engine.hasVariable(VAR_PRNT_OPTIONS)) {
             out.putAll((Map<String,Object>)engine.get(VAR_PRNT_OPTIONS));
         }
-        out.putIfAbsent("maxrows", PRNT_MAX_ROWS);
-        out.putIfAbsent("maxDepth", PRNT_MAX_DEPTH);
-        out.putIfAbsent("indention", PRNT_INDENTION);
-        out.putIfAbsent("columnsOut", new ArrayList<String>());
-        out.putIfAbsent("columnsIn", new ArrayList<String>());
+        out.putIfAbsent(Printer.MAXROWS, PRNT_MAX_ROWS);
+        out.putIfAbsent(Printer.MAX_DEPTH, PRNT_MAX_DEPTH);
+        out.putIfAbsent(Printer.INDENTION, PRNT_INDENTION);
+        out.putIfAbsent(Printer.COLUMNS_OUT, new ArrayList<String>());
+        out.putIfAbsent(Printer.COLUMNS_IN, new ArrayList<String>());
         return out;
     }
 
@@ -889,14 +891,13 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
 
     @Override
     public void println(Object object) {
-        long start = new Date().getTime();
-        internalPrintln(defaultPrntOptions(), object);
-        Log.debug("println: ", new Date().getTime() - start, " msec");
+        internalPrintln(defaultPrntOptions(false), object);
     }
 
     @Override
     public void println(Map<String, Object> options, Object object) {
-        for (Map.Entry<String, Object> entry : defaultPrntOptions().entrySet()) {
+        for (Map.Entry<String, Object> entry
+                : defaultPrntOptions(options.containsKey(Printer.SKIP_DEFAULT_OPTIONS)).entrySet()) {
             options.putIfAbsent(entry.getKey(), entry.getValue());
         }
         internalPrintln(options, object);
@@ -907,28 +908,31 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         if (object == null) {
             return;
         }
-        if (options.containsKey("exclude")) {
-            List<String> colOut = optionList("exclude", options);
-            List<String> colIn = optionList("columnsIn", options);
+        long start = new Date().getTime();
+        if (options.containsKey(Printer.EXCLUDE)) {
+            List<String> colOut = optionList(Printer.EXCLUDE, options);
+            List<String> colIn = optionList(Printer.COLUMNS_IN, options);
             colIn.removeAll(colOut);
-            colOut.addAll((List<String>)options.get("columnsOut"));
-            options.put("columnsIn", colIn);
-            options.put("columnsOut", colOut);
+            colOut.addAll((List<String>)options.get(Printer.COLUMNS_OUT));
+            options.put(Printer.COLUMNS_IN, colIn);
+            options.put(Printer.COLUMNS_OUT, colOut);
         }
-        if (options.containsKey("include")) {
-            List<String> colIn = optionList("include", options);
-            colIn.addAll((List<String>)options.get("columnsIn"));
-            options.put("columnsIn", colIn);
+        if (options.containsKey(Printer.INCLUDE)) {
+            List<String> colIn = optionList(Printer.INCLUDE, options);
+            colIn.addAll((List<String>)options.get(Printer.COLUMNS_IN));
+            options.put(Printer.COLUMNS_IN, colIn);
         }
-        options.putIfAbsent("width", terminal().getSize().getColumns());
-        String style = (String) options.getOrDefault("style", "");
-        int width = (int) options.get("width");
+        options.putIfAbsent(Printer.WIDTH, terminal().getSize().getColumns());
+        String style = (String) options.getOrDefault(Printer.STYLE, "");
+        int width = (int) options.get(Printer.WIDTH);
         if (style.equalsIgnoreCase("JSON")) {
             highlightAndPrint(width, style, engine.toJson(object));
         } else if (!style.isEmpty() && object instanceof String) {
             highlightAndPrint(width, style, (String) object);
-        } else if (object instanceof Exception) {
+        } else if (!options.containsKey(Printer.SKIP_DEFAULT_OPTIONS) && object instanceof Exception) {
             systemRegistry.trace(options.getOrDefault("exception", "stack").equals("stack"), (Exception)object);
+        } else if (!options.containsKey(Printer.SKIP_DEFAULT_OPTIONS) && object instanceof CmdDesc) {
+            printHelp((CmdDesc)object);
         } else if (object instanceof String) {
             highlight(AttributedStyle.YELLOW + AttributedStyle.BRIGHT, object).println(terminal());
         } else if (object instanceof Number) {
@@ -939,6 +943,46 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             }
         }
         terminal().flush();
+        Log.debug("println: ", new Date().getTime() - start, " msec");
+    }
+
+    private void printHelp(CmdDesc cmdDesc) {
+        boolean highlight = !isHighlighted(cmdDesc.getMainDesc().get(0));
+        StringBuilder sb = new StringBuilder();
+        for (AttributedString as : cmdDesc.getMainDesc()) {
+            if (!highlight) {
+                as.println(terminal());
+            } else {
+                sb.append(as.toString());
+                sb.append("\n");
+            }
+        }
+        List<Integer> tabs = Arrays.asList(0, 2, 33);
+        for (Map.Entry<String, List<AttributedString>> entry : cmdDesc.getOptsDesc().entrySet()) {
+            AttributedStringBuilder asb = new AttributedStringBuilder();
+            asb.tabs(tabs);
+            asb.append("\t");
+            asb.append(entry.getKey());
+            asb.append("\t");
+            boolean first = true;
+            for (AttributedString as : entry.getValue()) {
+                if (!first) {
+                    asb.append("\t");
+                    asb.append("\t");
+                }
+                asb.append(as);
+                asb.append("\n");
+                first = false;
+            }
+            if (!highlight) {
+                asb.toAttributedString().print(terminal());
+            } else {
+                sb.append(asb.toString());
+            }
+        }
+        if (highlight) {
+            Options.HelpException.highlight(sb.toString(), Options.HelpException.defaultStyle()).println(terminal());
+        }
     }
 
     private AttributedString highlight(int attrStyle, Object obj) {
@@ -1052,21 +1096,25 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
 
     @SuppressWarnings("unchecked")
     private Map<String,Object> objectToMap(Map<String, Object> options, Object obj) {
-        Map<Class<?>, Object> toMap = options.containsKey("objectToMap") ? (Map<Class<?>, Object>)options.get("objectToMap")
-                                                                         : new HashMap<>();;
-        if (toMap.containsKey(obj.getClass())) {
-            return (Map<String,Object>)engine.execute(toMap.get(obj.getClass()), obj);
-        } else if (objectToMap.containsKey(obj.getClass())) {
-            return objectToMap.get(obj.getClass()).apply(obj);
+        if (obj != null) {
+            Map<Class<?>, Object> toMap = options.containsKey(Printer.OBJECT_TO_MAP)
+                                                 ? (Map<Class<?>, Object>)options.get(Printer.OBJECT_TO_MAP)
+                                                 : new HashMap<>();;
+            if (toMap.containsKey(obj.getClass())) {
+                return (Map<String,Object>)engine.execute(toMap.get(obj.getClass()), obj);
+            } else if (objectToMap.containsKey(obj.getClass())) {
+                return objectToMap.get(obj.getClass()).apply(obj);
+            }
         }
         return engine.toMap(obj);
     }
 
     @SuppressWarnings("unchecked")
     private String objectToString(Map<String, Object> options, Object obj) {
-        Map<Class<?>, Object> toString = options.containsKey("objectToString") ? (Map<Class<?>, Object>)options.get("objectToString")
-                                                                               : new HashMap<>();
         if (obj != null) {
+            Map<Class<?>, Object> toString = options.containsKey(Printer.OBJECT_TO_STRING)
+                                                ? (Map<Class<?>, Object>)options.get(Printer.OBJECT_TO_STRING)
+                                                : new HashMap<>();
             if (toString.containsKey(obj.getClass())) {
                 return (String) engine.execute(toString.get(obj.getClass()), obj);
             } else if (objectToString.containsKey(obj.getClass())) {
@@ -1115,9 +1163,10 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     @SuppressWarnings("unchecked")
     private AttributedString highlightValue(Map<String, Object> options, String column, Object obj) {
         AttributedString out = null;
-        Object raw = options.containsKey("toString") && obj != null ? objectToString(options, obj) : obj;
-        Map<String, Object> hv = options.containsKey("highlightValue") ? (Map<String, Object>)options.get("highlightValue")
-                                                                       : new HashMap<>();
+        Object raw = options.containsKey(Printer.TO_STRING) && obj != null ? objectToString(options, obj) : obj;
+        Map<String, Object> hv = options.containsKey(Printer.HIGHLIGHT_VALUE)
+                                        ? (Map<String, Object>)options.get(Printer.HIGHLIGHT_VALUE)
+                                        : new HashMap<>();
         if (column != null && simpleObject(raw)) {
             for (Map.Entry<String,Object> entry : hv.entrySet()) {
                 if (!entry.getKey().equals("*") && column.matches(entry.getKey())) {
@@ -1154,9 +1203,9 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     }
 
     private AttributedString truncateValue(Map<String, Object> options, AttributedString value) {
-        if (value.columnLength() > (int)options.getOrDefault("maxColumnWidth", Integer.MAX_VALUE)) {
+        if (value.columnLength() > (int)options.getOrDefault(Printer.MAX_COLUMN_WIDTH, Integer.MAX_VALUE)) {
             AttributedStringBuilder asb = new AttributedStringBuilder();
-            asb.append(value.subSequence(0, (int)options.get("maxColumnWidth") - 3));
+            asb.append(value.subSequence(0, (int)options.get(Printer.MAX_COLUMN_WIDTH) - 3));
             asb.append("...");
             return asb.toAttributedString();
         }
@@ -1210,24 +1259,24 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     @SuppressWarnings("unchecked")
     private List<AttributedString> highlight(Map<String, Object> options, Object obj) {
         List<AttributedString> out = new ArrayList<>();
-        int width = (int)options.getOrDefault("width", Integer.MAX_VALUE);
-        boolean rownum = options.containsKey("rownum");
+        int width = (int)options.getOrDefault(Printer.WIDTH, Integer.MAX_VALUE);
+        boolean rownum = options.containsKey(Printer.ROWNUM);
         if (obj == null) {
             // do nothing
         } else if (obj instanceof Map) {
             out = highlightMap(options, keysToString((Map<Object, Object>)obj), width);
         } else if (collectionObject(obj)) {
             List<Object> collection = objectToList(obj);
-            if (collection.size() > (int)options.get("maxrows")) {
-                trace("Truncated output: " + (int)options.get("maxrows") + "/" + collection.size());
-                collection = collection.subList(collection.size() - (int)options.get("maxrows"), collection.size());
+            if (collection.size() > (int)options.get(Printer.MAXROWS)) {
+                trace("Truncated output: " + (int)options.get(Printer.MAXROWS) + "/" + collection.size());
+                collection = collection.subList(collection.size() - (int)options.get(Printer.MAXROWS), collection.size());
             }
             if (!collection.isEmpty()) {
-                if (collection.size() == 1 && !options.containsKey("oneRowTable")) {
+                if (collection.size() == 1 && !options.containsKey(Printer.ONE_ROW_TABLE)) {
                     Object elem = collection.iterator().next();
                     if (elem instanceof Map) {
                         out = highlightMap(options, keysToString((Map<Object, Object>)elem), width);
-                    } else if (canConvert(elem) && !options.containsKey("toString")){
+                    } else if (canConvert(elem) && !options.containsKey(Printer.TO_STRING)){
                         out = highlightMap(options, objectToMap(options, elem), width);
                     } else {
                         out.add(highlightValue(options, null, objectToString(options, obj)));
@@ -1236,15 +1285,15 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                     try {
                         Object elem = collection.iterator().next();
                         boolean convert = canConvert(elem);
-                        if ((elem instanceof Map || convert) && !options.containsKey("toString")) {
+                        if ((elem instanceof Map || convert) && !options.containsKey(Printer.TO_STRING)) {
                             Map<String, Object> map = convert ? objectToMap(options, elem)
                                                               : keysToString((Map<Object, Object>) elem);
                             List<String> _header = null;
-                            List<String> columnsIn = optionList("columnsIn", options);
-                            List<String> columnsOut = !options.containsKey("all") ? optionList("columnsOut", options)
+                            List<String> columnsIn = optionList(Printer.COLUMNS_IN, options);
+                            List<String> columnsOut = !options.containsKey("all") ? optionList(Printer.COLUMNS_OUT, options)
                                                                                   : new ArrayList<>();
-                            if (options.containsKey("columns")) {
-                                _header = (List<String>) options.get("columns");
+                            if (options.containsKey(Printer.COLUMNS)) {
+                                _header = (List<String>) options.get(Printer.COLUMNS);
                             } else {
                                 _header = columnsIn;
                                 _header.addAll(map.keySet().stream()
@@ -1259,9 +1308,9 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                                 if (!map.containsKey(_header.get(i).split("\\.")[0]) && !map.containsKey(_header.get(i))) {
                                     continue;
                                 }
-                                if (options.containsKey("columns")) {
+                                if (options.containsKey(Printer.COLUMNS)) {
                                     // do nothing
-                                } else if (!options.containsKey("structsOnTable")) {
+                                } else if (!options.containsKey(Printer.STRUCT_ON_TABLE)) {
                                     Object val = mapValue(options, _header.get(i), map);
                                     if (val == null || !simpleObject(val)) {
                                         continue;
@@ -1280,8 +1329,8 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                                 throw new Exception("No columns for table!");
                             }
                             double mapSimilarity = 0.8;
-                            if (options.containsKey("mapSimilarity")) {
-                                mapSimilarity = ((java.math.BigDecimal)options.get("mapSimilarity")).doubleValue();
+                            if (options.containsKey(Printer.MAP_SIMILARITY)) {
+                                mapSimilarity = ((java.math.BigDecimal)options.get(Printer.MAP_SIMILARITY)).doubleValue();
                             }
                             for (Object o : collection) {
                                 Map<String, Object> m = convert ? objectToMap(options, o)
@@ -1333,7 +1382,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                                 }
                                 out.add(asb2.subSequence(0, width));
                             }
-                        } else if (collectionObject(elem) && !options.containsKey("toString")) {
+                        } else if (collectionObject(elem) && !options.containsKey(Printer.TO_STRING)) {
                             List<Integer> columns = new ArrayList<>();
                             for (Object o : collection) {
                                 List<Object> inner = objectToList(o);
@@ -1381,7 +1430,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                     }
                 }
             }
-        } else if (canConvert(obj) && !options.containsKey("toString")) {
+        } else if (canConvert(obj) && !options.containsKey(Printer.TO_STRING)) {
             out = highlightMap(options, objectToMap(options, obj), width);
         } else {
             out.add(highlightValue(options, null, objectToString(options, obj)));
@@ -1393,10 +1442,10 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         List<AttributedString> out = new ArrayList<>();
         Integer row = 0;
         Integer tabsize = digits(collection.size()) + 2;
-        options.remove("maxColumnWidth");
+        options.remove(Printer.MAX_COLUMN_WIDTH);
         for (Object o : collection) {
             AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabsize);
-            if (options.containsKey("rownum")) {
+            if (options.containsKey(Printer.ROWNUM)) {
                 asb.append(row.toString(), AttributedStyle.DEFAULT
                         .foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
                 asb.append(":");
@@ -1463,23 +1512,25 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                             , Map<String, Object> map, int width, int depth, List<AttributedString> out) {
         AttributedStyle defaultStyle = AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW);
         int max = map.keySet().stream().map(String::length).max(Integer::compareTo).get();
-        if (max > (int)options.getOrDefault("maxColumnWidth", Integer.MAX_VALUE)) {
-            max = (int)options.get("maxColumnWidth");
+        if (max > (int)options.getOrDefault(Printer.MAX_COLUMN_WIDTH, Integer.MAX_VALUE)) {
+            max = (int)options.get(Printer.MAX_COLUMN_WIDTH);
         }
         Map<String, Object> mapOptions = new HashMap<>();
         mapOptions.putAll(options);
-        mapOptions.remove("maxColumnWidth");
-        int indent = (int)options.get("indention");
-        int maxDepth = (int)options.get("maxDepth");
+        mapOptions.remove(Printer.MAX_COLUMN_WIDTH);
+        int indent = (int)options.get(Printer.INDENTION);
+        int maxDepth = (int)options.get(Printer.MAX_DEPTH);
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             AttributedStringBuilder asb = new AttributedStringBuilder().tabs(Arrays.asList(0, depth*indent, depth*indent + max + 1));
             if (depth != 0) {
                 asb.append("\t");
             }
-            asb.append(truncateValue(max, entry.getKey()), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
+            asb.append(truncateValue(max
+                                   , entry.getKey())
+                                   , AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
             Object elem = entry.getValue();
             boolean convert = canConvert(elem);
-            if (depth < maxDepth && (elem instanceof Map || convert) && !options.containsKey("toString")) {
+            if (depth < maxDepth && (elem instanceof Map || convert) && !options.containsKey(Printer.TO_STRING)) {
                 out.add(truncate(asb, width));
                 Map<String, Object> childMap = convert ? objectToMap(options, elem)
                                                        : keysToString((Map<Object, Object>) elem);
@@ -1519,8 +1570,8 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         };
         try {
             Options opt = parseOptions(usage, input.args());
-            Map<String, Object> options = defaultPrntOptions();
-            options.put("maxDepth", 0);
+            Map<String, Object> options = defaultPrntOptions(false);
+            options.put(Printer.MAX_DEPTH, 0);
             internalPrintln(options, engine.find(input.args().length > 0 ? input.args()[0] : null));
         } catch (Exception e) {
             exception = e;
@@ -1558,6 +1609,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 "     --maxrows=ROWS               Maximum number of rows on table",
                 "     --oneRowTable                Display one row data on table",
                 "  -r --rownum                     Display table row numbers",
+                "     --skipDefaultOptions         Ignore all options defined in PRNT_OPTIONS",
                 "     --structsOnTable             Display structs and lists on table",
                 "  -s --style=STYLE                Use nanorc STYLE",
                 "     --toString                   use object's toString() method to get print value",
@@ -1566,48 +1618,49 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         };
         try {
             Options opt = parseOptions(usage, input.args());
-            Map<String, Object> options = defaultPrntOptions();
-            if (opt.isSet("style")) {
-                options.put("style", opt.get("style"));
+            boolean skipDefault = opt.isSet(Printer.SKIP_DEFAULT_OPTIONS);
+            Map<String, Object> options = defaultPrntOptions(skipDefault);
+            if (opt.isSet(Printer.STYLE)) {
+                options.put(Printer.STYLE, opt.get(Printer.STYLE));
             }
-            if (opt.isSet("toString")) {
-                options.put("toString", true);
+            if (opt.isSet(Printer.TO_STRING)) {
+                options.put(Printer.TO_STRING, true);
             }
-            if (opt.isSet("width")) {
-                options.put("width", opt.getNumber("width"));
+            if (opt.isSet(Printer.WIDTH)) {
+                options.put(Printer.WIDTH, opt.getNumber(Printer.WIDTH));
             }
-            if (opt.isSet("rownum")) {
-                options.put("rownum", true);
+            if (opt.isSet(Printer.ROWNUM)) {
+                options.put(Printer.ROWNUM, true);
             }
-            if (opt.isSet("oneRowTable")) {
-                options.put("oneRowTable", true);
+            if (opt.isSet(Printer.ONE_ROW_TABLE)) {
+                options.put(Printer.ONE_ROW_TABLE, true);
             }
-            if (opt.isSet("structsOnTable")) {
-                options.put("structsOnTable", true);
+            if (opt.isSet(Printer.STRUCT_ON_TABLE)) {
+                options.put(Printer.STRUCT_ON_TABLE, true);
             }
-            if (opt.isSet("columns")) {
-                options.put("columns", Arrays.asList(opt.get("columns").split(",")));
+            if (opt.isSet(Printer.COLUMNS)) {
+                options.put(Printer.COLUMNS, Arrays.asList(opt.get(Printer.COLUMNS).split(",")));
             }
-            if (opt.isSet("exclude")) {
-                options.put("exclude", Arrays.asList(opt.get("exclude").split(",")));
+            if (opt.isSet(Printer.EXCLUDE)) {
+                options.put(Printer.EXCLUDE, Arrays.asList(opt.get(Printer.EXCLUDE).split(",")));
             }
-            if (opt.isSet("include")) {
-                options.put("include", Arrays.asList(opt.get("include").split(",")));
+            if (opt.isSet(Printer.INCLUDE)) {
+                options.put(Printer.INCLUDE, Arrays.asList(opt.get(Printer.INCLUDE).split(",")));
             }
-            if (opt.isSet("all")) {
-                options.put("all", true);
+            if (opt.isSet(Printer.ALL)) {
+                options.put(Printer.ALL, true);
             }
-            if (opt.isSet("maxrows")) {
-                options.put("maxrows", opt.getNumber("maxrows"));
+            if (opt.isSet(Printer.MAXROWS)) {
+                options.put(Printer.MAXROWS, opt.getNumber(Printer.MAXROWS));
             }
-            if (opt.isSet("maxColumnWidth")) {
-                options.put("maxColumnWidth", opt.getNumber("maxColumnWidth"));
+            if (opt.isSet(Printer.MAX_COLUMN_WIDTH)) {
+                options.put(Printer.MAX_COLUMN_WIDTH, opt.getNumber(Printer.MAX_COLUMN_WIDTH));
             }
-            if (opt.isSet("maxDepth")) {
-                options.put("maxDepth", opt.getNumber("maxDepth"));
+            if (opt.isSet(Printer.MAX_DEPTH)) {
+                options.put(Printer.MAX_DEPTH, opt.getNumber(Printer.MAX_DEPTH));
             }
-            if (opt.isSet("indention")) {
-                options.put("indention", opt.getNumber("indention"));
+            if (opt.isSet(Printer.INDENTION)) {
+                options.put(Printer.INDENTION, opt.getNumber(Printer.INDENTION));
             }
             options.put("exception", "stack");
             List<Object> args = opt.argObjects();

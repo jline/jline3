@@ -1126,7 +1126,7 @@ public abstract class Widgets {
             if (mainDesc == null) {
                 // do nothing
             } else if (mainDesc.size() <= descriptionSize && lastArg == null) {
-                out = mainDesc;
+                out.addAll(mainDesc);
             } else {
                 int tabs = 0;
                 int row = 0;

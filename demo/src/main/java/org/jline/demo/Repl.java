@@ -34,7 +34,6 @@ import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.SystemRegistryImpl;
 import org.jline.builtins.Widgets.TailTipWidgets;
 import org.jline.builtins.Widgets.TailTipWidgets.TipType;
-import org.jline.console.AbstractCommandRegistry;
 import org.jline.console.CommandInput;
 import org.jline.console.CommandMethods;
 import org.jline.console.CommandRegistry;
@@ -48,6 +47,7 @@ import org.jline.reader.impl.DefaultParser.Bracket;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
+import org.jline.script.GroovyCommand;
 import org.jline.script.GroovyEngine;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
@@ -321,11 +321,12 @@ public class Repl {
             GroovyEngine scriptEngine = new GroovyEngine();
             scriptEngine.put("ROOT", root);
             ConfigurationPath configPath = new ConfigurationPath(Paths.get(root), Paths.get(root));
-            ConsoleEngine consoleEngine = new ConsoleEngineImpl(scriptEngine, Repl::workDir, configPath);
+            ConsoleEngineImpl consoleEngine = new ConsoleEngineImpl(scriptEngine, Repl::workDir, configPath);
             Builtins builtins = new Builtins(Repl::workDir, configPath,  (String fun)-> {return new ConsoleEngine.WidgetCreator(consoleEngine, fun);});
             MyCommands myCommands = new MyCommands(Repl::workDir);
             SystemRegistryImpl systemRegistry = new SystemRegistryImpl(parser, terminal, Repl::workDir, configPath);
             systemRegistry.register("command", new SubCommands());
+            systemRegistry.register("groovy", new GroovyCommand(scriptEngine, consoleEngine));
             systemRegistry.setCommandRegistries(consoleEngine, builtins, myCommands);
             //
             // LineReader

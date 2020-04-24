@@ -98,10 +98,15 @@ public abstract class AbstractCommandRegistry {
         return cmdRegistry.getCommandMethods(command);
     }
 
+    public Object registeredCommand(String command) {
+        return cmdRegistry.command(command);
+    }
+
     private interface CmdRegistry {
         boolean hasCommand(String command);
         Set<String> commandNames();
         Map<String, String> commandAliases();
+        Object command(String command);
         <V extends Enum<V>> void rename(V command, String newName);
         void alias(String alias, String command);
         SystemCompleter compileCompleters();
@@ -168,7 +173,7 @@ public abstract class AbstractCommandRegistry {
             return out;
         }
 
-        private T command(String name) {
+        public T command(String name) {
             T out = null;
             if (!hasCommand(name)) {
                 throw new IllegalArgumentException("Command does not exists!");
@@ -233,7 +238,7 @@ public abstract class AbstractCommandRegistry {
             return out;
         }
 
-        private String command(String name) {
+        public String command(String name) {
             if (commandExecute.containsKey(name)) {
                 return name;
             } else if (aliasCommand.containsKey(name)) {

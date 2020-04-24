@@ -33,6 +33,7 @@ import org.jline.builtins.ConsoleEngine.ExecutionResult;
 import org.jline.builtins.Widgets;
 import org.jline.builtins.Options.HelpException;
 import org.jline.console.AbstractCommandRegistry;
+import org.jline.console.ArgDesc;
 import org.jline.console.CmdDesc;
 import org.jline.console.CommandInput;
 import org.jline.console.CommandMethods;
@@ -276,7 +277,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     public CmdDesc commandDescription(String command) {
         return commandDescription(Arrays.asList(command));
     }
-    
+
     @Override
     public CmdDesc commandDescription(List<String> args) {
         CmdDesc out = new CmdDesc(false);
@@ -292,6 +293,18 @@ public class SystemRegistryImpl implements SystemRegistry {
         return out;
     }
 
+    private CmdDesc commandDescription(CommandRegistry subreg) {
+        List<AttributedString> main = new ArrayList<>();
+        Map<String, List<AttributedString>> options = new HashMap<>();
+        for (String sc : new TreeSet<String>(subreg.commandNames())) {
+            for (String info : subreg.commandInfo(sc)) {
+                main.add(HelpException.highlightSyntax(sc + " -  " + info, HelpException.defaultStyle(), true));
+                break;
+            }
+        }
+        return new CmdDesc(main, ArgDesc.doArgNames(Arrays.asList("")), options);
+    }
+
     @Override
     public CmdDesc commandDescription(Widgets.CmdLine line) {
         CmdDesc out = null;
@@ -305,11 +318,13 @@ public class SystemRegistryImpl implements SystemRegistry {
                     if (c == null || subcommands.get(cmd).hasCommand(c)) {
                         if (c != null && c.equals("help")) {
                             out = null;
-                        } else {
+                        } else if (c != null) {
                             out = subcommands.get(cmd).commandDescription(c);
+                        } else {
+                            out = commandDescription(subcommands.get(cmd));
                         }
                     } else {
-                        out = subcommands.get(cmd).commandDescription("");
+                        out = commandDescription(subcommands.get(cmd));
                     }
                     if (out != null) {
                         out.setSubcommand(true);
@@ -1407,7 +1422,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                                , "Usage: exit [OBJECT]"
                                , "  -? --help                       Displays command help"
                           };
-        
+
         try {
             Options opt = parseOptions(usage, input.args());
             if (!opt.args().isEmpty() && consoleId != null) {

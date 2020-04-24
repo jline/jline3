@@ -8,11 +8,8 @@
  */
 package org.jline.builtins;
 
-import java.io.InputStream;
-import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -28,7 +25,6 @@ import org.jline.reader.LineReader.Option;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
-import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 
 /**

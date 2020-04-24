@@ -33,11 +33,11 @@ import org.jline.reader.impl.completer.SystemCompleter;
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public abstract class JlineCommandRegistry extends AbstractCommandRegistry {
-    
+
     public JlineCommandRegistry() {
         super();
     }
-        
+
     public List<String> commandInfo(String command) {
         try {
             Object[] args = {"--help"};
@@ -56,19 +56,7 @@ public abstract class JlineCommandRegistry extends AbstractCommandRegistry {
 
     public CmdDesc commandDescription(String command) {
         try {
-            if (command != null && !command.isEmpty()) {
-                invoke(new CommandSession(), command, new Object[] {"--help"});
-            } else {
-                List<AttributedString> main = new ArrayList<>();
-                Map<String, List<AttributedString>> options = new HashMap<>();
-                for (String c : new TreeSet<String>(commandNames())) {
-                    for (String info : commandInfo(c)) {
-                        main.add(HelpException.highlightSyntax(c + " -  " + info, HelpException.defaultStyle(), true));
-                        break;
-                    }
-                }
-                return new CmdDesc(main, ArgDesc.doArgNames(Arrays.asList("")), options);
-            }
+            invoke(new CommandSession(), command, new Object[] {"--help"});
         } catch (HelpException e) {
             return Builtins.compileCommandDescription(e.getMessage());
         } catch (Exception e) {
@@ -77,7 +65,7 @@ public abstract class JlineCommandRegistry extends AbstractCommandRegistry {
         throw new IllegalArgumentException("JlineCommandRegistry.commandDescription() method must be overridden in class "
                                           + this.getClass().getCanonicalName());
     }
-    
+
     public List<OptDesc> commandOptions(String command) {
         try {
             invoke(new CommandSession(), command, "--help");
@@ -106,5 +94,5 @@ public abstract class JlineCommandRegistry extends AbstractCommandRegistry {
         }
         return opt;
     }
-    
+
 }
