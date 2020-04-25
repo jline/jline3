@@ -54,7 +54,6 @@ import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.Terminal.Signal;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.InfoCmp.Capability;
-
 import org.jline.utils.OSUtils;
 
 /**

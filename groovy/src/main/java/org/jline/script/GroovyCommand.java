@@ -125,7 +125,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         try {
             Object obj = input.xargs()[id];
             ObjectInspector inspector = new ObjectInspector(obj);
-            Object out = option;
+            Object out = null;
             if (option.equals("-m") || option.equals("--methods")) {
                 out = inspector.methods();
             } else if (option.equals("-n") || option.equals("--metaMethods")) {

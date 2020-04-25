@@ -929,10 +929,14 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             highlightAndPrint(width, style, engine.toJson(object));
         } else if (!style.isEmpty() && object instanceof String) {
             highlightAndPrint(width, style, (String) object);
-        } else if (!options.containsKey(Printer.SKIP_DEFAULT_OPTIONS) && object instanceof Exception) {
+        } else if (options.containsKey(Printer.SKIP_DEFAULT_OPTIONS)) {
+            for (AttributedString as : highlight(options, object)) {
+                as.println(terminal());
+            }
+        } else if (object instanceof Exception) {
             systemRegistry.trace(options.getOrDefault("exception", "stack").equals("stack"), (Exception)object);
-        } else if (!options.containsKey(Printer.SKIP_DEFAULT_OPTIONS) && object instanceof CmdDesc) {
-            printHelp((CmdDesc)object);
+        } else if (object instanceof CmdDesc) {
+            highlight((CmdDesc)object).println(terminal());
         } else if (object instanceof String) {
             highlight(AttributedStyle.YELLOW + AttributedStyle.BRIGHT, object).println(terminal());
         } else if (object instanceof Number) {
@@ -946,16 +950,11 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         Log.debug("println: ", new Date().getTime() - start, " msec");
     }
 
-    private void printHelp(CmdDesc cmdDesc) {
-        boolean highlight = !isHighlighted(cmdDesc.getMainDesc().get(0));
+    private AttributedString highlight(CmdDesc cmdDesc) {
         StringBuilder sb = new StringBuilder();
         for (AttributedString as : cmdDesc.getMainDesc()) {
-            if (!highlight) {
-                as.println(terminal());
-            } else {
-                sb.append(as.toString());
-                sb.append("\n");
-            }
+            sb.append(as.toString());
+            sb.append("\n");
         }
         List<Integer> tabs = Arrays.asList(0, 2, 33);
         for (Map.Entry<String, List<AttributedString>> entry : cmdDesc.getOptsDesc().entrySet()) {
@@ -974,15 +973,9 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 asb.append("\n");
                 first = false;
             }
-            if (!highlight) {
-                asb.toAttributedString().print(terminal());
-            } else {
-                sb.append(asb.toString());
-            }
+            sb.append(asb.toString());
         }
-        if (highlight) {
-            Options.HelpException.highlight(sb.toString(), Options.HelpException.defaultStyle()).println(terminal());
-        }
+        return Options.HelpException.highlight(sb.toString(), Options.HelpException.defaultStyle());
     }
 
     private AttributedString highlight(int attrStyle, Object obj) {
