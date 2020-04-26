@@ -33,7 +33,7 @@ import groovy.console.ui.Console;
 import groovy.console.ui.ObjectBrowser;
 
 public class GroovyCommand extends AbstractCommandRegistry implements CommandRegistry {
-    public enum Command {INSPECT, CONSOLE, GRAP}
+    public enum Command {INSPECT, CONSOLE, GRAB}
     private GroovyEngine engine;
     private Printer printer;
     private final Map<Command,CmdDesc> commandDescs = new HashMap<>();
@@ -71,18 +71,18 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
             cmds.remove(Command.CONSOLE);
         }
         if (!ivy) {
-            cmds.remove(Command.GRAP);
+            cmds.remove(Command.GRAB);
         }
         for (Command c: cmds) {
             commandName.put(c, c.name().toLowerCase());
         }
         commandExecute.put(Command.INSPECT, new CommandMethods(this::inspect, this::inspectCompleter));
         commandExecute.put(Command.CONSOLE, new CommandMethods(this::console, this::defaultCompleter));
-        commandExecute.put(Command.GRAP, new CommandMethods(this::grap, this::grapCompleter));
+        commandExecute.put(Command.GRAB, new CommandMethods(this::grab, this::grabCompleter));
         registerCommands(commandName, commandExecute);
         commandDescs.put(Command.INSPECT, inspectCmdDesc());
         commandDescs.put(Command.CONSOLE, consoleCmdDesc());
-        commandDescs.put(Command.GRAP, grapCmdDesc());
+        commandDescs.put(Command.GRAB, grabCmdDesc());
     }
 
     @Override
@@ -98,14 +98,14 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
     }
 
     @SuppressWarnings("unchecked")
-    public Object grap(CommandInput input) {
+    public Object grab(CommandInput input) {
         if (input.args().length != 1) {
             throw new IllegalArgumentException("Wrong number of command parameters: " + input.args().length);
         }
         try {
             String arg = input.args()[0];
             if (arg.equals("-?") || arg.equals("--help")) {
-                printer.println(commandDescs.get(Command.GRAP));
+                printer.println(commandDescs.get(Command.GRAB));
             } else if (arg.equals("-l") || arg.equals("--list")) {
                 Object resp = engine.execute("groovy.grape.Grape.getInstance().enumerateGrapes()");
                 Map<String, Object> options = new HashMap<>();
@@ -204,7 +204,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         return null;
     }
 
-    private CmdDesc grapCmdDesc() {
+    private CmdDesc grabCmdDesc() {
         Map<String,List<AttributedString>> optDescs = new HashMap<>();
         optDescs.put("-? --help", doDescription ("Displays command help"));
         optDescs.put("-l --list", doDescription ("List the modules in the cache"));
@@ -212,7 +212,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         List<AttributedString> mainDesc = new ArrayList<>();
         List<String> info = new ArrayList<>();
         info.add("Add maven repository dependencies to classpath");
-        commandInfos.put(Command.GRAP, info);
+        commandInfos.put(Command.GRAB, info);
         mainDesc.add(new AttributedString("grap -  " + info.get(0)));
         mainDesc.add(new AttributedString("Usage: grap <group>:<artifact>:<version>"));
         mainDesc.add(new AttributedString("       grap --list"));
@@ -290,7 +290,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         return out;
     }
 
-    public List<Completer> grapCompleter(String command) {
+    public List<Completer> grabCompleter(String command) {
         List<Completer> out = new ArrayList<>();
         ArgumentCompleter ac = new ArgumentCompleter(NullCompleter.INSTANCE
                                                    , new StringsCompleter("--help", "-?", "--list", "-l")

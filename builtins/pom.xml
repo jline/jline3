@@ -62,33 +62,31 @@
                     <execution>
                         <id>default-compile</id>
                         <configuration>
-                            <excludes>
-                                <exclude>**/TTop.java</exclude>
-                                <exclude>**/Builtins.java</exclude>
-                            </excludes>
-                            <compilerArgs>
-                                <arg>-Xlint:all,-options</arg>
-                                <arg>-Werror</arg>
-                                <arg>-profile</arg>  <!-- mrn 27/01/2020 -->
-                                <arg>compact3</arg>  <!-- after adding jline-groovy also TTop.java started compiling here although exclusion!! -->
-                            </compilerArgs>          <!-- changed arg compact1 to compact3 to over come compiling errors -->
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>noncompact</id>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                        <configuration>
                             <includes>
+                                <include>**/ConsoleEngineImpl.java</include>
                                 <include>**/TTop.java</include>
-                                <include>**/Builtins.java</include>
                             </includes>
                             <compilerArgs>
                                 <arg>-Xlint:all,-options</arg>
                                 <arg>-Werror</arg>
+                            </compilerArgs>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>compact</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <excludes>
+                                <exclude>**/ConsoleEngineImpl.java</exclude>
+                                <exclude>**/TTop.java</exclude>
+                            </excludes>
+                            <compilerArgs>
+                                <arg>-Xlint:all,-options</arg>
+                                <arg>-Werror</arg>
                                 <arg>-profile</arg>
-                                <arg>compact3</arg>
+                                <arg>compact1</arg>
                             </compilerArgs>
                         </configuration>
                     </execution>

@@ -8,10 +8,12 @@
  */
 package org.jline.builtins;
 
+import java.awt.Desktop;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
@@ -57,6 +59,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                        , ALIAS
                        , PIPE
                        , UNALIAS
+                       , DOC
                        , SLURP};
     private static final String VAR_CONSOLE_OPTIONS = "CONSOLE_OPTIONS";
     private static final String VAR_PRNT_OPTIONS = "PRNT_OPTIONS";
@@ -103,6 +106,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         commandExecute.put(Command.SLURP, new CommandMethods(this::slurpcmd, this::slurpCompleter));
         commandExecute.put(Command.ALIAS, new CommandMethods(this::aliascmd, this::aliasCompleter));
         commandExecute.put(Command.UNALIAS, new CommandMethods(this::unalias, this::unaliasCompleter));
+        commandExecute.put(Command.DOC, new CommandMethods(this::doc, this::docCompleter));
         commandExecute.put(Command.PIPE, new CommandMethods(this::pipe, this::defaultCompleter));
         aliasFile = configPath.getUserConfig("aliases.json");
         if (aliasFile == null) {
@@ -1818,6 +1822,59 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         return out;
     }
 
+    private Object doc(CommandInput input) {
+        final String[] usage = {
+                "doc -  open document on browser",
+                "Usage: doc [OBJECT]",
+                "  -? --help                       Displays command help"
+        };
+        try {
+            Options opt = parseOptions(usage, input.xargs());
+            if (input.xargs().length == 0) {
+                return null;
+            }
+            if (Desktop.isDesktopSupported()) {
+                Map<String,Object> docs = consoleOption("docs", null);
+                boolean done = false;
+                Object arg = input.xargs()[0];
+                if (arg instanceof String) {
+                    String address = docs != null ? (String)docs.get(input.args()[0]) : null;
+                    if (address != null) {
+                        done = true;
+                        Desktop.getDesktop().browse(new URI(address));
+                    }                    
+                }
+                if (!done) {
+                    String name = arg.getClass().getCanonicalName();
+                    name = name.replaceAll("\\.", "/") + ".html";
+                    Object doc = null;
+                    for (Map.Entry<String,Object> entry : docs.entrySet()) {
+                        if (name.matches(entry.getKey())) {
+                            doc = entry.getValue();
+                            break;
+                        }
+                    }
+                    if (doc != null) {
+                        if (doc instanceof Collection) {
+                            for (Object o : (Collection<?>)doc) {
+                                Desktop.getDesktop().browse(new URI((String)o + name));   
+                            }                            
+                        } else {
+                            Desktop.getDesktop().browse(new URI((String)doc + name));
+                        }
+                    } else {
+                        throw new IllegalArgumentException("Document not found: " + name);
+                    }
+                }
+            } else {
+                throw new IllegalStateException("Desktop is not supported!");
+            }
+        } catch (Exception e) {
+            exception = e;
+        }
+        return null;
+    }
+
     private List<Completer> slurpCompleter(String command) {
         List<Completer> completers = new ArrayList<>();
         List<OptDesc> optDescs = commandOptions("slurp");
@@ -1907,4 +1964,29 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         return completers;
     }
 
+    private List<String> docs() {
+        List<String> out = new ArrayList<>();
+        for (String v : engine.find().keySet()) {
+            out.add("$" + v);
+        }
+        Map<String,String> docs = consoleOption("docs", null);
+        if (!docs.isEmpty()) {
+            for (String d :  docs.keySet()) {
+                if (d.matches("\\w+")) {
+                    out.add(d);
+                }
+            }            
+        }
+        return out;
+    }
+
+    private List<Completer> docCompleter(String command) {
+        List<Completer> completers = new ArrayList<>();
+        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
+                       , new OptionCompleter(new StringsCompleter(this::docs)
+                                           , this::commandOptions
+                                           , 1)
+                                    ));
+        return completers;
+    }
 }
