@@ -24,6 +24,7 @@ pushd %TARGETDIR%\lib
 for %%G in (jline-*.jar) do call:APPEND_TO_CLASSPATH %%G
 rem Groovy
 for %%G in (groovy-*.jar) do call:APPEND_TO_CLASSPATH %%G
+for %%G in (ivy-*.jar) do call:APPEND_TO_CLASSPATH %%G
 
 set "opts=%JLINE_OPTS%"
 set "logconf=%DIRNAME%etc\logging.properties"

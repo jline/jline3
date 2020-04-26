@@ -38,7 +38,7 @@ public class GroovyEngine implements ScriptEngine {
     private static final Pattern PATTERN_CLASS_DEF=Pattern.compile("^class\\s+(" + REGEX_VAR + ")\\ .*?\\{.*?\\}(|\n)$"
                                                                   , Pattern.DOTALL);
     private GroovyShell shell;
-    private Binding sharedData;
+    protected Binding sharedData;
     private Map<String,String> imports = new HashMap<>();
     private Map<String,String> methods = new HashMap<>();
 

@@ -89,7 +89,7 @@
         <slf4j.version>1.7.21</slf4j.version>
         <findbugs.version>3.0.2</findbugs.version>
         <groovy.version>3.0.3</groovy.version>
-
+        <ivy.version>2.5.0</ivy.version>
         <surefire.argLine />
     </properties>
 
@@ -244,6 +244,12 @@
                 <artifactId>groovy-console</artifactId>
                 <version>${groovy.version}</version>
             </dependency>
+
+	        <dependency>
+	            <groupId>org.apache.ivy</groupId>
+	            <artifactId>ivy</artifactId>
+	             <version>${ivy.version}</version>
+	        </dependency>        
 
             <dependency>
                 <groupId>org.slf4j</groupId>

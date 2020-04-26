@@ -33,12 +33,13 @@ import groovy.console.ui.Console;
 import groovy.console.ui.ObjectBrowser;
 
 public class GroovyCommand extends AbstractCommandRegistry implements CommandRegistry {
-    public enum Command {INSPECT, CONSOLE}
+    public enum Command {INSPECT, CONSOLE, GRAP}
     private GroovyEngine engine;
     private Printer printer;
     private final Map<Command,CmdDesc> commandDescs = new HashMap<>();
     private final Map<Command,List<String>> commandInfos = new HashMap<>();
     private boolean consoleUi;
+    private boolean ivy;
 
     public GroovyCommand(GroovyEngine engine, Printer printer) {
         this(null, engine, printer);
@@ -52,6 +53,12 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
             consoleUi = true;
         } catch (Exception e) {
         }
+        try {
+            Class.forName("org.apache.ivy.util.Message");
+            System.setProperty("groovy.grape.report.downloads","true");
+            ivy = true;
+        } catch (Exception e) {
+        }
         Set<Command> cmds = new HashSet<>();
         Map<Command,String> commandName = new HashMap<>();
         Map<Command,CommandMethods> commandExecute = new HashMap<>();
@@ -63,14 +70,19 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         if (!consoleUi) {
             cmds.remove(Command.CONSOLE);
         }
+        if (!ivy) {
+            cmds.remove(Command.GRAP);
+        }
         for (Command c: cmds) {
             commandName.put(c, c.name().toLowerCase());
         }
         commandExecute.put(Command.INSPECT, new CommandMethods(this::inspect, this::inspectCompleter));
-        commandExecute.put(Command.CONSOLE, new CommandMethods(this::console, this::consoleCompleter));
+        commandExecute.put(Command.CONSOLE, new CommandMethods(this::console, this::defaultCompleter));
+        commandExecute.put(Command.GRAP, new CommandMethods(this::grap, this::grapCompleter));
         registerCommands(commandName, commandExecute);
         commandDescs.put(Command.INSPECT, inspectCmdDesc());
         commandDescs.put(Command.CONSOLE, consoleCmdDesc());
+        commandDescs.put(Command.GRAP, grapCmdDesc());
     }
 
     @Override
@@ -83,6 +95,49 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
     public CmdDesc commandDescription(String command) {
         Command cmd = (Command)registeredCommand(command);
         return commandDescs.get(cmd);
+    }
+
+    @SuppressWarnings("unchecked")
+    public Object grap(CommandInput input) {
+        if (input.args().length != 1) {
+            throw new IllegalArgumentException("Wrong number of command parameters: " + input.args().length);
+        }
+        try {
+            String arg = input.args()[0];
+            if (arg.equals("-?") || arg.equals("--help")) {
+                printer.println(commandDescs.get(Command.GRAP));
+            } else if (arg.equals("-l") || arg.equals("--list")) {
+                Object resp = engine.execute("groovy.grape.Grape.getInstance().enumerateGrapes()");
+                Map<String, Object> options = new HashMap<>();
+                options.put(Printer.SKIP_DEFAULT_OPTIONS, true);
+                options.put(Printer.MAX_DEPTH, 1);
+                options.put(Printer.INDENTION, 4);
+                printer.println(options, resp);
+            } else if (arg.startsWith("-")) {
+                throw new IllegalArgumentException("Unknown command option: " + arg);
+            } else {
+                Map<String, String> artifact = new HashMap<>();
+                Object xarg = input.xargs()[0];
+                if (xarg instanceof String) {
+                    String[] vals = input.args()[0].split(":");
+                    if (vals.length != 3) {
+                        throw new IllegalArgumentException("Invalid command parameter: " + input.args()[0]);
+                    }
+                    artifact.put("group", vals[0]);
+                    artifact.put("module", vals[1]);
+                    artifact.put("version", vals[2]);
+                } else if (xarg instanceof Map) {
+                    artifact = (Map<String, String>) xarg;
+                } else {
+                    throw new IllegalArgumentException("Unknown command parameter: " + xarg);
+                }
+                engine.put("_artifact", artifact);
+                engine.execute("groovy.grape.Grape.grab(_artifact)");
+            }
+        } catch (Exception e) {
+            saveException(e);
+        }
+        return null;
     }
 
     public void console(CommandInput input) {
@@ -98,7 +153,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
                 throw new IllegalArgumentException("Unknown command parameter: " + input.args()[0]);
             }
         }
-        Console c = new Console();
+        Console c = new Console(engine.sharedData);
         c.run();
     }
 
@@ -149,6 +204,22 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         return null;
     }
 
+    private CmdDesc grapCmdDesc() {
+        Map<String,List<AttributedString>> optDescs = new HashMap<>();
+        optDescs.put("-? --help", doDescription ("Displays command help"));
+        optDescs.put("-l --list", doDescription ("List the modules in the cache"));
+        CmdDesc out = new CmdDesc(new ArrayList<>(), optDescs);
+        List<AttributedString> mainDesc = new ArrayList<>();
+        List<String> info = new ArrayList<>();
+        info.add("Add maven repository dependencies to classpath");
+        commandInfos.put(Command.GRAP, info);
+        mainDesc.add(new AttributedString("grap -  " + info.get(0)));
+        mainDesc.add(new AttributedString("Usage: grap <group>:<artifact>:<version>"));
+        mainDesc.add(new AttributedString("       grap --list"));
+        out.setMainDesc(mainDesc);
+        return out;
+    }
+
     private CmdDesc consoleCmdDesc() {
         Map<String,List<AttributedString>> optDescs = new HashMap<>();
         optDescs.put("-? --help", doDescription ("Displays command help"));
@@ -171,7 +242,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         }
         optDescs.put("-i --info", doDescription ("Object class info"));
         optDescs.put("-m --methods", doDescription ("List object methods"));
-        optDescs.put("-n --metaMethods", doDescription ("List object metaMethads"));
+        optDescs.put("-n --metaMethods", doDescription ("List object metaMethods"));
         CmdDesc out = new CmdDesc(new ArrayList<>(), optDescs);
         List<AttributedString> mainDesc = new ArrayList<>();
         List<String> info = new ArrayList<>();
@@ -219,7 +290,16 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         return out;
     }
 
-    public List<Completer> consoleCompleter(String command) {
+    public List<Completer> grapCompleter(String command) {
+        List<Completer> out = new ArrayList<>();
+        ArgumentCompleter ac = new ArgumentCompleter(NullCompleter.INSTANCE
+                                                   , new StringsCompleter("--help", "-?", "--list", "-l")
+                                                   , NullCompleter.INSTANCE);
+        out.add(ac);
+        return out;
+    }
+
+    public List<Completer> defaultCompleter(String command) {
         List<Completer> out = new ArrayList<>();
         ArgumentCompleter ac = new ArgumentCompleter(NullCompleter.INSTANCE
                                                    , new StringsCompleter("--help", "-?")
