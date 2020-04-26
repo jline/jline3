@@ -63,77 +63,6 @@ import org.jline.utils.OSUtils;
  */
 public class Repl {
 
-    /**
-     * CommandRegistry that have commands which manage in different way command parameters.
-     *
-     */
-    private static class SubCommands extends JlineCommandRegistry implements CommandRegistry {
-
-        public SubCommands() {
-            super();
-            Map<String,CommandMethods> commandExecute = new HashMap<>();
-            commandExecute.put("cmdKo1", new CommandMethods(this::cmd1, this::defaultCompleter));
-            commandExecute.put("cmdKo2", new CommandMethods(this::cmd2, this::defaultCompleter));
-            commandExecute.put("cmdOk", new CommandMethods(this::cmd3, this::defaultCompleter));
-            registerCommands(commandExecute);
-        }
-
-        private Object cmd1(CommandInput input) {
-            final String[] usage = {
-                    "cmdKo1 -  parse input.args, return opt.argObjects[0]",
-                    "          works only with string parameters",
-                    "Usage: cmdKo1 [OBJECT]",
-                    "  -? --help                       Displays command help"
-            };
-            Object out = null;
-            try {
-                Options opt = parseOptions(usage, input.args());
-                List<Object> xargs = opt.argObjects();
-                out = xargs.size() > 0 ? xargs.get(0) : null;
-            } catch (Exception e) {
-                saveException(e);
-            }
-            return out;
-        }
-
-        private Object cmd2(CommandInput input) {
-            final String[] usage = {
-                    "cmdKo2 -  parse input.xargs, return opt.args[0]",
-                    "          works only with string parameters",
-                    "Usage: cmdKo2 [OBJECT]",
-                    "  -? --help                       Displays command help"
-            };
-            Object out = null;
-            try {
-                Options opt = parseOptions(usage, input.xargs());
-                List<String> args = opt.args();
-                out = args.size() > 0 ? args.get(0) : null;
-            } catch (Exception e) {
-                saveException(e);
-            }
-            return out;
-        }
-
-        private Object cmd3(CommandInput input) {
-            final String[] usage = {
-                    "cmdOk -  parse input.xargs, return opt.argObjects[0]",
-                    "         manage correctly object parameters",
-                    "Usage: cmdOk [OBJECT]",
-                    "  -? --help                       Displays command help"
-            };
-            Object out = null;
-            try {
-                Options opt = parseOptions(usage, input.xargs());
-                List<Object> xargs = opt.argObjects();
-                out = xargs.size() > 0 ? xargs.get(0) : null;
-            } catch (Exception e) {
-                saveException(e);
-            }
-            return out;
-        }
-
-    }
-
     private static class MyCommands extends JlineCommandRegistry implements CommandRegistry {
         private LineReader reader;
         private Supplier<Path> workDir;
@@ -146,6 +75,7 @@ public class Repl {
             commandExecute.put("testkey", new CommandMethods(this::testkey, this::defaultCompleter));
             commandExecute.put("clear", new CommandMethods(this::clear, this::defaultCompleter));
             commandExecute.put("!", new CommandMethods(this::shell, this::defaultCompleter));
+            commandExecute.put("objarg", new CommandMethods(this::objarg, this::defaultCompleter));
             registerCommands(commandExecute);
         }
 
@@ -155,6 +85,24 @@ public class Repl {
 
         private Terminal terminal() {
             return reader.getTerminal();
+        }
+
+        private Object objarg(CommandInput input) {
+            final String[] usage = {
+                    "objarg -  manage correctly object parameters",
+                    "         parse input.xargs, return opt.argObjects[0]",
+                    "Usage: objarg [OBJECT]",
+                    "  -? --help                       Displays command help"
+            };
+            Object out = null;
+            try {
+                Options opt = parseOptions(usage, input.xargs());
+                List<Object> xargs = opt.argObjects();
+                out = xargs.size() > 0 ? xargs.get(0) : null;
+            } catch (Exception e) {
+                saveException(e);
+            }
+            return out;
         }
 
         private void tput(CommandInput input) {
@@ -325,7 +273,6 @@ public class Repl {
             Builtins builtins = new Builtins(Repl::workDir, configPath,  (String fun)-> {return new ConsoleEngine.WidgetCreator(consoleEngine, fun);});
             MyCommands myCommands = new MyCommands(Repl::workDir);
             SystemRegistryImpl systemRegistry = new SystemRegistryImpl(parser, terminal, Repl::workDir, configPath);
-            systemRegistry.register("command", new SubCommands());
             systemRegistry.register("groovy", new GroovyCommand(scriptEngine, consoleEngine));
             systemRegistry.setCommandRegistries(consoleEngine, builtins, myCommands);
             //
