@@ -14,8 +14,8 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.jline.console.ScriptEngine;
 import org.jline.groovy.Utils;
-import org.jline.reader.ScriptEngine;
 
 import groovy.lang.Binding;
 import groovy.lang.Closure;
@@ -38,7 +38,7 @@ public class GroovyEngine implements ScriptEngine {
     private static final Pattern PATTERN_CLASS_DEF=Pattern.compile("^class\\s+(" + REGEX_VAR + ")\\ .*?\\{.*?\\}(|\n)$"
                                                                   , Pattern.DOTALL);
     private GroovyShell shell;
-    private Binding sharedData;
+    protected Binding sharedData;
     private Map<String,String> imports = new HashMap<>();
     private Map<String,String> methods = new HashMap<>();
 

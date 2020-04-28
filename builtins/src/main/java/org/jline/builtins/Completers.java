@@ -398,7 +398,7 @@ public class Completers {
             return useForwardSlash ? "/" :getUserDir().getFileSystem().getSeparator();
         }
 
-        protected static String getDisplay(Terminal terminal, Path p) {
+        protected String getDisplay(Terminal terminal, Path p) {
             // TODO: use $LS_COLORS for output
             String name = p.getFileName().toString();
             if (Files.isDirectory(p)) {
@@ -567,133 +567,6 @@ public class Completers {
         }
     }
 
-    public static class SystemCompleter implements org.jline.reader.Completer {
-        private Map<String,List<org.jline.reader.Completer>> completers = new HashMap<>();
-        private Map<String,String> aliasCommand = new HashMap<>();
-        private StringsCompleter commands;
-        private boolean compiled = false;
-
-        public SystemCompleter() {}
-
-        @Override
-        public void complete(LineReader reader, ParsedLine commandLine, List<Candidate> candidates) {
-            if (!compiled) {
-                throw new IllegalStateException();
-            }
-            assert commandLine != null;
-            assert candidates != null;
-            if (commandLine.words().size() > 0) {
-                if (commandLine.words().size() == 1) {
-                    String buffer = commandLine.words().get(0);
-                    int eq = buffer.indexOf('=');
-                    if (eq < 0) {
-                        commands.complete(reader, commandLine, candidates);
-                    } else if (reader.getParser().validVariableName(buffer.substring(0, eq))) {
-                        String curBuf = buffer.substring(0, eq + 1);
-                        for (String c: completers.keySet()) {
-                            candidates.add(new Candidate(AttributedString.stripAnsi(curBuf+c)
-                                        , c, null, null, null, null, true));
-                        }
-                    }
-                } else {
-                    String cmd = reader.getParser().getCommand(commandLine.words().get(0));
-                    if (command(cmd) != null) {
-                        completers.get(command(cmd)).get(0).complete(reader, commandLine, candidates);
-                    }
-                }
-            }
-        }
-
-        public boolean isCompiled() {
-            return compiled;
-        }
-
-        private String command(String cmd) {
-            String out = null;
-            if (cmd != null) {
-                if (completers.containsKey(cmd)) {
-                    out = cmd;
-                } else if (aliasCommand.containsKey(cmd)) {
-                    out = aliasCommand.get(cmd);
-                }
-            }
-            return out;
-        }
-
-        public void add(String command, List<org.jline.reader.Completer> completers) {
-            for (org.jline.reader.Completer c : completers) {
-                add(command, c);
-            }
-        }
-
-        public void add(List<String> commands, org.jline.reader.Completer completer) {
-            for (String c: commands) {
-                add(c, completer);
-            }
-        }
-
-        public void add(String command, org.jline.reader.Completer completer) {
-            Objects.requireNonNull(command);
-            if (compiled) {
-                throw new IllegalStateException();
-            }
-            if (!completers.containsKey(command)) {
-                completers.put(command, new ArrayList<org.jline.reader.Completer>());
-            }
-            if (completer instanceof ArgumentCompleter) {
-                ((ArgumentCompleter) completer).setStrictCommand(false);
-            }
-            completers.get(command).add(completer);
-        }
-
-        public void add(SystemCompleter other) {
-            if (other.isCompiled()) {
-                throw new IllegalStateException();
-            }
-            for (Map.Entry<String, List<org.jline.reader.Completer>> entry: other.getCompleters().entrySet()) {
-                for (org.jline.reader.Completer c: entry.getValue()) {
-                    add(entry.getKey(), c);
-                }
-            }
-            addAliases(other.getAliases());
-        }
-
-        public void addAliases(Map<String,String> aliasCommand) {
-            if (compiled) {
-                throw new IllegalStateException();
-            }
-            this.aliasCommand.putAll(aliasCommand);
-        }
-
-        public Map<String,String> getAliases() {
-            return aliasCommand;
-        }
-
-        public void compile() {
-            if (compiled) {
-                return;
-            }
-            Map<String, List<org.jline.reader.Completer>> compiledCompleters = new HashMap<>();
-            for (Map.Entry<String, List<org.jline.reader.Completer>> entry: completers.entrySet()) {
-                if (entry.getValue().size() == 1) {
-                    compiledCompleters.put(entry.getKey(), entry.getValue());
-                } else {
-                    compiledCompleters.put(entry.getKey(), new ArrayList<org.jline.reader.Completer>());
-                    compiledCompleters.get(entry.getKey()).add(new AggregateCompleter(entry.getValue()));
-                }
-            }
-            completers = compiledCompleters;
-            Set<String> cmds = new HashSet<>(completers.keySet());
-            cmds.addAll(aliasCommand.keySet());
-            commands = new StringsCompleter(cmds);
-            compiled = true;
-        }
-
-        public Map<String,List<org.jline.reader.Completer>> getCompleters() {
-            return completers;
-        }
-    }
-
     public static class OptDesc {
         private String shortOption;
         private String longOption;
@@ -815,9 +688,8 @@ public class Completers {
                 if (v.startsWith(partialValue)) {
                     out = true;
                     String val = c.value();
-                    if (valueCompleter instanceof Completers.FilesCompleter
-                            || valueCompleter instanceof Completers.DirectoriesCompleter) {
-                        val = FileNameCompleter.getDisplay(reader.getTerminal(), Paths.get(c.value()));
+                    if (valueCompleter instanceof Completers.FileNameCompleter) {
+                        val = ((Completers.FileNameCompleter)valueCompleter).getDisplay(reader.getTerminal(), Paths.get(c.value()));
                     }
                     candidates.add(new Candidate(curBuf + v, val, null, null, null, null, c.complete()));
                 }

@@ -14,7 +14,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
-import org.jline.builtins.CommandRegistry;
+import org.jline.console.CommandRegistry;
 import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
 import org.jline.reader.Widget;

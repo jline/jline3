@@ -16,7 +16,14 @@ _jnanorc << 'include ' + ROOT + 'nanorc/*.nanorc\n' > null
 # console options
 #
 CONSOLE_OPTIONS = [:]
-CONSOLE_OPTIONS.trace = 1
+CONSOLE_OPTIONS.docs = [:]
+CONSOLE_OPTIONS['docs'].put('jline','https://github.com/jline/jline3/wiki')
+CONSOLE_OPTIONS['docs'].put('groovy','http://groovy-lang.org/documentation.html')
+CONSOLE_OPTIONS['docs'].put('.*groovy/.*','http://docs.groovy-lang.org/latest/html/gapi/')
+CONSOLE_OPTIONS['docs'].put('java.*',['https://docs.oracle.com/javase/8/docs/api/',
+                                      'http://docs.groovy-lang.org/latest/html/groovy-jdk/'])
+CONSOLE_OPTIONS['docs'].put('.*/java.*','https://docs.oracle.com/javase/8/docs/api/')
+CONSOLE_OPTIONS['docs'].put('org/jline/.*','https://www.javadoc.io/doc/org.jline/jline/latest/')
 #
 # customize prnt command
 #

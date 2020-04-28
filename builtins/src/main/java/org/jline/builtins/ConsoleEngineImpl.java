@@ -8,10 +8,12 @@
  */
 package org.jline.builtins;
 
+import java.awt.Desktop;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
@@ -22,14 +24,18 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.jline.builtins.Builtins;
-import org.jline.builtins.Builtins.CommandMethods;
 import org.jline.builtins.Completers.FilesCompleter;
 import org.jline.builtins.Completers.OptDesc;
 import org.jline.builtins.Completers.OptionCompleter;
-import org.jline.builtins.Completers.SystemCompleter;
 import org.jline.builtins.Nano.SyntaxHighlighter;
 import org.jline.builtins.Options.HelpException;
+import org.jline.console.CmdDesc;
+import org.jline.console.CommandInput;
+import org.jline.console.CommandMethods;
+import org.jline.console.CommandRegistry;
+import org.jline.console.ConfigurationPath;
+import org.jline.console.Printer;
+import org.jline.console.ScriptEngine;
 import org.jline.reader.*;
 import org.jline.reader.Parser.ParseContext;
 import org.jline.reader.impl.completer.ArgumentCompleter;
@@ -46,13 +52,14 @@ import org.jline.utils.Log;
  *
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
-public class ConsoleEngineImpl implements ConsoleEngine {
+public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEngine, Printer {
     public enum Command {SHOW
                        , DEL
                        , PRNT
                        , ALIAS
                        , PIPE
                        , UNALIAS
+                       , DOC
                        , SLURP};
     private static final String VAR_CONSOLE_OPTIONS = "CONSOLE_OPTIONS";
     private static final String VAR_PRNT_OPTIONS = "PRNT_OPTIONS";
@@ -66,10 +73,6 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     private static final int PRNT_MAX_DEPTH = 1;
     private static final int PRNT_INDENTION = 4;
     private final ScriptEngine engine;
-    private Map<Command,String> commandName = new HashMap<>();
-    private Map<String,Command> nameCommand = new HashMap<>();
-    private Map<String,String> aliasCommand = new HashMap<>();
-    private final Map<Command,CommandMethods> commandExecute = new HashMap<>();
     private Map<Class<?>, Function<Object, Map<String,Object>>> objectToMap = new HashMap<>();
     private Map<Class<?>, Function<Object, String>> objectToString = new HashMap<>();
     private Map<String, Function<Object, AttributedString>> highlightValue = new HashMap<>();
@@ -87,21 +90,24 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     @SuppressWarnings("unchecked")
     public ConsoleEngineImpl(ScriptEngine engine
                            , Supplier<Path> workDir, ConfigurationPath configPath) throws IOException {
+        super();
         this.engine = engine;
         this.workDir = workDir;
         this.configPath = configPath;
+        Map<Command,String> commandName = new HashMap<>();
+        Map<Command,CommandMethods> commandExecute = new HashMap<>();
         Set<Command> cmds = new HashSet<>(EnumSet.allOf(Command.class));
         for (Command c: cmds) {
             commandName.put(c, c.name().toLowerCase());
         }
-        doNameCommand();
         commandExecute.put(Command.DEL, new CommandMethods(this::del, this::variableCompleter));
         commandExecute.put(Command.SHOW, new CommandMethods(this::show, this::variableCompleter));
         commandExecute.put(Command.PRNT, new CommandMethods(this::prnt, this::prntCompleter));
         commandExecute.put(Command.SLURP, new CommandMethods(this::slurpcmd, this::slurpCompleter));
         commandExecute.put(Command.ALIAS, new CommandMethods(this::aliascmd, this::aliasCompleter));
         commandExecute.put(Command.UNALIAS, new CommandMethods(this::unalias, this::unaliasCompleter));
-        commandExecute.put(Command.PIPE, new CommandMethods(this::pipe, this::pipeCompleter));
+        commandExecute.put(Command.DOC, new CommandMethods(this::doc, this::docCompleter));
+        commandExecute.put(Command.PIPE, new CommandMethods(this::pipe, this::defaultCompleter));
         aliasFile = configPath.getUserConfig("aliases.json");
         if (aliasFile == null) {
             aliasFile = configPath.getUserConfig("aliases.json", true);
@@ -109,6 +115,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         } else {
             aliases.putAll((Map<String,String>)slurp(aliasFile));
         }
+        registerCommands(commandName, commandExecute);
     }
 
     /**
@@ -163,23 +170,6 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     @Override
-    public Set<String> commandNames() {
-        return nameCommand.keySet();
-    }
-
-    public Map<String, String> commandAliases() {
-        return aliasCommand;
-    }
-
-    @Override
-    public boolean hasCommand(String name) {
-        if (nameCommand.containsKey(name) || aliasCommand.containsKey(name)) {
-            return true;
-        }
-        return false;
-    }
-
-    @Override
     public boolean hasAlias(String name) {
         return aliases.containsKey(name);
     }
@@ -214,55 +204,6 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return out;
     }
 
-    private void doNameCommand() {
-        nameCommand = commandName.entrySet()
-                .stream()
-                .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
-    }
-
-    private Command command(String name) {
-        Command out = null;
-        if (!hasCommand(name)) {
-            throw new IllegalArgumentException("Command does not exists!");
-        }
-        if (aliasCommand.containsKey(name)) {
-            name = aliasCommand.get(name);
-        }
-        if (nameCommand.containsKey(name)) {
-            out = nameCommand.get(name);
-        } else {
-            throw new IllegalArgumentException("Command does not exists!");
-        }
-        return out;
-    }
-
-    public void rename(Command command, String newName) {
-        if (nameCommand.containsKey(newName)) {
-            throw new IllegalArgumentException("Duplicate command name!");
-        } else if (!commandName.containsKey(command)) {
-            throw new IllegalArgumentException("Command does not exists!");
-        }
-        commandName.put(command, newName);
-        doNameCommand();
-    }
-
-    public void alias(String alias, String command) {
-        if (!nameCommand.keySet().contains(command)) {
-            throw new IllegalArgumentException("Command does not exists!");
-        }
-        aliasCommand.put(alias, command);
-    }
-
-    @Override
-    public Completers.SystemCompleter compileCompleters() {
-        SystemCompleter out = new SystemCompleter();
-        for (Map.Entry<Command, String> entry: commandName.entrySet()) {
-            out.add(entry.getValue(), commandExecute.get(entry.getKey()).compileCompleter().apply(entry.getValue()));
-        }
-        out.addAliases(aliasCommand);
-        return out;
-    }
-
     private Set<String> variables() {
         return engine.find().keySet();
     }
@@ -291,12 +232,20 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         try {
             List<Path> scripts = new ArrayList<>();
             if (engine.hasVariable(VAR_PATH)) {
-                for (String pp : (List<String>) engine.get(VAR_PATH)) {
+                List<String> dirs = new ArrayList<>();
+                for (String file : (List<String>) engine.get(VAR_PATH)) {
+                    file = file.startsWith("~") ? file.replace("~", System.getProperty("user.home")) : file;
+                    File dir = new File(file);
+                    if (dir.exists() && dir.isDirectory()) {
+                        dirs.add(file);
+                    }
+                }
+                for (String pp : dirs) {
                     for (String e : scriptExtensions()) {
                         String regex = pp + "/*." + e;
                         PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + regex);
                         Files.find(Paths.get(new File(regex).getParent()), Integer.MAX_VALUE,
-                                (path, f) -> pathMatcher.matches(path)).forEach(p -> scripts.add(p));
+                                    (path, f) -> pathMatcher.matches(path)).forEach(p -> scripts.add(p));
                     }
                 }
             }
@@ -890,7 +839,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         exception = null;
         Object out = null;
         if (hasCommand(command)) {
-            out = commandExecute.get(command(command)).executeFunction().apply(new Builtins.CommandInput(command, args, session));
+            out = getCommandMethods(command).executeFunction().apply(new CommandInput(command, args, session));
         } else {
             String[] _args = new String[args.length];
             for (int i = 0; i < args.length; i++) {
@@ -911,16 +860,16 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String,Object> defaultPrntOptions() {
+    private Map<String,Object> defaultPrntOptions(boolean skipDefault) {
         Map<String, Object> out = new HashMap<>();
-        if (engine.hasVariable(VAR_PRNT_OPTIONS)) {
+        if (!skipDefault && engine.hasVariable(VAR_PRNT_OPTIONS)) {
             out.putAll((Map<String,Object>)engine.get(VAR_PRNT_OPTIONS));
         }
-        out.putIfAbsent("maxrows", PRNT_MAX_ROWS);
-        out.putIfAbsent("maxDepth", PRNT_MAX_DEPTH);
-        out.putIfAbsent("indention", PRNT_INDENTION);
-        out.putIfAbsent("columnsOut", new ArrayList<String>());
-        out.putIfAbsent("columnsIn", new ArrayList<String>());
+        out.putIfAbsent(Printer.MAXROWS, PRNT_MAX_ROWS);
+        out.putIfAbsent(Printer.MAX_DEPTH, PRNT_MAX_DEPTH);
+        out.putIfAbsent(Printer.INDENTION, PRNT_INDENTION);
+        out.putIfAbsent(Printer.COLUMNS_OUT, new ArrayList<String>());
+        out.putIfAbsent(Printer.COLUMNS_IN, new ArrayList<String>());
         return out;
     }
 
@@ -954,14 +903,13 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     @Override
     public void println(Object object) {
-        long start = new Date().getTime();
-        internalPrintln(defaultPrntOptions(), object);
-        Log.debug("println: ", new Date().getTime() - start, " msec");
+        internalPrintln(defaultPrntOptions(false), object);
     }
 
     @Override
     public void println(Map<String, Object> options, Object object) {
-        for (Map.Entry<String, Object> entry : defaultPrntOptions().entrySet()) {
+        for (Map.Entry<String, Object> entry
+                : defaultPrntOptions(options.containsKey(Printer.SKIP_DEFAULT_OPTIONS)).entrySet()) {
             options.putIfAbsent(entry.getKey(), entry.getValue());
         }
         internalPrintln(options, object);
@@ -972,28 +920,35 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         if (object == null) {
             return;
         }
-        if (options.containsKey("exclude")) {
-            List<String> colOut = optionList("exclude", options);
-            List<String> colIn = optionList("columnsIn", options);
+        long start = new Date().getTime();
+        if (options.containsKey(Printer.EXCLUDE)) {
+            List<String> colOut = optionList(Printer.EXCLUDE, options);
+            List<String> colIn = optionList(Printer.COLUMNS_IN, options);
             colIn.removeAll(colOut);
-            colOut.addAll((List<String>)options.get("columnsOut"));
-            options.put("columnsIn", colIn);
-            options.put("columnsOut", colOut);
+            colOut.addAll((List<String>)options.get(Printer.COLUMNS_OUT));
+            options.put(Printer.COLUMNS_IN, colIn);
+            options.put(Printer.COLUMNS_OUT, colOut);
         }
-        if (options.containsKey("include")) {
-            List<String> colIn = optionList("include", options);
-            colIn.addAll((List<String>)options.get("columnsIn"));
-            options.put("columnsIn", colIn);
+        if (options.containsKey(Printer.INCLUDE)) {
+            List<String> colIn = optionList(Printer.INCLUDE, options);
+            colIn.addAll((List<String>)options.get(Printer.COLUMNS_IN));
+            options.put(Printer.COLUMNS_IN, colIn);
         }
-        options.putIfAbsent("width", terminal().getSize().getColumns());
-        String style = (String) options.getOrDefault("style", "");
-        int width = (int) options.get("width");
-        if (style.equalsIgnoreCase("JSON")) {
-            highlightAndPrint(width, style, engine.toJson(object));
-        } else if (!style.isEmpty() && object instanceof String) {
+        options.putIfAbsent(Printer.WIDTH, terminal().getSize().getColumns());
+        String style = (String) options.getOrDefault(Printer.STYLE, "");
+        int width = (int) options.get(Printer.WIDTH);
+        if (!style.isEmpty() && object instanceof String) {
             highlightAndPrint(width, style, (String) object);
+        } else if (style.equalsIgnoreCase("JSON")) {
+            highlightAndPrint(width, style, engine.toJson(object));
+        } else if (options.containsKey(Printer.SKIP_DEFAULT_OPTIONS)) {
+            for (AttributedString as : highlight(options, object)) {
+                as.println(terminal());
+            }
         } else if (object instanceof Exception) {
             systemRegistry.trace(options.getOrDefault("exception", "stack").equals("stack"), (Exception)object);
+        } else if (object instanceof CmdDesc) {
+            highlight((CmdDesc)object).println(terminal());
         } else if (object instanceof String) {
             highlight(AttributedStyle.YELLOW + AttributedStyle.BRIGHT, object).println(terminal());
         } else if (object instanceof Number) {
@@ -1004,6 +959,35 @@ public class ConsoleEngineImpl implements ConsoleEngine {
             }
         }
         terminal().flush();
+        Log.debug("println: ", new Date().getTime() - start, " msec");
+    }
+
+    private AttributedString highlight(CmdDesc cmdDesc) {
+        StringBuilder sb = new StringBuilder();
+        for (AttributedString as : cmdDesc.getMainDesc()) {
+            sb.append(as.toString());
+            sb.append("\n");
+        }
+        List<Integer> tabs = Arrays.asList(0, 2, 33);
+        for (Map.Entry<String, List<AttributedString>> entry : cmdDesc.getOptsDesc().entrySet()) {
+            AttributedStringBuilder asb = new AttributedStringBuilder();
+            asb.tabs(tabs);
+            asb.append("\t");
+            asb.append(entry.getKey());
+            asb.append("\t");
+            boolean first = true;
+            for (AttributedString as : entry.getValue()) {
+                if (!first) {
+                    asb.append("\t");
+                    asb.append("\t");
+                }
+                asb.append(as);
+                asb.append("\n");
+                first = false;
+            }
+            sb.append(asb.toString());
+        }
+        return Options.HelpException.highlight(sb.toString(), Options.HelpException.defaultStyle());
     }
 
     private AttributedString highlight(int attrStyle, Object obj) {
@@ -1030,7 +1014,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         for (String s: object.split("\\r?\\n")) {
             AttributedStringBuilder asb = new AttributedStringBuilder();
             asb.append(s);
-            if (highlighter != null) {
+            if (highlighter != null && s.length() < 200) {
                 highlighter.highlight(asb).println(terminal());
             } else {
                 asb.subSequence(0, width).println(terminal());
@@ -1117,21 +1101,25 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     @SuppressWarnings("unchecked")
     private Map<String,Object> objectToMap(Map<String, Object> options, Object obj) {
-        Map<Class<?>, Object> toMap = options.containsKey("objectToMap") ? (Map<Class<?>, Object>)options.get("objectToMap")
-                                                                         : new HashMap<>();;
-        if (toMap.containsKey(obj.getClass())) {
-            return (Map<String,Object>)engine.execute(toMap.get(obj.getClass()), obj);
-        } else if (objectToMap.containsKey(obj.getClass())) {
-            return objectToMap.get(obj.getClass()).apply(obj);
+        if (obj != null) {
+            Map<Class<?>, Object> toMap = options.containsKey(Printer.OBJECT_TO_MAP)
+                                                 ? (Map<Class<?>, Object>)options.get(Printer.OBJECT_TO_MAP)
+                                                 : new HashMap<>();;
+            if (toMap.containsKey(obj.getClass())) {
+                return (Map<String,Object>)engine.execute(toMap.get(obj.getClass()), obj);
+            } else if (objectToMap.containsKey(obj.getClass())) {
+                return objectToMap.get(obj.getClass()).apply(obj);
+            }
         }
         return engine.toMap(obj);
     }
 
     @SuppressWarnings("unchecked")
     private String objectToString(Map<String, Object> options, Object obj) {
-        Map<Class<?>, Object> toString = options.containsKey("objectToString") ? (Map<Class<?>, Object>)options.get("objectToString")
-                                                                               : new HashMap<>();
         if (obj != null) {
+            Map<Class<?>, Object> toString = options.containsKey(Printer.OBJECT_TO_STRING)
+                                                ? (Map<Class<?>, Object>)options.get(Printer.OBJECT_TO_STRING)
+                                                : new HashMap<>();
             if (toString.containsKey(obj.getClass())) {
                 return (String) engine.execute(toString.get(obj.getClass()), obj);
             } else if (objectToString.containsKey(obj.getClass())) {
@@ -1180,9 +1168,10 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     @SuppressWarnings("unchecked")
     private AttributedString highlightValue(Map<String, Object> options, String column, Object obj) {
         AttributedString out = null;
-        Object raw = options.containsKey("toString") && obj != null ? objectToString(options, obj) : obj;
-        Map<String, Object> hv = options.containsKey("highlightValue") ? (Map<String, Object>)options.get("highlightValue")
-                                                                       : new HashMap<>();
+        Object raw = options.containsKey(Printer.TO_STRING) && obj != null ? objectToString(options, obj) : obj;
+        Map<String, Object> hv = options.containsKey(Printer.HIGHLIGHT_VALUE)
+                                        ? (Map<String, Object>)options.get(Printer.HIGHLIGHT_VALUE)
+                                        : new HashMap<>();
         if (column != null && simpleObject(raw)) {
             for (Map.Entry<String,Object> entry : hv.entrySet()) {
                 if (!entry.getKey().equals("*") && column.matches(entry.getKey())) {
@@ -1219,9 +1208,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     }
 
     private AttributedString truncateValue(Map<String, Object> options, AttributedString value) {
-        if (value.columnLength() > (int)options.getOrDefault("maxColumnWidth", Integer.MAX_VALUE)) {
+        if (value.columnLength() > (int)options.getOrDefault(Printer.MAX_COLUMN_WIDTH, Integer.MAX_VALUE)) {
             AttributedStringBuilder asb = new AttributedStringBuilder();
-            asb.append(value.subSequence(0, (int)options.get("maxColumnWidth") - 3));
+            asb.append(value.subSequence(0, (int)options.get(Printer.MAX_COLUMN_WIDTH) - 3));
             asb.append("...");
             return asb.toAttributedString();
         }
@@ -1275,24 +1264,24 @@ public class ConsoleEngineImpl implements ConsoleEngine {
     @SuppressWarnings("unchecked")
     private List<AttributedString> highlight(Map<String, Object> options, Object obj) {
         List<AttributedString> out = new ArrayList<>();
-        int width = (int)options.getOrDefault("width", Integer.MAX_VALUE);
-        boolean rownum = options.containsKey("rownum");
+        int width = (int)options.getOrDefault(Printer.WIDTH, Integer.MAX_VALUE);
+        boolean rownum = options.containsKey(Printer.ROWNUM);
         if (obj == null) {
             // do nothing
         } else if (obj instanceof Map) {
             out = highlightMap(options, keysToString((Map<Object, Object>)obj), width);
         } else if (collectionObject(obj)) {
             List<Object> collection = objectToList(obj);
-            if (collection.size() > (int)options.get("maxrows")) {
-                trace("Truncated output: " + (int)options.get("maxrows") + "/" + collection.size());
-                collection = collection.subList(collection.size() - (int)options.get("maxrows"), collection.size());
+            if (collection.size() > (int)options.get(Printer.MAXROWS)) {
+                trace("Truncated output: " + (int)options.get(Printer.MAXROWS) + "/" + collection.size());
+                collection = collection.subList(collection.size() - (int)options.get(Printer.MAXROWS), collection.size());
             }
             if (!collection.isEmpty()) {
-                if (collection.size() == 1 && !options.containsKey("oneRowTable")) {
+                if (collection.size() == 1 && !options.containsKey(Printer.ONE_ROW_TABLE)) {
                     Object elem = collection.iterator().next();
                     if (elem instanceof Map) {
                         out = highlightMap(options, keysToString((Map<Object, Object>)elem), width);
-                    } else if (canConvert(elem) && !options.containsKey("toString")){
+                    } else if (canConvert(elem) && !options.containsKey(Printer.TO_STRING)){
                         out = highlightMap(options, objectToMap(options, elem), width);
                     } else {
                         out.add(highlightValue(options, null, objectToString(options, obj)));
@@ -1301,15 +1290,15 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                     try {
                         Object elem = collection.iterator().next();
                         boolean convert = canConvert(elem);
-                        if ((elem instanceof Map || convert) && !options.containsKey("toString")) {
+                        if ((elem instanceof Map || convert) && !options.containsKey(Printer.TO_STRING)) {
                             Map<String, Object> map = convert ? objectToMap(options, elem)
                                                               : keysToString((Map<Object, Object>) elem);
                             List<String> _header = null;
-                            List<String> columnsIn = optionList("columnsIn", options);
-                            List<String> columnsOut = !options.containsKey("all") ? optionList("columnsOut", options)
+                            List<String> columnsIn = optionList(Printer.COLUMNS_IN, options);
+                            List<String> columnsOut = !options.containsKey("all") ? optionList(Printer.COLUMNS_OUT, options)
                                                                                   : new ArrayList<>();
-                            if (options.containsKey("columns")) {
-                                _header = (List<String>) options.get("columns");
+                            if (options.containsKey(Printer.COLUMNS)) {
+                                _header = (List<String>) options.get(Printer.COLUMNS);
                             } else {
                                 _header = columnsIn;
                                 _header.addAll(map.keySet().stream()
@@ -1324,9 +1313,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                                 if (!map.containsKey(_header.get(i).split("\\.")[0]) && !map.containsKey(_header.get(i))) {
                                     continue;
                                 }
-                                if (options.containsKey("columns")) {
+                                if (options.containsKey(Printer.COLUMNS)) {
                                     // do nothing
-                                } else if (!options.containsKey("structsOnTable")) {
+                                } else if (!options.containsKey(Printer.STRUCT_ON_TABLE)) {
                                     Object val = mapValue(options, _header.get(i), map);
                                     if (val == null || !simpleObject(val)) {
                                         continue;
@@ -1345,8 +1334,8 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                                 throw new Exception("No columns for table!");
                             }
                             double mapSimilarity = 0.8;
-                            if (options.containsKey("mapSimilarity")) {
-                                mapSimilarity = ((java.math.BigDecimal)options.get("mapSimilarity")).doubleValue();
+                            if (options.containsKey(Printer.MAP_SIMILARITY)) {
+                                mapSimilarity = ((java.math.BigDecimal)options.get(Printer.MAP_SIMILARITY)).doubleValue();
                             }
                             for (Object o : collection) {
                                 Map<String, Object> m = convert ? objectToMap(options, o)
@@ -1398,7 +1387,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                                 }
                                 out.add(asb2.subSequence(0, width));
                             }
-                        } else if (collectionObject(elem) && !options.containsKey("toString")) {
+                        } else if (collectionObject(elem) && !options.containsKey(Printer.TO_STRING)) {
                             List<Integer> columns = new ArrayList<>();
                             for (Object o : collection) {
                                 List<Object> inner = objectToList(o);
@@ -1446,7 +1435,7 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                     }
                 }
             }
-        } else if (canConvert(obj) && !options.containsKey("toString")) {
+        } else if (canConvert(obj) && !options.containsKey(Printer.TO_STRING)) {
             out = highlightMap(options, objectToMap(options, obj), width);
         } else {
             out.add(highlightValue(options, null, objectToString(options, obj)));
@@ -1456,22 +1445,33 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     public List<AttributedString> highlightList(Map<String, Object> options, List<Object> collection, int width) {
         List<AttributedString> out = new ArrayList<>();
+        highlightList(options, collection, width, 0, out);
+        return out;
+    }
+
+    public void highlightList(Map<String, Object> options
+                            , List<Object> collection, int width, int depth, List<AttributedString> out) {
         Integer row = 0;
-        Integer tabsize = digits(collection.size()) + 2;
-        options.remove("maxColumnWidth");
+        int indent = (int)options.get(Printer.INDENTION);
+        int tabsize = indent*depth;
+        if (options.containsKey(Printer.ROWNUM)) {
+            tabsize += digits(collection.size()) + 2;
+        }
+        options.remove(Printer.MAX_COLUMN_WIDTH);
         for (Object o : collection) {
             AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabsize);
-            if (options.containsKey("rownum")) {
+            if (options.containsKey(Printer.ROWNUM)) {
                 asb.append(row.toString(), AttributedStyle.DEFAULT
                         .foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
                 asb.append(":");
-                asb.append("\t");
                 row++;
+            }
+            if (tabsize != 0) {
+                asb.append("\t");
             }
             asb.append(highlightValue(options, null, objectToString(options, o)));
             out.add(truncate(asb, width));
         }
-        return out;
     }
 
     private boolean collectionObject(Object obj) {
@@ -1528,28 +1528,45 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                             , Map<String, Object> map, int width, int depth, List<AttributedString> out) {
         AttributedStyle defaultStyle = AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW);
         int max = map.keySet().stream().map(String::length).max(Integer::compareTo).get();
-        if (max > (int)options.getOrDefault("maxColumnWidth", Integer.MAX_VALUE)) {
-            max = (int)options.get("maxColumnWidth");
+        if (max > (int)options.getOrDefault(Printer.MAX_COLUMN_WIDTH, Integer.MAX_VALUE)) {
+            max = (int)options.get(Printer.MAX_COLUMN_WIDTH);
         }
         Map<String, Object> mapOptions = new HashMap<>();
         mapOptions.putAll(options);
-        mapOptions.remove("maxColumnWidth");
-        int indent = (int)options.get("indention");
-        int maxDepth = (int)options.get("maxDepth");
+        mapOptions.remove(Printer.MAX_COLUMN_WIDTH);
+        int indent = (int)options.get(Printer.INDENTION);
+        int maxDepth = (int)options.get(Printer.MAX_DEPTH);
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             AttributedStringBuilder asb = new AttributedStringBuilder().tabs(Arrays.asList(0, depth*indent, depth*indent + max + 1));
             if (depth != 0) {
                 asb.append("\t");
             }
-            asb.append(truncateValue(max, entry.getKey()), AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
+            asb.append(truncateValue(max
+                                   , entry.getKey())
+                                   , AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
             Object elem = entry.getValue();
             boolean convert = canConvert(elem);
-            if (depth < maxDepth && (elem instanceof Map || convert) && !options.containsKey("toString")) {
-                out.add(truncate(asb, width));
-                Map<String, Object> childMap = convert ? objectToMap(options, elem)
-                                                       : keysToString((Map<Object, Object>) elem);
-                highlightMap(options, childMap, width, depth + 1, out);
-            } else {
+            boolean highlightValue = true;
+            if (depth < maxDepth && !options.containsKey(Printer.TO_STRING)) {
+                if (elem instanceof Map || convert) {
+                    out.add(truncate(asb, width));
+                    Map<String, Object> childMap = convert ? objectToMap(options, elem)
+                                                           : keysToString((Map<Object, Object>) elem);
+                    highlightMap(options, childMap, width, depth + 1, out);
+                    highlightValue = false;
+                } else if (collectionObject(elem)) {
+                    List<Object> collection = objectToList(elem);
+                    if (!collection.isEmpty()) {
+                        out.add(truncate(asb, width));
+                        Map<String, Object> listOptions = new HashMap<>();
+                        listOptions.putAll(options);
+                        listOptions.put(Printer.TO_STRING, true);
+                        highlightList(listOptions, collection, width, depth + 1, out);
+                        highlightValue = false;
+                    }
+                }
+            }
+            if (highlightValue) {
                 AttributedString val = highlightMapValue(mapOptions, entry.getKey(), map, defaultStyle);
                 if (map.size() == 1) {
                     asb.append("\t");
@@ -1576,39 +1593,39 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         }
     }
 
-    private Object show(Builtins.CommandInput input) {
+    private Object show(CommandInput input) {
         final String[] usage = {
                 "show -  list console variables",
                 "Usage: show [VARIABLE]",
                 "  -? --help                       Displays command help",
         };
-        Options opt = Options.compile(usage).parse(input.args());
-        if (opt.isSet("help")) {
-            exception = new HelpException(opt.usage());
-            return null;
+        try {
+            parseOptions(usage, input.args());
+            Map<String, Object> options = defaultPrntOptions(false);
+            options.put(Printer.MAX_DEPTH, 0);
+            internalPrintln(options, engine.find(input.args().length > 0 ? input.args()[0] : null));
+        } catch (Exception e) {
+            exception = e;
         }
-        Map<String, Object> options = defaultPrntOptions();
-        options.put("maxDepth", 0);
-        internalPrintln(options, engine.find(input.args().length > 0 ? input.args()[0] : null));
         return null;
     }
 
-    private Object del(Builtins.CommandInput input) {
+    private Object del(CommandInput input) {
         final String[] usage = {
                 "del -  delete console variables, methods, classes and imports",
                 "Usage: del [var1] ...",
                 "  -? --help                       Displays command help",
         };
-        Options opt = Options.compile(usage).parse(input.xargs());
-        if (opt.isSet("help")) {
-            exception = new HelpException(opt.usage());
-            return null;
+        try {
+            parseOptions(usage, input.args());
+            engine.del(input.args());
+        } catch (Exception e) {
+            exception = e;
         }
-        engine.del(input.args());
         return null;
     }
 
-    private Object prnt(Builtins.CommandInput input) {
+    private Object prnt(CommandInput input) {
         final String[] usage = {
                 "prnt -  print object",
                 "Usage: prnt [OPTIONS] object",
@@ -1623,69 +1640,71 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 "     --maxrows=ROWS               Maximum number of rows on table",
                 "     --oneRowTable                Display one row data on table",
                 "  -r --rownum                     Display table row numbers",
+                "     --skipDefaultOptions         Ignore all options defined in PRNT_OPTIONS",
                 "     --structsOnTable             Display structs and lists on table",
                 "  -s --style=STYLE                Use nanorc STYLE",
                 "     --toString                   use object's toString() method to get print value",
                 "                                  DEFAULT: object's fields are put to property map before printing",
                 "  -w --width=WIDTH                Display width (default terminal width)"
         };
-        Options opt = Options.compile(usage).parse(input.xargs());
-        if (opt.isSet("help")) {
-            exception = new HelpException(opt.usage());
-            return null;
-        }
-        Map<String, Object> options = defaultPrntOptions();
-        if (opt.isSet("style")) {
-            options.put("style", opt.get("style"));
-        }
-        if (opt.isSet("toString")) {
-            options.put("toString", true);
-        }
-        if (opt.isSet("width")) {
-            options.put("width", opt.getNumber("width"));
-        }
-        if (opt.isSet("rownum")) {
-            options.put("rownum", true);
-        }
-        if (opt.isSet("oneRowTable")) {
-            options.put("oneRowTable", true);
-        }
-        if (opt.isSet("structsOnTable")) {
-            options.put("structsOnTable", true);
-        }
-        if (opt.isSet("columns")) {
-            options.put("columns", Arrays.asList(opt.get("columns").split(",")));
-        }
-        if (opt.isSet("exclude")) {
-            options.put("exclude", Arrays.asList(opt.get("exclude").split(",")));
-        }
-        if (opt.isSet("include")) {
-            options.put("include", Arrays.asList(opt.get("include").split(",")));
-        }
-        if (opt.isSet("all")) {
-            options.put("all", true);
-        }
-        if (opt.isSet("maxrows")) {
-            options.put("maxrows", opt.getNumber("maxrows"));
-        }
-        if (opt.isSet("maxColumnWidth")) {
-            options.put("maxColumnWidth", opt.getNumber("maxColumnWidth"));
-        }
-        if (opt.isSet("maxDepth")) {
-            options.put("maxDepth", opt.getNumber("maxDepth"));
-        }
-        if (opt.isSet("indention")) {
-            options.put("indention", opt.getNumber("indention"));
-        }
-        options.put("exception", "stack");
-        List<Object> args = opt.argObjects();
-        if (args.size() > 0) {
-            internalPrintln(options, args.get(0));
+        try {
+            Options opt = parseOptions(usage, input.xargs());
+            boolean skipDefault = opt.isSet(Printer.SKIP_DEFAULT_OPTIONS);
+            Map<String, Object> options = defaultPrntOptions(skipDefault);
+            if (opt.isSet(Printer.STYLE)) {
+                options.put(Printer.STYLE, opt.get(Printer.STYLE));
+            }
+            if (opt.isSet(Printer.TO_STRING)) {
+                options.put(Printer.TO_STRING, true);
+            }
+            if (opt.isSet(Printer.WIDTH)) {
+                options.put(Printer.WIDTH, opt.getNumber(Printer.WIDTH));
+            }
+            if (opt.isSet(Printer.ROWNUM)) {
+                options.put(Printer.ROWNUM, true);
+            }
+            if (opt.isSet(Printer.ONE_ROW_TABLE)) {
+                options.put(Printer.ONE_ROW_TABLE, true);
+            }
+            if (opt.isSet(Printer.STRUCT_ON_TABLE)) {
+                options.put(Printer.STRUCT_ON_TABLE, true);
+            }
+            if (opt.isSet(Printer.COLUMNS)) {
+                options.put(Printer.COLUMNS, Arrays.asList(opt.get(Printer.COLUMNS).split(",")));
+            }
+            if (opt.isSet(Printer.EXCLUDE)) {
+                options.put(Printer.EXCLUDE, Arrays.asList(opt.get(Printer.EXCLUDE).split(",")));
+            }
+            if (opt.isSet(Printer.INCLUDE)) {
+                options.put(Printer.INCLUDE, Arrays.asList(opt.get(Printer.INCLUDE).split(",")));
+            }
+            if (opt.isSet(Printer.ALL)) {
+                options.put(Printer.ALL, true);
+            }
+            if (opt.isSet(Printer.MAXROWS)) {
+                options.put(Printer.MAXROWS, opt.getNumber(Printer.MAXROWS));
+            }
+            if (opt.isSet(Printer.MAX_COLUMN_WIDTH)) {
+                options.put(Printer.MAX_COLUMN_WIDTH, opt.getNumber(Printer.MAX_COLUMN_WIDTH));
+            }
+            if (opt.isSet(Printer.MAX_DEPTH)) {
+                options.put(Printer.MAX_DEPTH, opt.getNumber(Printer.MAX_DEPTH));
+            }
+            if (opt.isSet(Printer.INDENTION)) {
+                options.put(Printer.INDENTION, opt.getNumber(Printer.INDENTION));
+            }
+            options.put("exception", "stack");
+            List<Object> args = opt.argObjects();
+            if (args.size() > 0) {
+                internalPrintln(options, args.get(0));
+            }
+        } catch (Exception e) {
+            exception = e;
         }
         return null;
     }
 
-    private Object slurpcmd(Builtins.CommandInput input) {
+    private Object slurpcmd(CommandInput input) {
         final String[] usage = {
                 "slurp -  slurp file context to string/object",
                 "Usage: slurp [OPTIONS] file",
@@ -1693,13 +1712,9 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 "  -e --encoding=ENCODING          Encoding (default UTF-8)",
                 "  -f --format=FORMAT              Serialization format"
         };
-        Options opt = Options.compile(usage).parse(input.args());
-        if (opt.isSet("help")) {
-            exception = new HelpException(opt.usage());
-            return null;
-        }
         Object out = null;
-        try  {
+        try {
+            Options opt = parseOptions(usage, input.args());
             if (!opt.args().isEmpty()){
                 Charset encoding = opt.isSet("encoding") ? Charset.forName(opt.get("encoding")): StandardCharsets.UTF_8;
                 String format = opt.isSet("format") ? opt.get("format") : engine.getSerializationFormats().get(0);
@@ -1726,19 +1741,15 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return engine.deserialize(new String(encoded, encoding), format);
     }
 
-    private Object aliascmd(Builtins.CommandInput input) {
+    private Object aliascmd(CommandInput input) {
         final String[] usage = {
                 "alias -  create command alias",
                 "Usage: alias [ALIAS] [COMMANDLINE]",
                 "  -? --help                       Displays command help"
         };
-        Options opt = Options.compile(usage).parse(input.args());
-        if (opt.isSet("help")) {
-            exception = new HelpException(opt.usage());
-            return null;
-        }
         Object out = null;
-        try  {
+        try {
+            Options opt = parseOptions(usage, input.args());
             List<String> args = opt.args();
             if (args.isEmpty()) {
                 out = aliases;
@@ -1762,31 +1773,25 @@ public class ConsoleEngineImpl implements ConsoleEngine {
         return out;
     }
 
-    private Object unalias(Builtins.CommandInput input) {
+    private Object unalias(CommandInput input) {
         final String[] usage = {
                 "unalias -  remove command alias",
                 "Usage: unalias [ALIAS...]",
                 "  -? --help                       Displays command help"
         };
-        Options opt = Options.compile(usage).parse(input.args());
-        if (opt.isSet("help")) {
-            exception = new HelpException(opt.usage());
-            return null;
-        }
-        Object out = null;
-        try  {
+        try {
+            Options opt = parseOptions(usage, input.args());
             for (String a : opt.args()) {
                 aliases.remove(a);
             }
+            persist(aliasFile, aliases);
         } catch (Exception e) {
             exception = e;
-        } finally {
-            persist(aliasFile, aliases);
         }
-        return out;
+        return null;
     }
 
-    private Object pipe(Builtins.CommandInput input) {
+    private Object pipe(CommandInput input) {
         final String[] usage = {
                 "pipe -  create/delete pipe operator",
                 "Usage: pipe [OPERATOR] [PREFIX] [POSTFIX]",
@@ -1796,42 +1801,89 @@ public class ConsoleEngineImpl implements ConsoleEngine {
                 "  -d --delete                     Delete pipe operators",
                 "  -l --list                       List pipe operators",
         };
-        Options opt = Options.compile(usage).parse(input.args());
-        if (opt.isSet("help")) {
-            exception = new HelpException(opt.usage());
-            return null;
-        }
         Object out = null;
-        if (opt.isSet("delete")) {
-            if ( opt.args().size() == 1 && opt.args().get(0).equals("*")) {
-                pipes.clear();
-            } else {
-                for (String p: opt.args()) {
-                    pipes.remove(p.trim());
+        try {
+            Options opt = parseOptions(usage, input.args());
+            if (opt.isSet("delete")) {
+                if ( opt.args().size() == 1 && opt.args().get(0).equals("*")) {
+                    pipes.clear();
+                } else {
+                    for (String p: opt.args()) {
+                        pipes.remove(p.trim());
+                    }
                 }
+            } else if (opt.isSet("list") || opt.args().size() == 0) {
+                out = pipes;
+            } else if (opt.args().size() != 3) {
+                exception = new IllegalArgumentException("Bad number of arguments!");
+            } else if (systemRegistry.getPipeNames().contains(opt.args().get(0))) {
+                exception = new IllegalArgumentException("Reserved pipe operator");
+            } else {
+                List<String> fixes = new ArrayList<>();
+                fixes.add(opt.args().get(1));
+                fixes.add(opt.args().get(2));
+                pipes.put(opt.args().get(0), fixes);
             }
-        } else if (opt.isSet("list") || opt.args().size() == 0) {
-            out = pipes;
-        } else if (opt.args().size() != 3) {
-            exception = new IllegalArgumentException("Bad number of arguments!");
-        } else if (systemRegistry.getPipeNames().contains(opt.args().get(0))) {
-            exception = new IllegalArgumentException("Reserved pipe operator");
-        } else {
-            List<String> fixes = new ArrayList<>();
-            fixes.add(opt.args().get(1));
-            fixes.add(opt.args().get(2));
-            pipes.put(opt.args().get(0), fixes);
+        } catch (Exception e) {
+            exception = e;
         }
         return out;
     }
 
-    private List<OptDesc> commandOptions(String command) {
+    private Object doc(CommandInput input) {
+        final String[] usage = {
+                "doc -  open document on browser",
+                "Usage: doc [OBJECT]",
+                "  -? --help                       Displays command help"
+        };
         try {
-            invoke(new CommandSession(), command, "--help");
-        } catch (HelpException e) {
-            return Builtins.compileCommandOptions(e.getMessage());
+            parseOptions(usage, input.xargs());
+            if (input.xargs().length == 0) {
+                return null;
+            }
+            if (Desktop.isDesktopSupported()) {
+                Map<String,Object> docs = consoleOption("docs", null);
+                boolean done = false;
+                Object arg = input.xargs()[0];
+                if (arg instanceof String) {
+                    String address = docs != null ? (String)docs.get(input.args()[0]) : null;
+                    if (address != null) {
+                        done = true;
+                        Desktop.getDesktop().browse(new URI(address));
+                    }
+                }
+                if (!done) {
+                    String name = "";
+                    if (arg instanceof String && ((String)arg).matches("([a-z]+\\.)+[A-Z][a-zA-Z]+")) {
+                        name = (String)arg;
+                    } else {
+                        name = arg.getClass().getCanonicalName();
+                    }
+                    name = name.replaceAll("\\.", "/") + ".html";
+                    Object doc = null;
+                    for (Map.Entry<String,Object> entry : docs.entrySet()) {
+                        if (name.matches(entry.getKey())) {
+                            doc = entry.getValue();
+                            break;
+                        }
+                    }
+                    if (doc != null) {
+                        if (doc instanceof Collection) {
+                            for (Object o : (Collection<?>)doc) {
+                                Desktop.getDesktop().browse(new URI((String)o + name));
+                            }
+                        } else {
+                            Desktop.getDesktop().browse(new URI((String)doc + name));
+                        }
+                    } else {
+                        throw new IllegalArgumentException("Document not found: " + name);
+                    }
+                }
+            } else {
+                throw new IllegalStateException("Desktop is not supported!");
+            }
         } catch (Exception e) {
-            trace(e);
+            exception = e;
         }
         return null;
     }
@@ -1904,25 +1956,50 @@ public class ConsoleEngineImpl implements ConsoleEngine {
 
     private List<Completer> aliasCompleter(String command) {
         List<Completer> completers = new ArrayList<>();
+        List<Completer> params = new ArrayList<>();
+        params.add(new StringsCompleter(aliases::keySet));
+        params.add(new AliasValueCompleter(aliases));
         completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                , new StringsCompleter(aliases::keySet), new AliasValueCompleter(aliases), NullCompleter.INSTANCE));
+                , new OptionCompleter(params
+                                    , this::commandOptions
+                                    , 1)
+                             ));
         return completers;
     }
 
     private List<Completer> unaliasCompleter(String command) {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE, new StringsCompleter(aliases::keySet)));
-        return completers;
-    }
-
-    private List<Completer> pipeCompleter(String command) {
-        List<Completer> completers = new ArrayList<>();
         completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                , new OptionCompleter(NullCompleter.INSTANCE
+                , new OptionCompleter(new StringsCompleter(aliases::keySet)
                                     , this::commandOptions
                                     , 1)
                              ));
-         return completers;
+        return completers;
     }
 
+    private List<String> docs() {
+        List<String> out = new ArrayList<>();
+        for (String v : engine.find().keySet()) {
+            out.add("$" + v);
+        }
+        Map<String,String> docs = consoleOption("docs", null);
+        if (!docs.isEmpty()) {
+            for (String d :  docs.keySet()) {
+                if (d.matches("\\w+")) {
+                    out.add(d);
+                }
+            }
+        }
+        return out;
+    }
+
+    private List<Completer> docCompleter(String command) {
+        List<Completer> completers = new ArrayList<>();
+        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
+                       , new OptionCompleter(new StringsCompleter(this::docs)
+                                           , this::commandOptions
+                                           , 1)
+                                    ));
+        return completers;
+    }
 }

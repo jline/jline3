@@ -6,13 +6,10 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.builtins;
+package org.jline.console;
 
-import org.jline.builtins.Completers;
-import org.jline.builtins.Widgets;
-import org.jline.builtins.Options.HelpException;
+import org.jline.reader.impl.completer.SystemCompleter;
 import org.jline.terminal.Terminal;
-import org.jline.utils.AttributedString;
 
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -30,8 +27,8 @@ public interface CommandRegistry {
      * @param commandRegistries command registeries which completers is to be aggregated
      * @return uncompiled SystemCompleter
      */
-    static Completers.SystemCompleter aggregateCompleters(CommandRegistry ... commandRegistries) {
-        Completers.SystemCompleter out = new Completers.SystemCompleter();
+    static SystemCompleter aggregateCompleters(CommandRegistry ... commandRegistries) {
+        SystemCompleter out = new SystemCompleter();
         for (CommandRegistry r: commandRegistries) {
             out.add(r.compileCompleters());
         }
@@ -43,8 +40,8 @@ public interface CommandRegistry {
      * @param commandRegistries command registeries which completers is to be aggregated and compile
      * @return compiled SystemCompleter
      */
-    static Completers.SystemCompleter compileCompleters(CommandRegistry ... commandRegistries) {
-        Completers.SystemCompleter out = aggregateCompleters(commandRegistries);
+    static SystemCompleter compileCompleters(CommandRegistry ... commandRegistries) {
+        SystemCompleter out = aggregateCompleters(commandRegistries);
         out.compile();
         return out;
     }
@@ -72,20 +69,7 @@ public interface CommandRegistry {
      * Returns a short info about command known by this registry.
      * @return a short info about command
      */
-    default List<String> commandInfo(String command) {
-        try {
-            Object[] args = {"--help"};
-            if (command.equals("help")) {
-                args = new Object[] {};
-            }
-            invoke(new CommandSession(), command, args);
-        } catch (HelpException e) {
-            return Builtins.compileCommandInfo(e.getMessage());
-        } catch (Exception e) {
-
-        }
-        throw new IllegalArgumentException("default CommandRegistry.commandInfo() method must be overridden in class " + this.getClass().getCanonicalName());
-    }
+    List<String> commandInfo(String command);
 
     /**
      * Returns whether a command with the specified name is known to this registry.
@@ -99,7 +83,7 @@ public interface CommandRegistry {
      * information for all registered commands.
      * @return a SystemCompleter that can provide command completion for all registered commands
      */
-    Completers.SystemCompleter compileCompleters();
+    SystemCompleter compileCompleters();
 
     /**
      * Returns a command description for use in the JLine Widgets framework.
@@ -108,38 +92,17 @@ public interface CommandRegistry {
      * @return command description for JLine TailTipWidgets to be displayed
      *         in the terminal status bar.
      */
-    default Widgets.CmdDesc commandDescription(List<String> args) {
-        return !args.isEmpty() ? commandDescription(args.get(0)) : commandDescription("");    
+    default CmdDesc commandDescription(List<String> args) {
+        return !args.isEmpty() ? commandDescription(args.get(0)) : commandDescription("");
     }
-    
+
     /**
      * Returns a command description for use in the JLine Widgets framework.
      * @param command name of the command whose description to return
      * @return command description for JLine TailTipWidgets to be displayed
      *         in the terminal status bar.
      */
-    default Widgets.CmdDesc commandDescription(String command) {
-        try {
-            if (command != null && !command.isEmpty()) {
-                invoke(new CommandSession(), command, new Object[] {"--help"});
-            } else {
-                List<AttributedString> main = new ArrayList<>();
-                Map<String, List<AttributedString>> options = new HashMap<>();
-                for (String c : new TreeSet<String>(commandNames())) {
-                    for (String info : commandInfo(c)) {
-                        main.add(HelpException.highlightSyntax(c + " -  " + info, HelpException.defaultStyle(), true));
-                        break;
-                    }
-                }
-                return new Widgets.CmdDesc(main, Widgets.ArgDesc.doArgNames(Arrays.asList("")), options);
-            }
-        } catch (HelpException e) {
-            return Builtins.compileCommandDescription(e.getMessage());
-        } catch (Exception e) {
-
-        }
-        throw new IllegalArgumentException("default CommandRegistry.commandDescription() method must be overridden in class " + this.getClass().getCanonicalName());
-    }
+    CmdDesc commandDescription(String command);
 
     /**
      * Execute a command that have only string parameters and options. Implementation of the method is required

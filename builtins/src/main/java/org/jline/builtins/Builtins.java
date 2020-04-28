@@ -8,30 +8,23 @@
  */
 package org.jline.builtins;
 
-import java.io.InputStream;
-import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import org.jline.builtins.Completers.FilesCompleter;
 import org.jline.builtins.Completers.OptDesc;
 import org.jline.builtins.Completers.OptionCompleter;
-import org.jline.builtins.Completers.SystemCompleter;
 import org.jline.builtins.Options.HelpException;
-import org.jline.builtins.Widgets.ArgDesc;
-import org.jline.builtins.Widgets.CmdDesc;
+import org.jline.console.*;
 import org.jline.reader.*;
 import org.jline.reader.LineReader.Option;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
-import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 
 /**
@@ -39,7 +32,7 @@ import org.jline.utils.AttributedString;
  *
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
-public class Builtins implements CommandRegistry {
+public class Builtins extends JlineCommandRegistry implements CommandRegistry {
     public enum Command {NANO
                        , LESS
                        , HISTORY
@@ -52,12 +45,7 @@ public class Builtins implements CommandRegistry {
     private ConfigurationPath configPath;
     private final Function<String, Widget> widgetCreator;
     private final Supplier<Path> workDir;
-    private Map<Command,String> commandName = new HashMap<>();
-    private Map<String,Command> nameCommand = new HashMap<>();
-    private Map<String,String> aliasCommand = new HashMap<>();
-    private final Map<Command,CommandMethods> commandExecute = new HashMap<>();
     private LineReader reader;
-    private Exception exception;
 
     public Builtins(Path workDir, ConfigurationPath configPath, Function<String, Widget> widgetCreator) {
         this(null, () -> workDir, configPath, widgetCreator);
@@ -72,10 +60,13 @@ public class Builtins implements CommandRegistry {
     }
 
     public Builtins(Set<Command> commands, Supplier<Path> workDir, ConfigurationPath configpath, Function<String, Widget> widgetCreator) {
+        super();
         this.configPath = configpath;
         this.widgetCreator = widgetCreator;
         this.workDir = workDir;
         Set<Command> cmds = new HashSet<>();
+        Map<Command,String> commandName = new HashMap<>();
+        Map<Command,CommandMethods> commandExecute = new HashMap<>();
         if (commands == null) {
             cmds = new HashSet<>(EnumSet.allOf(Command.class));
         } else {
@@ -84,113 +75,27 @@ public class Builtins implements CommandRegistry {
         for (Command c: cmds) {
             commandName.put(c, c.name().toLowerCase());
         }
-        doNameCommand();
         commandExecute.put(Command.NANO, new CommandMethods(this::nano, this::nanoCompleter));
         commandExecute.put(Command.LESS, new CommandMethods(this::less, this::lessCompleter));
         commandExecute.put(Command.HISTORY, new CommandMethods(this::history, this::historyCompleter));
         commandExecute.put(Command.WIDGET, new CommandMethods(this::widget, this::widgetCompleter));
-        commandExecute.put(Command.KEYMAP, new CommandMethods(this::keymap, this::keymapCompleter));
+        commandExecute.put(Command.KEYMAP, new CommandMethods(this::keymap, this::defaultCompleter));
         commandExecute.put(Command.SETOPT, new CommandMethods(this::setopt, this::setoptCompleter));
         commandExecute.put(Command.SETVAR, new CommandMethods(this::setvar, this::setvarCompleter));
         commandExecute.put(Command.UNSETOPT, new CommandMethods(this::unsetopt, this::unsetoptCompleter));
-        commandExecute.put(Command.TTOP, new CommandMethods(this::ttop, this::ttopCompleter));
-    }
-
-    public Set<String> commandNames() {
-        return nameCommand.keySet();
-    }
-
-    public Map<String, String> commandAliases() {
-        return aliasCommand;
-    }
-
-    private void doNameCommand() {
-        nameCommand = commandName.entrySet()
-                .stream()
-                .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+        commandExecute.put(Command.TTOP, new CommandMethods(this::ttop, this::defaultCompleter));
+        registerCommands(commandName, commandExecute);
     }
 
     public void setLineReader(LineReader reader) {
         this.reader = reader;
     }
 
-    public void rename(Command command, String newName) {
-        if (nameCommand.containsKey(newName)) {
-            throw new IllegalArgumentException("Duplicate command name!");
-        } else if (!commandName.containsKey(command)) {
-            throw new IllegalArgumentException("Command does not exists!");
-        }
-        commandName.put(command, newName);
-        doNameCommand();
-    }
-
-    public void alias(String alias, String command) {
-        if (!nameCommand.keySet().contains(command)) {
-            throw new IllegalArgumentException("Command does not exists!");
-        }
-        aliasCommand.put(alias, command);
-    }
-
-    @Override
-    public boolean hasCommand(String name) {
-        if (nameCommand.containsKey(name) || aliasCommand.containsKey(name)) {
-            return true;
-        }
-        return false;
-    }
-
-    @Override
-    public SystemCompleter compileCompleters() {
-        SystemCompleter out = new SystemCompleter();
-        for (Map.Entry<Command, String> entry: commandName.entrySet()) {
-            out.add(entry.getValue(), commandExecute.get(entry.getKey()).compileCompleter().apply(entry.getValue()));
-        }
-        out.addAliases(aliasCommand);
-        return out;
-    }
-
-    private Command command(String name) {
-        Command out = null;
-        if (!hasCommand(name)) {
-            throw new IllegalArgumentException("Command does not exists!");
-        }
-        if (aliasCommand.containsKey(name)) {
-            name = aliasCommand.get(name);
-        }
-        if (nameCommand.containsKey(name)) {
-            out = nameCommand.get(name);
-        } else {
-            throw new IllegalArgumentException("Command does not exists!");
-        }
-        return out;
-    }
-
-    @Override
-    public Object execute(CommandRegistry.CommandSession session, String command, String[] args) throws Exception {
-        exception = null;
-        commandExecute.get(command(command)).execute().accept(new CommandInput(command, args, session));
-        if (exception != null) {
-            throw exception;
-        }
-        return null;
-    }
-
-    private List<OptDesc> commandOptions(String command) {
-        try {
-            execute(new CommandRegistry.CommandSession(), command, new String[] {"--help"});
-        } catch (HelpException e) {
-            return compileCommandOptions(e.getMessage());
-        } catch (Exception e) {
-
-        }
-        return null;
-    }
-
     private void less(CommandInput input) {
         try {
             Commands.less(input.terminal(), input.in(), input.out(), input.err(), workDir.get(), input.args());
         } catch (Exception e) {
-            this.exception = e;
+            saveException(e);
         }
     }
 
@@ -198,7 +103,7 @@ public class Builtins implements CommandRegistry {
         try {
             Commands.nano(input.terminal(), input.out(), input.err(), workDir.get(), input.args(), configPath);
         } catch (Exception e) {
-            this.exception = e;
+            saveException(e);
         }
     }
 
@@ -206,7 +111,7 @@ public class Builtins implements CommandRegistry {
         try {
             Commands.history(reader, input.out(), input.err(), workDir.get(), input.args());
         } catch (Exception e) {
-            this.exception = e;
+            saveException(e);
         }
     }
 
@@ -214,7 +119,7 @@ public class Builtins implements CommandRegistry {
         try {
             Commands.widget(reader, input.out(), input.err(), widgetCreator, input.args());
         } catch (Exception e) {
-            this.exception = e;
+            saveException(e);
         }
     }
 
@@ -222,7 +127,7 @@ public class Builtins implements CommandRegistry {
         try {
             Commands.keymap(reader, input.out(), input.err(), input.args());
         } catch (Exception e) {
-            this.exception = e;
+            saveException(e);
         }
     }
 
@@ -230,7 +135,7 @@ public class Builtins implements CommandRegistry {
         try {
             Commands.setopt(reader, input.out(), input.err(), input.args());
         } catch (Exception e) {
-            this.exception = e;
+            saveException(e);
         }
     }
 
@@ -238,7 +143,7 @@ public class Builtins implements CommandRegistry {
         try {
             Commands.setvar(reader, input.out(), input.err(), input.args());
         } catch (Exception e) {
-            this.exception = e;
+            saveException(e);
         }
     }
 
@@ -246,7 +151,7 @@ public class Builtins implements CommandRegistry {
         try {
             Commands.unsetopt(reader, input.out(), input.err(), input.args());
         } catch (Exception e) {
-            this.exception = e;
+            saveException(e);
         }
     }
 
@@ -254,7 +159,7 @@ public class Builtins implements CommandRegistry {
         try {
             TTop.ttop(input.terminal(), input.out(), input.err(), input.args());
         } catch (Exception e) {
-            this.exception = e;
+            saveException(e);
         }
     }
 
@@ -299,7 +204,7 @@ public class Builtins implements CommandRegistry {
 
     private List<Completer> historyCompleter(String name) {
         List<Completer> completers = new ArrayList<>();
-        List<OptDesc> optDescs = commandOptions(commandName.get(Command.HISTORY));
+        List<OptDesc> optDescs = commandOptions(name);
         for (OptDesc o : optDescs) {
             if (o.shortOption() != null && (o.shortOption().equals("-A") || o.shortOption().equals("-W")
                                         || o.shortOption().equals("-R"))) {
@@ -316,7 +221,7 @@ public class Builtins implements CommandRegistry {
 
     private List<Completer> widgetCompleter(String name) {
         List<Completer> completers = new ArrayList<>();
-        List<OptDesc> optDescs = commandOptions(commandName.get(Command.WIDGET));
+        List<OptDesc> optDescs = commandOptions(name);
         Candidate aliasOption = new Candidate("-A", "-A", null, null, null, null, true);
         Iterator<OptDesc> i = optDescs.iterator();
         while (i.hasNext()) {
@@ -341,16 +246,6 @@ public class Builtins implements CommandRegistry {
         return completers;
     }
 
-    private List<Completer> keymapCompleter(String name) {
-        List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                                            , new OptionCompleter(NullCompleter.INSTANCE
-                                                                , this::commandOptions
-                                                                , 1)
-                        ));
-        return completers;
-    }
-
     private List<Completer> setvarCompleter(String name) {
         List<Completer> completers = new ArrayList<>();
         completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
@@ -372,16 +267,9 @@ public class Builtins implements CommandRegistry {
         return completers;
     }
 
-    private List<Completer> ttopCompleter(String name) {
-        List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                                            , new OptionCompleter(NullCompleter.INSTANCE
-                                                                , this::commandOptions
-                                                                , 1)
-                                    ));
-        return completers;
-    }
-
+    //
+    // Utils for helpMessage parsing
+    //
     private static AttributedString highlightComment(String comment) {
         return HelpException.highlightComment(comment, HelpException.defaultStyle());
     }
@@ -496,95 +384,4 @@ public class Builtins implements CommandRegistry {
         return out;
     }
 
-    public static class CommandInput {
-        String command;
-        String[] args;
-        Object[] xargs;
-        Terminal terminal;
-        InputStream in;
-        PrintStream out;
-        PrintStream err;
-
-        public CommandInput(String command, Object[] xargs, CommandRegistry.CommandSession session) {
-            if (xargs != null) {
-                this.xargs = xargs;
-                this.args = new String[xargs.length];
-                for (int i = 0; i < xargs.length; i++) {
-                    this.args[i] = xargs[i] != null ? xargs[i].toString() : null;
-                }
-            }
-            this.command = command;
-            this.terminal = session.terminal();
-            this.in = session.in();
-            this.out = session.out();
-            this.err = session.err();
-        }
-
-        public CommandInput(String command, Object[] args, Terminal terminal, InputStream in, PrintStream out, PrintStream err) {
-            this(command, args, new CommandRegistry.CommandSession(terminal, in, out, err));
-        }
-
-        public String command() {
-            return command;
-        }
-
-        public String[] args() {
-            return args;
-        }
-
-        public Object[] xargs() {
-            return xargs;
-        }
-
-        public Terminal terminal() {
-            return terminal;
-        }
-
-        public InputStream in() {
-            return in;
-        }
-
-        public PrintStream out() {
-            return out;
-        }
-
-        public PrintStream err() {
-            return err;
-        }
-
-        public CommandRegistry.CommandSession session() {
-            return new CommandRegistry.CommandSession(terminal, in, out, err);
-        }
-
-    }
-
-    public static class CommandMethods {
-        Consumer<CommandInput> execute;
-        Function<CommandInput, Object> executeFunction;
-        Function<String, List<Completer>> compileCompleter;
-
-        public CommandMethods(Function<CommandInput, Object> execute,  Function<String, List<Completer>> compileCompleter) {
-            this.executeFunction = execute;
-            this.compileCompleter = compileCompleter;
-        }
-
-        public CommandMethods(Consumer<CommandInput> execute,  Function<String, List<Completer>> compileCompleter) {
-            this.execute = execute;
-            this.compileCompleter = compileCompleter;
-        }
-
-        public Consumer<CommandInput> execute() {
-            return execute;
-        }
-
-        public Function<CommandInput, Object> executeFunction() {
-            return executeFunction;
-        }
-
-        public Function<String, List<Completer>> compileCompleter() {
-            return compileCompleter;
-        }
-    }
-
 }
-

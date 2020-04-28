@@ -28,6 +28,7 @@ cp=${TARGETDIR}/classes
 # JLINE
 cp=${cp}$(find ${TARGETDIR}/lib -name "jline-*.jar" -exec printf :{} ';')
 cp=${cp}$(find ${TARGETDIR}/lib -name "groovy-*.jar" -exec printf :{} ';')
+cp=${cp}$(find ${TARGETDIR}/lib -name "ivy-*.jar" -exec printf :{} ';')
 
 opts="${JLINE_OPTS}"
 logconf="${DIRNAME}/etc/logging.properties"
