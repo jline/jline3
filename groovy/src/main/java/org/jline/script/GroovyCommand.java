@@ -213,9 +213,9 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         List<String> info = new ArrayList<>();
         info.add("Add maven repository dependencies to classpath");
         commandInfos.put(Command.GRAB, info);
-        mainDesc.add(new AttributedString("grap -  " + info.get(0)));
-        mainDesc.add(new AttributedString("Usage: grap <group>:<artifact>:<version>"));
-        mainDesc.add(new AttributedString("       grap --list"));
+        mainDesc.add(new AttributedString("grab -  " + info.get(0)));
+        mainDesc.add(new AttributedString("Usage: grab <group>:<artifact>:<version>"));
+        mainDesc.add(new AttributedString("       grab --list"));
         out.setMainDesc(mainDesc);
         return out;
     }

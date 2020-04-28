@@ -232,12 +232,20 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         try {
             List<Path> scripts = new ArrayList<>();
             if (engine.hasVariable(VAR_PATH)) {
-                for (String pp : (List<String>) engine.get(VAR_PATH)) {
+                List<String> dirs = new ArrayList<>();
+                for (String file : (List<String>) engine.get(VAR_PATH)) {
+                    file = file.startsWith("~") ? file.replace("~", System.getProperty("user.home")) : file;
+                    File dir = new File(file);
+                    if (dir.exists() && dir.isDirectory()) {
+                        dirs.add(file);
+                    }
+                }
+                for (String pp : dirs) {
                     for (String e : scriptExtensions()) {
                         String regex = pp + "/*." + e;
                         PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + regex);
                         Files.find(Paths.get(new File(regex).getParent()), Integer.MAX_VALUE,
-                                (path, f) -> pathMatcher.matches(path)).forEach(p -> scripts.add(p));
+                                    (path, f) -> pathMatcher.matches(path)).forEach(p -> scripts.add(p));
                     }
                 }
             }
@@ -929,10 +937,10 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         options.putIfAbsent(Printer.WIDTH, terminal().getSize().getColumns());
         String style = (String) options.getOrDefault(Printer.STYLE, "");
         int width = (int) options.get(Printer.WIDTH);
-        if (style.equalsIgnoreCase("JSON")) {
-            highlightAndPrint(width, style, engine.toJson(object));
-        } else if (!style.isEmpty() && object instanceof String) {
+        if (!style.isEmpty() && object instanceof String) {
             highlightAndPrint(width, style, (String) object);
+        } else if (style.equalsIgnoreCase("JSON")) {
+            highlightAndPrint(width, style, engine.toJson(object));
         } else if (options.containsKey(Printer.SKIP_DEFAULT_OPTIONS)) {
             for (AttributedString as : highlight(options, object)) {
                 as.println(terminal());
@@ -1006,7 +1014,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         for (String s: object.split("\\r?\\n")) {
             AttributedStringBuilder asb = new AttributedStringBuilder();
             asb.append(s);
-            if (highlighter != null) {
+            if (highlighter != null && s.length() < 200) {
                 highlighter.highlight(asb).println(terminal());
             } else {
                 asb.subSequence(0, width).println(terminal());
@@ -1556,7 +1564,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                         highlightList(listOptions, collection, width, depth + 1, out);
                         highlightValue = false;
                     }
-                }                
+                }
             }
             if (highlightValue) {
                 AttributedString val = highlightMapValue(mapOptions, entry.getKey(), map, defaultStyle);
@@ -1592,7 +1600,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 "  -? --help                       Displays command help",
         };
         try {
-            Options opt = parseOptions(usage, input.args());
+            parseOptions(usage, input.args());
             Map<String, Object> options = defaultPrntOptions(false);
             options.put(Printer.MAX_DEPTH, 0);
             internalPrintln(options, engine.find(input.args().length > 0 ? input.args()[0] : null));
@@ -1609,7 +1617,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 "  -? --help                       Displays command help",
         };
         try {
-            Options opt = parseOptions(usage, input.args());
+            parseOptions(usage, input.args());
             engine.del(input.args());
         } catch (Exception e) {
             exception = e;
@@ -1640,7 +1648,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 "  -w --width=WIDTH                Display width (default terminal width)"
         };
         try {
-            Options opt = parseOptions(usage, input.args());
+            Options opt = parseOptions(usage, input.xargs());
             boolean skipDefault = opt.isSet(Printer.SKIP_DEFAULT_OPTIONS);
             Map<String, Object> options = defaultPrntOptions(skipDefault);
             if (opt.isSet(Printer.STYLE)) {
@@ -1829,7 +1837,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 "  -? --help                       Displays command help"
         };
         try {
-            Options opt = parseOptions(usage, input.xargs());
+            parseOptions(usage, input.xargs());
             if (input.xargs().length == 0) {
                 return null;
             }
@@ -1842,10 +1850,15 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                     if (address != null) {
                         done = true;
                         Desktop.getDesktop().browse(new URI(address));
-                    }                    
+                    }
                 }
                 if (!done) {
-                    String name = arg.getClass().getCanonicalName();
+                    String name = "";
+                    if (arg instanceof String && ((String)arg).matches("([a-z]+\\.)+[A-Z][a-zA-Z]+")) {
+                        name = (String)arg;
+                    } else {
+                        name = arg.getClass().getCanonicalName();
+                    }
                     name = name.replaceAll("\\.", "/") + ".html";
                     Object doc = null;
                     for (Map.Entry<String,Object> entry : docs.entrySet()) {
@@ -1857,8 +1870,8 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                     if (doc != null) {
                         if (doc instanceof Collection) {
                             for (Object o : (Collection<?>)doc) {
-                                Desktop.getDesktop().browse(new URI((String)o + name));   
-                            }                            
+                                Desktop.getDesktop().browse(new URI((String)o + name));
+                            }
                         } else {
                             Desktop.getDesktop().browse(new URI((String)doc + name));
                         }
@@ -1975,7 +1988,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 if (d.matches("\\w+")) {
                     out.add(d);
                 }
-            }            
+            }
         }
         return out;
     }
