@@ -78,6 +78,7 @@ PRNT_OPTIONS['objectToMap'].put(org.jline.reader.impl.LineReaderImpl, _reader2ma
 PRNT_OPTIONS['objectToString'].put(org.jline.reader.impl.LineReaderImpl, _reader2string)
 PRNT_OPTIONS['highlightValue'].put('time.*', _number2date)
 PRNT_OPTIONS['highlightValue'].put('*', _orgJline)
+PRNT_OPTIONS.valueStyle = 'GRON'
 #
 # custom Groovy pipes
 #

@@ -87,8 +87,13 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     private LineReader reader;
     private boolean executing = false;
 
-    @SuppressWarnings("unchecked")
     public ConsoleEngineImpl(ScriptEngine engine
+            , Supplier<Path> workDir, ConfigurationPath configPath) throws IOException {
+        this(null, engine, workDir, configPath);
+    }
+
+    @SuppressWarnings("unchecked")
+    public ConsoleEngineImpl(Set<Command> commands, ScriptEngine engine
                            , Supplier<Path> workDir, ConfigurationPath configPath) throws IOException {
         super();
         this.engine = engine;
@@ -96,7 +101,12 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         this.configPath = configPath;
         Map<Command,String> commandName = new HashMap<>();
         Map<Command,CommandMethods> commandExecute = new HashMap<>();
-        Set<Command> cmds = new HashSet<>(EnumSet.allOf(Command.class));
+        Set<Command> cmds = null;
+        if (commands == null) {
+            cmds = new HashSet<>(EnumSet.allOf(Command.class));
+        } else {
+            cmds = new HashSet<>(commands);
+        }
         for (Command c: cmds) {
             commandName.put(c, c.name().toLowerCase());
         }
@@ -934,6 +944,9 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             colIn.addAll((List<String>)options.get(Printer.COLUMNS_IN));
             options.put(Printer.COLUMNS_IN, colIn);
         }
+        if (options.containsKey(Printer.VALUE_STYLE)) {
+            options.put(Printer.VALUE_STYLE, valueHighlighter((String)options.get(Printer.VALUE_STYLE)));
+        }
         options.putIfAbsent(Printer.WIDTH, terminal().getSize().getColumns());
         String style = (String) options.getOrDefault(Printer.STYLE, "");
         int width = (int) options.get(Printer.WIDTH);
@@ -942,21 +955,15 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         } else if (style.equalsIgnoreCase("JSON")) {
             highlightAndPrint(width, style, engine.toJson(object));
         } else if (options.containsKey(Printer.SKIP_DEFAULT_OPTIONS)) {
-            for (AttributedString as : highlight(options, object)) {
-                as.println(terminal());
-            }
+            highlightAndPrint(options, object);
         } else if (object instanceof Exception) {
             systemRegistry.trace(options.getOrDefault("exception", "stack").equals("stack"), (Exception)object);
         } else if (object instanceof CmdDesc) {
             highlight((CmdDesc)object).println(terminal());
-        } else if (object instanceof String) {
-            highlight(AttributedStyle.YELLOW + AttributedStyle.BRIGHT, object).println(terminal());
-        } else if (object instanceof Number) {
-            highlight(AttributedStyle.BLUE + AttributedStyle.BRIGHT, object).println(terminal());
+        } else if (object instanceof String || object instanceof Number) {
+            highlight(width, (SyntaxHighlighter)options.get(Printer.VALUE_STYLE), object.toString()).println(terminal());
         } else {
-            for (AttributedString as : highlight(options, object)) {
-                as.println(terminal());
-            }
+            highlightAndPrint(options, object);
         }
         terminal().flush();
         Log.debug("println: ", new Date().getTime() - start, " msec");
@@ -1001,7 +1008,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         return out;
     }
 
-    private void highlightAndPrint(int width, String style, String object) {
+    private SyntaxHighlighter valueHighlighter(String style) {
         Path nanorc = configPath != null ? configPath.getConfig("jnanorc") : null;
         if (engine.hasVariable(VAR_NANORC)) {
             nanorc = Paths.get((String)engine.get(VAR_NANORC));
@@ -1009,16 +1016,41 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         if (nanorc == null) {
             nanorc = Paths.get("/etc/nanorc");
         }
-        SyntaxHighlighter highlighter = nanorc != null ? SyntaxHighlighter.build(nanorc, style)
-                                                       : null;
+        return nanorc != null ? SyntaxHighlighter.build(nanorc, style) : null;
+    }
+
+    private AttributedString highlight(Integer width, SyntaxHighlighter highlighter, String object) {
+        AttributedString out = null;
+        AttributedStringBuilder asb = new AttributedStringBuilder();
+        asb.append(object);
+        if (highlighter != null && object.length() < 400 && isValue(object)) {
+            out = highlighter.highlight(asb);
+        } else {
+            out = asb.toAttributedString();
+        }
+        if (width != null) {
+            out = out.columnSubSequence(0, width);
+        }
+        return out;
+    }
+
+    private boolean isValue(String value) {
+        if(value.matches("\"(\\.|[^\"])*\"|'(\\.|[^'])*'")
+                || value.matches("\\((\\.|[^\\)])*\\)")
+                || value.matches("\\[(\\.|[^\\]])*\\]")
+                || value.matches("\\{(\\.|[^\\}])*\\}")
+                || value.matches("<(\\.|[^>])*>")) {
+            return true;
+        } else if (!value.contains(" ") && !value.contains("\t")) {
+            return true;
+        }
+        return false;
+    }
+
+    private void highlightAndPrint(int width, String style, String object) {
+        SyntaxHighlighter highlighter = valueHighlighter(style);
         for (String s: object.split("\\r?\\n")) {
-            AttributedStringBuilder asb = new AttributedStringBuilder();
-            asb.append(s);
-            if (highlighter != null && s.length() < 200) {
-                highlighter.highlight(asb).println(terminal());
-            } else {
-                asb.subSequence(0, width).println(terminal());
-            }
+            highlight(width, highlighter, s).println(terminal());
         }
     }
 
@@ -1135,12 +1167,6 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         return highlightValue(options, key, mapValue(options, key, map));
     }
 
-    private AttributedString highlightMapValue(Map<String,Object> options
-                                             , String key
-                                             , Map<String,Object> map, AttributedStyle defaultStyle ) {
-        return highlightValue(options, key, mapValue(options, key, map), defaultStyle);
-    }
-
     private boolean isHighlighted(AttributedString value) {
         for (int i = 0; i < value.columnLength(); i++) {
             if (value.styleAt(i).getStyle() != AttributedStyle.DEFAULT.getStyle()) {
@@ -1150,37 +1176,22 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         return false;
     }
 
-    private AttributedString highlightValue(Map<String, Object> options
-                                          , String column
-                                          , Object obj, AttributedStyle defaultStyle) {
-        AttributedString out = highlightValue(options, column, obj);
-        boolean doDefault = true;
-        if (defaultStyle != null) {
-            if (simpleObject(obj)) {
-                doDefault = !isHighlighted(out);
-            }
-        } else {
-            doDefault = false;
-        }
-        return doDefault ? new AttributedString(out, defaultStyle) : out;
-    }
-
     @SuppressWarnings("unchecked")
     private AttributedString highlightValue(Map<String, Object> options, String column, Object obj) {
         AttributedString out = null;
         Object raw = options.containsKey(Printer.TO_STRING) && obj != null ? objectToString(options, obj) : obj;
         Map<String, Object> hv = options.containsKey(Printer.HIGHLIGHT_VALUE)
-                                        ? (Map<String, Object>)options.get(Printer.HIGHLIGHT_VALUE)
-                                        : new HashMap<>();
+                ? (Map<String, Object>) options.get(Printer.HIGHLIGHT_VALUE)
+                : new HashMap<>();
         if (column != null && simpleObject(raw)) {
-            for (Map.Entry<String,Object> entry : hv.entrySet()) {
+            for (Map.Entry<String, Object> entry : hv.entrySet()) {
                 if (!entry.getKey().equals("*") && column.matches(entry.getKey())) {
-                    out = (AttributedString)engine.execute(hv.get(entry.getKey()), raw);
+                    out = (AttributedString) engine.execute(hv.get(entry.getKey()), raw);
                     break;
                 }
             }
             if (out == null) {
-                for (Map.Entry<String,Function<Object,AttributedString>> entry : highlightValue.entrySet()) {
+                for (Map.Entry<String, Function<Object, AttributedString>> entry : highlightValue.entrySet()) {
                     if (!entry.getKey().equals("*") && column.matches(entry.getKey())) {
                         out = highlightValue.get(entry.getKey()).apply(raw);
                         break;
@@ -1194,8 +1205,8 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             } else {
                 out = new AttributedString(columnValue(objectToString(options, raw)));
             }
-        }
-        if ((simpleObject(raw) || raw == null) && (hv.containsKey("*") || highlightValue.containsKey("*"))
+       }
+       if (simpleObject(raw) && (hv.containsKey("*") || highlightValue.containsKey("*"))
                 && !isHighlighted(out)) {
             if (hv.containsKey("*")) {
                 out = (AttributedString) engine.execute(hv.get("*"), out);
@@ -1203,6 +1214,9 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             if (highlightValue.containsKey("*")) {
                 out = highlightValue.get("*").apply(out);
             }
+        }
+        if (options.containsKey(Printer.VALUE_STYLE) && !isHighlighted(out)) {
+            out = highlight(null, (SyntaxHighlighter)options.get(Printer.VALUE_STYLE), out.toString());
         }
         return truncateValue(options, out);
     }
@@ -1262,14 +1276,13 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     }
 
     @SuppressWarnings("unchecked")
-    private List<AttributedString> highlight(Map<String, Object> options, Object obj) {
-        List<AttributedString> out = new ArrayList<>();
-        int width = (int)options.getOrDefault(Printer.WIDTH, Integer.MAX_VALUE);
+    private void highlightAndPrint(Map<String, Object> options, Object obj) {
+        int width = (int)options.get(Printer.WIDTH);
         boolean rownum = options.containsKey(Printer.ROWNUM);
         if (obj == null) {
             // do nothing
         } else if (obj instanceof Map) {
-            out = highlightMap(options, keysToString((Map<Object, Object>)obj), width);
+            highlightMap(options, keysToString((Map<Object, Object>)obj), width);
         } else if (collectionObject(obj)) {
             List<Object> collection = objectToList(obj);
             if (collection.size() > (int)options.get(Printer.MAXROWS)) {
@@ -1280,11 +1293,11 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 if (collection.size() == 1 && !options.containsKey(Printer.ONE_ROW_TABLE)) {
                     Object elem = collection.iterator().next();
                     if (elem instanceof Map) {
-                        out = highlightMap(options, keysToString((Map<Object, Object>)elem), width);
+                        highlightMap(options, keysToString((Map<Object, Object>)elem), width);
                     } else if (canConvert(elem) && !options.containsKey(Printer.TO_STRING)){
-                        out = highlightMap(options, objectToMap(options, elem), width);
+                        highlightMap(options, objectToMap(options, elem), width);
                     } else {
-                        out.add(highlightValue(options, null, objectToString(options, obj)));
+                        highlightValue(options, null, objectToString(options, obj)).println(terminal());
                     }
                 } else {
                     try {
@@ -1363,7 +1376,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                                         .foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
                                 asb.append("\t");
                             }
-                            out.add(truncate(asb, width));
+                            truncate(asb, width).println(terminal());
                             Integer row = 0;
                             for (Object o : collection) {
                                 AttributedStringBuilder asb2 = new AttributedStringBuilder().tabs(columns);
@@ -1385,7 +1398,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                                     asb2.append(v);
                                     asb2.append("\t");
                                 }
-                                out.add(asb2.subSequence(0, width));
+                                asb2.subSequence(0, width).println(terminal());
                             }
                         } else if (collectionObject(elem) && !options.containsKey(Printer.TO_STRING)) {
                             List<Integer> columns = new ArrayList<>();
@@ -1422,35 +1435,33 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                                     asb.append(v);
                                     asb.append("\t");
                                 }
-                                out.add(truncate(asb, width));
+                                truncate(asb, width).println(terminal());
                             }
                         } else {
-                            out = highlightList(options, collection, width);
+                            highlightList(options, collection, width);
                         }
                     } catch (Exception e) {
                         if(consoleOption("trace", 0) > 0) {
                             trace(e);
                         }
-                        out = highlightList(options, collection, width);
+                        highlightList(options, collection, width);
                     }
                 }
             }
         } else if (canConvert(obj) && !options.containsKey(Printer.TO_STRING)) {
-            out = highlightMap(options, objectToMap(options, obj), width);
+            highlightMap(options, objectToMap(options, obj), width);
         } else {
-            out.add(highlightValue(options, null, objectToString(options, obj)));
+            highlightValue(options, null, objectToString(options, obj)).println(terminal());
         }
-        return out;
     }
 
-    public List<AttributedString> highlightList(Map<String, Object> options, List<Object> collection, int width) {
-        List<AttributedString> out = new ArrayList<>();
-        highlightList(options, collection, width, 0, out);
-        return out;
+    private void highlightList(Map<String, Object> options
+            , List<Object> collection, int width) {
+        highlightList(options, collection, width, 0);
     }
 
-    public void highlightList(Map<String, Object> options
-                            , List<Object> collection, int width, int depth, List<AttributedString> out) {
+    private void highlightList(Map<String, Object> options
+                            , List<Object> collection, int width, int depth) {
         Integer row = 0;
         int indent = (int)options.get(Printer.INDENTION);
         int tabsize = indent*depth;
@@ -1470,7 +1481,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 asb.append("\t");
             }
             asb.append(highlightValue(options, null, objectToString(options, o)));
-            out.add(truncate(asb, width));
+            truncate(asb, width).println(terminal());
         }
     }
 
@@ -1517,16 +1528,13 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         columns.add(columns.get(columns.size() - 1) + delta);
     }
 
-    private List<AttributedString> highlightMap(Map<String, Object> options, Map<String, Object> map, int width) {
-        List<AttributedString> out = new ArrayList<>();
-        highlightMap(options, map, width, 0, out);
-        return out;
+    private void highlightMap(Map<String, Object> options, Map<String, Object> map, int width) {
+        highlightMap(options, map, width, 0);
     }
 
     @SuppressWarnings("unchecked")
     private void highlightMap(Map<String, Object> options
-                            , Map<String, Object> map, int width, int depth, List<AttributedString> out) {
-        AttributedStyle defaultStyle = AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW);
+                            , Map<String, Object> map, int width, int depth) {
         int max = map.keySet().stream().map(String::length).max(Integer::compareTo).get();
         if (max > (int)options.getOrDefault(Printer.MAX_COLUMN_WIDTH, Integer.MAX_VALUE)) {
             max = (int)options.get(Printer.MAX_COLUMN_WIDTH);
@@ -1549,45 +1557,45 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             boolean highlightValue = true;
             if (depth < maxDepth && !options.containsKey(Printer.TO_STRING)) {
                 if (elem instanceof Map || convert) {
-                    out.add(truncate(asb, width));
+                    truncate(asb, width).println(terminal());
                     Map<String, Object> childMap = convert ? objectToMap(options, elem)
                                                            : keysToString((Map<Object, Object>) elem);
-                    highlightMap(options, childMap, width, depth + 1, out);
+                    highlightMap(options, childMap, width, depth + 1);
                     highlightValue = false;
                 } else if (collectionObject(elem)) {
                     List<Object> collection = objectToList(elem);
                     if (!collection.isEmpty()) {
-                        out.add(truncate(asb, width));
+                        truncate(asb, width).println(terminal());
                         Map<String, Object> listOptions = new HashMap<>();
                         listOptions.putAll(options);
                         listOptions.put(Printer.TO_STRING, true);
-                        highlightList(listOptions, collection, width, depth + 1, out);
+                        highlightList(listOptions, collection, width, depth + 1);
                         highlightValue = false;
                     }
                 }
             }
             if (highlightValue) {
-                AttributedString val = highlightMapValue(mapOptions, entry.getKey(), map, defaultStyle);
+                AttributedString val = highlightMapValue(mapOptions, entry.getKey(), map);
+                asb.append("\t");
                 if (map.size() == 1) {
-                    asb.append("\t");
                     if (val.contains('\n')) {
                         for (String v : val.toString().split("\\r?\\n")) {
-                            asb.append(v, defaultStyle);
-                            out.add(truncate(asb, width));
+                            asb.append(highlightValue(options, entry.getKey(), v));
+                            truncate(asb, width).println(terminal());
                             asb = new AttributedStringBuilder().tabs(Arrays.asList(0, max + 1));
                         }
                     } else {
                         asb.append(val);
-                        out.add(truncate(asb, width));
+                        truncate(asb, width).println(terminal());
                     }
                 } else {
                     if (val.contains('\n')) {
-                        val = new AttributedString(Arrays.asList(val.toString().split("\\r?\\n")).toString(),
-                                defaultStyle);
+                        val = new AttributedString(Arrays.asList(val.toString().split("\\r?\\n")).toString());
+                        asb.append(highlightValue(options, entry.getKey(), val.toString()));
+                    } else {
+                        asb.append(val);
                     }
-                    asb.append("\t");
-                    asb.append(val);
-                    out.add(truncate(asb, width));
+                    truncate(asb, width).println(terminal());
                 }
             }
         }
@@ -1645,6 +1653,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 "  -s --style=STYLE                Use nanorc STYLE",
                 "     --toString                   use object's toString() method to get print value",
                 "                                  DEFAULT: object's fields are put to property map before printing",
+                "     --valueStyle=STYLE           Use nanorc style to highlight column/map values",
                 "  -w --width=WIDTH                Display width (default terminal width)"
         };
         try {
@@ -1692,6 +1701,9 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             }
             if (opt.isSet(Printer.INDENTION)) {
                 options.put(Printer.INDENTION, opt.getNumber(Printer.INDENTION));
+            }
+            if (opt.isSet(Printer.VALUE_STYLE)) {
+                options.put(Printer.VALUE_STYLE, opt.get(Printer.VALUE_STYLE));
             }
             options.put("exception", "stack");
             List<Object> args = opt.argObjects();

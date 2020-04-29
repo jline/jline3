@@ -292,6 +292,22 @@
                     <execution>
                         <id>default-compile</id>
                         <configuration>
+                            <includes>
+                                <include>**/TTop.java</include>
+                                <include>**/ConsoleEngineImpl.java</include>
+                            </includes>
+                            <compilerArgs>
+                                <arg>-Xlint:all,-options</arg>
+                                <arg>-Werror</arg>
+                            </compilerArgs>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>compact</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
                             <excludes>
                                 <exclude>**/TTop.java</exclude>
                                 <exclude>**/ConsoleEngineImpl.java</exclude>
@@ -301,22 +317,6 @@
                                 <arg>-Werror</arg>
                                 <arg>-profile</arg>
                                 <arg>compact1</arg>
-                            </compilerArgs>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>noncompact</id>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                        <configuration>
-                            <includes>
-                                <include>**/TTop.java</include>
-                                <include>**/ConsoleEngineImpl.java</include>
-                            </includes>
-                            <compilerArgs>
-                                <arg>-Xlint:all,-options</arg>
-                                <arg>-Werror</arg>
                             </compilerArgs>
                         </configuration>
                     </execution>

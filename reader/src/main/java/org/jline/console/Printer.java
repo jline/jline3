@@ -107,6 +107,12 @@ public interface Printer {
      */
     final static String TO_STRING = "toString";
     /**
+     * Value: String<br>
+     * Applies: MAP and TABLE<br>
+     * Nanorc syntax style used to highlight values.
+     */
+    final static String VALUE_STYLE = "valueStyle";
+    /**
      * Value: Integer<br>
      * Applies: MAP and TABLE<br>
      * Display width (default terminal width).
