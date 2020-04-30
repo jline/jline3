@@ -93,6 +93,13 @@ public interface SystemRegistry extends CommandRegistry {
     void trace(boolean stack, Exception exception);
 
     /**
+     * Return console option value
+     * @param name the option name
+     * @return option value
+     */
+    Object consoleOption(String name);
+    
+    /**
      * @return terminal
      */
     Terminal terminal();

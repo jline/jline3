@@ -69,7 +69,6 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     private static final String[] OPTION_HELP = {"-?", "--help"};
     private static final String OPTION_VERBOSE = "-v";
     private static final String END_HELP = "END_HELP";
-    private static final String PRNT_COLORS = "th=1;34:rn=1;34:mk=1;34:em=31:vs=32";
     private static final int HELP_MAX_SIZE = 30;
     private static final int PRNT_MAX_ROWS = 100000;
     private static final int PRNT_MAX_DEPTH = 1;
@@ -130,17 +129,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             aliases.putAll((Map<String,String>)slurp(aliasFile));
         }
         registerCommands(commandName, commandExecute);
-    }
-
-    private static StyleResolver prntStyle() {
-        return style(PRNT_COLORS);
-    }
-
-    private static StyleResolver style(String str) {
-        Map<String, String> colors = Arrays.stream(str.split(":"))
-                .collect(Collectors.toMap(s -> s.substring(0, s.indexOf('=')),
-                        s -> s.substring(s.indexOf('=') + 1)));
-        return new StyleResolver(colors::get);
+        prntStyle = Styles.prntStyle();
     }
 
     /**
@@ -965,7 +954,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         if (options.containsKey(Printer.VALUE_STYLE)) {
             options.put(Printer.VALUE_STYLE, valueHighlighter(valueStyle));
         }
-        prntStyle = prntStyle();
+        prntStyle = Styles.prntStyle();
         options.putIfAbsent(Printer.WIDTH, terminal().getSize().getColumns());
         String style = (String) options.getOrDefault(Printer.STYLE, "");
         int width = (int) options.get(Printer.WIDTH);
@@ -1013,7 +1002,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             }
             sb.append(asb.toString());
         }
-        return Options.HelpException.highlight(sb.toString(), Options.HelpException.defaultStyle());
+        return Options.HelpException.highlight(sb.toString(), Styles.helpStyle());
     }
 
     private SyntaxHighlighter valueHighlighter(String style) {

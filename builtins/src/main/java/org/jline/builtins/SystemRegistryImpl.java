@@ -157,11 +157,21 @@ public class SystemRegistryImpl implements SystemRegistry {
         return out;
     }
 
+    @Override
+    public Object consoleOption(String name) {
+        Object out = null;
+        if (consoleId != null) {
+            out = consoleEngine().consoleOption(name, null);
+        }
+        return out;
+    }
+
     /**
      * Register subcommand registry
      * @param command main command
      * @param subcommandRegistry subcommand registry
      */
+    @Override    
     public void register(String command, CommandRegistry subcommandRegistry) {
         subcommands.put(command, subcommandRegistry);
         commandExecute.put(command, new CommandMethods(this::subcommand, this::emptyCompleter));
@@ -296,9 +306,10 @@ public class SystemRegistryImpl implements SystemRegistry {
     private CmdDesc commandDescription(CommandRegistry subreg) {
         List<AttributedString> main = new ArrayList<>();
         Map<String, List<AttributedString>> options = new HashMap<>();
+        StyleResolver helpStyle = Styles.helpStyle();
         for (String sc : new TreeSet<String>(subreg.commandNames())) {
             for (String info : subreg.commandInfo(sc)) {
-                main.add(HelpException.highlightSyntax(sc + " -  " + info, HelpException.defaultStyle(), true));
+                main.add(HelpException.highlightSyntax(sc + " -  " + info, helpStyle, true));
                 break;
             }
         }
@@ -1227,7 +1238,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     @Override
     public void trace(boolean stack, Exception exception) {
         if (exception instanceof Options.HelpException) {
-            Options.HelpException.highlight((exception).getMessage(), Options.HelpException.defaultStyle()).print(terminal());
+            Options.HelpException.highlight((exception).getMessage(), Styles.helpStyle()).print(terminal());
         } else if (stack) {
             exception.printStackTrace();
         } else {

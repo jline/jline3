@@ -525,17 +525,8 @@ public class Options {
             super(message);
         }
 
-        public static final String DEFAULT_COLORS = "ti=1;34:co=1:ar=3:op=33";
-
         public static StyleResolver defaultStyle() {
-            return style(DEFAULT_COLORS);
-        }
-
-        public static StyleResolver style(String str) {
-            Map<String, String> colors = Arrays.stream(str.split(":"))
-                    .collect(Collectors.toMap(s -> s.substring(0, s.indexOf('=')),
-                            s -> s.substring(s.indexOf('=') + 1)));
-            return new StyleResolver(colors::get);
+            return Styles.helpStyle();
         }
 
         public static AttributedString highlight(String msg, StyleResolver resolver) {            

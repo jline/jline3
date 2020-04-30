@@ -41,6 +41,7 @@ import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
+import org.jline.utils.StyleResolver;
 
 public class Completers {
 
@@ -330,6 +331,7 @@ public class Completers {
      */
     public static class FileNameCompleter implements org.jline.reader.Completer
     {
+        protected static StyleResolver resolver = Styles.lsStyle();
 
         public void complete(LineReader reader, ParsedLine commandLine, final List<Candidate> candidates) {
             assert commandLine != null;
@@ -363,10 +365,10 @@ public class Completers {
                         if (Files.isDirectory(p)) {
                             candidates.add(
                                     new Candidate(value + (reader.isSet(LineReader.Option.AUTO_PARAM_SLASH) ? sep : ""),
-                                            getDisplay(reader.getTerminal(), p), null, null,
+                                            getDisplay(reader.getTerminal(), p, resolver), null, null,
                                             reader.isSet(LineReader.Option.AUTO_REMOVE_SLASH) ? sep : null, null, false));
                         } else {
-                            candidates.add(new Candidate(value, getDisplay(reader.getTerminal(), p), null, null, null, null,
+                            candidates.add(new Candidate(value, getDisplay(reader.getTerminal(), p, resolver), null, null, null, null,
                                     true));
                         }
                     });
@@ -395,24 +397,28 @@ public class Completers {
         }
 
         protected String getSeparator(boolean useForwardSlash) {
-            return useForwardSlash ? "/" :getUserDir().getFileSystem().getSeparator();
+            return useForwardSlash ? "/" : getUserDir().getFileSystem().getSeparator();
         }
 
-        protected String getDisplay(Terminal terminal, Path p) {
-            // TODO: use $LS_COLORS for output
+        protected String getDisplay(Terminal terminal, Path p, StyleResolver resolver) {
+            AttributedStringBuilder sb = new AttributedStringBuilder();
             String name = p.getFileName().toString();
-            if (Files.isDirectory(p)) {
-                AttributedStringBuilder sb = new AttributedStringBuilder();
-                sb.styled(AttributedStyle.BOLD.foreground(AttributedStyle.RED), name);
-                sb.append("/");
-                name = sb.toAnsi(terminal);
-            } else if (Files.isSymbolicLink(p)) {
-                AttributedStringBuilder sb = new AttributedStringBuilder();
-                sb.styled(AttributedStyle.BOLD.foreground(AttributedStyle.RED), name);
-                sb.append("@");
-                name = sb.toAnsi(terminal);
+            int idx = name.lastIndexOf(".");
+            String type = idx != -1 ? ".*" + name.substring(idx): null;
+            if (Files.isSymbolicLink(p)) {
+                sb.styled(resolver.resolve(".ln"), name).append("@");
+            } else if (Files.isDirectory(p)) {
+                sb.styled(resolver.resolve(".di"), name).append("/");
+            } else if (Files.isExecutable(p)) {
+                sb.styled(resolver.resolve(".ex"), name).append("*");
+            } else if (type != null && resolver.resolve(type).getStyle() != 0) {
+                sb.styled(resolver.resolve(type), name);
+            } else if (Files.isRegularFile(p)) {
+                sb.styled(resolver.resolve(".fi"), name);
+            } else {
+                sb.append(name);
             }
-            return name;
+            return sb.toAnsi(terminal);
         }
 
     }
@@ -688,8 +694,9 @@ public class Completers {
                 if (v.startsWith(partialValue)) {
                     out = true;
                     String val = c.value();
-                    if (valueCompleter instanceof Completers.FileNameCompleter) {
-                        val = ((Completers.FileNameCompleter)valueCompleter).getDisplay(reader.getTerminal(), Paths.get(c.value()));
+                    if (valueCompleter instanceof FileNameCompleter) {
+                        FileNameCompleter cc = (FileNameCompleter)valueCompleter;
+                        val = cc.getDisplay(reader.getTerminal(), Paths.get(c.value()), FileNameCompleter.resolver);
                     }
                     candidates.add(new Candidate(curBuf + v, val, null, null, null, null, c.complete()));
                 }
