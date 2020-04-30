@@ -8,9 +8,7 @@ array=[0,1]
 
 array.each {
     println it
-    def resp
-    resp=:show
-    :prnt $resp
+    :prnt $ROOT
 }.identity{}
 
 _reader = org.jline.builtins.SystemRegistry.get().consoleEngine().reader

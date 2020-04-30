@@ -46,6 +46,7 @@ import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 import org.jline.utils.Log;
+import org.jline.utils.StyleResolver;
 
 /**
  * Manage console variables, commands and script execution.
@@ -68,10 +69,12 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     private static final String[] OPTION_HELP = {"-?", "--help"};
     private static final String OPTION_VERBOSE = "-v";
     private static final String END_HELP = "END_HELP";
+    private static final String PRNT_COLORS = "th=1;34:rn=1;34:mk=1;34:em=31:vs=32";
     private static final int HELP_MAX_SIZE = 30;
     private static final int PRNT_MAX_ROWS = 100000;
     private static final int PRNT_MAX_DEPTH = 1;
     private static final int PRNT_INDENTION = 4;
+    private static final int NANORC_MAX_STRING_LENGTH = 400;
     private final ScriptEngine engine;
     private Map<Class<?>, Function<Object, Map<String,Object>>> objectToMap = new HashMap<>();
     private Map<Class<?>, Function<Object, String>> objectToString = new HashMap<>();
@@ -86,6 +89,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     private Path aliasFile;
     private LineReader reader;
     private boolean executing = false;
+    private StyleResolver prntStyle;
 
     public ConsoleEngineImpl(ScriptEngine engine
             , Supplier<Path> workDir, ConfigurationPath configPath) throws IOException {
@@ -126,6 +130,17 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             aliases.putAll((Map<String,String>)slurp(aliasFile));
         }
         registerCommands(commandName, commandExecute);
+    }
+
+    private static StyleResolver prntStyle() {
+        return style(PRNT_COLORS);
+    }
+
+    private static StyleResolver style(String str) {
+        Map<String, String> colors = Arrays.stream(str.split(":"))
+                .collect(Collectors.toMap(s -> s.substring(0, s.indexOf('=')),
+                        s -> s.substring(s.indexOf('=') + 1)));
+        return new StyleResolver(colors::get);
     }
 
     /**
@@ -569,7 +584,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                             }
                             if (verbose) {
                                 AttributedStringBuilder asb = new AttributedStringBuilder();
-                                asb.append(line, AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN));
+                                asb.styled(prntStyle.resolve(".vs"), line);
                                 asb.toAttributedString().println(terminal());
                                 terminal().flush();
                             }
@@ -908,7 +923,9 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     }
 
     private void error(String message) {
-        highlight(AttributedStyle.RED, message).println(terminal());
+        AttributedStringBuilder asb = new AttributedStringBuilder();
+        asb.styled(prntStyle.resolve(".em"), message);
+        asb.println(terminal());
     }
 
     @Override
@@ -944,9 +961,11 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             colIn.addAll((List<String>)options.get(Printer.COLUMNS_IN));
             options.put(Printer.COLUMNS_IN, colIn);
         }
+        String valueStyle = (String)options.get(Printer.VALUE_STYLE);
         if (options.containsKey(Printer.VALUE_STYLE)) {
-            options.put(Printer.VALUE_STYLE, valueHighlighter((String)options.get(Printer.VALUE_STYLE)));
+            options.put(Printer.VALUE_STYLE, valueHighlighter(valueStyle));
         }
+        prntStyle = prntStyle();
         options.putIfAbsent(Printer.WIDTH, terminal().getSize().getColumns());
         String style = (String) options.getOrDefault(Printer.STYLE, "");
         int width = (int) options.get(Printer.WIDTH);
@@ -961,7 +980,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         } else if (object instanceof CmdDesc) {
             highlight((CmdDesc)object).println(terminal());
         } else if (object instanceof String || object instanceof Number) {
-            highlight(width, (SyntaxHighlighter)options.get(Printer.VALUE_STYLE), object.toString()).println(terminal());
+            highlightAndPrint(width, valueStyle, object.toString());
         } else {
             highlightAndPrint(options, object);
         }
@@ -997,17 +1016,6 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         return Options.HelpException.highlight(sb.toString(), Options.HelpException.defaultStyle());
     }
 
-    private AttributedString highlight(int attrStyle, Object obj) {
-        AttributedString out = new AttributedString("");
-        AttributedStringBuilder asb = new AttributedStringBuilder();
-        String tp = obj.toString();
-        if (!tp.isEmpty()) {
-            asb.append(tp, AttributedStyle.DEFAULT.foreground(attrStyle));
-            out = asb.toAttributedString();
-        }
-        return out;
-    }
-
     private SyntaxHighlighter valueHighlighter(String style) {
         Path nanorc = configPath != null ? configPath.getConfig("jnanorc") : null;
         if (engine.hasVariable(VAR_NANORC)) {
@@ -1019,11 +1027,28 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         return nanorc != null ? SyntaxHighlighter.build(nanorc, style) : null;
     }
 
+    private String truncate4nanorc(String obj) {
+        String val = obj;
+        if (val.length() > NANORC_MAX_STRING_LENGTH && !val.contains("\n")) {
+            val = val.substring(0, NANORC_MAX_STRING_LENGTH - 1);
+        }
+        return val;
+    }
+
     private AttributedString highlight(Integer width, SyntaxHighlighter highlighter, String object) {
+        return highlight(width, highlighter, object, isValue(object));
+    }
+
+    private AttributedString highlight(Integer width, SyntaxHighlighter highlighter, String object, boolean doValueHighlight) {
+        Log.debug("highlighter:", highlighter, ", highlight: ", object);
         AttributedString out = null;
         AttributedStringBuilder asb = new AttributedStringBuilder();
-        asb.append(object);
-        if (highlighter != null && object.length() < 400 && isValue(object)) {
+        String val = object;
+        if (highlighter != null && doValueHighlight) {
+            val = truncate4nanorc(object);
+        }
+        asb.append(val);
+        if (highlighter != null && val.length() < NANORC_MAX_STRING_LENGTH && doValueHighlight) {
             out = highlighter.highlight(asb);
         } else {
             out = asb.toAttributedString();
@@ -1036,11 +1061,12 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
 
     private boolean isValue(String value) {
         if(value.matches("\"(\\.|[^\"])*\"|'(\\.|[^'])*'")
-                || value.matches("\\((\\.|[^\\)])*\\)")
-                || value.matches("\\[(\\.|[^\\]])*\\]")
-                || value.matches("\\{(\\.|[^\\}])*\\}")
-                || value.matches("<(\\.|[^>])*>")) {
-            return true;
+                || (value.startsWith("[") && value.endsWith("]"))
+                || (value.startsWith("(") && value.endsWith(")"))
+                || (value.startsWith("{") && value.endsWith("}"))
+                || (value.startsWith("<") && value.endsWith(">"))
+           ) {
+                return true;
         } else if (!value.contains(" ") && !value.contains("\t")) {
             return true;
         }
@@ -1049,8 +1075,13 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
 
     private void highlightAndPrint(int width, String style, String object) {
         SyntaxHighlighter highlighter = valueHighlighter(style);
+        boolean doValueHighlight = isValue(object);
         for (String s: object.split("\\r?\\n")) {
-            highlight(width, highlighter, s).println(terminal());
+            AttributedStringBuilder asb = new AttributedStringBuilder();
+            List<AttributedString> sas = asb.append(s).columnSplitLength(width);
+            for (AttributedString as : sas) {
+                highlight(width, highlighter, as.toString(), doValueHighlight).println(terminal());
+            }
         }
     }
 
@@ -1372,8 +1403,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                                 firstColumn = 1;
                             }
                             for (int i = 0; i < header.size(); i++) {
-                                asb.append(header.get(i), AttributedStyle.DEFAULT
-                                        .foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
+                                asb.styled(prntStyle.resolve(".th"), header.get(i));
                                 asb.append("\t");
                             }
                             truncate(asb, width).println(terminal());
@@ -1381,9 +1411,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                             for (Object o : collection) {
                                 AttributedStringBuilder asb2 = new AttributedStringBuilder().tabs(columns);
                                 if (rownum) {
-                                    asb2.append(row.toString(), AttributedStyle.DEFAULT
-                                            .foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
-                                    asb2.append(":");
+                                    asb2.styled(prntStyle.resolve(".rn"), row.toString()).append(":");
                                     asb2.append("\t");
                                     row++;
                                 }
@@ -1419,9 +1447,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                             for (Object o : collection) {
                                 AttributedStringBuilder asb = new AttributedStringBuilder().tabs(columns);
                                 if (rownum) {
-                                    asb.append(row.toString(), AttributedStyle.DEFAULT
-                                            .foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
-                                    asb.append(":");
+                                    asb.styled(prntStyle.resolve(".rn"), row.toString()).append(":");
                                     asb.append("\t");
                                     row++;
                                 }
@@ -1472,9 +1498,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         for (Object o : collection) {
             AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabsize);
             if (options.containsKey(Printer.ROWNUM)) {
-                asb.append(row.toString(), AttributedStyle.DEFAULT
-                        .foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
-                asb.append(":");
+                asb.styled(prntStyle.resolve(".rn"), row.toString()).append(":");
                 row++;
             }
             if (tabsize != 0) {
@@ -1549,9 +1573,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             if (depth != 0) {
                 asb.append("\t");
             }
-            asb.append(truncateValue(max
-                                   , entry.getKey())
-                                   , AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE + AttributedStyle.BRIGHT));
+            asb.styled(prntStyle.resolve(".mk"), truncateValue(max, entry.getKey()));
             Object elem = entry.getValue();
             boolean convert = canConvert(elem);
             boolean highlightValue = true;
