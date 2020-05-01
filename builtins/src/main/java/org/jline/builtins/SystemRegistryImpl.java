@@ -186,7 +186,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             }
         } catch (HelpException e) {
             exception = null;
-            return Builtins.compileCommandInfo(e.getMessage());
+            return JlineCommandRegistry.compileCommandInfo(e.getMessage());
         } catch (Exception e) {
             trace(e);
         }
@@ -276,7 +276,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             localExecute(command, new String[] { "--help" });
         } catch (HelpException e) {
             exception = null;
-            return Builtins.compileCommandDescription(e.getMessage());
+            return JlineCommandRegistry.compileCommandDescription(e.getMessage());
         } catch (Exception e) {
             trace(e);
         }
@@ -1501,7 +1501,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             localExecute(command, new String[] { "--help" });
         } catch (HelpException e) {
             exception = null;
-            return Builtins.compileCommandOptions(e.getMessage());
+            return JlineCommandRegistry.compileCommandOptions(e.getMessage());
         } catch (Exception e) {
             trace(e);
         }

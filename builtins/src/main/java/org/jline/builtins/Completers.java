@@ -30,6 +30,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.jline.reader.Candidate;
+import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReader.Option;
 import org.jline.reader.impl.completer.AggregateCompleter;
@@ -921,4 +922,18 @@ public class Completers {
             return new OptDesc();
         }
     }
+
+    public static class AnyCompleter implements org.jline.reader.Completer {
+        public static final AnyCompleter INSTANCE = new AnyCompleter();
+
+        @Override
+        public void complete(LineReader reader, ParsedLine commandLine, List<Candidate> candidates) {
+            assert commandLine != null;
+            assert candidates != null;
+            String buffer = commandLine.word().substring(0, commandLine.wordCursor());
+            candidates.add(new Candidate(AttributedString.stripAnsi(buffer)
+                           , buffer, null, null, null, null, true));
+        }
+    }
+
 }
