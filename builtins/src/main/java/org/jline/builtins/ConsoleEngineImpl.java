@@ -89,6 +89,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     private LineReader reader;
     private boolean executing = false;
     private StyleResolver prntStyle;
+    private int totLines;
 
     public ConsoleEngineImpl(ScriptEngine engine
             , Supplier<Path> workDir, ConfigurationPath configPath) throws IOException {
@@ -1295,10 +1296,28 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         return out;
     }
 
+    @SuppressWarnings("serial")
+    private static class TruncatedOutputException extends RuntimeException {
+        public TruncatedOutputException(String message) {
+            super(message);
+        }
+    }
+    
+    private void println(AttributedString line, int maxrows) {
+        line.println(terminal());
+        totLines++;
+        if (totLines > maxrows) {
+            totLines = 0;
+            throw new TruncatedOutputException("Truncated output: " + maxrows);
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private void highlightAndPrint(Map<String, Object> options, Object obj) {
         int width = (int)options.get(Printer.WIDTH);
         boolean rownum = options.containsKey(Printer.ROWNUM);
+        totLines = 0;
+        String message = null;
         if (obj == null) {
             // do nothing
         } else if (obj instanceof Map) {
@@ -1306,7 +1325,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         } else if (collectionObject(obj)) {
             List<Object> collection = objectToList(obj);
             if (collection.size() > (int)options.get(Printer.MAXROWS)) {
-                trace("Truncated output: " + (int)options.get(Printer.MAXROWS) + "/" + collection.size());
+                message = "Truncated output: " + (int)options.get(Printer.MAXROWS) + "/" + collection.size();
                 collection = collection.subList(collection.size() - (int)options.get(Printer.MAXROWS), collection.size());
             }
             if (!collection.isEmpty()) {
@@ -1468,6 +1487,9 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         } else {
             highlightValue(options, null, objectToString(options, obj)).println(terminal());
         }
+        if (message != null) {
+            error(message);
+        }
     }
 
     private void highlightList(Map<String, Object> options
@@ -1478,23 +1500,24 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     private void highlightList(Map<String, Object> options
                             , List<Object> collection, int width, int depth) {
         Integer row = 0;
+        int maxrows = (int)options.get(Printer.MAXROWS);
         int indent = (int)options.get(Printer.INDENTION);
-        int tabsize = indent*depth;
+        List<Integer> tabs = new ArrayList<>();
+        tabs.add(indent*depth);
         if (options.containsKey(Printer.ROWNUM)) {
-            tabsize += digits(collection.size()) + 2;
+            tabs.add(indent*depth + digits(collection.size()) + 2);
         }
         options.remove(Printer.MAX_COLUMN_WIDTH);
         for (Object o : collection) {
-            AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabsize);
+            AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
+            asb.append("\t");
             if (options.containsKey(Printer.ROWNUM)) {
                 asb.styled(prntStyle.resolve(".rn"), row.toString()).append(":");
+                asb.append("\t");
                 row++;
             }
-            if (tabsize != 0) {
-                asb.append("\t");
-            }
             asb.append(highlightValue(options, null, objectToString(options, o)));
-            truncate(asb, width).println(terminal());
+            println(truncate(asb, width), maxrows);
         }
     }
 
@@ -1548,6 +1571,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     @SuppressWarnings("unchecked")
     private void highlightMap(Map<String, Object> options
                             , Map<String, Object> map, int width, int depth) {
+        int maxrows = (int)options.get(Printer.MAXROWS);
         int max = map.keySet().stream().map(String::length).max(Integer::compareTo).get();
         if (max > (int)options.getOrDefault(Printer.MAX_COLUMN_WIDTH, Integer.MAX_VALUE)) {
             max = (int)options.get(Printer.MAX_COLUMN_WIDTH);
@@ -1568,7 +1592,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             boolean highlightValue = true;
             if (depth < maxDepth && !options.containsKey(Printer.TO_STRING)) {
                 if (elem instanceof Map || convert) {
-                    truncate(asb, width).println(terminal());
+                    println(truncate(asb, width), maxrows);
                     Map<String, Object> childMap = convert ? objectToMap(options, elem)
                                                            : keysToString((Map<Object, Object>) elem);
                     highlightMap(options, childMap, width, depth + 1);
@@ -1576,7 +1600,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 } else if (collectionObject(elem)) {
                     List<Object> collection = objectToList(elem);
                     if (!collection.isEmpty()) {
-                        truncate(asb, width).println(terminal());
+                        println(truncate(asb, width), maxrows);
                         Map<String, Object> listOptions = new HashMap<>();
                         listOptions.putAll(options);
                         listOptions.put(Printer.TO_STRING, true);
@@ -1592,12 +1616,12 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                     if (val.contains('\n')) {
                         for (String v : val.toString().split("\\r?\\n")) {
                             asb.append(highlightValue(options, entry.getKey(), v));
-                            truncate(asb, width).println(terminal());
+                            println(truncate(asb, width), maxrows);
                             asb = new AttributedStringBuilder().tabs(Arrays.asList(0, max + 1));
                         }
                     } else {
                         asb.append(val);
-                        truncate(asb, width).println(terminal());
+                        println(truncate(asb, width), maxrows);
                     }
                 } else {
                     if (val.contains('\n')) {
@@ -1606,7 +1630,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                     } else {
                         asb.append(val);
                     }
-                    truncate(asb, width).println(terminal());
+                    println(truncate(asb, width), maxrows);
                 }
             }
         }
@@ -1656,7 +1680,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 "     --indention=IDENTION         Indention size",
                 "     --maxColumnWidth=WIDTH       Maximum column width",
                 "  -d --maxDepth=DEPTH             Maximum depth objects are resolved",
-                "     --maxrows=ROWS               Maximum number of rows on table",
+                "     --maxrows=ROWS               Maximum number of lines to display",
                 "     --oneRowTable                Display one row data on table",
                 "  -r --rownum                     Display table row numbers",
                 "     --skipDefaultOptions         Ignore all options defined in PRNT_OPTIONS",

@@ -358,6 +358,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     public Object invoke(String command, Object... args) throws Exception {
         Object out = null;
         command = ConsoleEngine.plainCommand(command);
+        args = args == null ? new Object[] {null} : args; 
         int id = registryId(command);
         if (id > -1) {
             out = commandRegistries[id].invoke(commandSession(), command, args);

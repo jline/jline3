@@ -66,8 +66,8 @@ public interface Printer {
     final static String MAX_DEPTH = "maxDepth";
     /**
      * Value: Integer<br>
-     * Applies: TABLE<br>
-     * Maximum number of rows on table.
+     * Applies: MAP and TABLE<br>
+     * Maximum number of lines on display.
      */
     final static String MAXROWS = "maxrows";
     /**
