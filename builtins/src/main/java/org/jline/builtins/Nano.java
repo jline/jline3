@@ -1718,6 +1718,8 @@ public class Nano implements Editor {
                     out += AttributedStyle.MAGENTA;
                 } else if (styleString.equals("cyan")) {
                     out += AttributedStyle.CYAN;
+                } else if (styleString.matches("\\d+")) {
+                    out = Integer.parseInt(styleString);
                 }
             }
             return out;
