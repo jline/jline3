@@ -105,7 +105,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         try {
             String arg = input.args()[0];
             if (arg.equals("-?") || arg.equals("--help")) {
-                printer.println(commandDescs.get(Command.GRAB));
+                printer.println(helpDesc(Command.GRAB));
             } else if (arg.equals("-l") || arg.equals("--list")) {
                 Object resp = engine.execute("groovy.grape.Grape.getInstance().enumerateGrapes()");
                 Map<String, Object> options = new HashMap<>();
@@ -147,7 +147,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         if (input.args().length == 1) {
             String arg = input.args()[0];
             if (arg.equals("-?") || arg.equals("--help")) {
-                printer.println(commandDescs.get(Command.CONSOLE));
+                printer.println(helpDesc(Command.CONSOLE));
                 return;
             } else {
                 throw new IllegalArgumentException("Unknown command parameter: " + input.args()[0]);
@@ -167,7 +167,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         int idx = optionIdx(Command.INSPECT, input.args());
         String option = idx < 0 ? "--info" : input.args()[idx];
         if (option.equals("-?") || option.equals("--help")) {
-            printer.println(commandDescs.get(Command.INSPECT));
+            printer.println(helpDesc(Command.INSPECT));
             return null;
         }
         int id = 0;
@@ -204,6 +204,10 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         return null;
     }
 
+    private CmdDesc helpDesc(Command command) {
+        return doHelpDesc(command.toString().toLowerCase(), commandInfos.get(command), commandDescs.get(command));
+    }
+
     private CmdDesc grabCmdDesc() {
         Map<String,List<AttributedString>> optDescs = new HashMap<>();
         optDescs.put("-? --help", doDescription ("Displays command help"));
@@ -213,10 +217,10 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         List<String> info = new ArrayList<>();
         info.add("Add maven repository dependencies to classpath");
         commandInfos.put(Command.GRAB, info);
-        mainDesc.add(new AttributedString("grab -  " + info.get(0)));
-        mainDesc.add(new AttributedString("Usage: grab <group>:<artifact>:<version>"));
-        mainDesc.add(new AttributedString("       grab --list"));
+        mainDesc.add(new AttributedString("grab <group>:<artifact>:<version>"));
+        mainDesc.add(new AttributedString("grab --list"));
         out.setMainDesc(mainDesc);
+        out.setHighlighted(false);
         return out;
     }
 
@@ -228,9 +232,9 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         List<String> info = new ArrayList<>();
         info.add("Launch Groovy console");
         commandInfos.put(Command.CONSOLE, info);
-        mainDesc.add(new AttributedString("console -  " + info.get(0)));
-        mainDesc.add(new AttributedString("Usage: console"));
+        mainDesc.add(new AttributedString("console"));
         out.setMainDesc(mainDesc);
+        out.setHighlighted(false);
         return out;
     }
 
@@ -248,9 +252,9 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         List<String> info = new ArrayList<>();
         info.add("Display object info on terminal");
         commandInfos.put(Command.INSPECT, info);
-        mainDesc.add(new AttributedString("inspect -  " + info.get(0)));
-        mainDesc.add(new AttributedString("Usage: inspect [OPTION] OBJECT"));
+        mainDesc.add(new AttributedString("inspect [OPTION] OBJECT"));
         out.setMainDesc(mainDesc);
+        out.setHighlighted(false);
         return out;
     }
 

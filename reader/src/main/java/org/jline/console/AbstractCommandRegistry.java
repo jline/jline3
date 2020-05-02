@@ -8,13 +8,13 @@
  */
 package org.jline.console;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.jline.console.CommandRegistry.CommandSession;
 import org.jline.reader.impl.completer.SystemCompleter;
+import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStringBuilder;
 
 /**
  * CommandRegistry common methods.
@@ -26,6 +26,32 @@ public abstract class AbstractCommandRegistry {
     private Exception exception;
 
     public AbstractCommandRegistry() {}
+
+    public CmdDesc doHelpDesc(String command, List<String> info, CmdDesc cmdDesc) {
+        List<AttributedString> mainDesc = new ArrayList<>();
+        AttributedStringBuilder asb = new AttributedStringBuilder();
+        asb.append(command.toString().toLowerCase()).append(" -  ");
+        for (String s : info) {
+            if (asb.length() == 0) {
+                asb.append("\t");
+            }
+            asb.append(s);
+            mainDesc.add(asb.toAttributedString());
+            asb = new AttributedStringBuilder();
+            asb.tabs(2);
+        }
+        asb = new AttributedStringBuilder();
+        asb.tabs(7);
+        asb.append("Usage:");
+        for(AttributedString as : cmdDesc.getMainDesc()) {
+            asb.append("\t");
+            asb.append(as);
+            mainDesc.add(asb.toAttributedString());
+            asb = new AttributedStringBuilder();
+            asb.tabs(7);
+        }
+        return new CmdDesc(mainDesc, new ArrayList<>(), cmdDesc.getOptsDesc());
+    }
 
     public <T extends Enum<T>>  void registerCommands(Map<T,String> commandName, Map<T,CommandMethods> commandExecute) {
         cmdRegistry = new EnumCmdRegistry<T>(commandName, commandExecute);

@@ -37,6 +37,7 @@ import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 import org.jline.utils.Status;
+import org.jline.utils.StyleResolver;
 
 /**
  * Create custom widgets by extending Widgets class
@@ -1124,8 +1125,16 @@ public abstract class Widgets {
             List<AttributedString> out = new ArrayList<>();
             List<AttributedString> mainDesc = cmdDesc.getMainDesc();
             if (mainDesc == null) {
-                // do nothing
-            } else if (mainDesc.size() <= descriptionSize && lastArg == null) {
+                return out;
+            }
+            if (cmdDesc.isCommand() && cmdDesc.isValid() && !cmdDesc.isHighlighted()) {
+                mainDesc = new ArrayList<>();
+                StyleResolver resolver = HelpException.defaultStyle();
+                for (AttributedString as : cmdDesc.getMainDesc()) {
+                    mainDesc.add(HelpException.highlightSyntax(as.toString(), resolver));                    
+                }
+            }
+            if (mainDesc.size() <= descriptionSize && lastArg == null) {
                 out.addAll(mainDesc);
             } else {
                 int tabs = 0;
@@ -1164,6 +1173,7 @@ public abstract class Widgets {
         private List<AttributedString> compileOptionDescription(CmdDesc cmdDesc, String opt, int descriptionSize) {
             List<AttributedString> out = new ArrayList<>();
             Map<String, List<AttributedString>> optsDesc = cmdDesc.getOptsDesc();
+            StyleResolver resolver = HelpException.defaultStyle();
 
             if (!opt.startsWith("-")) {
                 return out;
@@ -1187,7 +1197,7 @@ public abstract class Widgets {
                 }
             }
             if (matched.size() == 1) {
-                out.add(highlightOption(matched.get(0)));
+                out.add(HelpException.highlightSyntax(matched.get(0), resolver));
                 for (AttributedString as: optsDesc.get(matched.get(0))) {
                     AttributedStringBuilder asb = new AttributedStringBuilder().tabs(8);
                     asb.append("\t");
@@ -1197,7 +1207,7 @@ public abstract class Widgets {
             } else if (matched.size() <= descriptionSize) {
                 for (String key: matched) {
                     AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
-                    asb.append(highlightOption(key));
+                    asb.append(HelpException.highlightSyntax(key, resolver));
                     asb.append("\t");
                     asb.append(cmdDesc.optionDescription(key));
                     out.add(asb.toAttributedString());
@@ -1212,7 +1222,7 @@ public abstract class Widgets {
                 for (String key: matched) {
                     AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
                     if (row < descriptionSize) {
-                        asb.append(highlightOption(key));
+                        asb.append(HelpException.highlightSyntax(key, resolver));
                         asb.append("\t");
                         asb.append(cmdDesc.optionDescription(key));
                         if (asb.columnLength() > columnWidth - 2) {
@@ -1229,7 +1239,7 @@ public abstract class Widgets {
                         keyList.add(asb.toAttributedString().columnSubSequence(0, columnWidth));
                     } else {
                         asb.append(keyList.get(row - descriptionSize));
-                        asb.append(highlightOption(key));
+                        asb.append(HelpException.highlightSyntax(key, resolver));
                         asb.append("\t");
                         asb.append(cmdDesc.optionDescription(key));
                         keyList.remove(row - descriptionSize);
@@ -1248,7 +1258,7 @@ public abstract class Widgets {
                 for (String key: matched) {
                     AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
                     asb.append(keyList.get(row));
-                    asb.append(highlightOption(key));
+                    asb.append(HelpException.highlightSyntax(key, resolver));
                     asb.append("\t");
                     keyList.remove(row);
                     keyList.add(row, asb.toAttributedString());
@@ -1260,12 +1270,6 @@ public abstract class Widgets {
                 out = new ArrayList<>(keyList);
             }
             return out;
-        }
-
-        private AttributedString highlightOption(String option) {
-            return new AttributedStringBuilder()
-                    .append(option, HelpException.defaultStyle().resolve(".op"))
-                    .toAttributedString();
         }
 
         private class CommandDescriptions {

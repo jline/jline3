@@ -22,6 +22,7 @@ public class CmdDesc {
     private boolean valid = true;
     private boolean command = false;
     private boolean subcommand = false;
+    private boolean highlighted = true;
 
     public CmdDesc() {
         command = false;
@@ -65,6 +66,14 @@ public class CmdDesc {
 
     public boolean isSubcommand() {
         return subcommand;
+    }
+
+    public void setHighlighted(boolean highlighted) {
+        this.highlighted = highlighted;
+    }
+
+    public boolean isHighlighted() {
+        return highlighted;
     }
 
     public CmdDesc mainDesc(List<AttributedString> mainDesc) {
