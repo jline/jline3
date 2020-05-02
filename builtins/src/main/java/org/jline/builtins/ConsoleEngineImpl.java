@@ -1030,7 +1030,6 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     }
 
     private AttributedString highlight(Integer width, SyntaxHighlighter highlighter, String object, boolean doValueHighlight) {
-        Log.debug("highlighter:", highlighter, ", highlight: ", object);
         AttributedString out = null;
         AttributedStringBuilder asb = new AttributedStringBuilder();
         String val = object;
@@ -1848,7 +1847,6 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 "  -d --delete                     Delete pipe operators",
                 "  -l --list                       List pipe operators",
         };
-        Object out = null;
         try {
             Options opt = parseOptions(usage, input.args());
             if (opt.isSet("delete")) {
@@ -1860,7 +1858,9 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                     }
                 }
             } else if (opt.isSet("list") || opt.args().size() == 0) {
-                out = pipes;
+                Map<String, Object> options = defaultPrntOptions(false);
+                options.put(Printer.MAX_DEPTH, 0);
+                internalPrintln(options, pipes);
             } else if (opt.args().size() != 3) {
                 exception = new IllegalArgumentException("Bad number of arguments!");
             } else if (systemRegistry.getPipeNames().contains(opt.args().get(0))) {
@@ -1874,7 +1874,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         } catch (Exception e) {
             exception = e;
         }
-        return out;
+        return null;
     }
 
     private Object doc(CommandInput input) {
@@ -1945,7 +1945,8 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             }
         }
         completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                               , new OptionCompleter(new FilesCompleter(workDir)
+                               , new OptionCompleter(Arrays.asList(new FilesCompleter(workDir)
+                                                                 , NullCompleter.INSTANCE)                                       
                                                    , optDescs
                                                    , 1)
                                             ));
@@ -1969,7 +1970,8 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     private List<Completer> prntCompleter(String command) {
         List<Completer> completers = new ArrayList<>();
         completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                       , new OptionCompleter(new StringsCompleter(this::variableReferences)
+                       , new OptionCompleter(Arrays.asList(new StringsCompleter(this::variableReferences)
+                                                         , NullCompleter.INSTANCE)
                                            , this::commandOptions
                                            , 1)
                                     ));
@@ -2043,7 +2045,8 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     private List<Completer> docCompleter(String command) {
         List<Completer> completers = new ArrayList<>();
         completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                       , new OptionCompleter(new StringsCompleter(this::docs)
+                       , new OptionCompleter(Arrays.asList(new StringsCompleter(this::docs)
+                                                         , NullCompleter.INSTANCE)
                                            , this::commandOptions
                                            , 1)
                                     ));

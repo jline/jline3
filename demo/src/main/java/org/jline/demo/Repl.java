@@ -24,14 +24,8 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import org.jline.builtins.JlineCommandRegistry;
-import org.jline.builtins.Builtins;
-import org.jline.builtins.ConsoleEngine;
-import org.jline.builtins.ConsoleEngineImpl;
-import org.jline.builtins.Options;
+import org.jline.builtins.*;
 import org.jline.builtins.Completers.OptionCompleter;
-import org.jline.builtins.Options.HelpException;
-import org.jline.builtins.SystemRegistryImpl;
 import org.jline.builtins.Widgets.TailTipWidgets;
 import org.jline.builtins.Widgets.TailTipWidgets.TipType;
 import org.jline.console.CommandInput;
@@ -193,21 +187,17 @@ public class Repl {
             final String[] usage = { "!<command> -  execute shell command"
                                    , "Usage: !<command>"
                                    , "  -? --help                       Displays command help" };
-            try {
-                parseOptions(usage, input.args());
-            } catch (HelpException e) {
-                saveException(e);
-                return;
-            } catch (Exception e) {
-                // ignore
-            }
-            List<String> argv = new ArrayList<>();
-            argv.addAll(Arrays.asList(input.args()));
-            if (!argv.isEmpty()) {
-                try {
-                    executeCmnd(argv);
-                } catch (Exception e) {
-                    saveException(e);
+            if (input.args().length == 1 && (input.args()[0].equals("-?") || input.args()[0].equals("--help"))) {
+                Options.HelpException.highlight(String.join("\n", usage), Styles.helpStyle()).println(terminal());
+            } else {
+                List<String> argv = new ArrayList<>();
+                argv.addAll(Arrays.asList(input.args()));
+                if (!argv.isEmpty()) {
+                    try {
+                        executeCmnd(argv);
+                    } catch (Exception e) {
+                        saveException(e);
+                    }
                 }
             }
         }

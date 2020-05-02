@@ -1710,18 +1710,19 @@ public class SystemRegistryImpl implements SystemRegistry {
                     }
                     String[] words = rest.split("\\s+");
                     for (String w : words) {
-                        if (!w.matches("\\d+")) {
-                            if (isQuoted(w)) {
-                                addQuoted(w.substring(1, w.length() - 1));
-                            } else if (w.contains(".")) {
-                                for (String f : w.split("\\.")) {
-                                    if (!f.matches("\\d+") && f.matches("\\w+")) {
-                                        addFields(f);
-                                    }
+                        if (w.length() < 3 || w.matches("\\d+")) {
+                            continue;
+                        }
+                        if (isQuoted(w)) {
+                            addQuoted(w.substring(1, w.length() - 1));
+                        } else if (w.contains(".")) {
+                            for (String f : w.split("\\.")) {
+                                if (!f.matches("\\d+") && f.matches("\\w+")) {
+                                    addFields(f);
                                 }
-                            } else if (w.matches("\\w+")) {
-                                addValues(w);
                             }
+                        } else if (w.matches("\\w+")) {
+                            addValues(w);
                         }
                     }
                 }
@@ -1741,9 +1742,9 @@ public class SystemRegistryImpl implements SystemRegistry {
         }
 
         private boolean isQuoted(String word) {
-            if ((word.startsWith("\"") && word.endsWith("\""))
+            if (word.length() > 1 && ((word.startsWith("\"") && word.endsWith("\""))
                     || (word.startsWith("'") && word.endsWith("'"))
-                    || (word.startsWith("/") && word.endsWith("/"))) {
+                    || (word.startsWith("/") && word.endsWith("/")))) {
                 return true;
             }
             return false;
