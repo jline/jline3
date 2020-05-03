@@ -96,13 +96,12 @@ public abstract class Widgets {
      * @param name widget name
      */
     public void executeWidget(String name) {
-        // WORK-AROUND
+        Binding ref = getKeyMap().getBoundKeys().get(alt(ctrl('X')));
         getKeyMap().bind(new Reference(name), alt(ctrl('X')));
         reader.runMacro(alt(ctrl('X')));
-        // The line below should be executed inside readLine()!!!
-        // Create LineReader method executeWidget() maybe???
-        //
-        // widget(name).apply();
+        if (ref != null) {
+            getKeyMap().bind(ref, alt(ctrl('X')));
+        }
     }
 
     /**
@@ -300,11 +299,9 @@ public abstract class Widgets {
                 as.add(new AttributedString(""));
             }
             addDescription(as);
-            executeWidget(LineReader.REDRAW_LINE);
         } else if (status != null) {
             if (size < 0) {
                 status.update(null);
-                executeWidget(LineReader.REDRAW_LINE);
             } else {
                 status.clear();
             }
@@ -1054,6 +1051,7 @@ public abstract class Widgets {
             } else {
                 destroyDescription();
             }
+            callWidget(LineReader.REDRAW_LINE);
             return true;
         }
 
@@ -1067,6 +1065,7 @@ public abstract class Widgets {
                     initDescription(descriptionSize);
                 }
             }
+            callWidget(LineReader.REDRAW_LINE);
             return enabled;
         }
 
