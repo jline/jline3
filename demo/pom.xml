@@ -101,6 +101,12 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-jdk14</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.graalvm.sdk</groupId>
+            <artifactId>graal-sdk</artifactId>
+            <version>19.3.1</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -178,10 +184,40 @@
                                         <include>data.json</include>
                                     </includes>
                                 </resource>
+                                <resource>
+                                    <directory>src/main/resources</directory>
+                                    <includes>
+                                        <include>reflection-config.json</include>
+                                    </includes>
+                                </resource>
                             </resources>
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.graalvm.nativeimage</groupId>
+                <artifactId>native-image-maven-plugin</artifactId>
+                <version>19.3.1</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>native-image</goal>
+                        </goals>
+                        <phase>package</phase>
+                    </execution>
+                </executions>
+                <configuration>
+                    <skip>false</skip>
+                    <imageName>graal</imageName>
+                    <mainClass>org.jline.demo.Graal</mainClass>
+                    <buildArgs>
+                        --no-fallback
+                        --report-unsupported-elements-at-runtime
+                        --allow-incomplete-classpath
+                        -H:ReflectionConfigurationFiles=reflection-config.json
+                    </buildArgs>
+                </configuration>
             </plugin>
         </plugins>
     </build>

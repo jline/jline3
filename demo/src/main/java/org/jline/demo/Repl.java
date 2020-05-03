@@ -188,7 +188,11 @@ public class Repl {
                                    , "Usage: !<command>"
                                    , "  -? --help                       Displays command help" };
             if (input.args().length == 1 && (input.args()[0].equals("-?") || input.args()[0].equals("--help"))) {
-                Options.HelpException.highlight(String.join("\n", usage), Styles.helpStyle()).println(terminal());
+                try {
+                    parseOptions(usage, input.args());
+                } catch (Exception e) {
+                    saveException(e);
+                }
             } else {
                 List<String> argv = new ArrayList<>();
                 argv.addAll(Arrays.asList(input.args()));

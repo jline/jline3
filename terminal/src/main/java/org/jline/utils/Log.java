@@ -109,6 +109,7 @@ public final class Log
     }
 
     static void logr(final Level level, final Supplier<LogRecord> record) {
+/* mrn 3/5/2020 GraalVM
         Logger logger = Logger.getLogger("org.jline");
         if (logger.isLoggable(level)) {
             // inform record of the logger-name
@@ -116,11 +117,15 @@ public final class Log
             tmp.setLoggerName(logger.getName());
             logger.log(tmp);
         }
+*/
     }
 
     static boolean isEnabled(Level level) {
+/* mrn 3/5/2020 GraalVM
         Logger logger = Logger.getLogger("org.jline");
         return logger.isLoggable(level);
+*/
+        return false;
     }
 
 }
