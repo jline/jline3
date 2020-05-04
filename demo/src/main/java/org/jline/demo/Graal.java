@@ -1,3 +1,11 @@
+/*
+ * Copyright (c) 2002-2020, the original author or authors.
+ *
+ * This software is distributable under the BSD license. See the terms of the
+ * BSD license in the documentation provided with this software.
+ *
+ * https://opensource.org/licenses/BSD-3-Clause
+ */
 package org.jline.demo;
 
 import java.io.BufferedReader;
@@ -238,7 +246,7 @@ public class Graal {
             // ScriptEngine and command registeries
             //
             File file = new File(Graal.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
-            String root = file.getCanonicalPath().replace("classes", "").replaceAll("\\\\", "/"); // forward slashes works better also in windows!
+            String root = file.getCanonicalPath().replace("graal", "").replaceAll("\\\\", "/"); // forward slashes works better also in windows!
             ConfigurationPath configPath = new ConfigurationPath(Paths.get(root), Paths.get(root));
             Builtins builtins = new Builtins(Graal::workDir, configPath, null);
             MyCommands myCommands = new MyCommands(Graal::workDir);
@@ -281,7 +289,7 @@ public class Graal {
             while (true) {
                 try {
                     systemRegistry.cleanUp();         // delete temporary variables and reset output streams
-                    String line = reader.readLine("groovy-repl> ");
+                    String line = reader.readLine("graal> ");
                     line = parser.getCommand(line).startsWith("!") ? line.replaceFirst("!", "! ") : line;
                     Object result = systemRegistry.execute(line);
                     if (result != null) {
