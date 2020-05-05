@@ -78,6 +78,8 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
+        <native.image.skip>true</native.image.skip>
+
         <jna.version>5.3.1</jna.version>
         <jansi.version>1.18</jansi.version>
         <juniversalchardet.version>1.0.3</juniversalchardet.version>
@@ -571,6 +573,13 @@
             <build>
                 <defaultGoal>com.mycila:license-maven-plugin:format</defaultGoal>
             </build>
+        </profile>
+
+        <profile>
+            <id>native-image</id>
+            <properties>
+                <native.image.skip>false</native.image.skip>
+            </properties>
         </profile>
     </profiles>
 

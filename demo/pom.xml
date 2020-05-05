@@ -206,7 +206,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <skip>false</skip>
+                    <skip>${native.image.skip}</skip>
                     <imageName>graal</imageName>
                     <mainClass>org.jline.demo.Graal</mainClass>
                     <buildArgs>
