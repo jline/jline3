@@ -20,6 +20,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.jline.builtins.*;
+import org.jline.builtins.Builtins.Command;
 import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.Widgets.TailTipWidgets;
 import org.jline.builtins.Widgets.TailTipWidgets.TipType;
@@ -243,12 +244,14 @@ public class Graal {
             Thread executeThread = Thread.currentThread();
             terminal.handle(Signal.INT, signal -> executeThread.interrupt());
             //
-            // ScriptEngine and command registeries
+            // Command registeries
             //
             File file = new File(Graal.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
             String root = file.getCanonicalPath().replace("graal", "").replaceAll("\\\\", "/"); // forward slashes works better also in windows!
             ConfigurationPath configPath = new ConfigurationPath(Paths.get(root), Paths.get(root));
-            Builtins builtins = new Builtins(Graal::workDir, configPath, null);
+            Set<Builtins.Command> commands = new HashSet<>(Arrays.asList(Builtins.Command.values()));
+            commands.remove(Command.TTOP);                          // ttop command is not supported in GraalVM
+            Builtins builtins = new Builtins(commands, Graal::workDir, configPath, null);
             MyCommands myCommands = new MyCommands(Graal::workDir);
             SystemRegistryImpl systemRegistry = new SystemRegistryImpl(parser, terminal, Graal::workDir, configPath);
             systemRegistry.setCommandRegistries(builtins, myCommands);
@@ -285,7 +288,7 @@ public class Graal {
             //
             // REPL-loop
             //
-            System.out.println(terminal.getName()+": "+terminal.getType());
+            System.out.println(terminal.getName() + ": " + terminal.getType());
             while (true) {
                 try {
                     systemRegistry.cleanUp();         // delete temporary variables and reset output streams

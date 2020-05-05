@@ -90,6 +90,8 @@
         <findbugs.version>3.0.2</findbugs.version>
         <groovy.version>3.0.3</groovy.version>
         <ivy.version>2.5.0</ivy.version>
+        <graal.version>19.3.1</graal.version>
+        
         <surefire.argLine />
     </properties>
 
@@ -244,12 +246,18 @@
                 <artifactId>groovy-console</artifactId>
                 <version>${groovy.version}</version>
             </dependency>
+            
+            <dependency>
+                <groupId>org.graalvm.sdk</groupId>
+                <artifactId>graal-sdk</artifactId>
+                <version>${graal.version}</version>
+            </dependency>
 
-	        <dependency>
-	            <groupId>org.apache.ivy</groupId>
-	            <artifactId>ivy</artifactId>
-	             <version>${ivy.version}</version>
-	        </dependency>        
+            <dependency>
+                <groupId>org.apache.ivy</groupId>
+                <artifactId>ivy</artifactId>
+                 <version>${ivy.version}</version>
+            </dependency>        
 
             <dependency>
                 <groupId>org.slf4j</groupId>
@@ -519,6 +527,11 @@
                     <autoVersionSubmodules>true</autoVersionSubmodules>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.graalvm.nativeimage</groupId>
+                <artifactId>native-image-maven-plugin</artifactId>
+                <version>${graal.version}</version>
+            </plugin>            
         </plugins>
     </build>
 

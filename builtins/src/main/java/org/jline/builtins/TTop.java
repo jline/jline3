@@ -229,6 +229,9 @@ public class TTop {
             } while (op != Operation.EXIT);
         } catch (InterruptedException ie) {
             // Do nothing
+        } catch (Error err) {
+            Log.info("Error: ", err);
+            return;
         } finally {
             terminal.setAttributes(attr);
             if (prevHandler != null) {
