@@ -38,6 +38,7 @@ import org.jline.console.Printer;
 import org.jline.console.ScriptEngine;
 import org.jline.reader.*;
 import org.jline.reader.Parser.ParseContext;
+import org.jline.reader.impl.completer.AggregateCompleter;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
@@ -1226,7 +1227,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 out = new AttributedString(columnValue(objectToString(options, raw)));
             }
        }
-       if (simpleObject(raw) && (hv.containsKey("*") || highlightValue.containsKey("*"))
+       if ((simpleObject(raw) || raw == null) && (hv.containsKey("*") || highlightValue.containsKey("*"))
                 && !isHighlighted(out)) {
             if (hv.containsKey("*")) {
                 out = (AttributedString) engine.execute(hv.get("*"), out);
@@ -1301,7 +1302,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             super(message);
         }
     }
-    
+
     private void println(AttributedString line, int maxrows) {
         line.println(terminal());
         totLines++;
@@ -1752,19 +1753,33 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
 
     private Object slurpcmd(CommandInput input) {
         final String[] usage = {
-                "slurp -  slurp file context to string/object",
-                "Usage: slurp [OPTIONS] file",
+                "slurp -  slurp file or string variable context to object",
+                "Usage: slurp [OPTIONS] file|variable",
                 "  -? --help                       Displays command help",
                 "  -e --encoding=ENCODING          Encoding (default UTF-8)",
                 "  -f --format=FORMAT              Serialization format"
         };
         Object out = null;
         try {
-            Options opt = parseOptions(usage, input.args());
+            Options opt = parseOptions(usage, input.xargs());
             if (!opt.args().isEmpty()){
+                Object _arg = opt.argObjects().get(0);
+                if (!(_arg instanceof String)) {
+                    throw new IllegalArgumentException("Invalid parameter type: " + _arg.getClass().getSimpleName());
+                }
+                String arg = (String)_arg;
                 Charset encoding = opt.isSet("encoding") ? Charset.forName(opt.get("encoding")): StandardCharsets.UTF_8;
                 String format = opt.isSet("format") ? opt.get("format") : engine.getSerializationFormats().get(0);
-                out = slurp(Paths.get(opt.args().get(0)), encoding, format);
+                try {
+                    Path path = Paths.get(arg);
+                    if (path.toFile().exists()) {
+                        out = slurp(path, encoding, format);
+                    } else {
+                        out = engine.deserialize(arg, format);
+                    }
+                } catch (Exception e) {
+                    out = engine.deserialize(arg, format);
+                }
             }
         } catch (Exception e) {
             exception = e;
@@ -1944,9 +1959,11 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 break;
             }
         }
+        AggregateCompleter argCompleter = new AggregateCompleter(new FilesCompleter(workDir)
+                                                               , new StringsCompleter(this::variableReferences));
         completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                               , new OptionCompleter(Arrays.asList(new FilesCompleter(workDir)
-                                                                 , NullCompleter.INSTANCE)                                       
+                               , new OptionCompleter(Arrays.asList(argCompleter
+                                                                 , NullCompleter.INSTANCE)
                                                    , optDescs
                                                    , 1)
                                             ));
