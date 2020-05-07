@@ -17,8 +17,6 @@ import org.jline.console.CmdDesc;
 import org.jline.console.CommandRegistry;
 import org.jline.reader.Completer;
 import org.jline.terminal.Terminal;
-import org.jline.utils.AttributedStringBuilder;
-import org.jline.utils.AttributedStyle;
 
 /**
  * Aggregate command registries and dispatch command executions.
@@ -98,7 +96,7 @@ public interface SystemRegistry extends CommandRegistry {
      * @return option value
      */
     Object consoleOption(String name);
-    
+
     /**
      * @return terminal
      */
@@ -123,7 +121,7 @@ public interface SystemRegistry extends CommandRegistry {
     Object invoke(String command, Object... args) throws Exception;
 
     /**
-     * Orderly close SystemRegistry. 
+     * Orderly close SystemRegistry.
      */
     void close();
     /**

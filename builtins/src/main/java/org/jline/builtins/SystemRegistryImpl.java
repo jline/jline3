@@ -32,7 +32,6 @@ import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.ConsoleEngine.ExecutionResult;
 import org.jline.builtins.Widgets;
 import org.jline.builtins.Options.HelpException;
-import org.jline.console.AbstractCommandRegistry;
 import org.jline.console.ArgDesc;
 import org.jline.console.CmdDesc;
 import org.jline.console.CommandInput;
@@ -77,6 +76,8 @@ public class SystemRegistryImpl implements SystemRegistry {
     private ScriptStore scriptStore = new ScriptStore();
     private NamesAndValues names = new NamesAndValues();
     private Supplier<Path> workDir;
+    private SystemCompleter customSystemCompleter = new SystemCompleter();
+    private AggregateCompleter customAggregateCompleter = new AggregateCompleter(new ArrayList<>());
 
     public SystemRegistryImpl(Parser parser, Terminal terminal, Supplier<Path> workDir, ConfigurationPath configPath) {
         this.parser = parser;
@@ -171,7 +172,7 @@ public class SystemRegistryImpl implements SystemRegistry {
      * @param command main command
      * @param subcommandRegistry subcommand registry
      */
-    @Override    
+    @Override
     public void register(String command, CommandRegistry subcommandRegistry) {
         subcommands.put(command, subcommandRegistry);
         commandExecute.put(command, new CommandMethods(this::subcommand, this::emptyCompleter));
@@ -226,8 +227,25 @@ public class SystemRegistryImpl implements SystemRegistry {
         return scriptStore.hasScript(command);
     }
 
+    public void addCompleter(Completer completer) {
+        if (completer instanceof SystemCompleter) {
+            SystemCompleter sc = (SystemCompleter)completer;
+            if (sc.isCompiled()) {
+                customAggregateCompleter.getCompleters().add(sc);
+            } else {
+                customSystemCompleter.add(sc);
+            }
+        } else {
+            customAggregateCompleter.getCompleters().add(completer);
+        }
+    }
+
     @Override
     public SystemCompleter compileCompleters() {
+        throw new IllegalStateException("Use method completer() to retrieve Completer!");
+    }
+
+    private SystemCompleter _compileCompleters() {
         SystemCompleter out = CommandRegistry.aggregateCompleters(commandRegistries);
         SystemCompleter local = new SystemCompleter();
         for (String command : commandExecute.keySet()) {
@@ -252,6 +270,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 local.add(command, commandExecute.get(command).compileCompleter().apply(command));
             }
         }
+        local.add(customSystemCompleter);
         out.add(local);
         out.compile();
         return out;
@@ -260,7 +279,8 @@ public class SystemRegistryImpl implements SystemRegistry {
     @Override
     public Completer completer() {
         List<Completer> completers = new ArrayList<>();
-        completers.add(compileCompleters());
+        completers.add(_compileCompleters());
+        completers.add(customAggregateCompleter);
         if (consoleId != null) {
             completers.addAll(consoleEngine().scriptCompleters());
             completers.add(new PipelineCompleter().doCompleter());
@@ -358,7 +378,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     public Object invoke(String command, Object... args) throws Exception {
         Object out = null;
         command = ConsoleEngine.plainCommand(command);
-        args = args == null ? new Object[] {null} : args; 
+        args = args == null ? new Object[] {null} : args;
         int id = registryId(command);
         if (id > -1) {
             out = commandRegistries[id].invoke(commandSession(), command, args);
@@ -1246,7 +1266,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             String message = exception.getMessage();
             AttributedStringBuilder asb = new AttributedStringBuilder();
             if (message != null) {
-                String m = exception.getClass().getSimpleName() + ": " + message; 
+                String m = exception.getClass().getSimpleName() + ": " + message;
                 asb.append(m, AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
             } else {
                 asb.append("Caught exception: ", AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
