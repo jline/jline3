@@ -1099,12 +1099,8 @@ public class SystemRegistryImpl implements SystemRegistry {
         } else {
             int id = registryId(command);
             if (id > -1) {
-                if (consoleId != null) {
-                    out = commandRegistries[id].invoke(outputStream.getCommandSession(), command,
-                            consoleEngine().expandParameters(args));
-                } else {
-                    out = commandRegistries[id].execute(outputStream.getCommandSession(), command, args);
-                }
+                Object[] _args = consoleId != null ? consoleEngine().expandParameters(args) : (Object[])args;
+                out = commandRegistries[id].invoke(outputStream.getCommandSession(), command, _args);
             } else if (scriptStore.hasScript(command)) {
                 out = consoleEngine().execute(command, rawLine, args);
             } else {
