@@ -1056,7 +1056,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 || (value.startsWith("{") && value.endsWith("}"))
                 || (value.startsWith("<") && value.endsWith(">"))
            ) {
-                return true;
+            return true;
         } else if (!value.contains(" ") && !value.contains("\t")) {
             return true;
         }
@@ -1510,7 +1510,9 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         options.remove(Printer.MAX_COLUMN_WIDTH);
         for (Object o : collection) {
             AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
-            asb.append("\t");
+            if (depth > 0) {
+                asb.append("\t");
+            }
             if (options.containsKey(Printer.ROWNUM)) {
                 asb.styled(prntStyle.resolve(".rn"), row.toString()).append(":");
                 asb.append("\t");
