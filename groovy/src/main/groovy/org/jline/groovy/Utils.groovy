@@ -20,7 +20,14 @@ public class Utils {
     private Utils() {}
 
     static String toString(Object object) {
-        object != null ? object.toString() : 'null'
+        if (object == null) {
+            return 'null'
+        } else if (object instanceof Collection) {
+            return object.toListString()
+        } else if (object instanceof Map) {
+            return object.toMapString()
+        }
+        object.toString()
     }
 
     static Object toObject(String json) {
