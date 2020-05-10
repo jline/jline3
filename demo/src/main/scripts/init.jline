@@ -28,46 +28,46 @@ CONSOLE_OPTIONS['docs'].put('org/jline/.*','https://www.javadoc.io/doc/org.jline
 # customize prnt command
 #
 def _reader2map(reader){
-  def out = [:]
-  out['othersGroupName'] = reader.othersGroupName
-  out['keyMap'] = reader.keyMap
-  out['autosuggestion'] = reader.autosuggestion
-  out['terminal.kind'] = reader.terminal.kind
-  out
+    def out = [:]
+    out['othersGroupName'] = reader.othersGroupName
+    out['keyMap'] = reader.keyMap
+    out['autosuggestion'] = reader.autosuggestion
+    out['terminal.kind'] = reader.terminal.kind
+    out
 }
 
 def _reader2string(reader){
-  def out = "["
-  out += 'othersGroupName:' + reader.othersGroupName + ', '
-  out += 'keyMap:' + reader.keyMap + ', '
-  out += 'autosuggestion:' + reader.autosuggestion + ', '
-  out += 'terminal.kind:' + reader.terminal.kind
-  out += ']'
-  out
+    def out = "["
+    out += 'othersGroupName:' + reader.othersGroupName + ', '
+    out += 'keyMap:' + reader.keyMap + ', '
+    out += 'autosuggestion:' + reader.autosuggestion + ', '
+    out += 'terminal.kind:' + reader.terminal.kind
+    out += ']'
+    out
 }
 
 def _number2date(number){
-  def out = null
-  try {
-    out = number instanceof Long ? new Date(number) : number
-  } catch (Exception e) {
-    out = number
-  }
-  new AttributedString(out.toString())
+    def out = null
+    try {
+        out = number instanceof Long ? new Date(number) : number
+    } catch (Exception e) {
+        out = number
+    }
+    new AttributedString(out.toString())
 }
 
 def _orgJline(p) {
-  def out = p
-  if (p.toString().matches('org.jline.*')) {
-    def m = Pattern.compile('(org.jline)(.*)').matcher(p.toString())
-    if (m.find()) {
-      def asb = new AttributedStringBuilder()
-      asb.append(m.group(1),AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW + AttributedStyle.BRIGHT))
-      asb.append(m.group(2))
-      out = asb.toAttributedString()
+    def out = p
+    if (p.toString().startsWith('org.jline')) {
+        def m = Pattern.compile('(org\\.jline(\\.[a-z]+)*)(.*)').matcher(p.toString())
+        if (m.find()) {
+            def asb = new AttributedStringBuilder()
+            asb.append(m.group(1),AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW + AttributedStyle.BRIGHT))
+            asb.append(m.group(3))
+            out = asb.toAttributedString()
+        }
     }
-  }
-  out
+    out
 }
 
 PRNT_OPTIONS = [:]
@@ -99,15 +99,12 @@ alias select '|. def m = it; def out = [:]; %{@}.each{def v = m; it.split("\\.")
 alias sort '|& sort{def p = %{@}; p[0].startsWith("-") ? -it[p[0].substring(1)] : it[p[0]]}'
 alias distinct '|& unique()'
 #
-# create test-widget and bind it to ctrl-alt-x
-# It will read widget name from buffer and execute it
+# test-widget reads widget name from buffer and execute it
 #
 def _testWidget() {
     def name = _buffer().toString().split('\\s+')[0]
     _widget "$name"
 }
-widget -N test-widget _testWidget
-keymap '^[^x' test-widget
 #
 # create _tailtip-toggle widget that changes also maximum candidates to display
 #
@@ -121,5 +118,33 @@ def _tailTipToggle() {
     }
     _widget 'tailtip-toggle'
 }
+#
+# widget functions to open web doc of jline and groovy
+#
+def _docJline() {
+    :doc jline
+}
+
+def _docGroovy() {
+    :doc groovy
+}
+#
+# resolve function keys
+#
+def _getkey(name) {
+    def key
+    key=:tget $name
+    key.values()[0]
+}
+_f1 = _getkey('key_f1')
+_f2 = _getkey('key_f2')
+
+widget -N _test-widget _testWidget
 widget -N _tailtip-toggle _tailTipToggle
-keymap '^[s' _tailtip-toggle
+widget -N _doc-jline _docJline
+widget -N _doc-groovy _docGroovy
+
+keymap '^[^x' _test-widget
+keymap '^[s'  _tailtip-toggle
+keymap $_f1   _doc-jline
+keymap $_f2   _doc-groovy

@@ -1518,7 +1518,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 asb.append("\t");
                 row++;
             }
-            asb.append(highlightValue(options, null, objectToString(options, o)));
+            asb.append(highlightValue(options, null, o));
             println(truncate(asb, width), maxrows);
         }
     }
