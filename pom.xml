@@ -445,7 +445,7 @@
                 <configuration>
                     <archive>
                         <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
-						<manifestEntries>
+                        <manifestEntries>
                             <Automatic-Module-Name>org.jline</Automatic-Module-Name>
                         </manifestEntries>
                     </archive>
