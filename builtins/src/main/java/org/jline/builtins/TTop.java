@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2020, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -147,7 +147,7 @@ public class TTop {
         comparator = buildComparator(sort);
         delay = delay > 0 ? Math.max(delay, 100) : 1000;
         if (stats == null || stats.isEmpty()) {
-            stats = Arrays.asList(STAT_TID, STAT_NAME, STAT_STATE, STAT_CPU_TIME, STAT_LOCK_OWNER_ID);
+            stats = new ArrayList<>(Arrays.asList(STAT_TID, STAT_NAME, STAT_STATE, STAT_CPU_TIME, STAT_LOCK_OWNER_ID));
         }
 
         Boolean isThreadContentionMonitoringEnabled = null;
@@ -229,6 +229,9 @@ public class TTop {
             } while (op != Operation.EXIT);
         } catch (InterruptedException ie) {
             // Do nothing
+        } catch (Error err) {
+            Log.info("Error: ", err);
+            return;
         } finally {
             terminal.setAttributes(attr);
             if (prevHandler != null) {

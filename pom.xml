@@ -78,6 +78,8 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
+        <native.image.skip>true</native.image.skip>
+
         <jna.version>5.3.1</jna.version>
         <jansi.version>1.18</jansi.version>
         <juniversalchardet.version>1.0.3</juniversalchardet.version>
@@ -90,6 +92,8 @@
         <findbugs.version>3.0.2</findbugs.version>
         <groovy.version>3.0.3</groovy.version>
         <ivy.version>2.5.0</ivy.version>
+        <graal.version>19.3.1</graal.version>
+        
         <surefire.argLine />
     </properties>
 
@@ -244,12 +248,18 @@
                 <artifactId>groovy-console</artifactId>
                 <version>${groovy.version}</version>
             </dependency>
+            
+            <dependency>
+                <groupId>org.graalvm.sdk</groupId>
+                <artifactId>graal-sdk</artifactId>
+                <version>${graal.version}</version>
+            </dependency>
 
-	        <dependency>
-	            <groupId>org.apache.ivy</groupId>
-	            <artifactId>ivy</artifactId>
-	             <version>${ivy.version}</version>
-	        </dependency>        
+            <dependency>
+                <groupId>org.apache.ivy</groupId>
+                <artifactId>ivy</artifactId>
+                 <version>${ivy.version}</version>
+            </dependency>        
 
             <dependency>
                 <groupId>org.slf4j</groupId>
@@ -519,6 +529,11 @@
                     <autoVersionSubmodules>true</autoVersionSubmodules>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.graalvm.nativeimage</groupId>
+                <artifactId>native-image-maven-plugin</artifactId>
+                <version>${graal.version}</version>
+            </plugin>            
         </plugins>
     </build>
 
@@ -558,6 +573,13 @@
             <build>
                 <defaultGoal>com.mycila:license-maven-plugin:format</defaultGoal>
             </build>
+        </profile>
+
+        <profile>
+            <id>native-image</id>
+            <properties>
+                <native.image.skip>false</native.image.skip>
+            </properties>
         </profile>
     </profiles>
 
