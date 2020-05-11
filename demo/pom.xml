@@ -22,6 +22,10 @@
     <artifactId>jline-demo</artifactId>
     <name>JLine Demo</name>
 
+    <properties>
+        <automatic.module.name>org.jline.demo</automatic.module.name>
+    </properties>
+    
     <dependencies>
         <dependency>
             <groupId>org.jline</groupId>

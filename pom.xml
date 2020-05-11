@@ -79,6 +79,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
 
         <native.image.skip>true</native.image.skip>
+        <automatic.module.name></automatic.module.name>
 
         <jna.version>5.3.1</jna.version>
         <jansi.version>1.18</jansi.version>
@@ -455,6 +456,9 @@
                 <configuration>
                     <archive>
                         <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+                        <manifestEntries>
+                            <Automatic-Module-Name>${automatic.module.name}</Automatic-Module-Name>
+                        </manifestEntries>
                     </archive>
                 </configuration>
             </plugin>

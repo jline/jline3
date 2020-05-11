@@ -22,6 +22,10 @@
     <artifactId>jline-builtins</artifactId>
     <name>JLine Builtins</name>
 
+    <properties>
+        <automatic.module.name>org.jline.builtins</automatic.module.name>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.jline</groupId>

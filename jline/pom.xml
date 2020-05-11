@@ -22,6 +22,10 @@
     <artifactId>jline</artifactId>
     <name>JLine Bundle</name>
 
+    <properties>
+        <automatic.module.name>org.jline</automatic.module.name>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.fusesource.jansi</groupId>
