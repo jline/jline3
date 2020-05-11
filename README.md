@@ -100,8 +100,9 @@ All the jars and releases are available from Maven Central, so you'll find every
 
 ## Requirements
 
-* Maven 3.3+ (prefer included maven-wrapper)
+* Maven 3.3+
 * Java 8+
+* Graal 19.3.1+ (native-image)
 
 Check out and build:
 
@@ -110,6 +111,12 @@ git clone git://github.com/jline/jline3.git
 cd jline3
 ./build rebuild
  ```
+
+Build Graal native-image demo:
+
+```sh
+./build rebuild -Pnative-image
+```
 
 ## Results
 
@@ -143,8 +150,11 @@ To run the demo, simply use one of the following commands after having build `JL
 # Gogo terminal
 ./build demo
 
-# groovy REPL
+# Groovy REPL
 ./build repl
+
+# Graal native-image
+./build graal
 ```
 
 ## Continuous Integration
