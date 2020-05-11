@@ -133,14 +133,14 @@ public interface SystemRegistry extends CommandRegistry {
 
     /**
      * Add systemRegistry to the thread map
-     * @param systemRegistry
+     * @param systemRegistry the systemRegistry
      */
     static void add(SystemRegistry systemRegistry) {
         Registeries.getInstance().addRegistry(systemRegistry);
     }
 
     /**
-     * Remove systemRegistry from the thread map
+     * Remove systemRegistry of the current thread from the thread map
      */
     static void remove() {
         Registeries.getInstance().removeRegistry();

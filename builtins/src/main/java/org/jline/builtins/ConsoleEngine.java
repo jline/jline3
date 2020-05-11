@@ -124,7 +124,7 @@ public interface ConsoleEngine extends CommandRegistry {
      * Read object from file
      * @param file file from where object should be read
      * @return object
-     * @throws IOException
+     * @throws IOException in case of error
      */
     public Object slurp(Path file) throws IOException;
 

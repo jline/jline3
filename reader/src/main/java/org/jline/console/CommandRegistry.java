@@ -67,6 +67,7 @@ public interface CommandRegistry {
 
     /**
      * Returns a short info about command known by this registry.
+     * @param command the command name
      * @return a short info about command
      */
     List<String> commandInfo(String command);

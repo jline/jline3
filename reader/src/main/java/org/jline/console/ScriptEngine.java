@@ -142,7 +142,7 @@ public interface ScriptEngine {
      * Executes scriptEngine statement
      * @param statement statement
      * @return result
-     * @throws Exception
+     * @throws Exception in case of error
      */
     Object execute(String statement) throws Exception;
 
@@ -150,7 +150,7 @@ public interface ScriptEngine {
      * Executes scriptEngine script
      * @param script script
      * @return result
-     * @throws Exception
+     * @throws Exception in case of error
      */
     default Object execute(File script) throws Exception {
         return execute(script, null);
@@ -161,7 +161,7 @@ public interface ScriptEngine {
      * @param script script
      * @param args arguments
      * @return result
-     * @throws Exception
+     * @throws Exception in case of error
      */
     Object execute(File script, Object[] args) throws Exception;
 
