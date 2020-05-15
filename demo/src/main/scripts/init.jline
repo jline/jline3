@@ -146,5 +146,7 @@ widget -N _doc-groovy _docGroovy
 
 keymap '^[^x' _test-widget
 keymap '^[s'  _tailtip-toggle
-keymap $_f1   _doc-jline
-keymap $_f2   _doc-groovy
+if (_f1 && _f2) {
+    :keymap $_f1   _doc-jline
+    :keymap $_f2   _doc-groovy
+}
