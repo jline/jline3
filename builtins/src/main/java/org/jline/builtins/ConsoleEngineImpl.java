@@ -1481,6 +1481,8 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                         highlightList(options, collection, width);
                     }
                 }
+            } else {
+                highlightValue(options, null, objectToString(options, obj)).println(terminal());                
             }
         } else if (canConvert(obj) && !options.containsKey(Printer.TO_STRING)) {
             highlightMap(options, objectToMap(options, obj), width);
@@ -1567,7 +1569,11 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     }
 
     private void highlightMap(Map<String, Object> options, Map<String, Object> map, int width) {
-        highlightMap(options, map, width, 0);
+        if (!map.isEmpty()) {
+            highlightMap(options, map, width, 0);
+        } else {
+            highlightValue(options, null, objectToString(options, map)).println(terminal());
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -1594,11 +1600,13 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             boolean highlightValue = true;
             if (depth < maxDepth && !options.containsKey(Printer.TO_STRING)) {
                 if (elem instanceof Map || convert) {
-                    println(truncate(asb, width), maxrows);
                     Map<String, Object> childMap = convert ? objectToMap(options, elem)
                                                            : keysToString((Map<Object, Object>) elem);
-                    highlightMap(options, childMap, width, depth + 1);
-                    highlightValue = false;
+                    if (!childMap.isEmpty()) {
+                        println(truncate(asb, width), maxrows);
+                        highlightMap(options, childMap, width, depth + 1);
+                        highlightValue = false;
+                    }
                 } else if (collectionObject(elem)) {
                     List<Object> collection = objectToList(elem);
                     if (!collection.isEmpty()) {
