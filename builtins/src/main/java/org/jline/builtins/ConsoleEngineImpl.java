@@ -1189,7 +1189,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     }
 
     private boolean isHighlighted(AttributedString value) {
-        for (int i = 0; i < value.columnLength(); i++) {
+        for (int i = 0; i < value.length(); i++) {
             if (value.styleAt(i).getStyle() != AttributedStyle.DEFAULT.getStyle()) {
                 return true;
             }
