@@ -84,6 +84,12 @@ public interface Printer {
     final static String ROWNUM = "rownum";
     /**
      * Value: not meaningful<br>
+     * Applies: TABLE<br>
+     * Truncate table column names: property.field -> field.
+     */
+    final static String SHORT_NAMES = "shortNames";
+    /**
+     * Value: not meaningful<br>
      * Applies: MAP and TABLE<br>
      * Ignore all options defined in PRNT_OPTIONS.
      */

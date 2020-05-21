@@ -1312,6 +1312,15 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         }
     }
 
+    private String columnName(String name, boolean shortName) {
+        String out = name;
+        if (shortName) {
+            String[] p = name.split("\\.");
+            out = p[p.length - 1];
+        }
+        return out;
+    }
+
     @SuppressWarnings("unchecked")
     private void highlightAndPrint(Map<String, Object> options, Object obj) {
         int width = (int)options.get(Printer.WIDTH);
@@ -1376,8 +1385,9 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                                 String rk = map.containsKey(_header.get(i)) ? _header.get(i) : _header.get(i).split("\\.")[0];
                                 refKeys.add(rk);
                                 header.add(_header.get(i));
-                                columns.add(_header.get(i).length() + 1);
-                                headerWidth += _header.get(i).length() + 1;
+                                String cn = columnName(_header.get(i), options.containsKey(Printer.SHORT_NAMES));
+                                columns.add(cn.length() + 1);
+                                headerWidth += cn.length() + 1;
                                 if (headerWidth > width) {
                                     break;
                                 }
@@ -1411,7 +1421,8 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                                 firstColumn = 1;
                             }
                             for (int i = 0; i < header.size(); i++) {
-                                asb.styled(prntStyle.resolve(".th"), header.get(i));
+                                asb.styled(prntStyle.resolve(".th")
+                                         , columnName(header.get(i), options.containsKey(Printer.SHORT_NAMES)));
                                 asb.append("\t");
                             }
                             truncate(asb, width).println(terminal());
@@ -1482,7 +1493,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                     }
                 }
             } else {
-                highlightValue(options, null, objectToString(options, obj)).println(terminal());                
+                highlightValue(options, null, objectToString(options, obj)).println(terminal());
             }
         } else if (canConvert(obj) && !options.containsKey(Printer.TO_STRING)) {
             highlightMap(options, objectToMap(options, obj), width);
@@ -1693,6 +1704,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 "     --maxrows=ROWS               Maximum number of lines to display",
                 "     --oneRowTable                Display one row data on table",
                 "  -r --rownum                     Display table row numbers",
+                "     --shortNames                 Truncate table column names (property.field -> field)",
                 "     --skipDefaultOptions         Ignore all options defined in PRNT_OPTIONS",
                 "     --structsOnTable             Display structs and lists on table",
                 "  -s --style=STYLE                Use nanorc STYLE",
@@ -1719,6 +1731,9 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             }
             if (opt.isSet(Printer.ONE_ROW_TABLE)) {
                 options.put(Printer.ONE_ROW_TABLE, true);
+            }
+            if (opt.isSet(Printer.SHORT_NAMES)) {
+                options.put(Printer.SHORT_NAMES, true);
             }
             if (opt.isSet(Printer.STRUCT_ON_TABLE)) {
                 options.put(Printer.STRUCT_ON_TABLE, true);
