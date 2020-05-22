@@ -57,7 +57,7 @@ import org.jline.utils.OSUtils;
  */
 public class Repl {
 
-    private static class MyCommands extends JlineCommandRegistry implements CommandRegistry {
+    protected static class MyCommands extends JlineCommandRegistry implements CommandRegistry {
         private LineReader reader;
         private Supplier<Path> workDir;
 
