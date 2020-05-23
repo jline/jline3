@@ -8,7 +8,9 @@
  */
 package org.jline.console;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -23,7 +25,7 @@ public interface Printer {
     //   1) command options
     //
     /**
-     * Value: not meaningful<br>
+     * Value: Boolean<br>
      * Applies: TABLE<br>
      * Ignore columnsOut configuration.
      */
@@ -71,31 +73,31 @@ public interface Printer {
      */
     final static String MAXROWS = "maxrows";
     /**
-     * Value: not meaningful<br>
+     * Value: Boolean<br>
      * Applies: TABLE<br>
      * Display one row data on table.
      */
     final static String ONE_ROW_TABLE = "oneRowTable";
     /**
-     * Value: Integer<br>
+     * Value: Boolean<br>
      * Applies: TABLE<br>
      * Display table row numbers.
      */
     final static String ROWNUM = "rownum";
     /**
-     * Value: not meaningful<br>
+     * Value: Boolean<br>
      * Applies: TABLE<br>
      * Truncate table column names: property.field -> field.
      */
     final static String SHORT_NAMES = "shortNames";
     /**
-     * Value: not meaningful<br>
+     * Value: Boolean<br>
      * Applies: MAP and TABLE<br>
      * Ignore all options defined in PRNT_OPTIONS.
      */
     final static String SKIP_DEFAULT_OPTIONS = "skipDefaultOptions";
     /**
-     * Value: not meaningful<br>
+     * Value: Boolean<br>
      * Applies: TABLE<br>
      * Display structs and lists on table.
      */
@@ -106,7 +108,7 @@ public interface Printer {
      */
     final static String STYLE = "style";
     /**
-     * Value: not meaningful<br>
+     * Value: Boolean<br>
      * Applies: MAP and TABLE<br>
      * Use object's toString() method to get print value
      * DEFAULT: object's fields are put to property map before printing
@@ -170,6 +172,9 @@ public interface Printer {
     default void println(Object object) {
         println(new HashMap<>(), object);
     }
+
+    final static List<String> BOOLEAN_KEYS = Arrays.asList(ALL, ONE_ROW_TABLE, ROWNUM, SHORT_NAMES, SKIP_DEFAULT_OPTIONS
+                                                         , STRUCT_ON_TABLE, TO_STRING);
 
     void println(Map<String,Object> options, Object object);
 }

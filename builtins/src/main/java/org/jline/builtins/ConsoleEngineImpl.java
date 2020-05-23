@@ -880,6 +880,8 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         Map<String, Object> out = new HashMap<>();
         if (!skipDefault && engine.hasVariable(VAR_PRNT_OPTIONS)) {
             out.putAll((Map<String,Object>)engine.get(VAR_PRNT_OPTIONS));
+            out.remove(Printer.SKIP_DEFAULT_OPTIONS);
+            manageBooleanOptions(out);
         }
         out.putIfAbsent(Printer.MAXROWS, PRNT_MAX_ROWS);
         out.putIfAbsent(Printer.MAX_DEPTH, PRNT_MAX_DEPTH);
@@ -924,12 +926,24 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         internalPrintln(defaultPrntOptions(false), object);
     }
 
+    private void manageBooleanOptions(Map<String, Object> options) {
+        for (String key : Printer.BOOLEAN_KEYS) {
+            if (options.containsKey(key)) {
+                boolean value = options.get(key) instanceof Boolean ? (boolean)options.get(key) : false;
+                if (!value) {
+                    options.remove(key);
+                }
+            }
+        }
+    }
+
     @Override
     public void println(Map<String, Object> options, Object object) {
         for (Map.Entry<String, Object> entry
                 : defaultPrntOptions(options.containsKey(Printer.SKIP_DEFAULT_OPTIONS)).entrySet()) {
             options.putIfAbsent(entry.getKey(), entry.getValue());
         }
+        manageBooleanOptions(options);
         internalPrintln(options, object);
     }
 
