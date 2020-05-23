@@ -20,6 +20,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -1430,8 +1431,8 @@ public class Nano implements Editor {
             List<HighlightRule> defaultRules = new ArrayList<>();
             if (syntaxName == null || (syntaxName != null && !syntaxName.equals("none"))) {
                 for (Path p: syntaxFiles) {
-                    NanorcParser parser = new NanorcParser(p, syntaxName, file);
                     try {
+                        NanorcParser parser = new NanorcParser(p, syntaxName, file);
                         parser.parse();
                         if (parser.matches()) {
                             out.addRules(parser.getHighlightRules());
@@ -1483,6 +1484,29 @@ public class Nano implements Editor {
                 reader.close();
                 out = build(syntaxFiles, null, syntaxName);
             } catch (Exception e) {
+            }
+            return out;
+        }
+
+        /**
+         * Build SyntaxHighlighter
+         *
+         * @param nanorcUrl     Url of nanorc file
+         * @return              SyntaxHighlighter
+         */
+        public static SyntaxHighlighter build(String nanorcUrl) {
+            SyntaxHighlighter out = new SyntaxHighlighter();
+            InputStream inputStream;
+            try {
+                if (nanorcUrl.startsWith("classpath:")) {
+                    inputStream = new Source.ResourceSource(nanorcUrl.substring(10), null).read();
+                } else {
+                    inputStream = new Source.URLSource(new URL(nanorcUrl), null).read();
+                }
+                NanorcParser parser = new NanorcParser(inputStream, null, null);
+                parser.parse();
+                out.addRules(parser.getHighlightRules());
+            } catch (IOException e) {
             }
             return out;
         }
@@ -1621,25 +1645,24 @@ public class Nano implements Editor {
 
     private static class NanorcParser {
         private static final String DEFAULT_SYNTAX = "default";
-        private File file;
         private String name;
         private String target;
         private boolean matches = false;
         private List<HighlightRule> highlightRules = new ArrayList<>();
         private String syntaxName;
+        private BufferedReader reader;
 
-        public NanorcParser(Path file, String name) {
-            this(file, name, null);
+        public NanorcParser(Path file, String name, String target) throws IOException {
+            this(new Source.PathSource(file, null).read(), name, target);
         }
 
-        public NanorcParser(Path file, String name, String target) {
-            this.file = file.toFile();
+        public NanorcParser(InputStream in, String name, String target) {
+            this.reader = new BufferedReader(new InputStreamReader(in));
             this.name = name;
             this.target = target;
         }
 
         public void parse() throws IOException {
-            BufferedReader reader = new BufferedReader(new FileReader(file));
             String line = reader.readLine();
             while (line!= null) {
                 line = line.trim();

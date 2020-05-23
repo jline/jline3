@@ -112,6 +112,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
                 options.put(Printer.SKIP_DEFAULT_OPTIONS, true);
                 options.put(Printer.MAX_DEPTH, 1);
                 options.put(Printer.INDENTION, 4);
+                options.put(Printer.VALUE_STYLE, "classpath:/org/jline/groovy/gron.nanorc");
                 printer.println(options, resp);
             } else if (arg.startsWith("-")) {
                 throw new IllegalArgumentException("Unknown command option: " + arg);
@@ -197,6 +198,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
             options.put(Printer.COLUMNS, ObjectInspector.METHOD_COLUMNS);
             options.put(Printer.MAX_DEPTH, 1);
             options.put(Printer.INDENTION, 4);
+            options.put(Printer.VALUE_STYLE, "classpath:/org/jline/groovy/gron.nanorc");
             printer.println(options, out);
         } catch (Exception e) {
             saveException(e);

@@ -1008,14 +1008,20 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     }
 
     private SyntaxHighlighter valueHighlighter(String style) {
-        Path nanorc = configPath != null ? configPath.getConfig("jnanorc") : null;
-        if (engine.hasVariable(VAR_NANORC)) {
-            nanorc = Paths.get((String)engine.get(VAR_NANORC));
+        SyntaxHighlighter out;
+        if (style.matches("[a-z]+:.*")) {
+            out = SyntaxHighlighter.build(style);
+        } else {
+            Path nanorc = configPath != null ? configPath.getConfig("jnanorc") : null;
+            if (engine.hasVariable(VAR_NANORC)) {
+                nanorc = Paths.get((String)engine.get(VAR_NANORC));
+            }
+            if (nanorc == null) {
+                nanorc = Paths.get("/etc/nanorc");
+            }
+            out = nanorc != null ? SyntaxHighlighter.build(nanorc, style) : null;
         }
-        if (nanorc == null) {
-            nanorc = Paths.get("/etc/nanorc");
-        }
-        return nanorc != null ? SyntaxHighlighter.build(nanorc, style) : null;
+        return out;
     }
 
     private String truncate4nanorc(String obj) {
