@@ -1605,7 +1605,9 @@ public class SystemRegistryImpl implements SystemRegistry {
                     param = buffer.substring(lastDelim + 1);
                     curBuf = buffer.substring(0, lastDelim + 1);
                 }
-                if (param.length() == 0) {
+                if (curBuf.startsWith("--") && !curBuf.contains("=")) {
+                    doCandidates(candidates, names.options(), curBuf, "", param);
+                } else if (param.length() == 0) {
                     doCandidates(candidates, names.fieldsAndValues(), curBuf, "", "");
                 } else if (param.contains(".")) {
                     int point = buffer.lastIndexOf(".");
@@ -1655,6 +1657,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             names.put("fields", new ArrayList<>());
             names.put("values", new ArrayList<>());
             names.put("quoted", new ArrayList<>());
+            names.put("options", new ArrayList<>());
             if (configPath != null) {
                 try {
                     fileNames = configPath.getUserConfig("pipeline-names.json", true);
@@ -1705,12 +1708,23 @@ public class SystemRegistryImpl implements SystemRegistry {
                 int redirectPipe = -1;
                 for (int i = pipeId + 1; i < args.size(); i++) {
                     String arg = args.get(i);
-                    if (!isPipe(arg) && !namedPipes().contains(arg) && !arg.matches("(-){1,2}\\w+")
+                    if (!isPipe(arg) && !namedPipes().contains(arg)
                             && !arg.matches("\\d+") && redirectPipe != i - 1) {
                         if (arg.equals(">") || arg.equals(">>")) {
                             redirectPipe = i;
                         } else if (arg.matches("\\w+(\\(\\)){0,1}")) {
                             addValues(arg);
+                        } else if (arg.matches("--\\w+(=.*|)$") && arg.length() > 4) {
+                            int idx = arg.indexOf('=');
+                            if (idx > 0) {
+                                if (idx > 4) {
+                                    addOptions(arg.substring(2, idx));
+                                }
+                                sb.append(arg.substring(idx + 1));
+                                sb.append(" ");
+                            } else if (idx == -1) {
+                                addOptions(arg.substring(2));
+                            }
                         } else {
                             sb.append(arg);
                             sb.append(" ");
@@ -1789,6 +1803,10 @@ public class SystemRegistryImpl implements SystemRegistry {
             add("quoted", arg);
         }
 
+        private void addOptions(String arg) {
+            add("options", arg);
+        }
+
         private void add(String where, String value) {
             if (value.length() < 3) {
                 return;
@@ -1816,6 +1834,10 @@ public class SystemRegistryImpl implements SystemRegistry {
             return names.get("quoted");
         }
 
+        public List<String> options() {
+            return names.get("options");
+        }
+
         private Set<String> fieldsAndValues() {
             Set<String> out = new HashSet<>();
             out.addAll(fields());
@@ -1835,6 +1857,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 truncate("fields", maxSize);
                 truncate("values", maxSize);
                 truncate("quoted", maxSize);
+                truncate("options", maxSize);
                 consoleEngine().persist(fileNames, names);
             }
         }
