@@ -89,11 +89,17 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
 
     @Override
     public AttributedStringBuilder append(CharSequence csq) {
+        if (csq == null) {
+            csq = "null"; // Required by Appendable.append
+        }
         return append(new AttributedString(csq, current));
     }
 
     @Override
     public AttributedStringBuilder append(CharSequence csq, int start, int end) {
+        if (csq == null) {
+            csq = "null"; // Required by Appendable.append
+        }
         return append(csq.subSequence(start, end));
     }
 
