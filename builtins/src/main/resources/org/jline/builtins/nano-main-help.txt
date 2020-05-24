@@ -21,7 +21,7 @@ Main nano help text
 ^T      (F12)           Invoke the spell checker, if available
 
 ^_      (F13)   (M-G)   Go to line and column number
-^\      (F14)   (M-R)   Replace a string or a regular expression
+        (F14)   (M-R)   Replace a string or a regular expression
 ^^      (F15)   (M-A)   Mark text at the cursor position
         (F16)   (M-W)   Repeat last search
 
