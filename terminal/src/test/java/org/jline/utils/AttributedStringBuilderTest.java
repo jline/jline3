@@ -9,18 +9,17 @@
 package org.jline.utils;
 
 import java.util.Arrays;
-import java.util.List;
 
 import org.junit.Test;
 
 import static org.junit.Assert.*;
 
 public class AttributedStringBuilderTest {
-	private static String TAB_SIZE_ERR_MSG = "Incorrect tab size";
+    private static String TAB_SIZE_ERR_MSG = "Incorrect tab size";
 
-	/**
-	 * Test single line with tabs in
-	 */
+    /**
+     * Test single line with tabs in
+     */
     @Test
     public void testTabSize() {
         AttributedStringBuilder sb;
@@ -39,7 +38,6 @@ public class AttributedStringBuilderTest {
         sb = new AttributedStringBuilder().tabs(Arrays.asList(6,13));
         sb.append("one\ttwo\tthree\tfour");
         assertEquals(TAB_SIZE_ERR_MSG, "one   two    three  four", sb.toString());
-        
     }
 
     /**
@@ -80,6 +78,24 @@ public class AttributedStringBuilderTest {
 
         sb.append("lorem\tipsum"); expected += "lorem    ipsum"; //append to second line
         assertEquals(TAB_SIZE_ERR_MSG, expected, sb.toString());
+    }
+
+    /**
+     * Test that methods overriding {@code Appendable.append} correctly handle
+     * {@code null -> "null"}.
+     */
+    @Test
+    public void testAppendNullToString() {
+        AttributedStringBuilder sb = new AttributedStringBuilder();
+        String expected = "";
+
+        sb.append("foo"); expected += "foo";
+        sb.append((CharSequence) null); expected += "null";
+        assertEquals(expected, sb.toString());
+
+        sb.append("bar"); expected += "bar";
+        sb.append((CharSequence) null, 1, 3); expected += "ul"; // Indices apply to "null"
+        assertEquals(expected, sb.toString());
     }
 
     @Test
