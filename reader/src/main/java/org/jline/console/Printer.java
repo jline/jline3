@@ -69,7 +69,7 @@ public interface Printer {
     /**
      * Value: Integer<br>
      * Applies: MAP and TABLE<br>
-     * Maximum number of lines on display.
+     * Maximum number of lines to display.
      */
     final static String MAXROWS = "maxrows";
     /**
@@ -87,7 +87,7 @@ public interface Printer {
     /**
      * Value: Boolean<br>
      * Applies: TABLE<br>
-     * Truncate table column names: property.field -> field.
+     * Truncate table column names: property.field to field.
      */
     final static String SHORT_NAMES = "shortNames";
     /**
@@ -99,7 +99,7 @@ public interface Printer {
     /**
      * Value: Boolean<br>
      * Applies: TABLE<br>
-     * Display structs and lists on table.
+     * Display object structures and lists on table.
      */
     final static String STRUCT_ON_TABLE = "structsOnTable";
     /**
@@ -145,7 +145,7 @@ public interface Printer {
      * Value: {@code Map<regex, function>}.<br>
      * Applies: TABLE<br>
      * If command result map key matches with regex the highlight function is applied
-     * to the corresponding map value. The regex =* is processed after all the other regexes and the highlight
+     * to the corresponding map value. The regex = * is processed after all the other regexes and the highlight
      * function will be applied to all map values that have not been already highlighted.
      */
     final static String HIGHLIGHT_VALUE = "highlightValue";

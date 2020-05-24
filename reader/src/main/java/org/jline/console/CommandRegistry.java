@@ -88,8 +88,8 @@ public interface CommandRegistry {
 
     /**
      * Returns a command description for use in the JLine Widgets framework.
-     * Default method must be overriden to return subcommand descriptions.
-     * @param args commandline arguments
+     * Default method must be overridden to return sub command descriptions.
+     * @param args command line arguments
      * @return command description for JLine TailTipWidgets to be displayed
      *         in the terminal status bar.
      */
@@ -99,7 +99,7 @@ public interface CommandRegistry {
 
     /**
      * Returns a command description for use in the JLine Widgets framework.
-     * @param command name of the command whose description to return
+     * @param command the name of the command whose description to return
      * @return command description for JLine TailTipWidgets to be displayed
      *         in the terminal status bar.
      */

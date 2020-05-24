@@ -68,8 +68,8 @@ public interface ScriptEngine {
     Map<String,Object> find(String name);
 
     /**
-     * Deletes variables. Variable name cab contain * wild cards.
-     * @param vars variables to be delted
+     * Deletes variables. Variable name can contain * wild cards.
+     * @param vars variables to be deleted
      */
     void del(String... vars);
 
@@ -82,21 +82,21 @@ public interface ScriptEngine {
 
     /**
      * Converts object to string.
-     * @param object object to converts to string
+     * @param object the object
      * @return object string value
      */
     String toString(Object object);
 
     /**
      * Converts object fields to map.
-     * @param object object to convert to map
+     * @param object the object
      * @return object fields map
      */
     Map<String,Object> toMap(Object object);
 
     /**
      * Deserialize value
-     * @param value value to deserialize
+     * @param value the value
      * @return deserialized value
      */
     default Object deserialize(String value) {
@@ -105,7 +105,7 @@ public interface ScriptEngine {
 
     /**
      * Deserialize value
-     * @param value value to deserialize
+     * @param value the value
      * @param format serialization format
      * @return deserialized value
      */
@@ -132,15 +132,15 @@ public interface ScriptEngine {
 
     /**
      * Persists object value to file.
-     * @param file file
-     * @param object object
+     * @param file the file
+     * @param object the object
      * @param format serialization format
      */
     void persist(Path file, Object object, String format);
 
     /**
      * Executes scriptEngine statement
-     * @param statement statement
+     * @param statement the statement
      * @return result
      * @throws Exception in case of error
      */
@@ -148,7 +148,7 @@ public interface ScriptEngine {
 
     /**
      * Executes scriptEngine script
-     * @param script script
+     * @param script the script
      * @return result
      * @throws Exception in case of error
      */
@@ -158,7 +158,7 @@ public interface ScriptEngine {
 
     /**
      * Executes scriptEngine script
-     * @param script script
+     * @param script the script
      * @param args arguments
      * @return result
      * @throws Exception in case of error
