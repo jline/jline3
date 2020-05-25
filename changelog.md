@@ -1,6 +1,80 @@
 # [JLine3](https://github.com/jline/jline3)
 <!-- git log --pretty=format:'* [`%h`](https://github.com/jline/jline3/commit/%H) %s' -->
 
+## [JLine 3.15.0][3_15_0]
+[3_15_0]: https://repo1.maven.org/maven2/org/jline/jline/3.15.0/
+
+* [`1ccf81cf`](https://github.com/jline/jline3/commit/1ccf81cf962b6f61faebd7d140c52227bdcb7bcd) Merge pull request #536 from Marcono1234/AttributedStringBuilder-append-null
+* [`a1551e7b`](https://github.com/jline/jline3/commit/a1551e7b13b8f332b4e0606f4bbc76422d1cba0d) Fix AttributedStringBuilder.append not handling null correctly
+* [`6924e3e9`](https://github.com/jline/jline3/commit/6924e3e95d6dc9681121820462c35976678c084c) Removed key sequence ^\ from nano help, #441
+* [`67b2ba18`](https://github.com/jline/jline3/commit/67b2ba18710cc7422e7398b718f37a02ab7ec0ca) Fixed some javadoc typos
+* [`56dbf56c`](https://github.com/jline/jline3/commit/56dbf56cf4847e716e1da328e2459f63d556e32e) PipelineCompleter: improved options completion
+* [`5cd04e7c`](https://github.com/jline/jline3/commit/5cd04e7c7173349abab38aa5ca6c5079f7f334bc) Console printer: improved the management of boolean options
+* [`482b9c2e`](https://github.com/jline/jline3/commit/482b9c2e397af25846d912864f1942c99a9d6ce7) Merge branch 'master' of https://github.com/jline/jline3.git
+* [`0eb2410c`](https://github.com/jline/jline3/commit/0eb2410c3d7f614edc513ebe2225d7390a00c1a3) Nano SyntaxHighlighter: build highlighter from given nanorc url
+* [`724e3772`](https://github.com/jline/jline3/commit/724e37725ae4bd4c2c5283f36ec58d6f6df13677) Update README.md
+* [`f6717970`](https://github.com/jline/jline3/commit/f67179703ffcf7fb5c5e458041113782479f04c2) Bump groovy to 3.0.4
+* [`80b6f585`](https://github.com/jline/jline3/commit/80b6f585c9e91637e83693f8376bbd7badc82c92) jline demo: removed code duplication
+* [`2ed99410`](https://github.com/jline/jline3/commit/2ed994106734c3151bebabb7f8698b32b74c568e) prnt command: added shortNames option
+* [`ab29ae24`](https://github.com/jline/jline3/commit/ab29ae246e95ec009a5b0c12bff287a6243cf817) ConsoleEngineImpl: fixed method isHighlighted()
+* [`21cfe927`](https://github.com/jline/jline3/commit/21cfe9279de52560849a438ac576fe974954aac4) ConsoleEngineImpl: fixed printing of empty Map
+* [`013251f3`](https://github.com/jline/jline3/commit/013251f39c5383898ea9bfad6b426c3270f4d15b) repl demo: improved object highlighting
+* [`3a4abf67`](https://github.com/jline/jline3/commit/3a4abf6796542868cf7842cb600cd9abc10a8771) repl demo: fixed init script
+* [`7eb01785`](https://github.com/jline/jline3/commit/7eb01785ab715e4e15ed3d4f7f1d363e7323e4fe) Add support for rxvt terminals, fixes #533
+* [`f8aa6e45`](https://github.com/jline/jline3/commit/f8aa6e45d3865beb00411aa6658eee5aa144b245) Cut down verbosity of debug logging for unsupported signals, fixes 455
+* [`a6176bc6`](https://github.com/jline/jline3/commit/a6176bc6d3493b8dac285a03c08a2932067ab0ca) Add Automatic Module Name, fixes #530
+* [`80265b47`](https://github.com/jline/jline3/commit/80265b4795c0b77ca3d0471ce03bcb965b9fb8be) Fixed javadoc warnings
+* [`3c83e59c`](https://github.com/jline/jline3/commit/3c83e59ce585a9f27fcd6c8eba5aad3aa1867f2e) Update README.md
+* [`48663a77`](https://github.com/jline/jline3/commit/48663a775427fdf9c5ca72647c7e801f761b17c9) Merge pull request #531 from mattirn/graalvm
+* [`875efcbd`](https://github.com/jline/jline3/commit/875efcbd0b2e404c89d8915539192a4d2111fb21) Appveyor: Bump maven to 3.3.9
+* [`1248c23c`](https://github.com/jline/jline3/commit/1248c23c81e5ca81fc0118a9d51dea7300dd6c0d) jline-groovy: improved object to string conversion
+* [`00a46ad8`](https://github.com/jline/jline3/commit/00a46ad80f2e467d5376ae93d04bea1578544364) Repl demo: added jline & groovy docs key bindings to F1 and F2
+* [`67409e60`](https://github.com/jline/jline3/commit/67409e60e6201e44730290de91210ba45a6b6201) prnt command: fixed list printing indention
+* [`b695c9b8`](https://github.com/jline/jline3/commit/b695c9b8bdb30ba4b82c5be049c8a36a12c76bb6) SystemRegistryImpl: fixed NPE
+* [`4b28a0a4`](https://github.com/jline/jline3/commit/4b28a0a4e7599e26011eda558a0bb3c9ad21dfbb) GraalVM: added graal command in build.config
+* [`1a9ee1ba`](https://github.com/jline/jline3/commit/1a9ee1baa8f90570855f0cf87f0b066acdae7dcf) SystemRegistryImpl: added method addCompleter()
+* [`81e38b94`](https://github.com/jline/jline3/commit/81e38b948f8fce71b9f572b9b7a4414c8d6d63d9) slurp command can now deserialize also string variable context
+* [`b0c272ea`](https://github.com/jline/jline3/commit/b0c272eaf71e1a2c9684b7f483383f22a1ffe0d3) Merge branch 'master' of https://github.com/jline/jline3.git
+* [`7333eeb9`](https://github.com/jline/jline3/commit/7333eeb9d02362bfb581dba0c12b313837803027) FileNameCompleter: fixed Windows file name highlighting
+* [`40900ef2`](https://github.com/jline/jline3/commit/40900ef27d9eecd461f04efdc2d3449f1776ed7b) GraalVM: added maven profile native-image
+* [`6643730f`](https://github.com/jline/jline3/commit/6643730fec60bd0866228652d4c8a99f5371f2dd) GraalVM: added catch Error in ttop and removed it from graal demo
+* [`0de635be`](https://github.com/jline/jline3/commit/0de635bedfccd025cc8634ebe890c4be1b4961e8) Support for cygwin recent versions, fix for #520
+* [`c5eca10d`](https://github.com/jline/jline3/commit/c5eca10d5f98788b795e33d82ec5817da1fd0f7a) GraalVM: fixed java.util.logging problem
+* [`39069251`](https://github.com/jline/jline3/commit/3906925164d08416daad564150b15937db4e46e1) GraalVM Support #381
+* [`496492e9`](https://github.com/jline/jline3/commit/496492e98ee210e5b94ed2be2730788ee24b63d9) Fixed repl demo shell help, step II
+* [`9613ec3b`](https://github.com/jline/jline3/commit/9613ec3bbc794696c1b5be3d16f1720207669d07) Widgets: executeWidget() restore old binding after runMacro()
+* [`bf7f1ad0`](https://github.com/jline/jline3/commit/bf7f1ad040d45936b1cc77452403a1e3e598c925) Fixed repl demo shell help & improved console command completers
+* [`8ff80c04`](https://github.com/jline/jline3/commit/8ff80c040b93aea9e5abc7bdbc408ac5aec839cf) TailTipWidget: highlight command main description if not highlighted
+* [`4341151f`](https://github.com/jline/jline3/commit/4341151f334615b28eeb939e26521a51526da633) JlineCommandRegistry: improved command completer compilation
+* [`bd35c22d`](https://github.com/jline/jline3/commit/bd35c22d07ee5ef000e01fabc633f3861ffa9836) Nano SyntaxHighlighter support also color codes 0-255
+* [`ba709739`](https://github.com/jline/jline3/commit/ba7097398f09778d8df8c305b0d8d1ce371cedb7) print map: check on maxrows & SystemRegistryImpl.invoke() fixed NPE
+* [`b7ae0ead`](https://github.com/jline/jline3/commit/b7ae0ead1059f9203e19296d5582285234a4ec80) Customizable colors for ls, help and prnt commands, fixes #525
+* [`5cf8f030`](https://github.com/jline/jline3/commit/5cf8f030ead139114f9dd4f6ac23121d09b1ce6a) prnt command: use StyleResolver to highlight output
+* [`d24883cd`](https://github.com/jline/jline3/commit/d24883cd999e0b2349beaee623b8436e13e2181f) prnt command: added valueStyle option
+* [`f1529980`](https://github.com/jline/jline3/commit/f1529980f8b2071959a1f0a21289dad831240d84) Merge pull request #527 from mattirn/groovy-commands
+* [`7f263440`](https://github.com/jline/jline3/commit/7f2634408f66fd7fe3802508fdb7a83f61bf9772) small improvements and bug fixes
+* [`b024288b`](https://github.com/jline/jline3/commit/b024288bdf324ef6c2df065d311083b3b38f01d0) ConsoleEngineImpl: added doc command
+* [`9cb2708a`](https://github.com/jline/jline3/commit/9cb2708a6e428cc6bc7f46f6ff5911604fdafa61) Repl demo: removed now obsolete SubCommands class example
+* [`8be9242b`](https://github.com/jline/jline3/commit/8be9242b77210cf226c9dd4cea3e2e557716fa85) GroovyCommand: added grap command
+* [`51b8bcf6`](https://github.com/jline/jline3/commit/51b8bcf67e5fa837861cb0f65d8bde7cdbdd38ed) Added javadocs in Printer and small fixes
+* [`43748c7a`](https://github.com/jline/jline3/commit/43748c7ad60f45b03a4b29ea40deb9e396d54680) GroovyCommand: added command console & inspect command option --gui
+* [`c1661890`](https://github.com/jline/jline3/commit/c166189033bfd1c9f597830e68078e139e4d6798) prnt command: improved Map collection value printing
+* [`070d32c5`](https://github.com/jline/jline3/commit/070d32c58774d1953db9f51fca351d55b867d6ec) REPL console: added Printer interface and a groovy command inspect
+* [`4179fbd9`](https://github.com/jline/jline3/commit/4179fbd9d1253b4a7c369dccf3dbe49b0705752c) Refactoring command registers, step III
+* [`5f6a1e67`](https://github.com/jline/jline3/commit/5f6a1e671c64c24f60b2ff632bc230437cade149) Refactoring command registers, step II
+* [`6dcb288d`](https://github.com/jline/jline3/commit/6dcb288d99b27500b219f36c092495ce84cce411) Refactoring command registers, step I
+* [`a88409ff`](https://github.com/jline/jline3/commit/a88409ff589551036b782b274a8ac44b55b094f7) Refactor: moved CommandRegistry to org.jline.console package
+* [`da71da6c`](https://github.com/jline/jline3/commit/da71da6c0283912ebdfbbd90ec2fd15de995fbcc) Refactor: added a new package org.jline.console
+* [`d53681a6`](https://github.com/jline/jline3/commit/d53681a621d5dbfd5a8617cf135859c00f0399c4) prnt command: added options include and exclude
+* [`0bd926dd`](https://github.com/jline/jline3/commit/0bd926dd3f86e476b85dbef71955a789e30b0315) prnt command: added options maxDepth and indention
+* [`4694f748`](https://github.com/jline/jline3/commit/4694f748136dac425b9e2ed3ae930bcf988d51b0) Repl demo: added trace script
+* [`e4c6f88c`](https://github.com/jline/jline3/commit/e4c6f88cf612d92ae2d61b701009c7bd2af8c8fb) SystemRegistryImpl: improved argument parsing
+* [`bf35624c`](https://github.com/jline/jline3/commit/bf35624c4cbe5ae6d85e7c96f0ee9c281713b883) Repl demo: intercept Control-C
+* [`d283a03d`](https://github.com/jline/jline3/commit/d283a03dee58b1fc729464f1d60b629b82f31851) TailTipWidgets: disabled command description cache as default +
+* [`f67c0731`](https://github.com/jline/jline3/commit/f67c0731f3138c01c31950f358ff726d9491f776) CommandRegistry: added method commandDescription(List<String> args)
+* [`90a67407`](https://github.com/jline/jline3/commit/90a67407d3b1ef5ba2160cda91a98114131539ea) Updated changelog
+* [`381e8cb7`](https://github.com/jline/jline3/commit/381e8cb73f7df7e07faedde2647771c42dc79fcb) Move the plugin to the management section
+
 ## [JLine 3.14.1][3_14_1]
 [3_14_1]: https://repo1.maven.org/maven2/org/jline/jline/3.14.1/
 
