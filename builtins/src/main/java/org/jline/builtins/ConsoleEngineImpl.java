@@ -1023,7 +1023,9 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
 
     private SyntaxHighlighter valueHighlighter(String style) {
         SyntaxHighlighter out;
-        if (style.matches("[a-z]+:.*")) {
+        if (style == null) {
+            out = null;
+        } else if (style.matches("[a-z]+:.*")) {
             out = SyntaxHighlighter.build(style);
         } else {
             Path nanorc = configPath != null ? configPath.getConfig("jnanorc") : null;
