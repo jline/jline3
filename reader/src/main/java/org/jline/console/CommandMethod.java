@@ -14,27 +14,27 @@ import java.util.function.Function;
 
 import org.jline.reader.Completer;
 
-public class CommandMethods {
-    Consumer<CommandInput> execute;
-    Function<CommandInput, Object> executeFunction;
+public class CommandMethod {
+    Function<CommandInput, ?> execute;
     Function<String, List<Completer>> compileCompleter;
 
-    public CommandMethods(Function<CommandInput, Object> execute,  Function<String, List<Completer>> compileCompleter) {
-        this.executeFunction = execute;
-        this.compileCompleter = compileCompleter;
-    }
-
-    public CommandMethods(Consumer<CommandInput> execute,  Function<String, List<Completer>> compileCompleter) {
+    public CommandMethod(Function<CommandInput, ?> execute, Function<String, List<Completer>> compileCompleter) {
         this.execute = execute;
         this.compileCompleter = compileCompleter;
     }
 
-    public Consumer<CommandInput> execute() {
-        return execute;
+    public CommandMethod(Consumer<CommandInput> execute, Function<String, List<Completer>> compileCompleter) {
+        this.execute = (CommandInput i) -> {
+            execute.accept(i);
+            return null;
+        };
+
+        this.compileCompleter = compileCompleter;
     }
 
-    public Function<CommandInput, Object> executeFunction() {
-        return executeFunction;
+
+    public Function<CommandInput, ?> execute() {
+        return execute;
     }
 
     public Function<String, List<Completer>> compileCompleter() {

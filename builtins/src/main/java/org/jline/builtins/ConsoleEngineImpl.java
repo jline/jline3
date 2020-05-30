@@ -31,7 +31,7 @@ import org.jline.builtins.Nano.SyntaxHighlighter;
 import org.jline.builtins.Options.HelpException;
 import org.jline.console.CmdDesc;
 import org.jline.console.CommandInput;
-import org.jline.console.CommandMethods;
+import org.jline.console.CommandMethod;
 import org.jline.console.CommandRegistry;
 import org.jline.console.ConfigurationPath;
 import org.jline.console.Printer;
@@ -105,7 +105,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         this.workDir = workDir;
         this.configPath = configPath;
         Map<Command,String> commandName = new HashMap<>();
-        Map<Command,CommandMethods> commandExecute = new HashMap<>();
+        Map<Command, CommandMethod> commandExecute = new HashMap<>();
         Set<Command> cmds = null;
         if (commands == null) {
             cmds = new HashSet<>(EnumSet.allOf(Command.class));
@@ -115,14 +115,14 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         for (Command c: cmds) {
             commandName.put(c, c.name().toLowerCase());
         }
-        commandExecute.put(Command.DEL, new CommandMethods(this::del, this::variableCompleter));
-        commandExecute.put(Command.SHOW, new CommandMethods(this::show, this::variableCompleter));
-        commandExecute.put(Command.PRNT, new CommandMethods(this::prnt, this::prntCompleter));
-        commandExecute.put(Command.SLURP, new CommandMethods(this::slurpcmd, this::slurpCompleter));
-        commandExecute.put(Command.ALIAS, new CommandMethods(this::aliascmd, this::aliasCompleter));
-        commandExecute.put(Command.UNALIAS, new CommandMethods(this::unalias, this::unaliasCompleter));
-        commandExecute.put(Command.DOC, new CommandMethods(this::doc, this::docCompleter));
-        commandExecute.put(Command.PIPE, new CommandMethods(this::pipe, this::defaultCompleter));
+        commandExecute.put(Command.DEL, new CommandMethod(this::del, this::variableCompleter));
+        commandExecute.put(Command.SHOW, new CommandMethod(this::show, this::variableCompleter));
+        commandExecute.put(Command.PRNT, new CommandMethod(this::prnt, this::prntCompleter));
+        commandExecute.put(Command.SLURP, new CommandMethod(this::slurpcmd, this::slurpCompleter));
+        commandExecute.put(Command.ALIAS, new CommandMethod(this::aliascmd, this::aliasCompleter));
+        commandExecute.put(Command.UNALIAS, new CommandMethod(this::unalias, this::unaliasCompleter));
+        commandExecute.put(Command.DOC, new CommandMethod(this::doc, this::docCompleter));
+        commandExecute.put(Command.PIPE, new CommandMethod(this::pipe, this::defaultCompleter));
         aliasFile = configPath.getUserConfig("aliases.json");
         if (aliasFile == null) {
             aliasFile = configPath.getUserConfig("aliases.json", true);
@@ -855,7 +855,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         exception = null;
         Object out = null;
         if (hasCommand(command)) {
-            out = getCommandMethods(command).executeFunction().apply(new CommandInput(command, args, session));
+            out = getCommandMethods(command).execute().apply(new CommandInput(command, args, session));
         } else {
             String[] _args = new String[args.length];
             for (int i = 0; i < args.length; i++) {

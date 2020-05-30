@@ -37,7 +37,7 @@ import org.jline.builtins.Widgets.TailTipWidgets.TipType;
 import org.jline.console.ArgDesc;
 import org.jline.console.CmdDesc;
 import org.jline.console.CommandInput;
-import org.jline.console.CommandMethods;
+import org.jline.console.CommandMethod;
 import org.jline.console.CommandRegistry;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
@@ -224,18 +224,18 @@ public class Example
         private AutosuggestionWidgets autosuggestionWidgets;
         private TailTipWidgets tailtipWidgets;
         private AutopairWidgets autopairWidgets;
-        private final Map<String,CommandMethods> commandExecute = new HashMap<>();
+        private final Map<String, CommandMethod> commandExecute = new HashMap<>();
         private final Map<String,List<String>> commandInfo = new HashMap<>();
         private Map<String,String> aliasCommand = new HashMap<>();
         private Exception exception;
 
         public ExampleCommands() {
-            commandExecute.put("tput", new CommandMethods(this::tput, this::tputCompleter));
-            commandExecute.put("testkey", new CommandMethods(this::testkey, this::defaultCompleter));
-            commandExecute.put("clear", new CommandMethods(this::clear, this::defaultCompleter));
-            commandExecute.put("sleep", new CommandMethods(this::sleep, this::defaultCompleter));
-            commandExecute.put("autopair", new CommandMethods(this::autopair, this::defaultCompleter));
-            commandExecute.put("autosuggestion", new CommandMethods(this::autosuggestion, this::autosuggestionCompleter));
+            commandExecute.put("tput", new CommandMethod(this::tput, this::tputCompleter));
+            commandExecute.put("testkey", new CommandMethod(this::testkey, this::defaultCompleter));
+            commandExecute.put("clear", new CommandMethod(this::clear, this::defaultCompleter));
+            commandExecute.put("sleep", new CommandMethod(this::sleep, this::defaultCompleter));
+            commandExecute.put("autopair", new CommandMethod(this::autopair, this::defaultCompleter));
+            commandExecute.put("autosuggestion", new CommandMethod(this::autosuggestion, this::autosuggestionCompleter));
 
             commandInfo.put("tput", Arrays.asList("set terminal capability"));
             commandInfo.put("testkey", Arrays.asList("display key events"));
@@ -304,7 +304,7 @@ public class Example
 
         public Object execute(CommandRegistry.CommandSession session, String command, String[] args) throws Exception {
             exception = null;
-            commandExecute.get(command(command)).execute().accept(new CommandInput(command, args, session));
+            commandExecute.get(command(command)).execute().apply(new CommandInput(command, args, session));
             if (exception != null) {
                 throw exception;
             }

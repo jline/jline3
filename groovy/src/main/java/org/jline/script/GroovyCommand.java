@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.jline.console.CommandInput;
-import org.jline.console.CommandMethods;
+import org.jline.console.CommandMethod;
 import org.jline.console.AbstractCommandRegistry;
 import org.jline.console.CmdDesc;
 import org.jline.console.CommandRegistry;
@@ -61,7 +61,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         }
         Set<Command> cmds = new HashSet<>();
         Map<Command,String> commandName = new HashMap<>();
-        Map<Command,CommandMethods> commandExecute = new HashMap<>();
+        Map<Command, CommandMethod> commandExecute = new HashMap<>();
         if (commands == null) {
             cmds = new HashSet<>(EnumSet.allOf(Command.class));
         } else {
@@ -76,9 +76,9 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         for (Command c: cmds) {
             commandName.put(c, c.name().toLowerCase());
         }
-        commandExecute.put(Command.INSPECT, new CommandMethods(this::inspect, this::inspectCompleter));
-        commandExecute.put(Command.CONSOLE, new CommandMethods(this::console, this::defaultCompleter));
-        commandExecute.put(Command.GRAB, new CommandMethods(this::grab, this::grabCompleter));
+        commandExecute.put(Command.INSPECT, new CommandMethod(this::inspect, this::inspectCompleter));
+        commandExecute.put(Command.CONSOLE, new CommandMethod(this::console, this::defaultCompleter));
+        commandExecute.put(Command.GRAB, new CommandMethod(this::grab, this::grabCompleter));
         registerCommands(commandName, commandExecute);
         commandDescs.put(Command.INSPECT, inspectCmdDesc());
         commandDescs.put(Command.CONSOLE, consoleCmdDesc());
