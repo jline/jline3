@@ -61,7 +61,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         }
         Set<Command> cmds = new HashSet<>();
         Map<Command,String> commandName = new HashMap<>();
-        Map<Command,CommandMethods> commandExecute = new HashMap<>();
+        Map<Command, CommandMethods> commandExecute = new HashMap<>();
         if (commands == null) {
             cmds = new HashSet<>(EnumSet.allOf(Command.class));
         } else {

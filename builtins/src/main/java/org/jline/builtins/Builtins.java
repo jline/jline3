@@ -62,7 +62,7 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
         this.workDir = workDir;
         Set<Command> cmds = new HashSet<>();
         Map<Command,String> commandName = new HashMap<>();
-        Map<Command,CommandMethods> commandExecute = new HashMap<>();
+        Map<Command, CommandMethods> commandExecute = new HashMap<>();
         if (commands == null) {
             cmds = new HashSet<>(EnumSet.allOf(Command.class));
         } else {

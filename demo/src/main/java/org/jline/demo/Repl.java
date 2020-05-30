@@ -64,7 +64,7 @@ public class Repl {
         public MyCommands(Supplier<Path> workDir) {
             super();
             this.workDir = workDir;
-            Map<String,CommandMethods> commandExecute = new HashMap<>();
+            Map<String, CommandMethods> commandExecute = new HashMap<>();
             commandExecute.put("tput", new CommandMethods(this::tput, this::tputCompleter));
             commandExecute.put("testkey", new CommandMethods(this::testkey, this::defaultCompleter));
             commandExecute.put("clear", new CommandMethods(this::clear, this::defaultCompleter));

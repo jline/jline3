@@ -21,7 +21,7 @@ import org.jline.utils.AttributedStringBuilder;
  *
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
-public abstract class AbstractCommandRegistry {
+public abstract class AbstractCommandRegistry implements CommandRegistry {
     private CmdRegistry cmdRegistry;
     private Exception exception;
 
@@ -43,7 +43,7 @@ public abstract class AbstractCommandRegistry {
         asb = new AttributedStringBuilder();
         asb.tabs(7);
         asb.append("Usage:");
-        for(AttributedString as : cmdDesc.getMainDesc()) {
+        for (AttributedString as : cmdDesc.getMainDesc()) {
             asb.append("\t");
             asb.append(as);
             mainDesc.add(asb.toAttributedString());
@@ -53,39 +53,20 @@ public abstract class AbstractCommandRegistry {
         return new CmdDesc(mainDesc, new ArrayList<>(), cmdDesc.getOptsDesc());
     }
 
-    public <T extends Enum<T>>  void registerCommands(Map<T,String> commandName, Map<T,CommandMethods> commandExecute) {
+    public <T extends Enum<T>> void registerCommands(Map<T, String> commandName, Map<T, CommandMethods> commandExecute) {
         cmdRegistry = new EnumCmdRegistry<T>(commandName, commandExecute);
     }
 
-    public void registerCommands(Map<String,CommandMethods> commandExecute) {
+    public void registerCommands(Map<String, CommandMethods> commandExecute) {
         cmdRegistry = new NameCmdRegistry(commandExecute);
     }
 
-    public Object execute(CommandRegistry.CommandSession session, String command, String[] args) throws Exception {
-        exception = null;
-        getCommandMethods(command).execute().accept(new CommandInput(command, args, session));
-        if (exception != null) {
-            throw exception;
-        }
-        return null;
-    }
-
+    @Override
     public Object invoke(CommandSession session, String command, Object... args) throws Exception {
         Object out = null;
         exception = null;
         CommandMethods methods = getCommandMethods(command);
-        if (methods.isConsumer()) {
-            String[] _args = new String[args.length];
-            for (int i = 0; i < args.length; i++) {
-                if (!(args[i] instanceof String)) {
-                    throw new IllegalArgumentException();
-                }
-                _args[i] = args[i].toString();
-            }
-            methods.execute().accept(new CommandInput(command, _args, session));
-        } else {
-            out = methods.executeFunction().apply(new CommandInput(command, args, session));
-        }
+        out = methods.execute().apply(new CommandInput(command, args, session));
         if (exception != null) {
             throw exception;
         }
@@ -96,14 +77,17 @@ public abstract class AbstractCommandRegistry {
         this.exception = exception;
     }
 
+    @Override
     public boolean hasCommand(String command) {
         return cmdRegistry.hasCommand(command);
     }
 
+    @Override
     public Set<String> commandNames() {
         return cmdRegistry.commandNames();
     }
 
+    @Override
     public Map<String, String> commandAliases() {
         return cmdRegistry.commandAliases();
     }
@@ -116,6 +100,7 @@ public abstract class AbstractCommandRegistry {
         cmdRegistry.alias(alias, command);
     }
 
+    @Override
     public SystemCompleter compileCompleters() {
         return cmdRegistry.compileCompleters();
     }
@@ -130,22 +115,29 @@ public abstract class AbstractCommandRegistry {
 
     private interface CmdRegistry {
         boolean hasCommand(String command);
+
         Set<String> commandNames();
+
         Map<String, String> commandAliases();
+
         Object command(String command);
+
         <V extends Enum<V>> void rename(V command, String newName);
+
         void alias(String alias, String command);
+
         SystemCompleter compileCompleters();
+
         CommandMethods getCommandMethods(String command);
     }
 
-    private static class  EnumCmdRegistry<T extends Enum<T>> implements CmdRegistry {
-        private Map<T,String> commandName;
-        private Map<String,T> nameCommand = new HashMap<>();
-        private Map<T,CommandMethods> commandExecute;
-        private Map<String,String> aliasCommand = new HashMap<>();
+    private static class EnumCmdRegistry<T extends Enum<T>> implements CmdRegistry {
+        private Map<T, String> commandName;
+        private Map<String, T> nameCommand = new HashMap<>();
+        private Map<T, CommandMethods> commandExecute;
+        private Map<String, String> aliasCommand = new HashMap<>();
 
-        public EnumCmdRegistry(Map<T,String> commandName, Map<T,CommandMethods> commandExecute) {
+        public EnumCmdRegistry(Map<T, String> commandName, Map<T, CommandMethods> commandExecute) {
             this.commandName = commandName;
             this.commandExecute = commandExecute;
             doNameCommand();
@@ -169,10 +161,10 @@ public abstract class AbstractCommandRegistry {
         public <V extends Enum<V>> void rename(V command, String newName) {
             if (nameCommand.containsKey(newName)) {
                 throw new IllegalArgumentException("Duplicate command name!");
-            } else if (!commandName.containsKey((T)command)) {
+            } else if (!commandName.containsKey((T) command)) {
                 throw new IllegalArgumentException("Command does not exists!");
             }
-            commandName.put((T)command, newName);
+            commandName.put((T) command, newName);
             doNameCommand();
         }
 
@@ -192,7 +184,7 @@ public abstract class AbstractCommandRegistry {
 
         public SystemCompleter compileCompleters() {
             SystemCompleter out = new SystemCompleter();
-            for (Map.Entry<T, String> entry: commandName.entrySet()) {
+            for (Map.Entry<T, String> entry : commandName.entrySet()) {
                 out.add(entry.getValue(), commandExecute.get(entry.getKey()).compileCompleter().apply(entry.getValue()));
             }
             out.addAliases(aliasCommand);
@@ -222,10 +214,10 @@ public abstract class AbstractCommandRegistry {
     }
 
     private static class NameCmdRegistry implements CmdRegistry {
-        private Map<String,CommandMethods> commandExecute;
-        private Map<String,String> aliasCommand = new HashMap<>();
+        private Map<String, CommandMethods> commandExecute;
+        private Map<String, String> aliasCommand = new HashMap<>();
 
-        public NameCmdRegistry(Map<String,CommandMethods> commandExecute) {
+        public NameCmdRegistry(Map<String, CommandMethods> commandExecute) {
             this.commandExecute = commandExecute;
         }
 
