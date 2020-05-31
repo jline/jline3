@@ -28,6 +28,7 @@ import org.jline.builtins.*;
 import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.console.impl.Builtins;
 import org.jline.console.impl.ConsoleEngineImpl;
+import org.jline.console.impl.DefaultPrinter;
 import org.jline.console.impl.SystemRegistryImpl;
 import org.jline.console.Widgets.TailTipWidgets;
 import org.jline.console.Widgets.TailTipWidgets.TipType;
@@ -268,6 +269,7 @@ public class Repl {
             scriptEngine.put("ROOT", root);
             ConfigurationPath configPath = new ConfigurationPath(Paths.get(root), Paths.get(root));
             ConsoleEngineImpl consoleEngine = new ConsoleEngineImpl(scriptEngine, Repl::workDir, configPath);
+            consoleEngine.setPrinter(new DefaultPrinter(scriptEngine, configPath));
             Builtins builtins = new Builtins(Repl::workDir, configPath,  (String fun)-> {return new ConsoleEngine.WidgetCreator(consoleEngine, fun);});
             MyCommands myCommands = new MyCommands(Repl::workDir);
             SystemRegistryImpl systemRegistry = new SystemRegistryImpl(parser, terminal, Repl::workDir, configPath);

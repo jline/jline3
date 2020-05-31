@@ -83,7 +83,6 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         super();
         this.engine = engine;
         this.workDir = workDir;
-        this.printer = new DefaultPrinter(engine, configPath);
         Map<Command,String> commandName = new HashMap<>();
         Map<Command,CommandMethods> commandExecute = new HashMap<>();
         Set<Command> cmds = null;
@@ -116,6 +115,11 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     @Override
     public void setLineReader(LineReader reader) {
         this.reader = reader;
+    }
+
+    @Override
+    public void setPrinter(Printer printer) {
+        this.printer = printer;
     }
 
     private Parser parser() {
