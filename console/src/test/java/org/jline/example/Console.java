@@ -233,6 +233,9 @@ public class Console
 
         private void autopair(CommandInput input) {
             try {
+                if (tailtipWidgets.isEnabled()) {
+                    tailtipWidgets.disable();
+                }
                 terminal().writer().print("Autopair widgets are ");
                 if (autopairWidgets.toggle()) {
                     terminal().writer().println("enabled.");
@@ -254,7 +257,7 @@ public class Console
                         autosuggestionWidgets.enable();
                     } else if (type.startsWith("tai")) {
                         autosuggestionWidgets.disable();
-                        tailtipWidgets.enable();
+                        autopairWidgets.disable();
                         if (argv.length > 1) {
                             String mode = argv[1].toLowerCase();
                             if (mode.startsWith("tai")) {
@@ -265,6 +268,7 @@ public class Console
                                 tailtipWidgets.setTipType(TipType.COMBINED);
                             }
                         }
+                        tailtipWidgets.enable();
                     } else if (type.startsWith("com")) {
                         autosuggestionWidgets.disable();
                         tailtipWidgets.disable();
@@ -402,7 +406,7 @@ public class Console
                     break;
                 }
                 catch (Exception e) {
-                    masterRegistry.trace(e);
+                    masterRegistry.trace(true, e);
                 }
             }
             masterRegistry.close();

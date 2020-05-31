@@ -382,19 +382,19 @@ public abstract class Widgets {
 
         public void enable() {
             if (!enabled) {
-                executeWidget(AP_TOGGLE);
+                toggle();
             }
         }
 
         public void disable() {
             if (enabled) {
-                executeWidget(AP_TOGGLE);
+                toggle();
             }
         }
 
         public boolean toggle() {
             boolean before = enabled;
-            executeWidget(AP_TOGGLE);
+            toggleKeyBindings();
             return !before;
         }
 
@@ -822,7 +822,7 @@ public abstract class Widgets {
 
         public void disable() {
             if (enabled) {
-                executeWidget(Widgets.TT_TOGGLE);
+                toggleKeyBindings();
             }
         }
 
@@ -1048,7 +1048,7 @@ public abstract class Widgets {
             } else {
                 destroyDescription();
             }
-            callWidget(LineReader.REDRAW_LINE);
+            executeWidget(LineReader.REDRAW_LINE);
             return true;
         }
 
@@ -1062,7 +1062,7 @@ public abstract class Widgets {
                     initDescription(descriptionSize);
                 }
             }
-            callWidget(LineReader.REDRAW_LINE);
+            executeWidget(LineReader.REDRAW_LINE);
             return enabled;
         }
 
