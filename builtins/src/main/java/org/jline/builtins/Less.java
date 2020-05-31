@@ -36,7 +36,6 @@ import org.jline.builtins.Nano.PatternHistory;
 import org.jline.builtins.Nano.SyntaxHighlighter;
 import org.jline.builtins.Source.ResourceSource;
 import org.jline.builtins.Source.URLSource;
-import org.jline.console.ConfigurationPath;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
 import org.jline.terminal.Attributes;

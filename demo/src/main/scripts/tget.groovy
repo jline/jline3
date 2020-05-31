@@ -51,7 +51,7 @@ class TerminalCapability {
 }
 
 def static main(def _args){
-    def terminal = org.jline.builtins.SystemRegistry.get().consoleEngine().reader.getTerminal()
+    def terminal = org.jline.console.SystemRegistry.get().consoleEngine().reader.getTerminal()
     def capability = new TerminalCapability(terminal)
     capability.get(_args)
 }

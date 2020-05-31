@@ -6,19 +6,28 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.builtins;
+package org.jline.console.impl;
 
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.jline.builtins.Commands;
+import org.jline.builtins.TTop;
 import org.jline.builtins.Completers.FilesCompleter;
 import org.jline.builtins.Completers.OptDesc;
 import org.jline.builtins.Completers.OptionCompleter;
-import org.jline.console.*;
-import org.jline.reader.*;
+import org.jline.builtins.ConfigurationPath;
+import org.jline.console.CommandInput;
+import org.jline.console.CommandMethods;
+import org.jline.console.CommandRegistry;
+import org.jline.console.JlineCommandRegistry;
+import org.jline.reader.Candidate;
+import org.jline.reader.Completer;
+import org.jline.reader.LineReader;
 import org.jline.reader.LineReader.Option;
+import org.jline.reader.Widget;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;

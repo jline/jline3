@@ -179,6 +179,12 @@
             </dependency>
 
             <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-console</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>org.fusesource.jansi</groupId>
                 <artifactId>jansi</artifactId>
                 <version>${jansi.version}</version>
@@ -592,8 +598,9 @@
         <module>terminal-jna</module>
         <module>terminal-jansi</module>
         <module>reader</module>
-        <module>groovy</module>
         <module>builtins</module>
+        <module>console</module>
+        <module>groovy</module>
         <module>remote-ssh</module>
         <module>remote-telnet</module>
         <module>style</module>

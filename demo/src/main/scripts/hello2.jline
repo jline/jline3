@@ -11,7 +11,7 @@ array.each {
     :prnt $ROOT
 }.identity{}
 
-_reader = org.jline.builtins.SystemRegistry.get().consoleEngine().reader
+_reader = org.jline.console.SystemRegistry.get().consoleEngine().reader
 prnt $_reader
 prnt --toString $_reader
 

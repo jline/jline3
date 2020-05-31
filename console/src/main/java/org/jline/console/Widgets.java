@@ -6,7 +6,7 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.builtins;
+package org.jline.console;
 
 import static org.jline.keymap.KeyMap.ctrl;
 import static org.jline.keymap.KeyMap.alt;
@@ -16,13 +16,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
 import org.jline.builtins.Options.HelpException;
-import org.jline.console.ArgDesc;
-import org.jline.console.CmdDesc;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
 import org.jline.reader.Buffer;
@@ -1130,7 +1127,7 @@ public abstract class Widgets {
                 mainDesc = new ArrayList<>();
                 StyleResolver resolver = HelpException.defaultStyle();
                 for (AttributedString as : cmdDesc.getMainDesc()) {
-                    mainDesc.add(HelpException.highlightSyntax(as.toString(), resolver));                    
+                    mainDesc.add(HelpException.highlightSyntax(as.toString(), resolver));
                 }
             }
             if (mainDesc.size() <= descriptionSize && lastArg == null) {
@@ -1391,11 +1388,11 @@ public abstract class Widgets {
              */
             COMMAND,
             /**
-             * The part of the line from beginning til cursor has unclosed opening parenthesis.
+             * The part of the line from beginning till cursor has unclosed opening parenthesis.
              */
             METHOD,
             /**
-             * The part of the line from beginning til cursor ends to the closing parenthesis.
+             * The part of the line from beginning till cursor ends to the closing parenthesis.
              */
             SYNTAX};
         private String line;
@@ -1407,7 +1404,7 @@ public abstract class Widgets {
         /**
          * CmdLine class constructor.
          * @param line     Command line
-         * @param head     Command line til cursor, method parameters and opening parenthesis before the cursor are removed.
+         * @param head     Command line till cursor, method parameters and opening parenthesis before the cursor are removed.
          * @param tail     Command line after cursor, method parameters and closing parenthesis after the cursor are removed.
          * @param args     Parsed command line arguments.
          * @param descType Request COMMAND, METHOD or SYNTAX description

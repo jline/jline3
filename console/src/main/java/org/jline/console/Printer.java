@@ -169,12 +169,13 @@ public interface Printer {
      */
     final static String OBJECT_TO_STRING = "objectToString";
 
+    final static List<String> BOOLEAN_KEYS = Arrays.asList(ALL, ONE_ROW_TABLE, ROWNUM, SHORT_NAMES, SKIP_DEFAULT_OPTIONS
+            , STRUCT_ON_TABLE, TO_STRING);
+
     default void println(Object object) {
         println(new HashMap<>(), object);
     }
 
-    final static List<String> BOOLEAN_KEYS = Arrays.asList(ALL, ONE_ROW_TABLE, ROWNUM, SHORT_NAMES, SKIP_DEFAULT_OPTIONS
-                                                         , STRUCT_ON_TABLE, TO_STRING);
-
     void println(Map<String,Object> options, Object object);
+
 }

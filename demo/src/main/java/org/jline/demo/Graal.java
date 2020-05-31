@@ -13,11 +13,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
-import org.jline.builtins.*;
-import org.jline.builtins.Builtins.Command;
-import org.jline.builtins.Widgets.TailTipWidgets;
-import org.jline.builtins.Widgets.TailTipWidgets.TipType;
-import org.jline.console.ConfigurationPath;
+import org.jline.console.impl.Builtins;
+import org.jline.console.impl.Builtins.Command;
+import org.jline.console.impl.SystemRegistryImpl;
+import org.jline.builtins.ConfigurationPath;
+import org.jline.console.Widgets.TailTipWidgets;
+import org.jline.console.Widgets.TailTipWidgets.TipType;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.LineReader.Option;
