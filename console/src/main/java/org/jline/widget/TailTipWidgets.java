@@ -401,7 +401,7 @@ public class TailTipWidgets extends Widgets {
         } else {
             destroyDescription();
         }
-        executeWidget(LineReader.REDRAW_LINE);
+        callWidget(LineReader.REDRAW_LINE);
         return true;
     }
 
@@ -415,7 +415,10 @@ public class TailTipWidgets extends Widgets {
                 initDescription(descriptionSize);
             }
         }
-        executeWidget(LineReader.REDRAW_LINE);
+        try {
+            callWidget(LineReader.REDRAW_LINE);
+        } catch (Exception e) {
+        }
         return enabled;
     }
 
