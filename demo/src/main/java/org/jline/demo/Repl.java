@@ -34,6 +34,7 @@ import org.jline.console.CommandInput;
 import org.jline.console.CommandMethods;
 import org.jline.console.CommandRegistry;
 import org.jline.console.ConsoleEngine;
+import org.jline.console.Printer;
 import org.jline.console.impl.JlineCommandRegistry;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
@@ -268,12 +269,14 @@ public class Repl {
             GroovyEngine scriptEngine = new GroovyEngine();
             scriptEngine.put("ROOT", root);
             ConfigurationPath configPath = new ConfigurationPath(Paths.get(root), Paths.get(root));
-            ConsoleEngineImpl consoleEngine = new ConsoleEngineImpl(scriptEngine, Repl::workDir, configPath);
-            consoleEngine.setPrinter(new DefaultPrinter(scriptEngine, configPath));
+            Printer printer = new DefaultPrinter(scriptEngine, configPath);
+            ConsoleEngineImpl consoleEngine = new ConsoleEngineImpl(scriptEngine
+                                                                  , printer
+                                                                  , Repl::workDir, configPath);
             Builtins builtins = new Builtins(Repl::workDir, configPath,  (String fun)-> {return new ConsoleEngine.WidgetCreator(consoleEngine, fun);});
             MyCommands myCommands = new MyCommands(Repl::workDir);
             SystemRegistryImpl systemRegistry = new SystemRegistryImpl(parser, terminal, Repl::workDir, configPath);
-            systemRegistry.register("groovy", new GroovyCommand(scriptEngine, consoleEngine));
+            systemRegistry.register("groovy", new GroovyCommand(scriptEngine, printer));
             systemRegistry.setCommandRegistries(consoleEngine, builtins, myCommands);
             //
             // LineReader

@@ -41,12 +41,6 @@ public interface ConsoleEngine extends CommandRegistry {
     void setLineReader(LineReader reader);
 
     /**
-     * Sets printer
-     * @param printer the printer
-     */
-    public void setPrinter(Printer printer);
-
-    /**
      * Sets systemRegistry
      * @param systemRegistry SystemRegistry
      */
@@ -201,13 +195,6 @@ public interface ConsoleEngine extends CommandRegistry {
      * @param object object to print
      */
     void println(Object object);
-
-    /**
-     * Print object.
-     * @param options println options
-     * @param object object to print
-     */
-    void println(Map<String, Object> options, Object object);
 
     /**
      * Create console variable

@@ -45,7 +45,7 @@ import org.jline.utils.AttributedStringBuilder;
  *
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
-public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEngine, Printer {
+public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEngine {
     public enum Command {SHOW
                        , DEL
                        , PRNT
@@ -72,17 +72,18 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     private boolean executing = false;
     private Printer printer;
 
-    public ConsoleEngineImpl(ScriptEngine engine
+    public ConsoleEngineImpl(ScriptEngine engine, Printer printer
             , Supplier<Path> workDir, ConfigurationPath configPath) throws IOException {
-        this(null, engine, workDir, configPath);
+        this(null, engine, printer, workDir, configPath);
     }
 
     @SuppressWarnings("unchecked")
-    public ConsoleEngineImpl(Set<Command> commands, ScriptEngine engine
+    public ConsoleEngineImpl(Set<Command> commands, ScriptEngine engine, Printer printer
                            , Supplier<Path> workDir, ConfigurationPath configPath) throws IOException {
         super();
         this.engine = engine;
         this.workDir = workDir;
+        this.printer = printer;
         Map<Command,String> commandName = new HashMap<>();
         Map<Command,CommandMethods> commandExecute = new HashMap<>();
         Set<Command> cmds = null;
@@ -96,7 +97,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         }
         commandExecute.put(Command.DEL, new CommandMethods(this::del, this::variableCompleter));
         commandExecute.put(Command.SHOW, new CommandMethods(this::show, this::variableCompleter));
-        commandExecute.put(Command.PRNT, new CommandMethods(this::prnt, this::prntCompleter));
+        commandExecute.put(Command.PRNT, new CommandMethods(this::prnt, printer::prntCompleter));
         commandExecute.put(Command.SLURP, new CommandMethods(this::slurpcmd, this::slurpCompleter));
         commandExecute.put(Command.ALIAS, new CommandMethods(this::aliascmd, this::aliasCompleter));
         commandExecute.put(Command.UNALIAS, new CommandMethods(this::unalias, this::unaliasCompleter));
@@ -115,11 +116,6 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     @Override
     public void setLineReader(LineReader reader) {
         this.reader = reader;
-    }
-
-    @Override
-    public void setPrinter(Printer printer) {
-        this.printer = printer;
     }
 
     private Parser parser() {
@@ -868,11 +864,6 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         printer.println(object);
     }
 
-    @Override
-    public void println(Map<String, Object> options, Object object) {
-        printer.println(options, object);
-    }
-
     private Object show(CommandInput input) {
         final String[] usage = {
                 "show -  list console variables",
@@ -883,7 +874,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             parseOptions(usage, input.args());
             Map<String, Object> options = new HashMap<>();
             options.put(Printer.MAX_DEPTH, 0);
-            println(options, engine.find(input.args().length > 0 ? input.args()[0] : null));
+            printer.println(options, engine.find(input.args().length > 0 ? input.args()[0] : null));
         } catch (Exception e) {
             exception = e;
         }
@@ -906,89 +897,9 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     }
 
     private Object prnt(CommandInput input) {
-        final String[] usage = {
-                "prnt -  print object",
-                "Usage: prnt [OPTIONS] object",
-                "  -? --help                       Displays command help",
-                "  -a --all                        Ignore columnsOut configuration",
-                "  -c --columns=COLUMNS,...        Display given columns on table",
-                "  -e --exclude=COLUMNS,...        Exclude given columns on table",
-                "  -i --include=COLUMNS,...        Include given columns on table",
-                "     --indention=IDENTION         Indention size",
-                "     --maxColumnWidth=WIDTH       Maximum column width",
-                "  -d --maxDepth=DEPTH             Maximum depth objects are resolved",
-                "     --maxrows=ROWS               Maximum number of lines to display",
-                "     --oneRowTable                Display one row data on table",
-                "  -r --rownum                     Display table row numbers",
-                "     --shortNames                 Truncate table column names (property.field -> field)",
-                "     --skipDefaultOptions         Ignore all options defined in PRNT_OPTIONS",
-                "     --structsOnTable             Display structs and lists on table",
-                "  -s --style=STYLE                Use nanorc STYLE",
-                "     --toString                   use object's toString() method to get print value",
-                "                                  DEFAULT: object's fields are put to property map before printing",
-                "     --valueStyle=STYLE           Use nanorc style to highlight column/map values",
-                "  -w --width=WIDTH                Display width (default terminal width)"
-        };
-        try {
-            Options opt = parseOptions(usage, input.xargs());
-            Map<String, Object> options = new HashMap<>();
-            if (opt.isSet(Printer.SKIP_DEFAULT_OPTIONS)) {
-                options.put(Printer.SKIP_DEFAULT_OPTIONS, true);
-            } else if (opt.isSet(Printer.STYLE)) {
-                options.put(Printer.STYLE, opt.get(Printer.STYLE));
-            }
-            if (opt.isSet(Printer.TO_STRING)) {
-                options.put(Printer.TO_STRING, true);
-            }
-            if (opt.isSet(Printer.WIDTH)) {
-                options.put(Printer.WIDTH, opt.getNumber(Printer.WIDTH));
-            }
-            if (opt.isSet(Printer.ROWNUM)) {
-                options.put(Printer.ROWNUM, true);
-            }
-            if (opt.isSet(Printer.ONE_ROW_TABLE)) {
-                options.put(Printer.ONE_ROW_TABLE, true);
-            }
-            if (opt.isSet(Printer.SHORT_NAMES)) {
-                options.put(Printer.SHORT_NAMES, true);
-            }
-            if (opt.isSet(Printer.STRUCT_ON_TABLE)) {
-                options.put(Printer.STRUCT_ON_TABLE, true);
-            }
-            if (opt.isSet(Printer.COLUMNS)) {
-                options.put(Printer.COLUMNS, Arrays.asList(opt.get(Printer.COLUMNS).split(",")));
-            }
-            if (opt.isSet(Printer.EXCLUDE)) {
-                options.put(Printer.EXCLUDE, Arrays.asList(opt.get(Printer.EXCLUDE).split(",")));
-            }
-            if (opt.isSet(Printer.INCLUDE)) {
-                options.put(Printer.INCLUDE, Arrays.asList(opt.get(Printer.INCLUDE).split(",")));
-            }
-            if (opt.isSet(Printer.ALL)) {
-                options.put(Printer.ALL, true);
-            }
-            if (opt.isSet(Printer.MAXROWS)) {
-                options.put(Printer.MAXROWS, opt.getNumber(Printer.MAXROWS));
-            }
-            if (opt.isSet(Printer.MAX_COLUMN_WIDTH)) {
-                options.put(Printer.MAX_COLUMN_WIDTH, opt.getNumber(Printer.MAX_COLUMN_WIDTH));
-            }
-            if (opt.isSet(Printer.MAX_DEPTH)) {
-                options.put(Printer.MAX_DEPTH, opt.getNumber(Printer.MAX_DEPTH));
-            }
-            if (opt.isSet(Printer.INDENTION)) {
-                options.put(Printer.INDENTION, opt.getNumber(Printer.INDENTION));
-            }
-            if (opt.isSet(Printer.VALUE_STYLE)) {
-                options.put(Printer.VALUE_STYLE, opt.get(Printer.VALUE_STYLE));
-            }
-            options.put("exception", "stack");
-            List<Object> args = opt.argObjects();
-            if (args.size() > 0) {
-                println(options, args.get(0));
-            }
-        } catch (Exception e) {
-            exception = e;
+        Exception result = printer.prntCommand(input);
+        if (result != null) {
+            exception = result;
         }
         return null;
     }
@@ -1117,7 +1028,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 }
             } else if (opt.isSet("list") || opt.args().size() == 0) {
                 options.put(Printer.MAX_DEPTH, 0);
-                println(options, pipes);
+                printer.println(options, pipes);
             } else if (opt.args().size() != 3) {
                 exception = new IllegalArgumentException("Bad number of arguments!");
             } else if (systemRegistry.getPipeNames().contains(opt.args().get(0))) {
@@ -1224,17 +1135,6 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             out.add("$" + v);
         }
         return out;
-    }
-
-    private List<Completer> prntCompleter(String command) {
-        List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                       , new OptionCompleter(Arrays.asList(new StringsCompleter(this::variableReferences)
-                                                         , NullCompleter.INSTANCE)
-                                           , this::commandOptions
-                                           , 1)
-                                    ));
-        return completers;
     }
 
     private static class AliasValueCompleter implements Completer {

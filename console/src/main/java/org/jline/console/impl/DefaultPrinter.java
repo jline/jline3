@@ -18,11 +18,17 @@ import java.util.stream.Collectors;
 import org.jline.builtins.ConfigurationPath;
 import org.jline.builtins.Options;
 import org.jline.builtins.Styles;
+import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.Nano.SyntaxHighlighter;
 import org.jline.console.CmdDesc;
+import org.jline.console.CommandInput;
 import org.jline.console.Printer;
 import org.jline.console.ScriptEngine;
 import org.jline.console.SystemRegistry;
+import org.jline.reader.Completer;
+import org.jline.reader.impl.completer.ArgumentCompleter;
+import org.jline.reader.impl.completer.NullCompleter;
+import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
@@ -35,7 +41,7 @@ import org.jline.utils.StyleResolver;
  *
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
-public class DefaultPrinter implements Printer {
+public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     private static final String VAR_PRNT_OPTIONS = "PRNT_OPTIONS";
     private static final String VAR_NANORC = "NANORC";
     private static final int PRNT_MAX_ROWS = 100000;
@@ -70,6 +76,116 @@ public class DefaultPrinter implements Printer {
         }
         manageBooleanOptions(options);
         internalPrintln(options, object);
+    }
+
+    @Override
+    public Exception prntCommand(CommandInput input) {
+        final String[] usage = {
+                "prnt -  print object",
+                "Usage: prnt [OPTIONS] object",
+                "  -? --help                       Displays command help",
+                "  -a --all                        Ignore columnsOut configuration",
+                "  -c --columns=COLUMNS,...        Display given columns on table",
+                "  -e --exclude=COLUMNS,...        Exclude given columns on table",
+                "  -i --include=COLUMNS,...        Include given columns on table",
+                "     --indention=IDENTION         Indention size",
+                "     --maxColumnWidth=WIDTH       Maximum column width",
+                "  -d --maxDepth=DEPTH             Maximum depth objects are resolved",
+                "     --maxrows=ROWS               Maximum number of lines to display",
+                "     --oneRowTable                Display one row data on table",
+                "  -r --rownum                     Display table row numbers",
+                "     --shortNames                 Truncate table column names (property.field -> field)",
+                "     --skipDefaultOptions         Ignore all options defined in PRNT_OPTIONS",
+                "     --structsOnTable             Display structs and lists on table",
+                "  -s --style=STYLE                Use nanorc STYLE",
+                "     --toString                   use object's toString() method to get print value",
+                "                                  DEFAULT: object's fields are put to property map before printing",
+                "     --valueStyle=STYLE           Use nanorc style to highlight column/map values",
+                "  -w --width=WIDTH                Display width (default terminal width)"
+        };
+        Exception out = null;
+        try {
+            Options opt = parseOptions(usage, input.xargs());
+            Map<String, Object> options = new HashMap<>();
+            if (opt.isSet(Printer.SKIP_DEFAULT_OPTIONS)) {
+                options.put(Printer.SKIP_DEFAULT_OPTIONS, true);
+            } else if (opt.isSet(Printer.STYLE)) {
+                options.put(Printer.STYLE, opt.get(Printer.STYLE));
+            }
+            if (opt.isSet(Printer.TO_STRING)) {
+                options.put(Printer.TO_STRING, true);
+            }
+            if (opt.isSet(Printer.WIDTH)) {
+                options.put(Printer.WIDTH, opt.getNumber(Printer.WIDTH));
+            }
+            if (opt.isSet(Printer.ROWNUM)) {
+                options.put(Printer.ROWNUM, true);
+            }
+            if (opt.isSet(Printer.ONE_ROW_TABLE)) {
+                options.put(Printer.ONE_ROW_TABLE, true);
+            }
+            if (opt.isSet(Printer.SHORT_NAMES)) {
+                options.put(Printer.SHORT_NAMES, true);
+            }
+            if (opt.isSet(Printer.STRUCT_ON_TABLE)) {
+                options.put(Printer.STRUCT_ON_TABLE, true);
+            }
+            if (opt.isSet(Printer.COLUMNS)) {
+                options.put(Printer.COLUMNS, Arrays.asList(opt.get(Printer.COLUMNS).split(",")));
+            }
+            if (opt.isSet(Printer.EXCLUDE)) {
+                options.put(Printer.EXCLUDE, Arrays.asList(opt.get(Printer.EXCLUDE).split(",")));
+            }
+            if (opt.isSet(Printer.INCLUDE)) {
+                options.put(Printer.INCLUDE, Arrays.asList(opt.get(Printer.INCLUDE).split(",")));
+            }
+            if (opt.isSet(Printer.ALL)) {
+                options.put(Printer.ALL, true);
+            }
+            if (opt.isSet(Printer.MAXROWS)) {
+                options.put(Printer.MAXROWS, opt.getNumber(Printer.MAXROWS));
+            }
+            if (opt.isSet(Printer.MAX_COLUMN_WIDTH)) {
+                options.put(Printer.MAX_COLUMN_WIDTH, opt.getNumber(Printer.MAX_COLUMN_WIDTH));
+            }
+            if (opt.isSet(Printer.MAX_DEPTH)) {
+                options.put(Printer.MAX_DEPTH, opt.getNumber(Printer.MAX_DEPTH));
+            }
+            if (opt.isSet(Printer.INDENTION)) {
+                options.put(Printer.INDENTION, opt.getNumber(Printer.INDENTION));
+            }
+            if (opt.isSet(Printer.VALUE_STYLE)) {
+                options.put(Printer.VALUE_STYLE, opt.get(Printer.VALUE_STYLE));
+            }
+            options.put("exception", "stack");
+            List<Object> args = opt.argObjects();
+            if (args.size() > 0) {
+                println(options, args.get(0));
+            }
+        } catch (Exception e) {
+            out = e;
+        }
+        return out;
+    }
+
+    private List<String> variableReferences() {
+        List<String> out = new ArrayList<>();
+        for (String v : engine.find().keySet()) {
+            out.add("$" + v);
+        }
+        return out;
+    }
+
+    @Override
+    public List<Completer> prntCompleter(String command) {
+        List<Completer> completers = new ArrayList<>();
+        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
+                       , new OptionCompleter(Arrays.asList(new StringsCompleter(this::variableReferences)
+                                                         , NullCompleter.INSTANCE)
+                                           , this::commandOptions
+                                           , 1)
+                                    ));
+        return completers;
     }
 
     /**
