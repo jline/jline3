@@ -17,8 +17,6 @@ import org.jline.console.impl.Builtins;
 import org.jline.console.impl.Builtins.Command;
 import org.jline.console.impl.SystemRegistryImpl;
 import org.jline.builtins.ConfigurationPath;
-import org.jline.console.Widgets.TailTipWidgets;
-import org.jline.console.Widgets.TailTipWidgets.TipType;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.LineReader.Option;
@@ -28,6 +26,8 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.Terminal.Signal;
 import org.jline.utils.OSUtils;
+import org.jline.widget.TailTipWidgets;
+import org.jline.widget.TailTipWidgets.TipType;
 
 public class Graal {
 

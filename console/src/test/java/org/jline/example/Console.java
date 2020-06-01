@@ -18,10 +18,10 @@ import org.jline.console.CmdDesc;
 import org.jline.console.CommandInput;
 import org.jline.console.CommandMethods;
 import org.jline.console.CommandRegistry;
-import org.jline.console.Widgets.AutopairWidgets;
-import org.jline.console.Widgets.AutosuggestionWidgets;
-import org.jline.console.Widgets.TailTipWidgets;
-import org.jline.console.Widgets.TailTipWidgets.TipType;
+import org.jline.widget.AutopairWidgets;
+import org.jline.widget.AutosuggestionWidgets;
+import org.jline.widget.TailTipWidgets;
+import org.jline.widget.TailTipWidgets.TipType;
 import org.jline.console.impl.Builtins;
 import org.jline.console.impl.SystemRegistryImpl;
 import org.jline.keymap.KeyMap;
@@ -37,7 +37,6 @@ import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.AttributedString;
-import org.jline.utils.InfoCmp;
 import org.jline.utils.InfoCmp.Capability;
 
 public class Console
@@ -93,17 +92,13 @@ public class Console
         private Exception exception;
 
         public ExampleCommands() {
-            commandExecute.put("tput", new CommandMethods(this::tput, this::tputCompleter));
             commandExecute.put("testkey", new CommandMethods(this::testkey, this::defaultCompleter));
             commandExecute.put("clear", new CommandMethods(this::clear, this::defaultCompleter));
-            commandExecute.put("sleep", new CommandMethods(this::sleep, this::defaultCompleter));
             commandExecute.put("autopair", new CommandMethods(this::autopair, this::defaultCompleter));
             commandExecute.put("autosuggestion", new CommandMethods(this::autosuggestion, this::autosuggestionCompleter));
 
-            commandInfo.put("tput", Arrays.asList("set terminal capability"));
             commandInfo.put("testkey", Arrays.asList("display key events"));
             commandInfo.put("clear", Arrays.asList("clear screen"));
-            commandInfo.put("sleep", Arrays.asList("sleep 3 seconds"));
             commandInfo.put("autopair", Arrays.asList("toggle brackets/quotes autopair key bindings"));
             commandInfo.put("autosuggestion", Arrays.asList("set autosuggestion modality: history, completer, tailtip or none"));
         }
@@ -179,24 +174,6 @@ public class Console
             return new CmdDesc(false);
         }
 
-        private void tput(CommandInput input) {
-            String[] argv = input.args();
-            try {
-                if (argv.length == 1 && !argv[0].equals("--help") && !argv[0].equals("-?")) {
-                    Capability vcap = Capability.byName(argv[0]);
-                    if (vcap != null) {
-                        terminal().puts(vcap);
-                    } else {
-                        terminal().writer().println("Unknown capability");
-                    }
-                } else {
-                    terminal().writer().println("Usage: tput <capability>");
-                }
-            } catch (Exception e) {
-                exception = e;
-            }
-        }
-
         private void testkey(CommandInput input) {
             try {
                 terminal().writer().write("Input the key event(Enter to complete): ");
@@ -218,14 +195,6 @@ public class Console
             try {
                 terminal().puts(Capability.clear_screen);
                 terminal().flush();
-            } catch (Exception e) {
-                exception = e;
-            }
-        }
-
-        private void sleep(CommandInput input) {
-            try {
-                Thread.sleep(3000);
             } catch (Exception e) {
                 exception = e;
             }
@@ -294,16 +263,6 @@ public class Console
 
         private List<Completer> defaultCompleter(String command) {
             return Arrays.asList(NullCompleter.INSTANCE);
-        }
-
-        private Set<String> capabilities() {
-            return InfoCmp.getCapabilitiesByName().keySet();
-        }
-
-        private List<Completer> tputCompleter(String command) {
-            return Arrays.asList(new ArgumentCompleter(NullCompleter.INSTANCE
-                                                     , new StringsCompleter(this::capabilities)
-                                                   ));
         }
 
         private List<Completer> autosuggestionCompleter(String command) {

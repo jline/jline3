@@ -334,7 +334,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     @Override
-    public CmdDesc commandDescription(Widgets.CmdLine line) {
+    public CmdDesc commandDescription(CmdLine line) {
         CmdDesc out = null;
         switch (line.getDescriptionType()) {
         case COMMAND:

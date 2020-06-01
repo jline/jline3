@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.jline.builtins.ConsoleOptionGetter;
-import org.jline.console.Widgets;
+import org.jline.console.CmdLine;
 import org.jline.reader.Completer;
 import org.jline.terminal.Terminal;
 
@@ -62,7 +62,7 @@ public interface SystemRegistry extends CommandRegistry, ConsoleOptionGetter {
      * @return command description for JLine TailTipWidgets to be displayed
      *         in the terminal status bar.
      */
-    CmdDesc commandDescription(Widgets.CmdLine line);
+    CmdDesc commandDescription(CmdLine line);
 
    /**
      * Execute a command, script or evaluate scriptEngine statement

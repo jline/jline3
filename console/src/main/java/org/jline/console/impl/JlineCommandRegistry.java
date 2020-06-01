@@ -6,7 +6,7 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.console;
+package org.jline.console.impl;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -18,6 +18,9 @@ import org.jline.builtins.Completers.AnyCompleter;
 import org.jline.builtins.Completers.OptDesc;
 import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.Options.HelpException;
+import org.jline.console.ArgDesc;
+import org.jline.console.CmdDesc;
+import org.jline.console.CommandRegistry;
 import org.jline.console.CommandRegistry.CommandSession;
 import org.jline.reader.Completer;
 import org.jline.reader.impl.completer.ArgumentCompleter;

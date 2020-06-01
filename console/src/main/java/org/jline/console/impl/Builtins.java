@@ -22,7 +22,6 @@ import org.jline.builtins.ConfigurationPath;
 import org.jline.console.CommandInput;
 import org.jline.console.CommandMethods;
 import org.jline.console.CommandRegistry;
-import org.jline.console.JlineCommandRegistry;
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
 import org.jline.reader.LineReader;

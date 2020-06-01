@@ -30,13 +30,11 @@ import org.jline.console.impl.Builtins;
 import org.jline.console.impl.ConsoleEngineImpl;
 import org.jline.console.impl.DefaultPrinter;
 import org.jline.console.impl.SystemRegistryImpl;
-import org.jline.console.Widgets.TailTipWidgets;
-import org.jline.console.Widgets.TailTipWidgets.TipType;
 import org.jline.console.CommandInput;
 import org.jline.console.CommandMethods;
 import org.jline.console.CommandRegistry;
 import org.jline.console.ConsoleEngine;
-import org.jline.console.JlineCommandRegistry;
+import org.jline.console.impl.JlineCommandRegistry;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.LineReader.Option;
@@ -54,6 +52,8 @@ import org.jline.terminal.Terminal.Signal;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.OSUtils;
+import org.jline.widget.TailTipWidgets;
+import org.jline.widget.TailTipWidgets.TipType;
 
 /**
  * Demo how to create REPL app with JLine.

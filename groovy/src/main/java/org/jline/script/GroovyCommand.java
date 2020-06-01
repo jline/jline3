@@ -18,7 +18,7 @@ import java.util.Set;
 
 import org.jline.console.CommandInput;
 import org.jline.console.CommandMethods;
-import org.jline.console.AbstractCommandRegistry;
+import org.jline.console.impl.AbstractCommandRegistry;
 import org.jline.console.CmdDesc;
 import org.jline.console.CommandRegistry;
 import org.jline.console.Printer;
