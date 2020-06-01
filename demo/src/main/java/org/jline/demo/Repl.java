@@ -29,7 +29,7 @@ import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.Widgets.TailTipWidgets;
 import org.jline.builtins.Widgets.TailTipWidgets.TipType;
 import org.jline.console.CommandInput;
-import org.jline.console.CommandMethod;
+import org.jline.console.CommandMethods;
 import org.jline.console.CommandRegistry;
 import org.jline.console.ConfigurationPath;
 import org.jline.keymap.KeyMap;
@@ -64,12 +64,12 @@ public class Repl {
         public MyCommands(Supplier<Path> workDir) {
             super();
             this.workDir = workDir;
-            Map<String, CommandMethod> commandExecute = new HashMap<>();
-            commandExecute.put("tput", new CommandMethod(this::tput, this::tputCompleter));
-            commandExecute.put("testkey", new CommandMethod(this::testkey, this::defaultCompleter));
-            commandExecute.put("clear", new CommandMethod(this::clear, this::defaultCompleter));
-            commandExecute.put("!", new CommandMethod(this::shell, this::defaultCompleter));
-            commandExecute.put("objarg", new CommandMethod(this::objarg, this::defaultCompleter));
+            Map<String, CommandMethods> commandExecute = new HashMap<>();
+            commandExecute.put("tput", new CommandMethods(this::tput, this::tputCompleter));
+            commandExecute.put("testkey", new CommandMethods(this::testkey, this::defaultCompleter));
+            commandExecute.put("clear", new CommandMethods(this::clear, this::defaultCompleter));
+            commandExecute.put("!", new CommandMethods(this::shell, this::defaultCompleter));
+            commandExecute.put("objarg", new CommandMethods(this::objarg, this::defaultCompleter));
             registerCommands(commandExecute);
         }
 
