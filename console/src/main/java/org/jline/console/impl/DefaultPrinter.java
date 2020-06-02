@@ -58,6 +58,10 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     private ConfigurationPath configPath;
     private StyleResolver prntStyle;
 
+    public DefaultPrinter(ConfigurationPath configPath) {
+        this(null, configPath);
+    }
+
     public DefaultPrinter(ScriptEngine engine, ConfigurationPath configPath) {
         this.engine = engine;
         this.configPath = configPath;
@@ -69,7 +73,9 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     }
 
     @Override
-    public void println(Map<String, Object> options, Object object) {
+    public void println(Map<String, Object> optionsIn, Object object) {
+        Map<String, Object> options = new HashMap<>();
+        options.putAll(optionsIn);
         for (Map.Entry<String, Object> entry
                 : defaultPrntOptions(options.containsKey(Printer.SKIP_DEFAULT_OPTIONS)).entrySet()) {
             options.putIfAbsent(entry.getKey(), entry.getValue());
@@ -170,8 +176,10 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
 
     private List<String> variableReferences() {
         List<String> out = new ArrayList<>();
-        for (String v : engine.find().keySet()) {
-            out.add("$" + v);
+        if (engine != null) {
+            for (String v : engine.find().keySet()) {
+                out.add("$" + v);
+            }
         }
         return out;
     }
@@ -230,7 +238,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     @SuppressWarnings("unchecked")
     private Map<String,Object> defaultPrntOptions(boolean skipDefault) {
         Map<String, Object> out = new HashMap<>();
-        if (!skipDefault && engine.hasVariable(VAR_PRNT_OPTIONS)) {
+        if (engine != null && !skipDefault && engine.hasVariable(VAR_PRNT_OPTIONS)) {
             out.putAll((Map<String,Object>)engine.get(VAR_PRNT_OPTIONS));
             out.remove(Printer.SKIP_DEFAULT_OPTIONS);
             manageBooleanOptions(out);
@@ -240,6 +248,11 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         out.putIfAbsent(Printer.INDENTION, PRNT_INDENTION);
         out.putIfAbsent(Printer.COLUMNS_OUT, new ArrayList<String>());
         out.putIfAbsent(Printer.COLUMNS_IN, new ArrayList<String>());
+        if (engine == null) {
+            out.remove(Printer.OBJECT_TO_MAP);
+            out.remove(Printer.OBJECT_TO_STRING);
+            out.remove(Printer.HIGHLIGHT_VALUE);
+        }
         return out;
     }
 
@@ -273,6 +286,9 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         if (!style.isEmpty() && object instanceof String) {
             highlightAndPrint(width, style, (String) object);
         } else if (style.equalsIgnoreCase("JSON")) {
+            if (engine == null) {
+                throw new IllegalArgumentException("JSON style not supported!");
+            }
             highlightAndPrint(width, style, engine.toJson(object));
         } else if (options.containsKey(Printer.SKIP_DEFAULT_OPTIONS)) {
             highlightAndPrint(options, object);
@@ -325,7 +341,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
             out = SyntaxHighlighter.build(style);
         } else {
             Path nanorc = configPath != null ? configPath.getConfig("jnanorc") : null;
-            if (engine.hasVariable(VAR_NANORC)) {
+            if (engine != null && engine.hasVariable(VAR_NANORC)) {
                 nanorc = Paths.get((String)engine.get(VAR_NANORC));
             }
             if (nanorc == null) {
@@ -487,19 +503,24 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
 
     @SuppressWarnings("unchecked")
     private String objectToString(Map<String, Object> options, Object obj) {
+        String out = "null";
         if (obj != null) {
             Map<Class<?>, Object> toString = options.containsKey(Printer.OBJECT_TO_STRING)
                                                 ? (Map<Class<?>, Object>)options.get(Printer.OBJECT_TO_STRING)
                                                 : new HashMap<>();
             if (toString.containsKey(obj.getClass())) {
-                return (String) engine.execute(toString.get(obj.getClass()), obj);
+                out = (String) engine.execute(toString.get(obj.getClass()), obj);
             } else if (objectToString.containsKey(obj.getClass())) {
-                return objectToString.get(obj.getClass()).apply(obj);
+                out = objectToString.get(obj.getClass()).apply(obj);
             } else if (obj instanceof Class) {
-                return ((Class<?>) obj).getName();
+                out = ((Class<?>) obj).getName();
+            } else if (engine != null) {
+                out = engine.toString(obj);
+            } else {
+                out = obj.toString();
             }
         }
-        return engine.toString(obj);
+        return out;
     }
 
     private AttributedString highlightMapValue(Map<String, Object> options, String key, Map<String, Object> map) {
@@ -774,7 +795,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                             for (Object o : collection) {
                                 List<Object> inner = objectToList(o);
                                 for (int i = 0; i < inner.size(); i++) {
-                                    int len1 = engine.toString(inner.get(i)).length() + 1;
+                                    int len1 = objectToString(options, inner.get(i)).length() + 1;
                                     if (columns.size() <= i) {
                                         columns.add(len1);
                                     } else if (len1 > columns.get(i)) {
@@ -868,7 +889,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     }
 
     private boolean canConvert(Object obj) {
-        if (obj == null || obj instanceof Class || obj instanceof Map ||  simpleObject(obj) || collectionObject(obj)) {
+        if (engine == null || obj == null || obj instanceof Class || obj instanceof Map ||  simpleObject(obj) || collectionObject(obj)) {
             return false;
         }
         return true;

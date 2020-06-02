@@ -1334,7 +1334,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     private String doCommandInfo(List<String> info) {
-        return info.size() > 0 ? info.get(0) : " ";
+        return info != null && info.size() > 0 ? info.get(0) : " ";
     }
 
     private boolean isInTopics(List<String> args, String name) {

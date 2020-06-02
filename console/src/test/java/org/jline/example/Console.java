@@ -18,11 +18,13 @@ import org.jline.console.CmdDesc;
 import org.jline.console.CommandInput;
 import org.jline.console.CommandMethods;
 import org.jline.console.CommandRegistry;
+import org.jline.console.Printer;
 import org.jline.widget.AutopairWidgets;
 import org.jline.widget.AutosuggestionWidgets;
 import org.jline.widget.TailTipWidgets;
 import org.jline.widget.TailTipWidgets.TipType;
 import org.jline.console.impl.Builtins;
+import org.jline.console.impl.DefaultPrinter;
 import org.jline.console.impl.SystemRegistryImpl;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
@@ -90,8 +92,11 @@ public class Console
         private final Map<String,List<String>> commandInfo = new HashMap<>();
         private Map<String,String> aliasCommand = new HashMap<>();
         private Exception exception;
+        private Printer printer;
 
-        public ExampleCommands() {
+        public ExampleCommands(Printer printer) {
+            this.printer = printer;
+            commandExecute.put("testprint", new CommandMethods(this::testprint, this::defaultCompleter));
             commandExecute.put("testkey", new CommandMethods(this::testkey, this::defaultCompleter));
             commandExecute.put("clear", new CommandMethods(this::clear, this::defaultCompleter));
             commandExecute.put("autopair", new CommandMethods(this::autopair, this::defaultCompleter));
@@ -172,6 +177,34 @@ public class Console
         public CmdDesc commandDescription(String command) {
             // TODO
             return new CmdDesc(false);
+        }
+
+        private Map<String,Object> fillMap(String name, Integer age, String country, String town) {
+            Map<String,Object> out = new HashMap<>();
+            Map<String,String> address = new HashMap<>();
+            address.put("country", country);
+            address.put("town", town);
+            out.put("name", name);
+            out.put("age", age);
+            out.put("address", address);
+            return out;
+        }
+
+        private void testprint(CommandInput input) {
+            List<Map<String,Object>> data = new ArrayList<>();
+            data.add(fillMap("heikki", 10, "finland", "helsinki"));
+            data.add(fillMap("pietro", 11, "italy", "milano"));
+            data.add(fillMap("john", 12, "england", "london"));
+            printer.println(data);
+            Map<String,Object> options = new HashMap<>();
+            options.put(Printer.STRUCT_ON_TABLE, true);
+            options.put(Printer.VALUE_STYLE, "classpath:/org/jline/example/gron.nanorc");
+            printer.println(options,data);
+            options.clear();
+            options.put(Printer.COLUMNS, Arrays.asList("name", "age", "address.country", "address.town"));
+            options.put(Printer.SHORT_NAMES, true);
+            options.put(Printer.VALUE_STYLE, "classpath:/org/jline/example/gron.nanorc");
+            printer.println(options,data);
         }
 
         private void testkey(CommandInput input) {
@@ -313,7 +346,8 @@ public class Console
             builtins.rename(Builtins.Command.TTOP, "top");
             builtins.alias("zle", "widget");
             builtins.alias("bindkey", "keymap");
-            ExampleCommands exampleCommands = new ExampleCommands();
+            DefaultPrinter printer = new DefaultPrinter(null);
+            ExampleCommands exampleCommands = new ExampleCommands(printer);
             SystemRegistryImpl masterRegistry = new SystemRegistryImpl(parser, terminal, Console::workDir, null);
             masterRegistry.setCommandRegistries(exampleCommands, builtins);
             masterRegistry.addCompleter(completer);
