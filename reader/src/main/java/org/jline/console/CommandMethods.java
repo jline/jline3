@@ -14,16 +14,16 @@ import java.util.function.Function;
 
 import org.jline.reader.Completer;
 
-public class CommandMethod {
+public class CommandMethods {
     Function<CommandInput, ?> execute;
     Function<String, List<Completer>> compileCompleter;
 
-    public CommandMethod(Function<CommandInput, ?> execute, Function<String, List<Completer>> compileCompleter) {
+    public CommandMethods(Function<CommandInput, ?> execute, Function<String, List<Completer>> compileCompleter) {
         this.execute = execute;
         this.compileCompleter = compileCompleter;
     }
 
-    public CommandMethod(Consumer<CommandInput> execute, Function<String, List<Completer>> compileCompleter) {
+    public CommandMethods(Consumer<CommandInput> execute, Function<String, List<Completer>> compileCompleter) {
         this.execute = (CommandInput i) -> {
             execute.accept(i);
             return null;
@@ -39,10 +39,6 @@ public class CommandMethod {
 
     public Function<String, List<Completer>> compileCompleter() {
         return compileCompleter;
-    }
-
-    public boolean isConsumer() {
-        return execute != null;
     }
 
 }

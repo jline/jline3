@@ -105,7 +105,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         this.workDir = workDir;
         this.configPath = configPath;
         Map<Command,String> commandName = new HashMap<>();
-        Map<Command, CommandMethod> commandExecute = new HashMap<>();
+        Map<Command, CommandMethods> commandExecute = new HashMap<>();
         Set<Command> cmds = null;
         if (commands == null) {
             cmds = new HashSet<>(EnumSet.allOf(Command.class));
@@ -579,7 +579,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                                 asb.toAttributedString().println(terminal());
                                 terminal().flush();
                             }
-                            println(systemRegistry.execute(line));
+                            println(systemRegistry.invoke(line));
                             line = "";
                         } catch (EOFError e) {
                             done = false;

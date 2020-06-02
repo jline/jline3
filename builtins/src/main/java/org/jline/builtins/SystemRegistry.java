@@ -64,14 +64,6 @@ public interface SystemRegistry extends CommandRegistry {
      */
     CmdDesc commandDescription(Widgets.CmdLine line);
 
-   /**
-     * Execute a command, script or evaluate scriptEngine statement
-     * @param line command line to be executed
-     * @return execution result
-     * @throws Exception in case of error
-     */
-    Object execute(String line) throws Exception;
-
     /**
      * Delete temporary console variables and reset output streams
      */
@@ -101,15 +93,6 @@ public interface SystemRegistry extends CommandRegistry {
      * @return terminal
      */
     Terminal terminal();
-
-    /**
-     * Execute command with arguments
-     * @param command command to be executed
-     * @param args arguments of the command
-     * @return command execution result
-     * @throws Exception in case of error
-     */
-    Object execute(String command, String[] args) throws Exception;
 
     /**
      * Execute command with arguments

@@ -10,6 +10,7 @@ package org.jline.example;
 
 import static java.time.temporal.ChronoField.HOUR_OF_DAY;
 import static java.time.temporal.ChronoField.MINUTE_OF_HOUR;
+
 import static org.jline.builtins.Completers.TreeCompleter.node;
 
 import java.io.FileNotFoundException;
@@ -62,54 +63,53 @@ import org.jline.utils.InfoCmp;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.Status;
 
-public class Example
-{
+public class Example {
     public static void usage() {
         String[] usage = {
                 "Usage: java " + Example.class.getName() + " [cases... [trigger mask]]"
-              , "  Terminal:"
-              , "    -system          terminalBuilder.system(false)"
-              , "    +system          terminalBuilder.system(true)"
-              , "  Completors:"
-              , "    argument         an argument completor & autosuggestion"
-              , "    files            a completor that completes file names"
-              , "    none             no completors"
-              , "    param            a paramenter completer using Java functional interface"
-              , "    regexp           a regex completer"
-              , "    simple           a string completor that completes \"foo\", \"bar\" and \"baz\""
-              , "    tree             a tree completer"
-              , "  Multiline:"
-              , "    brackets         eof on unclosed bracket"
-              , "    quotes           eof on unclosed quotes"
-              , "  Mouse:"
-              , "    mouse            enable mouse"
-              , "    mousetrack       enable tracking mouse"
-              , "  Miscellaneous:"
-              , "    color            colored left and right prompts"
-              , "    status           multi-thread test of jline status line"
-              , "    timer            widget 'Hello world'"
-              , "    <trigger> <mask> password mask"
-              , "  Example:"
-              , "    java " + Example.class.getName() + " simple su '*'"};
-        for (String u: usage) {
+                , "  Terminal:"
+                , "    -system          terminalBuilder.system(false)"
+                , "    +system          terminalBuilder.system(true)"
+                , "  Completors:"
+                , "    argument         an argument completor & autosuggestion"
+                , "    files            a completor that completes file names"
+                , "    none             no completors"
+                , "    param            a paramenter completer using Java functional interface"
+                , "    regexp           a regex completer"
+                , "    simple           a string completor that completes \"foo\", \"bar\" and \"baz\""
+                , "    tree             a tree completer"
+                , "  Multiline:"
+                , "    brackets         eof on unclosed bracket"
+                , "    quotes           eof on unclosed quotes"
+                , "  Mouse:"
+                , "    mouse            enable mouse"
+                , "    mousetrack       enable tracking mouse"
+                , "  Miscellaneous:"
+                , "    color            colored left and right prompts"
+                , "    status           multi-thread test of jline status line"
+                , "    timer            widget 'Hello world'"
+                , "    <trigger> <mask> password mask"
+                , "  Example:"
+                , "    java " + Example.class.getName() + " simple su '*'"};
+        for (String u : usage) {
             System.out.println(u);
         }
     }
 
-    private static Map<String,CmdDesc> compileTailTips() {
+    private static Map<String, CmdDesc> compileTailTips() {
         Map<String, CmdDesc> tailTips = new HashMap<>();
         Map<String, List<AttributedString>> optDesc = new HashMap<>();
         optDesc.put("--optionA", Arrays.asList(new AttributedString("optionA description...")));
         optDesc.put("--noitpoB", Arrays.asList(new AttributedString("noitpoB description...")));
         optDesc.put("--optionC", Arrays.asList(new AttributedString("optionC description...")
-                                             , new AttributedString("line2")));
+                , new AttributedString("line2")));
         Map<String, List<AttributedString>> widgetOpts = new HashMap<>();
         List<AttributedString> mainDesc = Arrays.asList(new AttributedString("widget -N new-widget [function-name]")
-                                        , new AttributedString("widget -D widget ...")
-                                        , new AttributedString("widget -A old-widget new-widget")
-                                        , new AttributedString("widget -U string ...")
-                                        , new AttributedString("widget -l [options]")
-                       );
+                , new AttributedString("widget -D widget ...")
+                , new AttributedString("widget -A old-widget new-widget")
+                , new AttributedString("widget -U string ...")
+                , new AttributedString("widget -l [options]")
+        );
         widgetOpts.put("-N", Arrays.asList(new AttributedString("Create new widget")));
         widgetOpts.put("-D", Arrays.asList(new AttributedString("Delete widgets")));
         widgetOpts.put("-A", Arrays.asList(new AttributedString("Create alias to widget")));
@@ -119,19 +119,19 @@ public class Example
         tailTips.put("widget", new CmdDesc(mainDesc, ArgDesc.doArgNames(Arrays.asList("[pN...]")), widgetOpts));
         tailTips.put("foo12", new CmdDesc(ArgDesc.doArgNames(Arrays.asList("param1", "param2", "[paramN...]"))));
         tailTips.put("foo11", new CmdDesc(Arrays.asList(
-                new ArgDesc("param1",Arrays.asList(new AttributedString("Param1 description...")
-                                                , new AttributedString("line 2: This is a very long line that does exceed the terminal width."
-                                                      +" The line will be truncated automatically (by Status class) before printing out.")
-                                                , new AttributedString("line 3")
-                                                , new AttributedString("line 4")
-                                                , new AttributedString("line 5")
-                                                , new AttributedString("line 6")
-                                                  ))
-              , new ArgDesc("param2",Arrays.asList(new AttributedString("Param2 description...")
-                                                , new AttributedString("line 2")
-                                                  ))
-              , new ArgDesc("param3", new ArrayList<>())
-              ), optDesc));
+                new ArgDesc("param1", Arrays.asList(new AttributedString("Param1 description...")
+                        , new AttributedString("line 2: This is a very long line that does exceed the terminal width."
+                                + " The line will be truncated automatically (by Status class) before printing out.")
+                        , new AttributedString("line 3")
+                        , new AttributedString("line 4")
+                        , new AttributedString("line 5")
+                        , new AttributedString("line 6")
+                ))
+                , new ArgDesc("param2", Arrays.asList(new AttributedString("Param2 description...")
+                        , new AttributedString("line 2")
+                ))
+                , new ArgDesc("param3", new ArrayList<>())
+        ), optDesc));
         return tailTips;
     }
 
@@ -156,8 +156,8 @@ public class Example
                 asb.append(r.getClass().getSimpleName());
                 asb.append(":");
                 System.out.println(asb.toString());
-                for (String c: commands) {
-                    asb = new AttributedStringBuilder().tabs(Arrays.asList(4,20));
+                for (String c : commands) {
+                    asb = new AttributedStringBuilder().tabs(Arrays.asList(4, 20));
                     asb.append("\t");
                     asb.append(c);
                     asb.append("\t");
@@ -172,29 +172,29 @@ public class Example
         public CmdDesc commandDescription(CmdLine line) {
             CmdDesc out = null;
             switch (line.getDescriptionType()) {
-            case COMMAND:
-                String cmd = parser.getCommand(line.getArgs().get(0));
-                for (CommandRegistry r : commandRegistries) {
-                    if (r.hasCommand(cmd)) {
-                        out = r.commandDescription(cmd);
-                        break;
+                case COMMAND:
+                    String cmd = parser.getCommand(line.getArgs().get(0));
+                    for (CommandRegistry r : commandRegistries) {
+                        if (r.hasCommand(cmd)) {
+                            out = r.commandDescription(cmd);
+                            break;
+                        }
                     }
-                }
-                break;
-            case METHOD:
-                out = methodDescription(line);
-                break;
-            case SYNTAX:
-                out = new CmdDesc(false);
-                break;
+                    break;
+                case METHOD:
+                    out = methodDescription(line);
+                    break;
+                case SYNTAX:
+                    out = new CmdDesc(false);
+                    break;
             }
             return out;
         }
 
         private CmdDesc methodDescription(CmdLine line) {
             List<String> keywords = Arrays.asList("if", "while", "for");
-            for (String s: keywords) {
-                if (Pattern.compile("\\b" + s + "\\s*$").matcher(line.getHead()).find()){
+            for (String s : keywords) {
+                if (Pattern.compile("\\b" + s + "\\s*$").matcher(line.getHead()).find()) {
                     return null;
                 }
             }
@@ -207,10 +207,10 @@ public class Example
                     throw new IllegalArgumentException("Failed to create object from source: " + line.getLine());
                 }
                 mainDesc = Arrays.asList(new AttributedString("method1(int arg1, List<String> arg2)")
-                            , new AttributedString("method1(int arg1, Map<String,Object> arg2)")
-                    );
+                        , new AttributedString("method1(int arg1, Map<String,Object> arg2)")
+                );
             } catch (Exception e) {
-                for (String s: e.getMessage().split("\n")) {
+                for (String s : e.getMessage().split("\n")) {
                     mainDesc.add(new AttributedString(s, AttributedStyle.DEFAULT.foreground(AttributedStyle.RED)));
                 }
             }
@@ -224,9 +224,9 @@ public class Example
         private AutosuggestionWidgets autosuggestionWidgets;
         private TailTipWidgets tailtipWidgets;
         private AutopairWidgets autopairWidgets;
-        private final Map<String, CommandMethod> commandExecute = new HashMap<>();
-        private final Map<String,List<String>> commandInfo = new HashMap<>();
-        private Map<String,String> aliasCommand = new HashMap<>();
+        private final Map<String, CommandMethods> commandExecute = new HashMap<>();
+        private final Map<String, List<String>> commandInfo = new HashMap<>();
+        private Map<String, String> aliasCommand = new HashMap<>();
         private Exception exception;
 
         public ExampleCommands() {
@@ -302,19 +302,22 @@ public class Example
             return out;
         }
 
-        public Object execute(CommandRegistry.CommandSession session, String command, String[] args) throws Exception {
+        @Override
+        public Object invoke(CommandSession session, String command, Object... args) throws Exception {
             exception = null;
-            commandExecute.get(command(command)).execute().apply(new CommandInput(command, args, session));
+            Object out = null;
+            out = commandExecute.get(command(command)).execute().apply(new CommandInput(command, args, session));
             if (exception != null) {
                 throw exception;
             }
-            return null;
+            return out;
         }
 
         public CmdDesc commandDescription(String command) {
             // TODO
             return new CmdDesc(false);
         }
+
 
         private void tput(CommandInput input) {
             String[] argv = input.args();
@@ -435,19 +438,19 @@ public class Example
 
         private List<Completer> tputCompleter(String command) {
             return Arrays.asList(new ArgumentCompleter(NullCompleter.INSTANCE
-                                                     , new StringsCompleter(this::capabilities)
-                                                   ));
+                    , new StringsCompleter(this::capabilities)
+            ));
         }
 
         private List<Completer> autosuggestionCompleter(String command) {
             List<Completer> out = new ArrayList<>();
             out.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                                        , new StringsCompleter("history", "completer", "none")
-                                        , NullCompleter.INSTANCE));
+                    , new StringsCompleter("history", "completer", "none")
+                    , NullCompleter.INSTANCE));
             out.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                                        , new StringsCompleter("tailtip")
-                                        , new StringsCompleter("tailtip", "completer", "combined")
-                                        , NullCompleter.INSTANCE));
+                    , new StringsCompleter("tailtip")
+                    , new StringsCompleter("tailtip", "completer", "combined")
+                    , NullCompleter.INSTANCE));
             return out;
         }
     }
@@ -475,7 +478,7 @@ public class Example
             Parser parser = null;
             List<Consumer<LineReader>> callbacks = new ArrayList<>();
 
-            for (int index=0; index < args.length; index++) {
+            for (int index = 0; index < args.length; index++) {
                 switch (args[index]) {
                     /* SANDBOX JANSI
                     case "-posix":
@@ -582,11 +585,11 @@ public class Example
                         break;
                     case "tree":
                         completer = new TreeCompleter(
-                           node("Command1",
-                                   node("Option1",
-                                        node("Param1", "Param2")),
-                                   node("Option2"),
-                                   node("Option3")));
+                                node("Command1",
+                                        node("Option1",
+                                                node("Param1", "Param2")),
+                                        node("Option2"),
+                                        node("Option3")));
                         break;
                     case "regexp":
                         Map<String, Completer> comp = new HashMap<>();
@@ -615,10 +618,10 @@ public class Example
                                 .append("\n")
                                 .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.RED | AttributedStyle.BRIGHT))
                                 .append(LocalTime.now().format(new DateTimeFormatterBuilder()
-                                                .appendValue(HOUR_OF_DAY, 2)
-                                                .appendLiteral(':')
-                                                .appendValue(MINUTE_OF_HOUR, 2)
-                                                .toFormatter()))
+                                        .appendValue(HOUR_OF_DAY, 2)
+                                        .appendLiteral(':')
+                                        .appendValue(MINUTE_OF_HOUR, 2)
+                                        .toFormatter()))
                                 .toAnsi();
                         completer = new StringsCompleter("\u001B[1mfoo\u001B[0m", "bar", "\u001B[32mbaz\u001B[0m", "foobar");
                         break;
@@ -629,11 +632,11 @@ public class Example
                         mouse = 2;
                         break;
                     default:
-                        if (index==0) {
+                        if (index == 0) {
                             usage();
                             return;
                         } else if (args.length == index + 2) {
-                            mask = args[index+1].charAt(0);
+                            mask = args[index + 1].charAt(0);
                             trigger = args[index];
                             index = args.length;
                         } else {
@@ -655,12 +658,12 @@ public class Example
             // Command completers
             //
             AggregateCompleter finalCompleter = new AggregateCompleter(CommandRegistry.compileCompleters(builtins, exampleCommands)
-                                                                     , completer != null ? completer : NullCompleter.INSTANCE);
+                    , completer != null ? completer : NullCompleter.INSTANCE);
             //
             // Terminal & LineReader
             //
             Terminal terminal = builder.build();
-            System.out.println(terminal.getName()+": "+terminal.getType());
+            System.out.println(terminal.getName() + ": " + terminal.getType());
             System.out.println("\nhelp: list available commands");
             LineReader reader = LineReaderBuilder.builder()
                     .terminal(terminal)
@@ -738,8 +741,8 @@ public class Example
 
                     if (color) {
                         terminal.writer().println(
-                            AttributedString.fromAnsi("\u001B[33m======>\u001B[0m\"" + line + "\"")
-                                .toAnsi(terminal));
+                                AttributedString.fromAnsi("\u001B[33m======>\u001B[0m\"" + line + "\"")
+                                        .toAnsi(terminal));
 
                     } else {
                         terminal.writer().println("======>\"" + line + "\"");
@@ -755,36 +758,28 @@ public class Example
                         break;
                     }
                     ParsedLine pl = reader.getParser().parse(line, 0);
-                    String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
+                    Object[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
                     String cmd = parser.getCommand(pl.word());
                     if ("help".equals(cmd) || "?".equals(cmd)) {
                         masterRegistry.help();
+                    } else if (builtins.hasCommand(cmd)) {
+                        builtins.invoke(session, cmd, argv);
+                    } else if (exampleCommands.hasCommand(cmd)) {
+                        exampleCommands.invoke(session, cmd, argv);
                     }
-                    else if (builtins.hasCommand(cmd)) {
-                        builtins.execute(session, cmd, argv);
-                    }
-                    else if (exampleCommands.hasCommand(cmd)) {
-                        exampleCommands.execute(session, cmd, argv);
-                    }
-                }
-                catch (HelpException e) {
+                } catch (HelpException e) {
                     HelpException.highlight(e.getMessage(), HelpException.defaultStyle()).print(terminal);
-                }
-                catch (IllegalArgumentException|FileNotFoundException e) {
+                } catch (IllegalArgumentException | FileNotFoundException e) {
                     System.out.println(e.getMessage());
-                }
-                catch (UserInterruptException e) {
+                } catch (UserInterruptException e) {
                     // Ignore
-                }
-                catch (EndOfFileException e) {
+                } catch (EndOfFileException e) {
                     return;
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
-        }
-        catch (Throwable t) {
+        } catch (Throwable t) {
             t.printStackTrace();
         }
     }
