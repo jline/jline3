@@ -34,7 +34,7 @@ import org.jline.builtins.Options.HelpException;
 import org.jline.console.ArgDesc;
 import org.jline.console.CmdDesc;
 import org.jline.console.CommandInput;
-import org.jline.console.CommandMethods;
+import org.jline.console.CommandMethod;
 import org.jline.console.CommandRegistry;
 import org.jline.console.ConfigurationPath;
 import org.jline.reader.*;
@@ -68,7 +68,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     private ConfigurationPath configPath;
     private Map<String, CommandRegistry> subcommands = new HashMap<>();
     private Map<Pipe, String> pipeName = new HashMap<>();
-    private final Map<String, CommandMethods> commandExecute = new HashMap<>();
+    private final Map<String, CommandMethod> commandExecute = new HashMap<>();
     private Map<String, List<String>> commandInfos = new HashMap<>();
     private Exception exception;
     private CommandOutputStream outputStream;
@@ -87,8 +87,8 @@ public class SystemRegistryImpl implements SystemRegistry {
         pipeName.put(Pipe.NAMED, "|");
         pipeName.put(Pipe.AND, "&&");
         pipeName.put(Pipe.OR, "||");
-        commandExecute.put("exit", new CommandMethods(this::exit, this::exitCompleter));
-        commandExecute.put("help", new CommandMethods(this::help, this::helpCompleter));
+        commandExecute.put("exit", new CommandMethod(this::exit, this::exitCompleter));
+        commandExecute.put("help", new CommandMethod(this::help, this::helpCompleter));
     }
 
     public void rename(Pipe pipe, String name) {
@@ -175,7 +175,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     @Override
     public void register(String command, CommandRegistry subcommandRegistry) {
         subcommands.put(command, subcommandRegistry);
-        commandExecute.put(command, new CommandMethods(this::subcommand, this::emptyCompleter));
+        commandExecute.put(command, new CommandMethod(this::subcommand, this::emptyCompleter));
     }
 
     private List<String> localCommandInfo(String command) {

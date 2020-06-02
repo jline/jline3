@@ -105,7 +105,7 @@ public abstract class AbstractCommandRegistry implements CommandRegistry {
         return cmdRegistry.compileCompleters();
     }
 
-    public CommandMethods getCommandMethods(String command) {
+    public CommandMethod getCommandMethods(String command) {
         return cmdRegistry.getCommandMethods(command);
     }
 
@@ -207,7 +207,7 @@ public abstract class AbstractCommandRegistry implements CommandRegistry {
             return out;
         }
 
-        public CommandMethods getCommandMethods(String command) {
+        public CommandMethod getCommandMethods(String command) {
             return commandExecute.get(command(command));
         }
 
@@ -265,7 +265,7 @@ public abstract class AbstractCommandRegistry implements CommandRegistry {
             return null;
         }
 
-        public CommandMethods getCommandMethods(String command) {
+        public CommandMethod getCommandMethods(String command) {
             return commandExecute.get(command(command));
         }
 

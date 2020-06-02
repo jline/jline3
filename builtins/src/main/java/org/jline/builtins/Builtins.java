@@ -71,15 +71,15 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
         for (Command c: cmds) {
             commandName.put(c, c.name().toLowerCase());
         }
-        commandExecute.put(Command.NANO, new CommandMethods(this::nano, this::nanoCompleter));
-        commandExecute.put(Command.LESS, new CommandMethods(this::less, this::lessCompleter));
-        commandExecute.put(Command.HISTORY, new CommandMethods(this::history, this::historyCompleter));
-        commandExecute.put(Command.WIDGET, new CommandMethods(this::widget, this::widgetCompleter));
-        commandExecute.put(Command.KEYMAP, new CommandMethods(this::keymap, this::defaultCompleter));
-        commandExecute.put(Command.SETOPT, new CommandMethods(this::setopt, this::setoptCompleter));
-        commandExecute.put(Command.SETVAR, new CommandMethods(this::setvar, this::setvarCompleter));
-        commandExecute.put(Command.UNSETOPT, new CommandMethods(this::unsetopt, this::unsetoptCompleter));
-        commandExecute.put(Command.TTOP, new CommandMethods(this::ttop, this::defaultCompleter));
+        commandExecute.put(Command.NANO, new CommandMethod(this::nano, this::nanoCompleter));
+        commandExecute.put(Command.LESS, new CommandMethod(this::less, this::lessCompleter));
+        commandExecute.put(Command.HISTORY, new CommandMethod(this::history, this::historyCompleter));
+        commandExecute.put(Command.WIDGET, new CommandMethod(this::widget, this::widgetCompleter));
+        commandExecute.put(Command.KEYMAP, new CommandMethod(this::keymap, this::defaultCompleter));
+        commandExecute.put(Command.SETOPT, new CommandMethod(this::setopt, this::setoptCompleter));
+        commandExecute.put(Command.SETVAR, new CommandMethod(this::setvar, this::setvarCompleter));
+        commandExecute.put(Command.UNSETOPT, new CommandMethod(this::unsetopt, this::unsetoptCompleter));
+        commandExecute.put(Command.TTOP, new CommandMethod(this::ttop, this::defaultCompleter));
         registerCommands(commandName, commandExecute);
     }
 
