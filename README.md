@@ -48,7 +48,7 @@ You can also use finer grained jars:
 * `jline-remote-ssh`: helpers for using jline with [Mina SSHD](http://mina.apache.org/sshd-project/)
 * `jline-remote-telnet`: helpers for using jline over telnet (including a telnet server implementation)
 * `jline-builtins`: several high level tools: `less` pager, `nano` editor, `screen` multiplexer, etc...
-* `jline-module`: command registry, object printer and widget implementations
+* `jline-console`: command registry, object printer and widget implementations
 * `jline-groovy`: jline [ScriptEngine](https://github.com/jline/jline3/blob/master/console/src/main/java/org/jline/console/ScriptEngine.java) implementation using Groovy
 
 ## Supported platforms
