@@ -44,11 +44,12 @@ You can also use finer grained jars:
 * `jline-terminal-jansi`: terminal implementations leveraging the `jansi` library
 * `jline-terminal-jna`: terminal implementations leveraging the `jna` library
 * `jline-reader`: the line reader (including completion, history, etc...)
-* `jline-groovy`: jline [ScriptEngine](https://github.com/jline/jline3/blob/master/reader/src/main/java/org/jline/console/ScriptEngine.java) implementation using Groovy
 * `jline-style`: styling api
 * `jline-remote-ssh`: helpers for using jline with [Mina SSHD](http://mina.apache.org/sshd-project/)
 * `jline-remote-telnet`: helpers for using jline over telnet (including a telnet server implementation)
 * `jline-builtins`: several high level tools: `less` pager, `nano` editor, `screen` multiplexer, etc...
+* `jline-module`: command registry, object printer and widget implementations
+* `jline-groovy`: jline [ScriptEngine](https://github.com/jline/jline3/blob/master/console/src/main/java/org/jline/console/ScriptEngine.java) implementation using Groovy
 
 ## Supported platforms
 
