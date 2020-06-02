@@ -19,6 +19,7 @@ import org.jline.builtins.Builtins;
 import org.jline.builtins.Builtins.Command;
 import org.jline.builtins.SystemRegistryImpl;
 import org.jline.builtins.Widgets.TailTipWidgets;
+import org.jline.builtins.Widgets.TailTipWidgets.TipType;
 import org.jline.console.ConfigurationPath;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
@@ -93,7 +94,7 @@ public class Graal {
             //
             // widgets and console initialization
             //
-            new TailTipWidgets(reader, systemRegistry::commandDescription, 5, TailTipWidgets.TipType.COMPLETER);
+            new TailTipWidgets(reader, systemRegistry::commandDescription, 5, TipType.COMPLETER);
             KeyMap<Binding> keyMap = reader.getKeyMaps().get("main");
             keyMap.bind(new Reference("tailtip-toggle"), KeyMap.alt("s"));
             //
