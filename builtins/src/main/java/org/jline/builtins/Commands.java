@@ -44,7 +44,6 @@ import org.jline.builtins.Options;
 import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.Source.StdInSource;
 import org.jline.builtins.Source.URLSource;
-import org.jline.console.ConfigurationPath;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
 import org.jline.reader.Highlighter;

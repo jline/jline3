@@ -6,15 +6,15 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.builtins;
+package org.jline.console;
 
 import java.io.File;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.jline.console.CmdDesc;
-import org.jline.console.CommandRegistry;
+import org.jline.builtins.ConsoleOptionGetter;
+import org.jline.console.CmdLine;
 import org.jline.reader.Completer;
 import org.jline.terminal.Terminal;
 
@@ -23,7 +23,7 @@ import org.jline.terminal.Terminal;
  *
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
-public interface SystemRegistry extends CommandRegistry {
+public interface SystemRegistry extends CommandRegistry, ConsoleOptionGetter {
 
     /**
      * Set command registeries
@@ -62,7 +62,7 @@ public interface SystemRegistry extends CommandRegistry {
      * @return command description for JLine TailTipWidgets to be displayed
      *         in the terminal status bar.
      */
-    CmdDesc commandDescription(Widgets.CmdLine line);
+    CmdDesc commandDescription(CmdLine line);
 
    /**
      * Execute a command, script or evaluate scriptEngine statement
@@ -149,25 +149,25 @@ public interface SystemRegistry extends CommandRegistry {
     /**
      * Manage systemRegistry store
      */
-    public class Registeries {
+    class Registeries {
         private static Registeries instance = new Registeries();
         private Map<Long, SystemRegistry> systemRegisteries = new HashMap<>();
 
         private Registeries () {}
 
-        public static Registeries getInstance() {
+        protected static Registeries getInstance() {
             return instance;
         }
 
-        public void addRegistry(SystemRegistry systemRegistry) {
+        protected void addRegistry(SystemRegistry systemRegistry) {
             systemRegisteries.put(Thread.currentThread().getId(), systemRegistry);
         }
 
-        public SystemRegistry getSystemRegistry() {
+        protected SystemRegistry getSystemRegistry() {
             return systemRegisteries.getOrDefault(Thread.currentThread().getId(), null);
         }
 
-        public void removeRegistry() {
+        protected void removeRegistry() {
             systemRegisteries.remove(Thread.currentThread().getId());
         }
 

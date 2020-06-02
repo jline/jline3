@@ -6,7 +6,7 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.builtins;
+package org.jline.console;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,7 +14,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
-import org.jline.console.CommandRegistry;
 import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
 import org.jline.reader.Widget;
@@ -196,13 +195,6 @@ public interface ConsoleEngine extends CommandRegistry {
      * @param object object to print
      */
     void println(Object object);
-
-    /**
-     * Print object.
-     * @param options println options
-     * @param object object to print
-     */
-    void println(Map<String, Object> options, Object object);
 
     /**
      * Create console variable

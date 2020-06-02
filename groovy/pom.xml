@@ -27,7 +27,7 @@
     <dependencies>
          <dependency>
             <groupId>org.jline</groupId>
-            <artifactId>jline-reader</artifactId>
+            <artifactId>jline-console</artifactId>
         </dependency>
         <dependency>
              <groupId>org.codehaus.groovy</groupId>

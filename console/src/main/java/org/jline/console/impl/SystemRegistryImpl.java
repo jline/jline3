@@ -6,7 +6,7 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.builtins;
+package org.jline.console.impl;
 
 import static org.jline.keymap.KeyMap.ctrl;
 
@@ -29,15 +29,12 @@ import java.util.stream.Collectors;
 import org.jline.builtins.Completers.FilesCompleter;
 import org.jline.builtins.Completers.OptDesc;
 import org.jline.builtins.Completers.OptionCompleter;
-import org.jline.builtins.ConsoleEngine.ExecutionResult;
-import org.jline.builtins.Widgets;
+import org.jline.builtins.ConfigurationPath;
+import org.jline.builtins.Options;
+import org.jline.builtins.Styles;
 import org.jline.builtins.Options.HelpException;
-import org.jline.console.ArgDesc;
-import org.jline.console.CmdDesc;
-import org.jline.console.CommandInput;
-import org.jline.console.CommandMethods;
-import org.jline.console.CommandRegistry;
-import org.jline.console.ConfigurationPath;
+import org.jline.console.*;
+import org.jline.console.ConsoleEngine.ExecutionResult;
 import org.jline.reader.*;
 import org.jline.reader.Parser.ParseContext;
 import org.jline.reader.impl.completer.AggregateCompleter;
@@ -337,7 +334,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     @Override
-    public CmdDesc commandDescription(Widgets.CmdLine line) {
+    public CmdDesc commandDescription(CmdLine line) {
         CmdDesc out = null;
         switch (line.getDescriptionType()) {
         case COMMAND:
@@ -402,7 +399,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         return out;
     }
 
-    public Object localExecute(String command, Object[] args) throws Exception {
+    private Object localExecute(String command, Object[] args) throws Exception {
         if (!isLocalCommand(command)) {
             throw new IllegalArgumentException();
         }
@@ -1337,7 +1334,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     private String doCommandInfo(List<String> info) {
-        return info.size() > 0 ? info.get(0) : " ";
+        return info != null && info.size() > 0 ? info.get(0) : " ";
     }
 
     private boolean isInTopics(List<String> args, String name) {

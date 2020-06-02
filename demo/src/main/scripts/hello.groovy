@@ -1,5 +1,5 @@
 // END_HELP
-import org.jline.builtins.SystemRegistry
+import org.jline.console.SystemRegistry
 import org.jline.builtins.Options;
 
 class HelloWorld {
