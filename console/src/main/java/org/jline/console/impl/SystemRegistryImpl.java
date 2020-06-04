@@ -398,7 +398,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         Object out = null;
         int id = registryId(command);
         if (id > -1) {
-            out = commandRegistries[id].invoke(commandSession(), command, args);
+            out = commandRegistries[id].invoke(commandSession(), command, (Object[]) args);
         } else if (isLocalCommand(command)) {
             out = localExecute(command, args);
         }
