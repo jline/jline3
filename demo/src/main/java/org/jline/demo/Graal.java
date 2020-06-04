@@ -106,7 +106,7 @@ public class Graal {
                     systemRegistry.cleanUp();         // delete temporary variables and reset output streams
                     String line = reader.readLine("graal> ");
                     line = parser.getCommand(line).startsWith("!") ? line.replaceFirst("!", "! ") : line;
-                    Object result = systemRegistry.invoke(line);
+                    Object result = systemRegistry.execute(line);
                     if (result != null) {
                         System.out.println(result);
                     }

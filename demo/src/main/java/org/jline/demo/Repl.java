@@ -320,7 +320,7 @@ public class Repl {
                     systemRegistry.cleanUp();         // delete temporary variables and reset output streams
                     String line = reader.readLine("groovy-repl> ");
                     line = parser.getCommand(line).startsWith("!") ? line.replaceFirst("!", "! ") : line;
-                    Object result = systemRegistry.invoke(line);
+                    Object result = systemRegistry.execute(line);
                     consoleEngine.println(result);
                 }
                 catch (UserInterruptException e) {
