@@ -6,11 +6,15 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.console;
+package org.jline.console.impl;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
+import org.jline.console.CmdDesc;
+import org.jline.console.CommandInput;
+import org.jline.console.CommandMethods;
+import org.jline.console.CommandRegistry;
 import org.jline.console.CommandRegistry.CommandSession;
 import org.jline.reader.impl.completer.SystemCompleter;
 import org.jline.utils.AttributedString;

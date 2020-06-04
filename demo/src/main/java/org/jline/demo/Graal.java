@@ -11,22 +11,30 @@ package org.jline.demo;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
-import org.jline.builtins.*;
-import org.jline.builtins.Builtins.Command;
-import org.jline.builtins.Widgets.TailTipWidgets;
-import org.jline.builtins.Widgets.TailTipWidgets.TipType;
-import org.jline.console.ConfigurationPath;
+import org.jline.console.impl.Builtins;
+import org.jline.console.impl.Builtins.Command;
+import org.jline.console.impl.SystemRegistryImpl;
+import org.jline.builtins.ConfigurationPath;
 import org.jline.keymap.KeyMap;
-import org.jline.reader.*;
+import org.jline.reader.Binding;
+import org.jline.reader.EndOfFileException;
+import org.jline.reader.LineReader;
 import org.jline.reader.LineReader.Option;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.reader.Reference;
+import org.jline.reader.UserInterruptException;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.DefaultParser.Bracket;
 import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.Terminal.Signal;
+import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.OSUtils;
+import org.jline.widget.TailTipWidgets;
+import org.jline.widget.TailTipWidgets.TipType;
 
 public class Graal {
 
@@ -98,24 +106,20 @@ public class Graal {
                     systemRegistry.cleanUp();         // delete temporary variables and reset output streams
                     String line = reader.readLine("graal> ");
                     line = parser.getCommand(line).startsWith("!") ? line.replaceFirst("!", "! ") : line;
-                    Object result = systemRegistry.execute(line);
+                    Object result = systemRegistry.invoke(line);
                     if (result != null) {
                         System.out.println(result);
                     }
-                }
-                catch (UserInterruptException e) {
+                } catch (UserInterruptException e) {
                     // Ignore
-                }
-                catch (EndOfFileException e) {
+                } catch (EndOfFileException e) {
                     break;
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     systemRegistry.trace(true, e);    // print exception and save it to console variable
                 }
             }
             systemRegistry.close();                   // persist pipeline completer names etc
-        }
-        catch (Throwable t) {
+        } catch (Throwable t) {
             t.printStackTrace();
         }
     }

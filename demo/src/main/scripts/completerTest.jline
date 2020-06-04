@@ -1,7 +1,7 @@
 import org.jline.reader.impl.completer.*
 import org.jline.reader.*
 import org.jline.builtins.Completers.OptionCompleter
-import org.jline.builtins.SystemRegistry
+import org.jline.console.SystemRegistry
 
 def complete(commandLine) {
     candidates = []
