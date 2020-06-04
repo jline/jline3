@@ -1,0 +1,1002 @@
+/*
+ * Copyright (c) 2002-2020, the original author or authors.
+ *
+ * This software is distributable under the BSD license. See the terms of the
+ * BSD license in the documentation provided with this software.
+ *
+ * https://opensource.org/licenses/BSD-3-Clause
+ */
+package org.jline.console.impl;
+
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import org.jline.builtins.ConfigurationPath;
+import org.jline.builtins.Options;
+import org.jline.builtins.Styles;
+import org.jline.builtins.Completers.OptionCompleter;
+import org.jline.builtins.Nano.SyntaxHighlighter;
+import org.jline.console.CmdDesc;
+import org.jline.console.CommandInput;
+import org.jline.console.Printer;
+import org.jline.console.ScriptEngine;
+import org.jline.console.SystemRegistry;
+import org.jline.reader.Completer;
+import org.jline.reader.impl.completer.ArgumentCompleter;
+import org.jline.reader.impl.completer.NullCompleter;
+import org.jline.reader.impl.completer.StringsCompleter;
+import org.jline.terminal.Terminal;
+import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.AttributedStyle;
+import org.jline.utils.Log;
+import org.jline.utils.StyleResolver;
+
+/**
+ * Print highlighted objects to console.
+ *
+ * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
+ */
+public class DefaultPrinter extends JlineCommandRegistry implements Printer {
+    private static final String VAR_PRNT_OPTIONS = "PRNT_OPTIONS";
+    private static final String VAR_NANORC = "NANORC";
+    private static final int PRNT_MAX_ROWS = 100000;
+    private static final int PRNT_MAX_DEPTH = 1;
+    private static final int PRNT_INDENTION = 4;
+    private static final int NANORC_MAX_STRING_LENGTH = 400;
+
+    private Map<Class<?>, Function<Object, Map<String,Object>>> objectToMap = new HashMap<>();
+    private Map<Class<?>, Function<Object, String>> objectToString = new HashMap<>();
+    private Map<String, Function<Object, AttributedString>> highlightValue = new HashMap<>();
+    private int totLines;
+
+    private ScriptEngine engine;
+    private ConfigurationPath configPath;
+    private StyleResolver prntStyle;
+
+    public DefaultPrinter(ConfigurationPath configPath) {
+        this(null, configPath);
+    }
+
+    public DefaultPrinter(ScriptEngine engine, ConfigurationPath configPath) {
+        this.engine = engine;
+        this.configPath = configPath;
+    }
+
+    @Override
+    public void println(Object object) {
+        internalPrintln(defaultPrntOptions(false), object);
+    }
+
+    @Override
+    public void println(Map<String, Object> optionsIn, Object object) {
+        Map<String, Object> options = new HashMap<>();
+        options.putAll(optionsIn);
+        for (Map.Entry<String, Object> entry
+                : defaultPrntOptions(options.containsKey(Printer.SKIP_DEFAULT_OPTIONS)).entrySet()) {
+            options.putIfAbsent(entry.getKey(), entry.getValue());
+        }
+        manageBooleanOptions(options);
+        internalPrintln(options, object);
+    }
+
+    @Override
+    public Exception prntCommand(CommandInput input) {
+        final String[] usage = {
+                "prnt -  print object",
+                "Usage: prnt [OPTIONS] object",
+                "  -? --help                       Displays command help",
+                "  -a --all                        Ignore columnsOut configuration",
+                "  -c --columns=COLUMNS,...        Display given columns on table",
+                "  -e --exclude=COLUMNS,...        Exclude given columns on table",
+                "  -i --include=COLUMNS,...        Include given columns on table",
+                "     --indention=IDENTION         Indention size",
+                "     --maxColumnWidth=WIDTH       Maximum column width",
+                "  -d --maxDepth=DEPTH             Maximum depth objects are resolved",
+                "     --maxrows=ROWS               Maximum number of lines to display",
+                "     --oneRowTable                Display one row data on table",
+                "  -r --rownum                     Display table row numbers",
+                "     --shortNames                 Truncate table column names (property.field -> field)",
+                "     --skipDefaultOptions         Ignore all options defined in PRNT_OPTIONS",
+                "     --structsOnTable             Display structs and lists on table",
+                "  -s --style=STYLE                Use nanorc STYLE",
+                "     --toString                   use object's toString() method to get print value",
+                "                                  DEFAULT: object's fields are put to property map before printing",
+                "     --valueStyle=STYLE           Use nanorc style to highlight column/map values",
+                "  -w --width=WIDTH                Display width (default terminal width)"
+        };
+        Exception out = null;
+        try {
+            Options opt = parseOptions(usage, input.xargs());
+            Map<String, Object> options = new HashMap<>();
+            if (opt.isSet(Printer.SKIP_DEFAULT_OPTIONS)) {
+                options.put(Printer.SKIP_DEFAULT_OPTIONS, true);
+            } else if (opt.isSet(Printer.STYLE)) {
+                options.put(Printer.STYLE, opt.get(Printer.STYLE));
+            }
+            if (opt.isSet(Printer.TO_STRING)) {
+                options.put(Printer.TO_STRING, true);
+            }
+            if (opt.isSet(Printer.WIDTH)) {
+                options.put(Printer.WIDTH, opt.getNumber(Printer.WIDTH));
+            }
+            if (opt.isSet(Printer.ROWNUM)) {
+                options.put(Printer.ROWNUM, true);
+            }
+            if (opt.isSet(Printer.ONE_ROW_TABLE)) {
+                options.put(Printer.ONE_ROW_TABLE, true);
+            }
+            if (opt.isSet(Printer.SHORT_NAMES)) {
+                options.put(Printer.SHORT_NAMES, true);
+            }
+            if (opt.isSet(Printer.STRUCT_ON_TABLE)) {
+                options.put(Printer.STRUCT_ON_TABLE, true);
+            }
+            if (opt.isSet(Printer.COLUMNS)) {
+                options.put(Printer.COLUMNS, Arrays.asList(opt.get(Printer.COLUMNS).split(",")));
+            }
+            if (opt.isSet(Printer.EXCLUDE)) {
+                options.put(Printer.EXCLUDE, Arrays.asList(opt.get(Printer.EXCLUDE).split(",")));
+            }
+            if (opt.isSet(Printer.INCLUDE)) {
+                options.put(Printer.INCLUDE, Arrays.asList(opt.get(Printer.INCLUDE).split(",")));
+            }
+            if (opt.isSet(Printer.ALL)) {
+                options.put(Printer.ALL, true);
+            }
+            if (opt.isSet(Printer.MAXROWS)) {
+                options.put(Printer.MAXROWS, opt.getNumber(Printer.MAXROWS));
+            }
+            if (opt.isSet(Printer.MAX_COLUMN_WIDTH)) {
+                options.put(Printer.MAX_COLUMN_WIDTH, opt.getNumber(Printer.MAX_COLUMN_WIDTH));
+            }
+            if (opt.isSet(Printer.MAX_DEPTH)) {
+                options.put(Printer.MAX_DEPTH, opt.getNumber(Printer.MAX_DEPTH));
+            }
+            if (opt.isSet(Printer.INDENTION)) {
+                options.put(Printer.INDENTION, opt.getNumber(Printer.INDENTION));
+            }
+            if (opt.isSet(Printer.VALUE_STYLE)) {
+                options.put(Printer.VALUE_STYLE, opt.get(Printer.VALUE_STYLE));
+            }
+            options.put("exception", "stack");
+            List<Object> args = opt.argObjects();
+            if (args.size() > 0) {
+                println(options, args.get(0));
+            }
+        } catch (Exception e) {
+            out = e;
+        }
+        return out;
+    }
+
+    private List<String> variableReferences() {
+        List<String> out = new ArrayList<>();
+        if (engine != null) {
+            for (String v : engine.find().keySet()) {
+                out.add("$" + v);
+            }
+        }
+        return out;
+    }
+
+    @Override
+    public List<Completer> prntCompleter(String command) {
+        List<Completer> completers = new ArrayList<>();
+        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
+                       , new OptionCompleter(Arrays.asList(new StringsCompleter(this::variableReferences)
+                                                         , NullCompleter.INSTANCE)
+                                           , this::commandOptions
+                                           , 1)
+                                    ));
+        return completers;
+    }
+
+    /**
+     * Override ScriptEngine toMap() method
+     * @param objectToMap key: object class, value: toMap function
+     */
+    public void setObjectToMap(Map<Class<?>, Function<Object, Map<String,Object>>> objectToMap) {
+        this.objectToMap = objectToMap;
+    }
+
+    /**
+     * Override ScriptEngine toString() method
+     * @param objectToString key: object class, value: toString function
+     */
+    public void setObjectToString(Map<Class<?>, Function<Object, String>> objectToString) {
+        this.objectToString = objectToString;
+    }
+
+    /**
+     * Highlight column value
+     * @param highlightValue key: regex for column name, value: highlight function
+     */
+    public void setHighlightValue(Map<String, Function<Object, AttributedString>> highlightValue) {
+        this.highlightValue = highlightValue;
+    }
+
+    private Terminal terminal() {
+        return SystemRegistry.get().terminal();
+    }
+
+    private void manageBooleanOptions(Map<String, Object> options) {
+        for (String key : Printer.BOOLEAN_KEYS) {
+            if (options.containsKey(key)) {
+                boolean value = options.get(key) instanceof Boolean ? (boolean)options.get(key) : false;
+                if (!value) {
+                    options.remove(key);
+                }
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String,Object> defaultPrntOptions(boolean skipDefault) {
+        Map<String, Object> out = new HashMap<>();
+        if (engine != null && !skipDefault && engine.hasVariable(VAR_PRNT_OPTIONS)) {
+            out.putAll((Map<String,Object>)engine.get(VAR_PRNT_OPTIONS));
+            out.remove(Printer.SKIP_DEFAULT_OPTIONS);
+            manageBooleanOptions(out);
+        }
+        out.putIfAbsent(Printer.MAXROWS, PRNT_MAX_ROWS);
+        out.putIfAbsent(Printer.MAX_DEPTH, PRNT_MAX_DEPTH);
+        out.putIfAbsent(Printer.INDENTION, PRNT_INDENTION);
+        out.putIfAbsent(Printer.COLUMNS_OUT, new ArrayList<String>());
+        out.putIfAbsent(Printer.COLUMNS_IN, new ArrayList<String>());
+        if (engine == null) {
+            out.remove(Printer.OBJECT_TO_MAP);
+            out.remove(Printer.OBJECT_TO_STRING);
+            out.remove(Printer.HIGHLIGHT_VALUE);
+        }
+        return out;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void internalPrintln(Map<String, Object> options, Object object) {
+        if (object == null) {
+            return;
+        }
+        long start = new Date().getTime();
+        if (options.containsKey(Printer.EXCLUDE)) {
+            List<String> colOut = optionList(Printer.EXCLUDE, options);
+            List<String> colIn = optionList(Printer.COLUMNS_IN, options);
+            colIn.removeAll(colOut);
+            colOut.addAll((List<String>)options.get(Printer.COLUMNS_OUT));
+            options.put(Printer.COLUMNS_IN, colIn);
+            options.put(Printer.COLUMNS_OUT, colOut);
+        }
+        if (options.containsKey(Printer.INCLUDE)) {
+            List<String> colIn = optionList(Printer.INCLUDE, options);
+            colIn.addAll((List<String>)options.get(Printer.COLUMNS_IN));
+            options.put(Printer.COLUMNS_IN, colIn);
+        }
+        String valueStyle = (String)options.get(Printer.VALUE_STYLE);
+        if (options.containsKey(Printer.VALUE_STYLE)) {
+            options.put(Printer.VALUE_STYLE, valueHighlighter(valueStyle));
+        }
+        prntStyle = Styles.prntStyle();
+        options.putIfAbsent(Printer.WIDTH, terminal().getSize().getColumns());
+        String style = (String) options.getOrDefault(Printer.STYLE, "");
+        int width = (int) options.get(Printer.WIDTH);
+        if (!style.isEmpty() && object instanceof String) {
+            highlightAndPrint(width, style, (String) object);
+        } else if (style.equalsIgnoreCase("JSON")) {
+            if (engine == null) {
+                throw new IllegalArgumentException("JSON style not supported!");
+            }
+            highlightAndPrint(width, style, engine.toJson(object));
+        } else if (options.containsKey(Printer.SKIP_DEFAULT_OPTIONS)) {
+            highlightAndPrint(options, object);
+        } else if (object instanceof Exception) {
+            SystemRegistry.get().trace(options.getOrDefault("exception", "stack").equals("stack"), (Exception)object);
+        } else if (object instanceof CmdDesc) {
+            highlight((CmdDesc)object).println(terminal());
+        } else if (object instanceof String || object instanceof Number) {
+            highlightAndPrint(width, valueStyle, object.toString());
+        } else {
+            highlightAndPrint(options, object);
+        }
+        terminal().flush();
+        Log.debug("println: ", new Date().getTime() - start, " msec");
+    }
+
+    private AttributedString highlight(CmdDesc cmdDesc) {
+        StringBuilder sb = new StringBuilder();
+        for (AttributedString as : cmdDesc.getMainDesc()) {
+            sb.append(as.toString());
+            sb.append("\n");
+        }
+        List<Integer> tabs = Arrays.asList(0, 2, 33);
+        for (Map.Entry<String, List<AttributedString>> entry : cmdDesc.getOptsDesc().entrySet()) {
+            AttributedStringBuilder asb = new AttributedStringBuilder();
+            asb.tabs(tabs);
+            asb.append("\t");
+            asb.append(entry.getKey());
+            asb.append("\t");
+            boolean first = true;
+            for (AttributedString as : entry.getValue()) {
+                if (!first) {
+                    asb.append("\t");
+                    asb.append("\t");
+                }
+                asb.append(as);
+                asb.append("\n");
+                first = false;
+            }
+            sb.append(asb.toString());
+        }
+        return Options.HelpException.highlight(sb.toString(), Styles.helpStyle());
+    }
+
+    private SyntaxHighlighter valueHighlighter(String style) {
+        SyntaxHighlighter out;
+        if (style == null) {
+            out = null;
+        } else if (style.matches("[a-z]+:.*")) {
+            out = SyntaxHighlighter.build(style);
+        } else {
+            Path nanorc = configPath != null ? configPath.getConfig("jnanorc") : null;
+            if (engine != null && engine.hasVariable(VAR_NANORC)) {
+                nanorc = Paths.get((String)engine.get(VAR_NANORC));
+            }
+            if (nanorc == null) {
+                nanorc = Paths.get("/etc/nanorc");
+            }
+            out = nanorc != null ? SyntaxHighlighter.build(nanorc, style) : null;
+        }
+        return out;
+    }
+
+    private String truncate4nanorc(String obj) {
+        String val = obj;
+        if (val.length() > NANORC_MAX_STRING_LENGTH && !val.contains("\n")) {
+            val = val.substring(0, NANORC_MAX_STRING_LENGTH - 1);
+        }
+        return val;
+    }
+
+    private AttributedString highlight(Integer width, SyntaxHighlighter highlighter, String object) {
+        return highlight(width, highlighter, object, isValue(object));
+    }
+
+    private AttributedString highlight(Integer width, SyntaxHighlighter highlighter, String object, boolean doValueHighlight) {
+        AttributedString out = null;
+        AttributedStringBuilder asb = new AttributedStringBuilder();
+        String val = object;
+        if (highlighter != null && doValueHighlight) {
+            val = truncate4nanorc(object);
+        }
+        asb.append(val);
+        if (highlighter != null && val.length() < NANORC_MAX_STRING_LENGTH && doValueHighlight) {
+            out = highlighter.highlight(asb);
+        } else {
+            out = asb.toAttributedString();
+        }
+        if (width != null) {
+            out = out.columnSubSequence(0, width);
+        }
+        return out;
+    }
+
+    private boolean isValue(String value) {
+        if(value.matches("\"(\\.|[^\"])*\"|'(\\.|[^'])*'")
+                || (value.startsWith("[") && value.endsWith("]"))
+                || (value.startsWith("(") && value.endsWith(")"))
+                || (value.startsWith("{") && value.endsWith("}"))
+                || (value.startsWith("<") && value.endsWith(">"))
+           ) {
+            return true;
+        } else if (!value.contains(" ") && !value.contains("\t")) {
+            return true;
+        }
+        return false;
+    }
+
+    private void highlightAndPrint(int width, String style, String object) {
+        SyntaxHighlighter highlighter = valueHighlighter(style);
+        boolean doValueHighlight = isValue(object);
+        for (String s: object.split("\\r?\\n")) {
+            AttributedStringBuilder asb = new AttributedStringBuilder();
+            List<AttributedString> sas = asb.append(s).columnSplitLength(width);
+            for (AttributedString as : sas) {
+                highlight(width, highlighter, as.toString(), doValueHighlight).println(terminal());
+            }
+        }
+    }
+
+    private Map<String,Object> keysToString(Map<Object,Object> map) {
+        Map<String,Object> out = new HashMap<>();
+        for (Map.Entry<Object,Object> entry : map.entrySet()) {
+            if (entry.getKey() instanceof String) {
+                out.put((String)entry.getKey(), entry.getValue());
+            } else if (entry.getKey() != null) {
+                out.put(entry.getKey().toString(), entry.getValue());
+            } else {
+                out.put("null", entry.getValue());
+            }
+        }
+        return out;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Object mapValue(Map<String, Object> options, String key, Map<String,Object> map) {
+        Object out = null;
+        if (map.containsKey(key)) {
+            out = map.get(key);
+        } else if (key.contains(".")) {
+            String[] keys = key.split("\\.");
+            out = map.get(keys[0]);
+            for (int i = 1; i < keys.length; i++) {
+                if (out instanceof Map) {
+                    Map<String, Object> m = keysToString((Map<Object, Object>) out);
+                    out = m.get(keys[i]);
+                } else if (canConvert(out)) {
+                    out = engine.toMap(out).get(keys[i]);
+                } else {
+                    break;
+                }
+            }
+        }
+        if (!(out instanceof Map) && canConvert(out)){
+            out = objectToMap(options, out);
+        }
+        return out;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> optionList(String key, Map<String,Object> options) {
+        List<String> out = new ArrayList<>();
+        if (options.containsKey(key)) {
+            if (options.get(key) instanceof String) {
+                out.addAll(Arrays.asList(((String)options.get(key)).split(",")));
+            } else if (options.get(key) instanceof Collection) {
+                out.addAll((Collection<String>)options.get(key));
+            } else {
+                throw new IllegalArgumentException("Unsupported option list: {key: " + key
+                                                 + ", type: " + options.get(key).getClass() + "}");
+            }
+        }
+        return out;
+    }
+
+    private boolean hasMatch(List<String> regexes, String value) {
+        for (String r: regexes) {
+            if (value.matches(r)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private AttributedString addPadding(AttributedString str, int width) {
+        AttributedStringBuilder sb = new AttributedStringBuilder();
+        for (int i = str.columnLength(); i < width; i++) {
+            sb.append(" ");
+        }
+        sb.append(str);
+        return sb.toAttributedString();
+    }
+
+    private String columnValue(String value) {
+        return value.replaceAll("\r","CR").replaceAll("\n", "LF");
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String,Object> objectToMap(Map<String, Object> options, Object obj) {
+        if (obj != null) {
+            Map<Class<?>, Object> toMap = options.containsKey(Printer.OBJECT_TO_MAP)
+                                                 ? (Map<Class<?>, Object>)options.get(Printer.OBJECT_TO_MAP)
+                                                 : new HashMap<>();;
+            if (toMap.containsKey(obj.getClass())) {
+                return (Map<String,Object>)engine.execute(toMap.get(obj.getClass()), obj);
+            } else if (objectToMap.containsKey(obj.getClass())) {
+                return objectToMap.get(obj.getClass()).apply(obj);
+            }
+        }
+        return engine.toMap(obj);
+    }
+
+    @SuppressWarnings("unchecked")
+    private String objectToString(Map<String, Object> options, Object obj) {
+        String out = "null";
+        if (obj != null) {
+            Map<Class<?>, Object> toString = options.containsKey(Printer.OBJECT_TO_STRING)
+                                                ? (Map<Class<?>, Object>)options.get(Printer.OBJECT_TO_STRING)
+                                                : new HashMap<>();
+            if (toString.containsKey(obj.getClass())) {
+                out = (String) engine.execute(toString.get(obj.getClass()), obj);
+            } else if (objectToString.containsKey(obj.getClass())) {
+                out = objectToString.get(obj.getClass()).apply(obj);
+            } else if (obj instanceof Class) {
+                out = ((Class<?>) obj).getName();
+            } else if (engine != null) {
+                out = engine.toString(obj);
+            } else {
+                out = obj.toString();
+            }
+        }
+        return out;
+    }
+
+    private AttributedString highlightMapValue(Map<String, Object> options, String key, Map<String, Object> map) {
+        return highlightValue(options, key, mapValue(options, key, map));
+    }
+
+    private boolean isHighlighted(AttributedString value) {
+        for (int i = 0; i < value.length(); i++) {
+            if (value.styleAt(i).getStyle() != AttributedStyle.DEFAULT.getStyle()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @SuppressWarnings("unchecked")
+    private AttributedString highlightValue(Map<String, Object> options, String column, Object obj) {
+        AttributedString out = null;
+        Object raw = options.containsKey(Printer.TO_STRING) && obj != null ? objectToString(options, obj) : obj;
+        Map<String, Object> hv = options.containsKey(Printer.HIGHLIGHT_VALUE)
+                ? (Map<String, Object>) options.get(Printer.HIGHLIGHT_VALUE)
+                : new HashMap<>();
+        if (column != null && simpleObject(raw)) {
+            for (Map.Entry<String, Object> entry : hv.entrySet()) {
+                if (!entry.getKey().equals("*") && column.matches(entry.getKey())) {
+                    out = (AttributedString) engine.execute(hv.get(entry.getKey()), raw);
+                    break;
+                }
+            }
+            if (out == null) {
+                for (Map.Entry<String, Function<Object, AttributedString>> entry : highlightValue.entrySet()) {
+                    if (!entry.getKey().equals("*") && column.matches(entry.getKey())) {
+                        out = highlightValue.get(entry.getKey()).apply(raw);
+                        break;
+                    }
+                }
+            }
+        }
+        if (out == null) {
+            if (raw instanceof String) {
+                out = new AttributedString(columnValue((String)raw));
+            } else {
+                out = new AttributedString(columnValue(objectToString(options, raw)));
+            }
+       }
+       if ((simpleObject(raw) || raw == null) && (hv.containsKey("*") || highlightValue.containsKey("*"))
+                && !isHighlighted(out)) {
+            if (hv.containsKey("*")) {
+                out = (AttributedString) engine.execute(hv.get("*"), out);
+            }
+            if (highlightValue.containsKey("*")) {
+                out = highlightValue.get("*").apply(out);
+            }
+        }
+        if (options.containsKey(Printer.VALUE_STYLE) && !isHighlighted(out)) {
+            out = highlight(null, (SyntaxHighlighter)options.get(Printer.VALUE_STYLE), out.toString());
+        }
+        return truncateValue(options, out);
+    }
+
+    private AttributedString truncateValue(Map<String, Object> options, AttributedString value) {
+        if (value.columnLength() > (int)options.getOrDefault(Printer.MAX_COLUMN_WIDTH, Integer.MAX_VALUE)) {
+            AttributedStringBuilder asb = new AttributedStringBuilder();
+            asb.append(value.subSequence(0, (int)options.get(Printer.MAX_COLUMN_WIDTH) - 3));
+            asb.append("...");
+            return asb.toAttributedString();
+        }
+        return value;
+    }
+
+    private String truncateValue(int maxWidth, String value) {
+        if (value.length() > maxWidth) {
+            StringBuilder asb = new StringBuilder();
+            asb.append(value.subSequence(0, maxWidth - 3));
+            asb.append("...");
+            return asb.toString();
+        }
+        return value;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Object> objectToList(Object obj) {
+        List<Object> out = new ArrayList<>();
+        if (obj instanceof List) {
+            out = (List<Object>)obj;
+        } else if (obj instanceof Collection) {
+            out.addAll((Collection<Object>) obj);
+        } else if (obj instanceof Object[]) {
+            out.addAll(Arrays.asList((Object[]) obj));
+        } else if (obj instanceof Iterator) {
+            ((Iterator<?>) obj).forEachRemaining(out::add);
+        } else if (obj instanceof Iterable) {
+            ((Iterable<?>) obj).forEach(out::add);
+        } else {
+            out.add(obj);
+        }
+        return out;
+    }
+
+    private boolean similarSets(Set<String> ref, Set<String> c2, double threshold) {
+        boolean out = c2.containsAll(ref);
+        if (!out) {
+            int matches = 0;
+            for (String s : ref) {
+                if (c2.contains(s)) {
+                    matches += 1;
+                }
+            }
+            double r = (1.0*matches)/ref.size();
+            out = r > threshold;
+        }
+        return out;
+    }
+
+    @SuppressWarnings("serial")
+    private static class TruncatedOutputException extends RuntimeException {
+        public TruncatedOutputException(String message) {
+            super(message);
+        }
+    }
+
+    private void println(AttributedString line, int maxrows) {
+        line.println(terminal());
+        totLines++;
+        if (totLines > maxrows) {
+            totLines = 0;
+            throw new TruncatedOutputException("Truncated output: " + maxrows);
+        }
+    }
+
+    private String columnName(String name, boolean shortName) {
+        String out = name;
+        if (shortName) {
+            String[] p = name.split("\\.");
+            out = p[p.length - 1];
+        }
+        return out;
+    }
+
+    private boolean isNumber(String str) {
+        return str.matches("-?\\d+(\\.\\d+)?");
+    }
+
+    @SuppressWarnings("unchecked")
+    private void highlightAndPrint(Map<String, Object> options, Object obj) {
+        int width = (int)options.get(Printer.WIDTH);
+        boolean rownum = options.containsKey(Printer.ROWNUM);
+        totLines = 0;
+        String message = null;
+        if (obj == null) {
+            // do nothing
+        } else if (obj instanceof Map) {
+            highlightMap(options, keysToString((Map<Object, Object>)obj), width);
+        } else if (collectionObject(obj)) {
+            List<Object> collection = objectToList(obj);
+            if (collection.size() > (int)options.get(Printer.MAXROWS)) {
+                message = "Truncated output: " + (int)options.get(Printer.MAXROWS) + "/" + collection.size();
+                collection = collection.subList(collection.size() - (int)options.get(Printer.MAXROWS), collection.size());
+            }
+            if (!collection.isEmpty()) {
+                if (collection.size() == 1 && !options.containsKey(Printer.ONE_ROW_TABLE)) {
+                    Object elem = collection.iterator().next();
+                    if (elem instanceof Map) {
+                        highlightMap(options, keysToString((Map<Object, Object>)elem), width);
+                    } else if (canConvert(elem) && !options.containsKey(Printer.TO_STRING)){
+                        highlightMap(options, objectToMap(options, elem), width);
+                    } else {
+                        highlightValue(options, null, objectToString(options, obj)).println(terminal());
+                    }
+                } else {
+                    try {
+                        Object elem = collection.iterator().next();
+                        boolean convert = canConvert(elem);
+                        if ((elem instanceof Map || convert) && !options.containsKey(Printer.TO_STRING)) {
+                            Map<String, Object> map = convert ? objectToMap(options, elem)
+                                                              : keysToString((Map<Object, Object>) elem);
+                            List<String> _header = null;
+                            List<String> columnsIn = optionList(Printer.COLUMNS_IN, options);
+                            List<String> columnsOut = !options.containsKey("all") ? optionList(Printer.COLUMNS_OUT, options)
+                                                                                  : new ArrayList<>();
+                            if (options.containsKey(Printer.COLUMNS)) {
+                                _header = (List<String>) options.get(Printer.COLUMNS);
+                            } else {
+                                _header = columnsIn;
+                                _header.addAll(map.keySet().stream()
+                                        .filter(k -> !columnsIn.contains(k) && !hasMatch(columnsOut, k))
+                                        .collect(Collectors.toList()));
+                            }
+                            List<String> header = new ArrayList<>();
+                            List<Integer> columns = new ArrayList<>();
+                            int headerWidth = 0;
+                            Set<String> refKeys = new HashSet<>();
+                            for (int i = 0; i < _header.size(); i++) {
+                                if (!map.containsKey(_header.get(i).split("\\.")[0]) && !map.containsKey(_header.get(i))) {
+                                    continue;
+                                }
+                                if (options.containsKey(Printer.COLUMNS)) {
+                                    // do nothing
+                                } else if (!options.containsKey(Printer.STRUCT_ON_TABLE)) {
+                                    Object val = mapValue(options, _header.get(i), map);
+                                    if (val == null || !simpleObject(val)) {
+                                        continue;
+                                    }
+                                }
+                                String rk = map.containsKey(_header.get(i)) ? _header.get(i) : _header.get(i).split("\\.")[0];
+                                refKeys.add(rk);
+                                header.add(_header.get(i));
+                                String cn = columnName(_header.get(i), options.containsKey(Printer.SHORT_NAMES));
+                                columns.add(cn.length() + 1);
+                                headerWidth += cn.length() + 1;
+                                if (headerWidth > width) {
+                                    break;
+                                }
+                            }
+                            if (header.size() == 0) {
+                                throw new Exception("No columns for table!");
+                            }
+                            double mapSimilarity = 0.8;
+                            if (options.containsKey(Printer.MAP_SIMILARITY)) {
+                                mapSimilarity = ((java.math.BigDecimal)options.get(Printer.MAP_SIMILARITY)).doubleValue();
+                            }
+                            for (Object o : collection) {
+                                Map<String, Object> m = convert ? objectToMap(options, o)
+                                                                : keysToString((Map<Object, Object>) o);
+                                if (o instanceof Map && !similarSets(refKeys, m.keySet(), mapSimilarity)) {
+                                    throw new Exception("Not homogenous list!");
+                                }
+                                for (int i = 0; i < header.size(); i++) {
+                                    int cw = highlightMapValue(options, header.get(i), m).columnLength();
+                                    if (cw > columns.get(i) - 1) {
+                                        columns.set(i, cw + 1);
+                                    }
+                                }
+                            }
+                            columns.add(0, 0);
+                            toTabStops(columns, collection.size(), rownum);
+                            AttributedStringBuilder asb = new AttributedStringBuilder().tabs(columns);
+                            int firstColumn = 0;
+                            if (rownum) {
+                                asb.append("\t");
+                                firstColumn = 1;
+                            }
+                            for (int i = 0; i < header.size(); i++) {
+                                asb.styled(prntStyle.resolve(".th")
+                                         , columnName(header.get(i), options.containsKey(Printer.SHORT_NAMES)));
+                                asb.append("\t");
+                            }
+                            truncate(asb, width).println(terminal());
+                            Integer row = 0;
+                            for (Object o : collection) {
+                                AttributedStringBuilder asb2 = new AttributedStringBuilder().tabs(columns);
+                                if (rownum) {
+                                    asb2.styled(prntStyle.resolve(".rn"), row.toString()).append(":");
+                                    asb2.append("\t");
+                                    row++;
+                                }
+                                Map<String, Object> m = convert ? objectToMap(options, o)
+                                                                : keysToString((Map<Object, Object>) o);
+                                for (int i = 0; i < header.size(); i++) {
+                                    AttributedString v = highlightMapValue(options, header.get(i), m);
+                                    if (isNumber(v.toString())) {
+                                        v = addPadding(v,
+                                                columns.get(firstColumn + i + 1) - columns.get(firstColumn + i) - 1);
+                                    }
+                                    asb2.append(v);
+                                    asb2.append("\t");
+                                }
+                                asb2.subSequence(0, width).println(terminal());
+                            }
+                        } else if (collectionObject(elem) && !options.containsKey(Printer.TO_STRING)) {
+                            List<Integer> columns = new ArrayList<>();
+                            for (Object o : collection) {
+                                List<Object> inner = objectToList(o);
+                                for (int i = 0; i < inner.size(); i++) {
+                                    int len1 = objectToString(options, inner.get(i)).length() + 1;
+                                    if (columns.size() <= i) {
+                                        columns.add(len1);
+                                    } else if (len1 > columns.get(i)) {
+                                        columns.set(i, len1);
+                                    }
+                                }
+                            }
+                            toTabStops(columns, collection.size(), rownum);
+                            Integer row = 0;
+                            int firstColumn = rownum ? 1 : 0;
+                            for (Object o : collection) {
+                                AttributedStringBuilder asb = new AttributedStringBuilder().tabs(columns);
+                                if (rownum) {
+                                    asb.styled(prntStyle.resolve(".rn"), row.toString()).append(":");
+                                    asb.append("\t");
+                                    row++;
+                                }
+                                List<Object> inner = objectToList(o);
+                                for (int i = 0; i < inner.size(); i++) {
+                                    AttributedString v = highlightValue(options, null, inner.get(i));
+                                    if (isNumber(v.toString())) {
+                                        v = addPadding(v,
+                                                columns.get(firstColumn + i + 1) - columns.get(firstColumn + i) - 1);
+                                    }
+                                    asb.append(v);
+                                    asb.append("\t");
+                                }
+                                truncate(asb, width).println(terminal());
+                            }
+                        } else {
+                            highlightList(options, collection, width);
+                        }
+                    } catch (Exception e) {
+                        Log.debug("Stack: ", e);
+                        highlightList(options, collection, width);
+                    }
+                }
+            } else {
+                highlightValue(options, null, objectToString(options, obj)).println(terminal());
+            }
+        } else if (canConvert(obj) && !options.containsKey(Printer.TO_STRING)) {
+            highlightMap(options, objectToMap(options, obj), width);
+        } else {
+            highlightValue(options, null, objectToString(options, obj)).println(terminal());
+        }
+        if (message != null) {
+            AttributedStringBuilder asb = new AttributedStringBuilder();
+            asb.styled(prntStyle.resolve(".em"), message);
+            asb.println(terminal());
+        }
+    }
+
+    private void highlightList(Map<String, Object> options
+            , List<Object> collection, int width) {
+        highlightList(options, collection, width, 0);
+    }
+
+    private void highlightList(Map<String, Object> options
+                            , List<Object> collection, int width, int depth) {
+        Integer row = 0;
+        int maxrows = (int)options.get(Printer.MAXROWS);
+        int indent = (int)options.get(Printer.INDENTION);
+        List<Integer> tabs = new ArrayList<>();
+        tabs.add(indent*depth);
+        if (options.containsKey(Printer.ROWNUM)) {
+            tabs.add(indent*depth + digits(collection.size()) + 2);
+        }
+        options.remove(Printer.MAX_COLUMN_WIDTH);
+        for (Object o : collection) {
+            AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
+            if (depth > 0) {
+                asb.append("\t");
+            }
+            if (options.containsKey(Printer.ROWNUM)) {
+                asb.styled(prntStyle.resolve(".rn"), row.toString()).append(":");
+                asb.append("\t");
+                row++;
+            }
+            asb.append(highlightValue(options, null, o));
+            println(truncate(asb, width), maxrows);
+        }
+    }
+
+    private boolean collectionObject(Object obj) {
+        return obj instanceof Iterator || obj instanceof Iterable || obj instanceof Object[] || obj instanceof Collection;
+    }
+
+    private boolean simpleObject(Object obj) {
+        return obj instanceof Number || obj instanceof String || obj instanceof Date || obj instanceof File
+                || obj instanceof Boolean || obj instanceof Enum;
+    }
+
+    private boolean canConvert(Object obj) {
+        if (engine == null || obj == null || obj instanceof Class || obj instanceof Map ||  simpleObject(obj) || collectionObject(obj)) {
+            return false;
+        }
+        return true;
+    }
+
+    private AttributedString truncate(AttributedStringBuilder asb, int width) {
+        return asb.columnLength() > width ? asb.subSequence(0, width) : asb.toAttributedString();
+    }
+
+    private int digits(int number) {
+        if (number < 100) {
+            return number < 10 ? 1 : 2;
+        } else if (number < 1000) {
+            return 3;
+        } else {
+            return number < 10000 ? 4 : 5;
+        }
+    }
+
+    private void toTabStops(List<Integer> columns, int rows, boolean rownum) {
+        int delta = 5;
+        if (rownum) {
+            delta = digits(rows) + 2;
+            columns.add(0, delta);
+        }
+        for (int i = 1; i < columns.size(); i++) {
+            delta =  columns.get(i);
+            columns.set(i, columns.get(i - 1) + columns.get(i));
+        }
+        columns.add(columns.get(columns.size() - 1) + delta);
+    }
+
+    private void highlightMap(Map<String, Object> options, Map<String, Object> map, int width) {
+        if (!map.isEmpty()) {
+            highlightMap(options, map, width, 0);
+        } else {
+            highlightValue(options, null, objectToString(options, map)).println(terminal());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void highlightMap(Map<String, Object> options
+                            , Map<String, Object> map, int width, int depth) {
+        int maxrows = (int)options.get(Printer.MAXROWS);
+        int max = map.keySet().stream().map(String::length).max(Integer::compareTo).get();
+        if (max > (int)options.getOrDefault(Printer.MAX_COLUMN_WIDTH, Integer.MAX_VALUE)) {
+            max = (int)options.get(Printer.MAX_COLUMN_WIDTH);
+        }
+        Map<String, Object> mapOptions = new HashMap<>();
+        mapOptions.putAll(options);
+        mapOptions.remove(Printer.MAX_COLUMN_WIDTH);
+        int indent = (int)options.get(Printer.INDENTION);
+        int maxDepth = (int)options.get(Printer.MAX_DEPTH);
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            AttributedStringBuilder asb = new AttributedStringBuilder().tabs(Arrays.asList(0, depth*indent, depth*indent + max + 1));
+            if (depth != 0) {
+                asb.append("\t");
+            }
+            asb.styled(prntStyle.resolve(".mk"), truncateValue(max, entry.getKey()));
+            Object elem = entry.getValue();
+            boolean convert = canConvert(elem);
+            boolean highlightValue = true;
+            if (depth < maxDepth && !options.containsKey(Printer.TO_STRING)) {
+                if (elem instanceof Map || convert) {
+                    Map<String, Object> childMap = convert ? objectToMap(options, elem)
+                                                           : keysToString((Map<Object, Object>) elem);
+                    if (!childMap.isEmpty()) {
+                        println(truncate(asb, width), maxrows);
+                        highlightMap(options, childMap, width, depth + 1);
+                        highlightValue = false;
+                    }
+                } else if (collectionObject(elem)) {
+                    List<Object> collection = objectToList(elem);
+                    if (!collection.isEmpty()) {
+                        println(truncate(asb, width), maxrows);
+                        Map<String, Object> listOptions = new HashMap<>();
+                        listOptions.putAll(options);
+                        listOptions.put(Printer.TO_STRING, true);
+                        highlightList(listOptions, collection, width, depth + 1);
+                        highlightValue = false;
+                    }
+                }
+            }
+            if (highlightValue) {
+                AttributedString val = highlightMapValue(mapOptions, entry.getKey(), map);
+                asb.append("\t");
+                if (map.size() == 1) {
+                    if (val.contains('\n')) {
+                        for (String v : val.toString().split("\\r?\\n")) {
+                            asb.append(highlightValue(options, entry.getKey(), v));
+                            println(truncate(asb, width), maxrows);
+                            asb = new AttributedStringBuilder().tabs(Arrays.asList(0, max + 1));
+                        }
+                    } else {
+                        asb.append(val);
+                        println(truncate(asb, width), maxrows);
+                    }
+                } else {
+                    if (val.contains('\n')) {
+                        val = new AttributedString(Arrays.asList(val.toString().split("\\r?\\n")).toString());
+                        asb.append(highlightValue(options, entry.getKey(), val.toString()));
+                    } else {
+                        asb.append(val);
+                    }
+                    println(truncate(asb, width), maxrows);
+                }
+            }
+        }
+    }
+}

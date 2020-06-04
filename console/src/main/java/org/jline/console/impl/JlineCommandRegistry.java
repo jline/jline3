@@ -6,29 +6,25 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.builtins;
+package org.jline.console.impl;
 
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
-import org.jline.console.ArgDesc;
-import org.jline.console.CmdDesc;
-import org.jline.console.CommandRegistry;
 import org.jline.utils.AttributedString;
-
 import org.jline.builtins.Options;
 import org.jline.builtins.Completers.AnyCompleter;
 import org.jline.builtins.Completers.OptDesc;
 import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.Options.HelpException;
-import org.jline.console.AbstractCommandRegistry;
+import org.jline.console.ArgDesc;
+import org.jline.console.CmdDesc;
+import org.jline.console.CommandRegistry;
 import org.jline.console.CommandRegistry.CommandSession;
 import org.jline.reader.Completer;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
-import org.jline.reader.impl.completer.SystemCompleter;
 
 /**
  * CommandRegistry common methods for JLine commands that are using HelpException.
@@ -140,7 +136,7 @@ public abstract class JlineCommandRegistry extends AbstractCommandRegistry {
         }
     }
 
-    protected static CmdDesc compileCommandDescription(String helpMessage) {
+    public static CmdDesc compileCommandDescription(String helpMessage) {
         List<AttributedString> main = new ArrayList<>();
         Map<String, List<AttributedString>> options = new HashMap<>();
         String prevOpt = null;
@@ -173,7 +169,7 @@ public abstract class JlineCommandRegistry extends AbstractCommandRegistry {
         return new CmdDesc(main, ArgDesc.doArgNames(Arrays.asList("")), options);
     }
 
-    protected static List<OptDesc> compileCommandOptions(String helpMessage) {
+    public static List<OptDesc> compileCommandOptions(String helpMessage) {
         List<OptDesc> out = new ArrayList<>();
         for (String s : helpLines(helpMessage, true)) {
             if (s.matches("^\\s+-.*$")) {
@@ -205,7 +201,7 @@ public abstract class JlineCommandRegistry extends AbstractCommandRegistry {
         return out;
     }
 
-    protected static List<String> compileCommandInfo(String helpMessage) {
+    public static List<String> compileCommandInfo(String helpMessage) {
         List<String> out = new ArrayList<>();
         boolean first = true;
         for (String s  : helpLines(helpMessage, false)) {

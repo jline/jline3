@@ -21,9 +21,9 @@ public class Styles {
     private static final String LS_COLORS = "LS_COLORS";
     private static final String HELP_COLORS = "HELP_COLORS";
     private static final String PRNT_COLORS = "PRNT_COLORS";
-    
+
     private static final String KEY = "([a-z]{2}|\\*\\.[a-zA-Z0-9]+)";
-    private static final String VALUE = "[0-9]*(;[0-9]+){0,2}";    
+    private static final String VALUE = "[0-9]*(;[0-9]+){0,2}";
     private static final String ANSI_STYLE_PATTERN = KEY + "=" + VALUE + "(:" + KEY + "=" + VALUE + ")*(:|)";
 
     public static StyleResolver lsStyle() {
@@ -37,7 +37,7 @@ public class Styles {
     public static StyleResolver prntStyle() {
         return style(PRNT_COLORS, DEFAULT_PRNT_COLORS);
     }
-    
+
     private static StyleResolver style(String name, String defStyle) {
         String style = consoleOption(name);
         if (style == null) {
@@ -48,12 +48,16 @@ public class Styles {
 
     private static String consoleOption(String name) {
         String out = null;
-        SystemRegistry sr = SystemRegistry.get();
-        if (sr != null) {
-            out = (String)sr.consoleOption(name);
-            if (out != null && !out.matches(ANSI_STYLE_PATTERN)) {
-                out = null;
+        try {
+            ConsoleOptionGetter cog = (ConsoleOptionGetter)Class.forName("org.jline.console.SystemRegistry")
+                                                                .getDeclaredMethod("get").invoke(null);
+            if (cog != null) {
+                out = (String)cog.consoleOption(name);
+                if (out != null && !out.matches(ANSI_STYLE_PATTERN)) {
+                    out = null;
+                }
             }
+        } catch (Exception e) {
         }
         if (out == null) {
             out = System.getenv(name);
@@ -63,11 +67,11 @@ public class Styles {
         }
         return out;
     }
-    
+
     private static StyleResolver style(String style) {
         Map<String, String> colors = Arrays.stream(style.split(":"))
                 .collect(Collectors.toMap(s -> s.substring(0, s.indexOf('=')),
                         s -> s.substring(s.indexOf('=') + 1)));
         return new StyleResolver(colors::get);
-    }    
+    }
 }

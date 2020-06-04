@@ -27,12 +27,16 @@ import java.util.stream.Collectors;
 
 import org.jline.builtins.*;
 import org.jline.builtins.Completers.OptionCompleter;
-import org.jline.builtins.Widgets.TailTipWidgets;
-import org.jline.builtins.Widgets.TailTipWidgets.TipType;
+import org.jline.console.impl.Builtins;
+import org.jline.console.impl.ConsoleEngineImpl;
+import org.jline.console.impl.DefaultPrinter;
+import org.jline.console.impl.SystemRegistryImpl;
 import org.jline.console.CommandInput;
 import org.jline.console.CommandMethods;
 import org.jline.console.CommandRegistry;
-import org.jline.console.ConfigurationPath;
+import org.jline.console.ConsoleEngine;
+import org.jline.console.Printer;
+import org.jline.console.impl.JlineCommandRegistry;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.LineReader.Option;
@@ -50,6 +54,8 @@ import org.jline.terminal.Terminal.Signal;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.OSUtils;
+import org.jline.widget.TailTipWidgets;
+import org.jline.widget.TailTipWidgets.TipType;
 
 /**
  * Demo how to create REPL app with JLine.
@@ -264,11 +270,14 @@ public class Repl {
             GroovyEngine scriptEngine = new GroovyEngine();
             scriptEngine.put("ROOT", root);
             ConfigurationPath configPath = new ConfigurationPath(Paths.get(root), Paths.get(root));
-            ConsoleEngineImpl consoleEngine = new ConsoleEngineImpl(scriptEngine, Repl::workDir, configPath);
+            Printer printer = new DefaultPrinter(scriptEngine, configPath);
+            ConsoleEngineImpl consoleEngine = new ConsoleEngineImpl(scriptEngine
+                                                                  , printer
+                                                                  , Repl::workDir, configPath);
             Builtins builtins = new Builtins(Repl::workDir, configPath,  (String fun)-> {return new ConsoleEngine.WidgetCreator(consoleEngine, fun);});
             MyCommands myCommands = new MyCommands(Repl::workDir);
             SystemRegistryImpl systemRegistry = new SystemRegistryImpl(parser, terminal, Repl::workDir, configPath);
-            systemRegistry.register("groovy", new GroovyCommand(scriptEngine, consoleEngine));
+            systemRegistry.register("groovy", new GroovyCommand(scriptEngine, printer));
             systemRegistry.setCommandRegistries(consoleEngine, builtins, myCommands);
             //
             // LineReader

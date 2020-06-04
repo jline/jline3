@@ -19,17 +19,17 @@
         <version>3.15.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>jline-builtins</artifactId>
-    <name>JLine Builtins</name>
+    <artifactId>jline-console</artifactId>
+    <name>JLine Console</name>
 
     <properties>
-        <automatic.module.name>org.jline.builtins</automatic.module.name>
+        <automatic.module.name>org.jline.console</automatic.module.name>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.jline</groupId>
-            <artifactId>jline-reader</artifactId>
+            <artifactId>jline-builtins</artifactId>
         </dependency>
         <dependency>
             <groupId>org.jline</groupId>

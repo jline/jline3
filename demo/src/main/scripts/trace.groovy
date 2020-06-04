@@ -16,7 +16,7 @@ class Trace {
             throw new Options.HelpException(opt.usage())
         }
         def logger = LogManager.getLogManager().getLogger("")
-        def console = org.jline.builtins.SystemRegistry.get().consoleEngine()
+        def console = org.jline.console.SystemRegistry.get().consoleEngine()
         def out
         def CONSOLE_OPTIONS = console.getVariable('CONSOLE_OPTIONS');
         def handlers = logger.getHandlers()
