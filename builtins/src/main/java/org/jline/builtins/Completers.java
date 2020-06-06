@@ -20,28 +20,22 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.jline.reader.Candidate;
-import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReader.Option;
-import org.jline.reader.impl.completer.AggregateCompleter;
-import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.reader.ParsedLine;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
-import org.jline.utils.AttributedStyle;
 import org.jline.utils.OSUtils;
 import org.jline.utils.StyleResolver;
 
@@ -871,11 +865,14 @@ public class Completers {
                 }
             } else if (words.size() > 1 && shortOptionValueCompleter(command, words.get(words.size() - 2)) != null) {
                 shortOptionValueCompleter(command, words.get(words.size() - 2)).complete(reader, commandLine, candidates);
+            } else if (words.size() > 1 && longOptionValueCompleter(command, words.get(words.size() - 2)) != null) {
+                longOptionValueCompleter(command, words.get(words.size() - 2)).complete(reader, commandLine, candidates);
             } else if (!argsCompleters.isEmpty()) {
                 int args = -1;
                 for (int i = startPos; i < words.size(); i++) {
                     if (!words.get(i).startsWith("-")) {
-                        if (i > 0 && shortOptionValueCompleter(command, words.get(i - 1)) == null) {
+                        if (i > 0 && shortOptionValueCompleter(command, words.get(i - 1)) == null
+                                && longOptionValueCompleter(command, words.get(i - 1)) == null) {
                             args++;
                         }
                     }
@@ -888,6 +885,15 @@ public class Completers {
                     argsCompleters.get(argsCompleters.size() - 1).complete(reader, commandLine, candidates);
                 }
             }
+        }
+
+        private org.jline.reader.Completer longOptionValueCompleter(String command, String opt) {
+            if (!opt.matches("--[a-zA-Z]+")) {
+                return null;
+            }
+            Collection<OptDesc> optDescs = commandOptions == null ? options : commandOptions.apply(command);
+            OptDesc option = findOptDesc(optDescs, opt);
+            return option.hasValue() ? option.valueCompleter() : null;
         }
 
         private org.jline.reader.Completer shortOptionValueCompleter(String command, String opt) {

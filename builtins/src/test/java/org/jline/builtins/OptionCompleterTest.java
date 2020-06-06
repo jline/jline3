@@ -8,14 +8,11 @@
  */
 package org.jline.builtins;
 
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.ArrayList;
 
 import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.Completers.OptDesc;
-import org.jline.reader.LineReader;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.reader.impl.completer.ArgumentCompleter;
@@ -42,6 +39,11 @@ public class OptionCompleterTest extends ReaderTestSupport {
         assertBuffer("command ", new TestBuffer("c").tab());
         assertBuffer("command -s", new TestBuffer("command -").tab());
         assertBuffer("command -s val ", new TestBuffer("command -s v").tab());
+        assertBuffer("command -sval ", new TestBuffer("command -sv").tab());
+        assertBuffer("command --sopt val ", new TestBuffer("command --sopt v").tab());
+        assertBuffer("command --sopt=", new TestBuffer("command --sop").tab());
+        assertBuffer("command --sopt=val ", new TestBuffer("command --sopt=v").tab());
+        assertBuffer("command -sval ", new TestBuffer("command -sv").tab());
         assertBuffer("command -s val bar ", new TestBuffer("command -s val b").tab());
         assertBuffer("command -s val bar --option ", new TestBuffer("command -s val bar --o").tab());
         assertBuffer("command -s val bar --option foo ", new TestBuffer("command -s val bar --option f").tab());
