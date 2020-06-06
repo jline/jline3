@@ -106,21 +106,7 @@ public interface CommandRegistry {
     CmdDesc commandDescription(String command);
 
     /**
-     * Execute a command that have only string parameters and options. Implementation of the method is required
-     * when aggregating command registries using SystemRegistry.
-     * @param session the data of the current command session
-     * @param command the name of the command
-     * @param args arguments of the command
-     * @return result of the command execution
-     * @throws Exception in case of error
-     */
-    default Object execute(CommandSession session, String command, String[] args) throws Exception {
-        throw new IllegalArgumentException("CommandRegistry method execute(String command, String[] args) is not implemented!");
-    }
-
-    /**
-     * Execute a command. If command has other than string parameters a custom implementation is required.
-     * This method will be called only when we have ConsoleEngine in SystemRegistry.
+     * Execute a command.
      * @param session the data of the current command session
      * @param command the name of the command
      * @param args arguments of the command
@@ -128,17 +114,10 @@ public interface CommandRegistry {
      * @throws Exception in case of error
      */
     default Object invoke(CommandSession session, String command, Object... args) throws Exception {
-        String[] _args = new String[args.length];
-        for (int i = 0; i < args.length; i++) {
-            if (!(args[i] instanceof String)) {
-                throw new IllegalArgumentException();
-            }
-            _args[i] = args[i].toString();
-        }
-        return execute(session, command, _args);
+        throw new IllegalStateException("CommandRegistry method invoke(session, command, ... args) is not implemented!");
     }
 
-    public static class CommandSession {
+    static class CommandSession {
         private final Terminal terminal;
         private final InputStream in;
         private final PrintStream out;

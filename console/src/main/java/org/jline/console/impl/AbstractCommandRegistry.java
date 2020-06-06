@@ -15,7 +15,6 @@ import org.jline.console.CmdDesc;
 import org.jline.console.CommandInput;
 import org.jline.console.CommandMethods;
 import org.jline.console.CommandRegistry;
-import org.jline.console.CommandRegistry.CommandSession;
 import org.jline.reader.impl.completer.SystemCompleter;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
@@ -25,7 +24,7 @@ import org.jline.utils.AttributedStringBuilder;
  *
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
-public abstract class AbstractCommandRegistry {
+public abstract class AbstractCommandRegistry implements CommandRegistry {
     private CmdRegistry cmdRegistry;
     private Exception exception;
 
@@ -65,31 +64,11 @@ public abstract class AbstractCommandRegistry {
         cmdRegistry = new NameCmdRegistry(commandExecute);
     }
 
-    public Object execute(CommandRegistry.CommandSession session, String command, String[] args) throws Exception {
-        exception = null;
-        getCommandMethods(command).execute().accept(new CommandInput(command, args, session));
-        if (exception != null) {
-            throw exception;
-        }
-        return null;
-    }
-
+    @Override
     public Object invoke(CommandSession session, String command, Object... args) throws Exception {
-        Object out = null;
         exception = null;
         CommandMethods methods = getCommandMethods(command);
-        if (methods.isConsumer()) {
-            String[] _args = new String[args.length];
-            for (int i = 0; i < args.length; i++) {
-                if (!(args[i] instanceof String)) {
-                    throw new IllegalArgumentException();
-                }
-                _args[i] = args[i].toString();
-            }
-            methods.execute().accept(new CommandInput(command, _args, session));
-        } else {
-            out = methods.executeFunction().apply(new CommandInput(command, args, session));
-        }
+        Object out = methods.execute().apply(new CommandInput(command, args, session));
         if (exception != null) {
             throw exception;
         }
@@ -100,14 +79,17 @@ public abstract class AbstractCommandRegistry {
         this.exception = exception;
     }
 
+    @Override
     public boolean hasCommand(String command) {
         return cmdRegistry.hasCommand(command);
     }
 
+    @Override
     public Set<String> commandNames() {
         return cmdRegistry.commandNames();
     }
 
+    @Override
     public Map<String, String> commandAliases() {
         return cmdRegistry.commandAliases();
     }
@@ -120,6 +102,7 @@ public abstract class AbstractCommandRegistry {
         cmdRegistry.alias(alias, command);
     }
 
+    @Override
     public SystemCompleter compileCompleters() {
         return cmdRegistry.compileCompleters();
     }
