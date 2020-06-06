@@ -18,17 +18,12 @@ import java.util.stream.Collectors;
 import org.jline.builtins.ConfigurationPath;
 import org.jline.builtins.Options;
 import org.jline.builtins.Styles;
-import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.Nano.SyntaxHighlighter;
 import org.jline.console.CmdDesc;
 import org.jline.console.CommandInput;
 import org.jline.console.Printer;
 import org.jline.console.ScriptEngine;
 import org.jline.console.SystemRegistry;
-import org.jline.reader.Completer;
-import org.jline.reader.impl.completer.ArgumentCompleter;
-import org.jline.reader.impl.completer.NullCompleter;
-import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
@@ -172,28 +167,6 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
             out = e;
         }
         return out;
-    }
-
-    private List<String> variableReferences() {
-        List<String> out = new ArrayList<>();
-        if (engine != null) {
-            for (String v : engine.find().keySet()) {
-                out.add("$" + v);
-            }
-        }
-        return out;
-    }
-
-    @Override
-    public List<Completer> prntCompleter(String command) {
-        List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                       , new OptionCompleter(Arrays.asList(new StringsCompleter(this::variableReferences)
-                                                         , NullCompleter.INSTANCE)
-                                           , this::commandOptions
-                                           , 1)
-                                    ));
-        return completers;
     }
 
     /**

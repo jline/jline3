@@ -8,13 +8,10 @@
  */
 package org.jline.console;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.jline.reader.Completer;
 
 /**
  * Print object to the console.
@@ -183,10 +180,6 @@ public interface Printer {
 
     default Exception prntCommand(CommandInput input) {
         return null;
-    }
-
-    default List<Completer> prntCompleter(String command) {
-        return new ArrayList<>();
     }
 
 }

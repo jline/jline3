@@ -97,7 +97,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         }
         commandExecute.put(Command.DEL, new CommandMethods(this::del, this::variableCompleter));
         commandExecute.put(Command.SHOW, new CommandMethods(this::show, this::variableCompleter));
-        commandExecute.put(Command.PRNT, new CommandMethods(this::prnt, printer::prntCompleter));
+        commandExecute.put(Command.PRNT, new CommandMethods(this::prnt, this::prntCompleter));
         commandExecute.put(Command.SLURP, new CommandMethods(this::slurpcmd, this::slurpCompleter));
         commandExecute.put(Command.ALIAS, new CommandMethods(this::aliascmd, this::aliasCompleter));
         commandExecute.put(Command.UNALIAS, new CommandMethods(this::unalias, this::unaliasCompleter));
@@ -1135,6 +1135,17 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             out.add("$" + v);
         }
         return out;
+    }
+
+    private List<Completer> prntCompleter(String command) {
+        List<Completer> completers = new ArrayList<>();
+        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
+                       , new OptionCompleter(Arrays.asList(new StringsCompleter(this::variableReferences)
+                                                         , NullCompleter.INSTANCE)
+                                           , this::commandOptions
+                                           , 1)
+                                    ));
+        return completers;
     }
 
     private static class AliasValueCompleter implements Completer {
