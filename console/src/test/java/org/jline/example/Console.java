@@ -174,7 +174,7 @@ public class Console
             return out;
         }
 
-        public CmdDesc commandDescription(String command) {
+        public CmdDesc commandDescription(List<String> args) {
             // TODO
             return new CmdDesc(false);
         }

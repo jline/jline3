@@ -301,11 +301,6 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     @Override
-    public CmdDesc commandDescription(String command) {
-        return commandDescription(Arrays.asList(command));
-    }
-
-    @Override
     public CmdDesc commandDescription(List<String> args) {
         CmdDesc out = new CmdDesc(false);
         String command = args.get(0);
@@ -313,7 +308,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         if (id > -1) {
             out = commandRegistries[id].commandDescription(args);
         } else if (scriptStore.hasScript(command)) {
-            out = consoleEngine().commandDescription(command);
+            out = consoleEngine().commandDescription(args);
         } else if (isLocalCommand(command)) {
             out = localCommandDescription(command);
         }
@@ -347,7 +342,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                         if (c != null && c.equals("help")) {
                             out = null;
                         } else if (c != null) {
-                            out = subcommands.get(cmd).commandDescription(c);
+                            out = subcommands.get(cmd).commandDescription(Arrays.asList(c));
                         } else {
                             out = commandDescription(subcommands.get(cmd));
                         }

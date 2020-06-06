@@ -20,8 +20,6 @@ import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.Options.HelpException;
 import org.jline.console.ArgDesc;
 import org.jline.console.CmdDesc;
-import org.jline.console.CommandRegistry;
-import org.jline.console.CommandRegistry.CommandSession;
 import org.jline.reader.Completer;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
@@ -53,7 +51,8 @@ public abstract class JlineCommandRegistry extends AbstractCommandRegistry {
                                           + this.getClass().getCanonicalName());
     }
 
-    public CmdDesc commandDescription(String command) {
+    public CmdDesc commandDescription(List<String> args) {
+        String command = args != null && !args.isEmpty() ? args.get(0) : "";
         try {
             invoke(new CommandSession(), command, new Object[] {"--help"});
         } catch (HelpException e) {

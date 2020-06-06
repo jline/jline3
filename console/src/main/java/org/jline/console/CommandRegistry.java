@@ -89,21 +89,11 @@ public interface CommandRegistry {
     /**
      * Returns a command description for use in the JLine Widgets framework.
      * Default method must be overridden to return sub command descriptions.
-     * @param args command line arguments
+     * @param args command (args[0]) and its arguments
      * @return command description for JLine TailTipWidgets to be displayed
      *         in the terminal status bar.
      */
-    default CmdDesc commandDescription(List<String> args) {
-        return !args.isEmpty() ? commandDescription(args.get(0)) : commandDescription("");
-    }
-
-    /**
-     * Returns a command description for use in the JLine Widgets framework.
-     * @param command the name of the command whose description to return
-     * @return command description for JLine TailTipWidgets to be displayed
-     *         in the terminal status bar.
-     */
-    CmdDesc commandDescription(String command);
+    CmdDesc commandDescription(List<String> args);
 
     /**
      * Execute a command.

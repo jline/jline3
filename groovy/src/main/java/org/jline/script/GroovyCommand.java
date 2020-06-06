@@ -92,7 +92,8 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
     }
 
     @Override
-    public CmdDesc commandDescription(String command) {
+    public CmdDesc commandDescription(List<String> args) {
+        String command = args != null && !args.isEmpty() ? args.get(0) : "";
         Command cmd = (Command)registeredCommand(command);
         return commandDescs.get(cmd);
     }
