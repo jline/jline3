@@ -387,23 +387,11 @@ public class SystemRegistryImpl implements SystemRegistry {
         return out;
     }
 
-    @Override
-    public Object execute(String command, String[] args) throws Exception {
-        Object out = null;
-        int id = registryId(command);
-        if (id > -1) {
-            out = commandRegistries[id].execute(commandSession(), command, args);
-        } else if (isLocalCommand(command)) {
-            out = localExecute(command, args);
-        }
-        return out;
-    }
-
     private Object localExecute(String command, Object[] args) throws Exception {
         if (!isLocalCommand(command)) {
             throw new IllegalArgumentException();
         }
-        Object out = commandExecute.get(command).executeFunction()
+        Object out = commandExecute.get(command).execute()
                           .apply(new CommandInput(command, args, commandSession()));
         if (exception != null) {
             throw exception;

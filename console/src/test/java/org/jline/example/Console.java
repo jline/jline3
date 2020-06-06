@@ -165,13 +165,13 @@ public class Console
             return out;
         }
 
-        public Object execute(CommandRegistry.CommandSession session, String command, String[] args) throws Exception {
+        public Object invoke(CommandSession session, String command, Object... args) throws Exception {
             exception = null;
-            commandExecute.get(command(command)).execute().accept(new CommandInput(command, args, session));
+            Object out = commandExecute.get(command(command)).execute().apply(new CommandInput(command, args, session));
             if (exception != null) {
                 throw exception;
             }
-            return null;
+            return out;
         }
 
         public CmdDesc commandDescription(String command) {

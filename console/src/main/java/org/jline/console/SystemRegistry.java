@@ -109,15 +109,6 @@ public interface SystemRegistry extends CommandRegistry, ConsoleOptionGetter {
      * @return command execution result
      * @throws Exception in case of error
      */
-    Object execute(String command, String[] args) throws Exception;
-
-    /**
-     * Execute command with arguments
-     * @param command command to be executed
-     * @param args arguments of the command
-     * @return command execution result
-     * @throws Exception in case of error
-     */
     Object invoke(String command, Object... args) throws Exception;
 
     /**
