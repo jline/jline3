@@ -278,6 +278,7 @@ public class Repl {
             SystemRegistryImpl systemRegistry = new SystemRegistryImpl(parser, terminal, Repl::workDir, configPath);
             systemRegistry.register("groovy", new GroovyCommand(scriptEngine, printer));
             systemRegistry.setCommandRegistries(consoleEngine, builtins, myCommands);
+            systemRegistry.addCompleter(scriptEngine.getScriptCompleter());
             //
             // LineReader
             //

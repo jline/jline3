@@ -310,7 +310,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         List<Completer> out = new ArrayList<>();
         ArgumentCompleter ac = new ArgumentCompleter(NullCompleter.INSTANCE
                                    , new OptionCompleter(Arrays.asList(new StringsCompleter(this::variables), NullCompleter.INSTANCE)
-                                                       , compileOptDescs(command), 1)
+                                                       , this::compileOptDescs, 1)
                                    );
         out.add(ac);
         return out;
@@ -320,7 +320,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         List<Completer> out = new ArrayList<>();
         ArgumentCompleter ac = new ArgumentCompleter(NullCompleter.INSTANCE
                                     , new OptionCompleter(NullCompleter.INSTANCE
-                                                        , compileOptDescs(command), 1)
+                                                        , this::compileOptDescs, 1)
                                     );
         out.add(ac);
         return out;

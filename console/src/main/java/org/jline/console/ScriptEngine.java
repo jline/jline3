@@ -12,6 +12,8 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.*;
 
+import org.jline.reader.Completer;
+
 /**
  * Manage scriptEngine variables, statements and script execution.
  *
@@ -30,6 +32,12 @@ public interface ScriptEngine {
      * @return script file name extensions
      */
     Collection<String> getExtensions();
+
+    /**
+    *
+    * @return script tab completer
+    */
+    Completer getScriptCompleter();
 
     /**
      * Tests if console variable exists
@@ -121,7 +129,7 @@ public interface ScriptEngine {
     *
     * @return Supported deserialization formats
     */
-   List<String> getDeserializationFormats();
+    List<String> getDeserializationFormats();
 
     /**
      * Persists object value to file.
