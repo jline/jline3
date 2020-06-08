@@ -79,8 +79,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         internalPrintln(options, object);
     }
 
-    @Override
-    public Exception prntCommand(CommandInput input) {
+    public String[] appendUsage(String[] customUsage) {
         final String[] usage = {
                 "prnt -  print object",
                 "Usage: prnt [OPTIONS] object",
@@ -104,61 +103,80 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                 "     --valueStyle=STYLE           Use nanorc style to highlight column/map values",
                 "  -w --width=WIDTH                Display width (default terminal width)"
         };
+        String[] out;
+        if (customUsage == null || customUsage.length == 0) {
+            out = usage;
+        } else {
+            out = new String[usage.length + customUsage.length];
+            System.arraycopy(usage, 0, out, 0, usage.length);
+            System.arraycopy(customUsage, 0, out, usage.length, customUsage.length);
+        }
+        return out;
+    }
+
+    public Map<String, Object> compileOptions(Options opt) {
+        Map<String, Object> options = new HashMap<>();
+        if (opt.isSet(Printer.SKIP_DEFAULT_OPTIONS)) {
+            options.put(Printer.SKIP_DEFAULT_OPTIONS, true);
+        } else if (opt.isSet(Printer.STYLE)) {
+            options.put(Printer.STYLE, opt.get(Printer.STYLE));
+        }
+        if (opt.isSet(Printer.TO_STRING)) {
+            options.put(Printer.TO_STRING, true);
+        }
+        if (opt.isSet(Printer.WIDTH)) {
+            options.put(Printer.WIDTH, opt.getNumber(Printer.WIDTH));
+        }
+        if (opt.isSet(Printer.ROWNUM)) {
+            options.put(Printer.ROWNUM, true);
+        }
+        if (opt.isSet(Printer.ONE_ROW_TABLE)) {
+            options.put(Printer.ONE_ROW_TABLE, true);
+        }
+        if (opt.isSet(Printer.SHORT_NAMES)) {
+            options.put(Printer.SHORT_NAMES, true);
+        }
+        if (opt.isSet(Printer.STRUCT_ON_TABLE)) {
+            options.put(Printer.STRUCT_ON_TABLE, true);
+        }
+        if (opt.isSet(Printer.COLUMNS)) {
+            options.put(Printer.COLUMNS, Arrays.asList(opt.get(Printer.COLUMNS).split(",")));
+        }
+        if (opt.isSet(Printer.EXCLUDE)) {
+            options.put(Printer.EXCLUDE, Arrays.asList(opt.get(Printer.EXCLUDE).split(",")));
+        }
+        if (opt.isSet(Printer.INCLUDE)) {
+            options.put(Printer.INCLUDE, Arrays.asList(opt.get(Printer.INCLUDE).split(",")));
+        }
+        if (opt.isSet(Printer.ALL)) {
+            options.put(Printer.ALL, true);
+        }
+        if (opt.isSet(Printer.MAXROWS)) {
+            options.put(Printer.MAXROWS, opt.getNumber(Printer.MAXROWS));
+        }
+        if (opt.isSet(Printer.MAX_COLUMN_WIDTH)) {
+            options.put(Printer.MAX_COLUMN_WIDTH, opt.getNumber(Printer.MAX_COLUMN_WIDTH));
+        }
+        if (opt.isSet(Printer.MAX_DEPTH)) {
+            options.put(Printer.MAX_DEPTH, opt.getNumber(Printer.MAX_DEPTH));
+        }
+        if (opt.isSet(Printer.INDENTION)) {
+            options.put(Printer.INDENTION, opt.getNumber(Printer.INDENTION));
+        }
+        if (opt.isSet(Printer.VALUE_STYLE)) {
+            options.put(Printer.VALUE_STYLE, opt.get(Printer.VALUE_STYLE));
+        }
+        options.put("exception", "stack");
+        return options;
+    }
+
+    @Override
+    public Exception prntCommand(CommandInput input) {
         Exception out = null;
+        String[] usage = appendUsage(null);
         try {
             Options opt = parseOptions(usage, input.xargs());
-            Map<String, Object> options = new HashMap<>();
-            if (opt.isSet(Printer.SKIP_DEFAULT_OPTIONS)) {
-                options.put(Printer.SKIP_DEFAULT_OPTIONS, true);
-            } else if (opt.isSet(Printer.STYLE)) {
-                options.put(Printer.STYLE, opt.get(Printer.STYLE));
-            }
-            if (opt.isSet(Printer.TO_STRING)) {
-                options.put(Printer.TO_STRING, true);
-            }
-            if (opt.isSet(Printer.WIDTH)) {
-                options.put(Printer.WIDTH, opt.getNumber(Printer.WIDTH));
-            }
-            if (opt.isSet(Printer.ROWNUM)) {
-                options.put(Printer.ROWNUM, true);
-            }
-            if (opt.isSet(Printer.ONE_ROW_TABLE)) {
-                options.put(Printer.ONE_ROW_TABLE, true);
-            }
-            if (opt.isSet(Printer.SHORT_NAMES)) {
-                options.put(Printer.SHORT_NAMES, true);
-            }
-            if (opt.isSet(Printer.STRUCT_ON_TABLE)) {
-                options.put(Printer.STRUCT_ON_TABLE, true);
-            }
-            if (opt.isSet(Printer.COLUMNS)) {
-                options.put(Printer.COLUMNS, Arrays.asList(opt.get(Printer.COLUMNS).split(",")));
-            }
-            if (opt.isSet(Printer.EXCLUDE)) {
-                options.put(Printer.EXCLUDE, Arrays.asList(opt.get(Printer.EXCLUDE).split(",")));
-            }
-            if (opt.isSet(Printer.INCLUDE)) {
-                options.put(Printer.INCLUDE, Arrays.asList(opt.get(Printer.INCLUDE).split(",")));
-            }
-            if (opt.isSet(Printer.ALL)) {
-                options.put(Printer.ALL, true);
-            }
-            if (opt.isSet(Printer.MAXROWS)) {
-                options.put(Printer.MAXROWS, opt.getNumber(Printer.MAXROWS));
-            }
-            if (opt.isSet(Printer.MAX_COLUMN_WIDTH)) {
-                options.put(Printer.MAX_COLUMN_WIDTH, opt.getNumber(Printer.MAX_COLUMN_WIDTH));
-            }
-            if (opt.isSet(Printer.MAX_DEPTH)) {
-                options.put(Printer.MAX_DEPTH, opt.getNumber(Printer.MAX_DEPTH));
-            }
-            if (opt.isSet(Printer.INDENTION)) {
-                options.put(Printer.INDENTION, opt.getNumber(Printer.INDENTION));
-            }
-            if (opt.isSet(Printer.VALUE_STYLE)) {
-                options.put(Printer.VALUE_STYLE, opt.get(Printer.VALUE_STYLE));
-            }
-            options.put("exception", "stack");
+            Map<String,Object> options = compileOptions(opt);
             List<Object> args = opt.argObjects();
             if (args.size() > 0) {
                 println(options, args.get(0));
