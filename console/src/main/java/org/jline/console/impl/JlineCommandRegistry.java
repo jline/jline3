@@ -13,6 +13,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.jline.utils.AttributedString;
+import org.jline.utils.Log;
 import org.jline.builtins.Options;
 import org.jline.builtins.Completers.AnyCompleter;
 import org.jline.builtins.Completers.OptDesc;
@@ -45,7 +46,11 @@ public abstract class JlineCommandRegistry extends AbstractCommandRegistry {
         } catch (HelpException e) {
             return compileCommandInfo(e.getMessage());
         } catch (Exception e) {
-
+            Log.info("Error while getting command info", e);
+            if (Log.isDebugEnabled()) {
+                e.printStackTrace();
+            }
+            return new ArrayList<>();
         }
         throw new IllegalArgumentException("JlineCommandRegistry.commandInfo() method must be overridden in class "
                                           + this.getClass().getCanonicalName());
