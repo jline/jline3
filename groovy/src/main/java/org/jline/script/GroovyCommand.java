@@ -58,7 +58,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         }
         try {
             Class.forName("org.apache.ivy.util.Message");
-            System.setProperty("groovy.grape.report.downloads","true");
+            System.setProperty("groovy.grape.report.downloads","false");
             ivy = true;
         } catch (Exception e) {
         }
@@ -103,7 +103,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
 
     @SuppressWarnings("unchecked")
     public Object grab(CommandInput input) {
-        if (input.args().length != 1) {
+        if (input.args().length > 2) {
             throw new IllegalArgumentException("Wrong number of command parameters: " + input.args().length);
         }
         try {
@@ -118,15 +118,24 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
                 options.put(Printer.INDENTION, 4);
                 options.put(Printer.VALUE_STYLE, "classpath:/org/jline/groovy/gron.nanorc");
                 printer.println(options, resp);
-            } else if (arg.startsWith("-")) {
-                throw new IllegalArgumentException("Unknown command option: " + arg);
             } else {
+                int artifactId = 0;
+                if (input.args().length == 2) {
+                    if (input.args()[0].equals("-v") || input.args()[0].equals("--verbose")) {
+                        System.setProperty("groovy.grape.report.downloads","true");
+                        artifactId = 1;
+                    } else if (input.args()[1].equals("-v") || input.args()[1].equals("--verbose")) {
+                        System.setProperty("groovy.grape.report.downloads","true");
+                    } else {
+                        throw new IllegalArgumentException("Unknown command parameters!");
+                    }
+                }
                 Map<String, String> artifact = new HashMap<>();
-                Object xarg = input.xargs()[0];
+                Object xarg = input.xargs()[artifactId];
                 if (xarg instanceof String) {
-                    String[] vals = input.args()[0].split(":");
+                    String[] vals = input.args()[artifactId].split(":");
                     if (vals.length != 3) {
-                        throw new IllegalArgumentException("Invalid command parameter: " + input.args()[0]);
+                        throw new IllegalArgumentException("Invalid command parameter: " + input.args()[artifactId]);
                     }
                     artifact.put("group", vals[0]);
                     artifact.put("module", vals[1]);
@@ -141,6 +150,8 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
             }
         } catch (Exception e) {
             saveException(e);
+        } finally {
+            System.setProperty("groovy.grape.report.downloads","false");
         }
         return null;
     }
@@ -218,12 +229,13 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         Map<String,List<AttributedString>> optDescs = new HashMap<>();
         optDescs.put("-? --help", doDescription ("Displays command help"));
         optDescs.put("-l --list", doDescription ("List the modules in the cache"));
+        optDescs.put("-v --verbose", doDescription ("Report downloads"));
         CmdDesc out = new CmdDesc(new ArrayList<>(), optDescs);
         List<AttributedString> mainDesc = new ArrayList<>();
         List<String> info = new ArrayList<>();
         info.add("Add maven repository dependencies to classpath");
         commandInfos.put(Command.GRAB, info);
-        mainDesc.add(new AttributedString("grab <group>:<artifact>:<version>"));
+        mainDesc.add(new AttributedString("grab [OPTIONS] <group>:<artifact>:<version>"));
         mainDesc.add(new AttributedString("grab --list"));
         out.setMainDesc(mainDesc);
         out.setHighlighted(false);
