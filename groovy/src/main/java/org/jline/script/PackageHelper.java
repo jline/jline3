@@ -36,10 +36,12 @@ public class PackageHelper {
      *            Class object.
      * @param classes
      *            if a file isn't loaded but still is in the directory
+     * @param classesOnly
+     *            if true returns only classes of the pckgname
      * @throws ClassNotFoundException
      */
     private static void checkDirectory(File directory, String pckgname,
-            List<Class<?>> classes) throws ClassNotFoundException {
+            List<Class<?>> classes, boolean classesOnly) throws ClassNotFoundException {
         File tmpDirectory;
 
         if (directory.exists() && directory.isDirectory()) {
@@ -51,11 +53,12 @@ public class PackageHelper {
                         classes.add(Class.forName(pckgname + '.'
                                 + file.substring(0, file.length() - 6)));
                     } catch (final NoClassDefFoundError e) {
+                        // e.printStackTrace();
                         // do nothing. this class hasn't been found by the
                         // loader, and we don't care.
                     }
-                } else if ((tmpDirectory = new File(directory, file)).isDirectory()) {
-                    checkDirectory(tmpDirectory, pckgname + "." + file, classes);
+                } else if (!classesOnly && (tmpDirectory = new File(directory, file)).isDirectory()) {
+                    checkDirectory(tmpDirectory, pckgname + "." + file, classes, classesOnly);
                 }
             }
         }
@@ -71,31 +74,32 @@ public class PackageHelper {
      * @param classes
      *            the current ArrayList of all classes. This method will simply
      *            add new classes.
+     * @param classesOnly
+     *            if true returns only classes of the pckgname
      * @throws ClassNotFoundException
      *             if a file isn't loaded but still is in the jar file
      * @throws IOException
      *             if it can't correctly read from the jar file.
      */
     private static void checkJarFile(JarURLConnection connection,
-            String pckgname, List<Class<?>> classes)
+            String pckgname, List<Class<?>> classes, boolean classesOnly)
             throws IOException, ClassNotFoundException {
         final JarFile jarFile = connection.getJarFile();
         final Enumeration<JarEntry> entries = jarFile.entries();
         String name;
 
-        for (JarEntry jarEntry = null; entries.hasMoreElements()
-                && ((jarEntry = entries.nextElement()) != null);) {
-            try {
-                name = jarEntry.getName();
-                if (name.contains(".class")) {
-                    name = name.substring(0, name.length() - 6).replace('/', '.');
-
-                    if (name.contains(pckgname)) {
+        for (JarEntry jarEntry = null; entries.hasMoreElements() && ((jarEntry = entries.nextElement()) != null);) {
+            name = jarEntry.getName();
+            if (name.contains(".class")) {
+                name = name.substring(0, name.length() - 6).replace('/', '.');
+                if (classesOnly) {
+                    String namepckg = name.substring(0, name.lastIndexOf("."));
+                    if (pckgname.equals(namepckg) && !name.contains("$")) {
                         classes.add(Class.forName(name));
                     }
+                } else if (name.contains(pckgname)) {
+                    classes.add(Class.forName(name));
                 }
-            } catch (NoClassDefFoundError e) {
-                // ignore
             }
         }
     }
@@ -112,6 +116,10 @@ public class PackageHelper {
      */
     public static List<Class<?>> getClassesForPackage(String pckgname) throws ClassNotFoundException {
         List<Class<?>> classes = new ArrayList<>();
+        boolean classesOnly = pckgname.endsWith(".*");
+        if (classesOnly) {
+            pckgname = pckgname.substring(0, pckgname.length() - 2);
+        }
 
         try {
             final ClassLoader cld = Thread.currentThread().getContextClassLoader();
@@ -127,11 +135,11 @@ public class PackageHelper {
                     connection = url.openConnection();
 
                     if (connection instanceof JarURLConnection) {
-                        checkJarFile((JarURLConnection) connection, pckgname, classes);
+                        checkJarFile((JarURLConnection) connection, pckgname, classes, classesOnly);
                     } else if (connection.getClass().getCanonicalName().equals("sun.net.www.protocol.file.FileURLConnection")) {
                         try {
                             checkDirectory(
-                                    new File(URLDecoder.decode(url.getPath(), "UTF-8")), pckgname, classes);
+                                    new File(URLDecoder.decode(url.getPath(), "UTF-8")), pckgname, classes, classesOnly);
                         } catch (final UnsupportedEncodingException ex) {
                             throw new ClassNotFoundException(
                                     pckgname
@@ -158,6 +166,10 @@ public class PackageHelper {
             throw new ClassNotFoundException(
                     "IOException was thrown when trying to get all resources for "
                             + pckgname, ioex);
+        } catch (final NoClassDefFoundError e) {
+            throw new ClassNotFoundException(
+                    "NoClassDefFoundError was thrown when trying to get all resources for "
+                            + pckgname, e);
         }
         return classes;
     }

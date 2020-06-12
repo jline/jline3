@@ -175,14 +175,9 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         return out;
     }
 
-    private Set<String> variables() {
-        return engine.find().keySet();
-    }
-
     @Override
     public List<Completer> scriptCompleters() {
         List<Completer> out = new ArrayList<>();
-        out.add(new ArgumentCompleter(new StringsCompleter(this::variables), NullCompleter.INSTANCE));
         out.add(new ArgumentCompleter(new StringsCompleter(this::scriptNames)
                                     , new OptionCompleter(NullCompleter.INSTANCE
                                                         , this::commandOptions
