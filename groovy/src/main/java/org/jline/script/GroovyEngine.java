@@ -55,6 +55,11 @@ public class GroovyEngine implements ScriptEngine {
     private Map<String,String> imports = new HashMap<>();
     private Map<String,String> methods = new HashMap<>();
     private Map<String,Class<?>> nameClass = new HashMap<>();
+    private Cloner objectCloner = new ObjectCloner();
+
+    public interface Cloner {
+        Object clone(Object obj);
+    }
 
     public GroovyEngine() {
         this.sharedData = new Binding();
@@ -323,13 +328,21 @@ public class GroovyEngine implements ScriptEngine {
         return Utils.toMap(obj);
     }
 
+    public void setObjectCloner(Cloner objectCloner) {
+        this.objectCloner = objectCloner;
+    }
+
+    public Cloner getObjectCloner() {
+        return objectCloner;
+    }
+
     private Completer compileCompleter() {
         List<Completer> completers = new ArrayList<>();
         completers.add(new ArgumentCompleter(new StringsCompleter("while", "class", "for", "print", "println"), NullCompleter.INSTANCE));
         completers.add(new ArgumentCompleter(new StringsCompleter("def"), new StringsCompleter(methods::keySet), NullCompleter.INSTANCE));
         completers.add(new ArgumentCompleter(new StringsCompleter("import")
                                            , new PackageCompleter(CandidateType.PACKAGE), NullCompleter.INSTANCE));
-        completers.add(new MethodCompleter());
+        completers.add(new MethodCompleter(this));
         return new AggregateCompleter(completers);
     }
 
@@ -496,8 +509,11 @@ public class GroovyEngine implements ScriptEngine {
     }
 
     private class MethodCompleter implements Completer {
+        private GroovyEngine groovyEngine;
 
-        public MethodCompleter(){}
+        public MethodCompleter(GroovyEngine engine){
+            this.groovyEngine = engine;
+        }
 
         @Override
         public void complete(LineReader reader, ParsedLine commandLine, List<Candidate> candidates) {
@@ -505,14 +521,25 @@ public class GroovyEngine implements ScriptEngine {
             assert candidates != null;
             String wordbuffer = commandLine.word();
             String buffer = commandLine.line().substring(0, commandLine.cursor());
-            if (commandLine.wordIndex() > 0 && !commandLine.words().get(0).matches("(new|\\w+=new)")) {
-                return;
-            }
             Brackets brackets = new Brackets(buffer);
-            if (brackets.openCurly() || brackets.openRound() || brackets.numberOfCurlies() > 0 || brackets.numberOfRounds() > 0) {
+            if (commandLine.wordIndex() > 0 && !commandLine.words().get(0).matches("(new|\\w+=new)") && brackets.numberOfRounds() == 0) {
                 return;
             }
-            if (commandLine.wordIndex() == 1 && commandLine.words().get(0).matches("(new|\\w+=new)")) {
+            if (brackets.openCurly() || brackets.openRound() || brackets.numberOfCurlies() > 0) {
+                return;
+            }
+            if (brackets.numberOfRounds() > 0) {
+                int varsep = buffer.lastIndexOf('.');
+                int eqsep = buffer.indexOf('=');
+                if (varsep > 0 && varsep > eqsep) {
+                    Class<?> clazz = evaluateClass(buffer.substring(eqsep + 1, varsep));
+                    int vs = wordbuffer.lastIndexOf('.');
+                    int es = wordbuffer.indexOf('=');
+                    String curBuf = wordbuffer.substring(es + 1, vs + 1);
+                    String hint = wordbuffer.substring(vs + 1);
+                    doMethodCandidates(candidates, clazz, curBuf, hint);
+                }
+            } else if (commandLine.wordIndex() == 1 && commandLine.words().get(0).matches("(new|\\w+=new)")) {
                 if (wordbuffer.matches("[a-z]+.*")) {
                     int idx = wordbuffer.lastIndexOf('.');
                     if (idx > 0 && wordbuffer.substring(idx + 1).matches("[A-Z]+.*")) {
@@ -546,32 +573,22 @@ public class GroovyEngine implements ScriptEngine {
                     String p = wordbuffer.substring(varsep + 1);
                     if (nameClass.containsKey(var)) {
                         if (firstMethod) {
-                            Helpers.doCandidates(candidates
-                                    , Helpers.getStaticMethods(nameClass.get(var))
-                                    , curBuf, p, CandidateType.METHOD);
-                            Helpers.doCandidates(candidates
-                                    , Helpers.getStaticFields(nameClass.get(var))
-                                    , curBuf, p, CandidateType.OTHER);
+                            doStaticMethodCandidates(candidates, nameClass.get(var), curBuf, p);
+                        } else {
+                            Class<?> clazz = evaluateClass(wordbuffer.substring(0, varsep));
+                            doMethodCandidates(candidates, clazz, curBuf, p);
                         }
                     } else if (hasVariable(var)) {
                         if (firstMethod) {
-                            Helpers.doCandidates(candidates
-                                    , Helpers.getMethods(get(var).getClass())
-                                    , curBuf, p, CandidateType.METHOD);
-                            Helpers.doCandidates(candidates
-                                    , Helpers.getFields(get(var).getClass())
-                                    , curBuf, p, CandidateType.OTHER);
+                            doMethodCandidates(candidates, get(var).getClass(), curBuf, p);
+                        } else {
+                            Class<?> clazz = evaluateClass(wordbuffer.substring(0, varsep));
+                            doMethodCandidates(candidates, clazz, curBuf, p);
                         }
                     } else {
                         try {
                             param = wordbuffer.substring(eqsep + 1, varsep);
-                            Class<?> clazz = Class.forName(param);
-                            Helpers.doCandidates(candidates
-                                    , Helpers.getStaticMethods(clazz)
-                                    , curBuf, p, CandidateType.METHOD);
-                            Helpers.doCandidates(candidates
-                                    , Helpers.getStaticFields(clazz)
-                                    , curBuf, p, CandidateType.OTHER);
+                            doStaticMethodCandidates(candidates, Class.forName(param), curBuf, p);
                         } catch (Exception e) {
                             param = wordbuffer.substring(eqsep + 1, varsep + 1);
                             Helpers.doCandidates(candidates
@@ -581,6 +598,26 @@ public class GroovyEngine implements ScriptEngine {
                     }
                 }
             }
+        }
+
+        private Class<?> evaluateClass(String objectStatement) {
+            return new Inspector(groovyEngine).evaluateClass(objectStatement);
+        }
+
+        private void doMethodCandidates(List<Candidate> candidates, Class<?> clazz, String curBuf, String hint) {
+            if (clazz == null) {
+                return;
+            }
+            Helpers.doCandidates(candidates, Helpers.getMethods(clazz), curBuf, hint, CandidateType.METHOD);
+            Helpers.doCandidates(candidates, Helpers.getFields(clazz), curBuf, hint, CandidateType.OTHER);
+        }
+
+        private void doStaticMethodCandidates(List<Candidate> candidates, Class<?> clazz, String curBuf, String hint) {
+            if (clazz == null) {
+                return;
+            }
+            Helpers.doCandidates(candidates, Helpers.getStaticMethods(clazz), curBuf, hint, CandidateType.METHOD);
+            Helpers.doCandidates(candidates, Helpers.getStaticFields(clazz), curBuf, hint, CandidateType.OTHER);
         }
 
         private Set<String> retrieveConstructors() {
@@ -603,6 +640,62 @@ public class GroovyEngine implements ScriptEngine {
                     continue;
                 }
                 out.add(entry.getKey());
+            }
+            return out;
+        }
+    }
+
+    private static class Inspector {
+        private GroovyShell shell;
+        protected Binding sharedData = new Binding();
+        private Map<String,String> imports = new HashMap<>();
+
+        public Inspector(GroovyEngine groovyEngine) {
+            imports.putAll(groovyEngine.imports);
+            for (Map.Entry<String, Object> entry : groovyEngine.find().entrySet()) {
+                Object obj = entry.getValue() instanceof Closure ? entry.getValue()
+                                                                 : groovyEngine.getObjectCloner().clone(entry.getValue());
+                sharedData.setVariable(entry.getKey(), obj);
+            }
+            shell = new GroovyShell(sharedData);
+        }
+
+        public Class<?> evaluateClass(String objectStatement) {
+            try {
+                return execute(objectStatement).getClass();
+            } catch (Exception e) {
+
+            }
+            return null;
+        }
+
+        private Object execute(String statement) {
+            String e = "";
+            for (Map.Entry<String, String> entry : imports.entrySet()) {
+                e += entry.getValue()+"\n";
+            }
+            e += statement;
+            return shell.evaluate(e);
+        }
+    }
+
+    public static class ObjectCloner implements Cloner {
+
+        public ObjectCloner() {
+
+        }
+
+        /**
+         * Shallow copy of the object using java Cloneable clone() method.
+         */
+        public Object clone(Object obj) {
+            Object out = null;
+            try {
+                Class<?> clazz = obj.getClass();
+                Method clone = clazz.getDeclaredMethod("clone");
+                out = clone.invoke(obj);
+            } catch (Exception e) {
+                out = obj;
             }
             return out;
         }
