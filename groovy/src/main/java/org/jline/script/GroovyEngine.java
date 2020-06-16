@@ -522,24 +522,27 @@ public class GroovyEngine implements ScriptEngine {
             String wordbuffer = commandLine.word();
             String buffer = commandLine.line().substring(0, commandLine.cursor());
             Brackets brackets = new Brackets(buffer);
-            if (commandLine.wordIndex() > 0 && !commandLine.words().get(0).matches("(new|\\w+=new)") && brackets.numberOfRounds() == 0) {
+            if (commandLine.wordIndex() > 0 && !commandLine.words().get(0).matches("(new|\\w+=new)") && brackets.numberOfRounds() == 0
+                    && !brackets.openRound()) {
                 return;
             }
-            if (brackets.openCurly() || brackets.openRound() || brackets.numberOfCurlies() > 0) {
+            if (brackets.openCurly() || brackets.numberOfCurlies() > 0) {
                 return;
             }
-            if (brackets.numberOfRounds() > 0) {
+            if (brackets.numberOfRounds() > 0 && brackets.lastCloseRound() > brackets.lastComma()
+                    && brackets.lastCloseRound() > brackets.lastOpenRound()) {
                 int varsep = buffer.lastIndexOf('.');
-                int eqsep = buffer.indexOf('=');
+                int eqsep = statementBegin(buffer.indexOf('='), brackets.lastOpenRound(), brackets.lastComma());
                 if (varsep > 0 && varsep > eqsep) {
                     Class<?> clazz = evaluateClass(buffer.substring(eqsep + 1, varsep));
                     int vs = wordbuffer.lastIndexOf('.');
-                    int es = wordbuffer.indexOf('=');
-                    String curBuf = wordbuffer.substring(es + 1, vs + 1);
+                    String curBuf = wordbuffer.substring(0, vs + 1);
                     String hint = wordbuffer.substring(vs + 1);
                     doMethodCandidates(candidates, clazz, curBuf, hint);
                 }
-            } else if (commandLine.wordIndex() == 1 && commandLine.words().get(0).matches("(new|\\w+=new)")) {
+            } else if ((commandLine.wordIndex() == 1 && commandLine.words().get(0).matches("(new|\\w+=new)"))
+                    || (commandLine.wordIndex() > 1 && commandLine.words().get(commandLine.wordIndex() - 1).matches("(new|.*\\(new|.*,new)"))
+                    ) {
                 if (wordbuffer.matches("[a-z]+.*")) {
                     int idx = wordbuffer.lastIndexOf('.');
                     if (idx > 0 && wordbuffer.substring(idx + 1).matches("[A-Z]+.*")) {
@@ -560,7 +563,7 @@ public class GroovyEngine implements ScriptEngine {
                 }
             } else {
                 int varsep = wordbuffer.lastIndexOf('.');
-                int eqsep = wordbuffer.indexOf('=');
+                int eqsep = statementBegin(buffer, wordbuffer, brackets);
                 String param = wordbuffer.substring(eqsep + 1);
                 if (varsep < 0 || varsep < eqsep) {
                     String curBuf = wordbuffer.substring(0, eqsep + 1);
@@ -575,14 +578,14 @@ public class GroovyEngine implements ScriptEngine {
                         if (firstMethod) {
                             doStaticMethodCandidates(candidates, nameClass.get(var), curBuf, p);
                         } else {
-                            Class<?> clazz = evaluateClass(wordbuffer.substring(0, varsep));
+                            Class<?> clazz = evaluateClass(wordbuffer.substring(eqsep, varsep));
                             doMethodCandidates(candidates, clazz, curBuf, p);
                         }
                     } else if (hasVariable(var)) {
                         if (firstMethod) {
                             doMethodCandidates(candidates, get(var).getClass(), curBuf, p);
                         } else {
-                            Class<?> clazz = evaluateClass(wordbuffer.substring(0, varsep));
+                            Class<?> clazz = evaluateClass(wordbuffer.substring(eqsep, varsep));
                             doMethodCandidates(candidates, clazz, curBuf, p);
                         }
                     } else {
@@ -598,6 +601,28 @@ public class GroovyEngine implements ScriptEngine {
                     }
                 }
             }
+        }
+
+        private int statementBegin(String buffer, String wordbuffer, Brackets brackets) {
+            int out =  wordbuffer.indexOf('=');
+            if (brackets.openRound()) {
+                int idx = buffer.lastIndexOf(wordbuffer);
+                if (idx > -1) {
+                    out = statementBegin(out, brackets.lastOpenRound() - idx, brackets.lastComma() - idx);
+                }
+            }
+            return out;
+        }
+
+        private int statementBegin(int eqPos, int openRound, int comma) {
+            int out = eqPos;
+            if (openRound > out) {
+                out = openRound;
+            }
+            if (comma > out) {
+                out = comma;
+            }
+            return out;
         }
 
         private Class<?> evaluateClass(String objectStatement) {
@@ -679,7 +704,7 @@ public class GroovyEngine implements ScriptEngine {
         }
     }
 
-    public static class ObjectCloner implements Cloner {
+    private static class ObjectCloner implements Cloner {
 
         public ObjectCloner() {
 
@@ -703,6 +728,9 @@ public class GroovyEngine implements ScriptEngine {
 
     private static class Brackets {
         char[] quote = {'"', '\''};
+        Deque<Integer> roundOpen = new ArrayDeque<>();
+        Map<Integer,Integer> lastComma = new HashMap<>();
+        int lastRoundClose = -1;
         int quoteId = -1;
         int round = 0;
         int curly = 0;
@@ -710,7 +738,9 @@ public class GroovyEngine implements ScriptEngine {
         int curlies = 0;
 
         public Brackets(String line) {
+            int pos = -1;
             for (char ch : line.toCharArray()) {
+                pos++;
                 if (quoteId < 0) {
                     for (int i = 0; i < quote.length; i++) {
                         if (ch == quote[i]) {
@@ -729,14 +759,20 @@ public class GroovyEngine implements ScriptEngine {
                 }
                 if (ch == '(') {
                     round++;
+                    roundOpen.add(pos);
                 } else if (ch == ')') {
                     rounds++;
                     round--;
+                    lastComma.remove(roundOpen.getLast());
+                    roundOpen.removeLast();
+                    lastRoundClose = pos;
                 } else if (ch == '{') {
                     curly++;
                 } else if (ch == '}') {
                     curlies++;
                     curly--;
+                } else if (ch == ',' && !roundOpen.isEmpty()) {
+                    lastComma.put(roundOpen.getLast(), pos);
                 }
                 if (round < 0 || curly < 0) {
                     break;
@@ -760,6 +796,28 @@ public class GroovyEngine implements ScriptEngine {
             return curlies;
         }
 
+        public int lastOpenRound() {
+            return !roundOpen.isEmpty() ? roundOpen.getLast() : -1;
+        }
+
+        public int lastCloseRound() {
+            return lastRoundClose;
+        }
+
+        public int lastComma() {
+            int last = lastOpenRound();
+            return lastComma.containsKey(last) ? lastComma.get(last) : -1;
+        }
+
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append("rounds: ").append(rounds).append("\n");
+            sb.append("curlies: ").append(curlies).append("\n");
+            sb.append("lastOpenRound: ").append(lastOpenRound()).append("\n");
+            sb.append("lastCloseRound: ").append(lastRoundClose).append("\n");
+            sb.append("lastComma: ").append(lastComma()).append("\n");
+            return sb.toString();
+        }
     }
 
 }
