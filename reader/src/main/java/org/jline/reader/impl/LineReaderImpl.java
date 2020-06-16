@@ -4397,6 +4397,9 @@ public class LineReaderImpl implements LineReader, Flushable
             }
         } catch (Exception e) {
             Log.info("Error while finding completion candidates", e);
+            if (Log.isDebugEnabled()) {
+                e.printStackTrace();
+            }
             return false;
         }
 
