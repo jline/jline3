@@ -741,11 +741,7 @@ public class LineReaderImpl implements LineReader, Flushable
         size.copy(terminal.getBufferSize());
 
         display = new Display(terminal, false);
-        if (size.getRows() == 0 || size.getColumns() == 0) {
-            display.resize(1, Integer.MAX_VALUE);
-        } else {
-            display.resize(size.getRows(), size.getColumns());
-        }
+        display.resize(size.getRows(), size.getColumns());
         if (isSet(Option.DELAY_LINE_WRAP))
             display.setDelayLineWrap(true);
     }
