@@ -1389,7 +1389,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 printCommands(systemCommands.keySet(), max);
             }
         }
-        if (isInTopics(topics, "Builtins")) {
+        if (isInTopics(topics, "Builtins") && !builtinCommands.isEmpty()) {
             printHeader("Builtins");
             if (withInfo) {
                 for (Map.Entry<String, String> entry : builtinCommands.entrySet()) {
@@ -1400,7 +1400,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             }
         }
         for (CommandRegistry r : commandRegistries) {
-            if (isBuiltinRegistry(r) || !isInTopics(topics, r.name())) {
+            if (isBuiltinRegistry(r) || !isInTopics(topics, r.name()) || r.commandNames().isEmpty()) {
                 continue;
             }
             TreeSet<String> cmds = new TreeSet<>(r.commandNames());
@@ -1413,7 +1413,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 printCommands(cmds, max);
             }
         }
-        if (consoleId != null && isInTopics(topics, "Scripts")) {
+        if (consoleId != null && isInTopics(topics, "Scripts") && !scriptStore.getScripts().isEmpty()) {
             printHeader("Scripts");
             if (withInfo) {
                 for (String c : scriptStore.getScripts()) {
