@@ -521,20 +521,37 @@ public class GroovyEngine implements ScriptEngine {
             assert candidates != null;
             String wordbuffer = commandLine.word();
             String buffer = commandLine.line().substring(0, commandLine.cursor());
-            Brackets brackets = new Brackets(buffer);
-            if (commandLine.wordIndex() > 0 && !commandLine.words().get(0).matches("(new|\\w+=new)") && brackets.numberOfRounds() == 0
-                    && !brackets.openRound()) {
+            Brackets brackets = null;
+            try {
+                brackets = new Brackets(buffer);
+            } catch (Exception e) {
                 return;
             }
-            if (brackets.openCurly() || brackets.numberOfCurlies() > 0) {
+            if (commandLine.wordIndex() > 0 && !commandLine.words().get(0).matches("(new|\\w+=new)") && brackets.numberOfRounds() == 0
+                    && !brackets.openRound() && !brackets.openCurly()) {
                 return;
+            }
+            Inspector inspector = null;
+            if (brackets.openCurly()) {
+                inspector = new Inspector(groovyEngine);
+                inspector.loadStatementVars(buffer);
             }
             if (brackets.numberOfRounds() > 0 && brackets.lastCloseRound() > brackets.lastComma()
-                    && brackets.lastCloseRound() > brackets.lastOpenRound()) {
+                    && brackets.lastCloseRound() > brackets.lastOpenRound()
+                    && brackets.lastCloseRound() > brackets.lastOpenCurly()
+                    && brackets.lastCloseRound() > brackets.lastSemicolon()
+                    && brackets.lastCloseRound() > brackets.lastBlanck()
+                    && brackets.lastCloseRound() > brackets.lastCloseCurly()) {
                 int varsep = buffer.lastIndexOf('.');
-                int eqsep = statementBegin(buffer.indexOf('='), brackets.lastOpenRound(), brackets.lastComma());
+                int eqsep = statementBegin(buffer.indexOf('=')
+                                         , brackets.lastOpenRound()
+                                         , brackets.lastComma()
+                                         , brackets.lastOpenCurly()
+                                         , brackets.lastCloseCurly()
+                                         , brackets.lastSemicolon()
+                                         , brackets.lastBlanck());
                 if (varsep > 0 && varsep > eqsep) {
-                    Class<?> clazz = evaluateClass(buffer.substring(eqsep + 1, varsep));
+                    Class<?> clazz = evaluateClass(inspector, buffer.substring(eqsep + 1, varsep));
                     int vs = wordbuffer.lastIndexOf('.');
                     String curBuf = wordbuffer.substring(0, vs + 1);
                     String hint = wordbuffer.substring(vs + 1);
@@ -567,7 +584,7 @@ public class GroovyEngine implements ScriptEngine {
                 String param = wordbuffer.substring(eqsep + 1);
                 if (varsep < 0 || varsep < eqsep) {
                     String curBuf = wordbuffer.substring(0, eqsep + 1);
-                    Helpers.doCandidates(candidates, find(null).keySet(), curBuf, param, CandidateType.OTHER);
+                    Helpers.doCandidates(candidates, variables(inspector), curBuf, param, CandidateType.OTHER);
                     Helpers.doCandidates(candidates, retrieveClassesWithStaticMethods(), curBuf, param, CandidateType.STATIC_METHOD);
                 } else {
                     boolean firstMethod = param.indexOf('.') == param.lastIndexOf('.');
@@ -578,14 +595,14 @@ public class GroovyEngine implements ScriptEngine {
                         if (firstMethod) {
                             doStaticMethodCandidates(candidates, nameClass.get(var), curBuf, p);
                         } else {
-                            Class<?> clazz = evaluateClass(wordbuffer.substring(eqsep, varsep));
+                            Class<?> clazz = evaluateClass(inspector, wordbuffer.substring(eqsep + 1, varsep));
                             doMethodCandidates(candidates, clazz, curBuf, p);
                         }
-                    } else if (hasVariable(var)) {
+                    } else if (hasVariable(inspector, var)) {
                         if (firstMethod) {
-                            doMethodCandidates(candidates, get(var).getClass(), curBuf, p);
+                            doMethodCandidates(candidates, getVariable(inspector, var).getClass(), curBuf, p);
                         } else {
-                            Class<?> clazz = evaluateClass(wordbuffer.substring(eqsep, varsep));
+                            Class<?> clazz = evaluateClass(inspector, wordbuffer.substring(eqsep + 1, varsep));
                             doMethodCandidates(candidates, clazz, curBuf, p);
                         }
                     } else {
@@ -608,13 +625,19 @@ public class GroovyEngine implements ScriptEngine {
             if (brackets.openRound()) {
                 int idx = buffer.lastIndexOf(wordbuffer);
                 if (idx > -1) {
-                    out = statementBegin(out, brackets.lastOpenRound() - idx, brackets.lastComma() - idx);
+                    out = statementBegin(out
+                                       , brackets.lastOpenRound() - idx
+                                       , brackets.lastComma() - idx
+                                       , brackets.lastOpenCurly() - idx
+                                       , brackets.lastCloseCurly() - idx
+                                       , brackets.lastSemicolon() -idx
+                                       , brackets.lastBlanck() - idx);
                 }
             }
             return out;
         }
 
-        private int statementBegin(int eqPos, int openRound, int comma) {
+        private int statementBegin(int eqPos, int openRound, int comma, int openCurly, int closeCurly, int semicolon, int blanck) {
             int out = eqPos;
             if (openRound > out) {
                 out = openRound;
@@ -622,11 +645,47 @@ public class GroovyEngine implements ScriptEngine {
             if (comma > out) {
                 out = comma;
             }
-            return out;
+            if (openCurly > out) {
+                out = openCurly;
+            }
+            if (closeCurly > out) {
+                out = closeCurly;
+            }
+            if (semicolon > out) {
+                out = semicolon;
+            }
+            if (blanck > out) {
+                out = blanck;
+            }
+            return Math.max(out, -1);
         }
 
-        private Class<?> evaluateClass(String objectStatement) {
-            return new Inspector(groovyEngine).evaluateClass(objectStatement);
+        private Set<String> variables(Inspector inspector) {
+            if (inspector == null) {
+                inspector = new Inspector(groovyEngine);
+            }
+            return inspector.variables();
+        }
+
+        private boolean hasVariable(Inspector inspector, String name) {
+            if (inspector == null) {
+                inspector = new Inspector(groovyEngine);
+            }
+            return inspector.hasVariable(name);
+        }
+
+        private Object getVariable(Inspector inspector, String name) {
+            if (inspector == null) {
+                inspector = new Inspector(groovyEngine);
+            }
+            return inspector.getVariable(name);
+        }
+
+        private Class<?> evaluateClass(Inspector inspector, String objectStatement) {
+            if (inspector == null) {
+                inspector = new Inspector(groovyEngine);
+            }
+            return inspector.evaluateClass(objectStatement);
         }
 
         private void doMethodCandidates(List<Candidate> candidates, Class<?> clazz, String curBuf, String hint) {
@@ -671,6 +730,9 @@ public class GroovyEngine implements ScriptEngine {
     }
 
     private static class Inspector {
+        static final String REGEX_FOR_BODY = "\\((.*);.*;.*\\)";
+        static final Pattern PATTERN_FOR = Pattern.compile("^for\\s*" + REGEX_FOR_BODY + ".*");
+
         private GroovyShell shell;
         protected Binding sharedData = new Binding();
         private Map<String,String> imports = new HashMap<>();
@@ -702,6 +764,50 @@ public class GroovyEngine implements ScriptEngine {
             e += statement;
             return shell.evaluate(e);
         }
+
+        public void loadStatementVars(String line) {
+            for (String s : line.split("\\r?\\n")) {
+                String statement = s.trim();
+                try {
+                    Matcher forMatcher = PATTERN_FOR.matcher(statement);
+                    if (statement.matches("^(if|while)\\s*\\(.*") || statement.matches("(\\}\\s*|^)else(\\s*\\{|$)")
+                            || statement.matches("(\\}\\s*|^)else\\s+if\\s*\\(.*") || statement.matches("^break[;]{1,}")
+                            || statement.matches("^case\\s+.*:") || statement.matches("^default\\s+:")
+                            || statement.matches("(\\{|\\})") || statement.length() == 0) {
+                        continue;
+                    } else if (forMatcher.matches()) {
+                        statement = forMatcher.group(1).trim();
+                        int idx = statement.indexOf(' ');
+                        statement = statement.substring(idx + 1);
+                    } else if (statement.matches("\\w+\\s+.*=.*")) {
+                        int idx = statement.indexOf(' ');
+                        statement = statement.substring(idx + 1);
+                    }
+                    Brackets br = new Brackets(statement);
+                    if (statement.contains("=") && !br.openRound() && !br.openCurly()) {
+                        execute(statement);
+                    }
+                } catch (Exception e) {
+                    if (Log.isDebugEnabled()) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+
+        @SuppressWarnings("unchecked")
+        public Set<String> variables() {
+            return sharedData.getVariables().keySet();
+        }
+
+        public boolean hasVariable(String name) {
+            return sharedData.hasVariable(name);
+        }
+
+        public Object getVariable(String name) {
+            return sharedData.hasVariable(name) ? sharedData.getVariable(name) : null;
+        }
+
     }
 
     private static class ObjectCloner implements Cloner {
@@ -729,8 +835,12 @@ public class GroovyEngine implements ScriptEngine {
     private static class Brackets {
         char[] quote = {'"', '\''};
         Deque<Integer> roundOpen = new ArrayDeque<>();
+        Deque<Integer> curlyOpen = new ArrayDeque<>();
         Map<Integer,Integer> lastComma = new HashMap<>();
         int lastRoundClose = -1;
+        int lastCurlyClose = -1;
+        int lastSemicolon = -1;
+        int lastBlanck = -1;
         int quoteId = -1;
         int round = 0;
         int curly = 0;
@@ -768,14 +878,21 @@ public class GroovyEngine implements ScriptEngine {
                     lastRoundClose = pos;
                 } else if (ch == '{') {
                     curly++;
+                    curlyOpen.add(pos);
                 } else if (ch == '}') {
                     curlies++;
                     curly--;
+                    curlyOpen.removeLast();
+                    lastCurlyClose = pos;
                 } else if (ch == ',' && !roundOpen.isEmpty()) {
                     lastComma.put(roundOpen.getLast(), pos);
+                } else if (ch == ';') {
+                    lastSemicolon = pos;
+                } else if (ch == ' ' && round == 0) {
+                    lastBlanck = pos;
                 }
                 if (round < 0 || curly < 0) {
-                    break;
+                    throw new IllegalArgumentException();
                 }
             }
         }
@@ -804,9 +921,25 @@ public class GroovyEngine implements ScriptEngine {
             return lastRoundClose;
         }
 
+        public int lastOpenCurly() {
+            return !curlyOpen.isEmpty() ? curlyOpen.getLast() : -1;
+        }
+
+        public int lastCloseCurly() {
+            return lastCurlyClose;
+        }
+
         public int lastComma() {
             int last = lastOpenRound();
             return lastComma.containsKey(last) ? lastComma.get(last) : -1;
+        }
+
+        public int lastSemicolon() {
+            return lastSemicolon;
+        }
+
+        public int lastBlanck() {
+            return lastBlanck;
         }
 
         public String toString() {
