@@ -75,6 +75,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     private Supplier<Path> workDir;
     private SystemCompleter customSystemCompleter = new SystemCompleter();
     private AggregateCompleter customAggregateCompleter = new AggregateCompleter(new ArrayList<>());
+    private boolean commandGroups = true;
 
     public SystemRegistryImpl(Parser parser, Terminal terminal, Supplier<Path> workDir, ConfigurationPath configPath) {
         this.parser = parser;
@@ -211,6 +212,15 @@ public class SystemRegistryImpl implements SystemRegistry {
     @Override
     public boolean hasCommand(String command) {
         return registryId(command) > -1 || isLocalCommand(command);
+    }
+
+    public void setGroupCommandsInHelp(boolean commandGroups) {
+        this.commandGroups = commandGroups;
+    }
+
+    public SystemRegistryImpl groupCommandsInHelp(boolean commandGroups) {
+        this.commandGroups = commandGroups;
+        return this;
     }
 
     private boolean isLocalCommand(String command) {
@@ -1333,12 +1343,20 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     private Object help(CommandInput input) {
+        String groupsOption = commandGroups ? "nogroups" : "groups";
+        String groupsHelp = commandGroups ? "     --nogroups                   Commands are not grouped by registeries"
+                                          : "     --groups                     Commands are grouped by registeries";
         final String[] usage = { "help -  command help"
-                               , "Usage: help [TOPIC...]",
-                                 "  -? --help                       Displays command help", };
+                               , "Usage: help [TOPIC...]"
+                               , "  -? --help                       Displays command help"
+                               , groupsHelp
+                               , "  -i --info                       List commands with a short command info"
+                               };
         try {
             Options opt = parseOptions(usage, input.args());
             boolean doTopic = false;
+            boolean cg = commandGroups;
+            boolean info = false;
             if (!opt.args().isEmpty() && opt.args().size() == 1) {
                 try {
                     String[] args = {"--help"};
@@ -1351,9 +1369,15 @@ public class SystemRegistryImpl implements SystemRegistry {
                 }
             } else {
                 doTopic = true;
+                if (opt.isSet(groupsOption)) {
+                    cg = !cg;
+                }
+                if (opt.isSet("info")) {
+                    info = true;
+                }
             }
             if (doTopic) {
-                helpTopic(opt.args());
+                helpTopic(opt.args(), cg, info);
             }
         } catch (Exception e) {
             exception = e;
@@ -1361,66 +1385,80 @@ public class SystemRegistryImpl implements SystemRegistry {
         return null;
     }
 
-    private void helpTopic(List<String> topics) {
+    private void helpTopic(List<String> topics, boolean commandGroups, boolean info) {
         Set<String> commands = commandNames();
         commands.addAll(scriptStore.getScripts());
-        boolean withInfo = commands.size() < terminal().getHeight() || !topics.isEmpty() ? true : false;
+        boolean withInfo = commands.size() < terminal().getHeight() || !topics.isEmpty() || info ? true : false;
         int max = Collections.max(commands, Comparator.comparing(String::length)).length() + 1;
         TreeMap<String, String> builtinCommands = new TreeMap<>();
         TreeMap<String, String> systemCommands = new TreeMap<>();
-        for (CommandRegistry r : commandRegistries) {
-            if (isBuiltinRegistry(r)) {
-                for (String c : r.commandNames()) {
-                    builtinCommands.put(c, doCommandInfo(commandInfo(c)));
-                }
-            }
-        }
-        for (String c : localCommandNames()) {
-            systemCommands.put(c, doCommandInfo(commandInfo(c)));
-            exception = null;
-        }
-        if (isInTopics(topics, "System")) {
-            printHeader("System");
+        if (!commandGroups && topics.isEmpty()) {
+            TreeSet<String> ordered = new TreeSet<>();
+            ordered.addAll(commands);
             if (withInfo) {
-                for (Map.Entry<String, String> entry : systemCommands.entrySet()) {
-                    printCommandInfo(entry.getKey(), entry.getValue(), max);
+                for (String c : ordered) {
+                    List<String> infos = commandInfo(c);
+                    String cmdInfo = infos.isEmpty() ? "" : infos.get(0);
+                    printCommandInfo(c, cmdInfo, max);
                 }
             } else {
-                printCommands(systemCommands.keySet(), max);
+                printCommands(ordered, max);
             }
-        }
-        if (isInTopics(topics, "Builtins") && !builtinCommands.isEmpty()) {
-            printHeader("Builtins");
-            if (withInfo) {
-                for (Map.Entry<String, String> entry : builtinCommands.entrySet()) {
-                    printCommandInfo(entry.getKey(), entry.getValue(), max);
+        } else {
+            for (CommandRegistry r : commandRegistries) {
+                if (isBuiltinRegistry(r)) {
+                    for (String c : r.commandNames()) {
+                        builtinCommands.put(c, doCommandInfo(commandInfo(c)));
+                    }
                 }
-            } else {
-                printCommands(builtinCommands.keySet(), max);
             }
-        }
-        for (CommandRegistry r : commandRegistries) {
-            if (isBuiltinRegistry(r) || !isInTopics(topics, r.name()) || r.commandNames().isEmpty()) {
-                continue;
+            for (String c : localCommandNames()) {
+                systemCommands.put(c, doCommandInfo(commandInfo(c)));
+                exception = null;
             }
-            TreeSet<String> cmds = new TreeSet<>(r.commandNames());
-            printHeader(r.name());
-            if (withInfo) {
-                for (String c : cmds) {
-                    printCommandInfo(c, doCommandInfo(commandInfo(c)), max);
+            if (isInTopics(topics, "System")) {
+                printHeader("System");
+                if (withInfo) {
+                    for (Map.Entry<String, String> entry : systemCommands.entrySet()) {
+                        printCommandInfo(entry.getKey(), entry.getValue(), max);
+                    }
+                } else {
+                    printCommands(systemCommands.keySet(), max);
                 }
-            } else {
-                printCommands(cmds, max);
             }
-        }
-        if (consoleId != null && isInTopics(topics, "Scripts") && !scriptStore.getScripts().isEmpty()) {
-            printHeader("Scripts");
-            if (withInfo) {
-                for (String c : scriptStore.getScripts()) {
-                    printCommandInfo(c, doCommandInfo(commandInfo(c)), max);
+            if (isInTopics(topics, "Builtins") && !builtinCommands.isEmpty()) {
+                printHeader("Builtins");
+                if (withInfo) {
+                    for (Map.Entry<String, String> entry : builtinCommands.entrySet()) {
+                        printCommandInfo(entry.getKey(), entry.getValue(), max);
+                    }
+                } else {
+                    printCommands(builtinCommands.keySet(), max);
                 }
-            } else {
-                printCommands(scriptStore.getScripts(), max);
+            }
+            for (CommandRegistry r : commandRegistries) {
+                if (isBuiltinRegistry(r) || !isInTopics(topics, r.name()) || r.commandNames().isEmpty()) {
+                    continue;
+                }
+                TreeSet<String> cmds = new TreeSet<>(r.commandNames());
+                printHeader(r.name());
+                if (withInfo) {
+                    for (String c : cmds) {
+                        printCommandInfo(c, doCommandInfo(commandInfo(c)), max);
+                    }
+                } else {
+                    printCommands(cmds, max);
+                }
+            }
+            if (consoleId != null && isInTopics(topics, "Scripts") && !scriptStore.getScripts().isEmpty()) {
+                printHeader("Scripts");
+                if (withInfo) {
+                    for (String c : scriptStore.getScripts()) {
+                        printCommandInfo(c, doCommandInfo(commandInfo(c)), max);
+                    }
+                } else {
+                    printCommands(scriptStore.getScripts(), max);
+                }
             }
         }
         terminal().flush();
