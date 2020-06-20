@@ -57,6 +57,7 @@ public class TailTipWidgets extends Widgets {
     private int descriptionSize = 0;
     private boolean descriptionEnabled = true;
     private boolean descriptionCache = false;
+    private Object readerErrors;
 
     /**
      * Creates tailtip widgets used in command line suggestions. Suggestions are created using a command
@@ -409,11 +410,14 @@ public class TailTipWidgets extends Widgets {
         if (enabled) {
             defaultBindings();
             destroyDescription();
+            reader.setVariable(LineReader.ERRORS, readerErrors);
         } else {
             customBindings();
             if (descriptionEnabled) {
                 initDescription(descriptionSize);
             }
+            readerErrors = reader.getVariable(LineReader.ERRORS);
+            reader.setVariable(LineReader.ERRORS, 0);
         }
         try {
             callWidget(LineReader.REDRAW_LINE);

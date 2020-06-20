@@ -40,7 +40,7 @@ public abstract class Widgets {
     protected static final String TT_TOGGLE = "tailtip-toggle";
     protected static final String TT_ACCEPT_LINE = "_tailtip-accept-line";
 
-    private final LineReader reader;
+    protected final LineReader reader;
 
     public Widgets(LineReader reader) {
         this.reader = reader;
