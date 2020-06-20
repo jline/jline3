@@ -9,6 +9,7 @@
 package org.jline.script;
 
 import java.io.File;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -17,6 +18,9 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.jline.builtins.Nano.SyntaxHighlighter;
+import org.jline.console.CmdDesc;
+import org.jline.console.CmdLine;
 import org.jline.console.ScriptEngine;
 import org.jline.groovy.Utils;
 import org.jline.reader.Candidate;
@@ -336,6 +340,11 @@ public class GroovyEngine implements ScriptEngine {
         return objectCloner;
     }
 
+    public CmdDesc scriptDescription(CmdLine line) {
+        return new Inspector(this).scriptDescription(line);
+    }
+
+
     private Completer compileCompleter() {
         List<Completer> completers = new ArrayList<>();
         completers.add(new ArgumentCompleter(new StringsCompleter("while", "class", "for", "print", "println"), NullCompleter.INSTANCE));
@@ -482,6 +491,54 @@ public class GroovyEngine implements ScriptEngine {
                         null, false));
             }
         }
+
+        public static int statementBegin(String buffer, String wordbuffer, Brackets brackets) {
+            int out =  wordbuffer.lastIndexOf('=');
+            if (brackets.openRound()) {
+                int idx = buffer.lastIndexOf(wordbuffer);
+                if (idx > -1) {
+                    out = statementBegin(out
+                                       , brackets.lastOpenRound() - idx
+                                       , brackets.lastComma() - idx
+                                       , brackets.lastOpenCurly() - idx
+                                       , brackets.lastCloseCurly() - idx
+                                       , brackets.lastSemicolon() -idx
+                                       , brackets.lastBlanck() - idx);
+                }
+            }
+            return out;
+        }
+
+        public static int statementBegin(int eqPos, Brackets brackets) {
+            return statementBegin(eqPos
+                                , brackets.lastOpenRound()
+                                , brackets.lastComma()
+                                , brackets.lastOpenCurly(), brackets.lastCloseCurly(), brackets.lastSemicolon(), brackets.lastBlanck());
+        }
+
+        private static int statementBegin(int eqPos, int openRound, int comma, int openCurly, int closeCurly, int semicolon, int blanck) {
+            int out = eqPos;
+            if (openRound > out) {
+                out = openRound;
+            }
+            if (comma > out) {
+                out = comma;
+            }
+            if (openCurly > out) {
+                out = openCurly;
+            }
+            if (closeCurly > out) {
+                out = closeCurly;
+            }
+            if (semicolon > out) {
+                out = semicolon;
+            }
+            if (blanck > out) {
+                out = blanck;
+            }
+            return Math.max(out, -1);
+        }
+
     }
 
     private class PackageCompleter implements Completer {
@@ -543,13 +600,7 @@ public class GroovyEngine implements ScriptEngine {
                     && brackets.lastCloseRound() > brackets.lastBlanck()
                     && brackets.lastCloseRound() > brackets.lastCloseCurly()) {
                 int varsep = buffer.lastIndexOf('.');
-                int eqsep = statementBegin(buffer.indexOf('=')
-                                         , brackets.lastOpenRound()
-                                         , brackets.lastComma()
-                                         , brackets.lastOpenCurly()
-                                         , brackets.lastCloseCurly()
-                                         , brackets.lastSemicolon()
-                                         , brackets.lastBlanck());
+                int eqsep = Helpers.statementBegin(buffer.lastIndexOf('='), brackets);
                 if (varsep > 0 && varsep > eqsep) {
                     Class<?> clazz = evaluateClass(inspector, buffer.substring(eqsep + 1, varsep));
                     int vs = wordbuffer.lastIndexOf('.');
@@ -580,7 +631,7 @@ public class GroovyEngine implements ScriptEngine {
                 }
             } else {
                 int varsep = wordbuffer.lastIndexOf('.');
-                int eqsep = statementBegin(buffer, wordbuffer, brackets);
+                int eqsep = Helpers.statementBegin(buffer, wordbuffer, brackets);
                 String param = wordbuffer.substring(eqsep + 1);
                 if (varsep < 0 || varsep < eqsep) {
                     String curBuf = wordbuffer.substring(0, eqsep + 1);
@@ -618,46 +669,6 @@ public class GroovyEngine implements ScriptEngine {
                     }
                 }
             }
-        }
-
-        private int statementBegin(String buffer, String wordbuffer, Brackets brackets) {
-            int out =  wordbuffer.indexOf('=');
-            if (brackets.openRound()) {
-                int idx = buffer.lastIndexOf(wordbuffer);
-                if (idx > -1) {
-                    out = statementBegin(out
-                                       , brackets.lastOpenRound() - idx
-                                       , brackets.lastComma() - idx
-                                       , brackets.lastOpenCurly() - idx
-                                       , brackets.lastCloseCurly() - idx
-                                       , brackets.lastSemicolon() -idx
-                                       , brackets.lastBlanck() - idx);
-                }
-            }
-            return out;
-        }
-
-        private int statementBegin(int eqPos, int openRound, int comma, int openCurly, int closeCurly, int semicolon, int blanck) {
-            int out = eqPos;
-            if (openRound > out) {
-                out = openRound;
-            }
-            if (comma > out) {
-                out = comma;
-            }
-            if (openCurly > out) {
-                out = openCurly;
-            }
-            if (closeCurly > out) {
-                out = closeCurly;
-            }
-            if (semicolon > out) {
-                out = semicolon;
-            }
-            if (blanck > out) {
-                out = blanck;
-            }
-            return Math.max(out, -1);
         }
 
         private Set<String> variables(Inspector inspector) {
@@ -748,12 +759,21 @@ public class GroovyEngine implements ScriptEngine {
         }
 
         public Class<?> evaluateClass(String objectStatement) {
+            Class<?> out = null;
             try {
-                return execute(objectStatement).getClass();
+                if (objectStatement.contains("(") || objectStatement.contains(")")
+                        || objectStatement.contains("{") || objectStatement.contains("}")) {
+                    out = execute(objectStatement).getClass();
+                } else if (!objectStatement.contains(".") ) {
+                    out = (Class<?>)execute(objectStatement + ".class");
+                } else {
+                    out = Class.forName(objectStatement);
+                }
+
             } catch (Exception e) {
 
             }
-            return null;
+            return out;
         }
 
         private Object execute(String statement) {
@@ -806,6 +826,137 @@ public class GroovyEngine implements ScriptEngine {
 
         public Object getVariable(String name) {
             return sharedData.hasVariable(name) ? sharedData.getVariable(name) : null;
+        }
+
+        public CmdDesc scriptDescription(CmdLine line) {
+            CmdDesc out = null;
+            try {
+                switch (line.getDescriptionType()) {
+                case COMMAND:
+                    break;
+                case METHOD:
+                    out = methodDescription(line);
+                    break;
+                case SYNTAX:
+                    break;
+                }
+            } catch (Exception e) {
+                if (Log.isDebugEnabled()) {
+                    e.printStackTrace();
+                }
+            }
+            return out;
+        }
+
+        private String trimName(String name) {
+            String out = name;
+            int idx = name.indexOf('(');
+            if (idx > 0) {
+                out = name.substring(0, idx);
+            }
+            return out;
+        }
+
+        private CmdDesc methodDescription(CmdLine line) throws Exception {
+            CmdDesc out = new CmdDesc();
+            List<String> args = line.getArgs();
+            boolean constructor = false;
+            Class<?> clazz = null;
+            String methodName = null;
+            if ((args.size() == 2 && args.get(0).matches("(new|\\w+=new)"))
+                || (args.size() > 2 && args.get(args.size() - 2).matches("(new|.*\\(new|.*,new)"))) {
+                constructor = true;
+                clazz = evaluateClass(trimName(args.get(args.size() - 1)));
+            } else {
+                String buffer = line.getHead();
+                String wordbuffer = args.get(args.size() - 1);
+                Brackets brackets = new Brackets(buffer);
+                int varsep = wordbuffer.lastIndexOf('.');
+                int eqsep = Helpers.statementBegin(buffer, wordbuffer, brackets);
+                if (varsep > 0 && varsep > eqsep) {
+                    loadStatementVars(buffer);
+                    methodName = trimName(wordbuffer.substring(varsep + 1));
+                    clazz = evaluateClass(wordbuffer.substring(eqsep + 1, varsep));
+                }
+            }
+            List<AttributedString> mainDesc = new ArrayList<>();
+            if (clazz != null) {
+                SyntaxHighlighter java = SyntaxHighlighter.build("classpath:/org/jline/groovy/java.nanorc");
+                mainDesc.add(java.highlight(clazz.toString()));
+                if (constructor) {
+                    for (Constructor<?> m : clazz.getConstructors()) {
+                        StringBuilder sb = new StringBuilder();
+                        sb.append(m.getName());
+                        sb.append("(");
+                        boolean first = true;
+                        for(Class<?> p: m.getParameterTypes()) {
+                            if (!first) {
+                                sb.append(", ");
+                            }
+                            sb.append(p.getTypeName());
+                            first = false;
+                        }
+                        sb.append(")");
+                        first = true;
+                        for (Class<?> e: m.getExceptionTypes()) {
+                            if (first) {
+                                sb.append(" throws ");
+                            } else {
+                                sb.append(", ");
+                            }
+                            sb.append(e.getCanonicalName());
+                            first = false;
+                        }
+                        mainDesc.add(java.highlight(sb.toString().replaceAll("java.lang.", "")));
+                    }
+                } else {
+                    List<String> addedMethods = new ArrayList<>();
+                    do {
+                        for (Method m : clazz.getMethods()) {
+                            if (!m.getName().equals(methodName)) {
+                                continue;
+                            }
+                            StringBuilder sb = new StringBuilder();
+                            if (Modifier.isFinal(m.getModifiers())) {
+                                sb.append("final ");
+                            }
+                            if (Modifier.isStatic(m.getModifiers())) {
+                                sb.append("static ");
+                            }
+                            sb.append(m.getReturnType().getCanonicalName());
+                            sb.append(" ");
+                            sb.append(methodName);
+                            sb.append("(");
+                            boolean first = true;
+                            for (Class<?> p : m.getParameterTypes()) {
+                                if (!first) {
+                                    sb.append(", ");
+                                }
+                                sb.append(p.getTypeName());
+                                first = false;
+                            }
+                            sb.append(")");
+                            first = true;
+                            for (Class<?> e : m.getExceptionTypes()) {
+                                if (first) {
+                                    sb.append(" throws ");
+                                } else {
+                                    sb.append(", ");
+                                }
+                                sb.append(e.getCanonicalName());
+                                first = false;
+                            }
+                            if (!addedMethods.contains(sb.toString())) {
+                                addedMethods.add(sb.toString());
+                                mainDesc.add(java.highlight(sb.toString().replaceAll("java.lang.", "")));
+                            }
+                        }
+                        clazz = clazz.getSuperclass();
+                    } while (clazz != null);
+                }
+                out.setMainDesc(mainDesc);
+            }
+            return out;
         }
 
     }

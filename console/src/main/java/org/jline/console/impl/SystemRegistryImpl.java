@@ -21,6 +21,7 @@ import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -76,6 +77,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     private SystemCompleter customSystemCompleter = new SystemCompleter();
     private AggregateCompleter customAggregateCompleter = new AggregateCompleter(new ArrayList<>());
     private boolean commandGroups = true;
+    private Function<CmdLine,CmdDesc> scriptDescription;
 
     public SystemRegistryImpl(Parser parser, Terminal terminal, Supplier<Path> workDir, ConfigurationPath configPath) {
         this.parser = parser;
@@ -338,6 +340,10 @@ public class SystemRegistryImpl implements SystemRegistry {
         return new CmdDesc(main, ArgDesc.doArgNames(Arrays.asList("")), options);
     }
 
+    public void setScriptDescription(Function<CmdLine,CmdDesc> scriptDescription) {
+        this.scriptDescription = scriptDescription;
+    }
+
     @Override
     public CmdDesc commandDescription(CmdLine line) {
         CmdDesc out = null;
@@ -370,7 +376,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             break;
         case METHOD:
         case SYNTAX:
-            // TODO
+            out = scriptDescription.apply(line);
             break;
         }
         return out;
