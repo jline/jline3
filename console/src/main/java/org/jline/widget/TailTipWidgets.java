@@ -697,23 +697,19 @@ public class TailTipWidgets extends Widgets {
                     }
                 }
             }
-            if (cmd != null && descFun != null) {
-                if (!descriptionCache && descType == CmdLine.DescriptionType.COMMAND) {
-                    CmdDesc c = descFun.apply(new CmdLine(line, head, tail, args, descType));
-                    volatileDescs.put(cmd, c);
-                } else if (!descriptions.containsKey(cmd) && !temporaryDescs.containsKey(cmd)) {
-                    if (descType == CmdLine.DescriptionType.COMMAND) {
-                        CmdDesc c = descFun.apply(new CmdLine(line, head, tail, args, descType));
-                        if (c != null) {
-                            descriptions.put(cmd, c);
-                        } else {
-                            temporaryDescs.put(cmd, c);
-                        }
-                    } else if (descType == CmdLine.DescriptionType.METHOD) {
-                        temporaryDescs.put(cmd, descFun.apply(new CmdLine(line, head, tail, args, descType)));
+            if (cmd != null && descFun != null
+                    && !descriptions.containsKey(cmd) && !temporaryDescs.containsKey(cmd)) {
+                CmdDesc c = descFun.apply(new CmdLine(line, head, tail, args, descType));
+                if (descType == CmdLine.DescriptionType.COMMAND) {
+                    if (!descriptionCache) {
+                        volatileDescs.put(cmd, c);
+                    } else if (c != null) {
+                        descriptions.put(cmd, c);
                     } else {
-                        temporaryDescs.put(cmd, descFun.apply(new CmdLine(line, head, tail, args, descType)));
+                        temporaryDescs.put(cmd, c);
                     }
+                } else {
+                    temporaryDescs.put(cmd, c);
                 }
             }
             return new Pair<String,Boolean>(cmd, descType == CmdLine.DescriptionType.COMMAND ? true : false);
@@ -733,7 +729,7 @@ public class TailTipWidgets extends Widgets {
         }
 
         public void clearTemporaryDescs() {
-            temporaryDescs = new HashMap<>();
+            temporaryDescs.clear();
         }
 
     }
