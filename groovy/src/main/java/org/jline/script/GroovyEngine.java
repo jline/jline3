@@ -54,9 +54,9 @@ public class GroovyEngine implements ScriptEngine {
     public enum Format {JSON, GROOVY, NONE};
     private static final String REGEX_SYSTEM_VAR = "[A-Z]+[A-Z_]*";
     private static final String REGEX_VAR = "[a-zA-Z_]+[a-zA-Z0-9_]*";
-    private static final Pattern PATTERN_FUNCTION_DEF=Pattern.compile("^def\\s+(" + REGEX_VAR + ")\\s*\\(([a-zA-Z0-9_ ,]*)\\)\\s*\\{(.*)?\\}(|\n)$"
+    private static final Pattern PATTERN_FUNCTION_DEF = Pattern.compile("^def\\s+(" + REGEX_VAR + ")\\s*\\(([a-zA-Z0-9_ ,]*)\\)\\s*\\{(.*)?\\}(|\n)$"
                                                                      , Pattern.DOTALL);
-    private static final Pattern PATTERN_CLASS_DEF=Pattern.compile("^class\\s+(" + REGEX_VAR + ")\\ .*?\\{.*?\\}(|\n)$"
+    private static final Pattern PATTERN_CLASS_DEF = Pattern.compile("^class\\s+(" + REGEX_VAR + ")\\ .*?\\{.*?\\}(|\n)$"
                                                                   , Pattern.DOTALL);
     private GroovyShell shell;
     protected Binding sharedData;
@@ -261,10 +261,10 @@ public class GroovyEngine implements ScriptEngine {
         return out;
     }
 
-    private boolean functionDef (String statement) throws Exception{
+    private boolean functionDef(String statement) throws Exception{
         boolean out = false;
         Matcher m = PATTERN_FUNCTION_DEF.matcher(statement);
-        if(m.matches()){
+        if (m.matches()) {
             out = true;
             put(m.group(1), execute("{" + m.group(2) + "->" + m.group(3) + "}"));
             methods.put(m.group(1), "(" + m.group(2) + ")" + "{" + m.group(3) + "}");
@@ -272,7 +272,7 @@ public class GroovyEngine implements ScriptEngine {
         return out;
     }
 
-    private boolean classDef (String statement) throws Exception{
+    private boolean classDef(String statement) throws Exception{
         return PATTERN_CLASS_DEF.matcher(statement).matches();
     }
 
@@ -759,7 +759,8 @@ public class GroovyEngine implements ScriptEngine {
     private static class Inspector {
         static final String REGEX_FOR_BODY = "\\((.*);.*;.*\\)";
         static final Pattern PATTERN_FOR = Pattern.compile("^for\\s*" + REGEX_FOR_BODY + ".*");
-
+        static final Pattern PATTERN_FUNCTION_BODY = Pattern.compile("^\\s*\\(([a-zA-Z0-9_ ,]*)\\)\\s*\\{(.*)?\\}(|\n)$"
+                                                                   , Pattern.DOTALL);
         private GroovyShell shell;
         protected Binding sharedData = new Binding();
         private Map<String,String> imports = new HashMap<>();
@@ -770,8 +771,7 @@ public class GroovyEngine implements ScriptEngine {
             this.imports = groovyEngine.imports;
             this.nameClass = groovyEngine.nameClass;
             for (Map.Entry<String, Object> entry : groovyEngine.find().entrySet()) {
-                Object obj = entry.getValue() instanceof Closure ? entry.getValue()
-                                                                 : groovyEngine.getObjectCloner().clone(entry.getValue());
+                Object obj = groovyEngine.getObjectCloner().clone(entry.getValue());
                 sharedData.setVariable(entry.getKey(), obj);
             }
             shell = new GroovyShell(sharedData);
@@ -781,9 +781,13 @@ public class GroovyEngine implements ScriptEngine {
                 OutputStream outputStream = fileOutputStream;
                 nullstream = new PrintStream(outputStream);
             } catch (Exception e) {
-
             }
-
+            for (Map.Entry<String,String> entry : groovyEngine.methods.entrySet()) {
+                Matcher m = PATTERN_FUNCTION_BODY.matcher(entry.getValue());
+                if (m.matches()) {
+                    sharedData.setVariable(entry.getKey(), execute("{" + m.group(1) + "->" + m.group(2) + "}"));
+                }
+            }
         }
 
         public Class<?> evaluateClass(String objectStatement) {
@@ -797,7 +801,6 @@ public class GroovyEngine implements ScriptEngine {
                 } else {
                     out = Class.forName(objectStatement);
                 }
-
             } catch (Exception e) {
 
             }
