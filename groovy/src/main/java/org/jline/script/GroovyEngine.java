@@ -52,6 +52,9 @@ import groovy.lang.Script;
  */
 public class GroovyEngine implements ScriptEngine {
     public enum Format {JSON, GROOVY, NONE};
+    public static final String OPTION_SHORT_NAMES = "shortNames";
+
+    private static final String VAR_GROOVY_OPTIONS = "GROOVY_OPTIONS";
     private static final String REGEX_SYSTEM_VAR = "[A-Z]+[A-Z_]*";
     private static final String REGEX_VAR = "[a-zA-Z_]+[a-zA-Z0-9_]*";
     private static final Pattern PATTERN_FUNCTION_DEF = Pattern.compile("^def\\s+(" + REGEX_VAR + ")\\s*\\(([a-zA-Z0-9_ ,]*)\\)\\s*\\{(.*)?\\}(|\n)$"
@@ -348,6 +351,21 @@ public class GroovyEngine implements ScriptEngine {
         return new Inspector(this).scriptDescription(line);
     }
 
+    @SuppressWarnings("unchecked")
+    private Map<String,Object> groovyOptions() {
+        return hasVariable(VAR_GROOVY_OPTIONS) ? (Map<String, Object>) get(VAR_GROOVY_OPTIONS)
+                                                       : new HashMap<>();
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T>T groovyOption(String option, T defval) {
+        T out = defval;
+        try {
+            out = (T) groovyOptions().getOrDefault(option, defval);
+        } catch (Exception e) {
+        }
+        return out;
+    }
 
     private Completer compileCompleter() {
         List<Completer> completers = new ArrayList<>();
@@ -766,10 +784,12 @@ public class GroovyEngine implements ScriptEngine {
         private Map<String,String> imports = new HashMap<>();
         private Map<String,Class<?>> nameClass = new HashMap<>();
         PrintStream nullstream;
+        boolean shortNames = true;
 
         public Inspector(GroovyEngine groovyEngine) {
             this.imports = groovyEngine.imports;
             this.nameClass = groovyEngine.nameClass;
+            this.shortNames = groovyEngine.groovyOption(OPTION_SHORT_NAMES, shortNames);
             for (Map.Entry<String, Object> entry : groovyEngine.find().entrySet()) {
                 Object obj = groovyEngine.getObjectCloner().clone(entry.getValue());
                 sharedData.setVariable(entry.getKey(), obj);
@@ -936,14 +956,19 @@ public class GroovyEngine implements ScriptEngine {
                 if (constructor) {
                     for (Constructor<?> m : clazz.getConstructors()) {
                         StringBuilder sb = new StringBuilder();
-                        sb.append(m.getName());
+                        String name = m.getName();
+                        if (shortNames) {
+                            int idx = name.lastIndexOf('.');
+                            name = name.substring(idx + 1);
+                        }
+                        sb.append(name);
                         sb.append("(");
                         boolean first = true;
                         for(Class<?> p: m.getParameterTypes()) {
                             if (!first) {
                                 sb.append(", ");
                             }
-                            sb.append(p.getTypeName());
+                            sb.append(shortNames ? p.getSimpleName() : p.getTypeName());
                             first = false;
                         }
                         sb.append(")");
@@ -954,10 +979,10 @@ public class GroovyEngine implements ScriptEngine {
                             } else {
                                 sb.append(", ");
                             }
-                            sb.append(e.getCanonicalName());
+                            sb.append(shortNames ? e.getSimpleName() : e.getCanonicalName());
                             first = false;
                         }
-                        mainDesc.add(java.highlight(sb.toString().replaceAll("java.lang.", "")));
+                        mainDesc.add(java.highlight(trimMethodDescription(sb)));
                     }
                 } else {
                     List<String> addedMethods = new ArrayList<>();
@@ -973,7 +998,7 @@ public class GroovyEngine implements ScriptEngine {
                             if (Modifier.isStatic(m.getModifiers())) {
                                 sb.append("static ");
                             }
-                            sb.append(m.getReturnType().getCanonicalName());
+                            sb.append(shortNames ? m.getReturnType().getSimpleName() : m.getReturnType().getCanonicalName());
                             sb.append(" ");
                             sb.append(methodName);
                             sb.append("(");
@@ -982,7 +1007,7 @@ public class GroovyEngine implements ScriptEngine {
                                 if (!first) {
                                     sb.append(", ");
                                 }
-                                sb.append(p.getTypeName());
+                                sb.append(shortNames ? p.getSimpleName() : p.getTypeName());
                                 first = false;
                             }
                             sb.append(")");
@@ -993,18 +1018,26 @@ public class GroovyEngine implements ScriptEngine {
                                 } else {
                                     sb.append(", ");
                                 }
-                                sb.append(e.getCanonicalName());
+                                sb.append(shortNames ? e.getSimpleName() : e.getCanonicalName());
                                 first = false;
                             }
                             if (!addedMethods.contains(sb.toString())) {
                                 addedMethods.add(sb.toString());
-                                mainDesc.add(java.highlight(sb.toString().replaceAll("java.lang.", "")));
+                                mainDesc.add(java.highlight(trimMethodDescription(sb)));
                             }
                         }
                         clazz = clazz.getSuperclass();
                     } while (clazz != null);
                 }
                 out.setMainDesc(mainDesc);
+            }
+            return out;
+        }
+
+        private String trimMethodDescription(StringBuilder sb) {
+            String out = sb.toString();
+            if (!shortNames) {
+                out = out.replaceAll("java.lang.", "");
             }
             return out;
         }
