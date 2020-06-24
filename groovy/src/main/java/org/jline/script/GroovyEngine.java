@@ -52,7 +52,7 @@ import groovy.lang.Script;
  */
 public class GroovyEngine implements ScriptEngine {
     public enum Format {JSON, GROOVY, NONE};
-    public static final String OPTION_SHORT_NAMES = "shortNames";
+    public static final String CANONICAL_NAMES = "canonicalNames";
 
     private static final String VAR_GROOVY_OPTIONS = "GROOVY_OPTIONS";
     private static final String REGEX_SYSTEM_VAR = "[A-Z]+[A-Z_]*";
@@ -191,8 +191,14 @@ public class GroovyEngine implements ScriptEngine {
                     nameClass.put(c.getSimpleName(), c);
                 }
             } else {
-                String name = classname.substring(classname.lastIndexOf('.') + 1);
-                nameClass.put(name, Class.forName(classname));
+                int  idx = classname.lastIndexOf(".");
+                String name = classname.substring(idx + 1);
+                try {
+                    nameClass.put(name, Class.forName(classname));
+                } catch (ClassNotFoundException ex) {
+                    String innerclass = classname.substring(0, idx) + "$" + name;
+                    nameClass.put(name, Class.forName(innerclass));
+                }
             }
         } catch (Exception e) {
         }
@@ -784,12 +790,12 @@ public class GroovyEngine implements ScriptEngine {
         private Map<String,String> imports = new HashMap<>();
         private Map<String,Class<?>> nameClass = new HashMap<>();
         PrintStream nullstream;
-        boolean shortNames = true;
+        boolean canonicalNames = false;
 
         public Inspector(GroovyEngine groovyEngine) {
             this.imports = groovyEngine.imports;
             this.nameClass = groovyEngine.nameClass;
-            this.shortNames = groovyEngine.groovyOption(OPTION_SHORT_NAMES, shortNames);
+            this.canonicalNames = groovyEngine.groovyOption(CANONICAL_NAMES, canonicalNames);
             for (Map.Entry<String, Object> entry : groovyEngine.find().entrySet()) {
                 Object obj = groovyEngine.getObjectCloner().clone(entry.getValue());
                 sharedData.setVariable(entry.getKey(), obj);
@@ -957,7 +963,7 @@ public class GroovyEngine implements ScriptEngine {
                     for (Constructor<?> m : clazz.getConstructors()) {
                         StringBuilder sb = new StringBuilder();
                         String name = m.getName();
-                        if (shortNames) {
+                        if (!canonicalNames) {
                             int idx = name.lastIndexOf('.');
                             name = name.substring(idx + 1);
                         }
@@ -968,7 +974,7 @@ public class GroovyEngine implements ScriptEngine {
                             if (!first) {
                                 sb.append(", ");
                             }
-                            sb.append(shortNames ? p.getSimpleName() : p.getTypeName());
+                            sb.append(canonicalNames ? p.getTypeName() : p.getSimpleName());
                             first = false;
                         }
                         sb.append(")");
@@ -979,7 +985,7 @@ public class GroovyEngine implements ScriptEngine {
                             } else {
                                 sb.append(", ");
                             }
-                            sb.append(shortNames ? e.getSimpleName() : e.getCanonicalName());
+                            sb.append(canonicalNames ? e.getCanonicalName() : e.getSimpleName());
                             first = false;
                         }
                         mainDesc.add(java.highlight(trimMethodDescription(sb)));
@@ -998,7 +1004,7 @@ public class GroovyEngine implements ScriptEngine {
                             if (Modifier.isStatic(m.getModifiers())) {
                                 sb.append("static ");
                             }
-                            sb.append(shortNames ? m.getReturnType().getSimpleName() : m.getReturnType().getCanonicalName());
+                            sb.append(canonicalNames ?  m.getReturnType().getCanonicalName() : m.getReturnType().getSimpleName());
                             sb.append(" ");
                             sb.append(methodName);
                             sb.append("(");
@@ -1007,7 +1013,7 @@ public class GroovyEngine implements ScriptEngine {
                                 if (!first) {
                                     sb.append(", ");
                                 }
-                                sb.append(shortNames ? p.getSimpleName() : p.getTypeName());
+                                sb.append(canonicalNames ? p.getTypeName() : p.getSimpleName());
                                 first = false;
                             }
                             sb.append(")");
@@ -1018,7 +1024,7 @@ public class GroovyEngine implements ScriptEngine {
                                 } else {
                                     sb.append(", ");
                                 }
-                                sb.append(shortNames ? e.getSimpleName() : e.getCanonicalName());
+                                sb.append(canonicalNames ? e.getCanonicalName() : e.getSimpleName());
                                 first = false;
                             }
                             if (!addedMethods.contains(sb.toString())) {
@@ -1036,7 +1042,7 @@ public class GroovyEngine implements ScriptEngine {
 
         private String trimMethodDescription(StringBuilder sb) {
             String out = sb.toString();
-            if (!shortNames) {
+            if (canonicalNames) {
                 out = out.replaceAll("java.lang.", "");
             }
             return out;
