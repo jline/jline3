@@ -529,8 +529,7 @@ public class GroovyEngine implements ScriptEngine {
                                    , brackets.lastComma() - idx
                                    , brackets.lastOpenCurly() - idx
                                    , brackets.lastCloseCurly() - idx
-                                   , brackets.lastSemicolon() - idx
-                                   , brackets.lastBlanck() - idx);
+                                   , brackets.lastSemicolon() - idx);
             }
             return out;
         }
@@ -539,10 +538,10 @@ public class GroovyEngine implements ScriptEngine {
             return statementBegin(brackets.lastDelim()
                                 , brackets.lastOpenRound()
                                 , brackets.lastComma()
-                                , brackets.lastOpenCurly(), brackets.lastCloseCurly(), brackets.lastSemicolon(), brackets.lastBlanck());
+                                , brackets.lastOpenCurly(), brackets.lastCloseCurly(), brackets.lastSemicolon());
         }
 
-        private static int statementBegin(int lastDelim, int openRound, int comma, int openCurly, int closeCurly, int semicolon, int blanck) {
+        private static int statementBegin(int lastDelim, int openRound, int comma, int openCurly, int closeCurly, int semicolon) {
             int out = lastDelim;
             if (openRound > out) {
                 out = openRound;
@@ -558,9 +557,6 @@ public class GroovyEngine implements ScriptEngine {
             }
             if (semicolon > out) {
                 out = semicolon;
-            }
-            if (blanck > out) {
-                out = blanck;
             }
             return Math.max(out, -1);
         }
@@ -655,14 +651,14 @@ public class GroovyEngine implements ScriptEngine {
                 }
             } else {
                 boolean addKeyWords = eqsep == brackets.lastSemicolon() || eqsep == brackets.lastOpenCurly();
-                boolean blancksep = eqsep == brackets.lastBlanck();
                 int varsep = wordbuffer.lastIndexOf('.');
                 eqsep = Helpers.statementBegin(buffer, wordbuffer, brackets);
                 String param = wordbuffer.substring(eqsep + 1);
                 if (varsep < 0 || varsep < eqsep) {
-                    if (!blancksep || (commandLine.wordIndex() > 1
-                            && commandLine.words().get(commandLine.wordIndex() - 1).matches("\\w+"))) {
-                        String curBuf = wordbuffer.substring(0, eqsep + 1);
+                    String curBuf = wordbuffer.substring(0, eqsep + 1);
+                    if (param.trim().length() == 0) {
+                        Helpers.doCandidates(candidates, Arrays.asList("") , curBuf, param, CandidateType.OTHER);
+                    } else {
                         if (addKeyWords) {
                             Helpers.doCandidates(candidates, KEY_WORDS, curBuf, param, CandidateType.METHOD);
                         }
@@ -781,8 +777,7 @@ public class GroovyEngine implements ScriptEngine {
     }
 
     private static class Inspector {
-        static final String REGEX_FOR_BODY = "\\((.*);.*;.*\\)";
-        static final Pattern PATTERN_FOR = Pattern.compile("^for\\s*" + REGEX_FOR_BODY + ".*");
+        static final Pattern PATTERN_FOR = Pattern.compile("^for\\s*\\((.*?);.*");
         static final Pattern PATTERN_FUNCTION_BODY = Pattern.compile("^\\s*\\(([a-zA-Z0-9_ ,]*)\\)\\s*\\{(.*)?\\}(|\n)$"
                                                                    , Pattern.DOTALL);
         private GroovyShell shell;
@@ -1155,10 +1150,6 @@ public class GroovyEngine implements ScriptEngine {
             return rounds;
         }
 
-        public int numberOfCurlies() {
-            return curlies;
-        }
-
         public int lastOpenRound() {
             return !roundOpen.isEmpty() ? roundOpen.getLast() : -1;
         }
@@ -1182,10 +1173,6 @@ public class GroovyEngine implements ScriptEngine {
 
         public int lastSemicolon() {
             return lastSemicolon;
-        }
-
-        public int lastBlanck() {
-            return lastBlanck;
         }
 
         public int lastDelim() {
