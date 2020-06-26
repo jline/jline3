@@ -37,6 +37,7 @@ import groovy.console.ui.ObjectBrowser;
 
 public class GroovyCommand extends AbstractCommandRegistry implements CommandRegistry {
     public enum Command {INSPECT, CONSOLE, GRAB}
+    private static final String DEFAULT_NANORC_VALUE = "classpath:/org/jline/groovy/gron.nanorc";
     private GroovyEngine engine;
     private Printer printer;
     private final Map<Command,CmdDesc> commandDescs = new HashMap<>();
@@ -116,7 +117,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
                 options.put(Printer.SKIP_DEFAULT_OPTIONS, true);
                 options.put(Printer.MAX_DEPTH, 1);
                 options.put(Printer.INDENTION, 4);
-                options.put(Printer.VALUE_STYLE, "classpath:/org/jline/groovy/gron.nanorc");
+                options.put(Printer.VALUE_STYLE, engine.groovyOption(GroovyEngine.NANORC_VALUE, DEFAULT_NANORC_VALUE));
                 printer.println(options, resp);
             } else {
                 int artifactId = 0;
@@ -204,7 +205,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
                 out = inspector.metaMethods();
             } else if (option.equals("-i") || option.equals("--info")) {
                 out = inspector.properties();
-                options.put(Printer.VALUE_STYLE, "classpath:/org/jline/groovy/gron.nanorc");
+                options.put(Printer.VALUE_STYLE, engine.groovyOption(GroovyEngine.NANORC_VALUE, DEFAULT_NANORC_VALUE));
             } else if (consoleUi && (option.equals("-g") || option.equals("--gui"))) {
                 ObjectBrowser.inspect(obj);
             } else {

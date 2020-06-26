@@ -38,6 +38,10 @@ public class Styles {
         return style(PRNT_COLORS, DEFAULT_PRNT_COLORS);
     }
 
+    public static boolean isAnsiStylePattern(String style) {
+        return style.matches(ANSI_STYLE_PATTERN);
+    }
+
     private static StyleResolver style(String name, String defStyle) {
         String style = consoleOption(name);
         if (style == null) {

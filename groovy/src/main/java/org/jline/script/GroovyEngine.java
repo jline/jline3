@@ -20,10 +20,12 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
 import org.codehaus.groovy.syntax.SyntaxException;
 import org.jline.builtins.Nano.SyntaxHighlighter;
+import org.jline.builtins.Styles;
 import org.jline.console.CmdDesc;
 import org.jline.console.CmdLine;
 import org.jline.console.ScriptEngine;
@@ -37,9 +39,9 @@ import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.utils.AttributedString;
-import org.jline.utils.AttributedStyle;
 import org.jline.utils.Log;
 import org.jline.utils.OSUtils;
+import org.jline.utils.StyleResolver;
 
 import groovy.lang.Binding;
 import groovy.lang.Closure;
@@ -56,6 +58,9 @@ import groovy.lang.Script;
 public class GroovyEngine implements ScriptEngine {
     public enum Format {JSON, GROOVY, NONE};
     public static final String CANONICAL_NAMES = "canonicalNames";
+    public static final String NANORC_SYNTAX = "nanorcSyntax";
+    public static final String NANORC_VALUE = "nanorcValue";
+    public static final String GROOVY_COLORS = "groovyColors";
 
     private static final String VAR_GROOVY_OPTIONS = "GROOVY_OPTIONS";
     private static final String REGEX_SYSTEM_VAR = "[A-Z]+[A-Z_]*";
@@ -367,7 +372,7 @@ public class GroovyEngine implements ScriptEngine {
     }
 
     @SuppressWarnings("unchecked")
-    private <T>T groovyOption(String option, T defval) {
+    protected <T>T groovyOption(String option, T defval) {
         T out = defval;
         try {
             out = (T) groovyOptions().getOrDefault(option, defval);
@@ -787,19 +792,27 @@ public class GroovyEngine implements ScriptEngine {
         static final Pattern PATTERN_FOR = Pattern.compile("^for\\s*\\((.*?);.*");
         static final Pattern PATTERN_FUNCTION_BODY = Pattern.compile("^\\s*\\(([a-zA-Z0-9_ ,]*)\\)\\s*\\{(.*)?\\}(|\n)$"
                                                                    , Pattern.DOTALL);
+        static final String DEFAULT_NANORC_SYNTAX = "classpath:/org/jline/groovy/java.nanorc";
+        static final String DEFAULT_GROOVY_COLORS = "ti=1;34:me=31";
+
         private GroovyShell shell;
         protected Binding sharedData = new Binding();
         private Map<String,String> imports = new HashMap<>();
         private Map<String,Class<?>> nameClass = new HashMap<>();
-        PrintStream nullstream;
-        boolean canonicalNames = false;
-        String[] equationLines;
-        int cuttedSize;
+        private PrintStream nullstream;
+        private boolean canonicalNames = false;
+        private String[] equationLines;
+        private int cuttedSize;
+        private String nanorcSyntax;
+        private String groovyColors;
 
         public Inspector(GroovyEngine groovyEngine) {
             this.imports = groovyEngine.imports;
             this.nameClass = groovyEngine.nameClass;
             this.canonicalNames = groovyEngine.groovyOption(CANONICAL_NAMES, canonicalNames);
+            this.nanorcSyntax = groovyEngine.groovyOption(NANORC_SYNTAX, DEFAULT_NANORC_SYNTAX);
+            String gc = groovyEngine.groovyOption(GROOVY_COLORS, null);
+            groovyColors = gc != null && Styles.isAnsiStylePattern(gc) ? gc : DEFAULT_GROOVY_COLORS;
             for (Map.Entry<String, Object> entry : groovyEngine.find().entrySet()) {
                 Object obj = groovyEngine.getObjectCloner().clone(entry.getValue());
                 sharedData.setVariable(entry.getKey(), obj);
@@ -962,7 +975,7 @@ public class GroovyEngine implements ScriptEngine {
             }
             List<AttributedString> mainDesc = new ArrayList<>();
             if (clazz != null) {
-                SyntaxHighlighter java = SyntaxHighlighter.build("classpath:/org/jline/groovy/java.nanorc");
+                SyntaxHighlighter java = SyntaxHighlighter.build(nanorcSyntax);
                 mainDesc.add(java.highlight(clazz.toString()));
                 if (constructor) {
                     for (Constructor<?> m : clazz.getConstructors()) {
@@ -1097,20 +1110,13 @@ public class GroovyEngine implements ScriptEngine {
                             if (o instanceof SyntaxErrorMessage) {
                                 SyntaxErrorMessage sem = (SyntaxErrorMessage)o;
                                 out.setErrorIndex(errorIndex(e.getMessage(), sem.getCause()));
-                            } else {
-                                mainDesc.add(new AttributedString("Error: " + o.getClass().getCanonicalName()
-                                                                 , AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW)));
-                            }
-                        }
+                            }                        }
                     }
                     if (e.getErrorCollector().getWarnings() != null) {
                         for (Object o: e.getErrorCollector().getWarnings()) {
                             if (o instanceof SyntaxErrorMessage) {
                                 SyntaxErrorMessage sem = (SyntaxErrorMessage)o;
                                 out.setErrorIndex(errorIndex(e.getMessage(), sem.getCause()));
-                            } else {
-                                mainDesc.add(new AttributedString("Warning: " + o.getClass().getCanonicalName()
-                                                                , AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW)));
                             }
                         }
                     }
@@ -1123,10 +1129,12 @@ public class GroovyEngine implements ScriptEngine {
             return out;
         }
 
-        private static List<AttributedString> doExceptionMessage(Exception exception) {
+        private List<AttributedString> doExceptionMessage(Exception exception) {
             List<AttributedString> out = new ArrayList<>();
+            SyntaxHighlighter java = SyntaxHighlighter.build(nanorcSyntax);
+            StyleResolver resolver = style(groovyColors);
             Pattern header = Pattern.compile("^[a-zA-Z() ]{3,}:(\\s+|$)");
-            out.add(new AttributedString(exception.getClass().getCanonicalName(), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED)));
+            out.add(java.highlight(exception.getClass().getCanonicalName()));
             if (exception.getMessage() != null) {
                 for (String s: exception.getMessage().split("\\r?\\n")) {
                     if (s.length() > 80) {
@@ -1134,29 +1142,28 @@ public class GroovyEngine implements ScriptEngine {
                         int start = 0;
                         for (int i = 80; i < s.length(); i++) {
                             if ((s.charAt(i) == ' ' && i - start > 80 ) || i - start > 100) {
-                                AttributedString as = new AttributedString(s.substring(start, i), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+                                AttributedString as = new AttributedString(s.substring(start, i), resolver.resolve(".me"));
                                 if (doHeader) {
-                                    as = as.styleMatches(header, AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE));
+                                    as = as.styleMatches(header, resolver.resolve(".ti"));
                                     doHeader = false;
                                 }
                                 out.add(as);
                                 start = i;
                                 if (s.length() - start < 80) {
-                                    out.add(new AttributedString(s.substring(start), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED)));
+                                    out.add(new AttributedString(s.substring(start), resolver.resolve(".me")));
                                     break;
                                 }
                             }
                         }
                         if (doHeader) {
-                            AttributedString as = new AttributedString(s, AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
-                            as = as.styleMatches(header, AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE));
+                            AttributedString as = new AttributedString(s, resolver.resolve(".me"));
+                            as = as.styleMatches(header, resolver.resolve(".ti"));
                             out.add(as);
                         }
                     } else {
-                        AttributedString as = new AttributedString(s, AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
-                        as = as.styleMatches(header, AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE));
+                        AttributedString as = new AttributedString(s, resolver.resolve(".me"));
+                        as = as.styleMatches(header, resolver.resolve(".ti"));
                         out.add(as);
-
                     }
                 }
             }
@@ -1184,6 +1191,13 @@ public class GroovyEngine implements ScriptEngine {
             }
             out = cuttedSize + tot + se.getStartColumn() - 1;
             return out;
+        }
+
+        private static StyleResolver style(String style) {
+            Map<String, String> colors = Arrays.stream(style.split(":"))
+                    .collect(Collectors.toMap(s -> s.substring(0, s.indexOf('=')),
+                            s -> s.substring(s.indexOf('=') + 1)));
+            return new StyleResolver(colors::get);
         }
 
     }
