@@ -113,8 +113,10 @@ def _tailTipToggle() {
     def enabled = al == '_tailtip-accept-line' ? true : false
     if (enabled) {
         _reader.setVariable('LIST_MAX',100)
+        _reader.option(org.jline.reader.LineReader.Option.INSERT_BRACKET, true)
     } else {
         _reader.setVariable('LIST_MAX',50)
+        _reader.option(org.jline.reader.LineReader.Option.INSERT_BRACKET, false)
     }
     _widget 'tailtip-toggle'
 }

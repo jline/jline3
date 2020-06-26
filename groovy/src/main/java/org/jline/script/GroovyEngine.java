@@ -21,6 +21,8 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
+import org.codehaus.groovy.syntax.SyntaxException;
 import org.jline.builtins.Nano.SyntaxHighlighter;
 import org.jline.console.CmdDesc;
 import org.jline.console.CmdLine;
@@ -35,6 +37,7 @@ import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStyle;
 import org.jline.utils.Log;
 import org.jline.utils.OSUtils;
 
@@ -561,6 +564,10 @@ public class GroovyEngine implements ScriptEngine {
             return Math.max(out, -1);
         }
 
+        public static boolean constructorStatement(String fragment) {
+            return fragment.matches("(.*\\s+new|.*\\(new|.*\\{new|.*=new|.*,new|new)");
+        }
+
     }
 
     private static class PackageCompleter implements Completer {
@@ -629,7 +636,7 @@ public class GroovyEngine implements ScriptEngine {
                 }
             } else if (!wordbuffer.contains("(") &&
                       ((commandLine.wordIndex() == 1 && commandLine.words().get(0).matches("(new|\\w+=new)"))
-                    || (commandLine.wordIndex() > 1 && commandLine.words().get(commandLine.wordIndex() - 1).matches("(new|.*\\(new|.*,new)")))
+                    || (commandLine.wordIndex() > 1 && Helpers.constructorStatement(commandLine.words().get(commandLine.wordIndex() - 1))))
                     ) {
                 if (wordbuffer.matches("[a-z]+.*")) {
                     int idx = wordbuffer.lastIndexOf('.');
@@ -786,6 +793,8 @@ public class GroovyEngine implements ScriptEngine {
         private Map<String,Class<?>> nameClass = new HashMap<>();
         PrintStream nullstream;
         boolean canonicalNames = false;
+        String[] equationLines;
+        int cuttedSize;
 
         public Inspector(GroovyEngine groovyEngine) {
             this.imports = groovyEngine.imports;
@@ -909,9 +918,10 @@ public class GroovyEngine implements ScriptEngine {
                     out = methodDescription(line);
                     break;
                 case SYNTAX:
+                    out = checkSyntax(line);
                     break;
                 }
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 if (Log.isDebugEnabled()) {
                     e.printStackTrace();
                 }
@@ -935,7 +945,7 @@ public class GroovyEngine implements ScriptEngine {
             Class<?> clazz = null;
             String methodName = null;
             if ((args.size() == 2 && args.get(0).matches("(new|\\w+=new)"))
-                || (args.size() > 2 && args.get(args.size() - 2).matches("(new|.*\\(new|.*,new)"))) {
+                || (args.size() > 2 && Helpers.constructorStatement(args.get(args.size() - 2)))) {
                 constructor = true;
                 clazz = evaluateClass(trimName(args.get(args.size() - 1)));
             } else {
@@ -1043,6 +1053,139 @@ public class GroovyEngine implements ScriptEngine {
             return out;
         }
 
+        private CmdDesc checkSyntax(CmdLine line) {
+            CmdDesc out = new CmdDesc();
+            int openingRound = Brackets.indexOfOpeningRound(line.getHead());
+            if (openingRound == -1) {
+                return out;
+            }
+            loadStatementVars(line.getHead());
+            Brackets brackets = new Brackets(line.getHead().substring(0, openingRound));
+            int eqsep = Helpers.statementBegin(brackets);
+            int end = line.getHead().length();
+            if (eqsep > 0 && Helpers.constructorStatement(line.getHead().substring(0, eqsep))) {
+                eqsep = line.getHead().substring(0, eqsep).lastIndexOf("new") - 1;
+            } else if (line.getHead().substring(eqsep + 1).matches("\\s*for\\s*\\(.*")
+                    || line.getHead().substring(eqsep + 1).matches("\\s*while\\s*\\(.*")
+                    || line.getHead().substring(eqsep + 1).matches("\\s*else\\s+if\\s*\\(.*")
+                    || line.getHead().substring(eqsep + 1).matches("\\s*if\\s*\\(.*")) {
+                eqsep = openingRound;
+                end = end - 1;
+            } else if (line.getHead().substring(eqsep + 1).matches("\\s*switch\\s*\\(.*")
+                    || line.getHead().substring(eqsep + 1).matches("\\s*catch\\s*\\(.*")) {
+                return out;
+            }
+            List<AttributedString> mainDesc = new ArrayList<>();
+            String objEquation = line.getHead().substring(eqsep + 1, end);
+            equationLines = objEquation.split("\\r?\\n");
+            cuttedSize = eqsep + 1;
+            if (objEquation != null) {
+                try {
+                    execute(objEquation);
+                } catch (groovy.lang.MissingPropertyException e) {
+                    mainDesc.addAll(doExceptionMessage(e));
+                    out.setErrorPattern(Pattern.compile("\\b" + e.getProperty() + "\\b"));
+                } catch (java.util.regex.PatternSyntaxException e) {
+                    mainDesc.addAll(doExceptionMessage(e));
+                    int idx = line.getHead().lastIndexOf(e.getPattern());
+                    if (idx >= 0) {
+                        out.setErrorIndex(idx + e.getIndex());
+                    }
+                } catch (org.codehaus.groovy.control.MultipleCompilationErrorsException e){
+                    if (e.getErrorCollector().getErrors() != null) {
+                        for (Object o: e.getErrorCollector().getErrors()) {
+                            if (o instanceof SyntaxErrorMessage) {
+                                SyntaxErrorMessage sem = (SyntaxErrorMessage)o;
+                                out.setErrorIndex(errorIndex(e.getMessage(), sem.getCause()));
+                            } else {
+                                mainDesc.add(new AttributedString("Error: " + o.getClass().getCanonicalName()
+                                                                 , AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW)));
+                            }
+                        }
+                    }
+                    if (e.getErrorCollector().getWarnings() != null) {
+                        for (Object o: e.getErrorCollector().getWarnings()) {
+                            if (o instanceof SyntaxErrorMessage) {
+                                SyntaxErrorMessage sem = (SyntaxErrorMessage)o;
+                                out.setErrorIndex(errorIndex(e.getMessage(), sem.getCause()));
+                            } else {
+                                mainDesc.add(new AttributedString("Warning: " + o.getClass().getCanonicalName()
+                                                                , AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW)));
+                            }
+                        }
+                    }
+                    mainDesc.addAll(doExceptionMessage(e));
+                } catch (Exception e) {
+                    mainDesc.addAll(doExceptionMessage(e));
+                }
+            }
+            out.setMainDesc(mainDesc);
+            return out;
+        }
+
+        private static List<AttributedString> doExceptionMessage(Exception exception) {
+            List<AttributedString> out = new ArrayList<>();
+            Pattern header = Pattern.compile("^[a-zA-Z() ]{3,}:(\\s+|$)");
+            out.add(new AttributedString(exception.getClass().getCanonicalName(), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED)));
+            if (exception.getMessage() != null) {
+                for (String s: exception.getMessage().split("\\r?\\n")) {
+                    if (s.length() > 80) {
+                        boolean doHeader = true;
+                        int start = 0;
+                        for (int i = 80; i < s.length(); i++) {
+                            if ((s.charAt(i) == ' ' && i - start > 80 ) || i - start > 100) {
+                                AttributedString as = new AttributedString(s.substring(start, i), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+                                if (doHeader) {
+                                    as = as.styleMatches(header, AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE));
+                                    doHeader = false;
+                                }
+                                out.add(as);
+                                start = i;
+                                if (s.length() - start < 80) {
+                                    out.add(new AttributedString(s.substring(start), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED)));
+                                    break;
+                                }
+                            }
+                        }
+                        if (doHeader) {
+                            AttributedString as = new AttributedString(s, AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+                            as = as.styleMatches(header, AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE));
+                            out.add(as);
+                        }
+                    } else {
+                        AttributedString as = new AttributedString(s, AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+                        as = as.styleMatches(header, AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE));
+                        out.add(as);
+
+                    }
+                }
+            }
+            return out;
+        }
+
+        private int errorIndex(String message, SyntaxException se) {
+            int out = -1;
+            String line = null;
+            String[] mlines = message.split("\n");
+            for (int i = 0; i < mlines.length; i++) {
+                if (mlines[i].matches(".*Script[0-9]+.groovy: .*")) {
+                    line = mlines[i + 1].trim();
+                    break;
+                }
+            }
+            int tot = 0;
+            if (line != null) {
+                for (String l: equationLines) {
+                    if (l.contains(line)) {
+                        break;
+                    }
+                    tot += l.length() + 1;
+                }
+            }
+            out = cuttedSize + tot + se.getStartColumn() - 1;
+            return out;
+        }
+
     }
 
     private static class ObjectCloner implements Cloner {
@@ -1069,7 +1212,7 @@ public class GroovyEngine implements ScriptEngine {
 
     private static class Brackets {
         static final List<Character> DELIMS = Arrays.asList('+', '-', '*', '=', '/');
-        char[] quote = {'"', '\''};
+        static char[] quote = {'"', '\''};
         Deque<Integer> roundOpen = new ArrayDeque<>();
         Deque<Integer> curlyOpen = new ArrayDeque<>();
         Map<Integer,Integer> lastComma = new HashMap<>();
@@ -1136,6 +1279,50 @@ public class GroovyEngine implements ScriptEngine {
                     throw new IllegalArgumentException();
                 }
             }
+        }
+
+        public static int indexOfOpeningRound(String line) {
+            int out = -1;
+            if (!line.endsWith(")")) {
+                return out;
+            }
+            int quoteId = -1;
+            int round = 0;
+            int curly = 0;
+            char[] chars = line.toCharArray();
+            for (int i = line.length() - 1; i >= 0; i--) {
+                char ch = chars[i];
+                if (quoteId < 0) {
+                    for (int j = 0; j < quote.length; j++) {
+                        if (ch == quote[j]) {
+                            quoteId = j;
+                            break;
+                        }
+                    }
+                } else {
+                    if (ch == quote[quoteId]) {
+                        quoteId = -1;
+                    }
+                    continue;
+                }
+                if (quoteId >= 0) {
+                    continue;
+                }
+                if (ch == '(') {
+                    round++;
+                } else if (ch == ')') {
+                    round--;
+                } else if (ch == '{') {
+                    curly++;
+                } else if (ch == '}') {
+                    curly--;
+                }
+                if (curly == 0 && round == 0) {
+                    out = i;
+                    break;
+                }
+            }
+            return out;
         }
 
         public boolean openRound() {
