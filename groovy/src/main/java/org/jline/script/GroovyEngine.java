@@ -1137,7 +1137,9 @@ public class GroovyEngine implements ScriptEngine {
             out.add(java.highlight(exception.getClass().getCanonicalName()));
             if (exception.getMessage() != null) {
                 for (String s: exception.getMessage().split("\\r?\\n")) {
-                    if (s.length() > 80) {
+                    if (s.trim().length() == 0) {
+                        // do nothing
+                    } else if (s.length() > 80) {
                         boolean doHeader = true;
                         int start = 0;
                         for (int i = 80; i < s.length(); i++) {

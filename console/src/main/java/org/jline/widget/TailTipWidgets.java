@@ -494,14 +494,13 @@ public class TailTipWidgets extends Widgets {
             out.addAll(mainDesc);
         } else {
             int tabs = 0;
-            int row = 0;
             for (AttributedString as: mainDesc) {
                 if (as.columnLength() >= tabs) {
                     tabs = as.columnLength() + 2;
                 }
-                row++;
             }
-            row = 0;
+            int row = 0;
+            int col = 0;
             List<AttributedString> descList = new ArrayList<>();
             for (int i = 0; i < descriptionSize; i++) {
                 descList.add(new AttributedString(""));
@@ -511,14 +510,17 @@ public class TailTipWidgets extends Widgets {
                     continue;
                 }
                 AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
-                asb.append(descList.get(row));
+                if (col > 0) {
+                    asb.append(descList.get(row));
+                    asb.append("\t");
+                }
                 asb.append(as);
-                asb.append("\t");
                 descList.remove(row);
                 descList.add(row, asb.toAttributedString());
                 row++;
                 if (row >= descriptionSize) {
                     row = 0;
+                    col++;
                 }
             }
             out = new ArrayList<>(descList);
