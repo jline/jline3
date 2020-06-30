@@ -632,7 +632,7 @@ public class GroovyEngine implements ScriptEngine {
             int eqsep = Helpers.statementBegin(brackets);
             if (brackets.numberOfRounds() > 0 && brackets.lastCloseRound() > eqsep) {
                 int varsep = buffer.lastIndexOf('.');
-                if (varsep > 0 && varsep > eqsep) {
+                if (varsep > 0 && varsep > brackets.lastCloseRound()) {
                     Class<?> clazz = evaluateClass(buffer.substring(eqsep + 1, varsep));
                     int vs = wordbuffer.lastIndexOf('.');
                     String curBuf = wordbuffer.substring(0, vs + 1);
