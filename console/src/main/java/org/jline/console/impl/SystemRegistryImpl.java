@@ -292,7 +292,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         completers.add(customAggregateCompleter);
         if (consoleId != null) {
             completers.addAll(consoleEngine().scriptCompleters());
-            completers.add(new PipelineCompleter().doCompleter());
+            completers.add(new PipelineCompleter(workDir, pipeName, names).doCompleter());
         }
         return new AggregateCompleter(completers);
     }
@@ -866,6 +866,12 @@ public class SystemRegistryImpl implements SystemRegistry {
 
         private boolean isEnclosed() {
             return round == 0 && curly == 0 && square == 0 && !quoted && !doubleQuoted;
+        }
+
+        public boolean isEnclosed(String arg) {
+            reset();
+            next(arg);
+            return isEnclosed();
         }
 
         private void enclosedArgs(List<String> words) {
@@ -1595,9 +1601,16 @@ public class SystemRegistryImpl implements SystemRegistry {
         return -1;
     }
 
-    private class PipelineCompleter implements Completer {
+    private static class PipelineCompleter implements Completer {
+        private NamesAndValues names;
+        private Supplier<Path> workDir;
+        private Map<Pipe, String> pipeName = new HashMap<>();
 
-        public PipelineCompleter() {}
+        public PipelineCompleter(Supplier<Path> workDir, Map<Pipe, String> pipeName, NamesAndValues names) {
+            this.workDir = workDir;
+            this.pipeName = pipeName;
+            this.names = names;
+        }
 
         public Completer doCompleter() {
             ArgumentCompleter out = new ArgumentCompleter(this);
@@ -1609,15 +1622,19 @@ public class SystemRegistryImpl implements SystemRegistry {
         public void complete(LineReader reader, ParsedLine commandLine, List<Candidate> candidates) {
             assert commandLine != null;
             assert candidates != null;
-            if (commandLine.wordIndex() < 2 || !names.hasPipes(commandLine.words())) {
+            ArgsParser ap = new ArgsParser(reader.getParser());
+            ap.parse(commandLine.line().substring(0, commandLine.cursor()));
+            List<String> args = ap.args();
+            if (args.size() < 2 || !names.hasPipes(args)) {
                 return;
             }
+            boolean enclosed = ap.isEnclosed(args.get(args.size() - 1));
             String pWord = commandLine.words().get(commandLine.wordIndex() - 1);
-            if (pWord.equals(pipeName.get(Pipe.NAMED))) {
+            if (enclosed && pWord.equals(pipeName.get(Pipe.NAMED))) {
                 for (String name : names.namedPipes()) {
                     candidates.add(new Candidate(name, name, null, null, null, null, true));
                 }
-            } else if (pWord.equals(">") || pWord.equals(">>")) {
+            } else if (enclosed && pWord.equals(">") || pWord.equals(">>")) {
                 Completer c = new FilesCompleter(workDir);
                 c.complete(reader, commandLine, candidates);
             } else {
