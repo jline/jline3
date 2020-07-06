@@ -356,7 +356,7 @@ public final class Curses {
                     }
                     break;
                 case '$':
-                    if (str.charAt(index) == '<') {
+                    if (index < length && str.charAt(index) == '<') {
                         // We don't honour delays, just skip
                         int nb = 0;
                         while ((ch = str.charAt(++index)) != '>') {
