@@ -39,7 +39,7 @@ The big bundle is named:
 
 The dependencies are minimal: you may use JLine without any dependency on *nix systems, but in order to support windows or more advanced usage, you will need to add either [`jansi`](https://repo1.maven.org/maven2/org/fusesource/jansi/jansi/1.17/jansi-1.17.jar) or [`jna`](https://repo1.maven.org/maven2/net/java/dev/jna/jna/4.5.1/jna-4.5.1.jar) library.
 
-You can also use finer grained jars:
+You can also use fine grained jars:
 * `jline-terminal`: the `Terminal` api and implementations
 * `jline-terminal-jansi`: terminal implementations leveraging the `jansi` library
 * `jline-terminal-jna`: terminal implementations leveraging the `jna` library
@@ -49,7 +49,7 @@ You can also use finer grained jars:
 * `jline-remote-telnet`: helpers for using jline over telnet (including a telnet server implementation)
 * `jline-builtins`: several high level tools: `less` pager, `nano` editor, `screen` multiplexer, etc...
 * `jline-console`: command registry, object printer and widget implementations
-* `jline-groovy`: jline [ScriptEngine](https://github.com/jline/jline3/blob/master/console/src/main/java/org/jline/console/ScriptEngine.java) implementation using Groovy
+* `jline-groovy`: `ScriptEngine` implementation using Groovy
 
 ## Supported platforms
 
@@ -136,6 +136,7 @@ The fine grained bundles are located at:
     groovy/target/jline-groovy-${jline.version}.jar
     style/target/jline-style-${jline.version}.jar
     builtins/target/jline-builtins-${jline.version}.jar
+    console/target/jline-console-${jline.version}.jar
     remote-telnet/target/jline-remote-telnet-${jline.version}.jar
     remote-ssh/target/jline-remote-ssh-${jline.version}.jar
 
