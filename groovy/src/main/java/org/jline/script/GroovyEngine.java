@@ -78,6 +78,8 @@ public class GroovyEngine implements ScriptEngine {
 
     public interface Cloner {
         Object clone(Object obj);
+        void markCache();
+        void purgeCache();
     }
 
     public GroovyEngine() {
@@ -813,10 +815,12 @@ public class GroovyEngine implements ScriptEngine {
             this.nanorcSyntax = groovyEngine.groovyOption(NANORC_SYNTAX, DEFAULT_NANORC_SYNTAX);
             String gc = groovyEngine.groovyOption(GROOVY_COLORS, null);
             groovyColors = gc != null && Styles.isAnsiStylePattern(gc) ? gc : DEFAULT_GROOVY_COLORS;
+            groovyEngine.getObjectCloner().markCache();
             for (Map.Entry<String, Object> entry : groovyEngine.find().entrySet()) {
                 Object obj = groovyEngine.getObjectCloner().clone(entry.getValue());
                 sharedData.setVariable(entry.getKey(), obj);
             }
+            groovyEngine.getObjectCloner().purgeCache();
             shell = new GroovyShell(sharedData);
             try {
                 File file = OSUtils.IS_WINDOWS ? new File("NUL") : new File("/dev/null");
@@ -836,16 +840,18 @@ public class GroovyEngine implements ScriptEngine {
         public Class<?> evaluateClass(String objectStatement) {
             Class<?> out = null;
             try {
-                if (objectStatement.contains("(") || objectStatement.contains(")")
-                        || objectStatement.contains("{") || objectStatement.contains("}")) {
-                    out = execute(objectStatement).getClass();
-                } else if (!objectStatement.contains(".") ) {
-                    out = (Class<?>)execute(objectStatement + ".class");
-                } else {
-                    out = Class.forName(objectStatement);
+                out = execute(objectStatement).getClass();
+            } catch (Exception e) {
+            }
+            try {
+                if (out == null || out == Class.class) {
+                    if (!objectStatement.contains(".") ) {
+                        out = (Class<?>)execute(objectStatement + ".class");
+                    } else {
+                        out = Class.forName(objectStatement);
+                    }
                 }
             } catch (Exception e) {
-
             }
             return out;
         }
@@ -1205,6 +1211,8 @@ public class GroovyEngine implements ScriptEngine {
     }
 
     private static class ObjectCloner implements Cloner {
+        Map<String,Object> cache = new HashMap<>();
+        Set<String> marked = new HashSet<>();
 
         public ObjectCloner() {
 
@@ -1214,16 +1222,42 @@ public class GroovyEngine implements ScriptEngine {
          * Shallow copy of the object using java Cloneable clone() method.
          */
         public Object clone(Object obj) {
+            if (obj == null || obj instanceof String || obj instanceof Integer || obj instanceof Exception || obj instanceof Closure) {
+                return obj;
+            }
             Object out = null;
+            String key = cacheKey(obj);
             try {
-                Class<?> clazz = obj.getClass();
-                Method clone = clazz.getDeclaredMethod("clone");
-                out = clone.invoke(obj);
+                if (cache.containsKey(key)) {
+                    marked.remove(key);
+                    out = cache.get(key);
+                } else {
+                    Class<?> clazz = obj.getClass();
+                    Method clone = clazz.getDeclaredMethod("clone");
+                    out = clone.invoke(obj);
+                    cache.put(key, out);
+                }
             } catch (Exception e) {
                 out = obj;
+                cache.put(key, out);
             }
             return out;
         }
+
+        public void markCache() {
+            marked = new HashSet<>(cache.keySet());
+        }
+
+        public void purgeCache() {
+            for (String k : marked) {
+                cache.remove(k);
+            }
+        }
+
+        private String cacheKey(Object obj) {
+            return obj.getClass().getCanonicalName() + ":" + obj.hashCode();
+        }
+
     }
 
     private static class Brackets {
