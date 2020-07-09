@@ -629,16 +629,13 @@ public class GroovyEngine implements ScriptEngine {
                     && brackets.numberOfRounds() == 0 && !brackets.openRound() && !brackets.openCurly())) {
                 return;
             }
-            inspector = null;
-            if (brackets.openCurly()) {
-                inspector = new Inspector(groovyEngine);
-                inspector.loadStatementVars(buffer);
-            }
+            inspector = new Inspector(groovyEngine);
+            inspector.loadStatementVars(buffer);
             int eqsep = Helpers.statementBegin(brackets);
             if (brackets.numberOfRounds() > 0 && brackets.lastCloseRound() > eqsep) {
                 int varsep = buffer.lastIndexOf('.');
                 if (varsep > 0 && varsep > brackets.lastCloseRound()) {
-                    Class<?> clazz = inspector().evaluateClass(buffer.substring(eqsep + 1, varsep));
+                    Class<?> clazz = inspector.evaluateClass(buffer.substring(eqsep + 1, varsep));
                     int vs = wordbuffer.lastIndexOf('.');
                     String curBuf = wordbuffer.substring(0, vs + 1);
                     String hint = wordbuffer.substring(vs + 1);
@@ -679,7 +676,7 @@ public class GroovyEngine implements ScriptEngine {
                         if (addKeyWords) {
                             Helpers.doCandidates(candidates, KEY_WORDS, curBuf, param, CandidateType.METHOD);
                         }
-                        Helpers.doCandidates(candidates, inspector().variables(), curBuf, param, CandidateType.OTHER);
+                        Helpers.doCandidates(candidates, inspector.variables(), curBuf, param, CandidateType.OTHER);
                         Helpers.doCandidates(candidates, retrieveClassesWithStaticMethods(), curBuf, param,
                                 CandidateType.STATIC_METHOD);
                     }
@@ -688,18 +685,18 @@ public class GroovyEngine implements ScriptEngine {
                     String var = param.substring(0, param.indexOf('.'));
                     String curBuf = wordbuffer.substring(0, varsep + 1);
                     String p = wordbuffer.substring(varsep + 1);
-                    if (inspector().nameClass().containsKey(var)) {
+                    if (inspector.nameClass().containsKey(var)) {
                         if (firstMethod) {
-                            doStaticMethodCandidates(candidates, inspector().nameClass().get(var), curBuf, p);
+                            doStaticMethodCandidates(candidates, inspector.nameClass().get(var), curBuf, p);
                         } else {
-                            Class<?> clazz = inspector().evaluateClass(wordbuffer.substring(eqsep + 1, varsep));
+                            Class<?> clazz = inspector.evaluateClass(wordbuffer.substring(eqsep + 1, varsep));
                             doMethodCandidates(candidates, clazz, curBuf, p);
                         }
-                    } else if (inspector().hasVariable(var)) {
+                    } else if (inspector.hasVariable(var)) {
                         if (firstMethod) {
-                            doMethodCandidates(candidates, inspector().getVariable(var).getClass(), curBuf, p);
+                            doMethodCandidates(candidates, inspector.getVariable(var).getClass(), curBuf, p);
                         } else {
-                            Class<?> clazz = inspector().evaluateClass(wordbuffer.substring(eqsep + 1, varsep));
+                            Class<?> clazz = inspector.evaluateClass(wordbuffer.substring(eqsep + 1, varsep));
                             doMethodCandidates(candidates, clazz, curBuf, p);
                         }
                     } else {
@@ -715,13 +712,6 @@ public class GroovyEngine implements ScriptEngine {
                     }
                 }
             }
-        }
-
-        private Inspector inspector() {
-            if (inspector == null) {
-                inspector = new Inspector(groovyEngine);
-            }
-            return inspector;
         }
 
         private void doMethodCandidates(List<Candidate> candidates, Class<?> clazz, String curBuf, String hint) {
@@ -742,7 +732,7 @@ public class GroovyEngine implements ScriptEngine {
 
         private Set<String> retrieveConstructors() {
             Set<String> out = new HashSet<>();
-            for (Map.Entry<String, Class<?>> entry : inspector().nameClass().entrySet()) {
+            for (Map.Entry<String, Class<?>> entry : inspector.nameClass().entrySet()) {
                 Class<?> c = entry.getValue();
                 if (c.getConstructors().length == 0 || Modifier.isAbstract(c.getModifiers())) {
                     continue;
@@ -754,7 +744,7 @@ public class GroovyEngine implements ScriptEngine {
 
         private Set<String> retrieveClassesWithStaticMethods() {
             Set<String> out = new HashSet<>();
-            for (Map.Entry<String, Class<?>> entry : inspector().nameClass().entrySet()) {
+            for (Map.Entry<String, Class<?>> entry : inspector.nameClass().entrySet()) {
                 Class<?> c = entry.getValue();
                 if (Helpers.getStaticMethods(c).size() == 0 && Helpers.getStaticFields(c).size() == 0) {
                     continue;
@@ -767,6 +757,7 @@ public class GroovyEngine implements ScriptEngine {
 
     private static class Inspector {
         static final Pattern PATTERN_FOR = Pattern.compile("^for\\s*\\((.*?);.*");
+        static final Pattern LAMBDA_PATTERN = Pattern.compile(".*\\([\\(]*(.*?)[\\)]*->.*");
         static final Pattern PATTERN_FUNCTION_BODY = Pattern.compile("^\\s*\\(([a-zA-Z0-9_ ,]*)\\)\\s*\\{(.*)?\\}(|\n)$"
                                                                    , Pattern.DOTALL);
         static final String DEFAULT_NANORC_SYNTAX = "classpath:/org/jline/groovy/java.nanorc";
@@ -860,6 +851,7 @@ public class GroovyEngine implements ScriptEngine {
                 String statement = s.trim();
                 try {
                     Matcher forMatcher = PATTERN_FOR.matcher(statement);
+                    Matcher lambdaMatcher = LAMBDA_PATTERN.matcher(statement);
                     if (statement.matches("^(if|while)\\s*\\(.*") || statement.matches("(\\}\\s*|^)else(\\s*\\{|$)")
                             || statement.matches("(\\}\\s*|^)else\\s+if\\s*\\(.*") || statement.matches("^break[;]{1,}")
                             || statement.matches("^case\\s+.*:") || statement.matches("^default\\s+:")
@@ -869,6 +861,12 @@ public class GroovyEngine implements ScriptEngine {
                         statement = forMatcher.group(1).trim();
                         int idx = statement.indexOf(' ');
                         statement = statement.substring(idx + 1);
+                    } else if (lambdaMatcher.matches()) {
+                        String[] vars = lambdaMatcher.group(1).split(",");
+                        statement = "";
+                        for (String v : vars) {
+                            statement += v + " = null; ";
+                        }
                     } else if (statement.matches("\\w+\\s+.*=.*")) {
                         int idx = statement.indexOf(' ');
                         statement = statement.substring(idx + 1);
@@ -1050,7 +1048,7 @@ public class GroovyEngine implements ScriptEngine {
         private CmdDesc checkSyntax(CmdLine line) {
             CmdDesc out = new CmdDesc();
             int openingRound = Brackets.indexOfOpeningRound(line.getHead());
-            if (openingRound == -1) {
+            if (openingRound == -1 || line.getHead().substring(openingRound).matches("\\(\\s*\\w+\\s*[,\\s*\\w+\\s*]*\\)")) {
                 return out;
             }
             loadStatementVars(line.getHead());
@@ -1292,7 +1290,7 @@ public class GroovyEngine implements ScriptEngine {
                     lastCurlyClose = pos;
                 } else if (ch == ',' && !roundOpen.isEmpty()) {
                     lastComma.put(roundOpen.getLast(), pos);
-                } else if (ch == ';' || ch == '\n') {
+                } else if (ch == ';' || ch == '\n' || (ch == '>' && prevChar == '-')) {
                     lastSemicolon = pos;
                 } else if (ch == ' ' && round == 0 && String.valueOf(prevChar).matches("\\w")) {
                     lastBlanck = pos;
