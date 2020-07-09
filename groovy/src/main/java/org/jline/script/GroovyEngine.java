@@ -429,11 +429,14 @@ public class GroovyEngine implements ScriptEngine {
 
         private static Set<String> getMethods(Class<?> clazz, boolean statc) {
             Set<String> out = new HashSet<>();
-            for (Method method : clazz.getMethods()) {
-                if ((statc && Modifier.isStatic(method.getModifiers()))
-                        || (!statc && !Modifier.isStatic(method.getModifiers()))) {
-                    out.add(method.getName());
+            try {
+                for (Method method : clazz.getMethods()) {
+                    if ((statc && Modifier.isStatic(method.getModifiers()))
+                            || (!statc && !Modifier.isStatic(method.getModifiers()))) {
+                        out.add(method.getName());
+                    }
                 }
+            } catch (NoClassDefFoundError e) {
             }
             return out;
         }
@@ -635,7 +638,7 @@ public class GroovyEngine implements ScriptEngine {
             if (brackets.numberOfRounds() > 0 && brackets.lastCloseRound() > eqsep) {
                 int varsep = buffer.lastIndexOf('.');
                 if (varsep > 0 && varsep > brackets.lastCloseRound()) {
-                    Class<?> clazz = evaluateClass(buffer.substring(eqsep + 1, varsep));
+                    Class<?> clazz = inspector().evaluateClass(buffer.substring(eqsep + 1, varsep));
                     int vs = wordbuffer.lastIndexOf('.');
                     String curBuf = wordbuffer.substring(0, vs + 1);
                     String hint = wordbuffer.substring(vs + 1);
@@ -676,7 +679,7 @@ public class GroovyEngine implements ScriptEngine {
                         if (addKeyWords) {
                             Helpers.doCandidates(candidates, KEY_WORDS, curBuf, param, CandidateType.METHOD);
                         }
-                        Helpers.doCandidates(candidates, variables(), curBuf, param, CandidateType.OTHER);
+                        Helpers.doCandidates(candidates, inspector().variables(), curBuf, param, CandidateType.OTHER);
                         Helpers.doCandidates(candidates, retrieveClassesWithStaticMethods(), curBuf, param,
                                 CandidateType.STATIC_METHOD);
                     }
@@ -685,18 +688,18 @@ public class GroovyEngine implements ScriptEngine {
                     String var = param.substring(0, param.indexOf('.'));
                     String curBuf = wordbuffer.substring(0, varsep + 1);
                     String p = wordbuffer.substring(varsep + 1);
-                    if (nameClass().containsKey(var)) {
+                    if (inspector().nameClass().containsKey(var)) {
                         if (firstMethod) {
-                            doStaticMethodCandidates(candidates, nameClass().get(var), curBuf, p);
+                            doStaticMethodCandidates(candidates, inspector().nameClass().get(var), curBuf, p);
                         } else {
-                            Class<?> clazz = evaluateClass(wordbuffer.substring(eqsep + 1, varsep));
+                            Class<?> clazz = inspector().evaluateClass(wordbuffer.substring(eqsep + 1, varsep));
                             doMethodCandidates(candidates, clazz, curBuf, p);
                         }
-                    } else if (hasVariable(var)) {
+                    } else if (inspector().hasVariable(var)) {
                         if (firstMethod) {
-                            doMethodCandidates(candidates, getVariable(var).getClass(), curBuf, p);
+                            doMethodCandidates(candidates, inspector().getVariable(var).getClass(), curBuf, p);
                         } else {
-                            Class<?> clazz = evaluateClass(wordbuffer.substring(eqsep + 1, varsep));
+                            Class<?> clazz = inspector().evaluateClass(wordbuffer.substring(eqsep + 1, varsep));
                             doMethodCandidates(candidates, clazz, curBuf, p);
                         }
                     } else {
@@ -714,39 +717,11 @@ public class GroovyEngine implements ScriptEngine {
             }
         }
 
-        private Set<String> variables() {
+        private Inspector inspector() {
             if (inspector == null) {
                 inspector = new Inspector(groovyEngine);
             }
-            return inspector.variables();
-        }
-
-        private boolean hasVariable(String name) {
-            if (inspector == null) {
-                inspector = new Inspector(groovyEngine);
-            }
-            return inspector.hasVariable(name);
-        }
-
-        private Object getVariable(String name) {
-            if (inspector == null) {
-                inspector = new Inspector(groovyEngine);
-            }
-            return inspector.getVariable(name);
-        }
-
-        private Class<?> evaluateClass(String objectStatement) {
-            if (inspector == null) {
-                inspector = new Inspector(groovyEngine);
-            }
-            return inspector.evaluateClass(objectStatement);
-        }
-
-        private Map<String,Class<?>> nameClass() {
-            if (inspector == null) {
-                inspector = new Inspector(groovyEngine);
-            }
-            return inspector.nameClass();
+            return inspector;
         }
 
         private void doMethodCandidates(List<Candidate> candidates, Class<?> clazz, String curBuf, String hint) {
@@ -767,7 +742,7 @@ public class GroovyEngine implements ScriptEngine {
 
         private Set<String> retrieveConstructors() {
             Set<String> out = new HashSet<>();
-            for (Map.Entry<String, Class<?>> entry : nameClass().entrySet()) {
+            for (Map.Entry<String, Class<?>> entry : inspector().nameClass().entrySet()) {
                 Class<?> c = entry.getValue();
                 if (c.getConstructors().length == 0 || Modifier.isAbstract(c.getModifiers())) {
                     continue;
@@ -779,7 +754,7 @@ public class GroovyEngine implements ScriptEngine {
 
         private Set<String> retrieveClassesWithStaticMethods() {
             Set<String> out = new HashSet<>();
-            for (Map.Entry<String, Class<?>> entry : nameClass().entrySet()) {
+            for (Map.Entry<String, Class<?>> entry : inspector().nameClass().entrySet()) {
                 Class<?> c = entry.getValue();
                 if (Helpers.getStaticMethods(c).size() == 0 && Helpers.getStaticFields(c).size() == 0) {
                     continue;
