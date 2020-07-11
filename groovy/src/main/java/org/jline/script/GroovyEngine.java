@@ -757,6 +757,7 @@ public class GroovyEngine implements ScriptEngine {
 
     private static class Inspector {
         static final Pattern PATTERN_FOR = Pattern.compile("^for\\s*\\((.*?);.*");
+        static final Pattern PATTERN_FOR_EACH = Pattern.compile("^for\\s*\\((.*?):(.*?)\\).*");
         static final Pattern LAMBDA_PATTERN = Pattern.compile(".*\\([\\(]*(.*?)[\\)]*->.*");
         static final Pattern PATTERN_FUNCTION_BODY = Pattern.compile("^\\s*\\(([a-zA-Z0-9_ ,]*)\\)\\s*\\{(.*)?\\}(|\n)$"
                                                                    , Pattern.DOTALL);
@@ -850,6 +851,7 @@ public class GroovyEngine implements ScriptEngine {
             for (String s : line.split("\\r?\\n")) {
                 String statement = s.trim();
                 try {
+                    Matcher forEachMatcher = PATTERN_FOR_EACH.matcher(statement);
                     Matcher forMatcher = PATTERN_FOR.matcher(statement);
                     Matcher lambdaMatcher = LAMBDA_PATTERN.matcher(statement);
                     if (statement.matches("^(if|while)\\s*\\(.*") || statement.matches("(\\}\\s*|^)else(\\s*\\{|$)")
@@ -857,10 +859,22 @@ public class GroovyEngine implements ScriptEngine {
                             || statement.matches("^case\\s+.*:") || statement.matches("^default\\s+:")
                             || statement.matches("(\\{|\\})") || statement.length() == 0) {
                         continue;
+                    } else if (forEachMatcher.matches()) {
+                        statement = forEachMatcher.group(1).trim();
+                        if (statement.matches("\\w+\\s+\\w+.*")) {
+                            int idx = statement.indexOf(' ');
+                            statement = statement.substring(idx + 1);
+                        }
+                        statement += "=" + forEachMatcher.group(2) + "[0]";
                     } else if (forMatcher.matches()) {
                         statement = forMatcher.group(1).trim();
-                        int idx = statement.indexOf(' ');
-                        statement = statement.substring(idx + 1);
+                        if (statement.matches("\\w+\\s+\\w+.*")) {
+                            int idx = statement.indexOf(' ');
+                            statement = statement.substring(idx + 1);
+                        }
+                        if (!statement.contains("=")) {
+                            statement += " = null";
+                        }
                     } else if (lambdaMatcher.matches()) {
                         String[] vars = lambdaMatcher.group(1).split(",");
                         statement = "";
@@ -1048,7 +1062,7 @@ public class GroovyEngine implements ScriptEngine {
         private CmdDesc checkSyntax(CmdLine line) {
             CmdDesc out = new CmdDesc();
             int openingRound = Brackets.indexOfOpeningRound(line.getHead());
-            if (openingRound == -1 || line.getHead().substring(openingRound).matches("\\(\\s*\\w+\\s*[,\\s*\\w+\\s*]*\\)")) {
+            if (openingRound == -1) {
                 return out;
             }
             loadStatementVars(line.getHead());
@@ -1071,7 +1085,9 @@ public class GroovyEngine implements ScriptEngine {
             String objEquation = line.getHead().substring(eqsep + 1, end);
             equationLines = objEquation.split("\\r?\\n");
             cuttedSize = eqsep + 1;
-            if (objEquation != null) {
+            if (objEquation == null || objEquation.matches("\\(\\s*\\w+\\s*[,\\s*\\w+\\s*]*\\)")) {
+                // do nothing
+            } else {
                 try {
                     execute(objEquation);
                 } catch (groovy.lang.MissingPropertyException e) {
