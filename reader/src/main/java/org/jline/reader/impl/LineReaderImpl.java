@@ -4006,7 +4006,9 @@ public class LineReaderImpl implements LineReader, Flushable
                 sb.styled(AttributedStyle::faint, tailTip);
                 full.append(sb.toAttributedString());
             } else if (autosuggestion == SuggestionType.COMPLETER) {
-                if (buf.length() > 0 && buf.length() == buf.cursor()) {
+                if (buf.length() > 0 && buf.length() == buf.cursor()
+                        && (!lastBinding.equals("\t") || buf.prevChar() == ' ' || buf.prevChar() == '='
+                          || buf.prevChar() == '/' || buf.prevChar() == '.')) {
                     clearChoices();
                     listChoices(true);
                 } else if (!lastBinding.equals("\t")) {
