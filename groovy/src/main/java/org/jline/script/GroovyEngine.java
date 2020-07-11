@@ -1083,23 +1083,26 @@ public class GroovyEngine implements ScriptEngine {
                     if (idx >= 0) {
                         out.setErrorIndex(idx + e.getIndex());
                     }
-                } catch (org.codehaus.groovy.control.MultipleCompilationErrorsException e){
+                } catch (org.codehaus.groovy.control.MultipleCompilationErrorsException e) {
                     if (e.getErrorCollector().getErrors() != null) {
-                        for (Object o: e.getErrorCollector().getErrors()) {
+                        for (Object o : e.getErrorCollector().getErrors()) {
                             if (o instanceof SyntaxErrorMessage) {
-                                SyntaxErrorMessage sem = (SyntaxErrorMessage)o;
+                                SyntaxErrorMessage sem = (SyntaxErrorMessage) o;
                                 out.setErrorIndex(errorIndex(e.getMessage(), sem.getCause()));
-                            }                        }
+                            }
+                        }
                     }
                     if (e.getErrorCollector().getWarnings() != null) {
-                        for (Object o: e.getErrorCollector().getWarnings()) {
+                        for (Object o : e.getErrorCollector().getWarnings()) {
                             if (o instanceof SyntaxErrorMessage) {
-                                SyntaxErrorMessage sem = (SyntaxErrorMessage)o;
+                                SyntaxErrorMessage sem = (SyntaxErrorMessage) o;
                                 out.setErrorIndex(errorIndex(e.getMessage(), sem.getCause()));
                             }
                         }
                     }
                     mainDesc.addAll(doExceptionMessage(e));
+                } catch (NullPointerException e) {
+                    // do nothing
                 } catch (Exception e) {
                     mainDesc.addAll(doExceptionMessage(e));
                 }
