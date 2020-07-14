@@ -60,7 +60,7 @@ public class GroovyEngine implements ScriptEngine {
     public static final String CANONICAL_NAMES = "canonicalNames";
     public static final String NANORC_SYNTAX = "nanorcSyntax";
     public static final String NANORC_VALUE = "nanorcValue";
-    public static final String GROOVY_COLORS = "groovyColors";
+    public static final String GROOVY_COLORS = "GROOVY_COLORS";
 
     private static final String VAR_GROOVY_OPTIONS = "GROOVY_OPTIONS";
     private static final String REGEX_SYSTEM_VAR = "[A-Z]+[A-Z_]*";
