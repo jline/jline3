@@ -8,6 +8,8 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class NonBlockingTest {
 
@@ -57,6 +59,20 @@ public class NonBlockingTest {
         writer.write('中');
         assertEquals('中', nbr.read(100));
         assertEquals(NonBlockingReader.READ_EXPIRED, nbr.read(100));
+
+        long t0 = System.currentTimeMillis();
+        new Thread(() -> {
+            try {
+                Thread.sleep(100);
+                writer.write('中');
+            } catch (Exception e) {
+                fail();
+            }
+        }).start();
+        int c = nbr.read(0);
+        long t1 = System.currentTimeMillis();
+        assertEquals('中', c);
+        assertTrue(t1 - t0 >= 100);
     }
 
     @Test
