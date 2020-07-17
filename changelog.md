@@ -1,6 +1,66 @@
 # [JLine3](https://github.com/jline/jline3)
 <!-- git log --pretty=format:'* [`%h`](https://github.com/jline/jline3/commit/%H) %s' -->
 
+## [JLine 3.16.0][3_16_0]
+[3_16_0]: https://repo1.maven.org/maven2/org/jline/jline/3.16.0/
+
+* [`f867197e`](https://github.com/jline/jline3/commit/f867197effd901fa7e87c789b06eee1f185952fa) Add a unit test for #552
+* [`0af26c08`](https://github.com/jline/jline3/commit/0af26c08ea622c04a97b69b935726eef9e7f08e9) NonBlockingPumpReader.read() does not block, fixes #552
+* [`a0137601`](https://github.com/jline/jline3/commit/a01376015c3277b8e86e3a1b1ded18fb2d788ee6) GroovyEngine: renamed GROOVY_OPTION groovyColors to GROOVY_COLORS
+* [`25824ac0`](https://github.com/jline/jline3/commit/25824ac0f450660ac847edd40a2bfa8f14465115) Autosuggestion choices not refreshed after tab #545, fixed regression caused by commit https://github.com/jline/jline3/commit/feb769018aab222614e4576aa63cc746b45224cc
+* [`722f2ef7`](https://github.com/jline/jline3/commit/722f2ef79a1c6000518b262a5d18326d30cba677) GroovyEngine Inspector: manage for-each statement
+* [`ef81ae72`](https://github.com/jline/jline3/commit/ef81ae721dc4a3ba947598ee331af7fee6dfa7f6) GroovyEngine: checkSyntax() ignore NullPointerException
+* [`80423654`](https://github.com/jline/jline3/commit/804236549a36e46a5d262feafab26a4c9805bdbb) GroovyEngine: tab-completion manage lambda expression peculiarities
+* [`ee3f01ba`](https://github.com/jline/jline3/commit/ee3f01baeb37248b42ea2fbc288a6dd8a23f5614) GroovyEngine: add try-catch & small refactoring
+* [`0175f494`](https://github.com/jline/jline3/commit/0175f494827170ef8f9e8cd2a30f0376a3d222a5) Update README.md
+* [`b6ffb521`](https://github.com/jline/jline3/commit/b6ffb521bdba6dc31361c709b46fa8a6c4ffe0c5) GroovyEngine: added methods markCache() and purgeCache() in Cloner API
+* [`3b0d5d52`](https://github.com/jline/jline3/commit/3b0d5d52fd2c31fb92ad8aaa2f11a22aceab890a) rxvt-terminal: NullPointerException with `infocmp` warning, fixes #550
+* [`d2ac4ef4`](https://github.com/jline/jline3/commit/d2ac4ef422409bbd4b37a41d10e6b66fb54bb926) GroovyEngine: fixed chained method tab completion
+* [`99e5efe6`](https://github.com/jline/jline3/commit/99e5efe60957094960e95df8a5522902502519f1) Improved PipelineCompleter
+* [`c0f0e79b`](https://github.com/jline/jline3/commit/c0f0e79b06f0b692064542caac51cfee0e5b58b0) TailTipWidgets: fixed status bar message compilation
+* [`8e979e10`](https://github.com/jline/jline3/commit/8e979e10fdcf509480c39ab7c677a515d9fdc7a3) Groovy: customizable colors
+* [`458ec405`](https://github.com/jline/jline3/commit/458ec4053284cbd35928ee0f6f9a839e8d94e2f7) GroovyEngine: added syntax error highlighting
+* [`e30759c8`](https://github.com/jline/jline3/commit/e30759c86d949d51d433e7022ac4fe929e2da264) GroovyEngine: tab completion requires min. one char to show candidates
+* [`aafbf365`](https://github.com/jline/jline3/commit/aafbf365cb2a75f190cb985de2b973da368436aa) GroovyEngine: improve inner class tab completions
+* [`f1817734`](https://github.com/jline/jline3/commit/f1817734d5b65f788995921a8d0107b7f499e563) GroovyEngine: display method descriptions with short type names
+* [`dbf4118b`](https://github.com/jline/jline3/commit/dbf4118bf04cf6def23eebc32ba9944e06f22219) Auto suggestion error when type Asterisk character (*), fixes #548
+* [`3b797306`](https://github.com/jline/jline3/commit/3b79730668e573222abd83d54f97886089e1c8f0) GroovyEnine tab-completion: Inspector create closures from function def
+* [`92b94dac`](https://github.com/jline/jline3/commit/92b94dacf34414f997d5c2e1e31b1ed7db78f034) GroovyEngine: tab-completion improvements and fixes
+* [`915e942b`](https://github.com/jline/jline3/commit/915e942b99c5fcb2f1ac10b619a9c02db112c46a) TailTipWidgets: simplified if statement
+* [`96defb80`](https://github.com/jline/jline3/commit/96defb80d9e5573d0a033ba1f7b541ba1e11fce5) TailTipWidgets: set LineReader variable errors=0
+* [`fb196ca9`](https://github.com/jline/jline3/commit/fb196ca9e87434172765bff06b9a8ede265504e4) GroovyEngine: display method descriptions on status bar
+* [`272648ec`](https://github.com/jline/jline3/commit/272648eccea0c7f391b4431b9be22be44cb7cb24) SystemRegistry help customizations, fixes #547
+* [`991aae58`](https://github.com/jline/jline3/commit/991aae58c487db248b51287d9fe7acabc9bee1d0) GroovyEngine: tab-completion of object methods inside code block
+* [`66fcd737`](https://github.com/jline/jline3/commit/66fcd7370e0332cdce046023b7717d6769a85b46) Builtins title is shown in command help without commands, fixes #546
+* [`6c81a5b1`](https://github.com/jline/jline3/commit/6c81a5b1e74b087e8745074dc4ff1958dadae2b5) Display: ArithmeticException: / by zero, fixes #526
+* [`ae8ff734`](https://github.com/jline/jline3/commit/ae8ff734cc033a0bc01a0d178a87f2a47cd1ae26) GroovyEngine: tab-completion for method parameters
+* [`56b1f297`](https://github.com/jline/jline3/commit/56b1f297e34cfd9b18fc5f682f9f9451581a9e01) LineReaderImpl: added trace
+* [`7d619144`](https://github.com/jline/jline3/commit/7d619144a1cffe644976d478fa37270f07fa540d) GroovyEngine: tab-completion for chained methods
+* [`88cf67da`](https://github.com/jline/jline3/commit/88cf67da6511bdc9184d56e7fa9895feda546e6b) GroovyEngine: more tab-completions variables, methods and constructors
+* [`53d00b85`](https://github.com/jline/jline3/commit/53d00b85db6c063ad22a444f0117605017d6649e) command grab: added --verbose option
+* [`8618e471`](https://github.com/jline/jline3/commit/8618e471c99edc52a0421e743153c860a28dd8c1) JlineCommandRegistry: added traces
+* [`5ae969ed`](https://github.com/jline/jline3/commit/5ae969edd75a7d86ee1673714d936b76bf5c546e) DefaultPrinter: added two methods to make prnt command options easily
+* [`feb76901`](https://github.com/jline/jline3/commit/feb769018aab222614e4576aa63cc746b45224cc) Autosuggestion choices are not refreshed after tab, fixes #545
+* [`04aa1932`](https://github.com/jline/jline3/commit/04aa19320a058c4b3d69133d24f46b6d7cd44acb) GroovyEngine: added a few tab-completions (import, def, class, ...)
+* [`fe632071`](https://github.com/jline/jline3/commit/fe632071442875017b623adc690cf0f11e9b8306) GroovyCommand: improved command tab-completions
+* [`c6a09bd9`](https://github.com/jline/jline3/commit/c6a09bd9e1f3154c145384b2d90d4bcf87257197) Improved OptionCompleter long options value completion
+* [`de558860`](https://github.com/jline/jline3/commit/de55886075b0941c923d4fec3ac7d06fe549086d) CommandRegistry interface: removed method commandDescription(command),
+* [`add29245`](https://github.com/jline/jline3/commit/add292459554f7a6863fb2c3cea4d302674ff169) prnt command: fix options tab-completion, regression caused by #540
+* [`497f10c6`](https://github.com/jline/jline3/commit/497f10c6b8d62f6c720b5eea88a3e371f448345b) Merge pull request #543 from mattirn/commandRegistry-improvment
+* [`f13b695a`](https://github.com/jline/jline3/commit/f13b695ac90e661388203973de7d2c3ccb5eaaa0) CommandRegistry interface: removed execute() method
+* [`04eaadf4`](https://github.com/jline/jline3/commit/04eaadf4b532a9926d89476ebcf0f70964a86346) Update README.md
+* [`64d127e4`](https://github.com/jline/jline3/commit/64d127e4232e0aff4bc7c3a91cb81ab2ac0264d7) Update README.md
+* [`78b4c9f9`](https://github.com/jline/jline3/commit/78b4c9f98af825b5bdd63deb0970afa81294db08) Merge pull request #540 from mattirn/console-package
+* [`aa84d181`](https://github.com/jline/jline3/commit/aa84d181f5b6ba00a42b01f45ba6106917542935) DefaultPrinter can now be used also without ScriptEngine
+* [`f8b7615b`](https://github.com/jline/jline3/commit/f8b7615b15e6dad56480b039a9e5556567b768d0) prnt command: moved implementation to DefaultPrinter
+* [`fcac9694`](https://github.com/jline/jline3/commit/fcac969406439b8c0d32bf01fbb30d1510a6f055) Console example: fixed widgets enabling/disabling, step II
+* [`4c24ce18`](https://github.com/jline/jline3/commit/4c24ce18e2f718a82e0d9677db2bb38ae7b84706) Split Widgets class to org.jline.widget package
+* [`b3428b42`](https://github.com/jline/jline3/commit/b3428b42e69925b0540ba6e2a6930848d6b517cb) ConsoleEngine: added setPrinter() method
+* [`1aa0bda2`](https://github.com/jline/jline3/commit/1aa0bda27f7db310899482a8d4540b9a9abc5fec) Console example: fixed widgets enabling/disabling
+* [`d31b6784`](https://github.com/jline/jline3/commit/d31b678470504f1af215b7b04a219fee2760526c) Added simplified example, fixes #537
+* [`16115a55`](https://github.com/jline/jline3/commit/16115a559e8b566ab51a5610204c52effbaa2e55) Added jline-console module
+* [`10c3f209`](https://github.com/jline/jline3/commit/10c3f209446af58a847a9cf46199902820db48cb) Also test with jdk 14
+
 ## [JLine 3.15.0][3_15_0]
 [3_15_0]: https://repo1.maven.org/maven2/org/jline/jline/3.15.0/
 
