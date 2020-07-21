@@ -260,6 +260,11 @@ public final class TerminalBuilder {
     }
 
     public Terminal build() throws IOException {
+        if (terminalHolder.get() != null) {
+             Terminal terminal = terminalHolder.get();
+             Log.debug(() -> "Using terminal " + terminal.getClass().getSimpleName());
+             return terminal;
+        }
         Terminal terminal = doBuild();
         Log.debug(() -> "Using terminal " + terminal.getClass().getSimpleName());
         if (terminal instanceof AbstractPosixTerminal) {
@@ -485,5 +490,10 @@ public final class TerminalBuilder {
 
     private <S> S load(Class<S> clazz) {
         return ServiceLoader.load(clazz, clazz.getClassLoader()).iterator().next();
+    }
+
+    private static final AtomicReference<Terminal> terminalHolder = new AtomicReference<Terminal>(null);
+    public static final void setTerminal(final Terminal terminal) {
+        terminalHolder.set(terminal);
     }
 }
