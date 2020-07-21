@@ -87,6 +87,7 @@ public final class TerminalBuilder {
     }
 
     private static final AtomicReference<Terminal> SYSTEM_TERMINAL = new AtomicReference<>();
+    private static final AtomicReference<Terminal> TERMINAL_OVERRIDE = new AtomicReference<>();
 
     private String name;
     private InputStream in;
@@ -260,7 +261,11 @@ public final class TerminalBuilder {
     }
 
     public Terminal build() throws IOException {
-        Terminal terminal = doBuild();
+        Terminal override = TERMINAL_OVERRIDE.get();
+        Terminal terminal = override != null ? override : doBuild();
+        if (override != null) {
+            Log.debug(() -> "Overriding terminal with global value set by TerminalBuilder.setTerminalOverride");
+        }
         Log.debug(() -> "Using terminal " + terminal.getClass().getSimpleName());
         if (terminal instanceof AbstractPosixTerminal) {
             Log.debug(() -> "Using pty " + ((AbstractPosixTerminal) terminal).getPty().getClass().getSimpleName());
@@ -485,5 +490,38 @@ public final class TerminalBuilder {
 
     private <S> S load(Class<S> clazz) {
         return ServiceLoader.load(clazz, clazz.getClassLoader()).iterator().next();
+    }
+
+    /**
+     * Allows an application to override the result of {@link #build()}. The
+     * intended use case is to allow a container or server application to control
+     * an embedded application that uses a LineReader that uses Terminal
+     * constructed with TerminalBuilder.build but provides no public api for setting
+     * the <code>LineReader</code> of the {@link Terminal}. For example, the sbt
+     * build tool uses a <code>LineReader</code> to implement an interactive shell.
+     * One of its supported commands is <code>console</code> which invokes
+     * the scala REPL. The scala REPL also uses a <code>LineReader</code> and it
+     * is necessary to override the {@link Terminal} used by the the REPL to
+     * share the same {@link Terminal} instance used by sbt.
+     *
+     * <p>
+     * When this method is called with a non-null {@link Terminal}, all subsequent
+     * calls to {@link #build()} will return the provided {@link Terminal} regardless
+     * of how the {@link TerminalBuilder} was constructed. The default behavior
+     * of {@link TerminalBuilder} can be restored by calling setTerminalOverride
+     * with a null {@link Terminal}
+     * </p>
+     *
+     * <p>
+     * Usage of setTerminalOverride should be restricted to cases where it
+     * isn't possible to update the api of the nested application to accept
+     * a {@link Terminal instance}.
+     * </p>
+     *
+     * @param terminal the {@link Terminal} to globally override
+     */
+    @Deprecated
+    public static final void setTerminalOverride(final Terminal terminal) {
+        TERMINAL_OVERRIDE.set(terminal);
     }
 }
