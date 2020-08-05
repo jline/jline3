@@ -62,7 +62,7 @@ public class ExpandableChoicePrompt extends AbstractListablePrompt implements Pr
   }
 
   private void renderList() {
-    if (renderHeight == 1) {
+    if (renderHeight == 2) {
       // first time we expand the list...
       renderHeight = 1 + itemList.size();
       System.out.println("");

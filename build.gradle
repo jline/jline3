@@ -1,25 +1,28 @@
-buildscript {
-  repositories {
-    maven {
-      url 'https://plugins.gradle.org/m2/'
-    }
-  }
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'signing'
 }
 
-ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
+project.group = "de.codeshelf.consoleui"
+//project.version = "0.0.11"
 
-apply plugin: 'java'
-apply plugin: 'idea'
-apply plugin: 'maven'
-apply plugin: 'signing'
+apply plugin: 'mavin-publish'
 
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
+/*
 repositories {
     mavenCentral()
 }
+ */
 
 compileJava {
-  sourceCompatibility = 1.8
-  targetCompatibility = 1.8
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
 }
 
 
@@ -31,35 +34,28 @@ dependencies {
 
 javadoc {
     options.encoding = 'UTF-8'
-}
-
-task javadocJar(type: Jar) {
-    classifier = 'javadoc'
-    from javadoc
-}
-
-task sourcesJar(type: Jar) {
-    classifier = 'sources'
-    from sourceSets.main.allSource
+    if (JavaVersion.current().isJava9Compatible()) {
+        options.addBooleanOption('html5', true)
+    }
 }
 
 
 // Fat-jar
 task fatJar(type: Jar, dependsOn: [':compileJava', ':processResources']) {
-  from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-  from sourceSets.main.output.classesDirs
-  from sourceSets.main.output.resourcesDir
-  baseName = project.name + '-all'
-  manifest {
-      attributes 'Implementation-Title': 'ConsoleUI',
-                 'Implementation-Version': version,
-                 'Main-Class': 'de.codeshelf.consoleui.Basic'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    from sourceSets.main.output.classesDirs
+    from sourceSets.main.output.resourcesDir
+    project.archivesBaseName = project.name + '-all'
+    manifest {
+        attributes 'Implementation-Title': 'ConsoleUI',
+                'Implementation-Version': project.version,
+                'Main-Class': 'de.codeshelf.consoleui.Basic'
 
     }
 }
 
 task printEnv {
-  println "username "+sonatypeUsername
+    println "username " + sonatypeUsername
 }
 
 artifacts {
@@ -67,61 +63,57 @@ artifacts {
 }
 
 
-signing {
-  required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
-
-  sign configurations.archives
-}
-
-
-group = "de.codeshelf.consoleui"
-
-if (project.hasProperty('release')) {
-  uploadArchives {
+publishing {
     repositories {
-      mavenDeployer {
-        beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-        /* just for testing
-        repository(url: "file://localhost/${rootDir}/../myRepo/")
-        */
-
-        repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-          authentication(userName: sonatypeUsername, password: sonatypePassword)
+        maven {
+            // change URLs to point to your repos, e.g. http://my.org/repo
+            def releasesRepoUrl = "$buildDir/repos/releases"
+            def snapshotsRepoUrl = "$buildDir/repos/snapshots"
+            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+            name = 'mavenTest'
         }
-
-        snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-          authentication(userName: sonatypeUsername, password: sonatypePassword)
+        maven {
+            // change URLs to point to your repos, e.g. http://my.org/repo
+            def releasesRepoUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+            def snapshotsRepoUrl = "https://oss.sonatype.org/content/repositories/snapshots/"
+            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+            authentication(userName: sonatypeUsername, password: sonatypePassword)
+            name = 'mavenCentral'
         }
-
-        pom.project {
-          name 'ConsoleUI'
-          packaging 'jar'
-          description 'Library for Ansi-Console user interaction'
-          url 'https://github.com/awegmann/consoleui/'
-
-          licenses {
-            license {
-              name 'The Apache Software License, Version 2.0'
-              url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-              distribution 'repo'
-            }
-          }
-
-          developers {
-            developer {
-              id "an10nn";
-              name "Andreas Wegmann";
-              email "andreas.we9mann@gmail.com";
-            }
-          }
-
-          scm {
-            connection 'scm:git:git://github.com/awegmann/consoleui.git'
-            developerConnection 'scm:git:ssh://git@github.com:awegmann/consoleui.git'
-            url 'https://github.com/awegmann/consoleui/'
-          }
-        }
-      }
     }
-  }
+
+    publications {
+        consoleUI(MavenPublication) {
+            from components.java
+            pom {
+                name = 'ConsoleUI'
+                description = 'Library for Ansi-Console user interaction'
+                url = 'https://github.com/awegmann/consoleui/'
+
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = "an10nn";
+                        name = "Andreas Wegmann";
+                        email = "andreas.we9mann@gmail.com";
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/awegmann/consoleui.git'
+                    developerConnection = 'scm:git:ssh://git@github.com:awegmann/consoleui.git'
+                    url = 'https://github.com/awegmann/consoleui/'
+                }
+            }
+        }
+    }
 }
+
+signing {
+    sign publishing.publications.consoleUI
+}
+
