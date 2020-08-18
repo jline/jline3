@@ -1,6 +1,7 @@
 package de.codeshelf.consoleui.prompt.builder;
 
 import de.codeshelf.consoleui.elements.Checkbox;
+import de.codeshelf.consoleui.elements.PageSizeType;
 import de.codeshelf.consoleui.elements.items.CheckboxItemIF;
 
 import java.util.ArrayList;
@@ -13,10 +14,14 @@ public class CheckboxPromptBuilder {
   private final PromptBuilder promptBuilder;
   private String name;
   private String message;
+  private int pageSize;
+  private PageSizeType pageSizeType;
   private List<CheckboxItemIF> itemList;
 
   public CheckboxPromptBuilder(PromptBuilder promptBuilder) {
     this.promptBuilder = promptBuilder;
+    this.pageSize = 10;
+    this.pageSizeType = PageSizeType.ABSOLUTE;
     itemList = new ArrayList<CheckboxItemIF>();
   }
 
@@ -40,6 +45,18 @@ public class CheckboxPromptBuilder {
     return this;
   }
 
+  public CheckboxPromptBuilder pageSize(int absoluteSize) {
+    this.pageSize = absoluteSize;
+    this.pageSizeType = PageSizeType.ABSOLUTE;
+    return this;
+  }
+
+  public CheckboxPromptBuilder relativePageSize(int relativePageSize) {
+    this.pageSize = relativePageSize;
+    this.pageSizeType = PageSizeType.RELATIVE;
+    return this;
+  }
+
   public CheckboxItemBuilder newItem() {
     return new CheckboxItemBuilder(this);
   }
@@ -50,7 +67,7 @@ public class CheckboxPromptBuilder {
   }
 
   public PromptBuilder addPrompt() {
-    Checkbox checkbox = new Checkbox(message, name, itemList);
+    Checkbox checkbox = new Checkbox(message, name, pageSize, pageSizeType, itemList);
     promptBuilder.addPrompt(checkbox);
     return promptBuilder;
   }

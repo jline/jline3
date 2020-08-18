@@ -64,8 +64,9 @@ public class CUIRenderer {
               .fg(checkboxItem.isEnabled() ? Ansi.Color.GREEN : Ansi.Color.WHITE)
               .a(checkboxItem.isChecked() ? checkedBox : uncheckedBox)
               .reset().a(checkboxItem.getText() +
-                      (checkboxItem.isDisabled() ? " (" + checkboxItem.getDisabledText() + ")" : "")
-              ).reset().toString();
+                      (checkboxItem.isDisabled() ? " (" + checkboxItem.getDisabledText() + ")" : ""))
+              .eraseLine(Ansi.Erase.FORWARD)
+              .reset().toString();
     }
 
     if (item instanceof ListItem) {

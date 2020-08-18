@@ -1,7 +1,7 @@
 package de.codeshelf.consoleui.prompt;
 
 import de.codeshelf.consoleui.elements.ListChoice;
-import de.codeshelf.consoleui.elements.items.ConsoleUIItemIF;
+import de.codeshelf.consoleui.elements.PageSizeType;
 import de.codeshelf.consoleui.elements.items.impl.ListItem;
 import de.codeshelf.consoleui.prompt.reader.ConsoleReaderImpl;
 import de.codeshelf.consoleui.prompt.reader.ReaderIF;
@@ -9,41 +9,53 @@ import de.codeshelf.consoleui.prompt.renderer.CUIRenderer;
 
 import java.io.IOException;
 
-import static org.fusesource.jansi.Ansi.ansi;
-
 /**
  * ListPrompt implements the list choice handling.
- *
+ * <p>
  * User: Andreas Wegmann
  * Date: 01.01.16
  */
-public class ListPrompt extends AbstractListablePrompt implements PromptIF<ListChoice,ListResult> {
-  // the list to let the user choose from
-  private ListChoice listChoice;
+public class ListPrompt extends AbstractListablePrompt implements PromptIF<ListChoice, ListResult> {
 
+  // the list to let the user choose from
+  protected ListChoice listChoice;
+
+  /**
+   * helper class with render functionality.
+   */
   CUIRenderer itemRenderer = CUIRenderer.getRenderer();
 
+  /**
+   * Empty default constructor.
+   *
+   * @throws IOException may be thrown by super class
+   */
   public ListPrompt() throws IOException {
     super();
   }
 
-  private void render() {
-    int itemNumber = 0;
-
-    if (renderHeight == 0) {
-      renderHeight = 2 + itemList.size();
-    } else {
-      System.out.println(ansi().cursorUp(renderHeight));
-    }
-
-    System.out.println(renderMessagePrompt(listChoice.getMessage()));
-    for (ConsoleUIItemIF listItem : itemList) {
-      String renderedItem = itemRenderer.render(listItem,(selectedItemIndex == itemNumber));
-      System.out.println(renderedItem);
-      itemNumber++;
-    }
+  @Override
+  protected int getPageSize() {
+    return listChoice.getPageSize();
   }
 
+  @Override
+  protected PageSizeType getPageSizeType() {
+    return listChoice.getPageSizeType();
+  }
+
+  @Override
+  protected int getItemSize() {
+    return itemList.size();
+  }
+
+  /**
+   * Prompt the user for selecting zero to many choices from a checkbox.
+   *
+   * @param listChoice list with items to choose from.
+   * @return {@link ListResult} which holds the users choices.
+   * @throws IOException may be thrown by console reader
+   */
   public ListResult prompt(ListChoice listChoice) throws IOException {
     this.listChoice = listChoice;
     itemList = listChoice.getListItemList();
@@ -59,28 +71,49 @@ public class ListPrompt extends AbstractListablePrompt implements PromptIF<ListC
 
     selectedItemIndex = getFirstSelectableItemIndex();
 
+    initRendering();
     render();
     ReaderIF.ReaderInput readerInput = reader.read();
     while (readerInput.getSpecialKey() != ReaderIF.SpecialKey.ENTER) {
+      boolean downward = false;
+      boolean upward = false;
+
       if (readerInput.getSpecialKey() == ReaderIF.SpecialKey.PRINTABLE_KEY) {
         if (readerInput.getPrintableKey().equals('j')) {
-          selectedItemIndex = getNextSelectableItemIndex();
+          selectedItemIndex = getNextSelectableItemIndex(rollOverMode);
+          downward = true;
         } else if (readerInput.getPrintableKey().equals('k')) {
-          selectedItemIndex = getPreviousSelectableItemIndex();
+          selectedItemIndex = getPreviousSelectableItemIndex(rollOverMode);
+          upward = true;
         }
       } else if (readerInput.getSpecialKey() == ReaderIF.SpecialKey.DOWN) {
-        selectedItemIndex = getNextSelectableItemIndex();
+        selectedItemIndex = getNextSelectableItemIndex(rollOverMode);
+        downward = true;
       } else if (readerInput.getSpecialKey() == ReaderIF.SpecialKey.UP) {
-        selectedItemIndex = getPreviousSelectableItemIndex();
+        selectedItemIndex = getPreviousSelectableItemIndex(rollOverMode);
+        upward = true;
       }
-
+      if (upward || downward)
+        recalculateViewWindow(upward, downward);
+      gotoRenderTop();
       render();
       readerInput = reader.read();
     }
 
     ListItem listItem = (ListItem) itemList.get(selectedItemIndex);
-    ListResult selection=new ListResult(listItem.getName());
-    renderMessagePromptAndResult(listChoice.getMessage(),((ListItem) itemList.get(selectedItemIndex)).getText());
-    return selection ;
+    ListResult selection = new ListResult(listItem.getName());
+    renderMessagePromptAndResult(listChoice.getMessage(), ((ListItem) itemList.get(selectedItemIndex)).getText());
+    return selection;
+  }
+
+  private void render() {
+    int itemNumber;
+    int renderedLines = 0;
+
+    System.out.println(renderMessagePrompt(listChoice.getMessage()));
+    for (itemNumber = topDisplayedItem; renderedLines < viewPortHeight; itemNumber++, renderedLines++) {
+      String renderedItem = itemRenderer.render(itemList.get(itemNumber), (selectedItemIndex == itemNumber));
+      System.out.println(renderedItem);
+    }
   }
 }

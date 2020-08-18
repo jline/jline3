@@ -3,6 +3,7 @@ package de.codeshelf.consoleui.prompt.builder;
 import de.codeshelf.consoleui.elements.ListChoice;
 import de.codeshelf.consoleui.elements.items.ListItemIF;
 import de.codeshelf.consoleui.elements.items.impl.ListItem;
+import de.codeshelf.consoleui.elements.PageSizeType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,10 +15,14 @@ public class ListPromptBuilder {
   private final PromptBuilder promptBuilder;
   private String name;
   private String message;
-  private List<ListItemIF> itemList = new ArrayList<ListItemIF>();
+  private int pageSize;
+  private PageSizeType pageSizeType;
+  private List<ListItemIF> itemList = new ArrayList<>();
 
   public ListPromptBuilder(PromptBuilder promptBuilder) {
     this.promptBuilder = promptBuilder;
+    this.pageSize = 10;
+    this.pageSizeType = PageSizeType.ABSOLUTE;
   }
 
   public ListPromptBuilder name(String name) {
@@ -36,6 +41,18 @@ public class ListPromptBuilder {
     return this;
   }
 
+  public ListPromptBuilder pageSize(int absoluteSize) {
+    this.pageSize = absoluteSize;
+    this.pageSizeType = PageSizeType.ABSOLUTE;
+    return this;
+  }
+
+  public ListPromptBuilder relativePageSize(int relativePageSize) {
+    this.pageSize = relativePageSize;
+    this.pageSizeType = PageSizeType.RELATIVE;
+    return this;
+  }
+  
   public ListItemBuilder newItem() {
     return new ListItemBuilder(this);
   }
@@ -46,7 +63,7 @@ public class ListPromptBuilder {
   }
 
   public PromptBuilder addPrompt() {
-    ListChoice listChoice = new ListChoice(message, name, itemList);
+    ListChoice listChoice = new ListChoice(message, name, pageSize, pageSizeType, itemList);
     promptBuilder.addPrompt(listChoice);
     return promptBuilder;
   }

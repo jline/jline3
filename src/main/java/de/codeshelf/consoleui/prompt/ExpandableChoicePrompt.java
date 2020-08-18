@@ -1,6 +1,7 @@
 package de.codeshelf.consoleui.prompt;
 
 import de.codeshelf.consoleui.elements.ExpandableChoice;
+import de.codeshelf.consoleui.elements.PageSizeType;
 import de.codeshelf.consoleui.elements.items.ConsoleUIItemIF;
 import de.codeshelf.consoleui.elements.items.impl.ChoiceItem;
 import de.codeshelf.consoleui.prompt.reader.ReaderIF;
@@ -30,6 +31,21 @@ public class ExpandableChoicePrompt extends AbstractListablePrompt implements Pr
   private ChoiceItem errorMessageItem = new ChoiceItem(' ', "error", resourceBundle.getString("please.enter.a.valid.command"), false);
 
   public ExpandableChoicePrompt() throws IOException {
+  }
+
+  @Override
+  protected int getPageSize() {
+    return 0;
+  }
+
+  @Override
+  protected PageSizeType getPageSizeType() {
+    return null;
+  }
+
+  @Override
+  int getItemSize() {
+    return expandableChoice.getChoiceItems().size();
   }
 
   enum RenderState {
@@ -69,7 +85,7 @@ public class ExpandableChoicePrompt extends AbstractListablePrompt implements Pr
       System.out.println(ansi().eraseLine().cursorUp(2).a(renderMessagePrompt(expandableChoice.getMessage())).eraseLine(Ansi.Erase.FORWARD));
       System.out.flush();
     } else {
-      System.out.println(ansi().cursorUp(renderHeight));
+      gotoRenderTop();
     }
 
     int itemNumber = 0;
@@ -143,10 +159,10 @@ public class ExpandableChoicePrompt extends AbstractListablePrompt implements Pr
           }
         }
       } else if (readerInput.getSpecialKey() == ReaderIF.SpecialKey.UP) {
-        selectedItemIndex = getPreviousSelectableItemIndex();
+        selectedItemIndex = getPreviousSelectableItemIndex(Rollover.ALLOWED);
         chosenItem = (ChoiceItem) itemList.get(selectedItemIndex);
       } else if (readerInput.getSpecialKey() == ReaderIF.SpecialKey.DOWN) {
-        selectedItemIndex = getNextSelectableItemIndex();
+        selectedItemIndex = getNextSelectableItemIndex(Rollover.ALLOWED);
         chosenItem = (ChoiceItem) itemList.get(selectedItemIndex);
       }
       if (readerInput.getSpecialKey() == ReaderIF.SpecialKey.PRINTABLE_KEY) {
