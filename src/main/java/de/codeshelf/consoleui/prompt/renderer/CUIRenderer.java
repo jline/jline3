@@ -73,12 +73,14 @@ public class CUIRenderer {
       ListItem listItem = (ListItem) item;
       if (withCursor) {
         return cursorSymbol + ansi()
-                .fg(Ansi.Color.CYAN).a(listItem.getText()
-                ).reset().toString();
+                .fg(Ansi.Color.CYAN).a(listItem.getText())
+                .eraseLine(Ansi.Erase.FORWARD)
+                .reset().toString();
       } else {
         return noCursorSpace + ansi()
-                .fg(Ansi.Color.DEFAULT).a(listItem.getText()
-                ).reset().toString();
+                .fg(Ansi.Color.DEFAULT).a(listItem.getText())
+                .eraseLine(Ansi.Erase.FORWARD)
+                .reset().toString();
       }
     }
 
@@ -86,10 +88,14 @@ public class CUIRenderer {
       ChoiceItem checkboxItem = (ChoiceItem) item;
       if (withCursor) {
         return cursorSymbol + ansi()
-                .fg(Ansi.Color.CYAN).a(checkboxItem.getKey() + " - " + checkboxItem.getMessage()).reset().toString();
+                .fg(Ansi.Color.CYAN).a(checkboxItem.getKey() + " - " + checkboxItem.getMessage())
+                .eraseLine(Ansi.Erase.FORWARD)
+                .reset().toString();
       } else
         return noCursorSpace + ansi()
-                .fg(Ansi.Color.DEFAULT).a(checkboxItem.getKey() + " - " + checkboxItem.getMessage()).reset().toString();
+                .fg(Ansi.Color.DEFAULT).a(checkboxItem.getKey() + " - " + checkboxItem.getMessage())
+                .eraseLine(Ansi.Erase.FORWARD)
+                .reset().toString();
     }
 
     if (item instanceof Separator) {

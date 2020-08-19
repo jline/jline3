@@ -5,7 +5,7 @@ plugins {
 }
 
 project.group = "de.codeshelf.consoleui"
-project.version = "0.0.12"
+project.version = "0.0.13"
 
 java {
     withJavadocJar()
