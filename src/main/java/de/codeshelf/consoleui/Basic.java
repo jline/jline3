@@ -25,7 +25,7 @@ public class Basic {
     System.out.println(ansi().eraseScreen().render("@|red,italic Hello|@ @|green World|@\n@|reset " +
             "This is a demonstration of ConsoleUI java library. It provides a simple console interface\n" +
             "for querying information from the user. ConsoleUI is inspired by Inquirer.js which is written\n" +
-            "in JavaScrpt.|@"));
+            "in JavaScript.|@"));
 
 
     try {

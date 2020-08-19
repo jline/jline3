@@ -26,6 +26,9 @@ public class CheckboxItemBuilder {
   }
 
   public CheckboxItemBuilder text(String text) {
+    if (this.name == null) {
+      this.name = text;
+    }
     this.text = text;
     return this;
   }

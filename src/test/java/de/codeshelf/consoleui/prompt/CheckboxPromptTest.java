@@ -1,6 +1,7 @@
 package de.codeshelf.consoleui.prompt;
 
 import de.codeshelf.consoleui.elements.Checkbox;
+import de.codeshelf.consoleui.elements.PageSizeType;
 import de.codeshelf.consoleui.elements.items.CheckboxItemIF;
 import de.codeshelf.consoleui.elements.items.impl.CheckboxItem;
 import de.codeshelf.consoleui.elements.items.impl.Separator;
@@ -21,7 +22,7 @@ public class CheckboxPromptTest {
   @Test
   public void renderSimpleList() throws IOException {
     CheckboxPrompt checkboxPrompt = new CheckboxPrompt();
-    List<CheckboxItemIF> list=new ArrayList<CheckboxItemIF>();
+    List<CheckboxItemIF> list= new ArrayList<>();
 
     list.add(new CheckboxItem("One"));
     list.add(new CheckboxItem(true,"Two"));
@@ -53,12 +54,12 @@ public class CheckboxPromptTest {
         return new ReaderInput(SpecialKey.ENTER);
       }
 
-      public ReaderInput readLine(List<Completer> completer, String promt, String value, Character mask) throws IOException {
+      public ReaderInput readLine(List<Completer> completer, String promt, String value, Character mask) {
         return null;
       }
     });
 
-    checkboxPrompt.prompt(new Checkbox("no message", null, list));
+    checkboxPrompt.prompt(new Checkbox("no message", null, 10, PageSizeType.ABSOLUTE, list));
   }
 
 }

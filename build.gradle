@@ -5,7 +5,7 @@ plugins {
 }
 
 project.group = "de.codeshelf.consoleui"
-project.version = "0.0.11"
+project.version = "0.0.12"
 
 java {
     withJavadocJar()
@@ -106,10 +106,6 @@ publishing {
     }
 }
 
-/*
 signing {
     sign publishing.publications.consoleUI
 }
-
-
- */
