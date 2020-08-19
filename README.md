@@ -49,6 +49,9 @@ You can run this by executing the following from the project root:
 
 # Usage
 
+*Hint: see the [how to](doc/HowTo.md) to get a more detailed documentation how to use ConsoleUI.*
+
+
 Before you can use ConsoleUI the AnsiConsole library has to be initialized.
 
     AnsiConsole.systemInstall();
@@ -78,7 +81,6 @@ From with this `PromptBuilder` you can access UI builder with the following meth
 - createListPrompt()
     * creates a list prompt. This prompt lets the user choose one item from a given list.
 
-*See the [how to](doc/howto.md) to get a more detailed documentation how to use ConsoleUI.*
 
 # Changes
 
