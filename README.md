@@ -49,7 +49,7 @@ You can run this by executing the following from the project root:
 
 # Usage
 
-*Hint: see the [how to](doc/HowTo.md) to get a more detailed documentation how to use ConsoleUI.*
+*Hint: see the [how to](doc/howto.md) to get a more detailed documentation how to use ConsoleUI.*
 
 
 Before you can use ConsoleUI the AnsiConsole library has to be initialized.
