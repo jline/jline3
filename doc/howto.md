@@ -111,7 +111,7 @@ Description:
 
 #### Console
 
-<img src="./screenshots/input_prompt.png" alt="input prompt" style="zoom: 67%;" />
+<img src="screenshots/input_prompt.png" alt="input prompt" style="zoom: 67%;" />
 
 #### User Input
 

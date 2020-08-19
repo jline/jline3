@@ -84,6 +84,10 @@ From with this `PromptBuilder` you can access UI builder with the following meth
 
 # Changes
 
+### Version 0.0.13
+
+- Fixed bug #22: lists are not rendered correctly  
+
 ### Version 0.0.12
 
 - Fixed Bug #20: Lists higher than the terminal height were not handled correctly. 
