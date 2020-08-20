@@ -37,7 +37,7 @@ Console UI uses jansi and jline for the dirty console things.
 
 # Maven artefact
 
-ConsoleUI releases are available at Maven Central [de.codeshelf.consoleui » consoleui](https://mvnrepository.com/artifact/de.codeshelf.consoleui/consoleui)
+ConsoleUI releases are available at Maven Central [de.codeshelf.consoleui » consoleui](https://search.maven.org/artifact/de.codeshelf.consoleui/consoleui)
 
 # Test Run
 
