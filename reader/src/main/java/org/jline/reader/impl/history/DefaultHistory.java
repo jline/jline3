@@ -226,7 +226,10 @@ public class DefaultHistory implements History {
     private void internalWrite(Path path, int from) throws IOException {
         if (path != null) {
             Log.trace("Saving history to: ", path);
-            Files.createDirectories(path.toAbsolutePath().getParent());
+            Path parent = path.toAbsolutePath().getParent();
+            if (!Files.exists(parent)) {
+                Files.createDirectories(parent);
+            }
             // Append new items to the history file
             try (BufferedWriter writer = Files.newBufferedWriter(path.toAbsolutePath(),
               StandardOpenOption.WRITE, StandardOpenOption.APPEND, StandardOpenOption.CREATE)) {
