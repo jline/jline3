@@ -176,20 +176,24 @@ public class Example
                     case "status":
                         completer = new StringsCompleter("foo", "bar", "baz");
                         callbacks.add(reader -> {
-                            new Thread(() -> {
+                            Thread thread = new Thread(() -> {
                                 int counter = 0;
                                 while (true) {
                                     try {
                                         Status status = Status.getStatus(reader.getTerminal());
                                         counter++;
-                                        status.update(Arrays.asList(new AttributedStringBuilder().append("counter: " + counter).toAttributedString()));
+                                        status.update(Arrays.asList(new AttributedStringBuilder()
+                                                .append("counter: " + counter)
+                                                .toAttributedString()));
                                         ((LineReaderImpl) reader).redisplay();
                                         Thread.sleep(1000);
                                     } catch (InterruptedException e) {
                                         e.printStackTrace();
                                     }
                                 }
-                            }).start();
+                            });
+                            thread.setDaemon(true);
+                            thread.start();
                         });
                         break;
                     case "argument":
