@@ -6,16 +6,15 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.groovy;
+package org.jline.groovy
 
-import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import org.jline.script.GroovyEngine.Format
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import groovy.json.JsonParserType
 
-public class Utils {
+class Utils {
 
     private Utils() {}
 
@@ -57,7 +56,7 @@ public class Utils {
         } else if (format == Format.NONE) {
             file.toFile().write(toString(object))
         } else {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException()
         }
     }
 

@@ -8,16 +8,16 @@
  */
 package org.jline.groovy
 
-import java.lang.reflect.*
+import groovy.inspect.Inspector
 
-public class ObjectInspector {
+class ObjectInspector {
     public static final List<String> METHOD_COLUMNS = ['language','modifiers','this','return','name','parameters','exception','8']
     def obj
     def inspector
 
-    public ObjectInspector(def obj) {
+    ObjectInspector(def obj) {
         this.obj = obj
-        this.inspector = new groovy.inspect.Inspector(obj)
+        this.inspector = new Inspector(obj)
     }
 
     List<Map<String, String>> methods() {
@@ -37,7 +37,7 @@ public class ObjectInspector {
         inspector.metaMethods.each {
            def mdef = [:]
            for (int i = 0; i < it.size(); i++) {
-               mdef.put(METHOD_COLUMNS.get(i),it.getAt(i))
+               mdef.put(METHOD_COLUMNS.get(i), it.getAt(i))
            }
            out.add(mdef)
         }

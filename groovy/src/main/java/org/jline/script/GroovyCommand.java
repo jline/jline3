@@ -38,8 +38,8 @@ import groovy.console.ui.ObjectBrowser;
 public class GroovyCommand extends AbstractCommandRegistry implements CommandRegistry {
     public enum Command {INSPECT, CONSOLE, GRAB}
     private static final String DEFAULT_NANORC_VALUE = "classpath:/org/jline/groovy/gron.nanorc";
-    private GroovyEngine engine;
-    private Printer printer;
+    private final GroovyEngine engine;
+    private final Printer printer;
     private final Map<Command,CmdDesc> commandDescs = new HashMap<>();
     private final Map<Command,List<String>> commandInfos = new HashMap<>();
     private boolean consoleUi;
@@ -56,14 +56,16 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
             Class.forName("groovy.console.ui.ObjectBrowser");
             consoleUi = true;
         } catch (Exception e) {
+            // ignore
         }
         try {
             Class.forName("org.apache.ivy.util.Message");
             System.setProperty("groovy.grape.report.downloads","false");
             ivy = true;
         } catch (Exception e) {
+            // ignore
         }
-        Set<Command> cmds = new HashSet<>();
+        Set<Command> cmds;
         Map<Command,String> commandName = new HashMap<>();
         Map<Command,CommandMethods> commandExecute = new HashMap<>();
         if (commands == null) {
@@ -181,7 +183,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         if (input.args().length > 2) {
             throw new IllegalArgumentException("Wrong number of command parameters: " + input.args().length);
         }
-        int idx = optionIdx(Command.INSPECT, input.args());
+        int idx = optionIdx(input.args());
         String option = idx < 0 ? "--info" : input.args()[idx];
         if (option.equals("-?") || option.equals("--help")) {
             printer.println(helpDesc(Command.INSPECT));
@@ -283,9 +285,9 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         return out;
     }
 
-    private int optionIdx(Command cmd, String[] args) {
+    private int optionIdx(String[] args) {
+        int out = 0;
         for (String a : args) {
-            int out = 0;
             if (a.startsWith("-")) {
                 return out;
             }

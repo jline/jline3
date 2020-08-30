@@ -39,6 +39,7 @@ public class PackageHelper {
      * @param classesOnly
      *            if true returns only classes of the pckgname
      * @throws ClassNotFoundException
+     *             if something went wrong
      */
     private static void checkDirectory(File directory, String pckgname,
             List<Class<?>> classes, boolean classesOnly) throws ClassNotFoundException {
@@ -47,7 +48,7 @@ public class PackageHelper {
         if (directory.exists() && directory.isDirectory()) {
             final String[] files = directory.list();
 
-            for (final String file : files) {
+            for (final String file : files != null ? files : new String[0]) {
                 if (file.endsWith(".class")) {
                     try {
                         classes.add(Class.forName(pckgname + '.'
@@ -58,7 +59,7 @@ public class PackageHelper {
                         // loader, and we don't care.
                     }
                 } else if (!classesOnly && (tmpDirectory = new File(directory, file)).isDirectory()) {
-                    checkDirectory(tmpDirectory, pckgname + "." + file, classes, classesOnly);
+                    checkDirectory(tmpDirectory, pckgname + "." + file, classes, false);
                 }
             }
         }
@@ -88,7 +89,7 @@ public class PackageHelper {
         final Enumeration<JarEntry> entries = jarFile.entries();
         String name;
 
-        for (JarEntry jarEntry = null; entries.hasMoreElements() && ((jarEntry = entries.nextElement()) != null);) {
+        for (JarEntry jarEntry; entries.hasMoreElements() && ((jarEntry = entries.nextElement()) != null);) {
             name = jarEntry.getName();
             if (name.contains(".class")) {
                 name = name.substring(0, name.length() - 6).replace('/', '.');
@@ -129,7 +130,7 @@ public class PackageHelper {
             final Enumeration<URL> resources = cld.getResources(pckgname.replace('.', '/'));
             URLConnection connection;
 
-            for (URL url = null; resources.hasMoreElements()
+            for (URL url; resources.hasMoreElements()
                     && ((url = resources.nextElement()) != null);) {
                 try {
                     connection = url.openConnection();
