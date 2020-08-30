@@ -45,6 +45,7 @@ public class Graal {
             parser.setEofOnUnclosedQuote(true);
             parser.setEscapeChars(null);
             parser.setRegexCommand("[:]{0,1}[a-zA-Z!]{1,}\\S*");    // change default regex to support shell commands
+            parser.setRegexVariable(null);                          // we do not have console variables!
             Terminal terminal = TerminalBuilder.builder().build();
             Thread executeThread = Thread.currentThread();
             terminal.handle(Signal.INT, signal -> executeThread.interrupt());

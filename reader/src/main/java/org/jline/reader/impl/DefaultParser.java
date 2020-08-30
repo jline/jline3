@@ -24,7 +24,7 @@ public class DefaultParser implements Parser {
         ROUND,   // ()
         CURLY,   // {}
         SQUARE,  // []
-        ANGLE;   // <>
+        ANGLE    // <>
     }
 
     private char[] quoteChars = {'\'', '"'};
@@ -39,8 +39,8 @@ public class DefaultParser implements Parser {
 
     private char[] closingBrackets = null;
 
-    private String regexVariable = "[a-zA-Z_]{1,}[a-zA-Z0-9_-]*((.|\\['|\\[\\\"|\\[)[a-zA-Z0-9_-]*(|'\\]|\\\"\\]|\\])){0,1}";
-    private String regexCommand = "[:]{0,1}[a-zA-Z]{1,}[a-zA-Z0-9_-]*";
+    private String regexVariable = "[a-zA-Z_]+[a-zA-Z0-9_-]*((.|\\['|\\[\"|\\[)[a-zA-Z0-9_-]*(|']|\"]|\\]))?";
+    private String regexCommand = "[:]?[a-zA-Z]+[a-zA-Z0-9_-]*";
     private int commandGroup = 4;
 
     //
@@ -175,18 +175,24 @@ public class DefaultParser implements Parser {
 
     @Override
     public boolean validVariableName(String name) {
-        return name != null && name.matches(regexVariable);
+        return name != null && regexVariable != null && name.matches(regexVariable);
     }
 
 
     @Override
     public String getCommand(final String line) {
         String out = "";
-        Pattern  patternCommand = Pattern.compile("^\\s*" + regexVariable + "=(" + regexCommand + ")(\\s+|$)");
-        Matcher matcher = patternCommand.matcher(line);
-        if (matcher.find()) {
-            out = matcher.group(commandGroup);
-        } else {
+        boolean checkCommandOnly = regexVariable == null;
+        if (!checkCommandOnly) {
+            Pattern patternCommand = Pattern.compile("^\\s*" + regexVariable + "=(" + regexCommand + ")(\\s+|$)");
+            Matcher matcher = patternCommand.matcher(line);
+            if (matcher.find()) {
+                out = matcher.group(commandGroup);
+            } else {
+                checkCommandOnly = true;
+            }
+        }
+        if (checkCommandOnly) {
             out = line.trim().split("\\s+")[0];
             if (!out.matches(regexCommand)) {
                 out = "";
@@ -198,10 +204,12 @@ public class DefaultParser implements Parser {
     @Override
     public String getVariable(final String line) {
         String out = null;
-        Pattern  patternCommand = Pattern.compile("^\\s*(" + regexVariable + ")\\s*=[^=~].*");
-        Matcher matcher = patternCommand.matcher(line);
-        if (matcher.find()) {
-            out = matcher.group(1);
+        if (regexVariable != null) {
+            Pattern patternCommand = Pattern.compile("^\\s*(" + regexVariable + ")\\s*=[^=~].*");
+            Matcher matcher = patternCommand.matcher(line);
+            if (matcher.find()) {
+                out = matcher.group(1);
+            }
         }
         return out;
     }
