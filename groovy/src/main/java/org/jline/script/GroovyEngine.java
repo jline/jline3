@@ -70,11 +70,16 @@ public class GroovyEngine implements ScriptEngine {
                                                                      , Pattern.DOTALL);
     private static final Pattern PATTERN_CLASS_DEF = Pattern.compile("^class\\s+(" + REGEX_VAR + ") .*?\\{.*?}(|\n)$"
                                                                   , Pattern.DOTALL);
+    private static final Pattern PATTERN_CLASS_NAME = Pattern.compile("(.*?)\\.([A-Z].*)");
+    private static final List<String> defaultImports = Arrays.asList("java.lang.*", "java.util.*", "java.io.*"
+                                                     , "java.net.*", "groovy.lang.*", "groovy.util.*"
+                                                     , "java.math.BigInteger", "java.math.BigDecimal");
+    private final Map<String,Class<?>> defaultNameClass = new HashMap<>();
     private final GroovyShell shell;
     protected Binding sharedData;
     private final Map<String,String> imports = new HashMap<>();
     private final Map<String,String> methods = new HashMap<>();
-    private final Map<String,Class<?>> nameClass = new HashMap<>();
+    private final Map<String,Class<?>> nameClass;
     private Cloner objectCloner = new ObjectCloner();
 
     public interface Cloner {
@@ -86,6 +91,10 @@ public class GroovyEngine implements ScriptEngine {
     public GroovyEngine() {
         this.sharedData = new Binding();
         shell = new GroovyShell(sharedData);
+        for (String s : defaultImports) {
+            addToNameClass(s, defaultNameClass);
+        }
+        nameClass = new HashMap<>(defaultNameClass);
     }
 
     @Override
@@ -195,21 +204,42 @@ public class GroovyEngine implements ScriptEngine {
         return s.run();
     }
 
-    void addToNameClass(String classname) {
+    private static Set<Class<?>> classesForPackage(String pckgname) throws ClassNotFoundException {
+        String name = pckgname;
+        Matcher matcher = PATTERN_CLASS_NAME.matcher(name);
+        if (matcher.matches()) {
+            name = matcher.group(1) + ".**";
+        }
+        Set<Class<?>> out = new HashSet<>(PackageHelper.getClassesForPackage(name));
+        if (out.isEmpty()) {
+            out.addAll(JrtJavaBasePackages.getClassesForPackage(name));
+        }
+        return out;
+    }
+
+    private void addToNameClass(String name) {
+        addToNameClass(name, nameClass);
+    }
+
+    private void addToNameClass(String name, Map<String,Class<?>> nameClass) {
         try {
-            if (classname.endsWith(".*")) {
-                List<Class<?>> classes = PackageHelper.getClassesForPackage(classname);
-                for (Class<?> c : classes) {
+            if (name.endsWith(".*")) {
+                for (Class<?> c : classesForPackage(name)) {
                     nameClass.put(c.getSimpleName(), c);
                 }
             } else {
-                int  idx = classname.lastIndexOf(".");
-                String name = classname.substring(idx + 1);
-                try {
-                    nameClass.put(name, Class.forName(classname));
-                } catch (ClassNotFoundException ex) {
-                    String innerclass = classname.substring(0, idx) + "$" + name;
-                    nameClass.put(name, Class.forName(innerclass));
+                Matcher matcher = PATTERN_CLASS_NAME.matcher(name);
+                if (matcher.matches()) {
+                    String classname = matcher.group(2).replaceAll("\\.", "\\$");
+                    int idx = classname.lastIndexOf("$");
+                    String simpleName = classname.substring(idx + 1);
+                    try {
+                        nameClass.put(simpleName, Class.forName(matcher.group(1) + "." + classname));
+                    } catch (ClassNotFoundException ex) {
+                        if (Log.isDebugEnabled()) {
+                            ex.printStackTrace();
+                        }
+                    }
                 }
             }
         } catch (Exception e) {
@@ -300,6 +330,7 @@ public class GroovyEngine implements ScriptEngine {
 
     private void refreshNameClass() {
         nameClass.clear();
+        nameClass.putAll(defaultNameClass);
         for (String name : imports.keySet()) {
             addToNameClass(name);
         }
@@ -471,23 +502,26 @@ public class GroovyEngine implements ScriptEngine {
                 out = names(domain);
             } else {
                 try {
-                    List<Class<?>> classes = PackageHelper.getClassesForPackage(domain);
-                    for (Class<?> c : classes) {
-                        if (!Modifier.isPublic(c.getModifiers()) || c.getName().contains("$")) {
-                            continue;
-                        }
-                        if ((type == CandidateType.CONSTRUCTOR && (c.getConstructors().length == 0 || Modifier.isAbstract(c.getModifiers())))
-                                || (type == CandidateType.STATIC_METHOD && getStaticMethods(c).size() == 0
-                                     && getStaticFields(c).size() == 0)){
-                            continue;
-                        }
+                    for (Class<?> c : classesForPackage(domain)) {
                         try {
-                            String name = c.getCanonicalName();
-                            int idx = name.indexOf('.', domain.length());
-                            if (idx < 0) {
-                                idx = name.length();
+                            if (!Modifier.isPublic(c.getModifiers()) || c.getCanonicalName() == null) {
+                                continue;
                             }
-                            out.add(name.substring(domain.length(), idx));
+                            if ((type == CandidateType.CONSTRUCTOR && (c.getConstructors().length == 0
+                                    || Modifier.isAbstract(c.getModifiers())))
+                                    || (type == CandidateType.STATIC_METHOD && getStaticMethods(c).size() == 0
+                                         && getStaticFields(c).size() == 0)){
+                                continue;
+                            }
+                            String name = c.getCanonicalName();
+                            Log.debug(name);
+                            if (name.startsWith(domain)) {
+                                int idx = name.indexOf('.', domain.length());
+                                if (idx < 0) {
+                                    idx = name.length();
+                                }
+                                out.add(name.substring(domain.length(), idx));
+                            }
                         } catch (NoClassDefFoundError e) {
                             if (Log.isDebugEnabled()) {
                                 e.printStackTrace();
@@ -1086,7 +1120,7 @@ public class GroovyEngine implements ScriptEngine {
             String objEquation = line.getHead().substring(eqsep + 1, end);
             equationLines = objEquation.split("\\r?\\n");
             cuttedSize = eqsep + 1;
-            if (objEquation == null || objEquation.matches("\\(\\s*\\w+\\s*[,\\s*\\w+\\s*]*\\)")) {
+            if (objEquation.matches("\\(\\s*\\w+\\s*[,\\s*\\w+\\s*]*\\)")) {
                 // do nothing
             } else {
                 try {
