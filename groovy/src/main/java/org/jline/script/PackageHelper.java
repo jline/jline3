@@ -26,6 +26,7 @@ import java.util.jar.JarFile;
  *
  */
 public class PackageHelper {
+    private enum ClassesToScann {ALL, PACKAGE_ALL, PACKAGE_CLASS};
     /**
      * Private helper method
      *
@@ -36,13 +37,11 @@ public class PackageHelper {
      *            Class object.
      * @param classes
      *            if a file isn't loaded but still is in the directory
-     * @param classesOnly
-     *            if true returns only classes of the pckgname
-     * @throws ClassNotFoundException
-     *             if something went wrong
+     * @param scann
+     *            determinate which classes will be added
      */
     private static void checkDirectory(File directory, String pckgname,
-            List<Class<?>> classes, boolean classesOnly) throws ClassNotFoundException {
+            List<Class<?>> classes, ClassesToScann scann) {
         File tmpDirectory;
 
         if (directory.exists() && directory.isDirectory()) {
@@ -50,16 +49,10 @@ public class PackageHelper {
 
             for (final String file : files != null ? files : new String[0]) {
                 if (file.endsWith(".class")) {
-                    try {
-                        classes.add(Class.forName(pckgname + '.'
-                                + file.substring(0, file.length() - 6)));
-                    } catch (final NoClassDefFoundError e) {
-                        // e.printStackTrace();
-                        // do nothing. this class hasn't been found by the
-                        // loader, and we don't care.
-                    }
-                } else if (!classesOnly && (tmpDirectory = new File(directory, file)).isDirectory()) {
-                    checkDirectory(tmpDirectory, pckgname + "." + file, classes, false);
+                    addClass(pckgname + '.'
+                                + file.substring(0, file.length() - 6), classes);
+                } else if (scann == ClassesToScann.ALL && (tmpDirectory = new File(directory, file)).isDirectory()) {
+                    checkDirectory(tmpDirectory, pckgname + "." + file, classes, ClassesToScann.ALL);
                 }
             }
         }
@@ -75,16 +68,14 @@ public class PackageHelper {
      * @param classes
      *            the current ArrayList of all classes. This method will simply
      *            add new classes.
-     * @param classesOnly
-     *            if true returns only classes of the pckgname
-     * @throws ClassNotFoundException
-     *             if a file isn't loaded but still is in the jar file
+     * @param scann
+     *            determinate which classes will be added
      * @throws IOException
      *             if it can't correctly read from the jar file.
      */
     private static void checkJarFile(JarURLConnection connection,
-            String pckgname, List<Class<?>> classes, boolean classesOnly)
-            throws IOException, ClassNotFoundException {
+            String pckgname, List<Class<?>> classes, ClassesToScann scann)
+            throws IOException {
         final JarFile jarFile = connection.getJarFile();
         final Enumeration<JarEntry> entries = jarFile.entries();
         String name;
@@ -93,15 +84,24 @@ public class PackageHelper {
             name = jarEntry.getName();
             if (name.contains(".class")) {
                 name = name.substring(0, name.length() - 6).replace('/', '.');
-                if (classesOnly) {
+                if (scann != ClassesToScann.ALL) {
                     String namepckg = name.substring(0, name.lastIndexOf("."));
-                    if (pckgname.equals(namepckg) && !name.contains("$")) {
-                        classes.add(Class.forName(name));
+                    if (pckgname.equals(namepckg) && ((scann == ClassesToScann.PACKAGE_CLASS && !name.contains("$"))
+                                                    || scann == ClassesToScann.PACKAGE_ALL)) {
+                        addClass(name, classes);
                     }
                 } else if (name.contains(pckgname)) {
-                    classes.add(Class.forName(name));
+                    addClass(name, classes);
                 }
             }
+        }
+    }
+
+    private static void addClass(String className, List<Class<?>> classes) {
+        try {
+            classes.add(Class.forName(className));
+        } catch (ClassNotFoundException|NoClassDefFoundError e) {
+            // ignore
         }
     }
 
@@ -117,9 +117,13 @@ public class PackageHelper {
      */
     public static List<Class<?>> getClassesForPackage(String pckgname) throws ClassNotFoundException {
         List<Class<?>> classes = new ArrayList<>();
-        boolean classesOnly = pckgname.endsWith(".*");
-        if (classesOnly) {
+        ClassesToScann scann = ClassesToScann.ALL;
+        if (pckgname.endsWith(".*")) {
+            scann = ClassesToScann.PACKAGE_CLASS;
             pckgname = pckgname.substring(0, pckgname.length() - 2);
+        } else if (pckgname.endsWith(".**")) {
+            pckgname = pckgname.substring(0, pckgname.length() - 3);
+            scann = ClassesToScann.PACKAGE_ALL;
         }
 
         try {
@@ -136,11 +140,11 @@ public class PackageHelper {
                     connection = url.openConnection();
 
                     if (connection instanceof JarURLConnection) {
-                        checkJarFile((JarURLConnection) connection, pckgname, classes, classesOnly);
+                        checkJarFile((JarURLConnection) connection, pckgname, classes, scann);
                     } else if (connection.getClass().getCanonicalName().equals("sun.net.www.protocol.file.FileURLConnection")) {
                         try {
                             checkDirectory(
-                                    new File(URLDecoder.decode(url.getPath(), "UTF-8")), pckgname, classes, classesOnly);
+                                    new File(URLDecoder.decode(url.getPath(), "UTF-8")), pckgname, classes, scann);
                         } catch (final UnsupportedEncodingException ex) {
                             throw new ClassNotFoundException(
                                     pckgname
@@ -167,10 +171,6 @@ public class PackageHelper {
             throw new ClassNotFoundException(
                     "IOException was thrown when trying to get all resources for "
                             + pckgname, ioex);
-        } catch (final NoClassDefFoundError e) {
-            throw new ClassNotFoundException(
-                    "NoClassDefFoundError was thrown when trying to get all resources for "
-                            + pckgname, e);
         }
         return classes;
     }
