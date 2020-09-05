@@ -52,9 +52,9 @@ public class TailTipWidgets extends Widgets {
         COMBINED
     }
     private boolean enabled = false;
-    private CommandDescriptions cmdDescs;
+    private final CommandDescriptions cmdDescs;
     private TipType tipType;
-    private int descriptionSize = 0;
+    private int descriptionSize;
     private boolean descriptionEnabled = true;
     private boolean descriptionCache = false;
     private Object readerErrors;
@@ -234,7 +234,7 @@ public class TailTipWidgets extends Widgets {
     private boolean doTailTip(String widget) {
         Buffer buffer = buffer();
         callWidget(widget);
-        Pair<String,Boolean> cmdkey = null;
+        Pair<String,Boolean> cmdkey;
         List<String> args = args();
         if (buffer.length() == buffer.cursor()) {
             cmdkey = cmdDescs.evaluateCommandLine(buffer.toString(), args);
@@ -266,7 +266,7 @@ public class TailTipWidgets extends Widgets {
         String prevArg = "";
         for (String a : args) {
             if (!a.startsWith("-")) {
-                if (!prevArg.matches("-[a-zA-Z]{1}") || !cmdDesc.optionWithValue(prevArg)) {
+                if (!prevArg.matches("-[a-zA-Z]") || !cmdDesc.optionWithValue(prevArg)) {
                     argnum++;
                 }
             }
@@ -285,7 +285,7 @@ public class TailTipWidgets extends Widgets {
             setSuggestionType(SuggestionType.TAIL_TIP);
             noCompleters = true;
             if (!lastArg.startsWith("-")) {
-                if (!prevArg.matches("-[a-zA-Z]{1}") || !cmdDesc.optionWithValue(prevArg)) {
+                if (!prevArg.matches("-[a-zA-Z]") || !cmdDesc.optionWithValue(prevArg)) {
                     bpsize--;
                 }
             }
@@ -300,7 +300,7 @@ public class TailTipWidgets extends Widgets {
         }
         if (cmdDesc != null) {
             if (lastArg.startsWith("-")) {
-                if (lastArg.matches("-[a-zA-Z]{1}[a-zA-Z0-9]+")) {
+                if (lastArg.matches("-[a-zA-Z][a-zA-Z0-9]+")) {
                     if (cmdDesc.optionWithValue(lastArg.substring(0,2))) {
                         doDescription(compileOptionDescription(cmdDesc, lastArg.substring(0,2), descriptionSize));
                         setTipType(tipType);
@@ -328,8 +328,8 @@ public class TailTipWidgets extends Widgets {
                 }
                 if (bpsize - 1 < params.size()) {
                     if (!lastArg.startsWith("-")) {
-                        List<AttributedString> d = null;
-                        if (!prevArg.matches("-[a-zA-Z]{1}") || !cmdDesc.optionWithValue(prevArg)) {
+                        List<AttributedString> d;
+                        if (!prevArg.matches("-[a-zA-Z]") || !cmdDesc.optionWithValue(prevArg)) {
                             d = params.get(bpsize - 1).getDescription();
                         } else {
                             d = compileOptionDescription(cmdDesc, prevArg, descriptionSize);
@@ -379,7 +379,7 @@ public class TailTipWidgets extends Widgets {
             List<AttributedString> mod = new ArrayList<>(desc.subList(0, descriptionSize-1));
             mod.add(asb.toAttributedString());
             addDescription(mod);
-        } else if (desc.size() < descriptionSize) {
+        } else {
             while (desc.size() != descriptionSize) {
                 desc.add(new AttributedString(""));
             }
@@ -389,10 +389,7 @@ public class TailTipWidgets extends Widgets {
 
     private boolean autopairEnabled() {
         Binding binding = getKeyMap().getBound("(");
-        if (binding instanceof Reference && ((Reference)binding).name().equals(AP_INSERT)) {
-            return true;
-        }
-        return false;
+        return binding instanceof Reference && ((Reference) binding).name().equals(AP_INSERT);
     }
 
     public boolean toggleWindow() {
@@ -422,6 +419,7 @@ public class TailTipWidgets extends Widgets {
         try {
             callWidget(LineReader.REDRAW_LINE);
         } catch (Exception e) {
+            // ignore
         }
         return enabled;
     }
@@ -708,13 +706,13 @@ public class TailTipWidgets extends Widgets {
                     } else if (c != null) {
                         descriptions.put(cmd, c);
                     } else {
-                        temporaryDescs.put(cmd, c);
+                        temporaryDescs.put(cmd, null);
                     }
                 } else {
                     temporaryDescs.put(cmd, c);
                 }
             }
-            return new Pair<String,Boolean>(cmd, descType == CmdLine.DescriptionType.COMMAND ? true : false);
+            return new Pair<>(cmd, descType == CmdLine.DescriptionType.COMMAND);
         }
 
         public CmdDesc getDescription(String command) {

@@ -121,12 +121,13 @@ public abstract class Widgets {
             widget(name);
             return true;
         } catch(Exception e) {
+            // ignore
         }
         return false;
     }
 
     private Widget widget(String name) {
-        Widget out = null;
+        Widget out;
         if (name.startsWith(".")) {
             out = reader.getBuiltinWidgets().get(name.substring(1));
         } else {

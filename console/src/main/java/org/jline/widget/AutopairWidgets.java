@@ -201,28 +201,18 @@ public class AutopairWidgets extends Widgets {
 
     private boolean canPair(String d) {
         if (balanced(d) && !nexToBoundary(d)) {
-            if (d.equals(" ") && (prevChar().equals(" ") || currChar().equals(" "))) {
-                return false;
-            } else {
-                return true;
-            }
+            return !d.equals(" ") || (!prevChar().equals(" ") && !currChar().equals(" "));
         }
         return false;
     }
 
     private boolean canSkip(String d) {
-        if (pairs.get(d).equals(d) && d.charAt(0) != ' ' && currChar().equals(d)
-                && balanced(d)) {
-            return true;
-        }
-        return false;
+        return pairs.get(d).equals(d) && d.charAt(0) != ' ' && currChar().equals(d)
+                && balanced(d);
     }
 
     private boolean canDelete(String d) {
-        if (balanced(d)) {
-            return true;
-        }
-        return false;
+        return balanced(d);
     }
 
     private boolean balanced(String d) {
@@ -230,8 +220,8 @@ public class AutopairWidgets extends Widgets {
         Buffer buf = buffer();
         String lbuf = buf.upToCursor();
         String rbuf = buf.substring(lbuf.length());
-        String regx1 = pairs.get(d).equals(d)? d : "\\"+d;
-        String regx2 = pairs.get(d).equals(d)? pairs.get(d) : "\\"+pairs.get(d);
+        String regx1 = pairs.get(d).equals(d)? d : "\\" + d;
+        String regx2 = pairs.get(d).equals(d)? pairs.get(d) : "\\" + pairs.get(d);
         int llen = lbuf.length() - lbuf.replaceAll(regx1, "").length();
         int rlen = rbuf.length() - rbuf.replaceAll(regx2, "").length();
         if (llen == 0 && rlen == 0) {
@@ -258,12 +248,9 @@ public class AutopairWidgets extends Widgets {
     }
 
     private boolean boundary(String lb, String rb) {
-        if ((lb.length() > 0 && prevChar().matches(lb))
+        return (lb.length() > 0 && prevChar().matches(lb))
                 ||
-           (rb.length() > 0 && currChar().matches(rb))) {
-            return true;
-        }
-        return false;
+                (rb.length() > 0 && currChar().matches(rb));
     }
 
     private boolean nexToBoundary(String d) {
