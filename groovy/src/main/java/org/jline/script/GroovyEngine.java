@@ -793,8 +793,8 @@ public class GroovyEngine implements ScriptEngine {
     private static class Inspector {
         static final Pattern PATTERN_FOR = Pattern.compile("^for\\s*\\((.*?);.*");
         static final Pattern PATTERN_FOR_EACH = Pattern.compile("^for\\s*\\((.*?):(.*?)\\).*");
-        static final Pattern LAMBDA_PATTERN = Pattern.compile(".*\\([\\(]*(.*?)[\\)]*->.*");
-        static final Pattern PATTERN_FUNCTION_BODY = Pattern.compile("^\\s*\\(([a-zA-Z0-9_ ,]*)\\)\\s*\\{(.*)?\\}(|\n)$"
+        static final Pattern LAMBDA_PATTERN = Pattern.compile(".*\\([(]*(.*?)[)]*->.*");
+        static final Pattern PATTERN_FUNCTION_BODY = Pattern.compile("^\\s*\\(([a-zA-Z0-9_ ,]*)\\)\\s*\\{(.*)?}(|\n)$"
                                                                    , Pattern.DOTALL);
         static final String DEFAULT_NANORC_SYNTAX = "classpath:/org/jline/groovy/java.nanorc";
         static final String DEFAULT_GROOVY_COLORS = "ti=1;34:me=31";
@@ -889,18 +889,19 @@ public class GroovyEngine implements ScriptEngine {
                     Matcher forEachMatcher = PATTERN_FOR_EACH.matcher(statement);
                     Matcher forMatcher = PATTERN_FOR.matcher(statement);
                     Matcher lambdaMatcher = LAMBDA_PATTERN.matcher(statement);
-                    if (statement.matches("^(if|while)\\s*\\(.*") || statement.matches("(\\}\\s*|^)else(\\s*\\{|$)")
-                            || statement.matches("(\\}\\s*|^)else\\s+if\\s*\\(.*") || statement.matches("^break[;]{1,}")
+                    if (statement.matches("^(if|while)\\s*\\(.*") || statement.matches("(}\\s*|^)else(\\s*\\{|$)")
+                            || statement.matches("(}\\s*|^)else\\s+if\\s*\\(.*") || statement.matches("^break[;]+")
                             || statement.matches("^case\\s+.*:") || statement.matches("^default\\s+:")
-                            || statement.matches("(\\{|\\})") || statement.length() == 0) {
+                            || statement.matches("(\\{|})") || statement.length() == 0) {
                         continue;
                     } else if (forEachMatcher.matches()) {
                         statement = forEachMatcher.group(1).trim();
+                        String cc = forEachMatcher.group(2);
                         if (statement.matches("\\w+\\s+\\w+.*")) {
                             int idx = statement.indexOf(' ');
                             statement = statement.substring(idx + 1);
                         }
-                        statement += "=" + forEachMatcher.group(2) + "[0]";
+                        statement += "=" + cc + " instanceof Map ? " + cc + ".entrySet()[0] : " + cc + "[0]";
                     } else if (forMatcher.matches()) {
                         statement = forMatcher.group(1).trim();
                         if (statement.matches("\\w+\\s+\\w+.*")) {
@@ -921,8 +922,11 @@ public class GroovyEngine implements ScriptEngine {
                         statement = statement.substring(idx + 1);
                     }
                     Brackets br = new Brackets(statement);
-                    if (statement.contains("=") && !br.openRound() && !br.openCurly()) {
-                        execute(statement);
+                    if (statement.contains("=") && !br.openRound() && !br.openCurly() && !br.openSquare()) {
+                        String st = statement.substring(statement.indexOf('=') + 1).trim();
+                        if (!st.isEmpty() && !st.equals("new")) {
+                            execute(statement);
+                        }
                     }
                 } catch (Exception e) {
                     if (Log.isDebugEnabled()) {
@@ -1301,6 +1305,7 @@ public class GroovyEngine implements ScriptEngine {
         int quoteId = -1;
         int round = 0;
         int curly = 0;
+        int square = 0;
         int rounds = 0;
         int curlies = 0;
 
@@ -1342,6 +1347,10 @@ public class GroovyEngine implements ScriptEngine {
                     curly--;
                     curlyOpen.removeLast();
                     lastCurlyClose = pos;
+                } else if (ch == '[') {
+                    square++;
+                } else if (ch == ']') {
+                    square--;
                 } else if (ch == ',' && !roundOpen.isEmpty()) {
                     lastComma.put(roundOpen.getLast(), pos);
                 } else if (ch == ';' || ch == '\n' || (ch == '>' && prevChar == '-')) {
@@ -1352,7 +1361,7 @@ public class GroovyEngine implements ScriptEngine {
                     lastDelim = pos;
                 }
                 prevChar = ch;
-                if (round < 0 || curly < 0) {
+                if (round < 0 || curly < 0 || square < 0) {
                     throw new IllegalArgumentException();
                 }
             }
@@ -1408,6 +1417,10 @@ public class GroovyEngine implements ScriptEngine {
 
         public boolean openCurly() {
             return curly > 0;
+        }
+
+        public boolean openSquare() {
+            return square > 0;
         }
 
         public int numberOfRounds() {
