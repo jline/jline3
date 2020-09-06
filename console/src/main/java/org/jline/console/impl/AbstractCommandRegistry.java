@@ -33,7 +33,7 @@ public abstract class AbstractCommandRegistry implements CommandRegistry {
     public CmdDesc doHelpDesc(String command, List<String> info, CmdDesc cmdDesc) {
         List<AttributedString> mainDesc = new ArrayList<>();
         AttributedStringBuilder asb = new AttributedStringBuilder();
-        asb.append(command.toString().toLowerCase()).append(" -  ");
+        asb.append(command.toLowerCase()).append(" -  ");
         for (String s : info) {
             if (asb.length() == 0) {
                 asb.append("\t");
@@ -57,7 +57,7 @@ public abstract class AbstractCommandRegistry implements CommandRegistry {
     }
 
     public <T extends Enum<T>>  void registerCommands(Map<T,String> commandName, Map<T,CommandMethods> commandExecute) {
-        cmdRegistry = new EnumCmdRegistry<T>(commandName, commandExecute);
+        cmdRegistry = new EnumCmdRegistry<>(commandName, commandExecute);
     }
 
     public void registerCommands(Map<String,CommandMethods> commandExecute) {
@@ -127,10 +127,10 @@ public abstract class AbstractCommandRegistry implements CommandRegistry {
     }
 
     private static class  EnumCmdRegistry<T extends Enum<T>> implements CmdRegistry {
-        private Map<T,String> commandName;
+        private final Map<T,String> commandName;
         private Map<String,T> nameCommand = new HashMap<>();
-        private Map<T,CommandMethods> commandExecute;
-        private Map<String,String> aliasCommand = new HashMap<>();
+        private final Map<T,CommandMethods> commandExecute;
+        private final Map<String,String> aliasCommand = new HashMap<>();
 
         public EnumCmdRegistry(Map<T,String> commandName, Map<T,CommandMethods> commandExecute) {
             this.commandName = commandName;
@@ -156,7 +156,7 @@ public abstract class AbstractCommandRegistry implements CommandRegistry {
         public <V extends Enum<V>> void rename(V command, String newName) {
             if (nameCommand.containsKey(newName)) {
                 throw new IllegalArgumentException("Duplicate command name!");
-            } else if (!commandName.containsKey((T)command)) {
+            } else if (!commandName.containsKey(command)) {
                 throw new IllegalArgumentException("Command does not exists!");
             }
             commandName.put((T)command, newName);
@@ -164,17 +164,14 @@ public abstract class AbstractCommandRegistry implements CommandRegistry {
         }
 
         public void alias(String alias, String command) {
-            if (!nameCommand.keySet().contains(command)) {
+            if (!nameCommand.containsKey(command)) {
                 throw new IllegalArgumentException("Command does not exists!");
             }
             aliasCommand.put(alias, command);
         }
 
         public boolean hasCommand(String name) {
-            if (nameCommand.containsKey(name) || aliasCommand.containsKey(name)) {
-                return true;
-            }
-            return false;
+            return nameCommand.containsKey(name) || aliasCommand.containsKey(name);
         }
 
         public SystemCompleter compileCompleters() {
@@ -187,7 +184,7 @@ public abstract class AbstractCommandRegistry implements CommandRegistry {
         }
 
         public T command(String name) {
-            T out = null;
+            T out;
             if (!hasCommand(name)) {
                 throw new IllegalArgumentException("Command does not exists!");
             }
@@ -209,8 +206,8 @@ public abstract class AbstractCommandRegistry implements CommandRegistry {
     }
 
     private static class NameCmdRegistry implements CmdRegistry {
-        private Map<String,CommandMethods> commandExecute;
-        private Map<String,String> aliasCommand = new HashMap<>();
+        private final Map<String,CommandMethods> commandExecute;
+        private final Map<String,String> aliasCommand = new HashMap<>();
 
         public NameCmdRegistry(Map<String,CommandMethods> commandExecute) {
             this.commandExecute = commandExecute;
@@ -236,10 +233,7 @@ public abstract class AbstractCommandRegistry implements CommandRegistry {
         }
 
         public boolean hasCommand(String name) {
-            if (commandExecute.containsKey(name) || aliasCommand.containsKey(name)) {
-                return true;
-            }
-            return false;
+            return commandExecute.containsKey(name) || aliasCommand.containsKey(name);
         }
 
         public SystemCompleter compileCompleters() {

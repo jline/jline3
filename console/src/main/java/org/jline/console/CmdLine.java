@@ -25,12 +25,13 @@ public class CmdLine {
         /**
          * The part of the line from beginning till cursor ends to the closing parenthesis.
          */
-        SYNTAX};
-    private String line;
-    private String head;
-    private String tail;
-    private List<String> args;
-    private DescriptionType descType;
+        SYNTAX}
+
+    private final String line;
+    private final String head;
+    private final String tail;
+    private final List<String> args;
+    private final DescriptionType descType;
 
     /**
      * CmdLine class constructor.

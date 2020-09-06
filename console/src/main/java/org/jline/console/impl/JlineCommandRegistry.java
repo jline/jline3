@@ -59,11 +59,11 @@ public abstract class JlineCommandRegistry extends AbstractCommandRegistry {
     public CmdDesc commandDescription(List<String> args) {
         String command = args != null && !args.isEmpty() ? args.get(0) : "";
         try {
-            invoke(new CommandSession(), command, new Object[] {"--help"});
+            invoke(new CommandSession(), command, "--help");
         } catch (HelpException e) {
             return compileCommandDescription(e.getMessage());
         } catch (Exception e) {
-
+            // ignore
         }
         throw new IllegalArgumentException("JlineCommandRegistry.commandDescription() method must be overridden in class "
                                           + this.getClass().getCanonicalName());
@@ -75,7 +75,7 @@ public abstract class JlineCommandRegistry extends AbstractCommandRegistry {
         } catch (HelpException e) {
             return compileCommandOptions(e.getMessage());
         } catch (Exception e) {
-
+            // ignore
         }
         return null;
     }
@@ -110,8 +110,8 @@ public abstract class JlineCommandRegistry extends AbstractCommandRegistry {
     }
 
     private static class HelpLines {
-        private String helpMessage;
-        private boolean body;
+        private final String helpMessage;
+        private final boolean body;
         private boolean subcommands;
 
         public HelpLines(String helpMessage, boolean body) {
@@ -155,7 +155,7 @@ public abstract class JlineCommandRegistry extends AbstractCommandRegistry {
                     String d = s.substring(ind);
                     if (o.trim().length() > 0) {
                         prevOpt = o.trim();
-                        options.put(prevOpt, new ArrayList<>(Arrays.asList(highlightComment(d.trim()))));
+                        options.put(prevOpt, new ArrayList<>(Collections.singletonList(highlightComment(d.trim()))));
                     }
                 }
             } else if (s.matches("^[\\s]{20}.*$") && prevOpt != null && options.containsKey(prevOpt)) {
@@ -170,7 +170,7 @@ public abstract class JlineCommandRegistry extends AbstractCommandRegistry {
                 main.add(HelpException.highlightSyntax(s.trim(), HelpException.defaultStyle(), hl.subcommands()));
             }
         }
-        return new CmdDesc(main, ArgDesc.doArgNames(Arrays.asList("")), options);
+        return new CmdDesc(main, ArgDesc.doArgNames(Collections.singletonList("")), options);
     }
 
     public static List<OptDesc> compileCommandOptions(String helpMessage) {

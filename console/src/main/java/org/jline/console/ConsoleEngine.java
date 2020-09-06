@@ -117,7 +117,7 @@ public interface ConsoleEngine extends CommandRegistry {
      * @param file file where object should be written
      * @param object object to persist
      */
-    public void persist(Path file, Object object);
+    void persist(Path file, Object object);
 
     /**
      * Read object from file
@@ -125,7 +125,7 @@ public interface ConsoleEngine extends CommandRegistry {
      * @return object
      * @throws IOException in case of error
      */
-    public Object slurp(Path file) throws IOException;
+    Object slurp(Path file) throws IOException;
 
     /**
      * Read console option value
@@ -134,7 +134,7 @@ public interface ConsoleEngine extends CommandRegistry {
      * @param defval default value
      * @return option value
      */
-    public <T>T consoleOption(String option, T defval);
+    <T>T consoleOption(String option, T defval);
 
     /**
      * Executes command line that does not contain known command by the system registry.
@@ -235,7 +235,7 @@ public interface ConsoleEngine extends CommandRegistry {
      */
     boolean isExecuting();
 
-    static class ExecutionResult {
+    class ExecutionResult {
         final int status;
         final Object result;
 
@@ -253,10 +253,10 @@ public interface ConsoleEngine extends CommandRegistry {
         }
     }
 
-    static class WidgetCreator implements Widget {
-        private ConsoleEngine consoleEngine;
-        private Object function;
-        private String name;
+    class WidgetCreator implements Widget {
+        private final ConsoleEngine consoleEngine;
+        private final Object function;
+        private final String name;
 
         public WidgetCreator(ConsoleEngine consoleEngine, String function) {
             this.consoleEngine = consoleEngine;

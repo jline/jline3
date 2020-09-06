@@ -25,7 +25,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import org.jline.builtins.Completers.FilesCompleter;
 import org.jline.builtins.Completers.OptDesc;
@@ -63,19 +62,19 @@ public class SystemRegistryImpl implements SystemRegistry {
     private static final Class<?>[] BUILTIN_REGISTERIES = { Builtins.class, ConsoleEngineImpl.class };
     private CommandRegistry[] commandRegistries;
     private Integer consoleId;
-    private Parser parser;
-    private ConfigurationPath configPath;
-    private Map<String,CommandRegistry> subcommands = new HashMap<>();
-    private Map<Pipe, String> pipeName = new HashMap<>();
+    private final Parser parser;
+    private final ConfigurationPath configPath;
+    private final Map<String,CommandRegistry> subcommands = new HashMap<>();
+    private final Map<Pipe, String> pipeName = new HashMap<>();
     private final Map<String, CommandMethods> commandExecute = new HashMap<>();
-    private Map<String, List<String>> commandInfos = new HashMap<>();
+    private final Map<String, List<String>> commandInfos = new HashMap<>();
     private Exception exception;
-    private CommandOutputStream outputStream;
+    private final CommandOutputStream outputStream;
     private ScriptStore scriptStore = new ScriptStore();
     private NamesAndValues names = new NamesAndValues();
-    private Supplier<Path> workDir;
-    private SystemCompleter customSystemCompleter = new SystemCompleter();
-    private AggregateCompleter customAggregateCompleter = new AggregateCompleter(new ArrayList<>());
+    private final Supplier<Path> workDir;
+    private final SystemCompleter customSystemCompleter = new SystemCompleter();
+    private final AggregateCompleter customAggregateCompleter = new AggregateCompleter(new ArrayList<>());
     private boolean commandGroups = true;
     private Function<CmdLine,CmdDesc> scriptDescription;
 
@@ -331,13 +330,13 @@ public class SystemRegistryImpl implements SystemRegistry {
         List<AttributedString> main = new ArrayList<>();
         Map<String, List<AttributedString>> options = new HashMap<>();
         StyleResolver helpStyle = Styles.helpStyle();
-        for (String sc : new TreeSet<String>(subreg.commandNames())) {
+        for (String sc : new TreeSet<>(subreg.commandNames())) {
             for (String info : subreg.commandInfo(sc)) {
                 main.add(HelpException.highlightSyntax(sc + " -  " + info, helpStyle, true));
                 break;
             }
         }
-        return new CmdDesc(main, ArgDesc.doArgNames(Arrays.asList("")), options);
+        return new CmdDesc(main, ArgDesc.doArgNames(Collections.singletonList("")), options);
     }
 
     public void setScriptDescription(Function<CmdLine,CmdDesc> scriptDescription) {
@@ -358,7 +357,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                         if (c != null && c.equals("help")) {
                             out = null;
                         } else if (c != null) {
-                            out = subcommands.get(cmd).commandDescription(Arrays.asList(c));
+                            out = subcommands.get(cmd).commandDescription(Collections.singletonList(c));
                         } else {
                             out = commandDescription(subcommands.get(cmd));
                         }
@@ -419,9 +418,9 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     private static class CommandOutputStream {
-        private PrintStream origOut;
-        private PrintStream origErr;
-        private Terminal origTerminal;
+        private final PrintStream origOut;
+        private final PrintStream origErr;
+        private final Terminal origTerminal;
         private ByteArrayOutputStream byteOutputStream;
         private FileOutputStream fileOutputStream;
         private PrintStream out;
@@ -493,7 +492,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                     fileOutputStream.flush();
                 }
             } catch (Exception e) {
-
+                // ignore
             }
         }
 
@@ -514,7 +513,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 out.close();
                 out = null;
             } catch (Exception e) {
-
+                // ignore
             }
         }
 
@@ -592,14 +591,14 @@ public class SystemRegistryImpl implements SystemRegistry {
                         }
                         for (int j = 0; j < args.size(); j++) {
                             pipeAlias = pipeAlias.replaceAll("\\s\\$" + j + "\\b", " " + args.get(j));
-                            pipeAlias = pipeAlias.replaceAll("\\$\\{" + j + "(|:-.*)\\}", args.get(j));
+                            pipeAlias = pipeAlias.replaceAll("\\$\\{" + j + "(|:-.*)}", args.get(j));
                         }
-                        pipeAlias = pipeAlias.replaceAll("\\$\\{@\\}", consoleEngine().expandToList(args));
+                        pipeAlias = pipeAlias.replaceAll("\\$\\{@}", consoleEngine().expandToList(args));
                         pipeAlias = pipeAlias.replaceAll("\\$@", consoleEngine().expandToList(args));
                         pipeAlias = pipeAlias.replaceAll("\\s+\\$\\d\\b", "");
-                        pipeAlias = pipeAlias.replaceAll("\\s+\\$\\{\\d+\\}", "");
-                        pipeAlias = pipeAlias.replaceAll("\\$\\{\\d+\\}", "");
-                        Matcher matcher = Pattern.compile("\\$\\{\\d+:-(.*?)\\}").matcher(pipeAlias);
+                        pipeAlias = pipeAlias.replaceAll("\\s+\\$\\{\\d+}", "");
+                        pipeAlias = pipeAlias.replaceAll("\\$\\{\\d+}", "");
+                        Matcher matcher = Pattern.compile("\\$\\{\\d+:-(.*?)}").matcher(pipeAlias);
                         if (matcher.find()) {
                             pipeAlias = matcher.replaceAll("$1");
                         }
@@ -620,7 +619,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         List<String> words = ap.args();
         String nextRawLine = ap.line();
         int first = 0;
-        int last = words.size();
+        int last;
         List<String> pipes = new ArrayList<>();
         String pipeSource = null;
         String rawLine = null;
@@ -727,10 +726,10 @@ public class SystemRegistryImpl implements SystemRegistry {
                 //
                 // compose pipe command
                 //
-                String subLine = last < words.size() || first > 0 ? _words.stream().collect(Collectors.joining(" "))
+                String subLine = last < words.size() || first > 0 ? String.join(" ", _words)
                         : ap.line();
                 if (last + 1 < words.size()) {
-                    nextRawLine = words.subList(last + 1, words.size()).stream().collect(Collectors.joining(" "));
+                    nextRawLine = String.join(" ", words.subList(last + 1, words.size()));
                 }
                 boolean done = true;
                 boolean statement = false;
@@ -798,7 +797,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     private File redirectFile(String name) {
-        File out = null;
+        File out;
         if (name.equals("null")) {
             out = OSUtils.IS_WINDOWS ? new File("NUL") : new File("/dev/null");
         } else {
@@ -817,7 +816,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         private String command;
         private String variable;
         private List<String> args;
-        private Parser parser;
+        private final Parser parser;
 
         public ArgsParser(Parser parser) {
             this.parser = parser;
@@ -959,7 +958,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     private String flipArgument(final String command, final String subLine, final List<String> pipes, List<String> arglist) {
-        String out = null;
+        String out;
         if (pipes.size() > 1 && pipes.get(pipes.size() - 2).equals(pipeName.get(Pipe.FLIP))) {
             String s = isCommandOrScript(command) ? "$" : "";
             out = subLine + " " + s + "_pipe" + (pipes.size() - 2);
@@ -973,12 +972,12 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     protected static class CommandData {
-        private String rawLine;
+        private final String rawLine;
         private String command;
         private String[] args;
-        private File file;
-        private boolean append;
-        private String variable;
+        private final File file;
+        private final boolean append;
+        private final String variable;
         private String pipe;
 
         public CommandData(ArgsParser parser, boolean statement, String rawLine, String variable, File file, boolean append, String pipe) {
@@ -1035,23 +1034,15 @@ public class SystemRegistryImpl implements SystemRegistry {
 
         @Override
         public String toString() {
-            StringBuilder sb = new StringBuilder();
-            sb.append("[");
-            sb.append("rawLine:").append(rawLine);
-            sb.append(", ");
-            sb.append("command:").append(command);
-            sb.append(", ");
-            sb.append("args:").append(Arrays.asList(args));
-            sb.append(", ");
-            sb.append("variable:").append(variable);
-            sb.append(", ");
-            sb.append("file:").append(file);
-            sb.append(", ");
-            sb.append("append:").append(append);
-            sb.append(", ");
-            sb.append("pipe:").append(pipe);
-            sb.append("]");
-            return sb.toString();
+            return "[" +
+                    "rawLine:" + rawLine + ", " +
+                    "command:" + command + ", " +
+                    "args:" + Arrays.asList(args) + ", " +
+                    "variable:" + variable + ", " +
+                    "file:" + file + ", " +
+                    "append:" + append + ", " +
+                    "pipe:" + pipe +
+                    "]";
         }
 
     }
@@ -1095,13 +1086,13 @@ public class SystemRegistryImpl implements SystemRegistry {
         if (!parser.validCommandName(command)) {
             throw new UnknownCommandException();
         }
-        Object out = null;
+        Object out;
         if (isLocalCommand(command)) {
             out = localExecute(command, consoleId != null ? consoleEngine().expandParameters(args) : args);
         } else {
             int id = registryId(command);
             if (id > -1) {
-                Object[] _args = consoleId != null ? consoleEngine().expandParameters(args) : (Object[])args;
+                Object[] _args = consoleId != null ? consoleEngine().expandParameters(args) : args;
                 out = commandRegistries[id].invoke(outputStream.getCommandSession(), command, _args);
             } else if (scriptStore.hasScript(command)) {
                 out = consoleEngine().execute(command, rawLine, args);
@@ -1124,8 +1115,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         int errorCount = 0;
         scriptStore.refresh();
         List<CommandData> cmds = compileCommandLine(line);
-        for (int i = 0; i < cmds.size(); i++) {
-            CommandData cmd = cmds.get(i);
+        for (CommandData cmd : cmds) {
             if (cmd.file() != null && scriptStore.isConsoleScript(cmd.command())) {
                 throw new IllegalArgumentException("Console script output cannot be redirected!");
             }
@@ -1164,7 +1154,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                         postProcessed = true;
                         consoleEngine().println(er.result());
                         out = null;
-                        boolean success = er.status() == 0 ? true : false;
+                        boolean success = er.status() == 0;
                         if ((cmd.pipe().equals(pipeName.get(Pipe.OR)) && success)
                                 || (cmd.pipe().equals(pipeName.get(Pipe.AND)) && !success)) {
                             break;
@@ -1400,13 +1390,12 @@ public class SystemRegistryImpl implements SystemRegistry {
     private void helpTopic(List<String> topics, boolean commandGroups, boolean info) {
         Set<String> commands = commandNames();
         commands.addAll(scriptStore.getScripts());
-        boolean withInfo = commands.size() < terminal().getHeight() || !topics.isEmpty() || info ? true : false;
+        boolean withInfo = commands.size() < terminal().getHeight() || !topics.isEmpty() || info;
         int max = Collections.max(commands, Comparator.comparing(String::length)).length() + 1;
         TreeMap<String, String> builtinCommands = new TreeMap<>();
         TreeMap<String, String> systemCommands = new TreeMap<>();
         if (!commandGroups && topics.isEmpty()) {
-            TreeSet<String> ordered = new TreeSet<>();
-            ordered.addAll(commands);
+            TreeSet<String> ordered = new TreeSet<>(commands);
             if (withInfo) {
                 for (String c : ordered) {
                     List<String> infos = commandInfo(c);
@@ -1511,7 +1500,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         sb.append(" registry");
         sb.append("\n");
         boolean first = true;
-        for (String c : new TreeSet<String>(registry.commandNames())) {
+        for (String c : new TreeSet<>(registry.commandNames())) {
             if (first) {
                 sb.append("Summary:");
                 first = false;
@@ -1602,9 +1591,9 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     private static class PipelineCompleter implements Completer {
-        private NamesAndValues names;
-        private Supplier<Path> workDir;
-        private Map<Pipe, String> pipeName = new HashMap<>();
+        private final NamesAndValues names;
+        private final Supplier<Path> workDir;
+        private final Map<Pipe, String> pipeName;
 
         public PipelineCompleter(Supplier<Path> workDir, Map<Pipe, String> pipeName, NamesAndValues names) {
             this.workDir = workDir;
@@ -1688,7 +1677,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 , "\\+", "-", "\\*", "=", ">", "<", "~", "!", ":", ",", ";"};
 
         private Path fileNames;
-        private Map<String,List<String>> names = new HashMap<>();
+        private final Map<String,List<String>> names = new HashMap<>();
         private List<String> namedPipes;
 
         public NamesAndValues() {}
@@ -1704,9 +1693,10 @@ public class SystemRegistryImpl implements SystemRegistry {
                     fileNames = configPath.getUserConfig("pipeline-names.json", true);
                     Map<String,List<String>> temp = (Map<String,List<String>>)consoleEngine().slurp(fileNames);
                     for (Entry<String, List<String>> entry : temp.entrySet()) {
-                        names.get(entry.getKey()).addAll((Collection<? extends String>)entry.getValue());
+                        names.get(entry.getKey()).addAll(entry.getValue());
                     }
                 } catch (Exception e) {
+                    // ignore
                 }
             }
         }
@@ -1753,7 +1743,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                             && !arg.matches("\\d+") && redirectPipe != i - 1) {
                         if (arg.equals(">") || arg.equals(">>")) {
                             redirectPipe = i;
-                        } else if (arg.matches("\\w+(\\(\\)){0,1}")) {
+                        } else if (arg.matches("\\w+(\\(\\))?")) {
                             addValues(arg);
                         } else if (arg.matches("--\\w+(=.*|)$") && arg.length() > 4) {
                             int idx = arg.indexOf('=');
@@ -1813,12 +1803,9 @@ public class SystemRegistryImpl implements SystemRegistry {
         }
 
         private boolean isQuoted(String word) {
-            if (word.length() > 1 && ((word.startsWith("\"") && word.endsWith("\""))
+            return word.length() > 1 && ((word.startsWith("\"") && word.endsWith("\""))
                     || (word.startsWith("'") && word.endsWith("'"))
-                    || (word.startsWith("/") && word.endsWith("/")))) {
-                return true;
-            }
-            return false;
+                    || (word.startsWith("/") && word.endsWith("/")));
         }
 
         public int indexOfLastDelim(String word){

@@ -45,8 +45,9 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
                        , SETOPT
                        , SETVAR
                        , UNSETOPT
-                       , TTOP};
-    private ConfigurationPath configPath;
+                       , TTOP}
+
+    private final ConfigurationPath configPath;
     private final Function<String, Widget> widgetCreator;
     private final Supplier<Path> workDir;
     private LineReader reader;
@@ -68,7 +69,7 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
         this.configPath = configpath;
         this.widgetCreator = widgetCreator;
         this.workDir = workDir;
-        Set<Command> cmds = new HashSet<>();
+        Set<Command> cmds;
         Map<Command,String> commandName = new HashMap<>();
         Map<Command,CommandMethods> commandExecute = new HashMap<>();
         if (commands == null) {
@@ -245,7 +246,7 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
                                                                 , 1)
                                        ));
         completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                     , new StringsCompleter(aliasOption), new StringsCompleter(() -> allWidgets())
+                     , new StringsCompleter(aliasOption), new StringsCompleter(this::allWidgets)
                      , new StringsCompleter(() -> reader.getWidgets().keySet()), NullCompleter.INSTANCE));
         return completers;
     }

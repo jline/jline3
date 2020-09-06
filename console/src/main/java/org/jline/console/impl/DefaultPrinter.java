@@ -49,8 +49,8 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     private Map<String, Function<Object, AttributedString>> highlightValue = new HashMap<>();
     private int totLines;
 
-    private ScriptEngine engine;
-    private ConfigurationPath configPath;
+    private final ScriptEngine engine;
+    private final ConfigurationPath configPath;
     private StyleResolver prntStyle;
 
     public DefaultPrinter(ConfigurationPath configPath) {
@@ -69,8 +69,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
 
     @Override
     public void println(Map<String, Object> optionsIn, Object object) {
-        Map<String, Object> options = new HashMap<>();
-        options.putAll(optionsIn);
+        Map<String, Object> options = new HashMap<>(optionsIn);
         for (Map.Entry<String, Object> entry
                 : defaultPrntOptions(options.containsKey(Printer.SKIP_DEFAULT_OPTIONS)).entrySet()) {
             options.putIfAbsent(entry.getKey(), entry.getValue());
@@ -218,7 +217,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     private void manageBooleanOptions(Map<String, Object> options) {
         for (String key : Printer.BOOLEAN_KEYS) {
             if (options.containsKey(key)) {
-                boolean value = options.get(key) instanceof Boolean ? (boolean)options.get(key) : false;
+                boolean value = options.get(key) instanceof Boolean && (boolean) options.get(key);
                 if (!value) {
                     options.remove(key);
                 }
@@ -338,7 +337,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
             if (nanorc == null) {
                 nanorc = Paths.get("/etc/nanorc");
             }
-            out = nanorc != null ? SyntaxHighlighter.build(nanorc, style) : null;
+            out = SyntaxHighlighter.build(nanorc, style);
         }
         return out;
     }
@@ -356,7 +355,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     }
 
     private AttributedString highlight(Integer width, SyntaxHighlighter highlighter, String object, boolean doValueHighlight) {
-        AttributedString out = null;
+        AttributedString out;
         AttributedStringBuilder asb = new AttributedStringBuilder();
         String val = object;
         if (highlighter != null && doValueHighlight) {
@@ -382,10 +381,9 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                 || (value.startsWith("<") && value.endsWith(">"))
            ) {
             return true;
-        } else if (!value.contains(" ") && !value.contains("\t")) {
-            return true;
+        } else {
+            return !value.contains(" ") && !value.contains("\t");
         }
-        return false;
     }
 
     private void highlightAndPrint(int width, String style, String object) {
@@ -482,7 +480,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         if (obj != null) {
             Map<Class<?>, Object> toMap = options.containsKey(Printer.OBJECT_TO_MAP)
                                                  ? (Map<Class<?>, Object>)options.get(Printer.OBJECT_TO_MAP)
-                                                 : new HashMap<>();;
+                                                 : new HashMap<>();
             if (toMap.containsKey(obj.getClass())) {
                 return (Map<String,Object>)engine.execute(toMap.get(obj.getClass()), obj);
             } else if (objectToMap.containsKey(obj.getClass())) {
@@ -584,10 +582,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
 
     private String truncateValue(int maxWidth, String value) {
         if (value.length() > maxWidth) {
-            StringBuilder asb = new StringBuilder();
-            asb.append(value.subSequence(0, maxWidth - 3));
-            asb.append("...");
-            return asb.toString();
+            return value.subSequence(0, maxWidth - 3) + "...";
         }
         return value;
     }
@@ -668,7 +663,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         } else if (collectionObject(obj)) {
             List<Object> collection = objectToList(obj);
             if (collection.size() > (int)options.get(Printer.MAXROWS)) {
-                message = "Truncated output: " + (int)options.get(Printer.MAXROWS) + "/" + collection.size();
+                message = "Truncated output: " + options.get(Printer.MAXROWS) + "/" + collection.size();
                 collection = collection.subList(collection.size() - (int)options.get(Printer.MAXROWS), collection.size());
             }
             if (!collection.isEmpty()) {
@@ -688,7 +683,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                         if ((elem instanceof Map || convert) && !options.containsKey(Printer.TO_STRING)) {
                             Map<String, Object> map = convert ? objectToMap(options, elem)
                                                               : keysToString((Map<Object, Object>) elem);
-                            List<String> _header = null;
+                            List<String> _header;
                             List<String> columnsIn = optionList(Printer.COLUMNS_IN, options);
                             List<String> columnsOut = !options.containsKey("all") ? optionList(Printer.COLUMNS_OUT, options)
                                                                                   : new ArrayList<>();
@@ -704,22 +699,22 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                             List<Integer> columns = new ArrayList<>();
                             int headerWidth = 0;
                             Set<String> refKeys = new HashSet<>();
-                            for (int i = 0; i < _header.size(); i++) {
-                                if (!map.containsKey(_header.get(i).split("\\.")[0]) && !map.containsKey(_header.get(i))) {
+                            for (String value : _header) {
+                                if (!map.containsKey(value.split("\\.")[0]) && !map.containsKey(value)) {
                                     continue;
                                 }
                                 if (options.containsKey(Printer.COLUMNS)) {
                                     // do nothing
                                 } else if (!options.containsKey(Printer.STRUCT_ON_TABLE)) {
-                                    Object val = mapValue(options, _header.get(i), map);
-                                    if (val == null || !simpleObject(val)) {
+                                    Object val = mapValue(options, value, map);
+                                    if (!simpleObject(val)) {
                                         continue;
                                     }
                                 }
-                                String rk = map.containsKey(_header.get(i)) ? _header.get(i) : _header.get(i).split("\\.")[0];
+                                String rk = map.containsKey(value) ? value : value.split("\\.")[0];
                                 refKeys.add(rk);
-                                header.add(_header.get(i));
-                                String cn = columnName(_header.get(i), options.containsKey(Printer.SHORT_NAMES));
+                                header.add(value);
+                                String cn = columnName(value, options.containsKey(Printer.SHORT_NAMES));
                                 columns.add(cn.length() + 1);
                                 headerWidth += cn.length() + 1;
                                 if (headerWidth > width) {
@@ -754,17 +749,17 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                                 asb.append("\t");
                                 firstColumn = 1;
                             }
-                            for (int i = 0; i < header.size(); i++) {
+                            for (String s : header) {
                                 asb.styled(prntStyle.resolve(".th")
-                                         , columnName(header.get(i), options.containsKey(Printer.SHORT_NAMES)));
+                                        , columnName(s, options.containsKey(Printer.SHORT_NAMES)));
                                 asb.append("\t");
                             }
                             truncate(asb, width).println(terminal());
-                            Integer row = 0;
+                            int row = 0;
                             for (Object o : collection) {
                                 AttributedStringBuilder asb2 = new AttributedStringBuilder().tabs(columns);
                                 if (rownum) {
-                                    asb2.styled(prntStyle.resolve(".rn"), row.toString()).append(":");
+                                    asb2.styled(prntStyle.resolve(".rn"), Integer.toString(row)).append(":");
                                     asb2.append("\t");
                                     row++;
                                 }
@@ -795,12 +790,12 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                                 }
                             }
                             toTabStops(columns, collection.size(), rownum);
-                            Integer row = 0;
+                            int row = 0;
                             int firstColumn = rownum ? 1 : 0;
                             for (Object o : collection) {
                                 AttributedStringBuilder asb = new AttributedStringBuilder().tabs(columns);
                                 if (rownum) {
-                                    asb.styled(prntStyle.resolve(".rn"), row.toString()).append(":");
+                                    asb.styled(prntStyle.resolve(".rn"), Integer.toString(row)).append(":");
                                     asb.append("\t");
                                     row++;
                                 }
@@ -846,7 +841,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
 
     private void highlightList(Map<String, Object> options
                             , List<Object> collection, int width, int depth) {
-        Integer row = 0;
+        int row = 0;
         int maxrows = (int)options.get(Printer.MAXROWS);
         int indent = (int)options.get(Printer.INDENTION);
         List<Integer> tabs = new ArrayList<>();
@@ -861,7 +856,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                 asb.append("\t");
             }
             if (options.containsKey(Printer.ROWNUM)) {
-                asb.styled(prntStyle.resolve(".rn"), row.toString()).append(":");
+                asb.styled(prntStyle.resolve(".rn"), Integer.toString(row)).append(":");
                 asb.append("\t");
                 row++;
             }
@@ -871,7 +866,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     }
 
     private boolean collectionObject(Object obj) {
-        return obj instanceof Iterator || obj instanceof Iterable || obj instanceof Object[] || obj instanceof Collection;
+        return obj instanceof Iterator || obj instanceof Iterable || obj instanceof Object[];
     }
 
     private boolean simpleObject(Object obj) {
@@ -880,10 +875,8 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     }
 
     private boolean canConvert(Object obj) {
-        if (engine == null || obj == null || obj instanceof Class || obj instanceof Map ||  simpleObject(obj) || collectionObject(obj)) {
-            return false;
-        }
-        return true;
+        return engine != null && obj != null && !(obj instanceof Class) && !(obj instanceof Map) && !simpleObject(obj)
+                && !collectionObject(obj);
     }
 
     private AttributedString truncate(AttributedStringBuilder asb, int width) {
@@ -929,8 +922,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         if (max > (int)options.getOrDefault(Printer.MAX_COLUMN_WIDTH, Integer.MAX_VALUE)) {
             max = (int)options.get(Printer.MAX_COLUMN_WIDTH);
         }
-        Map<String, Object> mapOptions = new HashMap<>();
-        mapOptions.putAll(options);
+        Map<String, Object> mapOptions = new HashMap<>(options);
         mapOptions.remove(Printer.MAX_COLUMN_WIDTH);
         int indent = (int)options.get(Printer.INDENTION);
         int maxDepth = (int)options.get(Printer.MAX_DEPTH);
@@ -956,8 +948,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                     List<Object> collection = objectToList(elem);
                     if (!collection.isEmpty()) {
                         println(truncate(asb, width), maxrows);
-                        Map<String, Object> listOptions = new HashMap<>();
-                        listOptions.putAll(options);
+                        Map<String, Object> listOptions = new HashMap<>(options);
                         listOptions.put(Printer.TO_STRING, true);
                         highlightList(listOptions, collection, width, depth + 1);
                         highlightValue = false;

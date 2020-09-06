@@ -107,7 +107,7 @@ public interface CommandRegistry {
         throw new IllegalStateException("CommandRegistry method invoke(session, command, ... args) is not implemented!");
     }
 
-    static class CommandSession {
+    class CommandSession {
         private final Terminal terminal;
         private final InputStream in;
         private final PrintStream out;

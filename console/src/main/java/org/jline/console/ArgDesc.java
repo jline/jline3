@@ -14,11 +14,11 @@ import java.util.List;
 import org.jline.utils.AttributedString;
 
 public class ArgDesc {
-    private String name;
-    private List<AttributedString> description = new ArrayList<AttributedString>();
+    private final String name;
+    private final List<AttributedString> description;
 
     public ArgDesc(String name) {
-        this(name, new ArrayList<AttributedString>());
+        this(name, new ArrayList<>());
     }
 
     public ArgDesc(String name, List<AttributedString> description) {

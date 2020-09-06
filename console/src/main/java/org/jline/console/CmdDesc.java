@@ -116,11 +116,7 @@ public class CmdDesc {
     public boolean optionWithValue(String option) {
         for (String key: optsDesc.keySet()) {
             if (key.matches("(^|.*\\s)" + option + "($|=.*|\\s.*)")) {
-                if (key.contains("=")) {
-                    return true;
-                } else {
-                    return false;
-                }
+                return key.contains("=");
             }
         }
         return false;

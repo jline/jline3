@@ -53,7 +53,8 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                        , PIPE
                        , UNALIAS
                        , DOC
-                       , SLURP};
+                       , SLURP}
+
     private static final String VAR_CONSOLE_OPTIONS = "CONSOLE_OPTIONS";
     private static final String VAR_PATH = "PATH";
     private static final String[] OPTION_HELP = {"-?", "--help"};
@@ -70,7 +71,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     private Path aliasFile;
     private LineReader reader;
     private boolean executing = false;
-    private Printer printer;
+    private final Printer printer;
 
     public ConsoleEngineImpl(ScriptEngine engine, Printer printer
             , Supplier<Path> workDir, ConfigurationPath configPath) throws IOException {
@@ -86,7 +87,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         this.printer = printer;
         Map<Command,String> commandName = new HashMap<>();
         Map<Command,CommandMethods> commandExecute = new HashMap<>();
-        Set<Command> cmds = null;
+        Set<Command> cmds;
         if (commands == null) {
             cmds = new HashSet<>(EnumSet.allOf(Command.class));
         } else {
@@ -211,7 +212,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                         String regex = pp + "/*." + e;
                         PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + regex);
                         Files.find(Paths.get(new File(regex).getParent()), Integer.MAX_VALUE,
-                                    (path, f) -> pathMatcher.matches(path)).forEach(p -> scripts.add(p));
+                                    (path, f) -> pathMatcher.matches(path)).forEach(scripts::add);
                     }
                 }
             }
@@ -236,12 +237,12 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     @Override
     public Object[] expandParameters(String[] args) throws Exception {
         Object[] out = new Object[args.length];
-        String regexPath = "(.*)\\$\\{(.*?)\\}(/.*)";
+        String regexPath = "(.*)\\$\\{(.*?)}(/.*)";
         for (int i = 0; i < args.length; i++) {
             if (args[i].matches(regexPath)) {
                 Matcher matcher = Pattern.compile(regexPath).matcher(args[i]);
                 if (matcher.find()) {
-                    out[i] = matcher.group(1) + (String)engine.get(matcher.group(2)) + matcher.group(3);
+                    out[i] = matcher.group(1) + engine.get(matcher.group(2)) + matcher.group(3);
                 } else {
                     throw new IllegalArgumentException();
                 }
@@ -265,16 +266,16 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         StringBuilder sb = new StringBuilder();
         sb.append("[");
         boolean first = true;
-        for (int j = 0; j < params.size(); j++) {
+        for (String param : params) {
             if (!first) {
                 sb.append(",");
             }
-            if (params.get(j).equalsIgnoreCase("true") || params.get(j).equalsIgnoreCase("false") || params.get(j).equalsIgnoreCase("null")) {
-                sb.append(params.get(j).toLowerCase());
-            } else if (isNumber(params.get(j))) {
-                sb.append(params.get(j));
+            if (param.equalsIgnoreCase("true") || param.equalsIgnoreCase("false") || param.equalsIgnoreCase("null")) {
+                sb.append(param.toLowerCase());
+            } else if (isNumber(param)) {
+                sb.append(param);
             } else {
-                sb.append(params.get(j).startsWith("$") ? params.get(j).substring(1) : quote(params.get(j)));
+                sb.append(param.startsWith("$") ? param.substring(1) : quote(param));
             }
             first = false;
         }
@@ -283,12 +284,12 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     }
 
     private String expandName(String name) {
-        String regexVar = "[a-zA-Z_]{1,}[a-zA-Z0-9_-]*";
+        String regexVar = "[a-zA-Z_]+[a-zA-Z0-9_-]*";
         String out = name;
         if (name.matches("^\\$" + regexVar)) {
             out = name.substring(1);
-        } else if (name.matches("^\\$\\{" + regexVar + "\\}.*")) {
-            Matcher matcher = Pattern.compile("^\\$\\{(" + regexVar + ")\\}(.*)").matcher(name);
+        } else if (name.matches("^\\$\\{" + regexVar + "}.*")) {
+            Matcher matcher = Pattern.compile("^\\$\\{(" + regexVar + ")}(.*)").matcher(name);
             if (matcher.find()) {
                 out = matcher.group(1) + matcher.group(2);
             } else {
@@ -338,8 +339,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     }
 
     private List<String> scriptExtensions() {
-        List<String>  extensions = new ArrayList<>();
-        extensions.addAll(engine.getExtensions());
+        List<String> extensions = new ArrayList<>(engine.getExtensions());
         extensions.add(scriptExtension);
         return extensions;
     }
@@ -382,7 +382,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 }
                 doArgs(args);
             } catch (Exception e) {
-
+                // ignore
             }
         }
 
@@ -506,20 +506,19 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                         }
                         try {
                             line += l;
-                            done = false;
                             parser().parse(line, line.length() + 1, ParseContext.ACCEPT_LINE);
                             done = true;
                             for (int i = 1; i < args.length; i++) {
                                 line = line.replaceAll("\\s\\$" + i + "\\b",
                                              (" " + expandParameterName(args[i]) + " "));
-                                line = line.replaceAll("\\$\\{" + i + "(|:-.*)\\}",
+                                line = line.replaceAll("\\$\\{" + i + "(|:-.*)}",
                                              expandParameterName(args[i]));
                             }
-                            line = line.replaceAll("\\$\\{@\\}", expandToList(args));
+                            line = line.replaceAll("\\$\\{@}", expandToList(args));
                             line = line.replaceAll("\\$@", expandToList(args));
                             line = line.replaceAll("\\s\\$\\d\\b", "");
-                            line = line.replaceAll("\\$\\{\\d+\\}", "");
-                            Matcher matcher = Pattern.compile("\\$\\{\\d+:-(.*?)\\}").matcher(line);
+                            line = line.replaceAll("\\$\\{\\d+}", "");
+                            Matcher matcher = Pattern.compile("\\$\\{\\d+:-(.*?)}").matcher(line);
                             if (matcher.find()) {
                                 line = matcher.replaceAll(expandParameterName(matcher.group(1)));
                             }
@@ -592,7 +591,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
 
     @Override
     public String expandCommandLine(String line) {
-        String out = null;
+        String out;
         if (isCommandLine(line)) {
             StringBuilder sb = new StringBuilder();
             List<String> ws = parser().parse(line, 0, ParseContext.COMPLETE).words();
@@ -616,7 +615,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             }
             String cmd = hasAlias(ws.get(0).substring(idx + 1)) ? getAlias(ws.get(0).substring(idx + 1))
                                                                 : ws.get(0).substring(idx + 1);
-            sb.append(SystemRegistry.class.getCanonicalName() + ".get().invoke('" + cmd + "'");
+            sb.append(SystemRegistry.class.getCanonicalName()).append(".get().invoke('").append(cmd).append("'");
             for (int i = 1; i < argv.length; i++) {
                 sb.append(", ");
                 sb.append(argv[i]);
@@ -782,7 +781,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     }
 
     private int saveResult(String var, Object result) {
-        int out = 0;
+        int out;
         try {
             engine.put("_executionResult", result);
             if (var != null) {
@@ -842,7 +841,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             }
         } else if (level > 1) {
             if (object instanceof SystemRegistryImpl.CommandData) {
-                toPrint = ((SystemRegistryImpl.CommandData)object).toString();
+                toPrint = object.toString();
             }
         }
         printer.println(options, toPrint);
@@ -968,11 +967,11 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 String alias = String.join(" ", args.subList(1, args.size()));
                 for (int j = 0; j < 10; j++) {
                     alias = alias.replaceAll("%" + j , "\\$" + j);
-                    alias = alias.replaceAll("%\\{" + j + "\\}", "\\$\\{" + j + "\\}");
+                    alias = alias.replaceAll("%\\{" + j + "}", "\\$\\{" + j + "\\}");
                     alias = alias.replaceAll("%\\{" + j + ":-", "\\$\\{" + j + ":-");
                 }
                 alias = alias.replaceAll("%@" , "\\$@");
-                alias = alias.replaceAll("%\\{@\\}", "\\$\\{@\\}");
+                alias = alias.replaceAll("%\\{@}", "\\$\\{@\\}");
                 aliases.put(args.get(0), alias);
                 persist(aliasFile, aliases);
             }
@@ -1063,7 +1062,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                     }
                 }
                 if (!done) {
-                    String name = "";
+                    String name;
                     if (arg instanceof String && ((String)arg).matches("([a-z]+\\.)+[A-Z][a-zA-Z]+")) {
                         name = (String)arg;
                     } else {
@@ -1071,6 +1070,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                     }
                     name = name.replaceAll("\\.", "/") + ".html";
                     Object doc = null;
+                    assert docs != null;
                     for (Map.Entry<String,Object> entry : docs.entrySet()) {
                         if (name.matches(entry.getKey())) {
                             doc = entry.getValue();
@@ -1080,10 +1080,10 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                     if (doc != null) {
                         if (doc instanceof Collection) {
                             for (Object o : (Collection<?>)doc) {
-                                Desktop.getDesktop().browse(new URI((String)o + name));
+                                Desktop.getDesktop().browse(new URI(o + name));
                             }
                         } else {
-                            Desktop.getDesktop().browse(new URI((String)doc + name));
+                            Desktop.getDesktop().browse(new URI(doc + name));
                         }
                     } else {
                         throw new IllegalArgumentException("Document not found: " + name);

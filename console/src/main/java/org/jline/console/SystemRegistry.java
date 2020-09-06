@@ -14,7 +14,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.jline.builtins.ConsoleOptionGetter;
-import org.jline.console.CmdLine;
 import org.jline.reader.Completer;
 import org.jline.terminal.Terminal;
 
@@ -36,7 +35,7 @@ public interface SystemRegistry extends CommandRegistry, ConsoleOptionGetter {
      * @param command main command
      * @param subcommandRegistry subcommand registry
      */
-    public void register(String command, CommandRegistry subcommandRegistry);
+    void register(String command, CommandRegistry subcommandRegistry);
 
     /**
      * Initialize consoleEngine environment by executing console script
@@ -141,8 +140,8 @@ public interface SystemRegistry extends CommandRegistry, ConsoleOptionGetter {
      * Manage systemRegistry store
      */
     class Registeries {
-        private static Registeries instance = new Registeries();
-        private Map<Long, SystemRegistry> systemRegisteries = new HashMap<>();
+        private static final Registeries instance = new Registeries();
+        private final Map<Long, SystemRegistry> systemRegisteries = new HashMap<>();
 
         private Registeries () {}
 
