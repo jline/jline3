@@ -882,6 +882,14 @@ public class GroovyEngine implements ScriptEngine {
             return out;
         }
 
+        private String stripVarType(String statement) {
+            if (statement.matches("\\w+\\s+\\w+.*")) {
+                int idx = statement.indexOf(' ');
+                return statement.substring(idx + 1);
+            }
+            return statement;
+        }
+
         public void loadStatementVars(String line) {
             for (String s : line.split("\\r?\\n")) {
                 String statement = s.trim();
@@ -895,19 +903,11 @@ public class GroovyEngine implements ScriptEngine {
                             || statement.matches("(\\{|})") || statement.length() == 0) {
                         continue;
                     } else if (forEachMatcher.matches()) {
-                        statement = forEachMatcher.group(1).trim();
+                        statement = stripVarType(forEachMatcher.group(1).trim());
                         String cc = forEachMatcher.group(2);
-                        if (statement.matches("\\w+\\s+\\w+.*")) {
-                            int idx = statement.indexOf(' ');
-                            statement = statement.substring(idx + 1);
-                        }
                         statement += "=" + cc + " instanceof Map ? " + cc + ".entrySet()[0] : " + cc + "[0]";
                     } else if (forMatcher.matches()) {
-                        statement = forMatcher.group(1).trim();
-                        if (statement.matches("\\w+\\s+\\w+.*")) {
-                            int idx = statement.indexOf(' ');
-                            statement = statement.substring(idx + 1);
-                        }
+                        statement = stripVarType(forMatcher.group(1).trim());
                         if (!statement.contains("=")) {
                             statement += " = null";
                         }
@@ -917,9 +917,8 @@ public class GroovyEngine implements ScriptEngine {
                         for (String v : vars) {
                             statement += v + " = null; ";
                         }
-                    } else if (statement.matches("\\w+\\s+.*=.*")) {
-                        int idx = statement.indexOf(' ');
-                        statement = statement.substring(idx + 1);
+                    } else if (statement.contains("=")) {
+                        statement = stripVarType(statement);
                     }
                     Brackets br = new Brackets(statement);
                     if (statement.contains("=") && !br.openRound() && !br.openCurly() && !br.openSquare()) {
@@ -989,21 +988,26 @@ public class GroovyEngine implements ScriptEngine {
             boolean constructor = false;
             Class<?> clazz = null;
             String methodName = null;
-            if ((args.size() == 2 && args.get(0).matches("(new|\\w+=new)"))
-                || (args.size() > 2 && Helpers.constructorStatement(args.get(args.size() - 2)))) {
+            String buffer = line.getHead();
+            int eqsep = Helpers.statementBegin(new Brackets(buffer));
+            int varsep = buffer.lastIndexOf('.');
+            if (varsep > 0 && varsep > eqsep) {
+                loadStatementVars(buffer);
+                methodName = buffer.substring(varsep + 1);
+                int ior = Brackets.indexOfOpeningRound(buffer.substring(0, varsep));
+                if (ior > 0 && ior < eqsep) {
+                    eqsep = ior;
+                }
+                String st = buffer.substring(eqsep + 1, varsep);
+                if (st.matches("[A-Z]+\\w+\\s*\\(.*")) {
+                    st = "new " + st;
+                }
+                clazz = evaluateClass(st);
+            } else if (args.size() > 1 && Helpers.constructorStatement(args.get(args.size() - 2))
+                    && args.get(args.size() - 1).matches("[A-Z]+\\w+\\s*\\(.*")
+                    && new Brackets(args.get(args.size() - 1)).openRound()) {
                 constructor = true;
                 clazz = evaluateClass(trimName(args.get(args.size() - 1)));
-            } else {
-                String buffer = line.getHead();
-                String wordbuffer = trimName(args.get(args.size() - 1));
-                Brackets brackets = new Brackets(buffer);
-                int varsep = wordbuffer.lastIndexOf('.');
-                int eqsep = Helpers.statementBegin(buffer, wordbuffer, brackets);
-                if (varsep > 0 && varsep > eqsep) {
-                    loadStatementVars(buffer);
-                    methodName = wordbuffer.substring(varsep + 1);
-                    clazz = evaluateClass(wordbuffer.substring(eqsep + 1, varsep));
-                }
             }
             List<AttributedString> mainDesc = new ArrayList<>();
             if (clazz != null) {
@@ -1093,7 +1097,7 @@ public class GroovyEngine implements ScriptEngine {
         private String trimMethodDescription(StringBuilder sb) {
             String out = sb.toString();
             if (canonicalNames) {
-                out = out.replaceAll("java.lang.", "");
+                out = out.replaceAll("java\\.lang\\.", "");
             }
             return out;
         }
@@ -1121,10 +1125,11 @@ public class GroovyEngine implements ScriptEngine {
                 return out;
             }
             List<AttributedString> mainDesc = new ArrayList<>();
-            String objEquation = line.getHead().substring(eqsep + 1, end);
+            String objEquation = line.getHead().substring(eqsep + 1, end).trim();
             equationLines = objEquation.split("\\r?\\n");
             cuttedSize = eqsep + 1;
-            if (objEquation.matches("\\(\\s*\\w+\\s*[,\\s*\\w+\\s*]*\\)")) {
+            if (objEquation.matches("\\(\\s*\\w+\\s*[,\\s*\\w+\\s*]*\\)")
+                    || objEquation.matches("\\(\\s*\\)")) {
                 // do nothing
             } else {
                 try {
@@ -1214,7 +1219,7 @@ public class GroovyEngine implements ScriptEngine {
             String line = null;
             String[] mlines = message.split("\n");
             for (int i = 0; i < mlines.length; i++) {
-                if (mlines[i].matches(".*Script[0-9]+.groovy: .*")) {
+                if (mlines[i].matches(".*Script[0-9]+\\.groovy: .*")) {
                     line = mlines[i + 1].trim();
                     break;
                 }
