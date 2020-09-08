@@ -160,7 +160,10 @@ public class Example
                         completer = new Completers.FileNameCompleter();
                         break;
                     case "simple":
-                        completer = new StringsCompleter("foo", "bar", "baz");
+                        DefaultParser p3 = new DefaultParser();
+                        p3.setEscapeChars(new char[]{});
+                        parser = p3;
+                        completer = new StringsCompleter("foo", "bar", "baz", "pip pop");
                         break;
                     case "quotes":
                         DefaultParser p = new DefaultParser();

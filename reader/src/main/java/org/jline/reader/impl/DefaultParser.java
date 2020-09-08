@@ -613,25 +613,28 @@ public class DefaultParser implements Parser {
                 }
             }
             if (escapeChars != null) {
-                // Completion is protected by an opening quote:
-                // Delimiters (spaces) don't need to be escaped, nor do other quotes, but everything else does.
-                // Also, close the quote at the end
-                if (openingQuote != null) {
-                    needToBeEscaped = i -> isRawEscapeChar(sb.charAt(i)) || String.valueOf(sb.charAt(i)).equals(openingQuote);
-                }
-                // Completion is protected by middle quotes:
-                // Delimiters (spaces) don't need to be escaped, nor do quotes, but everything else does.
-                else if (middleQuotes) {
-                    needToBeEscaped = i -> isRawEscapeChar(sb.charAt(i));
-                }
-                // No quote protection, need to escape everything: delimiter chars (spaces), quote chars
-                // and escapes themselves
-                else {
-                    needToBeEscaped = i -> isDelimiterChar(sb, i) || isRawEscapeChar(sb.charAt(i)) || isRawQuoteChar(sb.charAt(i));
-                }
-                for (int i = 0; i < sb.length(); i++) {
-                    if (needToBeEscaped.test(i)) {
-                        sb.insert(i++, escapeChars[0]);
+                if (escapeChars.length > 0) {
+                    // Completion is protected by an opening quote:
+                    // Delimiters (spaces) don't need to be escaped, nor do other quotes, but everything else does.
+                    // Also, close the quote at the end
+                    if (openingQuote != null) {
+                        needToBeEscaped = i -> isRawEscapeChar(sb.charAt(i)) || String.valueOf(sb.charAt(i)).equals(openingQuote);
+                    }
+                    // Completion is protected by middle quotes:
+                    // Delimiters (spaces) don't need to be escaped, nor do quotes, but everything else does.
+                    else if (middleQuotes) {
+                        needToBeEscaped = i -> isRawEscapeChar(sb.charAt(i));
+                    }
+                    // No quote protection, need to escape everything: delimiter chars (spaces), quote chars
+                    // and escapes themselves
+                    else {
+                        needToBeEscaped = i -> isDelimiterChar(sb, i) || isRawEscapeChar(sb.charAt(i))
+                                || isRawQuoteChar(sb.charAt(i));
+                    }
+                    for (int i = 0; i < sb.length(); i++) {
+                        if (needToBeEscaped.test(i)) {
+                            sb.insert(i++, escapeChars[0]);
+                        }
                     }
                 }
             } else if (openingQuote == null && !middleQuotes) {
