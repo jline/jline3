@@ -62,6 +62,8 @@ public class GroovyEngine implements ScriptEngine {
     public static final String NANORC_SYNTAX = "nanorcSyntax";
     public static final String NANORC_VALUE = "nanorcValue";
     public static final String GROOVY_COLORS = "GROOVY_COLORS";
+    public static final String NO_SYNTAX_CHECK = "noSyntaxCheck";
+    public static final String RESTRICTED_COMPLETION = "restrictedCompletion";
 
     private static final String VAR_GROOVY_OPTIONS = "GROOVY_OPTIONS";
     private static final String REGEX_SYSTEM_VAR = "[A-Z]+[A-Z_]*";
@@ -652,6 +654,7 @@ public class GroovyEngine implements ScriptEngine {
         public void complete(LineReader reader, ParsedLine commandLine, List<Candidate> candidates) {
             assert commandLine != null;
             assert candidates != null;
+            boolean restrictedCompletion = groovyEngine.groovyOption(RESTRICTED_COMPLETION, false);
             String wordbuffer = commandLine.word();
             String buffer = commandLine.line().substring(0, commandLine.cursor());
             Brackets brackets;
@@ -669,7 +672,7 @@ public class GroovyEngine implements ScriptEngine {
             int eqsep = Helpers.statementBegin(brackets);
             if (brackets.numberOfRounds() > 0 && brackets.lastCloseRound() > eqsep) {
                 int varsep = buffer.lastIndexOf('.');
-                if (varsep > 0 && varsep > brackets.lastCloseRound()) {
+                if (varsep > 0 && varsep > brackets.lastCloseRound() && !restrictedCompletion) {
                     Class<?> clazz = inspector.evaluateClass(buffer.substring(eqsep + 1, varsep));
                     int vs = wordbuffer.lastIndexOf('.');
                     String curBuf = wordbuffer.substring(0, vs + 1);
@@ -723,14 +726,14 @@ public class GroovyEngine implements ScriptEngine {
                     if (inspector.nameClass().containsKey(var)) {
                         if (firstMethod) {
                             doStaticMethodCandidates(candidates, inspector.nameClass().get(var), curBuf, p);
-                        } else {
+                        } else if (!restrictedCompletion) {
                             Class<?> clazz = inspector.evaluateClass(wordbuffer.substring(eqsep + 1, varsep));
                             doMethodCandidates(candidates, clazz, curBuf, p);
                         }
                     } else if (inspector.hasVariable(var)) {
                         if (firstMethod) {
                             doMethodCandidates(candidates, inspector.getVariable(var).getClass(), curBuf, p);
-                        } else {
+                        } else if (!restrictedCompletion) {
                             Class<?> clazz = inspector.evaluateClass(wordbuffer.substring(eqsep + 1, varsep));
                             doMethodCandidates(candidates, clazz, curBuf, p);
                         }
@@ -805,6 +808,8 @@ public class GroovyEngine implements ScriptEngine {
         private final Map<String,Class<?>> nameClass;
         private PrintStream nullstream;
         private boolean canonicalNames = false;
+        private final boolean noSyntaxCheck;
+        private final boolean restrictedCompletion;
         private String[] equationLines;
         private int cuttedSize;
         private final String nanorcSyntax;
@@ -815,6 +820,8 @@ public class GroovyEngine implements ScriptEngine {
             this.nameClass = groovyEngine.nameClass;
             this.canonicalNames = groovyEngine.groovyOption(CANONICAL_NAMES, canonicalNames);
             this.nanorcSyntax = groovyEngine.groovyOption(NANORC_SYNTAX, DEFAULT_NANORC_SYNTAX);
+            this.noSyntaxCheck = groovyEngine.groovyOption(NO_SYNTAX_CHECK, false);
+            this.restrictedCompletion = groovyEngine.groovyOption(RESTRICTED_COMPLETION, false);
             String gc = groovyEngine.groovyOption(GROOVY_COLORS, null);
             groovyColors = gc != null && Styles.isAnsiStylePattern(gc) ? gc : DEFAULT_GROOVY_COLORS;
             groovyEngine.getObjectCloner().markCache();
@@ -891,6 +898,9 @@ public class GroovyEngine implements ScriptEngine {
         }
 
         public void loadStatementVars(String line) {
+            if (restrictedCompletion) {
+                return;
+            }
             for (String s : line.split("\\r?\\n")) {
                 String statement = s.trim();
                 try {
@@ -900,7 +910,7 @@ public class GroovyEngine implements ScriptEngine {
                     if (statement.matches("^(if|while)\\s*\\(.*") || statement.matches("(}\\s*|^)else(\\s*\\{|$)")
                             || statement.matches("(}\\s*|^)else\\s+if\\s*\\(.*") || statement.matches("^break[;]+")
                             || statement.matches("^case\\s+.*:") || statement.matches("^default\\s+:")
-                            || statement.matches("(\\{|})") || statement.length() == 0) {
+                            || statement.matches("([{}])") || statement.length() == 0) {
                         continue;
                     } else if (forEachMatcher.matches()) {
                         statement = stripVarType(forEachMatcher.group(1).trim());
@@ -962,7 +972,9 @@ public class GroovyEngine implements ScriptEngine {
                     out = methodDescription(line);
                     break;
                 case SYNTAX:
-                    out = checkSyntax(line);
+                    if (!noSyntaxCheck) {
+                        out = checkSyntax(line);
+                    }
                     break;
                 }
             } catch (Throwable e) {
@@ -1002,7 +1014,9 @@ public class GroovyEngine implements ScriptEngine {
                 if (st.matches("[A-Z]+\\w+\\s*\\(.*")) {
                     st = "new " + st;
                 }
-                clazz = evaluateClass(st);
+                if (!restrictedCompletion || new Brackets(st).numberOfRounds() == 0) {
+                    clazz = evaluateClass(st);
+                }
             } else if (args.size() > 1 && Helpers.constructorStatement(args.get(args.size() - 2))
                     && args.get(args.size() - 1).matches("[A-Z]+\\w+\\s*\\(.*")
                     && new Brackets(args.get(args.size() - 1)).openRound()) {
@@ -1128,7 +1142,7 @@ public class GroovyEngine implements ScriptEngine {
             String objEquation = line.getHead().substring(eqsep + 1, end).trim();
             equationLines = objEquation.split("\\r?\\n");
             cuttedSize = eqsep + 1;
-            if (objEquation.matches("\\(\\s*\\w+\\s*[,\\s*\\w+\\s*]*\\)")
+            if (objEquation.matches("\\(\\s*\\w+\\s*[,\\s*\\w+]*\\)")
                     || objEquation.matches("\\(\\s*\\)")) {
                 // do nothing
             } else {
