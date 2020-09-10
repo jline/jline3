@@ -22,6 +22,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import groovy.lang.*;
 import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
 import org.codehaus.groovy.syntax.SyntaxException;
 import org.jline.builtins.Nano.SyntaxHighlighter;
@@ -42,11 +43,6 @@ import org.jline.utils.AttributedString;
 import org.jline.utils.Log;
 import org.jline.utils.OSUtils;
 import org.jline.utils.StyleResolver;
-
-import groovy.lang.Binding;
-import groovy.lang.Closure;
-import groovy.lang.GroovyShell;
-import groovy.lang.Script;
 
 /**
  * Implements Groovy ScriptEngine.
@@ -796,9 +792,11 @@ public class GroovyEngine implements ScriptEngine {
     private static class Inspector {
         static final Pattern PATTERN_FOR = Pattern.compile("^for\\s*\\((.*?);.*");
         static final Pattern PATTERN_FOR_EACH = Pattern.compile("^for\\s*\\((.*?):(.*?)\\).*");
-        static final Pattern LAMBDA_PATTERN = Pattern.compile(".*\\([(]*(.*?)[)]*->.*");
+        static final Pattern PATTERN_LAMBDA = Pattern.compile(".*\\([(]*(.*?)[)]*->.*");
         static final Pattern PATTERN_FUNCTION_BODY = Pattern.compile("^\\s*\\(([a-zA-Z0-9_ ,]*)\\)\\s*\\{(.*)?}(|\n)$"
                                                                    , Pattern.DOTALL);
+        static final Pattern PATTERN_FUNCTION = Pattern.compile("\\s*def\\s+\\w+\\s*\\((.*?)\\).*");
+        static final Pattern PATTERN_CLOSURE = Pattern.compile(".*\\{(.*?)->.*");
         static final String DEFAULT_NANORC_SYNTAX = "classpath:/org/jline/groovy/java.nanorc";
         static final String DEFAULT_GROOVY_COLORS = "ti=1;34:me=31";
 
@@ -897,6 +895,14 @@ public class GroovyEngine implements ScriptEngine {
             return statement;
         }
 
+        private String defineArgs(String[] args) {
+            StringBuilder out = new StringBuilder();
+            for (String v : args) {
+                out.append(v).append(" = null; ");
+            }
+            return out.toString();
+        }
+
         public void loadStatementVars(String line) {
             if (restrictedCompletion) {
                 return;
@@ -906,7 +912,9 @@ public class GroovyEngine implements ScriptEngine {
                 try {
                     Matcher forEachMatcher = PATTERN_FOR_EACH.matcher(statement);
                     Matcher forMatcher = PATTERN_FOR.matcher(statement);
-                    Matcher lambdaMatcher = LAMBDA_PATTERN.matcher(statement);
+                    Matcher lambdaMatcher = PATTERN_LAMBDA.matcher(statement);
+                    Matcher functionMatcher = PATTERN_FUNCTION.matcher(statement);
+                    Matcher closureMatcher = PATTERN_CLOSURE.matcher(statement);
                     if (statement.matches("^(if|while)\\s*\\(.*") || statement.matches("(}\\s*|^)else(\\s*\\{|$)")
                             || statement.matches("(}\\s*|^)else\\s+if\\s*\\(.*") || statement.matches("^break[;]+")
                             || statement.matches("^case\\s+.*:") || statement.matches("^default\\s+:")
@@ -921,12 +929,12 @@ public class GroovyEngine implements ScriptEngine {
                         if (!statement.contains("=")) {
                             statement += " = null";
                         }
+                    } else if (closureMatcher.matches()) {
+                        statement = defineArgs(closureMatcher.group(1).split(","));
+                    } else if (functionMatcher.matches()) {
+                        statement = defineArgs(functionMatcher.group(1).split(","));
                     } else if (lambdaMatcher.matches()) {
-                        String[] vars = lambdaMatcher.group(1).split(",");
-                        statement = "";
-                        for (String v : vars) {
-                            statement += v + " = null; ";
-                        }
+                        statement = defineArgs(lambdaMatcher.group(1).split(","));
                     } else if (statement.contains("=")) {
                         statement = stripVarType(statement);
                     }
@@ -1135,6 +1143,7 @@ public class GroovyEngine implements ScriptEngine {
                 eqsep = openingRound;
                 end = end - 1;
             } else if (line.getHead().substring(eqsep + 1).matches("\\s*switch\\s*\\(.*")
+                    || line.getHead().substring(eqsep + 1).matches("\\s*def\\s+\\w+\\s*\\(.*")
                     || line.getHead().substring(eqsep + 1).matches("\\s*catch\\s*\\(.*")) {
                 return out;
             }
@@ -1175,6 +1184,10 @@ public class GroovyEngine implements ScriptEngine {
                         }
                     }
                     mainDesc.addAll(doExceptionMessage(e));
+                } catch (MissingMethodException e) {
+                    if (!e.getMessage().split("\r?\n")[0].matches(".*types:\\s+\\(.*null.*\\).*")) {
+                        mainDesc.addAll(doExceptionMessage(e));
+                    }
                 } catch (NullPointerException e) {
                     // do nothing
                 } catch (Exception e) {
