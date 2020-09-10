@@ -766,24 +766,34 @@ public class GroovyEngine implements ScriptEngine {
 
         private Set<String> retrieveConstructors() {
             Set<String> out = new HashSet<>();
-            for (Map.Entry<String, Class<?>> entry : inspector.nameClass().entrySet()) {
+            for (Iterator<Map.Entry<String, Class<?>>> it = inspector.nameClass().entrySet().iterator(); it.hasNext(); ) {
+                Map.Entry<String, Class<?>> entry = it.next();
                 Class<?> c = entry.getValue();
-                if (c.getConstructors().length == 0 || Modifier.isAbstract(c.getModifiers())) {
-                    continue;
+                try {
+                    if (c.getConstructors().length == 0 || Modifier.isAbstract(c.getModifiers())) {
+                        continue;
+                    }
+                    out.add(entry.getKey());
+                } catch (NoClassDefFoundError e) {
+                    it.remove();
                 }
-                out.add(entry.getKey());
             }
             return out;
         }
 
         private Set<String> retrieveClassesWithStaticMethods() {
             Set<String> out = new HashSet<>();
-            for (Map.Entry<String, Class<?>> entry : inspector.nameClass().entrySet()) {
+            for (Iterator<Map.Entry<String, Class<?>>> it = inspector.nameClass().entrySet().iterator(); it.hasNext(); ) {
+                Map.Entry<String, Class<?>> entry = it.next();
                 Class<?> c = entry.getValue();
-                if (Helpers.getStaticMethods(c).size() == 0 && Helpers.getStaticFields(c).size() == 0) {
-                    continue;
+                try {
+                    if (Helpers.getStaticMethods(c).size() == 0 && Helpers.getStaticFields(c).size() == 0) {
+                        continue;
+                    }
+                    out.add(entry.getKey());
+                } catch (NoClassDefFoundError e) {
+                    it.remove();
                 }
-                out.add(entry.getKey());
             }
             return out;
         }
