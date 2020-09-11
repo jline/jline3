@@ -73,7 +73,7 @@ public class JrtJavaBasePackages {
                 if (name.endsWith(".class") && (nestedClasses || !name.contains("$"))) {
                     classes.add(Class.forName(name.substring(0, name.length() - 6).replaceAll("/", ".")));
                 }
-            } catch (ClassNotFoundException|NoClassDefFoundError e) {
+            } catch (Exception|Error e) {
                 if (Log.isDebugEnabled()) {
                     e.printStackTrace();
                 }

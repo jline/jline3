@@ -100,7 +100,7 @@ public class PackageHelper {
     private static void addClass(String className, List<Class<?>> classes) {
         try {
             classes.add(Class.forName(className));
-        } catch (ClassNotFoundException|NoClassDefFoundError e) {
+        } catch (Exception|Error e) {
             // ignore
         }
     }
