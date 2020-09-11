@@ -914,11 +914,9 @@ public class GroovyEngine implements ScriptEngine {
         }
 
         public void loadStatementVars(String line) {
-            if (restrictedCompletion) {
-                return;
-            }
             for (String s : line.split("\\r?\\n")) {
                 String statement = s.trim();
+                boolean constructedStatement = true;
                 try {
                     Matcher forEachMatcher = PATTERN_FOR_EACH.matcher(statement);
                     Matcher forMatcher = PATTERN_FOR.matcher(statement);
@@ -947,11 +945,18 @@ public class GroovyEngine implements ScriptEngine {
                         statement = defineArgs(lambdaMatcher.group(1).split(","));
                     } else if (statement.contains("=")) {
                         statement = stripVarType(statement);
+                        constructedStatement = false;
                     }
                     Brackets br = new Brackets(statement);
                     if (statement.contains("=") && !br.openRound() && !br.openCurly() && !br.openSquare()) {
-                        String st = statement.substring(statement.indexOf('=') + 1).trim();
-                        if (!st.isEmpty() && !st.equals("new")) {
+                        int idx = statement.indexOf('=');
+                        String st = "null";
+                        if (restrictedCompletion && !constructedStatement && br.numberOfRounds() > 0) {
+                            statement = statement.substring(0, idx + 1) + "null";
+                        } else {
+                            st = statement.substring(idx + 1).trim();
+                        }
+                        if (!st.isEmpty() && !st.equals("new") ) {
                             execute(statement);
                         }
                     }
