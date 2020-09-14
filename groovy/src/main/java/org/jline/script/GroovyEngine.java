@@ -30,6 +30,7 @@ import org.jline.builtins.Styles;
 import org.jline.console.CmdDesc;
 import org.jline.console.CmdLine;
 import org.jline.console.ScriptEngine;
+import org.jline.console.SystemRegistry;
 import org.jline.groovy.Utils;
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
@@ -650,6 +651,9 @@ public class GroovyEngine implements ScriptEngine {
         public void complete(LineReader reader, ParsedLine commandLine, List<Candidate> candidates) {
             assert commandLine != null;
             assert candidates != null;
+            if (SystemRegistry.get().isCommandOrScript(commandLine)) {
+                return;
+            }
             boolean restrictedCompletion = groovyEngine.groovyOption(RESTRICTED_COMPLETION, false);
             String wordbuffer = commandLine.word();
             String buffer = commandLine.line().substring(0, commandLine.cursor());

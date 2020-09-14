@@ -15,6 +15,7 @@ import java.util.Map;
 
 import org.jline.builtins.ConsoleOptionGetter;
 import org.jline.reader.Completer;
+import org.jline.reader.ParsedLine;
 import org.jline.terminal.Terminal;
 
 /**
@@ -109,6 +110,13 @@ public interface SystemRegistry extends CommandRegistry, ConsoleOptionGetter {
      * @throws Exception in case of error
      */
     Object invoke(String command, Object... args) throws Exception;
+
+    /**
+     * Returns whether a line contains command/script that is known to this registry.
+     * @param line the parsed command line to test
+     * @return true if the specified line has a command registered
+     */
+    boolean isCommandOrScript(ParsedLine line);
 
     /**
      * Orderly close SystemRegistry.

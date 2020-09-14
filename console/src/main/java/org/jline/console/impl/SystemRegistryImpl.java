@@ -228,6 +228,11 @@ public class SystemRegistryImpl implements SystemRegistry {
         return commandExecute.containsKey(command);
     }
 
+    @Override
+    public boolean isCommandOrScript(ParsedLine line) {
+        return isCommandOrScript(parser.getCommand(line.words().get(0)));
+    }
+
     private boolean isCommandOrScript(String command) {
         if (hasCommand(command)) {
             return true;
@@ -346,9 +351,9 @@ public class SystemRegistryImpl implements SystemRegistry {
     @Override
     public CmdDesc commandDescription(CmdLine line) {
         CmdDesc out = null;
+        String cmd = parser.getCommand(line.getArgs().get(0));
         switch (line.getDescriptionType()) {
         case COMMAND:
-            String cmd = parser.getCommand(line.getArgs().get(0));
             if (isCommandOrScript(cmd) && !names.hasPipes(line.getArgs())) {
                 List<String> args = line.getArgs();
                 if (subcommands.containsKey(cmd)) {
@@ -375,7 +380,9 @@ public class SystemRegistryImpl implements SystemRegistry {
             break;
         case METHOD:
         case SYNTAX:
-            out = scriptDescription.apply(line);
+            if (!isCommandOrScript(cmd)) {
+                out = scriptDescription.apply(line);
+            }
             break;
         }
         return out;
