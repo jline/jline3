@@ -800,13 +800,14 @@ public class GroovyEngine implements ScriptEngine {
     }
 
     private static class Inspector {
-        static final Pattern PATTERN_FOR = Pattern.compile("^for\\s*\\((.*?);.*");
+        static final Pattern PATTERN_FOR = Pattern.compile("^for\\s*\\((.*?)");
         static final Pattern PATTERN_FOR_EACH = Pattern.compile("^for\\s*\\((.*?):(.*?)\\).*");
         static final Pattern PATTERN_LAMBDA = Pattern.compile(".*\\([(]*(.*?)[)]*->.*");
         static final Pattern PATTERN_FUNCTION_BODY = Pattern.compile("^\\s*\\(([a-zA-Z0-9_ ,]*)\\)\\s*\\{(.*)?}(|\n)$"
                                                                    , Pattern.DOTALL);
         static final Pattern PATTERN_FUNCTION = Pattern.compile("\\s*def\\s+\\w+\\s*\\((.*?)\\).*");
         static final Pattern PATTERN_CLOSURE = Pattern.compile(".*\\{(.*?)->.*");
+        static final Pattern PATTERN_TYPE_VAR = Pattern.compile("(\\w+)\\s+(\\w+)");
         static final String DEFAULT_NANORC_SYNTAX = "classpath:/org/jline/groovy/java.nanorc";
         static final String DEFAULT_GROOVY_COLORS = "ti=1;34:me=31";
 
@@ -913,8 +914,24 @@ public class GroovyEngine implements ScriptEngine {
             return out.toString();
         }
 
+        private String constructVariable(String type, String name) {
+            String out = "";
+            if (type.matches("[B|b]yte") || type.matches("[S|s]hort")
+                    || type.equals("int") || type.equals("Integer") || type.matches("[L|l]ong")
+                    || type.matches("[F|f]loat") || type.matches("[D|d]ouble")
+                    || type.matches("[B|b]oolean") || type.equals("char") || type.equals("Character")) {
+                out = name + " = (" + type + ")0";
+            } else if (type.matches("[A-Z].*")) {
+                out = "try {" + name + " = new " + type + "() } catch (Exception e) {" + name + " = null}";
+            }
+            return out;
+        }
+
         public void loadStatementVars(String line) {
-            for (String s : line.split("\\r?\\n")) {
+            if (!new Brackets(line).openCurly()) {
+                return;
+            }
+            for (String s : line.split("\\r?\\n|;")) {
                 String statement = s.trim();
                 boolean constructedStatement = true;
                 try {
@@ -923,6 +940,7 @@ public class GroovyEngine implements ScriptEngine {
                     Matcher lambdaMatcher = PATTERN_LAMBDA.matcher(statement);
                     Matcher functionMatcher = PATTERN_FUNCTION.matcher(statement);
                     Matcher closureMatcher = PATTERN_CLOSURE.matcher(statement);
+                    Matcher typeVarMatcher = PATTERN_TYPE_VAR.matcher(statement);
                     if (statement.matches("^(if|while)\\s*\\(.*") || statement.matches("(}\\s*|^)else(\\s*\\{|$)")
                             || statement.matches("(}\\s*|^)else\\s+if\\s*\\(.*") || statement.matches("^break[;]+")
                             || statement.matches("^case\\s+.*:") || statement.matches("^default\\s+:")
@@ -946,6 +964,8 @@ public class GroovyEngine implements ScriptEngine {
                     } else if (statement.contains("=")) {
                         statement = stripVarType(statement);
                         constructedStatement = false;
+                    } else if (typeVarMatcher.matches()) {
+                        statement = constructVariable(typeVarMatcher.group(1), typeVarMatcher.group(2));
                     }
                     Brackets br = new Brackets(statement);
                     if (statement.contains("=") && !br.openRound() && !br.openCurly() && !br.openSquare()) {
