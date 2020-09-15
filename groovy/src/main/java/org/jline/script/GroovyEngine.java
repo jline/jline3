@@ -663,8 +663,7 @@ public class GroovyEngine implements ScriptEngine {
             } catch (Exception e) {
                 return;
             }
-            if (brackets.openQuote() || (commandLine.wordIndex() > 0 && !commandLine.words().get(0).matches("(new|\\w+=new)")
-                    && brackets.numberOfRounds() == 0 && !brackets.openRound() && !brackets.openCurly())) {
+            if (brackets.openQuote()) {
                 return;
             }
             inspector = new Inspector(groovyEngine);
@@ -679,10 +678,7 @@ public class GroovyEngine implements ScriptEngine {
                     String hint = wordbuffer.substring(vs + 1);
                     doMethodCandidates(candidates, clazz, curBuf, hint);
                 }
-            } else if (!wordbuffer.contains("(") &&
-                      ((commandLine.wordIndex() == 1 && commandLine.words().get(0).matches("(new|\\w+=new)"))
-                    || (commandLine.wordIndex() > 1 && Helpers.constructorStatement(commandLine.words().get(commandLine.wordIndex() - 1))))
-                    ) {
+            } else if (completingConstructor(commandLine)) {
                 if (wordbuffer.matches("[a-z]+.*")) {
                     int idx = wordbuffer.lastIndexOf('.');
                     if (idx > 0 && wordbuffer.substring(idx + 1).matches("[A-Z]+.*")) {
@@ -750,6 +746,15 @@ public class GroovyEngine implements ScriptEngine {
                     }
                 }
             }
+        }
+
+        private boolean completingConstructor(ParsedLine commandLine) {
+            return !commandLine.word().contains("(") && (
+                    (commandLine.wordIndex() == 1 && commandLine.words().get(0).matches("(new|\\w+=[{]?new)"))
+                          ||
+                    (commandLine.wordIndex() > 1
+                            && Helpers.constructorStatement(commandLine.words().get(commandLine.wordIndex() - 1)))
+                    );
         }
 
         private void doMethodCandidates(List<Candidate> candidates, Class<?> clazz, String curBuf, String hint) {
