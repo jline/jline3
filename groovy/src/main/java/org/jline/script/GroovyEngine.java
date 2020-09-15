@@ -853,7 +853,8 @@ public class GroovyEngine implements ScriptEngine {
             }
             for (Map.Entry<String,String> entry : groovyEngine.methods.entrySet()) {
                 Matcher m = PATTERN_FUNCTION_BODY.matcher(entry.getValue());
-                if (m.matches()) {
+                if (m.matches() && sharedData.hasVariable(entry.getKey())
+                        && sharedData.getVariable(entry.getKey()) instanceof Closure) {
                     sharedData.setVariable(entry.getKey(), execute("{" + m.group(1) + "->" + m.group(2) + "}"));
                 }
             }
