@@ -762,9 +762,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         String consoleVar = parser().getVariable(line);
         if (consoleVar != null) {
             status = saveResult(consoleVar, result);
-            if (!consoleVar.startsWith("_")) {
-                out = null;
-            }
+            out = null;
         } else if (!parser().getCommand(line).equals("show")) {
             if (result != null) {
                 status = saveResult("_", result);

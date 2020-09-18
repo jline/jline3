@@ -1211,9 +1211,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             } else {
                 out = consoleEngine().postProcess(result);
             }
-            if (!cmd.variable().startsWith("_")) {
-                out = new ExecutionResult(out.status(), null);
-            }
+            out = new ExecutionResult(out.status(), null);
         } else {
             out = consoleEngine().postProcess(result);
         }
