@@ -5040,6 +5040,7 @@ public class LineReaderImpl implements LineReader, Flushable
                     Display d = new Display(terminal, false);
                     d.resize(size.getRows(), size.getColumns());
                     d.update(ls, -1);
+                    println();
                     redrawLine();
                     return new AttributedString("");
                 }
