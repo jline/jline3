@@ -580,14 +580,14 @@ public class Completers {
             for (Map.Entry<String, List<String>> entry: optionValues.entrySet()) {
                 if (entry.getKey().startsWith("--")) {
                     out.add(new OptDesc(null, entry.getKey(), new StringsCompleter(entry.getValue())));
-                } else if (entry.getKey().matches("-[a-zA-Z]{1}")) {
+                } else if (entry.getKey().matches("-[a-zA-Z]")) {
                     out.add(new OptDesc(entry.getKey(), null, new StringsCompleter(entry.getValue())));
                 }
             }
             for (String o: options) {
                 if (o.startsWith("--")) {
                     out.add(new OptDesc(null, o));
-                } else if (o.matches("-[a-zA-Z]{1}")) {
+                } else if (o.matches("-[a-zA-Z]")) {
                     out.add(new OptDesc(o, null));
                 }
             }
@@ -826,7 +826,7 @@ public class Completers {
                 boolean addbuff = true;
                 boolean valueCandidates = false;
                 boolean longOption = buffer.startsWith("--");
-                int eq = buffer.matches("-[a-zA-Z]{1}[a-zA-Z0-9]+") ? 2 : buffer.indexOf('=');
+                int eq = buffer.matches("-[a-zA-Z][a-zA-Z0-9]+") ? 2 : buffer.indexOf('=');
                 if (eq < 0) {
                     List<String> usedOptions = new ArrayList<>();
                     for (int i = startPos; i < words.size(); i++) {
