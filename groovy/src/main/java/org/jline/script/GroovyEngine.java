@@ -64,6 +64,7 @@ public class GroovyEngine implements ScriptEngine {
     public static final String ALL_FIELDS_COMPLETION = "allFieldsCompletion";
     public static final String ALL_METHODS_COMPLETION = "allMethodsCompletion";
     public static final String ALL_CONSTRUCTORS_COMPLETION = "allConstructorsCompletion";
+    public static final String ALL_CLASSES_COMPLETION = "allClassesCompletion";
 
     private static final String VAR_GROOVY_OPTIONS = "GROOVY_OPTIONS";
     private static final String REGEX_SYSTEM_VAR = "[A-Z]+[A-Z_]*";
@@ -391,16 +392,20 @@ public class GroovyEngine implements ScriptEngine {
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String,Object> groovyOptions() {
+    protected Map<String,Object> groovyOptions() {
         return hasVariable(VAR_GROOVY_OPTIONS) ? (Map<String, Object>) get(VAR_GROOVY_OPTIONS)
                                                        : new HashMap<>();
     }
 
-    @SuppressWarnings("unchecked")
     protected <T>T groovyOption(String option, T defval) {
+        return groovyOption(groovyOptions(), option, defval);
+    }
+
+    @SuppressWarnings("unchecked")
+    protected static <T>T groovyOption(Map<String,Object> options, String option, T defval) {
         T out = defval;
         try {
-            out = (T) groovyOptions().getOrDefault(option, defval);
+            out = (T) options.getOrDefault(option, defval);
         } catch (Exception e) {
             // ignore
         }
@@ -413,7 +418,7 @@ public class GroovyEngine implements ScriptEngine {
         completers.add(new ArgumentCompleter(new StringsCompleter("def"), new StringsCompleter(methods::keySet)
                                            , NullCompleter.INSTANCE));
         completers.add(new ArgumentCompleter(new StringsCompleter("import")
-                                           , new PackageCompleter(CandidateType.PACKAGE), NullCompleter.INSTANCE));
+                                           , new PackageCompleter(CandidateType.PACKAGE, this), NullCompleter.INSTANCE));
         completers.add(new MethodCompleter(this));
         return new AggregateCompleter(completers);
     }
@@ -434,6 +439,24 @@ public class GroovyEngine implements ScriptEngine {
             }
         }
         return out;
+    }
+
+    protected static class AccessRules {
+        protected final boolean allMethods;
+        protected final boolean allFields;
+        protected final boolean allConstructors;
+        protected final boolean allClasses;
+
+        public AccessRules() {
+            this(new HashMap<>());
+        }
+
+        public AccessRules(Map<String,Object> options) {
+            this.allMethods = groovyOption(options, ALL_METHODS_COMPLETION, false);
+            this.allFields = groovyOption(options, ALL_FIELDS_COMPLETION, false);
+            this.allConstructors = groovyOption(options, ALL_CONSTRUCTORS_COMPLETION, false);
+            this.allClasses = groovyOption(options, ALL_CLASSES_COMPLETION, false);
+        }
     }
 
     private static class Helpers {
@@ -517,10 +540,10 @@ public class GroovyEngine implements ScriptEngine {
         }
 
         public static Set<String> nextDomain(String domain, CandidateType type) {
-            return nextDomain(domain, false, false, type);
+            return nextDomain(domain, new AccessRules(), type);
         }
 
-        public static Set<String> nextDomain(String domain, boolean allFields, boolean allMethods, CandidateType type) {
+        public static Set<String> nextDomain(String domain, AccessRules access, CandidateType type) {
             Set<String> out = new HashSet<>();
             if (domain.isEmpty()) {
                 for (String p : loadedPackages()) {
@@ -532,13 +555,13 @@ public class GroovyEngine implements ScriptEngine {
                 try {
                     for (Class<?> c : classesForPackage(domain)) {
                         try {
-                            if (!Modifier.isPublic(c.getModifiers()) || c.getCanonicalName() == null) {
+                            if ((!Modifier.isPublic(c.getModifiers()) && !access.allClasses) || c.getCanonicalName() == null) {
                                 continue;
                             }
                             if ((type == CandidateType.CONSTRUCTOR && (c.getConstructors().length == 0
                                     || Modifier.isAbstract(c.getModifiers())))
-                                    || (type == CandidateType.STATIC_METHOD && noStaticMethods(c, allMethods)
-                                         && noStaticFields(c, allFields))) {
+                                    || (type == CandidateType.STATIC_METHOD && noStaticMethods(c, access.allMethods)
+                                         && noStaticFields(c, access.allFields))) {
                                 continue;
                             }
                             String name = c.getCanonicalName();
@@ -659,9 +682,11 @@ public class GroovyEngine implements ScriptEngine {
 
     private static class PackageCompleter implements Completer {
         private final CandidateType type;
+        private final GroovyEngine groovyEngine;
 
-        public PackageCompleter(CandidateType type) {
+        public PackageCompleter(CandidateType type, GroovyEngine groovyEngine) {
             this.type = type;
+            this.groovyEngine = groovyEngine;
         }
 
         @Override
@@ -676,7 +701,9 @@ public class GroovyEngine implements ScriptEngine {
                 param = buffer.substring(lastDelim + 1);
                 curBuf = buffer.substring(0, lastDelim + 1);
             }
-            Helpers.doCandidates(candidates, Helpers.nextDomain(curBuf, type), curBuf, param, type);
+            Helpers.doCandidates(candidates
+                               , Helpers.nextDomain(curBuf, new AccessRules(groovyEngine.groovyOptions()), type)
+                               , curBuf, param, type);
         }
 
     }
@@ -686,6 +713,7 @@ public class GroovyEngine implements ScriptEngine {
         private final GroovyEngine groovyEngine;
         private final SystemRegistry systemRegistry = SystemRegistry.get();
         private Inspector inspector;
+        private AccessRules access;
         private boolean allFieldsCompletion;
         private boolean allMethodsCompletion;
 
@@ -713,9 +741,7 @@ public class GroovyEngine implements ScriptEngine {
                 return;
             }
             boolean restrictedCompletion = groovyEngine.groovyOption(RESTRICTED_COMPLETION, false);
-            allFieldsCompletion = groovyEngine.groovyOption(ALL_FIELDS_COMPLETION, false);
-            allMethodsCompletion = groovyEngine.groovyOption(ALL_METHODS_COMPLETION, false);
-            boolean allConstructorsCompletion = groovyEngine.groovyOption(ALL_CONSTRUCTORS_COMPLETION, false);
+            access = new AccessRules(groovyEngine.groovyOptions());
             inspector = new Inspector(groovyEngine);
             inspector.loadStatementVars(buffer);
             int eqsep = Helpers.statementBegin(brackets);
@@ -743,10 +769,10 @@ public class GroovyEngine implements ScriptEngine {
                                                , param, wordbuffer.substring(idx + 1), CandidateType.CONSTRUCTOR);
                         }
                     } else {
-                        new PackageCompleter(CandidateType.CONSTRUCTOR).complete(reader, commandLine, candidates);
+                        new PackageCompleter(CandidateType.CONSTRUCTOR, groovyEngine).complete(reader, commandLine, candidates);
                     }
                 } else {
-                    Helpers.doCandidates(candidates, retrieveConstructors(allConstructorsCompletion), "", wordbuffer
+                    Helpers.doCandidates(candidates, retrieveConstructors(access.allConstructors), "", wordbuffer
                                       , CandidateType.CONSTRUCTOR);
                 }
             } else {
@@ -818,9 +844,9 @@ public class GroovyEngine implements ScriptEngine {
             if (clazz == null) {
                 return;
             }
-            Helpers.doCandidates(candidates, Helpers.getMethods(clazz, allMethodsCompletion), curBuf, hint
+            Helpers.doCandidates(candidates, Helpers.getMethods(clazz, access.allMethods), curBuf, hint
                                , CandidateType.METHOD);
-            Helpers.doCandidates(candidates, Helpers.getFields(clazz, allFieldsCompletion), curBuf, hint
+            Helpers.doCandidates(candidates, Helpers.getFields(clazz, access.allFields), curBuf, hint
                                , CandidateType.FIELD);
         }
 
@@ -828,9 +854,9 @@ public class GroovyEngine implements ScriptEngine {
             if (clazz == null) {
                 return;
             }
-            Helpers.doCandidates(candidates, Helpers.getStaticMethods(clazz, allMethodsCompletion), curBuf, hint
+            Helpers.doCandidates(candidates, Helpers.getStaticMethods(clazz, access.allMethods), curBuf, hint
                                , CandidateType.METHOD);
-            Helpers.doCandidates(candidates, Helpers.getStaticFields(clazz, allFieldsCompletion), curBuf, hint
+            Helpers.doCandidates(candidates, Helpers.getStaticFields(clazz, access.allFields), curBuf, hint
                                , CandidateType.FIELD);
         }
 
@@ -858,7 +884,7 @@ public class GroovyEngine implements ScriptEngine {
                 Map.Entry<String, Class<?>> entry = it.next();
                 Class<?> c = entry.getValue();
                 try {
-                    if (Helpers.noStaticMethods(c, allMethodsCompletion) && Helpers.noStaticFields(c, allFieldsCompletion)) {
+                    if (Helpers.noStaticMethods(c, access.allMethods) && Helpers.noStaticFields(c, access.allFields)) {
                         continue;
                     }
                     out.add(entry.getKey());
@@ -890,8 +916,7 @@ public class GroovyEngine implements ScriptEngine {
         private boolean canonicalNames = false;
         private final boolean noSyntaxCheck;
         private final boolean restrictedCompletion;
-        private final boolean allMethodsCompletion;
-        private final boolean allConstructorsCompletion;
+        private final AccessRules access;
         private String[] equationLines;
         private int cuttedSize;
         private final String nanorcSyntax;
@@ -904,8 +929,7 @@ public class GroovyEngine implements ScriptEngine {
             this.nanorcSyntax = groovyEngine.groovyOption(NANORC_SYNTAX, DEFAULT_NANORC_SYNTAX);
             this.noSyntaxCheck = groovyEngine.groovyOption(NO_SYNTAX_CHECK, false);
             this.restrictedCompletion = groovyEngine.groovyOption(RESTRICTED_COMPLETION, false);
-            this.allMethodsCompletion = groovyEngine.groovyOption(ALL_METHODS_COMPLETION, false);
-            this.allConstructorsCompletion = groovyEngine.groovyOption(ALL_CONSTRUCTORS_COMPLETION, false);
+            this.access = new AccessRules(groovyEngine.groovyOptions());
             String gc = groovyEngine.groovyOption(GROOVY_COLORS, null);
             groovyColors = gc != null && Styles.isAnsiStylePattern(gc) ? gc : DEFAULT_GROOVY_COLORS;
             groovyEngine.getObjectCloner().markCache();
@@ -1162,15 +1186,15 @@ public class GroovyEngine implements ScriptEngine {
                 SyntaxHighlighter java = SyntaxHighlighter.build(nanorcSyntax);
                 mainDesc.add(java.highlight(clazz.toString()));
                 if (constructor) {
-                    for (Constructor<?> m : allConstructorsCompletion ? clazz.getDeclaredConstructors()
-                                                                      : clazz.getConstructors()) {
+                    for (Constructor<?> m : access.allConstructors ? clazz.getDeclaredConstructors()
+                                                                   : clazz.getConstructors()) {
                         StringBuilder sb = new StringBuilder();
                         String name = m.getName();
                         if (!canonicalNames) {
                             int idx = name.lastIndexOf('.');
                             name = name.substring(idx + 1);
                         }
-                        sb.append(accessModifier(m.getModifiers(), allConstructorsCompletion));
+                        sb.append(accessModifier(m.getModifiers(), access.allConstructors));
                         sb.append(name);
                         sb.append("(");
                         boolean first = true;
@@ -1197,12 +1221,12 @@ public class GroovyEngine implements ScriptEngine {
                 } else {
                     List<String> addedMethods = new ArrayList<>();
                     do {
-                        for (Method m : allMethodsCompletion ? clazz.getDeclaredMethods() : clazz.getMethods()) {
+                        for (Method m : access.allMethods ? clazz.getDeclaredMethods() : clazz.getMethods()) {
                             if (!m.getName().equals(methodName)) {
                                 continue;
                             }
                             StringBuilder sb = new StringBuilder();
-                            sb.append(accessModifier(m.getModifiers(), allMethodsCompletion));
+                            sb.append(accessModifier(m.getModifiers(), access.allMethods));
                             if (Modifier.isFinal(m.getModifiers())) {
                                 sb.append("final ");
                             }
