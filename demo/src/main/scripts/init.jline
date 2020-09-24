@@ -134,6 +134,19 @@ def _docGroovy() {
     :doc groovy
 }
 #
+# widget function to toggle candidate grouping
+#
+def _toggleGroup(){
+    if (_reader.isSet(org.jline.reader.LineReader.Option.AUTO_GROUP)) {
+        :setopt no-group
+        :setopt no-auto-group
+    } else {
+        :unsetopt no-group
+        :unsetopt no-auto-group
+    }
+}
+
+#
 # resolve function keys
 #
 def _getkey(name) {
@@ -148,9 +161,11 @@ widget -N _test-widget _testWidget
 widget -N _tailtip-toggle _tailTipToggle
 widget -N _doc-jline _docJline
 widget -N _doc-groovy _docGroovy
+widget -N _toggle-group _toggleGroup
 
 keymap '^[^x' _test-widget
 keymap '^[s'  _tailtip-toggle
+keymap '^[a'  _toggle-group
 if (_f1 && _f2) {
     :keymap $_f1   _doc-jline
     :keymap $_f2   _doc-groovy

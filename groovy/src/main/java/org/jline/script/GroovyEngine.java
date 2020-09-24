@@ -876,9 +876,14 @@ public class GroovyEngine implements ScriptEngine {
                 Set<String> identifiers = new HashSet<>();
                 for (String m : methods) {
                     if (m.matches("get[A-Z].*")) {
-                        char[] c = m.substring(3).toCharArray();
-                        c[0] = Character.toLowerCase(c[0]);
-                        identifiers.add(new String(c));
+                        try {
+                            clazz.getDeclaredMethod(m);
+                            char[] c = m.substring(3).toCharArray();
+                            c[0] = Character.toLowerCase(c[0]);
+                            identifiers.add(new String(c));
+                        } catch (NoSuchMethodException e) {
+                            // ignore
+                        }
                     }
                 }
                 Helpers.doCandidates(candidates, identifiers, curBuf, hint, CandidateType.IDENTIFIER);
