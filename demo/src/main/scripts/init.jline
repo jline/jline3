@@ -71,14 +71,17 @@ def _orgJline(p) {
 }
 
 PRNT_OPTIONS = [:]
-PRNT_OPTIONS['objectToMap'] = [:]
-PRNT_OPTIONS['objectToString'] = [:]
-PRNT_OPTIONS['highlightValue'] = [:]
+PRNT_OPTIONS.objectToMap = [:]
+PRNT_OPTIONS.objectToString = [:]
+PRNT_OPTIONS.highlightValue = [:]
 PRNT_OPTIONS['objectToMap'].put(org.jline.reader.impl.LineReaderImpl, _reader2map)
 PRNT_OPTIONS['objectToString'].put(org.jline.reader.impl.LineReaderImpl, _reader2string)
 PRNT_OPTIONS['highlightValue'].put('time.*', _number2date)
 PRNT_OPTIONS['highlightValue'].put('*', _orgJline)
 PRNT_OPTIONS.valueStyle = 'GRON'
+
+GROOVY_OPTIONS = [:]
+GROOVY_OPTIONS.identifiersCompletion = true;
 #
 # custom Groovy pipes
 #

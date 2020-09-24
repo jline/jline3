@@ -65,12 +65,14 @@ public class GroovyEngine implements ScriptEngine {
     public static final String ALL_METHODS_COMPLETION = "allMethodsCompletion";
     public static final String ALL_CONSTRUCTORS_COMPLETION = "allConstructorsCompletion";
     public static final String ALL_CLASSES_COMPLETION = "allClassesCompletion";
+    public static final String IDENTIFIERS_COMPLETION = "identifiersCompletion";
 
     private static final String VAR_GROOVY_OPTIONS = "GROOVY_OPTIONS";
     private static final String REGEX_SYSTEM_VAR = "[A-Z]+[A-Z_]*";
     private static final String REGEX_VAR = "[a-zA-Z_]+[a-zA-Z0-9_]*";
-    private static final Pattern PATTERN_FUNCTION_DEF = Pattern.compile("^def\\s+(" + REGEX_VAR + ")\\s*\\(([a-zA-Z0-9_ ,]*)\\)\\s*\\{(.*)?}(|\n)$"
-                                                                     , Pattern.DOTALL);
+    private static final Pattern PATTERN_FUNCTION_DEF = Pattern.compile(
+                                      "^def\\s+(" + REGEX_VAR + ")\\s*\\(([a-zA-Z0-9_ ,]*)\\)\\s*\\{(.*)?}(|\n)$"
+                                           , Pattern.DOTALL);
     private static final Pattern PATTERN_CLASS_DEF = Pattern.compile("^class\\s+(" + REGEX_VAR + ") .*?\\{.*?}(|\n)$"
                                                                   , Pattern.DOTALL);
     private static final Pattern PATTERN_CLASS_NAME = Pattern.compile("(.*?)\\.([A-Z].*)");
@@ -423,7 +425,7 @@ public class GroovyEngine implements ScriptEngine {
         return new AggregateCompleter(completers);
     }
 
-    private enum CandidateType {CONSTRUCTOR, STATIC_METHOD, PACKAGE, METHOD, FIELD, OTHER}
+    private enum CandidateType {CONSTRUCTOR, STATIC_METHOD, PACKAGE, METHOD, FIELD, IDENTIFIER, OTHER}
 
     private static Class<?> classResolver(String classDotName) {
         Class<?> out = null;
@@ -627,6 +629,8 @@ public class GroovyEngine implements ScriptEngine {
                     group = "Methods";
                 } else if (type == CandidateType.FIELD) {
                     group = "Fields";
+                } else if (type == CandidateType.IDENTIFIER) {
+                    group = "Identifiers";
                 }
                 candidates.add(new Candidate(AttributedString.stripAnsi(curBuf + s + postFix), s, group, desc, null
                              ,null, false));
@@ -710,6 +714,7 @@ public class GroovyEngine implements ScriptEngine {
 
     private static class MethodCompleter implements Completer {
         private static final List<String> KEY_WORDS = Arrays.asList("print", "println");
+        private static final List<String> VALUES = Arrays.asList("true", "false");
         private final GroovyEngine groovyEngine;
         private final SystemRegistry systemRegistry = SystemRegistry.get();
         private Inspector inspector;
@@ -780,18 +785,17 @@ public class GroovyEngine implements ScriptEngine {
                 int varsep = wordbuffer.lastIndexOf('.');
                 eqsep = Helpers.statementBegin(buffer, wordbuffer, brackets);
                 String param = wordbuffer.substring(eqsep + 1);
-                if (varsep < 0 || varsep < eqsep) {
+                if (param.trim().length() == 0) {
+                    // do nothing
+                } else if (varsep < 0 || varsep < eqsep) {
                     String curBuf = wordbuffer.substring(0, eqsep + 1);
-                    if (param.trim().length() == 0) {
-                        Helpers.doCandidates(candidates, Collections.singletonList(""), curBuf, param, CandidateType.OTHER);
+                    if (addKeyWords) {
+                        Helpers.doCandidates(candidates, KEY_WORDS, curBuf, param, CandidateType.METHOD);
                     } else {
-                        if (addKeyWords) {
-                            Helpers.doCandidates(candidates, KEY_WORDS, curBuf, param, CandidateType.METHOD);
-                        }
-                        Helpers.doCandidates(candidates, inspector.variables(), curBuf, param, CandidateType.OTHER);
-                        Helpers.doCandidates(candidates, retrieveClassesWithStaticMethods(), curBuf, param
-                                           , CandidateType.PACKAGE);
+                        Helpers.doCandidates(candidates, VALUES, curBuf, param, CandidateType.OTHER);
                     }
+                    Helpers.doCandidates(candidates, inspector.variables(), curBuf, param, CandidateType.OTHER);
+                    Helpers.doCandidates(candidates, retrieveClassesWithStaticMethods(), curBuf, param, CandidateType.PACKAGE);
                 } else {
                     boolean firstMethod = param.indexOf('.') == param.lastIndexOf('.');
                     String var = param.substring(0, param.indexOf('.'));
@@ -806,7 +810,13 @@ public class GroovyEngine implements ScriptEngine {
                         }
                     } else if (inspector.hasVariable(var)) {
                         if (firstMethod) {
-                            doMethodCandidates(candidates, inspector.getVariable(var).getClass(), curBuf, p);
+                            boolean addIdentifiers = groovyEngine.groovyOption(IDENTIFIERS_COMPLETION, false);
+                            Object object = inspector.getVariable(var);
+                            if (addIdentifiers) {
+                                doIdentifierCandidates(candidates, object, curBuf, p);
+                            }
+                            doMethodCandidates(candidates, object.getClass(), curBuf, p
+                                            , addIdentifiers && !(object instanceof Map));
                         } else if (!restrictedCompletion) {
                             Class<?> clazz = inspector.evaluateClass(wordbuffer.substring(eqsep + 1, varsep));
                             doMethodCandidates(candidates, clazz, curBuf, p);
@@ -840,14 +850,41 @@ public class GroovyEngine implements ScriptEngine {
                     );
         }
 
+        @SuppressWarnings("unchecked")
+        private void doIdentifierCandidates(List<Candidate> candidates, Object object, String curBuf, String hint) {
+            if (!(object instanceof Map)) {
+                return;
+            }
+            Map<?,?> map = (Map<?,?>)object;
+            if (map.isEmpty() || !(map.keySet().iterator().next() instanceof String)) {
+                return;
+            }
+            Helpers.doCandidates(candidates, (Set<String>)map.keySet(), curBuf, hint, CandidateType.IDENTIFIER);
+        }
+
         private void doMethodCandidates(List<Candidate> candidates, Class<?> clazz, String curBuf, String hint) {
+            doMethodCandidates(candidates, clazz, curBuf, hint, false);
+        }
+
+        private void doMethodCandidates(List<Candidate> candidates, Class<?> clazz, String curBuf, String hint
+                                      , boolean addIdentifiers) {
             if (clazz == null) {
                 return;
             }
-            Helpers.doCandidates(candidates, Helpers.getMethods(clazz, access.allMethods), curBuf, hint
-                               , CandidateType.METHOD);
-            Helpers.doCandidates(candidates, Helpers.getFields(clazz, access.allFields), curBuf, hint
-                               , CandidateType.FIELD);
+            Set<String> methods = Helpers.getMethods(clazz, access.allMethods);
+            if (addIdentifiers) {
+                Set<String> identifiers = new HashSet<>();
+                for (String m : methods) {
+                    if (m.matches("get[A-Z].*")) {
+                        char[] c = m.substring(3).toCharArray();
+                        c[0] = Character.toLowerCase(c[0]);
+                        identifiers.add(new String(c));
+                    }
+                }
+                Helpers.doCandidates(candidates, identifiers, curBuf, hint, CandidateType.IDENTIFIER);
+            }
+            Helpers.doCandidates(candidates, methods, curBuf, hint, CandidateType.METHOD);
+            Helpers.doCandidates(candidates, Helpers.getFields(clazz, access.allFields), curBuf, hint, CandidateType.FIELD);
         }
 
         private void doStaticMethodCandidates(List<Candidate> candidates, Class<?> clazz, String curBuf, String hint) {
