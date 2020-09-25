@@ -4903,7 +4903,11 @@ public class LineReaderImpl implements LineReader, Flushable
         original.sort(getCandidateComparator(caseInsensitive, completed));
         mergeCandidates(original);
         computePost(original, null, possible, completed);
-
+        // candidate grouping is not supported by MenuSupport
+        boolean defaultAutoGroup = isSet(Option.AUTO_GROUP);
+        boolean defaultGroup = isSet(Option.GROUP);
+        option(Option.AUTO_GROUP, false);
+        option(Option.GROUP, false);
         // Build menu support
         MenuSupport menuSupport = new MenuSupport(original, completed, escaper);
         post = menuSupport;
@@ -4960,12 +4964,16 @@ public class LineReaderImpl implements LineReader, Flushable
                         pushBackBinding(true);
                     }
                     post = null;
+                    option(Option.AUTO_GROUP, defaultAutoGroup);
+                    option(Option.GROUP, defaultGroup);
                     return true;
                 }
             }
             doAutosuggestion = false;
             callWidget(REDISPLAY);
         }
+        option(Option.AUTO_GROUP, defaultAutoGroup);
+        option(Option.GROUP, defaultGroup);
         return false;
     }
 

@@ -113,7 +113,7 @@ def _testWidget() {
 #
 def _tailTipToggle() {
     def al = _reader.getWidgets().get('accept-line').toString()
-    def enabled = al == '_tailtip-accept-line' ? true : false
+    def enabled = al == '_tailtip-accept-line'
     if (enabled) {
         _reader.setVariable('LIST_MAX',100)
         _reader.option(org.jline.reader.LineReader.Option.INSERT_BRACKET, true)
@@ -133,18 +133,6 @@ def _docJline() {
 def _docGroovy() {
     :doc groovy
 }
-#
-# widget function to toggle candidate grouping
-#
-def _toggleGroup(){
-    if (_reader.isSet(org.jline.reader.LineReader.Option.AUTO_GROUP)) {
-        :setopt no-group
-        :setopt no-auto-group
-    } else {
-        :unsetopt no-group
-        :unsetopt no-auto-group
-    }
-}
 
 #
 # resolve function keys
@@ -161,7 +149,6 @@ widget -N _test-widget _testWidget
 widget -N _tailtip-toggle _tailTipToggle
 widget -N _doc-jline _docJline
 widget -N _doc-groovy _docGroovy
-widget -N _toggle-group _toggleGroup
 
 keymap '^[^x' _test-widget
 keymap '^[s'  _tailtip-toggle
