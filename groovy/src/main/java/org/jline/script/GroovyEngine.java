@@ -31,6 +31,7 @@ import org.jline.console.CmdDesc;
 import org.jline.console.CmdLine;
 import org.jline.console.ScriptEngine;
 import org.jline.console.SystemRegistry;
+import org.jline.groovy.ObjectInspector;
 import org.jline.groovy.Utils;
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
@@ -66,6 +67,7 @@ public class GroovyEngine implements ScriptEngine {
     public static final String ALL_CONSTRUCTORS_COMPLETION = "allConstructorsCompletion";
     public static final String ALL_CLASSES_COMPLETION = "allClassesCompletion";
     public static final String IDENTIFIERS_COMPLETION = "identifiersCompletion";
+    public static final String META_METHODS_COMPLETION = "metaMethodsCompletion";
 
     private static final String VAR_GROOVY_OPTIONS = "GROOVY_OPTIONS";
     private static final String REGEX_SYSTEM_VAR = "[A-Z]+[A-Z_]*";
@@ -76,7 +78,7 @@ public class GroovyEngine implements ScriptEngine {
     private static final Pattern PATTERN_CLASS_DEF = Pattern.compile("^class\\s+(" + REGEX_VAR + ") .*?\\{.*?}(|\n)$"
                                                                   , Pattern.DOTALL);
     private static final Pattern PATTERN_CLASS_NAME = Pattern.compile("(.*?)\\.([A-Z].*)");
-    private static final List<String> defaultImports = Arrays.asList("java.lang.*", "java.util.*", "java.io.*"
+    private static final List<String> DEFAULT_IMPORTS = Arrays.asList("java.lang.*", "java.util.*", "java.io.*"
                                                      , "java.net.*", "groovy.lang.*", "groovy.util.*"
                                                      , "java.math.BigInteger", "java.math.BigDecimal");
     private final Map<String,Class<?>> defaultNameClass = new HashMap<>();
@@ -96,7 +98,7 @@ public class GroovyEngine implements ScriptEngine {
     public GroovyEngine() {
         this.sharedData = new Binding();
         shell = new GroovyShell(sharedData);
-        for (String s : defaultImports) {
+        for (String s : DEFAULT_IMPORTS) {
             addToNameClass(s, defaultNameClass);
         }
         nameClass = new HashMap<>(defaultNameClass);
@@ -425,7 +427,7 @@ public class GroovyEngine implements ScriptEngine {
         return new AggregateCompleter(completers);
     }
 
-    private enum CandidateType {CONSTRUCTOR, STATIC_METHOD, PACKAGE, METHOD, FIELD, IDENTIFIER, OTHER}
+    private enum CandidateType {CONSTRUCTOR, STATIC_METHOD, PACKAGE, METHOD, FIELD, IDENTIFIER, META_METHOD, OTHER}
 
     private static Class<?> classResolver(String classDotName) {
         Class<?> out = null;
@@ -631,6 +633,9 @@ public class GroovyEngine implements ScriptEngine {
                     group = "Fields";
                 } else if (type == CandidateType.IDENTIFIER) {
                     group = "Identifiers";
+                } else if (type == CandidateType.META_METHOD) {
+                    postFix = "(";
+                    group = "MetaMethods";
                 }
                 candidates.add(new Candidate(AttributedString.stripAnsi(curBuf + s + postFix), s, group, desc, null
                              ,null, false));
@@ -713,14 +718,13 @@ public class GroovyEngine implements ScriptEngine {
     }
 
     private static class MethodCompleter implements Completer {
-        private static final List<String> KEY_WORDS = Arrays.asList("print", "println");
         private static final List<String> VALUES = Arrays.asList("true", "false");
         private final GroovyEngine groovyEngine;
         private final SystemRegistry systemRegistry = SystemRegistry.get();
         private Inspector inspector;
         private AccessRules access;
-        private boolean allFieldsCompletion;
-        private boolean allMethodsCompletion;
+        private boolean metaMethodCompletion;
+        private boolean identifierCompletion;
 
         public MethodCompleter(GroovyEngine engine){
             this.groovyEngine = engine;
@@ -746,6 +750,8 @@ public class GroovyEngine implements ScriptEngine {
                 return;
             }
             boolean restrictedCompletion = groovyEngine.groovyOption(RESTRICTED_COMPLETION, false);
+            metaMethodCompletion = groovyEngine.groovyOption(META_METHODS_COMPLETION, false);
+            identifierCompletion = groovyEngine.groovyOption(IDENTIFIERS_COMPLETION, false);
             access = new AccessRules(groovyEngine.groovyOptions());
             inspector = new Inspector(groovyEngine);
             inspector.loadStatementVars(buffer);
@@ -754,10 +760,11 @@ public class GroovyEngine implements ScriptEngine {
                 int varsep = buffer.lastIndexOf('.');
                 if (varsep > 0 && varsep > brackets.lastCloseRound() && !restrictedCompletion) {
                     Class<?> clazz = inspector.evaluateClass(buffer.substring(eqsep + 1, varsep));
+                    Object involvedObject = inspector.getInvolvedObject();
                     int vs = wordbuffer.lastIndexOf('.');
                     String curBuf = wordbuffer.substring(0, vs + 1);
                     String hint = wordbuffer.substring(vs + 1);
-                    doMethodCandidates(candidates, clazz, curBuf, hint);
+                    doMethodCandidates(candidates, involvedObject == null ? clazz : involvedObject, curBuf, hint);
                 }
             } else if (completingConstructor(commandLine)) {
                 if (wordbuffer.matches("[a-z]+.*")) {
@@ -790,7 +797,8 @@ public class GroovyEngine implements ScriptEngine {
                 } else if (varsep < 0 || varsep < eqsep) {
                     String curBuf = wordbuffer.substring(0, eqsep + 1);
                     if (addKeyWords) {
-                        Helpers.doCandidates(candidates, KEY_WORDS, curBuf, param, CandidateType.METHOD);
+                        Helpers.doCandidates(candidates, ObjectInspector.GLOBAL_META_METHODS, curBuf, param
+                                           , CandidateType.METHOD);
                     } else {
                         Helpers.doCandidates(candidates, VALUES, curBuf, param, CandidateType.OTHER);
                     }
@@ -806,20 +814,16 @@ public class GroovyEngine implements ScriptEngine {
                             doStaticMethodCandidates(candidates, inspector.nameClass().get(var), curBuf, p);
                         } else if (!restrictedCompletion) {
                             Class<?> clazz = inspector.evaluateClass(wordbuffer.substring(eqsep + 1, varsep));
-                            doMethodCandidates(candidates, clazz, curBuf, p);
+                            Object involvedObject = inspector.getInvolvedObject();
+                            doMethodCandidates(candidates, involvedObject == null ? clazz : involvedObject, curBuf, p);
                         }
                     } else if (inspector.hasVariable(var)) {
                         if (firstMethod) {
-                            boolean addIdentifiers = groovyEngine.groovyOption(IDENTIFIERS_COMPLETION, false);
-                            Object object = inspector.getVariable(var);
-                            if (addIdentifiers) {
-                                doIdentifierCandidates(candidates, object, curBuf, p);
-                            }
-                            doMethodCandidates(candidates, object.getClass(), curBuf, p
-                                            , addIdentifiers && !(object instanceof Map));
+                            doMethodCandidates(candidates, inspector.getVariable(var), curBuf, p);
                         } else if (!restrictedCompletion) {
                             Class<?> clazz = inspector.evaluateClass(wordbuffer.substring(eqsep + 1, varsep));
-                            doMethodCandidates(candidates, clazz, curBuf, p);
+                            Object involvedObject = inspector.getInvolvedObject();
+                            doMethodCandidates(candidates, involvedObject == null ? clazz : involvedObject, curBuf, p);
                         }
                     } else {
                         try {
@@ -862,12 +866,38 @@ public class GroovyEngine implements ScriptEngine {
             Helpers.doCandidates(candidates, (Set<String>)map.keySet(), curBuf, hint, CandidateType.IDENTIFIER);
         }
 
+        private Set<String> doMetaMethodCandidates(List<Candidate> candidates, Object object, String curBuf, String hint) {
+            ObjectInspector inspector = new ObjectInspector(object);
+            List<Map<String,String>> mms = inspector.metaMethods(false);
+            Set<String> metaMethods = new HashSet<>();
+            for (Map<String,String> mm : mms) {
+                metaMethods.add(mm.get(ObjectInspector.FIELD_NAME));
+            }
+            Helpers.doCandidates(candidates, metaMethods, curBuf, hint, CandidateType.META_METHOD);
+            return metaMethods;
+        }
+
+        private void doMethodCandidates(List<Candidate> candidates, Object object, String curBuf, String hint) {
+            if (object == null) {
+                return;
+            }
+            Set<String> metaMethods = null;
+            if (identifierCompletion) {
+                doIdentifierCandidates(candidates, object, curBuf, hint);
+            }
+            if (metaMethodCompletion) {
+                metaMethods = doMetaMethodCandidates(candidates, object, curBuf, hint);
+            }
+            doMethodCandidates(candidates, object.getClass(), curBuf, hint
+                            , identifierCompletion  && !(object instanceof Map), metaMethods);
+        }
+
         private void doMethodCandidates(List<Candidate> candidates, Class<?> clazz, String curBuf, String hint) {
-            doMethodCandidates(candidates, clazz, curBuf, hint, false);
+            doMethodCandidates(candidates, clazz, curBuf, hint, false, null);
         }
 
         private void doMethodCandidates(List<Candidate> candidates, Class<?> clazz, String curBuf, String hint
-                                      , boolean addIdentifiers) {
+                                      , boolean addIdentifiers, Set<String> metaMethods) {
             if (clazz == null) {
                 return;
             }
@@ -887,6 +917,11 @@ public class GroovyEngine implements ScriptEngine {
                     }
                 }
                 Helpers.doCandidates(candidates, identifiers, curBuf, hint, CandidateType.IDENTIFIER);
+            }
+            if (metaMethods != null) {
+                for (String mm : metaMethods) {
+                    methods.remove(mm);
+                }
             }
             Helpers.doCandidates(candidates, methods, curBuf, hint, CandidateType.METHOD);
             Helpers.doCandidates(candidates, Helpers.getFields(clazz, access.allFields), curBuf, hint, CandidateType.FIELD);
@@ -958,11 +993,13 @@ public class GroovyEngine implements ScriptEngine {
         private boolean canonicalNames = false;
         private final boolean noSyntaxCheck;
         private final boolean restrictedCompletion;
+        private final boolean metaMethodsCompletion;
         private final AccessRules access;
         private String[] equationLines;
         private int cuttedSize;
         private final String nanorcSyntax;
         private final String groovyColors;
+        private Object involvedObject = null;
 
         public Inspector(GroovyEngine groovyEngine) {
             this.imports = groovyEngine.imports;
@@ -971,6 +1008,7 @@ public class GroovyEngine implements ScriptEngine {
             this.nanorcSyntax = groovyEngine.groovyOption(NANORC_SYNTAX, DEFAULT_NANORC_SYNTAX);
             this.noSyntaxCheck = groovyEngine.groovyOption(NO_SYNTAX_CHECK, false);
             this.restrictedCompletion = groovyEngine.groovyOption(RESTRICTED_COMPLETION, false);
+            this.metaMethodsCompletion = groovyEngine.groovyOption(META_METHODS_COMPLETION, false);
             this.access = new AccessRules(groovyEngine.groovyOptions());
             String gc = groovyEngine.groovyOption(GROOVY_COLORS, null);
             groovyColors = gc != null && Styles.isAnsiStylePattern(gc) ? gc : DEFAULT_GROOVY_COLORS;
@@ -997,10 +1035,15 @@ public class GroovyEngine implements ScriptEngine {
             }
         }
 
+        public Object getInvolvedObject() {
+            return involvedObject;
+        }
+
         public Class<?> evaluateClass(String objectStatement) {
             Class<?> out = null;
             try {
-                out = execute(objectStatement).getClass();
+                involvedObject = execute(objectStatement);
+                out = involvedObject.getClass();
             } catch (Exception e) {
                 // ignore
             }
@@ -1214,7 +1257,8 @@ public class GroovyEngine implements ScriptEngine {
                 if (st.matches("[A-Z]+\\w+\\s*\\(.*")) {
                     st = "new " + st;
                 }
-                if (!restrictedCompletion || new Brackets(st).numberOfRounds() == 0) {
+                int nb = new Brackets(st).numberOfRounds();
+                if (!restrictedCompletion || nb == 0) {
                     clazz = evaluateClass(st);
                 }
             } else if (args.size() > 1 && Helpers.constructorStatement(args.get(args.size() - 2))
@@ -1240,7 +1284,7 @@ public class GroovyEngine implements ScriptEngine {
                         sb.append(name);
                         sb.append("(");
                         boolean first = true;
-                        for(Class<?> p: m.getParameterTypes()) {
+                        for (Class<?> p : m.getParameterTypes()) {
                             if (!first) {
                                 sb.append(", ");
                             }
@@ -1249,7 +1293,7 @@ public class GroovyEngine implements ScriptEngine {
                         }
                         sb.append(")");
                         first = true;
-                        for (Class<?> e: m.getExceptionTypes()) {
+                        for (Class<?> e : m.getExceptionTypes()) {
                             if (first) {
                                 sb.append(" throws ");
                             } else {
@@ -1262,6 +1306,33 @@ public class GroovyEngine implements ScriptEngine {
                     }
                 } else {
                     List<String> addedMethods = new ArrayList<>();
+                    if (metaMethodsCompletion && involvedObject != null) {
+                        for (Map<String,String> mm : new ObjectInspector(involvedObject).metaMethods(false)) {
+                            if (!mm.get(ObjectInspector.FIELD_NAME).equals(methodName)) {
+                                continue;
+                            }
+                            StringBuilder sb = new StringBuilder();
+                            String modifiers = mm.get(ObjectInspector.FIELD_MODIFIERS);
+                            if (!access.allMethods) {
+                                if (modifiers.equals("public")) {
+                                    modifiers = "";
+                                } else if (modifiers.startsWith("public ")) {
+                                    modifiers = modifiers.substring(7);
+                                }
+                            }
+                            if (!modifiers.isEmpty()) {
+                                sb.append(modifiers).append(" ");
+                            }
+                            sb.append(convertArrayParams(mm.get(ObjectInspector.FIELD_RETURN))).append(" ");
+                            sb.append(methodName).append("(");
+                            sb.append(convertArrayParams(mm.get(ObjectInspector.FIELD_PARAMETERS)));
+                            sb.append(")");
+                            if (!addedMethods.contains(sb.toString())) {
+                                addedMethods.add(sb.toString());
+                                mainDesc.add(java.highlight(trimMethodDescription(sb)));
+                            }
+                        }
+                    }
                     do {
                         for (Method m : access.allMethods ? clazz.getDeclaredMethods() : clazz.getMethods()) {
                             if (!m.getName().equals(methodName)) {
@@ -1275,7 +1346,7 @@ public class GroovyEngine implements ScriptEngine {
                             if (Modifier.isStatic(m.getModifiers())) {
                                 sb.append("static ");
                             }
-                            sb.append(canonicalNames ?  m.getReturnType().getCanonicalName() : m.getReturnType().getSimpleName());
+                            sb.append(canonicalNames ? m.getReturnType().getCanonicalName() : m.getReturnType().getSimpleName());
                             sb.append(" ");
                             sb.append(methodName);
                             sb.append("(");
@@ -1307,6 +1378,17 @@ public class GroovyEngine implements ScriptEngine {
                     } while (clazz != null);
                 }
                 out.setMainDesc(mainDesc);
+            }
+            return out;
+        }
+
+        private String convertArrayParams(String value) {
+            String out = value.replaceAll("\\[B", "byte[]");
+            Pattern arrayPattern = Pattern.compile("(.*)\\[L.*\\.([A-Z].*?);(.*)");
+            Matcher matcher = arrayPattern.matcher(value);
+            while (matcher.matches()) {
+                out = matcher.group(1) + matcher.group(2) + "[]" + matcher.group(3);
+                matcher = arrayPattern.matcher(out);
             }
             return out;
         }
@@ -1480,7 +1562,8 @@ public class GroovyEngine implements ScriptEngine {
          * Shallow copy of the object using java Cloneable clone() method.
          */
         public Object clone(Object obj) {
-            if (obj == null || obj instanceof String || obj instanceof Integer || obj instanceof Exception || obj instanceof Closure) {
+            if (obj == null || obj instanceof String || obj instanceof Integer || obj instanceof Exception
+                    || obj instanceof Closure) {
                 return obj;
             }
             Object out;
