@@ -633,6 +633,10 @@ public class GroovyEngine implements ScriptEngine {
                     group = "Fields";
                 } else if (type == CandidateType.IDENTIFIER) {
                     group = "Identifiers";
+                    if (s.contains("-") || s.contains("+") || s.contains(" ") || s.contains("#")
+                            || !s.matches("[a-zA-Z$_].*")){
+                        continue;
+                    }
                 } else if (type == CandidateType.META_METHOD) {
                     postFix = "(";
                     group = "MetaMethods";
@@ -906,13 +910,17 @@ public class GroovyEngine implements ScriptEngine {
                 Set<String> identifiers = new HashSet<>();
                 for (String m : methods) {
                     if (m.matches("get[A-Z].*")) {
-                        try {
-                            clazz.getDeclaredMethod(m);
-                            char[] c = m.substring(3).toCharArray();
-                            c[0] = Character.toLowerCase(c[0]);
-                            identifiers.add(new String(c));
-                        } catch (NoSuchMethodException e) {
-                            // ignore
+                        Class<?> cc = clazz;
+                        while (cc != null) {
+                            try {
+                                cc.getDeclaredMethod(m);
+                                char[] c = m.substring(3).toCharArray();
+                                c[0] = Character.toLowerCase(c[0]);
+                                identifiers.add(new String(c));
+                                break;
+                            } catch (NoSuchMethodException e) {
+                                cc = cc.getSuperclass();
+                            }
                         }
                     }
                 }
