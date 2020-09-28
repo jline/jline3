@@ -574,6 +574,43 @@ public class SystemRegistryImpl implements SystemRegistry {
         return variable == null ? rawLine.replaceFirst(command + "(\\b|$)", consoleEngine().getAlias(command))
                                 : rawLine.replaceFirst("=" + command + "(\\b|$)", "=" + consoleEngine().getAlias(command));
     }
+    
+    private String replacePipeAlias(ArgsParser ap, String pipeAlias, List<String> args, Map<String,List<String>> customPipes){
+        String alias = pipeAlias;
+        for (int j = 0; j < args.size(); j++) {
+            alias = alias.replaceAll("\\s\\$" + j + "\\b", " " + args.get(j));
+            alias = alias.replaceAll("\\$\\{" + j + "(|:-.*)}", args.get(j));
+        }
+        alias = alias.replaceAll("\\$\\{@}", consoleEngine().expandToList(args));
+        alias = alias.replaceAll("\\$@", consoleEngine().expandToList(args));
+        alias = alias.replaceAll("\\s+\\$\\d\\b", "");
+        alias = alias.replaceAll("\\s+\\$\\{\\d+}", "");
+        alias = alias.replaceAll("\\$\\{\\d+}", "");
+        Matcher matcher = Pattern.compile("\\$\\{\\d+:-(.*?)}").matcher(alias);
+        if (matcher.find()) {
+            alias = matcher.replaceAll("$1");
+        }
+        ap.parse(alias);
+        List<String> ws = ap.args();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0 ; i < ws.size(); i++) {
+            if (ws.get(i).equals(pipeName.get(Pipe.NAMED))) {
+                if (i + 1 < ws.size() && consoleEngine().hasAlias(ws.get(i + 1))) {
+                    args.clear();
+                    String innerPipe = consoleEngine().getAlias(ws.get(++i));
+                    while (i < ws.size() - 1 && !names.isPipe(ws.get(i + 1), customPipes.keySet())) {
+                        args.add(ws.get(++i));
+                    }
+                    sb.append(replacePipeAlias(ap, innerPipe, args, customPipes));
+                } else {
+                    sb.append(ws.get(i)).append(' ');
+                }
+            } else {
+                sb.append(ws.get(i)).append(' ');
+            }
+        }
+        return sb.toString();
+    }
 
     private List<CommandData> compileCommandLine(String commandLine) {
         List<CommandData> out = new ArrayList<>();
@@ -596,27 +633,13 @@ public class SystemRegistryImpl implements SystemRegistry {
                         while (i < ws.size() - 1 && !names.isPipe(ws.get(i + 1), customPipes.keySet())) {
                             args.add(ws.get(++i));
                         }
-                        for (int j = 0; j < args.size(); j++) {
-                            pipeAlias = pipeAlias.replaceAll("\\s\\$" + j + "\\b", " " + args.get(j));
-                            pipeAlias = pipeAlias.replaceAll("\\$\\{" + j + "(|:-.*)}", args.get(j));
-                        }
-                        pipeAlias = pipeAlias.replaceAll("\\$\\{@}", consoleEngine().expandToList(args));
-                        pipeAlias = pipeAlias.replaceAll("\\$@", consoleEngine().expandToList(args));
-                        pipeAlias = pipeAlias.replaceAll("\\s+\\$\\d\\b", "");
-                        pipeAlias = pipeAlias.replaceAll("\\s+\\$\\{\\d+}", "");
-                        pipeAlias = pipeAlias.replaceAll("\\$\\{\\d+}", "");
-                        Matcher matcher = Pattern.compile("\\$\\{\\d+:-(.*?)}").matcher(pipeAlias);
-                        if (matcher.find()) {
-                            pipeAlias = matcher.replaceAll("$1");
-                        }
-                        sb.append(pipeAlias);
+                        sb.append(replacePipeAlias(ap, pipeAlias, args, customPipes));
                     } else {
-                        sb.append(ws.get(i));
+                        sb.append(ws.get(i)).append(' ');
                     }
                 } else {
-                    sb.append(ws.get(i));
+                    sb.append(ws.get(i)).append(' ');
                 }
-                sb.append(" ");
             }
             ap.parse(sb.toString());
             if (trace) {
@@ -1192,7 +1215,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     private ExecutionResult postProcess(CommandData cmd, boolean statement, Object result) {
-        ExecutionResult out = new ExecutionResult(result != null ? 0 : 1, result);
+        ExecutionResult out;
         if (cmd.file() != null) {
             int status = 1;
             if (cmd.file().exists()) {
