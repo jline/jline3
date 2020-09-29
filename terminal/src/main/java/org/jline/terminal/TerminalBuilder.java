@@ -221,7 +221,7 @@ public final class TerminalBuilder {
     /**
      * Initial size to use when creating a non system terminal,
      * i.e. when the builder has been given the input and
-     * outut streams using the {@link #streams(InputStream, OutputStream)} method
+     * output streams using the {@link #streams(InputStream, OutputStream)} method
      * or when {@link #system(boolean)} has been explicitely called with
      * <code>false</code>.
      *
