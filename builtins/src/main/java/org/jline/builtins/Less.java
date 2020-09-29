@@ -22,12 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -72,7 +67,7 @@ public class Less {
     public boolean ignoreCaseAlways;
     public boolean noKeypad;
     public boolean noInit;
-    protected List<Integer> tabs = Arrays.asList(4);
+    protected List<Integer> tabs = Collections.singletonList(4);
     protected String syntaxName;
     private String historyLog = null;
 
@@ -111,11 +106,11 @@ public class Less {
     protected final Size size = new Size();
 
     SyntaxHighlighter syntaxHighlighter;
-    private List<Path> syntaxFiles = new ArrayList<>();
+    private final List<Path> syntaxFiles = new ArrayList<>();
     private boolean highlight = true;
 
     public static String[] usage() {
-        final String[] usage = {
+        return new String[]{
                 "less -  file pager",
                 "Usage: less [OPTIONS] [FILES]",
                 "  -? --help                    Show help",
@@ -135,7 +130,6 @@ public class Less {
                 "     --ignorercfiles           Don't look at the system's lessrc nor at the user's lessrc.",
                 "  -H --historylog=name         Log search strings to file, so they can be retrieved in later sessions"
         };
-        return usage;
     }
 
     public Less(Terminal terminal, Path currentDir) {
@@ -163,7 +157,7 @@ public class Less {
             PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:/usr/share/nano/*.nanorc");
             try {
                 Files.find(Paths.get("/usr/share/nano"), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
-                     .forEach(p -> syntaxFiles.add(p));
+                     .forEach(syntaxFiles::add);
             } catch (IOException e) {
                 errorMessage = "Encountered error while reading nanorc files";
             }
@@ -232,7 +226,7 @@ public class Less {
                     if (parts.get(1).contains("*") || parts.get(1).contains("?")) {
                          PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parts.get(1));
                          Files.find(Paths.get(new File(parts.get(1)).getParent()), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
-                                 .forEach(p -> syntaxFiles.add(p));
+                                 .forEach(syntaxFiles::add);
                     } else {
                         syntaxFiles.add(Paths.get(parts.get(1)));
                     }
@@ -686,7 +680,7 @@ public class Less {
     }
 
     private class LineEditor {
-        private int begPos;
+        private final int begPos;
 
         public LineEditor(int begPos) {
             this.begPos = begPos;
@@ -840,10 +834,10 @@ public class Less {
         LineEditor lineEditor = new LineEditor(begPos);
         while (true) {
             checkInterrupted();
-            Operation op = null;
-            switch (op=bindingReader.readBinding(fileKeyMap)) {
+            Operation op;
+            switch (op = bindingReader.readBinding(fileKeyMap)) {
             case ACCEPT:
-                String name = buffer.toString().substring(begPos);
+                String name = buffer.substring(begPos);
                 addSource(name);
                 try {
                     openSource();
@@ -893,8 +887,8 @@ public class Less {
         LineEditor lineEditor = new LineEditor(begPos);
         while (true) {
             checkInterrupted();
-            Operation op = null;
-            switch (op=bindingReader.readBinding(searchKeyMap)) {
+            Operation op;
+            switch (op = bindingReader.readBinding(searchKeyMap)) {
             case UP:
                 buffer.setLength(0);
                 buffer.append(type);
@@ -909,7 +903,7 @@ public class Less {
                 break;
             case ACCEPT:
                 try {
-                    String _pattern = buffer.toString().substring(1);
+                    String _pattern = buffer.substring(1);
                     if (type == '&') {
                         displayPattern = _pattern.length() > 0 ? _pattern : null;
                         getPattern(true);
@@ -968,7 +962,7 @@ public class Less {
         try {
             openSource();
             display(false);
-            Operation op = null;
+            Operation op;
             do {
                 checkInterrupted();
                 op = bindingReader.readBinding(keys, null, false);
@@ -997,7 +991,7 @@ public class Less {
             reader.close();
             wasOpen = true;
         }
-        boolean open = false;
+        boolean open;
         boolean displayMessage = false;
         do {
             Source source = sources.get(sourceIdx);
@@ -1276,7 +1270,7 @@ public class Less {
     }
 
     private Pair<Integer, AttributedString> nextLine2display(int line, Pattern dpCompiled) throws IOException {
-        AttributedString curLine = null;
+        AttributedString curLine;
         do {
             curLine = getLine(line++);
         } while (!toBeDisplayed(curLine, dpCompiled));
@@ -1284,7 +1278,7 @@ public class Less {
     }
 
     private Pair<Integer, AttributedString> prevLine2display(int line, Pattern dpCompiled) throws IOException {
-        AttributedString curLine = null;
+        AttributedString curLine;
         do {
             curLine = getLine(line--);
         } while (line > 0 && !toBeDisplayed(curLine, dpCompiled));

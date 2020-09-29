@@ -78,6 +78,7 @@ public class Nano implements Editor {
     protected final Size size;
     protected final Path root;
     protected final int vsusp;
+    private final List<Path> syntaxFiles = new ArrayList<>();
 
     // Keys
     protected KeyMap<Operation> keys;
@@ -131,9 +132,7 @@ public class Nano implements Editor {
     protected List<String> cutbuffer = new ArrayList<>();
     protected boolean mark = false;
     protected boolean highlight = true;
-    private List<Path> syntaxFiles = new ArrayList<>();
     private boolean searchToReplace = false;
-
     protected boolean readNewBuffer = true;
 
     protected enum WriteMode {
@@ -155,7 +154,7 @@ public class Nano implements Editor {
     }
 
     public static String[] usage() {
-        final String[] usage = {
+        return new String[]{
                 "nano -  edit files",
                 "Usage: nano [OPTIONS] [FILES]",
                 "  -? --help                    Show help",
@@ -184,7 +183,6 @@ public class Nano implements Editor {
                 "  -E --tabstospaces            Convert typed tabs to spaces.",
                 "  -i --autoindent              Indent new lines to the previous line's indentation."
         };
-        return usage;
     }
 
     protected class Buffer {
@@ -433,7 +431,7 @@ public class Nano implements Editor {
         }
 
         boolean isBreakable(char ch) {
-            return atBlanks ? ch == ' ' : true;
+            return !atBlanks || ch == ' ';
         }
 
         void moveToChar(int pos) {
@@ -480,7 +478,6 @@ public class Nano implements Editor {
                     lines.remove(line + 1);
                     offsets.remove(line + 1);
                     count--;
-                    dirty = true;
                 } else {
                     int nb = Math.min(pos, count);
                     int curPos = length(text.substring(0, pos - nb));
@@ -489,8 +486,8 @@ public class Nano implements Editor {
                     offsets.set(line, computeOffsets(text));
                     moveToChar(curPos);
                     count -= nb;
-                    dirty = true;
                 }
+                dirty = true;
             }
             ensureCursorVisible();
             return true;
@@ -528,7 +525,7 @@ public class Nano implements Editor {
                 firstColumnToDisplay = 0;
                 offsetInLine = 0;
                 column = 0;
-                chars = chars <= length(getLine(line)) ? chars : length(getLine(line));
+                chars = Math.min(chars, length(getLine(line)));
             }
             boolean ret = true;
             while (--chars >= 0) {
@@ -758,14 +755,14 @@ public class Nano implements Editor {
                         int nb = max - p1.length() - "File: ...".length();
                         int cut;
                         cut = Math.max(0, Math.min(p0.length(), p0.length() - nb));
-                        middle = "File: ..." + p0.substring(cut, p0.length()) + p1;
+                        middle = "File: ..." + p0.substring(cut) + p1;
                     }
                     if (middle == null || middle.length() > max) {
                         left = null;
                         max = mend - 2;
                         int nb = max - "File: ...".length();
                         int cut = Math.max(0, Math.min(src.length(), src.length() - nb));
-                        middle = "File: ..." + src.substring(cut, src.length());
+                        middle = "File: ..." + src.substring(cut);
                         if (middle.length() > max) {
                             middle = middle.substring(0, max);
                         }
@@ -945,7 +942,7 @@ public class Nano implements Editor {
 
         public void gotoLine(int x, int y) {
             line = y < lines.size() ? y : lines.size() - 1;
-            x = x <= length(lines.get(line)) ? x : length(lines.get(line));
+            x = Math.min(x, length(lines.get(line)));
             firstLineToDisplay = line > 0 ? line - 1 : line;
             offsetInLine = 0;
             offsetInLineToDisplay = 0;
@@ -1419,8 +1416,13 @@ public class Nano implements Editor {
         }
     }
 
+    /**
+     *  Java implementation of nanorc highlighter
+     *
+     *  @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
+     */
     public static class SyntaxHighlighter {
-        private List<HighlightRule> rules = new ArrayList<>();
+        private final List<HighlightRule> rules = new ArrayList<>();
         private int ruleStartId = 0;
 
         private SyntaxHighlighter() {}
@@ -1440,6 +1442,7 @@ public class Nano implements Editor {
                             defaultRules.addAll(parser.getHighlightRules());
                         }
                     } catch (IOException e) {
+                        // ignore
                     }
                 }
                 out.addRules(defaultRules);
@@ -1472,7 +1475,7 @@ public class Nano implements Editor {
                                         Paths.get(new File(parts.get(1)).getParent()),
                                         Integer.MAX_VALUE,
                                         (path, f) -> pathMatcher.matches(path))
-                                        .forEach(p -> syntaxFiles.add(p));
+                                        .forEach(syntaxFiles::add);
                             } else {
                                 syntaxFiles.add(Paths.get(parts.get(1)));
                             }
@@ -1483,6 +1486,7 @@ public class Nano implements Editor {
                 reader.close();
                 out = build(syntaxFiles, null, syntaxName);
             } catch (Exception e) {
+                // ignore
             }
             return out;
         }
@@ -1506,6 +1510,7 @@ public class Nano implements Editor {
                 parser.parse();
                 out.addRules(parser.getHighlightRules());
             } catch (IOException e) {
+                // ignore
             }
             return out;
         }
@@ -1580,10 +1585,10 @@ public class Nano implements Editor {
     }
 
     private static class HighlightRule {
-        public enum RuleType {PATTERN, START_END};
-        private RuleType type;
+        public enum RuleType {PATTERN, START_END}
+        private final RuleType type;
         private Pattern pattern;
-        private AttributedStyle style;
+        private final AttributedStyle style;
         private Pattern start;
         private Pattern end;
 
@@ -1644,12 +1649,12 @@ public class Nano implements Editor {
 
     private static class NanorcParser {
         private static final String DEFAULT_SYNTAX = "default";
-        private String name;
-        private String target;
+        private final String name;
+        private final String target;
+        private final List<HighlightRule> highlightRules = new ArrayList<>();
+        private final BufferedReader reader;
         private boolean matches = false;
-        private List<HighlightRule> highlightRules = new ArrayList<>();
         private String syntaxName;
-        private BufferedReader reader;
 
         public NanorcParser(Path file, String name, String target) throws IOException {
             this(new Source.PathSource(file, null).read(), name, target);
@@ -1666,7 +1671,7 @@ public class Nano implements Editor {
             while (line!= null) {
                 line = line.trim();
                 if (line.length() > 0 && !line.startsWith("#")) {
-                    line = line.replaceAll("\\\\<", "\\\\b").replaceAll("\\\\>", "\\\\b").replaceAll("\\[\\[:space:\\]\\]", "\\\\s");
+                    line = line.replaceAll("\\\\<", "\\\\b").replaceAll("\\\\>", "\\\\b").replaceAll("\\[\\[:space:]]", "\\\\s");
                     List<String> parts = Parser.split(line);
                     if (parts.get(0).equals("syntax")) {
                         syntaxName = parts.get(1);
@@ -1801,7 +1806,7 @@ public class Nano implements Editor {
 
     protected static class Parser {
         protected static List<String> split(String s) {
-            List<String> out = new ArrayList<String>();
+            List<String> out = new ArrayList<>();
             if (s.length() == 0) {
                 return out;
             }
@@ -1836,8 +1841,8 @@ public class Nano implements Editor {
     }
 
     protected static class PatternHistory {
-        private Path historyFile;
-        private int size = 100;
+        private final Path historyFile;
+        private final int size = 100;
         private List<String> patterns = new ArrayList<>();
         private int patternId = -1;
         private boolean lastMoveUp = false;
@@ -1905,9 +1910,7 @@ public class Nano implements Editor {
             if (pattern.trim().length() == 0) {
                 return;
             }
-            if (patterns.contains(pattern)) {
-                patterns.remove(pattern);
-            }
+            patterns.remove(pattern);
             if (patterns.size() > size) {
                 patterns.remove(patterns.size() - 1);
             }
@@ -1930,6 +1933,7 @@ public class Nano implements Editor {
                     }
                 }
             } catch (Exception e) {
+                // ignore
             }
         }
 
@@ -1946,6 +1950,7 @@ public class Nano implements Editor {
                     }
                 }
             } catch (Exception e) {
+                // ignore
             }
         }
 
@@ -1987,7 +1992,7 @@ public class Nano implements Editor {
             PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:/usr/share/nano/*.nanorc");
             try {
                 Files.find(Paths.get("/usr/share/nano"), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
-                     .forEach(p -> syntaxFiles.add(p));
+                     .forEach(syntaxFiles::add);
             } catch (IOException e) {
                 errorMessage = "Encountered error while reading nanorc files";
             }
@@ -2071,7 +2076,7 @@ public class Nano implements Editor {
                     if (parts.get(1).contains("*") || parts.get(1).contains("?")) {
                          PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parts.get(1));
                          Files.find(Paths.get(new File(parts.get(1)).getParent()), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
-                                 .forEach(p -> syntaxFiles.add(p));
+                                 .forEach(syntaxFiles::add);
                     } else {
                         syntaxFiles.add(Paths.get(parts.get(1)));
                     }
@@ -3000,7 +3005,6 @@ public class Nano implements Editor {
                     int col = searchBackwards ? buffer.length(buffer.getLine(re[0])) - re[1] : re[1];
                     int match = re[0]*10000 + col;
                     if (matches.contains(match)) {
-                        found = false;
                         break;
                     } else {
                         matches.add(match);
@@ -3032,7 +3036,7 @@ public class Nano implements Editor {
             }
             message = "Replaced " + replaced + " occurrences";
         } catch (Exception e) {
-            return;
+            // ignore
         } finally {
             searchToReplace = false;
             matchedLength =  -1;
