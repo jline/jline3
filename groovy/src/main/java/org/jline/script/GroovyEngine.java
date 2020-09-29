@@ -23,6 +23,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import groovy.lang.*;
+import org.apache.groovy.ast.tools.ImmutablePropertyUtils;
 import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
 import org.codehaus.groovy.syntax.SyntaxException;
 import org.jline.builtins.Nano.SyntaxHighlighter;
@@ -1102,7 +1103,12 @@ public class GroovyEngine implements ScriptEngine {
         private String defineArgs(String[] args) {
             StringBuilder out = new StringBuilder();
             for (String v : args) {
-                out.append(v).append(" = null; ");
+                Matcher matcher = PATTERN_TYPE_VAR.matcher(v);
+                if (matcher.matches()) {
+                    out.append(constructVariable(matcher.group(1), matcher.group(2)));
+                } else {
+                    out.append(v).append(" = null; ");
+                }
             }
             return out.toString();
         }
@@ -1113,9 +1119,9 @@ public class GroovyEngine implements ScriptEngine {
                     || type.equals("int") || type.equals("Integer") || type.matches("[L|l]ong")
                     || type.matches("[F|f]loat") || type.matches("[D|d]ouble")
                     || type.matches("[B|b]oolean") || type.equals("char") || type.equals("Character")) {
-                out = name + " = (" + type + ")0";
+                out = name + " = (" + type + ")0; ";
             } else if (type.matches("[A-Z].*")) {
-                out = "try {" + name + " = new " + type + "() } catch (Exception e) {" + name + " = null}";
+                out = "try {" + name + " = new " + type + "() } catch (Exception e) {" + name + " = null}; ";
             }
             return out;
         }
@@ -1570,8 +1576,8 @@ public class GroovyEngine implements ScriptEngine {
          * Shallow copy of the object using java Cloneable clone() method.
          */
         public Object clone(Object obj) {
-            if (obj == null || obj instanceof String || obj instanceof Integer || obj instanceof Exception
-                    || obj instanceof Closure) {
+            if (obj == null || ImmutablePropertyUtils.builtinOrMarkedImmutableClass(obj.getClass())
+                    || obj instanceof Exception || obj instanceof Closure) {
                 return obj;
             }
             Object out;

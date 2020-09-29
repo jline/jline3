@@ -8,6 +8,8 @@
  */
 package org.jline.groovy
 
+import org.codehaus.groovy.runtime.HandleMetaClass
+
 import java.nio.file.Path
 import org.jline.script.GroovyEngine.Format
 import groovy.json.JsonOutput
@@ -38,6 +40,8 @@ class Utils {
         def out = [:]
         if (object instanceof Closure) {
             out['closure'] = object.getClass().getName()
+        } else if (object instanceof HandleMetaClass) {
+            out['object'] = object.toString()
         } else {
             out = object != null ? object.properties : null
         }
