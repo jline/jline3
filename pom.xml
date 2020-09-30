@@ -509,8 +509,8 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.1.1</version>
                 <configuration>
-                    <additionalparam>-Xdoclint:none </additionalparam>
-                    <additionalparam>-notimestamp </additionalparam>
+                    <doclint>none</doclint>
+                    <notimestamp>true</notimestamp>
                     <additionalOptions>${javadocOptions}</additionalOptions>
                     <failOnError>false</failOnError>
                 </configuration>
