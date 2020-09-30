@@ -647,6 +647,16 @@ public class GroovyEngine implements ScriptEngine {
             }
         }
 
+        public static int statementBegin(String buffer) {
+            String buf = buffer;
+            while (buf.matches(".*\\)\\.\\w+$")) {
+                int idx = buf.lastIndexOf(".");
+                int openingRound = Brackets.indexOfOpeningRound(buf.substring(0,idx));
+                buf = buf.substring(0,openingRound);
+            }
+            return statementBegin(new Brackets(buf));
+        }
+
         public static int statementBegin(String buffer, String wordbuffer, Brackets brackets) {
             int out =  -1;
             int idx = buffer.lastIndexOf(wordbuffer);
@@ -661,7 +671,7 @@ public class GroovyEngine implements ScriptEngine {
             return out;
         }
 
-        public static int statementBegin(Brackets brackets) {
+        private static int statementBegin(Brackets brackets) {
             return statementBegin(brackets.lastDelim()
                                 , brackets.lastOpenRound()
                                 , brackets.lastComma()
@@ -760,7 +770,7 @@ public class GroovyEngine implements ScriptEngine {
             access = new AccessRules(groovyEngine.groovyOptions());
             inspector = new Inspector(groovyEngine);
             inspector.loadStatementVars(buffer);
-            int eqsep = Helpers.statementBegin(brackets);
+            int eqsep = Helpers.statementBegin(buffer);
             if (brackets.numberOfRounds() > 0 && brackets.lastCloseRound() > eqsep) {
                 int varsep = buffer.lastIndexOf('.');
                 if (varsep > 0 && varsep > brackets.lastCloseRound() && !restrictedCompletion) {
@@ -895,10 +905,6 @@ public class GroovyEngine implements ScriptEngine {
             }
             doMethodCandidates(candidates, object.getClass(), curBuf, hint
                             , identifierCompletion  && !(object instanceof Map), metaMethods);
-        }
-
-        private void doMethodCandidates(List<Candidate> candidates, Class<?> clazz, String curBuf, String hint) {
-            doMethodCandidates(candidates, clazz, curBuf, hint, false, null);
         }
 
         private void doMethodCandidates(List<Candidate> candidates, Class<?> clazz, String curBuf, String hint
@@ -1103,7 +1109,7 @@ public class GroovyEngine implements ScriptEngine {
         private String defineArgs(String[] args) {
             StringBuilder out = new StringBuilder();
             for (String v : args) {
-                Matcher matcher = PATTERN_TYPE_VAR.matcher(v);
+                Matcher matcher = PATTERN_TYPE_VAR.matcher(v.trim());
                 if (matcher.matches()) {
                     out.append(constructVariable(matcher.group(1), matcher.group(2)));
                 } else {
@@ -1258,7 +1264,7 @@ public class GroovyEngine implements ScriptEngine {
             Class<?> clazz = null;
             String methodName = null;
             String buffer = line.getHead();
-            int eqsep = Helpers.statementBegin(new Brackets(buffer));
+            int eqsep = Helpers.statementBegin(buffer);
             int varsep = buffer.lastIndexOf('.');
             if (varsep > 0 && varsep > eqsep) {
                 loadStatementVars(buffer);
@@ -1421,9 +1427,12 @@ public class GroovyEngine implements ScriptEngine {
             if (openingRound == -1) {
                 return out;
             }
+            String cuttedLine = line.getHead().substring(0, openingRound);
+            if (new Brackets(cuttedLine).openQuote()) {
+                return out;
+            }
             loadStatementVars(line.getHead());
-            Brackets brackets = new Brackets(line.getHead().substring(0, openingRound));
-            int eqsep = Helpers.statementBegin(brackets);
+            int eqsep = Helpers.statementBegin(cuttedLine);
             int end = line.getHead().length();
             if (eqsep > 0 && Helpers.constructorStatement(line.getHead().substring(0, eqsep))) {
                 eqsep = line.getHead().substring(0, eqsep).lastIndexOf("new") - 1;
