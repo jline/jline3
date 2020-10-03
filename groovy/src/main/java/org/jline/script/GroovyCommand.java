@@ -106,6 +106,9 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
 
     @SuppressWarnings("unchecked")
     public Object grab(CommandInput input) {
+        if (input.xargs().length == 0) {
+            return null;
+        }
         if (input.args().length > 2) {
             throw new IllegalArgumentException("Wrong number of command parameters: " + input.args().length);
         }
