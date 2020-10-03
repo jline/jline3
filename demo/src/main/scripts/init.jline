@@ -81,7 +81,13 @@ PRNT_OPTIONS['highlightValue'].put('*', _orgJline)
 PRNT_OPTIONS.valueStyle = 'GRON'
 
 GROOVY_OPTIONS = [:]
-GROOVY_OPTIONS.identifiersCompletion = true;
+GROOVY_OPTIONS.identifiersCompletion = true
+GROOVY_OPTIONS.allFieldsCompletion = false
+GROOVY_OPTIONS.allMethodsCompletion = false
+GROOVY_OPTIONS.metaMethodsCompletion = false
+GROOVY_OPTIONS.allClassesCompletion = false
+GROOVY_OPTIONS.allConstructorsCompletion = false
+
 #
 # custom Groovy pipes
 #
@@ -133,7 +139,20 @@ def _docJline() {
 def _docGroovy() {
     :doc groovy
 }
+#
+# widget functions for groovy autosuggestion completion
+#
+def _toggleFields() {
+    GROOVY_OPTIONS.allFieldsCompletion = !GROOVY_OPTIONS.allFieldsCompletion
+}
 
+def _toggleMethods() {
+    GROOVY_OPTIONS.allMethodsCompletion = !GROOVY_OPTIONS.allMethodsCompletion
+}
+
+def _toggleMetaMethods() {
+    GROOVY_OPTIONS.metaMethodsCompletion = !GROOVY_OPTIONS.metaMethodsCompletion
+}
 #
 # resolve function keys
 #
@@ -149,10 +168,15 @@ widget -N _test-widget _testWidget
 widget -N _tailtip-toggle _tailTipToggle
 widget -N _doc-jline _docJline
 widget -N _doc-groovy _docGroovy
+widget -N _toggle-fields _toggleFields
+widget -N _toggle-methods _toggleMethods
+widget -N _toggle-meta-methods _toggleMetaMethods
 
 keymap '^[^x' _test-widget
 keymap '^[s'  _tailtip-toggle
-keymap '^[a'  _toggle-group
+keymap '^[f'  _toggle-fields
+keymap '^[g'  _toggle-meta-methods
+keymap '^[m'  _toggle-methods
 if (_f1 && _f2) {
     :keymap $_f1   _doc-jline
     :keymap $_f2   _doc-groovy
