@@ -488,6 +488,14 @@ public class GroovyEngine implements ScriptEngine {
             return out;
         }
 
+        public static Set<Method> getClassMethods(Class<?> clazz, boolean all) {
+            Set<Method> out = new HashSet<>(Arrays.asList(clazz.getMethods()));
+            if (all) {
+                out.addAll(Arrays.asList(clazz.getDeclaredMethods()));
+            }
+            return out;
+        }
+
         public static Set<String> getMethods(Class<?> clazz, boolean all) {
             return getMethods(clazz, all, false, false);
         }
@@ -503,7 +511,7 @@ public class GroovyEngine implements ScriptEngine {
         private static Set<String> getMethods(Class<?> clazz, boolean all, boolean statc, boolean firstOnly) {
             Set<String> out = new HashSet<>();
             try {
-                for (Method method : all ? clazz.getDeclaredMethods() : clazz.getMethods()) {
+                for (Method method : getClassMethods(clazz, all)) {
                     if ((statc && Modifier.isStatic(method.getModifiers()))
                             || (!statc && !Modifier.isStatic(method.getModifiers()))) {
                         out.add(method.getName());
@@ -920,7 +928,11 @@ public class GroovyEngine implements ScriptEngine {
                         Class<?> cc = clazz;
                         while (cc != null) {
                             try {
-                                cc.getDeclaredMethod(m);
+                                try {
+                                    cc.getMethod(m);
+                                } catch (NoSuchMethodException exp) {
+                                    cc.getDeclaredMethod(m);
+                                }
                                 char[] c = m.substring(3).toCharArray();
                                 c[0] = Character.toLowerCase(c[0]);
                                 identifiers.add(new String(c));
@@ -1354,7 +1366,7 @@ public class GroovyEngine implements ScriptEngine {
                         }
                     }
                     do {
-                        for (Method m : access.allMethods ? clazz.getDeclaredMethods() : clazz.getMethods()) {
+                        for (Method m : Helpers.getClassMethods(clazz, access.allMethods)) {
                             if (!m.getName().equals(methodName)) {
                                 continue;
                             }
