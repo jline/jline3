@@ -121,10 +121,10 @@ def _tailTipToggle() {
     def al = _reader.getWidgets().get('accept-line').toString()
     def enabled = al == '_tailtip-accept-line'
     if (enabled) {
-        _reader.setVariable('LIST_MAX',100)
+        _reader.setVariable('list-max',100)
         _reader.option(org.jline.reader.LineReader.Option.INSERT_BRACKET, true)
     } else {
-        _reader.setVariable('LIST_MAX',50)
+        _reader.setVariable('list-max',50)
         _reader.option(org.jline.reader.LineReader.Option.INSERT_BRACKET, false)
     }
     _widget 'tailtip-toggle'
@@ -153,6 +153,11 @@ def _toggleMethods() {
 def _toggleMetaMethods() {
     GROOVY_OPTIONS.metaMethodsCompletion = !GROOVY_OPTIONS.metaMethodsCompletion
 }
+
+def _toggleMenuList() {
+    def optAutoMenu = org.jline.reader.LineReader.Option.AUTO_MENU_LIST
+    _reader.option(optAutoMenu, !_reader.isSet(optAutoMenu))
+}
 #
 # resolve function keys
 #
@@ -171,12 +176,14 @@ widget -N _doc-groovy _docGroovy
 widget -N _toggle-fields _toggleFields
 widget -N _toggle-methods _toggleMethods
 widget -N _toggle-meta-methods _toggleMetaMethods
+widget -N _toggle-menu-list _toggleMenuList
 
 keymap '^[^x' _test-widget
 keymap '^[s'  _tailtip-toggle
 keymap '^[f'  _toggle-fields
 keymap '^[g'  _toggle-meta-methods
 keymap '^[m'  _toggle-methods
+keymap '^[l'  _toggle-menu-list
 if (_f1 && _f2) {
     :keymap $_f1   _doc-jline
     :keymap $_f2   _doc-groovy

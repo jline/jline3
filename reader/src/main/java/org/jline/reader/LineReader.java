@@ -314,8 +314,12 @@ public interface LineReader {
     String COMPLETION_STYLE_SELECTION = "COMPLETION_STYLE_SELECTION";
     /** Completion style for displaying the candidate description */
     String COMPLETION_STYLE_DESCRIPTION = "COMPLETION_STYLE_DESCRIPTION";
+    String COMPLETION_COLOR_DESCRIPTION = "COMPLETION_COLOR_DESCRIPTION";
     /** Completion style for displaying the matching part of candidates */
     String COMPLETION_STYLE_STARTING = "COMPLETION_STYLE_STARTING";
+    String COMPLETION_COLOR_STARTING = "COMPLETION_COLOR_STARTING";
+    /** Completion list background color */
+    String COMPLETION_LIST_BACKGROUND_COLOR = "COMPLETION_LIST_BACKGROUND_COLOR";
     /**
      * Set the template for prompts for secondary (continuation) lines.
      * This is a prompt template as described in the class header.
@@ -386,6 +390,7 @@ public interface LineReader {
         AUTO_GROUP(true),
         AUTO_MENU(true),
         AUTO_LIST(true),
+        AUTO_MENU_LIST(false),
         RECOGNIZE_EXACT,
         /** display group name before each group (else display all group names first) */
         GROUP(true),

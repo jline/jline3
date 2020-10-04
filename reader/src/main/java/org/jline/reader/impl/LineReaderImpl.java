@@ -86,10 +86,13 @@ public class LineReaderImpl implements LineReader, Flushable
     public static final String DEFAULT_SECONDARY_PROMPT_PATTERN = "%M> ";
     public static final String DEFAULT_OTHERS_GROUP_NAME = "others";
     public static final String DEFAULT_ORIGINAL_GROUP_NAME = "original";
-    public static final String DEFAULT_COMPLETION_STYLE_STARTING = "36";    // cyan
-    public static final String DEFAULT_COMPLETION_STYLE_DESCRIPTION = "90"; // dark gray
+    public static final String DEFAULT_COMPLETION_STYLE_STARTING = "";
+    public static final String DEFAULT_COMPLETION_STYLE_DESCRIPTION = "";
     public static final String DEFAULT_COMPLETION_STYLE_GROUP = "35;1";     // magenta
     public static final String DEFAULT_COMPLETION_STYLE_SELECTION = "7";    // inverted
+    public static final int    DEFAULT_COMPLETION_COLOR_STARTING = 6;       // cyan
+    public static final int    DEFAULT_COMPLETION_COLOR_DESCRIPTION = 8;    // dark gray
+    public static final int    DEFAULT_COMPLETION_LIST_BACKGROUND_COLOR = 13;
     public static final int    DEFAULT_INDENTATION = 0;
     public static final int    DEFAULT_FEATURES_MAX_BUFFER_SIZE = 1000;
 
@@ -269,6 +272,8 @@ public class LineReaderImpl implements LineReader, Flushable
      * execute commands from commandsBuffer
      */
     protected List<String> commandsBuffer = new ArrayList<>();
+
+    int candidateStartPosition = 0;
 
     public LineReaderImpl(Terminal terminal) throws IOException {
         this(terminal, null, null);
@@ -1069,7 +1074,7 @@ public class LineReaderImpl implements LineReader, Flushable
         Constructor<?> ctor = Class.forName("org.jline.builtins.Nano").getConstructor(Terminal.class, File.class);
         Editor editor = (Editor) ctor.newInstance(terminal, new File(file.getParent()));
         editor.setRestricted(true);
-        editor.open(Arrays.asList(file.getName()));
+        editor.open(Collections.singletonList(file.getName()));
         editor.run();
         BufferedReader br = new BufferedReader(new FileReader(file));
         String line;
@@ -4469,9 +4474,7 @@ public class LineReaderImpl implements LineReader, Flushable
                         typoMatcher(wdi, errors, caseInsensitive)
                 );
             } else {
-                matchers = Arrays.asList(
-                        simpleMatcher(s -> !s.startsWith("-"))
-                );
+                matchers = Collections.singletonList(simpleMatcher(s -> !s.startsWith("-")));
             }
             exact = s -> caseInsensitive ? s.equalsIgnoreCase(wd) : s.equals(wd);
         }
@@ -4977,7 +4980,7 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     protected boolean clearChoices() {
-        return doList(new ArrayList<Candidate>(), "", false, null, false);
+        return doList(new ArrayList<>(), "", false, null, false);
     }
 
     protected boolean doList(List<Candidate> possible
@@ -5032,6 +5035,7 @@ public class LineReaderImpl implements LineReader, Flushable
                         .sorted(getCandidateComparator(caseInsensitive, current))
                         .collect(Collectors.toList());
             }
+            candidateStartPosition = candidateStartPosition();
             post = () -> {
                 AttributedString t = insertSecondaryPrompts(AttributedStringBuilder.append(prompt, buf.toString()), new ArrayList<>());
                 int pl = t.columnSplitLength(size.getColumns(), false, display.delayLineWrap()).size();
@@ -5165,6 +5169,33 @@ public class LineReaderImpl implements LineReader, Flushable
     private static final String DESC_SUFFIX = ")";
     private static final int MARGIN_BETWEEN_DISPLAY_AND_DESC = 1;
     private static final int MARGIN_BETWEEN_COLUMNS = 3;
+    private static final int MENU_LIST_WIDTH = 25;
+
+    private int candidateStartPosition() {
+        int out = prompt != null ? prompt.length() : 0;
+        String buffer = buf.substring(0, buf.cursor());
+        buffer = buffer.substring(buffer.lastIndexOf('\n') + 1);
+        boolean first = true;
+        int width = size.getColumns();
+        while (buffer.length() + (first ? out : 0) > width) {
+            if (first) {
+                buffer = buffer.substring(width - prompt.length());
+            } else {
+                buffer = buffer.substring(width);
+            }
+            first = false;
+        }
+        if (!first) {
+            out = 0;
+        }
+        for (int i = buffer.length(); i > 0; i--) {
+            if (buffer.substring(0, i).matches(".*\\W")) {
+                out += i;
+                break;
+            }
+        }
+        return out;
+    }
 
     @SuppressWarnings("unchecked")
     protected PostResult toColumns(List<Object> items, Candidate selection, String completed, Function<String, Integer> wcwidth, int width, boolean rowsFirst) {
@@ -5192,6 +5223,11 @@ public class LineReaderImpl implements LineReader, Flushable
         }
         // Build columns
         AttributedStringBuilder sb = new AttributedStringBuilder();
+        if (isSet(Option.AUTO_MENU_LIST)) {
+            maxWidth = Math.max(maxWidth, MENU_LIST_WIDTH);
+            sb.tabs(Math.min(candidateStartPosition, width - maxWidth - 1));
+            width = maxWidth + 2;
+        }
         for (Object list : items) {
             toColumns(list, width, maxWidth, sb, selection, completed, rowsFirst, out);
         }
@@ -5206,8 +5242,9 @@ public class LineReaderImpl implements LineReader, Flushable
         if (maxWidth <= 0 || width <= 0) {
             return;
         }
+        boolean isMenuList = isSet(Option.AUTO_MENU_LIST);
         // This is a group
-        if (items instanceof String) {
+        if (items instanceof String && !isMenuList) {
             sb.style(getCompletionStyleGroup())
                     .append((String) items)
                     .style(AttributedStyle.DEFAULT)
@@ -5233,6 +5270,10 @@ public class LineReaderImpl implements LineReader, Flushable
                 index = (i, j) -> j * lines + i;
             }
             for (int i = 0; i < lines; i++) {
+                if (isMenuList) {
+                    sb.style(AttributedStyle.DEFAULT);
+                    sb.append('\t');
+                }
                 for (int j = 0; j < columns; j++) {
                     int idx = index.applyAsInt(i, j);
                     if (idx < candidates.size()) {
@@ -5271,18 +5312,19 @@ public class LineReaderImpl implements LineReader, Flushable
                             if (right != null) {
                                 sb.append(right);
                             }
-                            sb.style(AttributedStyle.DEFAULT);
                         } else {
                             if (left.toString().regionMatches(
                                     isSet(Option.CASE_INSENSITIVE), 0, completed, 0, completed.length())) {
                                 sb.style(getCompletionStyleStarting());
                                 sb.append(left, 0, completed.length());
-                                sb.style(AttributedStyle.DEFAULT);
+                                sb.style(getCompletionListBackgroundStyle());
                                 sb.append(left, completed.length(), left.length());
                             } else {
+                                sb.style(getCompletionListBackgroundStyle());
                                 sb.append(left);
                             }
                             if (right != null || hasRightItem) {
+                                sb.style(getCompletionListBackgroundStyle());
                                 for (int k = 0; k < maxWidth - lw - rw; k++) {
                                     sb.append(' ');
                                 }
@@ -5290,13 +5332,21 @@ public class LineReaderImpl implements LineReader, Flushable
                             if (right != null) {
                                 sb.style(getCompletionStyleDescription());
                                 sb.append(right);
-                                sb.style(AttributedStyle.DEFAULT);
+                            } else if (isMenuList) {
+                                sb.style(getCompletionListBackgroundStyle());
+                                for (int k = lw; k < maxWidth; k++) {
+                                    sb.append(' ');
+                                }
                             }
                         }
+                        sb.style(getCompletionListBackgroundStyle());
                         if (hasRightItem) {
                             for (int k = 0; k < MARGIN_BETWEEN_COLUMNS; k++) {
                                 sb.append(' ');
                             }
+                        }
+                        if (isMenuList) {
+                            sb.append(' ');
                         }
                     }
                 }
@@ -5307,11 +5357,19 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     private AttributedStyle getCompletionStyleStarting() {
-        return getCompletionStyle(COMPLETION_STYLE_STARTING, DEFAULT_COMPLETION_STYLE_STARTING);
+        String str = getString(COMPLETION_STYLE_STARTING, DEFAULT_COMPLETION_STYLE_STARTING);
+        if (str.isEmpty()) {
+            return buildStyle(getInt(COMPLETION_COLOR_STARTING, DEFAULT_COMPLETION_COLOR_STARTING));
+        }
+        return buildStyle(str);
     }
 
     protected AttributedStyle getCompletionStyleDescription() {
-        return getCompletionStyle(COMPLETION_STYLE_DESCRIPTION, DEFAULT_COMPLETION_STYLE_DESCRIPTION);
+        String str = getString(COMPLETION_STYLE_DESCRIPTION, DEFAULT_COMPLETION_STYLE_DESCRIPTION);
+        if (str.isEmpty()) {
+            return buildStyle(getInt(COMPLETION_COLOR_DESCRIPTION, DEFAULT_COMPLETION_COLOR_DESCRIPTION));
+        }
+        return buildStyle(str);
     }
 
     protected AttributedStyle getCompletionStyleGroup() {
@@ -5326,8 +5384,30 @@ public class LineReaderImpl implements LineReader, Flushable
         return buildStyle(getString(name, value));
     }
 
+    protected AttributedStyle getCompletionListBackgroundStyle() {
+        if (isSet(Option.AUTO_MENU_LIST)) {
+            return AttributedStyle.DEFAULT.background(getCompletionListBackgroundColor());
+        }
+        return AttributedStyle.DEFAULT.backgroundDefault();
+    }
+
+    protected int getCompletionListBackgroundColor() {
+        return getInt(COMPLETION_LIST_BACKGROUND_COLOR, DEFAULT_COMPLETION_LIST_BACKGROUND_COLOR);
+    }
+
     protected AttributedStyle buildStyle(String str) {
+        if (isSet(Option.AUTO_MENU_LIST)) {
+            return AttributedString.fromAnsi("\u001b[" + str + "m ").styleAt(0)
+                    .background(getCompletionListBackgroundColor());
+        }
         return AttributedString.fromAnsi("\u001b[" + str + "m ").styleAt(0);
+    }
+
+    protected AttributedStyle buildStyle(int fg) {
+        if (isSet(Option.AUTO_MENU_LIST)) {
+            return AttributedStyle.DEFAULT.foreground(fg).background(getCompletionListBackgroundColor());
+        }
+        return AttributedStyle.DEFAULT.foreground(fg);
     }
 
     private String getCommonStart(String str1, String str2, boolean caseInsensitive) {
