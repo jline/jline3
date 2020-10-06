@@ -37,12 +37,12 @@ The big bundle is named:
 
     jline-${jline.version}.jar
 
-The dependencies are minimal: you may use JLine without any dependency on *nix systems, but in order to support windows or more advanced usage, you will need to add either [`jansi`](https://repo1.maven.org/maven2/org/fusesource/jansi/jansi/1.17/jansi-1.17.jar) or [`jna`](https://repo1.maven.org/maven2/net/java/dev/jna/jna/4.5.1/jna-4.5.1.jar) library.
+The dependencies are minimal: you may use JLine without any dependency on *nix systems, but in order to support windows or more advanced usage, you will need to add either [`Jansi`](https://repo1.maven.org/maven2/org/fusesource/jansi/jansi/1.18/jansi-1.18.jar) or [`JNA`](https://repo1.maven.org/maven2/net/java/dev/jna/jna/5.3.1/jna-5.3.1.jar) library.
 
 You can also use fine grained jars:
 * `jline-terminal`: the `Terminal` api and implementations
-* `jline-terminal-jansi`: terminal implementations leveraging the `jansi` library
-* `jline-terminal-jna`: terminal implementations leveraging the `jna` library
+* `jline-terminal-jansi`: terminal implementations leveraging the `Jansi` library
+* `jline-terminal-jna`: terminal implementations leveraging the `JNA` library
 * `jline-reader`: the line reader (including completion, history, etc...)
 * `jline-style`: styling api
 * `jline-remote-ssh`: helpers for using jline with [Mina SSHD](http://mina.apache.org/sshd-project/)
@@ -103,7 +103,7 @@ All the jars and releases are available from Maven Central, so you'll find every
 
 * Maven 3.3+
 * Java 8+
-* Graal 19.3.1+ (native-image)
+* Graal 19.3+ (native-image)
 
 Check out and build:
 
@@ -133,12 +133,12 @@ The fine grained bundles are located at:
     terminal-jansi/target/jline-jansi-${jline.version}.jar
     terminal-jna/target/jline-jna-${jline.version}.jar
     reader/target/jline-reader-${jline.version}.jar
-    groovy/target/jline-groovy-${jline.version}.jar
     style/target/jline-style-${jline.version}.jar
-    builtins/target/jline-builtins-${jline.version}.jar
-    console/target/jline-console-${jline.version}.jar
     remote-telnet/target/jline-remote-telnet-${jline.version}.jar
     remote-ssh/target/jline-remote-ssh-${jline.version}.jar
+    builtins/target/jline-builtins-${jline.version}.jar
+    console/target/jline-console-${jline.version}.jar
+    groovy/target/jline-groovy-${jline.version}.jar
 
 Maven has a concept of `SNAPSHOT`. During development, the jline version will always ends with `-SNAPSHOT`, which means that the version is in development and not a release.
 
