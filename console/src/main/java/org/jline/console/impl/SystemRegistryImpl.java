@@ -431,7 +431,6 @@ public class SystemRegistryImpl implements SystemRegistry {
         private ByteArrayOutputStream byteOutputStream;
         private FileOutputStream fileOutputStream;
         private PrintStream out;
-        private InputStream in;
         private Terminal terminal;
         private String output;
         private CommandRegistry.CommandSession commandSession;
@@ -471,7 +470,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             System.setOut(out);
             System.setErr(out);
             String input = ctrl('X') + "q";
-            in = new ByteArrayInputStream( input.getBytes() );
+            InputStream in = new ByteArrayInputStream(input.getBytes());
             Attributes attrs = new Attributes();
             if (OSUtils.IS_WINDOWS) {
                 attrs.setInputFlag(InputFlag.IGNCR, true);
@@ -487,19 +486,9 @@ public class SystemRegistryImpl implements SystemRegistry {
         }
 
         public void flush() {
-            if (out == null) {
-                return;
-            }
-            try {
-                out.flush();
-                if (byteOutputStream != null) {
-                    byteOutputStream.flush();
-                    output = byteOutputStream.toString();
-                } else if (fileOutputStream != null) {
-                    fileOutputStream.flush();
-                }
-            } catch (Exception e) {
-                // ignore
+            terminal.flush();
+            if (byteOutputStream != null) {
+                output = byteOutputStream.toString();
             }
         }
 
@@ -508,16 +497,10 @@ public class SystemRegistryImpl implements SystemRegistry {
                 return;
             }
             try {
-                in.close();
                 flush();
-                if (byteOutputStream != null) {
-                    byteOutputStream.close();
-                    byteOutputStream = null;
-                } else if (fileOutputStream != null) {
-                    fileOutputStream.close();
-                    fileOutputStream = null;
-                }
-                out.close();
+                terminal.close();
+                byteOutputStream = null;
+                fileOutputStream = null;
                 out = null;
             } catch (Exception e) {
                 // ignore
