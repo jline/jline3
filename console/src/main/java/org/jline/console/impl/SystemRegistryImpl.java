@@ -679,6 +679,8 @@ public class SystemRegistryImpl implements SystemRegistry {
                         file = redirectFile(words.get(i + 1));
                         last = i + 1;
                         break;
+                    } else if (consoleId == null) {
+                        _words.add(words.get(i));
                     } else if (words.get(i).equals(pipeName.get(Pipe.FLIP))) {
                         if (variable != null || file != null || pipeResult != null || consoleId == null) {
                             throw new IllegalArgumentException();
@@ -1092,12 +1094,14 @@ public class SystemRegistryImpl implements SystemRegistry {
 
     @SuppressWarnings("serial")
     private static class UnknownCommandException extends Exception {
-
+        public UnknownCommandException(String message) {
+            super(message);
+        }
     }
 
     private Object execute(String command, String rawLine, String[] args) throws Exception {
         if (!parser.validCommandName(command)) {
-            throw new UnknownCommandException();
+            throw new UnknownCommandException("Invalid command: " + rawLine);
         }
         Object out;
         if (isLocalCommand(command)) {
@@ -1110,7 +1114,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             } else if (scriptStore.hasScript(command)) {
                 out = consoleEngine().execute(command, rawLine, args);
             } else {
-                throw new UnknownCommandException();
+                throw new UnknownCommandException("Unknown command: " + command);
             }
         }
         return out;
@@ -1152,6 +1156,9 @@ public class SystemRegistryImpl implements SystemRegistry {
                 try {
                     out = execute(cmd.command(), cmd.rawLine(), cmd.args());
                 } catch (UnknownCommandException e) {
+                    if (consoleId == null) {
+                        throw e;
+                    }
                     consoleScript = true;
                 }
                 if (consoleId != null) {
@@ -1259,6 +1266,10 @@ public class SystemRegistryImpl implements SystemRegistry {
     public void trace(boolean stack, Exception exception) {
         if (exception instanceof Options.HelpException) {
             Options.HelpException.highlight((exception).getMessage(), Styles.helpStyle()).print(terminal());
+        } else if (exception instanceof UnknownCommandException) {
+            AttributedStringBuilder asb = new AttributedStringBuilder();
+            asb.append(exception.getMessage(), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+            asb.toAttributedString().println(terminal());
         } else if (stack) {
             exception.printStackTrace();
         } else {
