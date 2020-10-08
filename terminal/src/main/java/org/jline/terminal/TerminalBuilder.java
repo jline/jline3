@@ -204,8 +204,8 @@ public final class TerminalBuilder {
     /**
      * Attributes to use when creating a non system terminal,
      * i.e. when the builder has been given the input and
-     * outut streams using the {@link #streams(InputStream, OutputStream)} method
-     * or when {@link #system(boolean)} has been explicitely called with
+     * output streams using the {@link #streams(InputStream, OutputStream)} method
+     * or when {@link #system(boolean)} has been explicitly called with
      * <code>false</code>.
      *
      * @param attributes the attributes to use
@@ -222,7 +222,7 @@ public final class TerminalBuilder {
      * Initial size to use when creating a non system terminal,
      * i.e. when the builder has been given the input and
      * output streams using the {@link #streams(InputStream, OutputStream)} method
-     * or when {@link #system(boolean)} has been explicitely called with
+     * or when {@link #system(boolean)} has been explicitly called with
      * <code>false</code>.
      *
      * @param size the initial size
@@ -316,6 +316,9 @@ public final class TerminalBuilder {
             dumb = getBoolean(PROP_DUMB, null);
         }
         if ((system != null && system) || (system == null && in == null && out == null)) {
+            if (system != null && ((in != null && !in.equals(System.in)) ||  (out != null && !out.equals(System.out)))) {
+                throw new IllegalArgumentException("Cannot create a system terminal using non System streams");
+            }
             if (attributes != null || size != null) {
                 Log.warn("Attributes and size fields are ignored when creating a system terminal");
             }
@@ -521,7 +524,7 @@ public final class TerminalBuilder {
      * @param terminal the {@link Terminal} to globally override
      */
     @Deprecated
-    public static final void setTerminalOverride(final Terminal terminal) {
+    public static void setTerminalOverride(final Terminal terminal) {
         TERMINAL_OVERRIDE.set(terminal);
     }
 }
