@@ -603,34 +603,26 @@ public class SystemRegistryImpl implements SystemRegistry {
         return sb.toString();
     }
 
-    private List<CommandData> compileCommandLine(String commandLine) {
-        List<CommandData> out = new ArrayList<>();
-        ArgsParser ap = new ArgsParser(parser);
-        ap.parse(commandLine);
-        //
-        // manage pipe aliases
-        //
-        List<String> ws = ap.args();
-        ConsoleEngine consoleEngine = consoleEngine();
-        Map<String,List<String>> customPipes = consoleEngine != null ? consoleEngine.getPipes() : new HashMap<>();
-        if (consoleEngine != null && ws.contains(pipeName.get(Pipe.NAMED))) {
+    private void replacePipeAliases(ConsoleEngine consoleEngine, Map<String,List<String>> customPipes, ArgsParser ap) {
+        List<String> words = ap.args();
+        if (consoleEngine != null && words.contains(pipeName.get(Pipe.NAMED))) {
             StringBuilder sb = new StringBuilder();
             boolean trace = false;
-            for (int i = 0 ; i < ws.size(); i++) {
-                if (ws.get(i).equals(pipeName.get(Pipe.NAMED))) {
-                    if (i + 1 < ws.size() && consoleEngine.hasAlias(ws.get(i + 1))) {
+            for (int i = 0; i < words.size(); i++) {
+                if (words.get(i).equals(pipeName.get(Pipe.NAMED))) {
+                    if (i + 1 < words.size() && consoleEngine.hasAlias(words.get(i + 1))) {
                         trace = true;
                         List<String> args = new ArrayList<>();
-                        String pipeAlias = consoleEngine.getAlias(ws.get(++i));
-                        while (i < ws.size() - 1 && !names.isPipe(ws.get(i + 1), customPipes.keySet())) {
-                            args.add(ws.get(++i));
+                        String pipeAlias = consoleEngine.getAlias(words.get(++i));
+                        while (i < words.size() - 1 && !names.isPipe(words.get(i + 1), customPipes.keySet())) {
+                            args.add(words.get(++i));
                         }
                         sb.append(replacePipeAlias(ap, pipeAlias, args, customPipes));
                     } else {
-                        sb.append(ws.get(i)).append(' ');
+                        sb.append(words.get(i)).append(' ');
                     }
                 } else {
-                    sb.append(ws.get(i)).append(' ');
+                    sb.append(words.get(i)).append(' ');
                 }
             }
             ap.parse(sb.toString());
@@ -638,6 +630,16 @@ public class SystemRegistryImpl implements SystemRegistry {
                 consoleEngine.trace(ap.line());
             }
         }
+    }
+
+
+    private List<CommandData> compileCommandLine(String commandLine) {
+        List<CommandData> out = new ArrayList<>();
+        ArgsParser ap = new ArgsParser(parser);
+        ap.parse(commandLine);
+        ConsoleEngine consoleEngine = consoleEngine();
+        Map<String,List<String>> customPipes = consoleEngine != null ? consoleEngine.getPipes() : new HashMap<>();
+        replacePipeAliases(consoleEngine, customPipes, ap);
         List<String> words = ap.args();
         String nextRawLine = ap.line();
         int first = 0;
@@ -646,10 +648,13 @@ public class SystemRegistryImpl implements SystemRegistry {
         String pipeSource = null;
         String rawLine = null;
         String pipeResult = null;
+        if (isCommandAlias(ap.command())) {
+            ap.parse(replaceCommandAlias(ap.variable(), ap.command(), nextRawLine));
+            replacePipeAliases(consoleEngine, customPipes, ap);
+            nextRawLine = ap.line();
+            words = ap.args();
+        }
         if (!names.hasPipes(words)) {
-            if (isCommandAlias(ap.command())) {
-                nextRawLine = replaceCommandAlias(ap.variable(), ap.command(), nextRawLine);
-            }
             out.add(new CommandData(ap, false, nextRawLine, ap.variable(), null, false,""));
         } else {
             //
@@ -661,6 +666,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 String variable = parser.getVariable(words.get(first));
                 if (isCommandAlias(command)) {
                     ap.parse(replaceCommandAlias(variable, command, nextRawLine));
+                    replacePipeAliases(consoleEngine, customPipes, ap);
                     rawCommand = ap.rawCommand();
                     command = ap.command();
                     words = ap.args();
