@@ -3909,7 +3909,7 @@ public class LineReaderImpl implements LineReader, Flushable
             }
 
             List<AttributedString> newLinesToDisplay = new ArrayList<>();
-            int displaySize = size.getRows() - (status != null ? status.size() : 0);
+            int displaySize = displayRows(status);
             if (newLines.size() > displaySize && !isTerminalDumb()) {
                 StringBuilder sb = new StringBuilder(">....");
                 // blanks are needed when displaying command completion candidate list
@@ -4734,6 +4734,19 @@ public class LineReaderImpl implements LineReader, Flushable
         }
     }
 
+    private int displayRows() {
+        return displayRows(Status.getStatus(terminal, false));
+    }
+
+    private int displayRows(Status status) {
+        return size.getRows() - (status != null ? status.size() : 0);
+    }
+
+    private int promptLines() {
+        AttributedString text = insertSecondaryPrompts(AttributedStringBuilder.append(prompt, buf.toString()), new ArrayList<>());
+        return text.columnSplitLength(size.getColumns(), false, display.delayLineWrap()).size();
+    }
+
     private class MenuSupport implements Supplier<AttributedString> {
         final List<Candidate> possible;
         final BiFunction<CharSequence, Boolean, CharSequence> escaper;
@@ -4853,10 +4866,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
             // Compute displayed prompt
             PostResult pr = computePost(possible, completion(), null, completed);
-            AttributedString text = insertSecondaryPrompts(AttributedStringBuilder.append(prompt, buf.toString()), new ArrayList<>());
-            int promptLines = text.columnSplitLength(size.getColumns(), false, display.delayLineWrap()).size();
-            Status status = Status.getStatus(terminal, false);
-            int displaySize = size.getRows() - (status != null ? status.size() : 0) - promptLines;
+            int displaySize = displayRows() - promptLines();
             if (pr.lines > displaySize) {
                 int displayed = displaySize - 1;
                 if (pr.selectedLine >= 0) {
@@ -5203,6 +5213,7 @@ public class LineReaderImpl implements LineReader, Flushable
         // TODO: support Option.LIST_PACKED
         // Compute column width
         int maxWidth = 0;
+        int listSize = 0;
         for (Object item : items) {
             if (item instanceof String) {
                 int len = wcwidth.apply((String) item);
@@ -5210,6 +5221,7 @@ public class LineReaderImpl implements LineReader, Flushable
             }
             else if (item instanceof List) {
                 for (Candidate cand : (List<Candidate>) item) {
+                    listSize++;
                     int len = wcwidth.apply(cand.displ());
                     if (cand.descr() != null) {
                         len += MARGIN_BETWEEN_DISPLAY_AND_DESC;
@@ -5223,13 +5235,15 @@ public class LineReaderImpl implements LineReader, Flushable
         }
         // Build columns
         AttributedStringBuilder sb = new AttributedStringBuilder();
-        if (isSet(Option.AUTO_MENU_LIST)) {
+        boolean doMenuList = false;
+        if (isSet(Option.AUTO_MENU_LIST) && listSize < displayRows() - promptLines()) {
+            doMenuList = true;
             maxWidth = Math.max(maxWidth, MENU_LIST_WIDTH);
             sb.tabs(Math.min(candidateStartPosition, width - maxWidth - 1));
             width = maxWidth + 2;
         }
         for (Object list : items) {
-            toColumns(list, width, maxWidth, sb, selection, completed, rowsFirst, out);
+            toColumns(list, width, maxWidth, sb, selection, completed, rowsFirst, doMenuList, out);
         }
         if (sb.length() > 0 && sb.charAt(sb.length() - 1) == '\n') {
             sb.setLength(sb.length() - 1);
@@ -5238,14 +5252,14 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     @SuppressWarnings("unchecked")
-    protected void toColumns(Object items, int width, int maxWidth, AttributedStringBuilder sb, Candidate selection, String completed, boolean rowsFirst, int[] out) {
+    protected void toColumns(Object items, int width, int maxWidth, AttributedStringBuilder sb, Candidate selection, String completed
+                           , boolean rowsFirst, boolean doMenuList, int[] out) {
         if (maxWidth <= 0 || width <= 0) {
             return;
         }
-        boolean isMenuList = isSet(Option.AUTO_MENU_LIST);
         // This is a group
-        if (items instanceof String && !isMenuList) {
-            sb.style(getCompletionStyleGroup())
+        if (items instanceof String && !doMenuList) {
+            sb.style(getCompletionStyleGroup(false))
                     .append((String) items)
                     .style(AttributedStyle.DEFAULT)
                     .append("\n");
@@ -5270,7 +5284,7 @@ public class LineReaderImpl implements LineReader, Flushable
                 index = (i, j) -> j * lines + i;
             }
             for (int i = 0; i < lines; i++) {
-                if (isMenuList) {
+                if (doMenuList) {
                     sb.style(AttributedStyle.DEFAULT);
                     sb.append('\t');
                 }
@@ -5298,7 +5312,7 @@ public class LineReaderImpl implements LineReader, Flushable
                         }
                         if (cand == selection) {
                             out[1] = i;
-                            sb.style(getCompletionStyleSelection());
+                            sb.style(getCompletionStyleSelection(doMenuList));
                             if (left.toString().regionMatches(
                                     isSet(Option.CASE_INSENSITIVE), 0, completed, 0, completed.length())) {
                                 sb.append(left.toString(), 0, completed.length());
@@ -5315,37 +5329,37 @@ public class LineReaderImpl implements LineReader, Flushable
                         } else {
                             if (left.toString().regionMatches(
                                     isSet(Option.CASE_INSENSITIVE), 0, completed, 0, completed.length())) {
-                                sb.style(getCompletionStyleStarting());
+                                sb.style(getCompletionStyleStarting(doMenuList));
                                 sb.append(left, 0, completed.length());
-                                sb.style(getCompletionListBackgroundStyle());
+                                sb.style(getCompletionListBackgroundStyle(doMenuList));
                                 sb.append(left, completed.length(), left.length());
                             } else {
-                                sb.style(getCompletionListBackgroundStyle());
+                                sb.style(getCompletionListBackgroundStyle(doMenuList));
                                 sb.append(left);
                             }
                             if (right != null || hasRightItem) {
-                                sb.style(getCompletionListBackgroundStyle());
+                                sb.style(getCompletionListBackgroundStyle(doMenuList));
                                 for (int k = 0; k < maxWidth - lw - rw; k++) {
                                     sb.append(' ');
                                 }
                             }
                             if (right != null) {
-                                sb.style(getCompletionStyleDescription());
+                                sb.style(getCompletionStyleDescription(doMenuList));
                                 sb.append(right);
-                            } else if (isMenuList) {
-                                sb.style(getCompletionListBackgroundStyle());
+                            } else if (doMenuList) {
+                                sb.style(getCompletionListBackgroundStyle(true));
                                 for (int k = lw; k < maxWidth; k++) {
                                     sb.append(' ');
                                 }
                             }
                         }
-                        sb.style(getCompletionListBackgroundStyle());
+                        sb.style(getCompletionListBackgroundStyle(doMenuList));
                         if (hasRightItem) {
                             for (int k = 0; k < MARGIN_BETWEEN_COLUMNS; k++) {
                                 sb.append(' ');
                             }
                         }
-                        if (isMenuList) {
+                        if (doMenuList) {
                             sb.append(' ');
                         }
                     }
@@ -5356,36 +5370,36 @@ public class LineReaderImpl implements LineReader, Flushable
         }
     }
 
-    private AttributedStyle getCompletionStyleStarting() {
+    private AttributedStyle getCompletionStyleStarting(boolean menuList) {
         String str = getString(COMPLETION_STYLE_STARTING, DEFAULT_COMPLETION_STYLE_STARTING);
         if (str.isEmpty()) {
-            return buildStyle(getInt(COMPLETION_COLOR_STARTING, DEFAULT_COMPLETION_COLOR_STARTING));
+            return buildStyle(getInt(COMPLETION_COLOR_STARTING, DEFAULT_COMPLETION_COLOR_STARTING), menuList);
         }
-        return buildStyle(str);
+        return buildStyle(str, menuList);
     }
 
-    protected AttributedStyle getCompletionStyleDescription() {
+    protected AttributedStyle getCompletionStyleDescription(boolean menuList) {
         String str = getString(COMPLETION_STYLE_DESCRIPTION, DEFAULT_COMPLETION_STYLE_DESCRIPTION);
         if (str.isEmpty()) {
-            return buildStyle(getInt(COMPLETION_COLOR_DESCRIPTION, DEFAULT_COMPLETION_COLOR_DESCRIPTION));
+            return buildStyle(getInt(COMPLETION_COLOR_DESCRIPTION, DEFAULT_COMPLETION_COLOR_DESCRIPTION), menuList);
         }
-        return buildStyle(str);
+        return buildStyle(str, menuList);
     }
 
-    protected AttributedStyle getCompletionStyleGroup() {
-        return getCompletionStyle(COMPLETION_STYLE_GROUP, DEFAULT_COMPLETION_STYLE_GROUP);
+    protected AttributedStyle getCompletionStyleGroup(boolean menuList) {
+        return getCompletionStyle(COMPLETION_STYLE_GROUP, DEFAULT_COMPLETION_STYLE_GROUP, menuList);
     }
 
-    protected AttributedStyle getCompletionStyleSelection() {
-        return getCompletionStyle(COMPLETION_STYLE_SELECTION, DEFAULT_COMPLETION_STYLE_SELECTION);
+    protected AttributedStyle getCompletionStyleSelection(boolean menuList) {
+        return getCompletionStyle(COMPLETION_STYLE_SELECTION, DEFAULT_COMPLETION_STYLE_SELECTION, menuList);
     }
 
-    protected AttributedStyle getCompletionStyle(String name, String value) {
-        return buildStyle(getString(name, value));
+    protected AttributedStyle getCompletionStyle(String name, String value, boolean menuList) {
+        return buildStyle(getString(name, value), menuList);
     }
 
-    protected AttributedStyle getCompletionListBackgroundStyle() {
-        if (isSet(Option.AUTO_MENU_LIST)) {
+    protected AttributedStyle getCompletionListBackgroundStyle(boolean menuList) {
+        if (menuList) {
             return AttributedStyle.DEFAULT.background(getCompletionListBackgroundColor());
         }
         return AttributedStyle.DEFAULT.backgroundDefault();
@@ -5395,16 +5409,16 @@ public class LineReaderImpl implements LineReader, Flushable
         return getInt(COMPLETION_LIST_BACKGROUND_COLOR, DEFAULT_COMPLETION_LIST_BACKGROUND_COLOR);
     }
 
-    protected AttributedStyle buildStyle(String str) {
-        if (isSet(Option.AUTO_MENU_LIST)) {
+    protected AttributedStyle buildStyle(String str, boolean menuList) {
+        if (menuList) {
             return AttributedString.fromAnsi("\u001b[" + str + "m ").styleAt(0)
                     .background(getCompletionListBackgroundColor());
         }
         return AttributedString.fromAnsi("\u001b[" + str + "m ").styleAt(0);
     }
 
-    protected AttributedStyle buildStyle(int fg) {
-        if (isSet(Option.AUTO_MENU_LIST)) {
+    protected AttributedStyle buildStyle(int fg, boolean menuList) {
+        if (menuList) {
             return AttributedStyle.DEFAULT.foreground(fg).background(getCompletionListBackgroundColor());
         }
         return AttributedStyle.DEFAULT.foreground(fg);
