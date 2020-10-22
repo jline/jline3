@@ -13,7 +13,9 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.URI;
+import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
@@ -739,7 +741,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
 
     @Override
     public ExecutionResult postProcess(String line, Object result, String output) {
-        ExecutionResult out = new ExecutionResult(1, null);
+        ExecutionResult out;
         Object _output = output != null && !output.trim().isEmpty() && !consoleOption("no-splittedOutput")
                          ? output.split("\\r?\\n") : output;
         String consoleVar = parser().getVariable(line);
@@ -758,7 +760,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
 
     private ExecutionResult postProcess(String line, Object result) {
         int status = 0;
-        Object out = result != null && result instanceof String && ((String)result).trim().isEmpty() ? null : result;
+        Object out = result instanceof String && ((String)result).trim().isEmpty() ? null : result;
         String consoleVar = parser().getVariable(line);
         if (consoleVar != null) {
             status = saveResult(consoleVar, result);
@@ -1048,52 +1050,76 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             if (input.xargs().length == 0) {
                 return null;
             }
-            if (Desktop.isDesktopSupported()) {
-                Map<String,Object> docs = consoleOption("docs", null);
-                boolean done = false;
-                Object arg = input.xargs()[0];
-                if (arg instanceof String) {
-                    String address = docs != null ? (String)docs.get(input.args()[0]) : null;
-                    if (address != null) {
-                        done = true;
-                        Desktop.getDesktop().browse(new URI(address));
-                    }
-                }
-                if (!done) {
-                    String name;
-                    if (arg instanceof String && ((String)arg).matches("([a-z]+\\.)+[A-Z][a-zA-Z]+")) {
-                        name = (String)arg;
-                    } else {
-                        name = arg.getClass().getCanonicalName();
-                    }
-                    name = name.replaceAll("\\.", "/") + ".html";
-                    Object doc = null;
-                    assert docs != null;
-                    for (Map.Entry<String,Object> entry : docs.entrySet()) {
-                        if (name.matches(entry.getKey())) {
-                            doc = entry.getValue();
-                            break;
-                        }
-                    }
-                    if (doc != null) {
-                        if (doc instanceof Collection) {
-                            for (Object o : (Collection<?>)doc) {
-                                Desktop.getDesktop().browse(new URI(o + name));
-                            }
-                        } else {
-                            Desktop.getDesktop().browse(new URI(doc + name));
-                        }
-                    } else {
-                        throw new IllegalArgumentException("Document not found: " + name);
-                    }
-                }
-            } else {
+            if (!Desktop.isDesktopSupported()) {
                 throw new IllegalStateException("Desktop is not supported!");
+            }
+            Map<String,Object> docs = consoleOption("docs", null);
+            boolean done = false;
+            Object arg = input.xargs()[0];
+            if (arg instanceof String) {
+                String address = docs != null ? (String)docs.get(input.args()[0]) : null;
+                if (address != null) {
+                    done = true;
+                    if (urlExists(address)) {
+                        Desktop.getDesktop().browse(new URI(address));
+                    } else {
+                        throw new IllegalArgumentException("Document not found: " + address);
+                    }
+                }
+            }
+            if (!done) {
+                String name;
+                if (arg instanceof String && ((String)arg).matches("([a-z]+\\.)+[A-Z][a-zA-Z]+")) {
+                    name = (String)arg;
+                } else {
+                    name = arg.getClass().getCanonicalName();
+                }
+                name = name.replaceAll("\\.", "/") + ".html";
+                Object doc = null;
+                assert docs != null;
+                for (Map.Entry<String,Object> entry : docs.entrySet()) {
+                    if (name.matches(entry.getKey())) {
+                        doc = entry.getValue();
+                        break;
+                    }
+                }
+                boolean docFound = false;
+                if (doc != null) {
+                    if (doc instanceof Collection) {
+                        for (Object o : (Collection<?>) doc) {
+                            String url = o + name;
+                            if (urlExists(url)) {
+                                Desktop.getDesktop().browse(new URI(url));
+                                docFound = true;
+                            }
+                        }
+                    } else {
+                        String url = doc + name;
+                        if (urlExists(url)) {
+                            Desktop.getDesktop().browse(new URI(url));
+                            docFound = true;
+                        }
+                    }
+                }
+                if (!docFound) {
+                    throw new IllegalArgumentException("Document not found: " + name);
+                }
             }
         } catch (Exception e) {
             exception = e;
         }
         return null;
+    }
+
+    private boolean urlExists(String weburl) {
+        try {
+            URL url = new URL(weburl);
+            HttpURLConnection huc = (HttpURLConnection) url.openConnection();
+            huc.setRequestMethod("HEAD");
+            return huc.getResponseCode() == HttpURLConnection.HTTP_OK;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private List<Completer> slurpCompleter(String command) {
