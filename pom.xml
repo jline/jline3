@@ -23,7 +23,7 @@
     <artifactId>jline-parent</artifactId>
     <name>JLine Parent</name>
     <description>JLine</description>
-    <version>3.16.1-SNAPSHOT</version>
+    <version>3.17.0</version>
     <packaging>pom</packaging>
 
     <licenses>
@@ -38,7 +38,7 @@
         <connection>scm:git:git://github.com/jline/jline3.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/jline/jline3.git</developerConnection>
         <url>http://github.com/jline/jline3</url>
-    <tag>HEAD</tag>
+    <tag>jline-parent-3.17.0</tag>
   </scm>
 
     <issueManagement>
