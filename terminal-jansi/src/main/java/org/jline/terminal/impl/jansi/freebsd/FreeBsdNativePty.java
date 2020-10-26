@@ -12,7 +12,6 @@ import org.fusesource.jansi.internal.CLibrary;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.jansi.JansiNativePty;
-import org.jline.terminal.impl.jansi.osx.OsXNativePty;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
