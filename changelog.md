@@ -1,6 +1,70 @@
 # [JLine3](https://github.com/jline/jline3)
 <!-- git log --pretty=format:'* [`%h`](https://github.com/jline/jline3/commit/%H) %s' -->
 
+## [JLine 3.17.0][3_17_0]
+[3_17_0]: https://repo1.maven.org/maven2/org/jline/jline/3.17.0/
+
+* [`4dc7d445`](https://github.com/jline/jline3/commit/4dc7d445981af68cccb528fae8fe1880c7a93c78) Upgrade to jansi 2.0
+* [`04556a57`](https://github.com/jline/jline3/commit/04556a5757d06fe3ddee5a5989a5e6181d83a7bf) Remove unused import
+* [`57aa5e1a`](https://github.com/jline/jline3/commit/57aa5e1a82daf42a7e094082de44eec506473595) Remove the getConsoleOutputCP on the AbstractWindowsTerminal
+* [`299d0e91`](https://github.com/jline/jline3/commit/299d0e917e59342bdb3445c6ed6c63275256b011) Add select-option in Example, #592
+* [`ea98b90f`](https://github.com/jline/jline3/commit/ea98b90f5346008c5233da08a1fadda572d55a3d) ConsoleEngineImpl doc command: check that the page exists before launching browser
+* [`5d4d46b2`](https://github.com/jline/jline3/commit/5d4d46b2d5760bf1b6f85e07248e9478e9ac1e26) Tab completion: if auto-menu-list=true and candidates do not fit to display show candidates in table view instead
+* [`af9196e1`](https://github.com/jline/jline3/commit/af9196e153929f9abb9b4c6cae64269d772fb88a) SystemRegistryImpl: improve command and pipe alias compilation
+* [`ad90e038`](https://github.com/jline/jline3/commit/ad90e038c4af3b3563e167d9f35d6d9c799dee32) Jline silently ignore streams(in, out) when using a system Terminal, fixes #576
+* [`7fdedc36`](https://github.com/jline/jline3/commit/7fdedc36976fc8b90465c05d69b8bf4af1b64776) SystemRegistryImpl: code clean up
+* [`91a9af16`](https://github.com/jline/jline3/commit/91a9af1693d339315a4a5d794eaaf2bd5099c526) Using SystemRegistry without ConsoleEngine the unknown commands are quietly accepted, fixes #585
+* [`43178f5e`](https://github.com/jline/jline3/commit/43178f5e8f00d51d2c15c08b0f45b9aee83a134a) SystemRegistry: use terminal to flush and close streams in output redirection
+* [`12dbfa48`](https://github.com/jline/jline3/commit/12dbfa481e39ae1241c20003ff5a92e4385221dd) improve toString for completer
+* [`64af4390`](https://github.com/jline/jline3/commit/64af439095813430ae5fedd18e1c130ce919bf69) Autosuggestion history: escape also '+' char, fixes #584
+* [`9ec26880`](https://github.com/jline/jline3/commit/9ec268809c076294b9304da8bf0060e6bf51da38) Update README.md
+* [`8053dc13`](https://github.com/jline/jline3/commit/8053dc13c0955d3e19c55f4c1a99bd222fe34506) Add option to do list view of autocomplete suggestions, #582
+* [`0d861ddb`](https://github.com/jline/jline3/commit/0d861ddb9081a924b20f699a07535319551f6962) Autosuggestion choices of packages names and directories are refreshed too early, fixes #545
+* [`740985bc`](https://github.com/jline/jline3/commit/740985bc1d60608b303b293f2227bf04bb6cc150) Groovy REPL: add widgets and key mappings to toggle Groovy completion options
+* [`10aa3905`](https://github.com/jline/jline3/commit/10aa390532c524581d20efe22ccbc24a4ec835db) Groovy REPL: reviewed and fixed all methods completion
+* [`5a4b6319`](https://github.com/jline/jline3/commit/5a4b631997fa861cc5023b4dafc1648e792be3a7) Groovy command grab: fix ArrayIndexOutOfBoundsException
+* [`e6407044`](https://github.com/jline/jline3/commit/e6407044f00147c9fd26a8600810506661f4c108) Fixed maven-javadoc-plugin configurations
+* [`25d3adc9`](https://github.com/jline/jline3/commit/25d3adc95e2b5f85a9fd70a25182e859d5cdeb7c) Bump Groovy to 3.06
+* [`280d75c9`](https://github.com/jline/jline3/commit/280d75c9b5d8a3b5d2ca8b76d10288abcaa863a4) Groovy REPL: chained metaMethods completion with inline Closure parameters
+* [`546c8ff7`](https://github.com/jline/jline3/commit/546c8ff725675b876d2bb4314688e82613a9fe9b) Fix for typo in javadoc
+* [`f8cec7b7`](https://github.com/jline/jline3/commit/f8cec7b738e4f14341d94852f209b73033cc90d3) Groovy REPL: improve closure vars type detection, add better test for immutable variables in ObjectCloner and fix ClassCastException in Utils.groovy
+* [`6ece81d9`](https://github.com/jline/jline3/commit/6ece81d9abdc2119bf08d5dcc64aca8afb7d4d11) nano & less: code clean up
+* [`efd9c70b`](https://github.com/jline/jline3/commit/efd9c70b0132b2237d2b30838310aafb28a6972c) REPL pipe alias can now be defined using also other aliases
+* [`36d3bc75`](https://github.com/jline/jline3/commit/36d3bc7510b0402d4194e94de9b4a70307b7d3cb) Groovy identifiers completion a couple of improvements
+* [`ce3c9308`](https://github.com/jline/jline3/commit/ce3c93081f359e9dc207f63f6d3baff9a9cc400d) Groovy REPL: add option to complete groovy metaMethods
+* [`22faa8b2`](https://github.com/jline/jline3/commit/22faa8b27cfe3ead484c19bd687d3e6340fef802) Navigating grouped candidates using arrow keys is broken, fixes #580
+* [`d3860450`](https://github.com/jline/jline3/commit/d3860450112f723b79dcc4656159ead8e44e4c98) Groovy REPL: add widget to toggle candidate grouping and fix a bug in identifiers completion
+* [`cda92e36`](https://github.com/jline/jline3/commit/cda92e3627c8c98986dcd54b0e4d5d34b7a5c249) Groovy REPL: add option to complete groovy identifiers
+* [`ccf838c0`](https://github.com/jline/jline3/commit/ccf838c0e39194a093a989eb06bc1ac105bdd949) Groovy REPL: add option to complete private and protected classes, #577
+* [`d15889fe`](https://github.com/jline/jline3/commit/d15889fe5b4ab5b1542821837e26237d61bce811) Groovy REPL: add options to complete private and protected fields, methods and constructors
+* [`1b6a3322`](https://github.com/jline/jline3/commit/1b6a33228109b9923136a1da69bb4cb45b6ee673) Command prompt and line buffer are overlaid with completion candidates, fixes #574
+* [`f364c00a`](https://github.com/jline/jline3/commit/f364c00a406254bb3fe683972e802ea8bb0b9869) Autosuggestion history: fixed search command regex pattern, #570
+* [`f6c12465`](https://github.com/jline/jline3/commit/f6c1246591354ada24c2b4e03eb4446a2cb105c3) Completers and Options: polish up regex patterns
+* [`8f52fb3b`](https://github.com/jline/jline3/commit/8f52fb3ba3b0f818af9598e9508a5b9825702440) JLine script: redirecting command output to temporary variable will
+* [`2d82d47a`](https://github.com/jline/jline3/commit/2d82d47ac4e91c18375dced41304475d88ee6c00) Auto suggestion error when type "\_" character, fixes #570
+* [`4d8aa743`](https://github.com/jline/jline3/commit/4d8aa74342d3436a4ef14afc9cc4dda92a1cc19a) Groovy REPL: improved constructor statement completion
+* [`ff28596e`](https://github.com/jline/jline3/commit/ff28596e2bc74e047489869820ea813921b757d1) GroovyEngine Inspector: override only Closure vars with function def
+* [`0d4fc5df`](https://github.com/jline/jline3/commit/0d4fc5dfa384b555f66012d82446dbcef450205d) Groovy REPL: no method completion nor descriptions if known command
+* [`8b1b76ca`](https://github.com/jline/jline3/commit/8b1b76caac316a77a16ed836ad34f05bb26c5046) Groovy REPL completion: improved statement variables type detection
+* [`6551251c`](https://github.com/jline/jline3/commit/6551251c1f987f4f74b303e4685dd5916f18346b) Groovy REPL: package tab completion failed:
+* [`2894fa7b`](https://github.com/jline/jline3/commit/2894fa7ba8eb6e6f5332a5b83026f7cec105ac7a) Groovy REPL: improved var tab completion, restrictedCompletion=true
+* [`db15475b`](https://github.com/jline/jline3/commit/db15475bb245860e95009dc252ced113b2fe4cca) Groovy REPL: constructor tab completion failed: NoClassDefFoundError, fixes #568
+* [`6158378e`](https://github.com/jline/jline3/commit/6158378e4b4682600a079f057470d5c0f0cd5fc1) Groovy REPL: improved completion of function & closure parameters
+* [`a30080a8`](https://github.com/jline/jline3/commit/a30080a87fed8137e7bc00ba627c5e7ffd68ce28) DefaultParser: ArrayIndexOutOfBoundsException, fixes #567
+* [`bb8b6fe0`](https://github.com/jline/jline3/commit/bb8b6fe0792948f9d4f07071e40239a90dbdc78e) Groovy REPL: added Groovy options noSyntaxCheck and restrictedCompletion
+* [`786dcd81`](https://github.com/jline/jline3/commit/786dcd811cfac24d01a68adadf248c0ffd6514bc) jline-console: code cleanup
+* [`1484c4dd`](https://github.com/jline/jline3/commit/1484c4dda60e08efd24825861bf3d5ffbd559609) Groovy REPL method description: improved detection of method's Class + a few other minor fixes
+* [`9c7acb9f`](https://github.com/jline/jline3/commit/9c7acb9f65c4d1984d543deb20be35c117305a87) Groovy REPL for statement: improved looping variable type detection
+* [`80d4d3fa`](https://github.com/jline/jline3/commit/80d4d3fa7930c0eacbfbb4cf8003fb04eb92096b) widget package: minor fixes & code reformatting
+* [`6ee50323`](https://github.com/jline/jline3/commit/6ee5032305fa4e61b9eed434f113e6496a506096) jrt classes: manage tab-completions & minor fixes and improvements
+* [`19fedee9`](https://github.com/jline/jline3/commit/19fedee93392f064a1194c7ce6de1f2319e66f09) jline-groovy: minor fixes & code reformatting
+* [`36f8ecdc`](https://github.com/jline/jline3/commit/36f8ecdcdbe37981e04d3658fad719af1f4fcefa) JLine app with and without console variables, fixes #565
+* [`2b5e1ae2`](https://github.com/jline/jline3/commit/2b5e1ae2a9181772eea911c3975e18845aef1571) JLine bundle javadoc is not been generated, fixes #564
+* [`949969e4`](https://github.com/jline/jline3/commit/949969e4cd167fafce2b0e7b7aae6a375ce4a0f2) Solaris automounter: createDirectories throws FileSystemException, fixes #559
+* [`e7eb5e06`](https://github.com/jline/jline3/commit/e7eb5e0626b8dd3fb8483b4ff6303a826f585d41) Merge pull request #562 from morris821028/master
+* [`992587a5`](https://github.com/jline/jline3/commit/992587a565bed73c696b982f236bde6b18af7320) Example: fix hung on exit with 'status' option
+* [`fdc2fb53`](https://github.com/jline/jline3/commit/fdc2fb53f9dc618bfccc3b20ae447cabce3a809f) Add support for embedded applications
+
 ## [JLine 3.16.0][3_16_0]
 [3_16_0]: https://repo1.maven.org/maven2/org/jline/jline/3.16.0/
 
