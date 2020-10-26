@@ -15,8 +15,8 @@
  */
 package org.jline.terminal.impl.jansi.win;
 
+import org.fusesource.jansi.WindowsSupport;
 import org.fusesource.jansi.internal.Kernel32.*;
-import org.fusesource.jansi.internal.WindowsSupport;
 import org.jline.utils.AnsiWriter;
 import org.jline.utils.Colors;
 

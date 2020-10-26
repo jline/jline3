@@ -8,7 +8,7 @@
  */
 package org.jline.terminal.impl.jansi;
 
-import org.fusesource.jansi.Ansi;
+import org.fusesource.jansi.AnsiConsole;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
@@ -34,7 +34,7 @@ public class JansiSupportImpl implements JansiSupport {
         int major = 0, minor = 0;
         try {
             String v = null;
-            try (InputStream is = Ansi.class.getResourceAsStream("jansi.properties")) {
+            try (InputStream is = AnsiConsole.class.getResourceAsStream("jansi.properties")) {
                 if (is != null) {
                     Properties props = new Properties();
                     props.load(is);
@@ -44,7 +44,7 @@ public class JansiSupportImpl implements JansiSupport {
                 // ignore
             }
             if (v == null) {
-                v = Ansi.class.getPackage().getImplementationVersion();
+                v = AnsiConsole.class.getPackage().getImplementationVersion();
             }
             if (v != null) {
                 Matcher m = Pattern.compile("([0-9]+)\\.([0-9]+)([\\.-]\\S+)?").matcher(v);
@@ -76,14 +76,10 @@ public class JansiSupportImpl implements JansiSupport {
     public Pty current() throws IOException {
         String osName = System.getProperty("os.name");
         if (osName.startsWith("Linux")) {
-            if (isAtLeast(1, 16)) {
-                return LinuxNativePty.current();
-            }
+            return LinuxNativePty.current();
         }
         else if (osName.startsWith("Mac") || osName.startsWith("Darwin")) {
-            if (isAtLeast(1, 12)) {
-                return OsXNativePty.current();
-            }
+            return OsXNativePty.current();
         }
         else if (osName.startsWith("Solaris") || osName.startsWith("SunOS")) {
             // Solaris is not supported by jansi

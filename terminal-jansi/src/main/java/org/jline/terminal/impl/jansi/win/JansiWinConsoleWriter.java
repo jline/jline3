@@ -8,7 +8,7 @@
  */
 package org.jline.terminal.impl.jansi.win;
 
-import org.fusesource.jansi.internal.WindowsSupport;
+import org.fusesource.jansi.WindowsSupport;
 import org.jline.terminal.impl.AbstractWindowsConsoleWriter;
 
 import java.io.IOException;
