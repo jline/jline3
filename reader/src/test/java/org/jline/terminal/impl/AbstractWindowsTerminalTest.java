@@ -77,11 +77,6 @@ public class AbstractWindowsTerminalTest {
         }
 
         @Override
-        protected int getConsoleOutputCP() {
-            return 0;
-        }
-
-        @Override
         protected int getConsoleMode() {
             return 0;
         }

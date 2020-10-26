@@ -82,11 +82,6 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
     }
 
     @Override
-    protected int getConsoleOutputCP() {
-        return Kernel32.GetConsoleOutputCP();
-    }
-
-    @Override
     protected int getConsoleMode() {
         return WindowsSupport.getConsoleMode();
     }

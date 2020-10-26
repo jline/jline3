@@ -104,10 +104,6 @@ public class LineReaderTest {
         AbstractWindowsTerminal terminal = new AbstractWindowsTerminal(new BufferedWriter(sw), "name", TYPE_WINDOWS_CONEMU, Charset.defaultCharset(),0,
                 false, Terminal.SignalHandler.SIG_DFL) {
             @Override
-            protected int getConsoleOutputCP() {
-                return 0;
-            }
-            @Override
             protected int getConsoleMode() {
                 return 0;
             }
