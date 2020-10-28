@@ -1,6 +1,14 @@
 # [JLine3](https://github.com/jline/jline3)
 <!-- git log --pretty=format:'* [`%h`](https://github.com/jline/jline3/commit/%H) %s' -->
 
+## [JLine 3.17.1][3_17_1]
+[3_17_1]: https://repo1.maven.org/maven2/org/jline/jline/3.17.1/
+
+* [`437e7f43`](https://github.com/jline/jline3/commit/437e7f430623e883520f3cc16a7be9982c8ac79f) Upgrade to jansi 2.0.1
+* [`15cf3895`](https://github.com/jline/jline3/commit/15cf3895e8782a32176bf62858907aab1a3e6ea2) Add native resource information
+* [`9e5728c1`](https://github.com/jline/jline3/commit/9e5728c19600a67fc8d10ff48e49c0c00d9dcbfd) Fix unit test
+* [`d609de12`](https://github.com/jline/jline3/commit/d609de124271b79e48cef3ce6a15b7606244bbcb) Fix console hangup on windows in combination with jansi after typing one char
+
 ## [JLine 3.17.0][3_17_0]
 [3_17_0]: https://repo1.maven.org/maven2/org/jline/jline/3.17.0/
 
