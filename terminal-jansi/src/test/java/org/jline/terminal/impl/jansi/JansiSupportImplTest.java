@@ -16,7 +16,7 @@ public class JansiSupportImplTest {
 
     @Test
     public void testJansiVersion() {
-        assertEquals(JansiSupportImpl.JANSI_MAJOR_VERSION, 2);
-        assertEquals(JansiSupportImpl.JANSI_MINOR_VERSION, 0);
+        assertEquals(2, JansiSupportImpl.JANSI_MAJOR_VERSION);
+        assertEquals(0, JansiSupportImpl.JANSI_MINOR_VERSION);
     }
 }
