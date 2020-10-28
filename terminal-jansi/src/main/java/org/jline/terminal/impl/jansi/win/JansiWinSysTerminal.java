@@ -122,7 +122,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
         INPUT_RECORD[] events;
         long console = GetStdHandle (STD_INPUT_HANDLE);
         if (console != INVALID_HANDLE_VALUE
-                && WaitForSingleObject(console, 100) != 0) {
+                && WaitForSingleObject(console, 100) == 0) {
             events = readConsoleInputHelper(console, 1, false);
         } else {
             return false;
