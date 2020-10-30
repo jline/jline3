@@ -641,7 +641,7 @@ public class LineReaderImpl implements LineReader, Flushable
                 }
                 Binding o = readBinding(getKeys(), local);
                 if (o == null) {
-                    throw new EndOfFileException();
+                    throw new EndOfFileException().partialLine(buf.length() > 0 ? buf.toString() : null);
                 }
                 Log.trace("Binding: ", o);
                 if (buf.length() == 0 && getLastBinding().charAt(0) == originalAttributes.getControlChar(ControlChar.VEOF)) {

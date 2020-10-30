@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import org.jline.builtins.*;
 import org.jline.builtins.Completers.OptionCompleter;
@@ -47,6 +46,7 @@ import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.script.GroovyCommand;
 import org.jline.script.GroovyEngine;
+import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.Terminal.Signal;
@@ -65,7 +65,7 @@ public class Repl {
 
     protected static class MyCommands extends JlineCommandRegistry implements CommandRegistry {
         private LineReader reader;
-        private Supplier<Path> workDir;
+        private final Supplier<Path> workDir;
 
         public MyCommands(Supplier<Path> workDir) {
             super();
@@ -177,7 +177,7 @@ public class Repl {
                 _args.add("sh");
                 _args.add("-c");
             }
-            _args.add(args.stream().collect(Collectors.joining(" ")));
+            _args.add(String.join(" ", args));
             builder.command(_args);
             builder.directory(workDir.get().toFile());
             Process process = builder.start();
@@ -200,8 +200,7 @@ public class Repl {
                     saveException(e);
                 }
             } else {
-                List<String> argv = new ArrayList<>();
-                argv.addAll(Arrays.asList(input.args()));
+                List<String> argv = new ArrayList<>(Arrays.asList(input.args()));
                 if (!argv.isEmpty()) {
                     try {
                         executeCmnd(argv);
@@ -229,8 +228,8 @@ public class Repl {
     }
 
     private static class StreamGobbler implements Runnable {
-        private InputStream inputStream;
-        private Consumer<String> consumer;
+        private final InputStream inputStream;
+        private final Consumer<String> consumer;
 
         public StreamGobbler(InputStream inputStream, Consumer<String> consumer) {
             this.inputStream = inputStream;
@@ -259,6 +258,9 @@ public class Repl {
             parser.setEscapeChars(null);
             parser.setRegexCommand("[:]{0,1}[a-zA-Z!]{1,}\\S*");    // change default regex to support shell commands
             Terminal terminal = TerminalBuilder.builder().build();
+            if (terminal.getWidth() == 0 || terminal.getHeight() == 0) {
+                terminal.setSize(new Size(120, 40));   // hard coded terminal size when redirecting
+            }
             Thread executeThread = Thread.currentThread();
             terminal.handle(Signal.INT, signal -> executeThread.interrupt());
             //
@@ -273,7 +275,7 @@ public class Repl {
             ConsoleEngineImpl consoleEngine = new ConsoleEngineImpl(scriptEngine
                                                                   , printer
                                                                   , Repl::workDir, configPath);
-            Builtins builtins = new Builtins(Repl::workDir, configPath,  (String fun)-> {return new ConsoleEngine.WidgetCreator(consoleEngine, fun);});
+            Builtins builtins = new Builtins(Repl::workDir, configPath,  (String fun)-> new ConsoleEngine.WidgetCreator(consoleEngine, fun));
             MyCommands myCommands = new MyCommands(Repl::workDir);
             SystemRegistryImpl systemRegistry = new SystemRegistryImpl(parser, terminal, Repl::workDir, configPath);
             systemRegistry.register("groovy", new GroovyCommand(scriptEngine, printer));
@@ -315,7 +317,7 @@ public class Repl {
             //
             // REPL-loop
             //
-            consoleEngine.println(terminal.getName()+": "+terminal.getType());
+            System.out.println(terminal.getName() + ": " + terminal.getType());
             while (true) {
                 try {
                     systemRegistry.cleanUp();         // delete temporary variables and reset output streams
@@ -328,6 +330,14 @@ public class Repl {
                     // Ignore
                 }
                 catch (EndOfFileException e) {
+                    String pl = e.getPartialLine();
+                    if (pl != null) {                 // execute last line from redirected file (required for Windows)
+                        try {
+                            consoleEngine.println(systemRegistry.execute(pl));
+                        } catch (Exception e2) {
+                            systemRegistry.trace(e2);
+                        }
+                    }
                     break;
                 }
                 catch (Exception e) {
