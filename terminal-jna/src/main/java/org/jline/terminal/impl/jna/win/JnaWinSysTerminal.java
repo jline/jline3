@@ -70,6 +70,7 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
         try {
             IntByReference mode = new IntByReference();
             Kernel32.INSTANCE.GetConsoleMode(consoleOut, mode);
+            Kernel32.INSTANCE.GetConsoleMode(consoleIn, mode);
             return true;
         } catch (LastErrorException e) {
             return false;
