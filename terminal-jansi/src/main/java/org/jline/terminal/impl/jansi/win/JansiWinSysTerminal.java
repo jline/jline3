@@ -47,12 +47,14 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
             }
             writer = new JansiWinConsoleWriter();
         } else {
-            long console = GetStdHandle(STD_OUTPUT_HANDLE);
+            long consoleOut = GetStdHandle(STD_OUTPUT_HANDLE);
+            long consoleIn = GetStdHandle(STD_INPUT_HANDLE);
             int[] mode = new int[1];
-            if (Kernel32.GetConsoleMode(console, mode) == 0) {
+            if (Kernel32.GetConsoleMode(consoleOut, mode) == 0
+                  || Kernel32.GetConsoleMode(consoleIn, mode) == 0) {
                 throw new IOException("Failed to get console mode: " + getLastErrorMessage());
             }
-            if (Kernel32.SetConsoleMode(console, mode[0] | AbstractWindowsTerminal.ENABLE_VIRTUAL_TERMINAL_PROCESSING) != 0) {
+            if (Kernel32.SetConsoleMode(consoleOut, mode[0] | AbstractWindowsTerminal.ENABLE_VIRTUAL_TERMINAL_PROCESSING) != 0) {
                 if (type == null) {
                     type = TYPE_WINDOWS_VTP;
                 }
