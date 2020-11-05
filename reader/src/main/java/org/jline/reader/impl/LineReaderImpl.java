@@ -2558,7 +2558,7 @@ public class LineReaderImpl implements LineReader, Flushable
             }
             terminal.puts(Capability.keypad_local);
             terminal.trackMouse(Terminal.MouseTracking.Off);
-            if (isSet(Option.BRACKETED_PASTE))
+            if (isSet(Option.BRACKETED_PASTE) && !isTerminalDumb())
                 terminal.writer().write(BRACKETED_PASTE_OFF);
             flush();
         }
