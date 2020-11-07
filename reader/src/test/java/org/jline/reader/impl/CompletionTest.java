@@ -11,10 +11,8 @@ package org.jline.reader.impl;
 import java.io.IOException;
 import java.util.Arrays;
 
-import static java.util.Arrays.asList;
-import org.jline.reader.Completer;
+import org.jline.reader.*;
 import org.jline.reader.LineReader.Option;
-import org.jline.reader.Reference;
 import org.jline.reader.impl.completer.AggregateCompleter;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
@@ -135,6 +133,35 @@ public class CompletionTest extends ReaderTestSupport {
     }
 
     @Test
+    public void testSuffix() {
+        reader.setCompleter((reader, line, candidates) -> {
+                    candidates.add(new Candidate(
+                            /* value    = */ "range(",
+                            /* displ    = */ "range(",
+                            /* group    = */ null,
+                            /* descr    = */ null,
+                            /* suffix   = */ "(",
+                            /* key      = */ null,
+                            /* complete = */ false));
+                    candidates.add(new Candidate(
+                            /* value    = */ "strangeTest",
+                            /* displ    = */ "strangeTest",
+                            /* group    = */ null,
+                            /* descr    = */ null,
+                            /* suffix   = */ "Test",
+                            /* key      = */ null,
+                            /* complete = */ false));
+                }
+        );
+        //  DEFAULT_REMOVE_SUFFIX_CHARS = " \t\n;&|";
+
+        assertLine("range ;", new TestBuffer("r\t;\n"));
+        assertLine("range(1", new TestBuffer("r\t1\n"));
+        assertLine("strange ", new TestBuffer("s\t\n"));
+        assertLine("strangeTests", new TestBuffer("s\ts\n"));
+    }
+
+    @Test
     public void testMenuOrder() {
         reader.setCompleter(new StringsCompleter(Arrays.asList("ae_helloWorld1", "ad_helloWorld12", "ac_helloWorld1234", "ab_helloWorld123", "aa_helloWorld12345")));
         reader.unsetOpt(Option.AUTO_LIST);
@@ -161,4 +188,5 @@ public class CompletionTest extends ReaderTestSupport {
 
         assertLine("test ", new TestBuffer("test \\\t\n\n"));
     }
+
 }
