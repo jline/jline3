@@ -326,11 +326,9 @@ public final class TerminalBuilder {
             Terminal terminal = null;
             if (OSUtils.IS_WINDOWS) {
                 boolean ansiPassThrough = OSUtils.IS_CONEMU;
-                boolean winConsole = true;
                 if (terminal == null && jna) {
                     try {
                         JnaSupport support = load(JnaSupport.class);
-                        winConsole = support.isWindowsConsole();
                         terminal = support.winSysTerminal(name, type, ansiPassThrough, encoding, codepage, nativeSignals, signalHandler, paused);
                     } catch (Throwable t) {
                         Log.debug("Error creating JNA based terminal: ", t.getMessage(), t);
@@ -340,7 +338,6 @@ public final class TerminalBuilder {
                 if (terminal == null && jansi) {
                     try {
                         JansiSupport support = load(JansiSupport.class);
-                        winConsole = support.isWindowsConsole();
                         terminal = support.winSysTerminal(name, type, ansiPassThrough, encoding, codepage, nativeSignals, signalHandler, paused);
                     } catch (Throwable t) {
                         Log.debug("Error creating JANSI based terminal: ", t.getMessage(), t);
@@ -350,7 +347,7 @@ public final class TerminalBuilder {
                 //
                 // Cygwin support
                 //
-                if (terminal == null && exec && (OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM) && winConsole) {
+                if (terminal == null && exec && (OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM)) {
                     try {
                         Pty pty = ExecPty.current();
                         // Cygwin defaults to XTERM, but actually supports 256 colors,
