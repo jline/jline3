@@ -27,4 +27,10 @@ public interface JansiSupport {
 
     boolean isWindowsConsole();
 
+    default boolean isConsoleOutput() {
+        return isConsoleOutput(false);
+    }
+
+    boolean isConsoleOutput(boolean pty);
+
 }

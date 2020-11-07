@@ -44,4 +44,9 @@ public class JnaSupportImpl implements JnaSupport {
         return JnaWinSysTerminal.isWindowsConsole();
     }
 
+    @Override
+    public boolean isConsoleOutput(boolean pty) {
+        return pty ? JnaNativePty.isConsoleOutput() : JnaWinSysTerminal.isConsoleOutput();
+    }
+
 }

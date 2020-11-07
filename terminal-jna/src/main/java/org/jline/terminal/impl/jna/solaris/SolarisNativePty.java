@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2020, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -86,6 +86,10 @@ public class SolarisNativePty extends JnaNativePty {
     public void setSize(Size size) throws IOException {
         winsize sz = new winsize(size);
         C_LIBRARY.ioctl(getSlave(), TIOCSWINSZ, sz);
+    }
+
+    public static int isatty(int fd) {
+        return C_LIBRARY.isatty(fd);
     }
 
 }

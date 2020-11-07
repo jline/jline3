@@ -136,4 +136,8 @@ public class JansiSupportImpl implements JansiSupport {
         return JansiWinSysTerminal.isWindowsConsole();
     }
 
+    @Override
+    public boolean isConsoleOutput(boolean pty) {
+        return pty ? JansiNativePty.isConsoleOutput() : JansiWinSysTerminal.isConsoleOutput();
+    }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019, the original author or authors.
+ * Copyright (c) 2002-2020, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -323,12 +323,14 @@ public final class TerminalBuilder {
                 Log.warn("Attributes and size fields are ignored when creating a system terminal");
             }
             IllegalStateException exception = new IllegalStateException("Unable to create a system terminal");
+            boolean consoleOutput = false;
             Terminal terminal = null;
             if (OSUtils.IS_WINDOWS) {
                 boolean ansiPassThrough = OSUtils.IS_CONEMU;
                 if (terminal == null && jna) {
                     try {
                         JnaSupport support = load(JnaSupport.class);
+                        consoleOutput = support.isConsoleOutput();
                         terminal = support.winSysTerminal(name, type, ansiPassThrough, encoding, codepage, nativeSignals, signalHandler, paused);
                     } catch (Throwable t) {
                         Log.debug("Error creating JNA based terminal: ", t.getMessage(), t);
@@ -338,6 +340,7 @@ public final class TerminalBuilder {
                 if (terminal == null && jansi) {
                     try {
                         JansiSupport support = load(JansiSupport.class);
+                        consoleOutput = support.isConsoleOutput();
                         terminal = support.winSysTerminal(name, type, ansiPassThrough, encoding, codepage, nativeSignals, signalHandler, paused);
                     } catch (Throwable t) {
                         Log.debug("Error creating JANSI based terminal: ", t.getMessage(), t);
@@ -369,7 +372,9 @@ public final class TerminalBuilder {
             } else {
                 if (terminal == null && jna) {
                     try {
-                        Pty pty = load(JnaSupport.class).current();
+                        JnaSupport support = load(JnaSupport.class);
+                        consoleOutput = support.isConsoleOutput(true);
+                        Pty pty = support.current();
                         terminal = new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
                     } catch (Throwable t) {
                         // ignore
@@ -379,7 +384,9 @@ public final class TerminalBuilder {
                 }
                 if (terminal == null && jansi) {
                     try {
-                        Pty pty = load(JansiSupport.class).current();
+                        JansiSupport support = load(JansiSupport.class);
+                        consoleOutput = support.isConsoleOutput(true);
+                        Pty pty = support.current();
                         terminal = new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
                     } catch (Throwable t) {
                         Log.debug("Error creating JANSI based terminal: ", t.getMessage(), t);
@@ -425,6 +432,9 @@ public final class TerminalBuilder {
                 if (!color) {
                     String command = getParentProcessCommand();
                     color = command != null && command.contains("idea");
+                }
+                if (!color) {
+                    color = consoleOutput && System.getenv("TERM") != null;
                 }
                 if (!color && dumb == null) {
                     if (Log.isDebugEnabled()) {

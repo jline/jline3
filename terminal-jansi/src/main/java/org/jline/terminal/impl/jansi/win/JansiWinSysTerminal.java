@@ -38,6 +38,8 @@ import static org.fusesource.jansi.internal.Kernel32.WaitForSingleObject;
 import static org.fusesource.jansi.internal.Kernel32.readConsoleInputHelper;
 
 public class JansiWinSysTerminal extends AbstractWindowsTerminal {
+    private static final long consoleOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    private static final long consoleIn = GetStdHandle(STD_INPUT_HANDLE);
 
     public static JansiWinSysTerminal createTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler, boolean paused) throws IOException {
         Writer writer;
@@ -47,11 +49,8 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
             }
             writer = new JansiWinConsoleWriter();
         } else {
-            long consoleOut = GetStdHandle(STD_OUTPUT_HANDLE);
-            long consoleIn = GetStdHandle(STD_INPUT_HANDLE);
             int[] mode = new int[1];
-            if (Kernel32.GetConsoleMode(consoleOut, mode) == 0
-                  || Kernel32.GetConsoleMode(consoleIn, mode) == 0) {
+            if (Kernel32.GetConsoleMode(consoleOut, mode) == 0 ) {
                 throw new IOException("Failed to get console mode: " + getLastErrorMessage());
             }
             if (Kernel32.SetConsoleMode(consoleOut, mode[0] | AbstractWindowsTerminal.ENABLE_VIRTUAL_TERMINAL_PROCESSING) != 0) {
@@ -70,6 +69,9 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
                 }
                 writer = new WindowsAnsiWriter(new BufferedWriter(new JansiWinConsoleWriter()));
             }
+            if (Kernel32.GetConsoleMode(consoleIn, mode) == 0) {
+                throw new IOException("Failed to get console mode: " + getLastErrorMessage());
+            }
         }
         JansiWinSysTerminal terminal = new JansiWinSysTerminal(writer, name, type, encoding, codepage, nativeSignals, signalHandler);
         // Start input pump thread
@@ -80,10 +82,13 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
     }
 
     public static boolean isWindowsConsole() {
-        long consoleOut = GetStdHandle(STD_OUTPUT_HANDLE);
-        long consoleIn = GetStdHandle(STD_INPUT_HANDLE);
         int[] mode = new int[1];
         return Kernel32.GetConsoleMode(consoleOut, mode) != 0 && Kernel32.GetConsoleMode(consoleIn, mode) != 0;
+    }
+
+    public static boolean isConsoleOutput() {
+        int[] mode = new int[1];
+        return Kernel32.GetConsoleMode(consoleOut, mode) != 0;
     }
 
     JansiWinSysTerminal(Writer writer, String name, String type, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2020, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -31,7 +31,7 @@ public interface CLibrary extends com.sun.jna.Library {
 
     void ioctl(int fd, long cmd, winsize data) throws LastErrorException;
 
-//    int isatty(int fd);
+    int isatty(int fd);
 
     void ttyname_r(int fd, byte[] buf, int len) throws LastErrorException;
 

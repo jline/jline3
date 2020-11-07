@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2020, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -145,6 +145,20 @@ public abstract class JnaNativePty extends AbstractPty implements Pty {
     @Override
     public String toString() {
         return "JnaNativePty[" + getName() + "]";
+    }
+
+    public static boolean isConsoleOutput() {
+        if (Platform.isMac()) {
+            return OsXNativePty.isatty(1) == 1;
+        } else if (Platform.isLinux()) {
+            return LinuxNativePty.isatty(1) == 1;
+        } else if (Platform.isSolaris()) {
+            return SolarisNativePty.isatty(1) == 1;
+        } else if (Platform.isFreeBSD()) {
+            return FreeBsdNativePty.isatty(1) == 1;
+        } else {
+            return false;
+        }
     }
 
 }

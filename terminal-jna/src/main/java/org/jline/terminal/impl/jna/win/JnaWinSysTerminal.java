@@ -77,6 +77,16 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
         }
     }
 
+    public static boolean isConsoleOutput() {
+        try {
+            IntByReference mode = new IntByReference();
+            Kernel32.INSTANCE.GetConsoleMode(consoleOut, mode);
+            return true;
+        } catch (LastErrorException e) {
+            return false;
+        }
+    }
+
     JnaWinSysTerminal(Writer writer, String name, String type, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
         super(writer, name, type, encoding, codepage, nativeSignals, signalHandler);
         strings.put(InfoCmp.Capability.key_mouse, "\\E[M");
