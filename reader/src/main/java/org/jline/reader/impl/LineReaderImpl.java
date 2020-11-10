@@ -5030,6 +5030,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
         boolean caseInsensitive = isSet(Option.CASE_INSENSITIVE);
         StringBuilder sb = new StringBuilder();
+        candidateStartPosition = 0;
         while (true) {
             String current = completed + sb.toString();
             List<Candidate> cands;
@@ -5045,7 +5046,9 @@ public class LineReaderImpl implements LineReader, Flushable
                         .sorted(getCandidateComparator(caseInsensitive, current))
                         .collect(Collectors.toList());
             }
-            candidateStartPosition = candidateStartPosition();
+            if (isSet(Option.AUTO_MENU_LIST) && candidateStartPosition == 0) {
+                candidateStartPosition = candidateStartPosition(cands);
+            }
             post = () -> {
                 AttributedString t = insertSecondaryPrompts(AttributedStringBuilder.append(prompt, buf.toString()), new ArrayList<>());
                 int pl = t.columnSplitLength(size.getColumns(), false, display.delayLineWrap()).size();
@@ -5181,7 +5184,13 @@ public class LineReaderImpl implements LineReader, Flushable
     private static final int MARGIN_BETWEEN_COLUMNS = 3;
     private static final int MENU_LIST_WIDTH = 25;
 
-    private int candidateStartPosition() {
+    private int candidateStartPosition(List<Candidate> cands) {
+        List<String> values = cands.stream().map(c -> AttributedString.stripAnsi(c.displ()))
+                .filter(c -> !c.matches("\\w+")).collect(Collectors.toList());
+        Set<String> notDelimiters = new HashSet<>();
+        values.forEach(v -> v.substring(0, v.length() - 1).chars()
+                .filter(c -> !Character.isDigit(c) && !Character.isAlphabetic(c))
+                .forEach(c -> notDelimiters.add(Character.toString((char)c))));
         int out = prompt != null ? prompt.length() : 0;
         String buffer = buf.substring(0, buf.cursor());
         buffer = buffer.substring(buffer.lastIndexOf('\n') + 1);
@@ -5199,7 +5208,8 @@ public class LineReaderImpl implements LineReader, Flushable
             out = 0;
         }
         for (int i = buffer.length(); i > 0; i--) {
-            if (buffer.substring(0, i).matches(".*\\W")) {
+            if (buffer.substring(0, i).matches(".*\\W")
+                    && !notDelimiters.contains(buffer.substring(i - 1, i))) {
                 out += i;
                 break;
             }
