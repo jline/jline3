@@ -428,9 +428,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         private final PrintStream origOut;
         private final PrintStream origErr;
         private final Terminal origTerminal;
-        private ByteArrayOutputStream byteOutputStream;
-        private FileOutputStream fileOutputStream;
-        private PrintStream out;
+        private OutputStream outputStream;
         private Terminal terminal;
         private String output;
         private CommandRegistry.CommandSession commandSession;
@@ -445,8 +443,8 @@ public class SystemRegistryImpl implements SystemRegistry {
             this.commandSession = new CommandRegistry.CommandSession(terminal, terminal.input(), ps, ps);
         }
 
-        public void redirect() throws IOException {
-            byteOutputStream = new ByteArrayOutputStream();
+        public void redirect() {
+            outputStream = new ByteArrayOutputStream();
         }
 
         public void redirect(File file, boolean append) throws IOException {
@@ -458,15 +456,15 @@ public class SystemRegistryImpl implements SystemRegistry {
                     file.createNewFile();
                 }
             }
-            fileOutputStream = new FileOutputStream(file, append);
+            outputStream = new FileOutputStream(file, append);
         }
 
         public void open() throws IOException {
-            if (redirecting || (byteOutputStream == null && fileOutputStream == null)) {
+            if (redirecting || outputStream == null) {
                 return;
             }
-            OutputStream outputStream = byteOutputStream != null ? byteOutputStream : fileOutputStream;
-            out = new PrintStream(outputStream);
+            output = null;
+            PrintStream out = new PrintStream(outputStream);
             System.setOut(out);
             System.setErr(out);
             String input = ctrl('X') + "q";
@@ -475,36 +473,46 @@ public class SystemRegistryImpl implements SystemRegistry {
             if (OSUtils.IS_WINDOWS) {
                 attrs.setInputFlag(InputFlag.IGNCR, true);
             }
-            terminal = TerminalBuilder.builder()
-                                      .streams(in, outputStream)
-                                      .attributes(attrs)
-                                      .jna(false)
-                                      .jansi(false)
-                                      .type(Terminal.TYPE_DUMB).build();
-            this.commandSession = new CommandRegistry.CommandSession(terminal, terminal.input(), out, out);
-            redirecting = true;
-        }
-
-        public void flush() {
-            terminal.flush();
-            if (byteOutputStream != null) {
-                output = byteOutputStream.toString();
+            try {
+                terminal = TerminalBuilder.builder()
+                        .streams(in, outputStream)
+                        .attributes(attrs)
+                        .jna(false)
+                        .jansi(false)
+                        .type(Terminal.TYPE_DUMB).build();
+                this.commandSession = new CommandRegistry.CommandSession(terminal, terminal.input(), out, out);
+                redirecting = true;
+            } catch (IOException e) {
+                reset();
+                throw e;
             }
         }
 
         public void close() {
-            if (out == null) {
+            if (!redirecting) {
                 return;
             }
             try {
-                flush();
+                terminal.flush();
+                if (outputStream instanceof ByteArrayOutputStream) {
+                    output = outputStream.toString();
+                }
                 terminal.close();
-                byteOutputStream = null;
-                fileOutputStream = null;
-                out = null;
             } catch (Exception e) {
                 // ignore
             }
+            reset();
+        }
+
+        private void reset() {
+            outputStream = null;
+            System.setOut(origOut);
+            System.setErr(origErr);
+            terminal = null;
+            terminal = origTerminal;
+            PrintStream ps = new PrintStream(terminal.output());
+            this.commandSession = new CommandRegistry.CommandSession(terminal, terminal.input(), ps, ps);
+            redirecting = false;
         }
 
         public CommandRegistry.CommandSession getCommandSession() {
@@ -519,30 +527,10 @@ public class SystemRegistryImpl implements SystemRegistry {
             return redirecting;
         }
 
-        public boolean isByteStream() {
-            return redirecting && byteOutputStream != null;
+        public boolean isByteOutputStream() {
+            return outputStream instanceof ByteArrayOutputStream;
         }
 
-        public void reset() {
-            if (redirecting) {
-                out = null;
-                byteOutputStream = null;
-                fileOutputStream = null;
-                output = null;
-                System.setOut(origOut);
-                System.setErr(origErr);
-                terminal = null;
-                terminal = origTerminal;
-                PrintStream ps = new PrintStream(terminal.output());
-                this.commandSession = new CommandRegistry.CommandSession(terminal, terminal.input(), ps, ps);
-                redirecting = false;
-            }
-        }
-
-        public void closeAndReset() {
-            close();
-            reset();
-        }
     }
 
     private boolean isCommandAlias(String command) {
@@ -1153,7 +1141,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 throw new IllegalArgumentException("Console script output cannot be redirected!");
             }
             try {
-                outputStream.closeAndReset();
+                outputStream.close();
                 if (consoleEngine != null && !consoleEngine.isExecuting()) {
                     trace(cmd);
                 }
@@ -1180,8 +1168,8 @@ public class SystemRegistryImpl implements SystemRegistry {
                 if (consoleEngine != null) {
                     if (consoleScript) {
                         statement = cmd.command().isEmpty() || !scriptStore.hasScript(cmd.command());
-                        if (statement && outputStream.isByteStream()) {
-                            outputStream.closeAndReset();
+                        if (statement && outputStream.isByteOutputStream()) {
+                            outputStream.close();
                         }
                         out = consoleEngine.execute(cmd.command(), cmd.rawLine(), cmd.args());
                     }
@@ -1230,10 +1218,8 @@ public class SystemRegistryImpl implements SystemRegistry {
             }
             out = new ExecutionResult(status, result);
         } else if (!statement) {
-            outputStream.flush();
             outputStream.close();
             out = consoleEngine.postProcess(cmd.rawLine(), result, outputStream.getOutput());
-            outputStream.reset();
         } else if (cmd.variable() != null) {
             if (consoleEngine.hasVariable(cmd.variable())) {
                 out = consoleEngine.postProcess(consoleEngine.getVariable(cmd.variable()));
@@ -1248,9 +1234,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     public void cleanUp() {
-        if (outputStream.isRedirecting()) {
-            outputStream.closeAndReset();
-        }
+        outputStream.close();
         if (consoleEngine() != null) {
             consoleEngine().purge();
         }
@@ -1267,9 +1251,7 @@ public class SystemRegistryImpl implements SystemRegistry {
 
     @Override
     public void trace(Exception exception) {
-        if (outputStream.isRedirecting()) {
-            outputStream.closeAndReset();
-        }
+        outputStream.close();
         ConsoleEngine consoleEngine = consoleEngine();
         if (consoleEngine != null) {
             consoleEngine.putVariable("exception", exception);
