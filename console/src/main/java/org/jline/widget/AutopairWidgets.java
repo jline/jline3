@@ -78,7 +78,7 @@ public class AutopairWidgets extends Widgets {
         addWidget(AP_INSERT, this::autopairInsert);
         addWidget("_autopair-close", this::autopairClose);
         addWidget(AP_BACKWARD_DELETE_CHAR, this::autopairDelete);
-        addWidget(AP_TOGGLE, this::toggleKeyBindings);
+        addWidget(AUTOPAIR_TOGGLE, this::toggleKeyBindings);
 
         KeyMap<Binding> map = getKeyMap();
         for (Map.Entry<String, String> p: pairs.entrySet()) {
@@ -161,7 +161,7 @@ public class AutopairWidgets extends Widgets {
     private void customBindings() {
         boolean ttActive = tailtipEnabled();
         if (ttActive) {
-            callWidget(TT_TOGGLE);
+            callWidget(TAILTIP_TOGGLE);
         }
         KeyMap<Binding> map = getKeyMap();
         for (Map.Entry<String, String> p: pairs.entrySet()) {
@@ -172,7 +172,7 @@ public class AutopairWidgets extends Widgets {
         }
         aliasWidget(AP_BACKWARD_DELETE_CHAR, LineReader.BACKWARD_DELETE_CHAR);
         if (ttActive) {
-            callWidget(TT_TOGGLE);
+            callWidget(TAILTIP_TOGGLE);
         }
         enabled = true;
     }
@@ -187,8 +187,8 @@ public class AutopairWidgets extends Widgets {
         }
         aliasWidget("." + LineReader.BACKWARD_DELETE_CHAR, LineReader.BACKWARD_DELETE_CHAR);
         if (tailtipEnabled()) {
-            callWidget(TT_TOGGLE);
-            callWidget(TT_TOGGLE);
+            callWidget(TAILTIP_TOGGLE);
+            callWidget(TAILTIP_TOGGLE);
         }
         enabled = false;
     }

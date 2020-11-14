@@ -141,7 +141,7 @@ public class TailTipWidgets extends Widgets {
         addWidget("_tailtip-expand-or-complete", this::tailtipComplete);
         addWidget("_tailtip-redisplay", this::tailtipUpdateStatus);
         addWidget("tailtip-window", this::toggleWindow);
-        addWidget(TT_TOGGLE, this::toggleKeyBindings);
+        addWidget(TAILTIP_TOGGLE, this::toggleKeyBindings);
     }
 
     public void setTailTips(Map<String,CmdDesc> tailTips) {
@@ -443,8 +443,8 @@ public class TailTipWidgets extends Widgets {
 
         setSuggestionType(SuggestionType.NONE);
         if (autopairEnabled()) {
-            callWidget(AP_TOGGLE);
-            callWidget(AP_TOGGLE);
+            callWidget(AUTOPAIR_TOGGLE);
+            callWidget(AUTOPAIR_TOGGLE);
         }
         enabled = false;
         return true;

@@ -30,7 +30,7 @@ public class AutosuggestionWidgets extends Widgets {
         addWidget("_autosuggest-forward-char", this::autosuggestForwardChar);
         addWidget("_autosuggest-end-of-line", this::autosuggestEndOfLine);
         addWidget("_autosuggest-forward-word", this::partialAccept);
-        addWidget("autosuggest-toggle", this::toggleKeyBindings);
+        addWidget(AUTOSUGGEST_TOGGLE, this::toggleKeyBindings);
     }
 
     public void disable() {

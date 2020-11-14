@@ -34,10 +34,12 @@ import org.jline.utils.Status;
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public abstract class Widgets {
-    protected static final String AP_TOGGLE = "autopair-toggle";
+    public static final String TAILTIP_TOGGLE = "tailtip-toggle";
+    public static final String TAILTIP_PANE = "tailtip-window";
+    public static final String AUTOPAIR_TOGGLE = "autopair-toggle";
+    public static final String AUTOSUGGEST_TOGGLE = "autosuggest-toggle";
     protected static final String AP_INSERT = "_autopair-insert";
     protected static final String AP_BACKWARD_DELETE_CHAR = "_autopair-backward-delete-char";
-    protected static final String TT_TOGGLE = "tailtip-toggle";
     protected static final String TT_ACCEPT_LINE = "_tailtip-accept-line";
 
     protected final LineReader reader;
@@ -95,7 +97,7 @@ public abstract class Widgets {
 
     /**
      * Create alias to widget
-     * @param orig widget orginal name
+     * @param orig widget original name
      * @param alias alias name
      */
     public void aliasWidget(String orig, String alias) {
@@ -260,7 +262,7 @@ public abstract class Widgets {
 
     /**
      *
-     * @param desc Text to be dispalyed on terminal status bar
+     * @param desc Text to be displayed on terminal status bar
      */
     public void addDescription(List<AttributedString> desc) {
         Status.getStatus(reader.getTerminal()).update(desc);

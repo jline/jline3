@@ -28,6 +28,7 @@ import org.jline.terminal.Terminal.Signal;
 import org.jline.utils.OSUtils;
 import org.jline.widget.TailTipWidgets;
 import org.jline.widget.TailTipWidgets.TipType;
+import org.jline.widget.Widgets;
 
 public class Graal {
 
@@ -90,7 +91,7 @@ public class Graal {
             //
             new TailTipWidgets(reader, systemRegistry::commandDescription, 5, TipType.COMPLETER);
             KeyMap<Binding> keyMap = reader.getKeyMaps().get("main");
-            keyMap.bind(new Reference("tailtip-toggle"), KeyMap.alt("s"));
+            keyMap.bind(new Reference(Widgets.TAILTIP_TOGGLE), KeyMap.alt("s"));
             //
             // REPL-loop
             //
