@@ -4534,6 +4534,9 @@ public class LineReaderImpl implements LineReader, Flushable
                     }
                 }
                 if (completion.suffix() != null) {
+                    if (autosuggestion == SuggestionType.COMPLETER) {
+                        listChoices(true);
+                    }
                     redisplay();
                     Binding op = readBinding(getKeys());
                     if (op != null) {

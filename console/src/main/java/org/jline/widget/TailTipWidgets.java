@@ -24,10 +24,9 @@ import org.jline.reader.Buffer;
 import org.jline.reader.LineReader;
 import org.jline.reader.Reference;
 import org.jline.reader.LineReader.SuggestionType;
-import org.jline.utils.AttributedString;
-import org.jline.utils.AttributedStringBuilder;
-import org.jline.utils.AttributedStyle;
-import org.jline.utils.StyleResolver;
+import org.jline.utils.*;
+
+import static org.jline.keymap.KeyMap.key;
 
 /**
  * Creates and manages widgets for as you type command line suggestions.
@@ -194,7 +193,14 @@ public class TailTipWidgets extends Widgets {
      * widgets
      */
     public boolean tailtipComplete() {
-        return doTailTip(LineReader.EXPAND_OR_COMPLETE);
+        if (doTailTip(LineReader.EXPAND_OR_COMPLETE)) {
+            if (lastBinding().equals("\t")) {
+                callWidget(LineReader.BACKWARD_CHAR);
+                reader.runMacro(key(reader.getTerminal(), InfoCmp.Capability.key_right));
+            }
+            return true;
+        }
+        return false;
     }
 
     public boolean tailtipAcceptLine() {
