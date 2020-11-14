@@ -5186,7 +5186,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
     private int candidateStartPosition(List<Candidate> cands) {
         List<String> values = cands.stream().map(c -> AttributedString.stripAnsi(c.displ()))
-                .filter(c -> !c.matches("\\w+")).collect(Collectors.toList());
+                .filter(c -> !c.matches("\\w+") && c.length() > 1).collect(Collectors.toList());
         Set<String> notDelimiters = new HashSet<>();
         values.forEach(v -> v.substring(0, v.length() - 1).chars()
                 .filter(c -> !Character.isDigit(c) && !Character.isAlphabetic(c))
@@ -5249,7 +5249,7 @@ public class LineReaderImpl implements LineReader, Flushable
         if (isSet(Option.AUTO_MENU_LIST) && listSize < displayRows() - promptLines()) {
             doMenuList = true;
             maxWidth = Math.max(maxWidth, MENU_LIST_WIDTH);
-            sb.tabs(Math.min(candidateStartPosition, width - maxWidth - 1));
+            sb.tabs(Math.max(Math.min(candidateStartPosition, width - maxWidth - 1), 1));
             width = maxWidth + 2;
         }
         for (Object list : items) {
