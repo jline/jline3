@@ -95,6 +95,7 @@ public class LineReaderImpl implements LineReader, Flushable
     public static final int    DEFAULT_COMPLETION_LIST_BACKGROUND_COLOR = 13;
     public static final int    DEFAULT_INDENTATION = 0;
     public static final int    DEFAULT_FEATURES_MAX_BUFFER_SIZE = 1000;
+    public static final int    DEFAULT_SUGGESTIONS_MIN_BUFFER_SIZE = 1;
 
     private static final int MIN_ROWS = 3;
 
@@ -4012,7 +4013,8 @@ public class LineReaderImpl implements LineReader, Flushable
                 sb.styled(AttributedStyle::faint, tailTip);
                 full.append(sb.toAttributedString());
             } else if (autosuggestion == SuggestionType.COMPLETER) {
-                if (buf.length() > 0 && buf.length() == buf.cursor()
+                if (buf.length() >= getInt(SUGGESTIONS_MIN_BUFFER_SIZE, DEFAULT_SUGGESTIONS_MIN_BUFFER_SIZE)
+                        && buf.length() == buf.cursor()
                         && (!lastBinding.equals("\t") || buf.prevChar() == ' ' || buf.prevChar() == '=')) {
                     clearChoices();
                     listChoices(true);

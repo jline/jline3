@@ -374,6 +374,12 @@ public interface LineReader {
      */
     String FEATURES_MAX_BUFFER_SIZE = "features-max-buffer-size";
 
+    /**
+     * Min buffer size for tab auto-suggestions.
+     * For shorter buffer sizes auto-suggestions are not resolved.
+     */
+    String SUGGESTIONS_MIN_BUFFER_SIZE = "suggestions-min-buffer-size";
+
     Map<String, KeyMap<Binding>> defaultKeyMaps();
 
     enum Option {
