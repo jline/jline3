@@ -23,6 +23,7 @@ import java.util.*;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.jline.builtins.Completers.FilesCompleter;
 import org.jline.builtins.Completers.OptDesc;
@@ -186,8 +187,17 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                                                         , this::commandOptions
                                                         , 1)
                                        ));
-        out.add(new ArgumentCompleter(new StringsCompleter(aliases::keySet), NullCompleter.INSTANCE));
+        out.add(new ArgumentCompleter(new StringsCompleter(this::commandAliasNames)
+                                     , NullCompleter.INSTANCE));
         return out;
+    }
+
+    private Set<String> commandAliasNames() {
+        Set<String> opers = pipes.keySet().stream().filter(p -> !p.matches("\\w+")).collect(Collectors.toSet());
+        opers.addAll(systemRegistry.getPipeNames());
+        return aliases.entrySet().stream()
+                .filter(e -> !opers.contains(e.getValue().split(" ")[0]))
+                .map(Map.Entry::getKey).collect(Collectors.toSet());
     }
 
     private Set<String> scriptNames() {
