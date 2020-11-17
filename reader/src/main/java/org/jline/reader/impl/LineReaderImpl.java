@@ -3966,14 +3966,12 @@ public class LineReaderImpl implements LineReader, Flushable
         }
         History history = getHistory();
         StringBuilder sb = new StringBuilder();
-        char prev = '0';
-        for (char c: buffer.toCharArray()) {
+        for (char c: buffer.replace("\\", "\\\\").toCharArray()) {
             if (c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}' || c == '^' || c == '*'
-                     || c == '$' || c == '.' || c == '?' || c == '+' || (c == '\\' && prev != '\\')) {
+                     || c == '$' || c == '.' || c == '?' || c == '+') {
                 sb.append('\\');
             }
             sb.append(c);
-            prev = c;
         }
         Pattern pattern = Pattern.compile(sb.toString() + ".*", Pattern.DOTALL);
         Iterator<History.Entry> iter = history.reverseIterator(history.last());
