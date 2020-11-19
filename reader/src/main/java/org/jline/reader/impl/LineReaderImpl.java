@@ -5063,7 +5063,7 @@ public class LineReaderImpl implements LineReader, Flushable
                     redisplay(false);
                     buf.cursor(oldCursor);
                     println();
-                    List<AttributedString> ls = postResult.post.columnSplitLength(size.getColumns(), false, display.delayLineWrap());
+                    List<AttributedString> ls = pr.post.columnSplitLength(size.getColumns(), false, display.delayLineWrap());
                     Display d = new Display(terminal, false);
                     d.resize(size.getRows(), size.getColumns());
                     d.update(ls, -1);
