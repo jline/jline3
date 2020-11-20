@@ -1291,7 +1291,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         names.save();
     }
 
-    private ConsoleEngine consoleEngine() {
+    public ConsoleEngine consoleEngine() {
         return consoleId != null ? (ConsoleEngine) commandRegistries[consoleId] : null;
     }
 
