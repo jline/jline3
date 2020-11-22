@@ -1125,7 +1125,7 @@ public class SystemRegistryImpl implements SystemRegistry {
 
     @Override
     public Object execute(String line) throws Exception {
-        if (line.isEmpty() || line.trim().startsWith("#")) {
+        if (line.trim().isEmpty() || line.trim().startsWith("#")) {
             return null;
         }
         long start = new Date().getTime();
