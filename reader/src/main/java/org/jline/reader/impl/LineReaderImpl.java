@@ -1072,6 +1072,9 @@ public class LineReaderImpl implements LineReader, Flushable
 
     @Override
     public void editAndAddInBuffer(File file) throws Exception {
+        if (isSet(Option.BRACKETED_PASTE)) {
+            terminal.writer().write(BRACKETED_PASTE_OFF);
+        }
         Constructor<?> ctor = Class.forName("org.jline.builtins.Nano").getConstructor(Terminal.class, File.class);
         Editor editor = (Editor) ctor.newInstance(terminal, new File(file.getParent()));
         editor.setRestricted(true);
