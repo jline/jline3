@@ -4006,7 +4006,7 @@ public class LineReaderImpl implements LineReader, Flushable
         AttributedStringBuilder full = new AttributedStringBuilder().tabs(TAB_WIDTH);
         full.append(prompt);
         full.append(tNewBuf);
-        if (doAutosuggestion) {
+        if (doAutosuggestion && !isTerminalDumb()) {
             String lastBinding = getLastBinding() != null ? getLastBinding() : "";
             if (autosuggestion == SuggestionType.HISTORY) {
                 AttributedStringBuilder sb = new AttributedStringBuilder();
