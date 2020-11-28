@@ -4189,6 +4189,9 @@ public class LineReaderImpl implements LineReader, Flushable
         List<String> missings = new ArrayList<>();
         if (computePrompts && secondaryPromptPattern.contains("%P")) {
             width = prompt.columnLength();
+            if (width > size.getColumns() || prompt.contains('\n')) {
+                width = new TerminalLine(prompt.toString(), 0, size.getColumns()).getEndLine().length();
+            }
             for (int line = 0; line < lines.size() - 1; line++) {
                 AttributedString prompt;
                 buf.append(lines.get(line)).append("\n");
