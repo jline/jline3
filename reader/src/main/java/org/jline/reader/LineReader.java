@@ -500,8 +500,9 @@ public interface LineReader {
      * Equivalent to <code>readLine(null, null, null)</code>.
      *
      * @return the line read
-     * @throws UserInterruptException If the call was interrupted by the user.
-     * @throws EndOfFileException     If the end of the input stream was reached.
+     * @throws UserInterruptException if readLine was interrupted (using Ctrl-C for example)
+     * @throws EndOfFileException if an EOF has been found (using Ctrl-D for example)
+     * @throws java.io.IOError in case of other i/o errors
      */
     String readLine() throws UserInterruptException, EndOfFileException;
 
@@ -513,8 +514,9 @@ public interface LineReader {
      *
      * @param mask      The mask character, <code>null</code> or <code>0</code>.
      * @return          A line that is read from the terminal, can never be null.
-     * @throws UserInterruptException If the call was interrupted by the user.
-     * @throws EndOfFileException     If the end of the input stream was reached.
+     * @throws UserInterruptException if readLine was interrupted (using Ctrl-C for example)
+     * @throws EndOfFileException if an EOF has been found (using Ctrl-D for example)
+     * @throws java.io.IOError in case of other i/o errors
      */
     String readLine(Character mask) throws UserInterruptException, EndOfFileException;
 
@@ -526,8 +528,9 @@ public interface LineReader {
      *
      * @param prompt    The prompt to issue to the terminal, may be null.
      * @return          A line that is read from the terminal, can never be null.
-     * @throws UserInterruptException If the call was interrupted by the user.
-     * @throws EndOfFileException     If the end of the input stream was reached.
+     * @throws UserInterruptException if readLine was interrupted (using Ctrl-C for example)
+     * @throws EndOfFileException if an EOF has been found (using Ctrl-D for example)
+     * @throws java.io.IOError in case of other i/o errors
      */
     String readLine(String prompt) throws UserInterruptException, EndOfFileException;
 
@@ -540,8 +543,9 @@ public interface LineReader {
      * @param prompt    The prompt to issue to the terminal, may be null.
      * @param mask      The mask character, <code>null</code> or <code>0</code>.
      * @return          A line that is read from the terminal, can never be null.
-     * @throws UserInterruptException If the call was interrupted by the user.
-     * @throws EndOfFileException     If the end of the input stream was reached.
+     * @throws UserInterruptException if readLine was interrupted (using Ctrl-C for example)
+     * @throws EndOfFileException if an EOF has been found (using Ctrl-D for example)
+     * @throws java.io.IOError in case of other i/o errors
      */
     String readLine(String prompt, Character mask) throws UserInterruptException, EndOfFileException;
 
@@ -557,8 +561,9 @@ public interface LineReader {
      * @param mask      The character mask, may be null.
      * @param buffer    The default value presented to the user to edit, may be null.
      * @return          A line that is read from the terminal, can never be null.
-     * @throws UserInterruptException If the call was interrupted by the user.
-     * @throws EndOfFileException     If the end of the input stream was reached.
+     * @throws UserInterruptException if readLine was interrupted (using Ctrl-C for example)
+     * @throws EndOfFileException if an EOF has been found (using Ctrl-D for example)
+     * @throws java.io.IOError in case of other i/o errors
      */
     String readLine(String prompt, Character mask, String buffer) throws UserInterruptException, EndOfFileException;
 
@@ -579,8 +584,6 @@ public interface LineReader {
      * @throws UserInterruptException if readLine was interrupted (using Ctrl-C for example)
      * @throws EndOfFileException if an EOF has been found (using Ctrl-D for example)
      * @throws java.io.IOError in case of other i/o errors
-     * @throws UserInterruptException If the call was interrupted by the user.
-     * @throws EndOfFileException     If the end of the input stream was reached.
      */
     String readLine(String prompt, String rightPrompt, Character mask, String buffer) throws UserInterruptException, EndOfFileException;
 
@@ -601,8 +604,6 @@ public interface LineReader {
      * @throws UserInterruptException if readLine was interrupted (using Ctrl-C for example)
      * @throws EndOfFileException if an EOF has been found (using Ctrl-D for example)
      * @throws java.io.IOError in case of other i/o errors
-     * @throws UserInterruptException If the call was interrupted by the user.
-     * @throws EndOfFileException     If the end of the input stream was reached.
      */
     String readLine(String prompt, String rightPrompt, MaskingCallback maskingCallback, String buffer) throws UserInterruptException, EndOfFileException;
 
