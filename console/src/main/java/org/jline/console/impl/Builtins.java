@@ -98,7 +98,7 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
 
     private void less(CommandInput input) {
         try {
-            Commands.less(input.terminal(), input.in(), input.out(), input.err(), workDir.get(), input.args());
+            Commands.less(input.terminal(), input.in(), input.out(), input.err(), workDir.get(), input.args(), configPath);
         } catch (Exception e) {
             saveException(e);
         }
