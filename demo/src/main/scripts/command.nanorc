@@ -1,0 +1,5 @@
+syntax "COMMAND"
+
+color green "[a-zA-Z]+[a-zA-Z0-9]*"
+color yellow ".*="
+color white "(\"|'|\.|=|:|\[|,|\])"

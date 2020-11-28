@@ -26,8 +26,8 @@ import org.jline.terminal.Terminal;
 public interface SystemRegistry extends CommandRegistry, ConsoleOptionGetter {
 
     /**
-     * Set command registeries
-     * @param commandRegistries command registeries used by the application
+     * Set command registries
+     * @param commandRegistries command registries used by the application
      */
     void setCommandRegistries(CommandRegistry... commandRegistries);
 
@@ -117,6 +117,12 @@ public interface SystemRegistry extends CommandRegistry, ConsoleOptionGetter {
      * @return true if the specified line has a command registered
      */
     boolean isCommandOrScript(ParsedLine line);
+    /**
+     * Returns whether a line contains command/script that is known to this registry.
+     * @param command the command to test
+     * @return true if the specified line has a command registered
+     */
+    boolean isCommandOrScript(String command);
 
     /**
      * Orderly close SystemRegistry.

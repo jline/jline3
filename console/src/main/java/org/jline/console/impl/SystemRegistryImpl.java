@@ -233,7 +233,8 @@ public class SystemRegistryImpl implements SystemRegistry {
         return isCommandOrScript(parser.getCommand(line.words().get(0)));
     }
 
-    private boolean isCommandOrScript(String command) {
+    @Override
+    public boolean isCommandOrScript(String command) {
         if (hasCommand(command)) {
             return true;
         }

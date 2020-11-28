@@ -8,10 +8,7 @@
  */
 package org.jline.demo;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -24,17 +21,14 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.jline.builtins.*;
+import org.jline.builtins.Nano.SyntaxHighlighter;
 import org.jline.builtins.Completers.OptionCompleter;
-import org.jline.console.impl.Builtins;
-import org.jline.console.impl.ConsoleEngineImpl;
-import org.jline.console.impl.DefaultPrinter;
-import org.jline.console.impl.SystemRegistryImpl;
+import org.jline.console.impl.*;
 import org.jline.console.CommandInput;
 import org.jline.console.CommandMethods;
 import org.jline.console.CommandRegistry;
 import org.jline.console.ConsoleEngine;
 import org.jline.console.Printer;
-import org.jline.console.impl.JlineCommandRegistry;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.LineReader.Option;
@@ -265,10 +259,19 @@ public class Repl {
             Thread executeThread = Thread.currentThread();
             terminal.handle(Signal.INT, signal -> executeThread.interrupt());
             //
-            // ScriptEngine and command registeries
+            // Create jnanorc config file for demo
             //
             File file = new File(Repl.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
             String root = file.getCanonicalPath().replace("classes", "").replaceAll("\\\\", "/"); // forward slashes works better also in windows!
+            File jnanorcFile = Paths.get(root, "jnanorc").toFile();
+            if (!jnanorcFile.exists()) {
+                FileWriter fw = new FileWriter(jnanorcFile);
+                fw.write("include " + root + "nanorc/*.nanorc\n");
+                fw.close();
+            }
+            //
+            // ScriptEngine and command registries
+            //
             GroovyEngine scriptEngine = new GroovyEngine();
             scriptEngine.put("ROOT", root);
             ConfigurationPath configPath = new ConfigurationPath(Paths.get(root), Paths.get(root));
@@ -286,10 +289,15 @@ public class Repl {
             //
             // LineReader
             //
+            Path jnanorc = configPath.getConfig("jnanorc");
+            SyntaxHighlighter commandHighlighter = SyntaxHighlighter.build(jnanorc,"COMMAND");
+            SyntaxHighlighter argsHighlighter = SyntaxHighlighter.build(jnanorc,"ARGS");
+            SyntaxHighlighter groovyHighlighter = SyntaxHighlighter.build(jnanorc,"Groovy");
             LineReader reader = LineReaderBuilder.builder()
                     .terminal(terminal)
                     .completer(systemRegistry.completer())
                     .parser(parser)
+                    .highlighter(new SystemHighlighter(commandHighlighter, argsHighlighter, groovyHighlighter))
                     .variable(LineReader.SECONDARY_PROMPT_PATTERN, "%M%P > ")
                     .variable(LineReader.INDENTATION, 2)
                     .variable(LineReader.LIST_MAX, 100)
@@ -303,7 +311,7 @@ public class Repl {
                 reader.setVariable(LineReader.BLINK_MATCHING_PAREN, 0); // if enabled cursor remains in begin parenthesis (gitbash)
             }
             //
-            // complete command registeries
+            // complete command registries
             //
             consoleEngine.setLineReader(reader);
             builtins.setLineReader(reader);
