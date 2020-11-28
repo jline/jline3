@@ -5190,6 +5190,36 @@ public class LineReaderImpl implements LineReader, Flushable
     private static final int MARGIN_BETWEEN_COLUMNS = 3;
     private static final int MENU_LIST_WIDTH = 25;
 
+    private static class TerminalLine {
+        private String endLine;
+        private int startPos;
+
+        public TerminalLine(String line, int startPos, int width) {
+            this.startPos = startPos;
+            endLine = line.substring(line.lastIndexOf('\n') + 1);
+            boolean first = true;
+            while (endLine.length() + (first ? startPos : 0) > width) {
+                if (first) {
+                    endLine = endLine.substring(width - startPos);
+                } else {
+                    endLine = endLine.substring(width);
+                }
+                first = false;
+            }
+            if (!first) {
+                this.startPos = 0;
+            }
+        }
+
+        public int getStartPos() {
+            return startPos;
+        }
+
+        public String getEndLine() {
+            return endLine;
+        }
+    }
+
     private int candidateStartPosition(List<Candidate> cands) {
         List<String> values = cands.stream().map(c -> AttributedString.stripAnsi(c.displ()))
                 .filter(c -> !c.matches("\\w+") && c.length() > 1).collect(Collectors.toList());
@@ -5197,22 +5227,15 @@ public class LineReaderImpl implements LineReader, Flushable
         values.forEach(v -> v.substring(0, v.length() - 1).chars()
                 .filter(c -> !Character.isDigit(c) && !Character.isAlphabetic(c))
                 .forEach(c -> notDelimiters.add(Character.toString((char)c))));
-        int out = prompt != null ? prompt.length() : 0;
-        String buffer = buf.substring(0, buf.cursor());
-        buffer = buffer.substring(buffer.lastIndexOf('\n') + 1);
-        boolean first = true;
         int width = size.getColumns();
-        while (buffer.length() + (first ? out : 0) > width) {
-            if (first) {
-                buffer = buffer.substring(width - prompt.length());
-            } else {
-                buffer = buffer.substring(width);
-            }
-            first = false;
+        int promptLength = prompt != null ? prompt.length() : 0;
+        if (promptLength > 0) {
+            TerminalLine tp = new TerminalLine(prompt.toString(), 0, width);
+            promptLength = tp.getEndLine().length();
         }
-        if (!first) {
-            out = 0;
-        }
+        TerminalLine tl = new TerminalLine(buf.substring(0, buf.cursor()), promptLength, width);
+        int out = tl.getStartPos();
+        String buffer = tl.getEndLine();
         for (int i = buffer.length(); i > 0; i--) {
             if (buffer.substring(0, i).matches(".*\\W")
                     && !notDelimiters.contains(buffer.substring(i - 1, i))) {
