@@ -27,6 +27,7 @@ public class SystemHighlighter extends DefaultHighlighter {
     private final SyntaxHighlighter commandHighlighter;
     private final SyntaxHighlighter argsHighlighter;
     private final SyntaxHighlighter langHighlighter;
+    private final SystemRegistry systemRegistry;
     private Pattern errorPattern;
     private int errorIndex = -1;
 
@@ -35,6 +36,7 @@ public class SystemHighlighter extends DefaultHighlighter {
         this.commandHighlighter = commandHighlighter;
         this.argsHighlighter = argsHighlighter;
         this.langHighlighter = langHighlighter;
+        this.systemRegistry = SystemRegistry.get();
     }
 
     @Override
@@ -64,7 +66,7 @@ public class SystemHighlighter extends DefaultHighlighter {
         AttributedString out;
         if (buffer.trim().isEmpty()) {
             out = new AttributedStringBuilder().append(buffer).toAttributedString();
-        } else if (SystemRegistry.get().isCommandOrScript(parser.getCommand(buffer.trim().split("\\s+")[0]))) {
+        } else if (systemRegistry.isCommandOrScript(parser.getCommand(buffer.trim().split("\\s+")[0]))) {
             if (commandHighlighter != null || argsHighlighter != null) {
                 int idx = -1;
                 boolean cmdFound = false;
