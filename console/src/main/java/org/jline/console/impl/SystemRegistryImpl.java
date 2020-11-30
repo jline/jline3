@@ -534,7 +534,8 @@ public class SystemRegistryImpl implements SystemRegistry {
 
     }
 
-    private boolean isCommandAlias(String command) {
+    @Override
+    public boolean isCommandAlias(String command) {
         if (consoleEngine() == null) {
             return false;
         }

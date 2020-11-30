@@ -64,9 +64,10 @@ public class SystemHighlighter extends DefaultHighlighter {
 
     private AttributedString systemHighlight(Parser parser, String buffer) {
         AttributedString out;
+        String command = parser.getCommand(buffer.trim().split("\\s+")[0]);
         if (buffer.trim().isEmpty()) {
             out = new AttributedStringBuilder().append(buffer).toAttributedString();
-        } else if (systemRegistry.isCommandOrScript(parser.getCommand(buffer.trim().split("\\s+")[0]))) {
+        } else if (systemRegistry.isCommandOrScript(command) || systemRegistry.isCommandAlias(command)) {
             if (commandHighlighter != null || argsHighlighter != null) {
                 int idx = -1;
                 boolean cmdFound = false;

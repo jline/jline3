@@ -117,12 +117,20 @@ public interface SystemRegistry extends CommandRegistry, ConsoleOptionGetter {
      * @return true if the specified line has a command registered
      */
     boolean isCommandOrScript(ParsedLine line);
+
     /**
-     * Returns whether a line contains command/script that is known to this registry.
+     * Returns whether command is known to this registry.
      * @param command the command to test
-     * @return true if the specified line has a command registered
+     * @return true if the specified command is known
      */
     boolean isCommandOrScript(String command);
+
+    /**
+     * Returns whether alias is known command alias.
+     * @param alias the alias to test
+     * @return true if the alias is known command alias
+     */
+    boolean isCommandAlias(String alias);
 
     /**
      * Orderly close SystemRegistry.
