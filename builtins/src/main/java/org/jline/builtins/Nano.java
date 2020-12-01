@@ -1815,13 +1815,20 @@ public class Nano implements Editor {
             for (int i = 0; i < s.length(); i++) {
                 char c = s.charAt(i);
                 if (c == '"') {
-                    depth = depth == 0 ? 1 : 0;
-                } else if (c ==' ' && depth == 0 && sb.length() > 0) {
+                    if (depth == 0) {
+                        depth = 1;
+                    } else {
+                        char nextChar = i < s.length() - 1 ? s.charAt(i + 1) : ' ';
+                        if (nextChar == ' ') {
+                            depth = 0;
+                        }
+                    }
+                } else if (c == ' ' && depth == 0 && sb.length() > 0) {
                     out.add(stripQuotes(sb.toString()));
                     sb = new StringBuilder();
                     continue;
                 }
-                if (sb.length() > 0 || (c!=' ' && c!='\t')) {
+                if (sb.length() > 0 || (c != ' ' && c != '\t')) {
                     sb.append(c);
                 }
             }
