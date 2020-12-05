@@ -26,4 +26,11 @@ public class CursesTest {
 
     }
 
+    @Test
+    public void testInitc() throws Exception {
+
+        assertEquals("\033]4;123;rgb:3F/00/22\033\\",
+                Curses.tputs("\\E]4;%p1%d;rgb\\:%p2%{255}%*%{1000}%/%2.2X/%p3%{255}%*%{1000}%/%2.2X/%p4%{255}%*%{1000}%/%2.2X\\E\\\\", 123, 0xfa, 0x00, 0x89));
+    }
+
 }
