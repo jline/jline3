@@ -108,6 +108,7 @@ public class Less {
     SyntaxHighlighter syntaxHighlighter;
     private final List<Path> syntaxFiles = new ArrayList<>();
     private boolean highlight = true;
+    private boolean nanorcIgnoreErrors;
 
     public static String[] usage() {
         return new String[]{
@@ -158,6 +159,7 @@ public class Less {
             try {
                 Files.find(Paths.get("/usr/share/nano"), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
                      .forEach(syntaxFiles::add);
+                nanorcIgnoreErrors = true;
             } catch (IOException e) {
                 errorMessage = "Encountered error while reading nanorc files";
             }
@@ -195,6 +197,7 @@ public class Less {
             }
             if (opts.isSet("syntax")) {
                 syntaxName = opts.get("syntax");
+                nanorcIgnoreErrors = false;
             }
             if (opts.isSet("no-init")) {
                 noInit = true;
@@ -1014,7 +1017,7 @@ public class Less {
                 if (sourceIdx == 0) {
                     syntaxHighlighter = SyntaxHighlighter.build(syntaxFiles, null, "none");
                 } else {
-                    syntaxHighlighter = SyntaxHighlighter.build(syntaxFiles, source.getName(), syntaxName);
+                    syntaxHighlighter = SyntaxHighlighter.build(syntaxFiles, source.getName(), syntaxName, nanorcIgnoreErrors);
                 }
                 open = true;
                 if (displayMessage) {

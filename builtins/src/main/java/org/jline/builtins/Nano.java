@@ -42,6 +42,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
@@ -134,6 +135,7 @@ public class Nano implements Editor {
     protected boolean highlight = true;
     private boolean searchToReplace = false;
     protected boolean readNewBuffer = true;
+    private boolean nanorcIgnoreErrors;
 
     protected enum WriteMode {
         WRITE,
@@ -208,7 +210,7 @@ public class Nano implements Editor {
 
         protected Buffer(String file) {
             this.file = file;
-            this.syntaxHighlighter = SyntaxHighlighter.build(syntaxFiles, file, syntaxName);
+            this.syntaxHighlighter = SyntaxHighlighter.build(syntaxFiles, file, syntaxName, nanorcIgnoreErrors);
         }
 
         void open() throws IOException {
@@ -1428,24 +1430,35 @@ public class Nano implements Editor {
         private SyntaxHighlighter() {}
 
         protected static SyntaxHighlighter build(List<Path> syntaxFiles, String file, String syntaxName) {
+            return build(syntaxFiles, file, syntaxName, false);
+        }
+
+        protected static SyntaxHighlighter build(List<Path> syntaxFiles, String file, String syntaxName
+                , boolean ignoreErrors) {
             SyntaxHighlighter out = new SyntaxHighlighter();
             List<HighlightRule> defaultRules = new ArrayList<>();
-            if (syntaxName == null || (syntaxName != null && !syntaxName.equals("none"))) {
-                for (Path p: syntaxFiles) {
-                    try {
-                        NanorcParser parser = new NanorcParser(p, syntaxName, file);
-                        parser.parse();
-                        if (parser.matches()) {
-                            out.addRules(parser.getHighlightRules());
-                            return out;
-                        } else if (parser.isDefault()) {
-                            defaultRules.addAll(parser.getHighlightRules());
+            try {
+                if (syntaxName == null || (syntaxName != null && !syntaxName.equals("none"))) {
+                    for (Path p : syntaxFiles) {
+                        try {
+                            NanorcParser parser = new NanorcParser(p, syntaxName, file);
+                            parser.parse();
+                            if (parser.matches()) {
+                                out.addRules(parser.getHighlightRules());
+                                return out;
+                            } else if (parser.isDefault()) {
+                                defaultRules.addAll(parser.getHighlightRules());
+                            }
+                        } catch (IOException e) {
+                            // ignore
                         }
-                    } catch (IOException e) {
-                        // ignore
                     }
+                    out.addRules(defaultRules);
                 }
-                out.addRules(defaultRules);
+            } catch (PatternSyntaxException e) {
+                if (!ignoreErrors) {
+                    throw e;
+                }
             }
             return out;
         }
@@ -1988,7 +2001,7 @@ public class Nano implements Editor {
             terminal.setAttributes(attrs);
         }
         Path nanorc = configPath != null ? configPath.getConfig("jnanorc") : null;
-        boolean ignorercfiles = opts!=null && opts.isSet("ignorercfiles");
+        boolean ignorercfiles = opts != null && opts.isSet("ignorercfiles");
         if (nanorc != null && !ignorercfiles) {
             try {
                 parseConfig(nanorc);
@@ -2000,13 +2013,18 @@ public class Nano implements Editor {
             try {
                 Files.find(Paths.get("/usr/share/nano"), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
                      .forEach(syntaxFiles::add);
+                nanorcIgnoreErrors = true;
             } catch (IOException e) {
                 errorMessage = "Encountered error while reading nanorc files";
             }
         }
         if (opts != null) {
             this.restricted = opts.isSet("restricted");
-            this.syntaxName = opts.isSet("syntax") ? opts.get("syntax") : null;
+            this.syntaxName = null;
+            if (opts.isSet("syntax")) {
+                this.syntaxName = opts.get("syntax");
+                nanorcIgnoreErrors = false;
+            }
             if (opts.isSet("backup")) {
                 writeBackup = true;
             }
