@@ -1687,10 +1687,23 @@ public class Nano implements Editor {
 
         public void parse() throws IOException {
             String line = reader.readLine();
-            while (line!= null) {
+            while (line != null) {
                 line = line.trim();
                 if (line.length() > 0 && !line.startsWith("#")) {
-                    line = line.replaceAll("\\\\<", "\\\\b").replaceAll("\\\\>", "\\\\b").replaceAll("\\[\\[:space:]]", "\\\\s");
+                    line = line.replaceAll("\\\\<", "\\\\b")
+                            .replaceAll("\\\\>", "\\\\b")
+                            .replaceAll("\\[:alnum:]", "\\\\p{Alnum}")
+                            .replaceAll("\\[:alpha:]", "\\\\p{Alpha}")
+                            .replaceAll("\\[:blank:]", "\\\\p{Blank}")
+                            .replaceAll("\\[:cntrl:]", "\\\\p{Cntrl}")
+                            .replaceAll("\\[:digit:]", "\\\\p{Digit}")
+                            .replaceAll("\\[:graph:]", "\\\\p{Graph}")
+                            .replaceAll("\\[:lower:]", "\\\\p{Lower}")
+                            .replaceAll("\\[:print:]", "\\\\p{Print}")
+                            .replaceAll("\\[:punct:]", "\\\\p{Punct}")
+                            .replaceAll("\\[:space:]", "\\\\s")
+                            .replaceAll("\\[:upper:]", "\\\\p{Upper}")
+                            .replaceAll("\\[:xdigit:]", "\\\\p{XDigit}");
                     List<String> parts = Parser.split(line);
                     if (parts.get(0).equals("syntax")) {
                         syntaxName = parts.get(1);
