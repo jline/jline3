@@ -1784,36 +1784,55 @@ public class Nano implements Editor {
             return out;
         }
 
+        private AttributedStyle setStyle(String name, AttributedStyle style) {
+            AttributedStyle out = style;
+            switch (name) {
+                case "blink":
+                    out = style.blink();
+                    break;
+                case "bold":
+                    out = style.bold();
+                    break;
+                case "conceal":
+                    out = style.conceal();
+                    break;
+                case "faint":
+                    out = style.faint();
+                    break;
+                case "hidden":
+                    out = style.hidden();
+                    break;
+                case "inverse":
+                    out = style.inverse();
+                    break;
+                case "italic":
+                    out = style.italic();
+                    break;
+                case "underline":
+                    out = style.underline();
+                    break;
+                default:
+            }
+            return out;
+        }
+
         private void addHighlightRule(List<String> parts, boolean caseInsensitive) {
             AttributedStyle style = AttributedStyle.DEFAULT.foreground(AttributedStyle.BLACK + AttributedStyle.BRIGHT);
             String[] styleStrings = parts.get(1).split(",");
-            Integer fcolor = toColor(styleStrings[0]);
-            Integer bcolor = styleStrings.length > 1 ? toColor(styleStrings[1]) : null;
+            List<String> styles = Arrays.asList("blink", "bold", "conceal", "faint", "hidden", "inverse", "italic", "underline");
+            int colorStart = 0;
+            // GNU nano version >= v5 support styles: bold and italic, rest jline extension
+            while (styles.contains(styleStrings[colorStart])) {
+                style = setStyle(styleStrings[colorStart], style);
+                colorStart++;
+            }
+            Integer fcolor = toColor(styleStrings[colorStart]);
+            Integer bcolor = styleStrings.length > 1 + colorStart ? toColor(styleStrings[colorStart + 1]) : null;
             if (fcolor != null) {
                 style = style.foreground(fcolor);
             }
             if (bcolor != null) {
                 style = style.background(bcolor);
-            }
-            // extended nanorc..
-            if (styleStrings.length > 2) {
-                if (styleStrings[2].equals("blink")) {
-                    style = style.blink();
-                } else if (styleStrings[2].equals("bold")) {
-                    style = style.bold();
-                } else if (styleStrings[2].equals("conceal")) {
-                    style = style.conceal();
-                } else if (styleStrings[2].equals("faint")) {
-                    style = style.faint();
-                } else if (styleStrings[2].equals("hidden")) {
-                    style = style.hidden();
-                } else if (styleStrings[2].equals("inverse")) {
-                    style = style.inverse();
-                } else if (styleStrings[2].equals("italic")) {
-                    style = style.italic();
-                } else if (styleStrings[2].equals("underline")) {
-                    style = style.underline();
-                }
             }
 
             if (HighlightRule.evalRuleType(parts) == HighlightRule.RuleType.PATTERN) {
