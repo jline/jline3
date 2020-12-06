@@ -94,7 +94,7 @@
         <groovy.version>3.0.6</groovy.version>
         <ivy.version>2.5.0</ivy.version>
         <graal.version>19.3.1</graal.version>
-        
+
         <surefire.argLine />
     </properties>
 
@@ -255,7 +255,7 @@
                 <artifactId>groovy-console</artifactId>
                 <version>${groovy.version}</version>
             </dependency>
-            
+
             <dependency>
                 <groupId>org.graalvm.sdk</groupId>
                 <artifactId>graal-sdk</artifactId>
@@ -543,7 +543,7 @@
                 <groupId>org.graalvm.nativeimage</groupId>
                 <artifactId>native-image-maven-plugin</artifactId>
                 <version>${graal.version}</version>
-            </plugin>            
+            </plugin>
         </plugins>
     </build>
 
@@ -606,6 +606,7 @@
         <module>style</module>
         <module>jline</module>
         <module>demo</module>
+        <module>graal</module>
 </modules>
 
 </project>
