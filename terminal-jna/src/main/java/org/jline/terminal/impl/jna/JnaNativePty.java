@@ -148,14 +148,22 @@ public abstract class JnaNativePty extends AbstractPty implements Pty {
     }
 
     public static boolean isConsoleOutput() {
+        return isatty(1);
+    }
+
+    public static boolean isConsoleInput() {
+        return isatty(0);
+    }
+
+    private static boolean isatty(int fd) {
         if (Platform.isMac()) {
-            return OsXNativePty.isatty(1) == 1;
+            return OsXNativePty.isatty(fd) == 1;
         } else if (Platform.isLinux()) {
-            return LinuxNativePty.isatty(1) == 1;
+            return LinuxNativePty.isatty(fd) == 1;
         } else if (Platform.isSolaris()) {
-            return SolarisNativePty.isatty(1) == 1;
+            return SolarisNativePty.isatty(fd) == 1;
         } else if (Platform.isFreeBSD()) {
-            return FreeBsdNativePty.isatty(1) == 1;
+            return FreeBsdNativePty.isatty(fd) == 1;
         } else {
             return false;
         }

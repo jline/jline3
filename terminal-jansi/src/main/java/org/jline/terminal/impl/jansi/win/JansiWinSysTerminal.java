@@ -91,6 +91,11 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
         return Kernel32.GetConsoleMode(consoleOut, mode) != 0;
     }
 
+    public static boolean isConsoleInput() {
+        int[] mode = new int[1];
+        return Kernel32.GetConsoleMode(consoleIn, mode) != 0;
+    }
+
     JansiWinSysTerminal(Writer writer, String name, String type, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
         super(writer, name, type, encoding, codepage, nativeSignals, signalHandler);
     }

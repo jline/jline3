@@ -176,4 +176,7 @@ public abstract class JansiNativePty extends AbstractPty implements Pty {
         return CLibrary.isatty(1) == 1;
     }
 
+    public static boolean isConsoleInput() {
+        return CLibrary.isatty(0) == 1;
+    }
 }
