@@ -49,8 +49,8 @@ public class Graal {
             // Command registries
             //
             File file = new File(Graal.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
-            String root = file.getCanonicalPath().replace("graal", "")
-                    .replaceAll("\\\\", "/");      // forward slashes works better also in windows!
+            String root = file.getCanonicalPath();
+            root = root.substring(0, root.length() - 6);
             ConfigurationPath configPath = new ConfigurationPath(Paths.get(root), Paths.get(root));
             Set<Builtins.Command> commands = new HashSet<>(Arrays.asList(Builtins.Command.values()));
             commands.remove(Command.TTOP);                          // ttop command is not supported in GraalVM
