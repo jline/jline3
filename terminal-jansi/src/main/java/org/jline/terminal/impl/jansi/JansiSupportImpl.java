@@ -18,6 +18,7 @@ import org.jline.terminal.impl.jansi.osx.OsXNativePty;
 import org.jline.terminal.impl.jansi.win.JansiWinSysTerminal;
 import org.jline.terminal.spi.JansiSupport;
 import org.jline.terminal.spi.Pty;
+import org.jline.utils.OSUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -137,7 +138,31 @@ public class JansiSupportImpl implements JansiSupport {
     }
 
     @Override
-    public boolean isConsoleOutput(boolean pty) {
-        return pty ? JansiNativePty.isConsoleOutput() : JansiWinSysTerminal.isConsoleOutput();
+    public boolean isConsoleOutput() {
+        if (OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM) {
+            if (isAtLeast(2,1)) {
+                return JansiNativePty.isConsoleOutput();
+            } else {
+                throw new UnsupportedOperationException();
+            }
+        } else if (OSUtils.IS_WINDOWS) {
+            return JansiWinSysTerminal.isConsoleOutput();
+        }
+        return JansiNativePty.isConsoleOutput();
     }
+
+    @Override
+    public boolean isConsoleInput() {
+        if (OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM) {
+            if (isAtLeast(2,1)) {
+                return JansiNativePty.isConsoleInput();
+            } else {
+                throw new UnsupportedOperationException();
+            }
+        } else if (OSUtils.IS_WINDOWS) {
+            return JansiWinSysTerminal.isConsoleInput();
+        }
+        return JansiNativePty.isConsoleInput();
+    }
+
 }
