@@ -400,6 +400,8 @@ public interface LineReader {
         RECOGNIZE_EXACT,
         /** display group name before each group (else display all group names first) */
         GROUP(true),
+        /** when double tab to select candidate keep candidates grouped (else loose grouping) */
+        GROUP_PERSIST(false),
         /** if completion is case insensitive or not */
         CASE_INSENSITIVE,
         LIST_AMBIGUOUS,

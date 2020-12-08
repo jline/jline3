@@ -4927,8 +4927,10 @@ public class LineReaderImpl implements LineReader, Flushable
         // candidate grouping is not supported by MenuSupport
         boolean defaultAutoGroup = isSet(Option.AUTO_GROUP);
         boolean defaultGroup = isSet(Option.GROUP);
-        option(Option.AUTO_GROUP, false);
-        option(Option.GROUP, false);
+        if (!isSet(Option.GROUP_PERSIST)) {
+            option(Option.AUTO_GROUP, false);
+            option(Option.GROUP, false);
+        }
         // Build menu support
         MenuSupport menuSupport = new MenuSupport(original, completed, escaper);
         post = menuSupport;
