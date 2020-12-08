@@ -295,6 +295,7 @@ public interface LineReader {
     String BELL_STYLE = "bell-style";
     String PREFER_VISIBLE_BELL = "prefer-visible-bell";
     String LIST_MAX = "list-max";
+    String MENU_LIST_MAX = "menu-list-max";
     String DISABLE_HISTORY = "disable-history";
     String DISABLE_COMPLETION = "disable-completion";
     String EDITING_MODE = "editing-mode";

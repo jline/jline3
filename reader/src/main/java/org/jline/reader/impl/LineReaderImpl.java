@@ -80,6 +80,7 @@ public class LineReaderImpl implements LineReader, Flushable
     public static final String DEFAULT_SEARCH_TERMINATORS = "\033\012";
     public static final String DEFAULT_BELL_STYLE = "";
     public static final int    DEFAULT_LIST_MAX = 100;
+    public static final int    DEFAULT_MENU_LIST_MAX = Integer.MAX_VALUE;
     public static final int    DEFAULT_ERRORS = 2;
     public static final long   DEFAULT_BLINK_MATCHING_PAREN = 500L;
     public static final long   DEFAULT_AMBIGUOUS_BINDING = 1000L;
@@ -5279,15 +5280,27 @@ public class LineReaderImpl implements LineReader, Flushable
         }
         // Build columns
         AttributedStringBuilder sb = new AttributedStringBuilder();
-        boolean doMenuList = false;
-        if (isSet(Option.AUTO_MENU_LIST) && listSize < displayRows() - promptLines()) {
-            doMenuList = true;
-            maxWidth = Math.max(maxWidth, MENU_LIST_WIDTH);
-            sb.tabs(Math.max(Math.min(candidateStartPosition, width - maxWidth - 1), 1));
-            width = maxWidth + 2;
-        }
-        for (Object list : items) {
-            toColumns(list, width, maxWidth, sb, selection, completed, rowsFirst, doMenuList, out);
+        if (listSize > 0) {
+            if (isSet(Option.AUTO_MENU_LIST)
+                    && listSize < Math.min(getInt(MENU_LIST_MAX, DEFAULT_MENU_LIST_MAX), displayRows() - promptLines())) {
+                maxWidth = Math.max(maxWidth, MENU_LIST_WIDTH);
+                sb.tabs(Math.max(Math.min(candidateStartPosition, width - maxWidth - 1), 1));
+                width = maxWidth + 2;
+                List<Candidate> list = new ArrayList<>();
+                for (Object o : items) {
+                    if (o instanceof Collection) {
+                        list.addAll((Collection<Candidate>) o);
+                    }
+                }
+                list = list.stream()
+                        .sorted(getCandidateComparator(isSet(Option.CASE_INSENSITIVE), ""))
+                        .collect(Collectors.toList());
+                toColumns(list, width, maxWidth, sb, selection, completed, rowsFirst, true, out);
+            } else {
+                for (Object list : items) {
+                    toColumns(list, width, maxWidth, sb, selection, completed, rowsFirst, false, out);
+                }
+            }
         }
         if (sb.length() > 0 && sb.charAt(sb.length() - 1) == '\n') {
             sb.setLength(sb.length() - 1);
