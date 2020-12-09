@@ -5292,9 +5292,11 @@ public class LineReaderImpl implements LineReader, Flushable
                         list.addAll((Collection<Candidate>) o);
                     }
                 }
-                list = list.stream()
-                        .sorted(getCandidateComparator(isSet(Option.CASE_INSENSITIVE), ""))
-                        .collect(Collectors.toList());
+                if (!isSet(Option.GROUP_PERSIST)) {
+                    list = list.stream()
+                            .sorted(getCandidateComparator(isSet(Option.CASE_INSENSITIVE), ""))
+                            .collect(Collectors.toList());
+                }
                 toColumns(list, width, maxWidth, sb, selection, completed, rowsFirst, true, out);
             } else {
                 for (Object list : items) {
