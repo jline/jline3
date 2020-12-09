@@ -2726,7 +2726,7 @@ public class LineReaderImpl implements LineReader, Flushable
             starts.add(new Pair<>(index, m.start()));
         }
         return starts;
-   }
+    }
 
     private String doGetSearchPattern() {
         StringBuilder sb = new StringBuilder();
