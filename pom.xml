@@ -576,7 +576,6 @@
             <id>java9</id>
             <properties>
                 <surefire.argLine>--add-opens java.base/java.io=ALL-UNNAMED</surefire.argLine>
-                <javadocOptions>-html4</javadocOptions>
             </properties>
             <activation>
                 <jdk>[9,)</jdk>
