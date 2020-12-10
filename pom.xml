@@ -549,6 +549,18 @@
 
     <profiles>
         <profile>
+            <id>bundle</id>
+            <activation>
+                <property>
+                    <name>!nobundle</name>
+                </property>
+            </activation>
+            <modules>
+                <module>jline</module>
+            </modules>
+        </profile>
+
+        <profile>
             <id>java9</id>
             <properties>
                 <surefire.argLine>--add-opens java.base/java.io=ALL-UNNAMED</surefire.argLine>
@@ -604,9 +616,8 @@
         <module>remote-ssh</module>
         <module>remote-telnet</module>
         <module>style</module>
-        <module>jline</module>
         <module>demo</module>
         <module>graal</module>
-</modules>
+    </modules>
 
 </project>
