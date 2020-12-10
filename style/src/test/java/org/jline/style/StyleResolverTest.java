@@ -32,93 +32,93 @@ public class StyleResolverTest extends StyleTestSupport {
     @Test
     public void resolveBold() {
         AttributedStyle style = underTest.resolve("bold");
-        assertEquals(BOLD, style);;
+        assertEquals(BOLD, style);
     }
 
     @Test
     public void resolveFgRed() {
         AttributedStyle style = underTest.resolve("fg:red");
-        assertEquals(DEFAULT.foreground(RED), style);;
+        assertEquals(DEFAULT.foreground(RED), style);
     }
 
     @Test
     public void resolveFgRedWithWhitespace() {
         AttributedStyle style = underTest.resolve(" fg:  red ");
-        assertEquals(DEFAULT.foreground(RED), style);;
+        assertEquals(DEFAULT.foreground(RED), style);
     }
 
     @Test
     public void resolveBgRed() {
         AttributedStyle style = underTest.resolve("bg:red");
-        assertEquals(DEFAULT.background(RED), style);;
+        assertEquals(DEFAULT.background(RED), style);
     }
 
     @Test
     public void resolveInvalidColorMode() {
         AttributedStyle style = underTest.resolve("invalid:red");
-        assertEquals(DEFAULT, style);;
+        assertEquals(DEFAULT, style);
     }
 
     @Test
     public void resolveInvalidColorName() {
         AttributedStyle style = underTest.resolve("fg:invalid");
-        assertEquals(DEFAULT, style);;
+        assertEquals(DEFAULT, style);
     }
 
     @Test
     public void resolveBoldFgRed() {
         AttributedStyle style = underTest.resolve("bold,fg:red");
-        assertEquals(BOLD.foreground(RED), style);;
+        assertEquals(BOLD.foreground(RED), style);
     }
 
     @Test
     public void resolveWithWhitespace() {
         AttributedStyle style = underTest.resolve("  bold ,   fg:red   ");
-        assertEquals(BOLD.foreground(RED), style);;
+        assertEquals(BOLD.foreground(RED), style);
     }
 
     @Test
     public void resolveWithMissingValues() {
         AttributedStyle style = underTest.resolve("bold,,,,,fg:red");
-        assertEquals(BOLD.foreground(RED), style);;
+        assertEquals(BOLD.foreground(RED), style);
     }
 
     @Test
     public void resolveReferencedStyle() {
         source.set("test", "very-red", "bold,fg:red");
         AttributedStyle style = underTest.resolve(".very-red");
-        assertEquals(BOLD.foreground(RED), style);;
+        assertEquals(BOLD.foreground(RED), style);
     }
 
     @Test
     public void resolveReferencedStyleMissingWithDefaultDirect() {
         AttributedStyle style = underTest.resolve(".very-red:-bold,fg:red");
-        assertEquals(BOLD.foreground(RED), style);;
+        assertEquals(BOLD.foreground(RED), style);
     }
 
     @Test
     public void resolveReferencedStyleMissingWitDirectAndWhitespace() {
         AttributedStyle style = underTest.resolve(".very-red   :-   bold,fg:red");
-        assertEquals(BOLD.foreground(RED), style);;
+        assertEquals(BOLD.foreground(RED), style);
     }
 
     @Test
     public void resolveReferencedStyleMissingWithDefaultReferenced() {
         source.set("test", "more-red", "bold,fg:red");
         AttributedStyle style = underTest.resolve(".very-red:-.more-red");
-        assertEquals(BOLD.foreground(RED), style);;
+        assertEquals(BOLD.foreground(RED), style);
     }
 
     @Test
     public void resolveFgBrightRed() {
         AttributedStyle style = underTest.resolve("fg:bright-red");
-        assertEquals(DEFAULT.foreground(BRIGHT + RED), style);;
+        assertEquals(DEFAULT.foreground(BRIGHT + RED), style);
     }
 
     @Test
     public void resolveFgNotRed() {
         AttributedStyle style = underTest.resolve("fg:!red");
-        assertEquals(DEFAULT.foreground(BRIGHT + RED), style);;
+        assertEquals(DEFAULT.foreground(BRIGHT + RED), style);
     }
 
     @Test
@@ -130,18 +130,18 @@ public class StyleResolverTest extends StyleTestSupport {
     @Test
     public void resolveInvalidXterm256Syntax() {
         AttributedStyle style = underTest.resolve("fg:~");
-        assertEquals(DEFAULT, style);;
+        assertEquals(DEFAULT, style);
     }
 
     @Test
     public void resolveInvalidXterm256ColorName() {
         AttributedStyle style = underTest.resolve("fg:~foo");
-        assertEquals(DEFAULT, style);;
+        assertEquals(DEFAULT, style);
     }
 
     @Test
     public void checkColorOrdinal() {
-        assertEquals(86, Colors.rgbColor("aquamarine1").longValue());;
+        assertEquals(86, Colors.rgbColor("aquamarine1").longValue());
     }
 
 }
