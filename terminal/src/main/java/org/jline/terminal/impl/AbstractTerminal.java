@@ -27,6 +27,7 @@ import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.MouseEvent;
 import org.jline.terminal.Terminal;
+import org.jline.utils.ColorPalette;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.InfoCmp.Capability;
@@ -42,6 +43,7 @@ public abstract class AbstractTerminal implements Terminal {
     protected final Set<Capability> bools = new HashSet<>();
     protected final Map<Capability, Integer> ints = new HashMap<>();
     protected final Map<Capability, String> strings = new HashMap<>();
+    protected final ColorPalette palette = new ColorPalette(this);
     protected Status status;
     protected Runnable onClose;
 
@@ -283,4 +285,8 @@ public abstract class AbstractTerminal implements Terminal {
         return false;
     }
 
+    @Override
+    public ColorPalette getPalette() {
+        return palette;
+    }
 }
