@@ -311,16 +311,19 @@ public interface LineReader {
     String ORIGINAL_GROUP_NAME = "ORIGINAL_GROUP_NAME";
     /** Completion style for displaying groups name */
     String COMPLETION_STYLE_GROUP = "COMPLETION_STYLE_GROUP";
+    String COMPLETION_STYLE_LIST_GROUP = "COMPLETION_STYLE_LIST_GROUP";
     /** Completion style for displaying the current selected item */
     String COMPLETION_STYLE_SELECTION = "COMPLETION_STYLE_SELECTION";
+    String COMPLETION_STYLE_LIST_SELECTION = "COMPLETION_STYLE_LIST_SELECTION";
     /** Completion style for displaying the candidate description */
     String COMPLETION_STYLE_DESCRIPTION = "COMPLETION_STYLE_DESCRIPTION";
-    String COMPLETION_COLOR_DESCRIPTION = "COMPLETION_COLOR_DESCRIPTION";
+    String COMPLETION_STYLE_LIST_DESCRIPTION = "COMPLETION_STYLE_LIST_DESCRIPTION";
     /** Completion style for displaying the matching part of candidates */
     String COMPLETION_STYLE_STARTING = "COMPLETION_STYLE_STARTING";
-    String COMPLETION_COLOR_STARTING = "COMPLETION_COLOR_STARTING";
-    /** Completion list background color */
-    String COMPLETION_LIST_BACKGROUND_COLOR = "COMPLETION_LIST_BACKGROUND_COLOR";
+    String COMPLETION_STYLE_LIST_STARTING = "COMPLETION_STYLE_LIST_STARTING";
+    /** Completion style for displaying the list */
+    String COMPLETION_STYLE_BACKGROUND = "COMPLETION_STYLE_BACKGROUND";
+    String COMPLETION_STYLE_LIST_BACKGROUND = "COMPLETION_STYLE_BACKGROUND";
     /**
      * Set the template for prompts for secondary (continuation) lines.
      * This is a prompt template as described in the class header.

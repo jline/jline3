@@ -49,6 +49,7 @@ import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.Levenshtein;
 import org.jline.utils.Log;
 import org.jline.utils.Status;
+import org.jline.utils.StyleResolver;
 import org.jline.utils.WCWidth;
 
 import static org.jline.keymap.KeyMap.alt;
@@ -87,13 +88,16 @@ public class LineReaderImpl implements LineReader, Flushable
     public static final String DEFAULT_SECONDARY_PROMPT_PATTERN = "%M> ";
     public static final String DEFAULT_OTHERS_GROUP_NAME = "others";
     public static final String DEFAULT_ORIGINAL_GROUP_NAME = "original";
-    public static final String DEFAULT_COMPLETION_STYLE_STARTING = "";
-    public static final String DEFAULT_COMPLETION_STYLE_DESCRIPTION = "";
-    public static final String DEFAULT_COMPLETION_STYLE_GROUP = "35;1";     // magenta
-    public static final String DEFAULT_COMPLETION_STYLE_SELECTION = "7";    // inverted
-    public static final int    DEFAULT_COMPLETION_COLOR_STARTING = 6;       // cyan
-    public static final int    DEFAULT_COMPLETION_COLOR_DESCRIPTION = 8;    // dark gray
-    public static final int    DEFAULT_COMPLETION_LIST_BACKGROUND_COLOR = 13;
+    public static final String DEFAULT_COMPLETION_STYLE_STARTING = "fg:cyan";
+    public static final String DEFAULT_COMPLETION_STYLE_DESCRIPTION = "fg:bright-black";
+    public static final String DEFAULT_COMPLETION_STYLE_GROUP = "fg:bright-magenta,bold";
+    public static final String DEFAULT_COMPLETION_STYLE_SELECTION = "inverse";
+    public static final String DEFAULT_COMPLETION_STYLE_BACKGROUND = "fg:default,bg:default";
+    public static final String DEFAULT_COMPLETION_STYLE_LIST_STARTING = DEFAULT_COMPLETION_STYLE_STARTING + ",bg:bright-magenta";
+    public static final String DEFAULT_COMPLETION_STYLE_LIST_DESCRIPTION = DEFAULT_COMPLETION_STYLE_DESCRIPTION + ",bg:bright-magenta";
+    public static final String DEFAULT_COMPLETION_STYLE_LIST_GROUP = DEFAULT_COMPLETION_STYLE_GROUP + ",bg:bright-magenta";
+    public static final String DEFAULT_COMPLETION_STYLE_LIST_SELECTION = DEFAULT_COMPLETION_STYLE_SELECTION + ",bg:bright-magenta";
+    public static final String DEFAULT_COMPLETION_STYLE_LIST_BACKGROUND = "fg:default,bg:bright-magenta";
     public static final int    DEFAULT_INDENTATION = 0;
     public static final int    DEFAULT_FEATURES_MAX_BUFFER_SIZE = 1000;
     public static final int    DEFAULT_SUGGESTIONS_MIN_BUFFER_SIZE = 1;
@@ -5390,14 +5394,14 @@ public class LineReaderImpl implements LineReader, Flushable
                                     isSet(Option.CASE_INSENSITIVE), 0, completed, 0, completed.length())) {
                                 sb.style(getCompletionStyleStarting(doMenuList));
                                 sb.append(left, 0, completed.length());
-                                sb.style(getCompletionListBackgroundStyle(doMenuList));
+                                sb.style(getCompletionStyleBackground(doMenuList));
                                 sb.append(left, completed.length(), left.length());
                             } else {
-                                sb.style(getCompletionListBackgroundStyle(doMenuList));
+                                sb.style(getCompletionStyleBackground(doMenuList));
                                 sb.append(left);
                             }
                             if (right != null || hasRightItem) {
-                                sb.style(getCompletionListBackgroundStyle(doMenuList));
+                                sb.style(getCompletionStyleBackground(doMenuList));
                                 for (int k = 0; k < maxWidth - lw - rw; k++) {
                                     sb.append(' ');
                                 }
@@ -5406,13 +5410,13 @@ public class LineReaderImpl implements LineReader, Flushable
                                 sb.style(getCompletionStyleDescription(doMenuList));
                                 sb.append(right);
                             } else if (doMenuList) {
-                                sb.style(getCompletionListBackgroundStyle(true));
+                                sb.style(getCompletionStyleBackground(doMenuList));
                                 for (int k = lw; k < maxWidth; k++) {
                                     sb.append(' ');
                                 }
                             }
                         }
-                        sb.style(getCompletionListBackgroundStyle(doMenuList));
+                        sb.style(getCompletionStyleBackground(doMenuList));
                         if (hasRightItem) {
                             for (int k = 0; k < MARGIN_BETWEEN_COLUMNS; k++) {
                                 sb.append(' ');
@@ -5429,58 +5433,72 @@ public class LineReaderImpl implements LineReader, Flushable
         }
     }
 
-    private AttributedStyle getCompletionStyleStarting(boolean menuList) {
-        String str = getString(COMPLETION_STYLE_STARTING, DEFAULT_COMPLETION_STYLE_STARTING);
-        if (str.isEmpty()) {
-            return buildStyle(getInt(COMPLETION_COLOR_STARTING, DEFAULT_COMPLETION_COLOR_STARTING), menuList);
-        }
-        return buildStyle(str, menuList);
+    protected AttributedStyle getCompletionStyleStarting(boolean menuList) {
+        return menuList ? getCompletionStyleListStarting() : getCompletionStyleStarting();
     }
 
     protected AttributedStyle getCompletionStyleDescription(boolean menuList) {
-        String str = getString(COMPLETION_STYLE_DESCRIPTION, DEFAULT_COMPLETION_STYLE_DESCRIPTION);
-        if (str.isEmpty()) {
-            return buildStyle(getInt(COMPLETION_COLOR_DESCRIPTION, DEFAULT_COMPLETION_COLOR_DESCRIPTION), menuList);
-        }
-        return buildStyle(str, menuList);
+        return menuList ? getCompletionStyleListDescription() : getCompletionStyleDescription();
     }
 
     protected AttributedStyle getCompletionStyleGroup(boolean menuList) {
-        return getCompletionStyle(COMPLETION_STYLE_GROUP, DEFAULT_COMPLETION_STYLE_GROUP, menuList);
+        return menuList ? getCompletionStyleListGroup() : getCompletionStyleGroup();
     }
 
     protected AttributedStyle getCompletionStyleSelection(boolean menuList) {
-        return getCompletionStyle(COMPLETION_STYLE_SELECTION, DEFAULT_COMPLETION_STYLE_SELECTION, menuList);
+        return menuList ? getCompletionStyleListSelection() : getCompletionStyleSelection();
     }
 
-    protected AttributedStyle getCompletionStyle(String name, String value, boolean menuList) {
-        return buildStyle(getString(name, value), menuList);
+    protected AttributedStyle getCompletionStyleBackground(boolean menuList) {
+        return menuList ? getCompletionStyleListBackground() : getCompletionStyleBackground();
     }
 
-    protected AttributedStyle getCompletionListBackgroundStyle(boolean menuList) {
-        if (menuList) {
-            return AttributedStyle.DEFAULT.background(getCompletionListBackgroundColor());
-        }
-        return AttributedStyle.DEFAULT.backgroundDefault();
+    protected AttributedStyle getCompletionStyleStarting() {
+        return getCompletionStyle(COMPLETION_STYLE_STARTING, DEFAULT_COMPLETION_STYLE_STARTING);
     }
 
-    protected int getCompletionListBackgroundColor() {
-        return getInt(COMPLETION_LIST_BACKGROUND_COLOR, DEFAULT_COMPLETION_LIST_BACKGROUND_COLOR);
+    protected AttributedStyle getCompletionStyleDescription() {
+        return getCompletionStyle(COMPLETION_STYLE_DESCRIPTION, DEFAULT_COMPLETION_STYLE_DESCRIPTION);
     }
 
-    protected AttributedStyle buildStyle(String str, boolean menuList) {
-        if (menuList) {
-            return AttributedString.fromAnsi("\u001b[" + str + "m ").styleAt(0)
-                    .background(getCompletionListBackgroundColor());
-        }
+    protected AttributedStyle getCompletionStyleGroup() {
+        return getCompletionStyle(COMPLETION_STYLE_GROUP, DEFAULT_COMPLETION_STYLE_GROUP);
+    }
+
+    protected AttributedStyle getCompletionStyleSelection() {
+        return getCompletionStyle(COMPLETION_STYLE_SELECTION, DEFAULT_COMPLETION_STYLE_SELECTION);
+    }
+
+    protected AttributedStyle getCompletionStyleBackground() {
+        return getCompletionStyle(COMPLETION_STYLE_BACKGROUND, DEFAULT_COMPLETION_STYLE_BACKGROUND);
+    }
+
+    protected AttributedStyle getCompletionStyleListStarting() {
+        return getCompletionStyle(COMPLETION_STYLE_LIST_STARTING, DEFAULT_COMPLETION_STYLE_LIST_STARTING);
+    }
+
+    protected AttributedStyle getCompletionStyleListDescription() {
+        return getCompletionStyle(COMPLETION_STYLE_LIST_DESCRIPTION, DEFAULT_COMPLETION_STYLE_LIST_DESCRIPTION);
+    }
+
+    protected AttributedStyle getCompletionStyleListGroup() {
+        return getCompletionStyle(COMPLETION_STYLE_LIST_GROUP, DEFAULT_COMPLETION_STYLE_LIST_GROUP);
+    }
+
+    protected AttributedStyle getCompletionStyleListSelection() {
+        return getCompletionStyle(COMPLETION_STYLE_LIST_SELECTION, DEFAULT_COMPLETION_STYLE_LIST_SELECTION);
+    }
+
+    protected AttributedStyle getCompletionStyleListBackground() {
+        return getCompletionStyle(COMPLETION_STYLE_LIST_BACKGROUND, DEFAULT_COMPLETION_STYLE_LIST_BACKGROUND);
+    }
+
+    protected AttributedStyle getCompletionStyle(String name, String value) {
+        return new StyleResolver(s -> getString(s, null)).resolve("." + name, value);
+    }
+
+    protected AttributedStyle buildStyle(String str) {
         return AttributedString.fromAnsi("\u001b[" + str + "m ").styleAt(0);
-    }
-
-    protected AttributedStyle buildStyle(int fg, boolean menuList) {
-        if (menuList) {
-            return AttributedStyle.DEFAULT.foreground(fg).background(getCompletionListBackgroundColor());
-        }
-        return AttributedStyle.DEFAULT.foreground(fg);
     }
 
     private String getCommonStart(String str1, String str2, boolean caseInsensitive) {
