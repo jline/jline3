@@ -24,7 +24,7 @@ public class AttributedCharSequenceTest {
     @Test
     public void testUnderline() throws IOException {
         AttributedString as = AttributedString.fromAnsi("\33[38;5;0m\33[48;5;15mtest\33[0m");
-        assertEquals("\33[38;5;0;48;5;15mtest\33[0m", as.toAnsi(256, true));
+        assertEquals("\33[38;5;0;48;5;15mtest\33[0m", as.toAnsi(256, AttributedCharSequence.ForceMode.Force256Colors));
     }
 
     @Test

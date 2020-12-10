@@ -124,7 +124,25 @@ public class StyleResolverTest extends StyleTestSupport {
     @Test
     public void resolveFgOlive() {
         AttributedStyle style = underTest.resolve("fg:~olive");
-        assertEquals(DEFAULT.foreground(Colors.rgbColor("olive")), style);;
+        assertEquals(DEFAULT.foreground(Colors.rgbColor("olive")), style);
+    }
+
+    @Test
+    public void resolveFgRgbOrchid() {
+        AttributedStyle style = underTest.resolve("fg-rgb:~orchid");
+        assertEquals(DEFAULT.foreground(0xD7, 0x5F, 0xD7), style);
+    }
+
+    @Test
+    public void resolveFgRgbHexa() {
+        AttributedStyle style = underTest.resolve("fg-rgb:xaf740b");
+        assertEquals(DEFAULT.foreground(0xAF, 0x74, 0x0B), style);
+    }
+
+    @Test
+    public void resolveFgRgbHexaHash() {
+        AttributedStyle style = underTest.resolve("fg-rgb:#af740b");
+        assertEquals(DEFAULT.foreground(0xAF, 0x74, 0x0B), style);
     }
 
     @Test

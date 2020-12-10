@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 public class AttributedStringBuilder extends AttributedCharSequence implements Appendable {
 
     private char[] buffer;
-    private int[] style;
+    private long[] style;
     private int length;
     private TabStops tabs = new TabStops(0);
     private int lastLineLength = 0;
@@ -44,7 +44,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
 
     public AttributedStringBuilder(int capacity) {
         buffer = new char[capacity];
-        style = new int[capacity];
+        style = new long[capacity];
         length = 0;
     }
 
@@ -64,7 +64,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
     }
 
     @Override
-    int styleCodeAt(int index) {
+    long styleCodeAt(int index) {
         return style[index];
     }
 
@@ -158,7 +158,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
         ensureCapacity(length + end - start);
         for (int i = start; i < end; i++) {
             char c = str.charAt(i);
-            int s = str.styleCodeAt(i) & ~current.getMask() | current.getStyle();
+            long s = str.styleCodeAt(i) & ~current.getMask() | current.getStyle();
             if (tabs.defined() && c == '\t') {
                 insertTab(new AttributedStyle(s, 0));
             } else {
