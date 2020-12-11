@@ -72,6 +72,12 @@
         <dependency>
             <groupId>org.apache.felix</groupId>
             <artifactId>org.apache.felix.gogo.jline</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.jline</groupId>
+                    <artifactId>jline</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
