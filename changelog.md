@@ -1,6 +1,61 @@
 # [JLine3](https://github.com/jline/jline3)
 <!-- git log --pretty=format:'* [`%h`](https://github.com/jline/jline3/commit/%H) %s' -->
 
+## [JLine 3.18.0][3_18_0]
+[3_18_0]: https://repo1.maven.org/maven2/org/jline/jline/3.18.0/
+
+* [`e567eb70`](https://github.com/jline/jline3/commit/e567eb70e5247473cb3f3725a066384046e7ba21) Remove transitive dependency on the jline bundle
+* [`6168d2b7`](https://github.com/jline/jline3/commit/6168d2b7167d28665a10fe836ae03facd7f4612e) Avoid javadoc warnings and do not generate javadoc for demos
+* [`be78b98b`](https://github.com/jline/jline3/commit/be78b98b995281dada3743e9e280dd703195ec47) Upgrade to Jansi 2.1.0
+* [`a6707274`](https://github.com/jline/jline3/commit/a67072745e3197b83317d9173406fcf9c7ea4dc7) Upgrade plugins to recente releases
+* [`f4dd7a88`](https://github.com/jline/jline3/commit/f4dd7a886155c409adbb44d3714fc04cc4c7f342) Move javadoc generation into a separate profile (active by default)
+* [`717fad86`](https://github.com/jline/jline3/commit/717fad869b01b2bb91ac9a3b91b00fd35a8bfb0f) Allow disabling the jline bundle module
+* [`8ff1e1d3`](https://github.com/jline/jline3/commit/8ff1e1d35146a14b7c188c1c33d1020cb6ab0714) Support terminal palette, fixes #620
+* [`e2b6f97e`](https://github.com/jline/jline3/commit/e2b6f97ed0ebceb3c909415baeba71c72f819c37) Support for 24-bit colours, fixes #619
+* [`c20b1338`](https://github.com/jline/jline3/commit/c20b13380e3c1d90e43cdc0bbcb68493da910bca) Remove duplicate semicolon
+* [`29d72f81`](https://github.com/jline/jline3/commit/29d72f817a6742c7a83e84812aadca300f57d9fb) Use style resolver to resolve completion styles, fixes #617
+* [`b07a7cf1`](https://github.com/jline/jline3/commit/b07a7cf1240c37d597d59c3f91faeeeddb932cfc) Fix wrong indentation
+* [`99e130d6`](https://github.com/jline/jline3/commit/99e130d6ff2d004d18cb8d89c2ca5151493a0e02) Fix some tput limitations
+* [`b77a0a8a`](https://github.com/jline/jline3/commit/b77a0a8afea5a50a3cfa514e510ca214a0857900) Inline completion re-sorts while tabbing when using groups, fixes #618
+* [`9d4a53b2`](https://github.com/jline/jline3/commit/9d4a53b2e0132334c3e2d77de5a964442bbe40ea) Bump Groovy to 3.0.7
+* [`d185f726`](https://github.com/jline/jline3/commit/d185f7264f5233554d57681edce214e625583837) Add variable menu-list-max and sort candidates in menu-list
+* [`538b7fa8`](https://github.com/jline/jline3/commit/538b7fa81bf73710ff4d596807386a7d8524ede4) Option group-persist: after double tab keep candidates grouped, fixes #613
+* [`329768ca`](https://github.com/jline/jline3/commit/329768ca9e9ea72a42a35e5232055d124f52b06d) Graal demo: fix resolved demo target path
+* [`ec1115df`](https://github.com/jline/jline3/commit/ec1115df688ca051fda2ca1a8e3e90d1d790978a) Failed to build JLine Graal demo: NoClassDefFoundError, fixes #615
+* [`54218bc3`](https://github.com/jline/jline3/commit/54218bc330b7ba9a4e77cb6cd9968d16d4f713b4) Nanorc parser: align with GNU nano version 5
+* [`82ca0f05`](https://github.com/jline/jline3/commit/82ca0f05501b29b99d66f27ebc8ef67e4f6bd9ec) Nanorc parser: replace Posix char class regexes with Java regexes
+* [`172644f4`](https://github.com/jline/jline3/commit/172644f4281ff07951198129fdb62c85768b1e53)  Nano highlighter xml highlighting differs considerable from GNU nano highlight, fixes #614
+* [`30860bc5`](https://github.com/jline/jline3/commit/30860bc5b947c53563b48ea5418de150f167acb8) nano/less ignore quietly PatternSyntaxException when using system installed nanorc files, fixes #609
+* [`764a6a6a`](https://github.com/jline/jline3/commit/764a6a6ad46099c26630f1e60490f955fbc3c661) Less fails with PatternSyntaxException #609
+* [`b1a17cbc`](https://github.com/jline/jline3/commit/b1a17cbc7d5f978c38d43d583e1e7bef05b8b670) SystemHighlighter highlight command aliases as commands
+* [`0e5d510e`](https://github.com/jline/jline3/commit/0e5d510e3c1ebc38b8bd6b9027b9388c0c21792b) SystemHighlighter fixed NPE
+* [`924d8ff3`](https://github.com/jline/jline3/commit/924d8ff346e1ff2107fe0a25bc598b31c14e097e) Builtins Commands.less(): add configPath parameter
+* [`a2281234`](https://github.com/jline/jline3/commit/a2281234359bb9ce2ef5173b1953b102391ec6da) Secondary prompt: fix padding when primary prompt has line breaks
+* [`a47ccc80`](https://github.com/jline/jline3/commit/a47ccc801e7f48e8d85b8653b8fead6b68b67daa) Jline completion has logic issues with terminal and prompt widths (StringIndexOutOfBoundsException), fixes #604
+* [`1a767236`](https://github.com/jline/jline3/commit/1a76723605f85f48fd06f35d51df60b11e187e7f) Document how I/O error in LineReader.readLine is reported, fixes #608
+* [`ca381eec`](https://github.com/jline/jline3/commit/ca381eec4885fab0523a19718db1a3e0ec8cbea9) Groovy REPL: highlight command and groovy language syntax
+* [`bb5e85af`](https://github.com/jline/jline3/commit/bb5e85afd9009e9d3d917a19dcb0deab4b9b0922) Display command is incorrect when use here document, fixes #607
+* [`0ba7e813`](https://github.com/jline/jline3/commit/0ba7e8137e0ff132f05c4c176daccd149e14ec66) edit-and-execute widget: set BRACKETED_PASTE_OFF before editing
+* [`23034dbf`](https://github.com/jline/jline3/commit/23034dbfb50ea4da2322be652c4a07345f646f39) SystemRegistryImpl: fixed IndexOutOfBoundsException
+* [`d66e7349`](https://github.com/jline/jline3/commit/d66e7349017098458e7961acfa314198c666ada2) DefaultParser: fixed default variable regex
+* [`eb3e07c8`](https://github.com/jline/jline3/commit/eb3e07c88782179f3b1c185eb5b7a8efd2fc9f67) SystemRegistryImpl: method consoleEngine() is now public
+* [`6580789c`](https://github.com/jline/jline3/commit/6580789cd5eca02317007afe522c8f41060bbc45) Keep argument sorting in large argument list when formatting candidates for terminal into multiple columns
+* [`d92701d4`](https://github.com/jline/jline3/commit/d92701d4b41cee07cd2110d1e0b20ab2982021d6) Auto suggestion error when type "\\" character, fixes #602
+* [`495b534a`](https://github.com/jline/jline3/commit/495b534afb1e0c7dbfb7780869a424c62d44fd7b) ConsoleEngineImpl: exclude pipe name aliases from command completion
+* [`df991872`](https://github.com/jline/jline3/commit/df99187246f4021f4fe12a64f52cca9d55aeb809) Show auto-suggestions when the reader starts reading, fixes #598
+* [`ea6dd89c`](https://github.com/jline/jline3/commit/ea6dd89cdc98abdfc77c262444fca91da3c1080d) Autosuggestion choices are not refreshed after tab, fixes #545
+* [`2e6638cb`](https://github.com/jline/jline3/commit/2e6638cb6d4f27bc61bbb6ca6059e5df0384e2d0) Widgets: added widget name public constants
+* [`a015a5df`](https://github.com/jline/jline3/commit/a015a5dfd66262ab463f24e2b25aec03c5fa2982) JLine option AUTO_MENU_LIST: bug fix for candidate list start position calculation
+* [`a5686ab1`](https://github.com/jline/jline3/commit/a5686ab138225ee8214c68bda8c33fbaf2af5d26) JLine option AUTO_MENU_LIST: candidate list is wrongly positioned, fixes #600
+* [`ea8d0d3b`](https://github.com/jline/jline3/commit/ea8d0d3b87a6dd74876fc67f909c3b769433294f) SystemRegistryImpl: refactoring command output redirection
+* [`40c4d324`](https://github.com/jline/jline3/commit/40c4d3241fc242525cf7050ec0b977494620065d) Add completion candidate suffix test, #425
+* [`404565b2`](https://github.com/jline/jline3/commit/404565b2ede2b9b83fab2c350b2806126a11e33f) Dumb terminal when piping input to console app disallows ANSI formatting, fixes #299
+* [`fe1f2717`](https://github.com/jline/jline3/commit/fe1f27179461fdecc88f2cf01de812784bddfad9) Windows gitbash: JLine will create dumb terminal if JNA lib is in classpath, fixes #599
+* [`1c9f16df`](https://github.com/jline/jline3/commit/1c9f16dfbe8e5e58df1740dd17ff5c5d0027ff34) JNA/Jansi isWindowsConsole() method return true only if both input and output streams are connected to a terminal
+* [`542bfb64`](https://github.com/jline/jline3/commit/542bfb644c244d44c4bbc820c6b08ae897dad173) Ignore BRACKETED_PASTE if dumb terminal
+* [`1d7fb07f`](https://github.com/jline/jline3/commit/1d7fb07f04d5380829329c9e7e0880643a2974bb) Windows CMD, redirecting input using JLine with Jansi fails, fixes #597
+* [`3f399ace`](https://github.com/jline/jline3/commit/3f399ace9e35da4ec1d6f3610dbf18372700777e) readLine() ignores any text in the buffer when OEF is reached, fixes #298
+
 ## [JLine 3.17.1][3_17_1]
 [3_17_1]: https://repo1.maven.org/maven2/org/jline/jline/3.17.1/
 
