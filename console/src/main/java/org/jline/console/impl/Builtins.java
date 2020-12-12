@@ -45,7 +45,9 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
                        , SETOPT
                        , SETVAR
                        , UNSETOPT
-                       , TTOP}
+                       , TTOP
+                       , COLORS
+                       }
 
     private final ConfigurationPath configPath;
     private final Function<String, Widget> widgetCreator;
@@ -89,6 +91,7 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
         commandExecute.put(Command.SETVAR, new CommandMethods(this::setvar, this::setvarCompleter));
         commandExecute.put(Command.UNSETOPT, new CommandMethods(this::unsetopt, this::unsetoptCompleter));
         commandExecute.put(Command.TTOP, new CommandMethods(this::ttop, this::defaultCompleter));
+        commandExecute.put(Command.COLORS, new CommandMethods(this::colors, this::defaultCompleter));
         registerCommands(commandName, commandExecute);
     }
 
@@ -163,6 +166,14 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
     private void ttop(CommandInput input) {
         try {
             TTop.ttop(input.terminal(), input.out(), input.err(), input.args());
+        } catch (Exception e) {
+            saveException(e);
+        }
+    }
+
+    private void colors(CommandInput input) {
+        try {
+            Commands.colors(input.terminal(), input.out(), input.args());
         } catch (Exception e) {
             saveException(e);
         }

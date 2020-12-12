@@ -8,6 +8,7 @@
  */
 package org.jline.builtins;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -40,7 +41,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.jline.builtins.Completers.CompletionData;
-import org.jline.builtins.Options;
 import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.Source.StdInSource;
 import org.jline.builtins.Source.URLSource;
@@ -56,6 +56,7 @@ import org.jline.reader.Widget;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
+import org.jline.utils.StyleResolver;
 
 public class Commands {
 
@@ -1030,6 +1031,162 @@ public class Commands {
             out.println(lineReader.getVariable(opt.args().get(0)));
         } else {
             lineReader.setVariable(opt.args().get(0), opt.args().get(1));
+        }
+    }
+
+    public static void colors(Terminal terminal, PrintStream out, String[] argv) throws HelpException, IOException {
+        String[] usage = {
+                "colors -  view 256-color table",
+                "Usage: colors [OPTIONS]",
+                "  -? --help                     Displays command help",
+                "  -n --name                     Color name table (default number table)",
+                "  -c --columns=COLUMNS          Number of columns in name table"};
+        Options opt = Options.compile(usage).parse(argv);
+        if (opt.isSet("help")) {
+            throw new Options.HelpException(opt.usage());
+        }
+        boolean name = opt.isSet("name");
+        int columns = 256;
+        if (opt.isSet("columns")) {
+            columns = opt.getNumber("columns");
+        }
+        new Colors(terminal, out).printColors(name, columns);
+    }
+
+    private static class Colors {
+        boolean name;
+        private final Terminal terminal;
+        private final PrintStream out;
+        private final List<String> colors = Arrays.asList("black","red","green","yellow","blue","magenta","cyan","white"
+                , "!black","!red","!green","!yellow","!blue","!magenta","!cyan","!white");
+
+        public Colors(Terminal terminal, PrintStream out) {
+            this.terminal = terminal;
+            this.out = out;
+        }
+
+        private String getStyle(String color) {
+            String out;
+            char fg = ' ';
+            if (name) {
+                out = "bg:~" + color.substring(1);
+                fg = color.charAt(0);
+            } else if (color.substring(1).matches("\\d+")) {
+                out = "48;5;" + color.substring(1);
+                fg = color.charAt(0);
+            } else {
+                out = "bg:" + color;
+            }
+            if (color.startsWith("!") || color.equals("white") || fg == 'b') {
+                out += ",fg:black";
+            } else {
+                out += ",fg:!white";
+            }
+            return out;
+        }
+
+        private String foreground(int idx) {
+            String fg = "w";
+            if ((idx > 6 && idx < 16)
+                    || (idx > 31 && idx < 52)
+                    || (idx > 67 && idx < 88)
+                    || (idx > 103 && idx < 124)
+                    || (idx > 139 && idx < 160)
+                    || (idx > 175 && idx < 196)
+                    || (idx > 211 && idx < 232)
+                    || idx > 247) {
+                fg = "b";
+            }
+            return fg;
+        }
+
+        private String addPadding(int width, String field) {
+            int s = width - field.length();
+            int left = s/2;
+            StringBuilder lp = new StringBuilder();
+            StringBuilder rp = new StringBuilder();
+            for (int i = 0; i < left; i++) {
+                lp.append(" ");
+            }
+            for (int i = 0; i < s - left; i++) {
+                rp.append(" ");
+            }
+             return lp.toString() + field + rp.toString();
+        }
+
+        public void printColors(boolean name, int columns) throws IOException {
+            this.name = name;
+            AttributedStringBuilder asb = new AttributedStringBuilder();
+            int width = terminal.getWidth();
+            if (!name) {
+                out.println("256-color table, foreground color: 38;5;⟨n⟩");
+                out.println("                 background color: 48;5;⟨n⟩");
+                out.println("");
+                boolean narrow = width <  180;
+                for (String c : colors) {
+                    AttributedStyle ss = new StyleResolver(this::getStyle).resolve('.' + c, null);
+                    asb.style(ss);
+                    asb.append(addPadding(11,c));
+                    asb.style(AttributedStyle.DEFAULT);
+                    if (c.equals("white")) {
+                        if (narrow) {
+                            asb.append('\n');
+                        } else {
+                            asb.append("    ");
+                        }
+                    } else if (c.equals("!white")) {
+                        asb.append('\n');
+                    }
+                }
+                asb.append('\n');
+                for (int i = 16; i < 256; i++) {
+                    String fg = foreground(i);
+                    String code = Integer.toString(i);
+                    AttributedStyle ss = new StyleResolver(this::getStyle).resolve("." + fg + code, null);
+                    asb.style(ss);
+                    String str = " ";
+                    if (i < 100) {
+                        str = "  ";
+                    }
+                    asb.append(str).append(code).append(' ');
+                    if (i == 51 || i == 87 || i == 123 || i == 159 || i == 195 || i == 231
+                            || narrow
+                            && (i == 33 || i == 69 || i == 105 || i == 141 || i == 177 || i == 213 || i == 249)
+                    ) {
+                        asb.style(AttributedStyle.DEFAULT);
+                        asb.append('\n');
+                    }
+                }
+            } else {
+                out.println("256-color table, fg:~⟨name⟩");
+                out.println("                 bg:~⟨name⟩");
+                out.println();
+                InputStream inputStream = new Source.ResourceSource("/org/jline/utils/colors.txt", null).read();
+                BufferedReader reader = new BufferedReader(new java.io.InputStreamReader(inputStream));
+                String line = reader.readLine();
+                int col = 0;
+                Integer idx = 0;
+                int colWidth = 22;
+                while (line != null) {
+                    line = line.trim();
+                    if (!line.isEmpty() && !line.startsWith("#")) {
+                        String fg = foreground(idx);
+                        AttributedStyle ss = new StyleResolver(this::getStyle).resolve("." + fg + line, null);
+                        asb.style(ss);
+                        asb.append(String.valueOf(idx)).append(addPadding(colWidth - idx.toString().length(), line));
+                        col++;
+                        idx++;
+                        if ((col + 1)*colWidth > width || col + 1 > columns) {
+                            col = 0;
+                            asb.style(AttributedStyle.DEFAULT);
+                            asb.append('\n');
+                        }
+                    }
+                    line = reader.readLine();
+                }
+                reader.close();
+            }
+            asb.toAttributedString().println(terminal);
         }
     }
 
