@@ -1704,7 +1704,9 @@ public class SystemRegistryImpl implements SystemRegistry {
         private final Map<String,List<String>> names = new HashMap<>();
         private List<String> namedPipes;
 
-        public NamesAndValues() {}
+        public NamesAndValues() {
+            this(null);
+        }
 
         @SuppressWarnings("unchecked")
         public NamesAndValues(ConfigurationPath configPath) {
