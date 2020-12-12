@@ -1088,13 +1088,13 @@ public class Commands {
         private String foreground(int idx) {
             String fg = "w";
             if ((idx > 6 && idx < 16)
-                    || (idx > 31 && idx < 52)
-                    || (idx > 67 && idx < 88)
-                    || (idx > 103 && idx < 124)
-                    || (idx > 139 && idx < 160)
-                    || (idx > 175 && idx < 196)
-                    || (idx > 211 && idx < 232)
-                    || idx > 247) {
+                    || (idx > 33 && idx < 52)
+                    || (idx > 69 && idx < 88)
+                    || (idx > 105 && idx < 124)
+                    || (idx > 141 && idx < 160)
+                    || (idx > 177 && idx < 196)
+                    || (idx > 213 && idx < 232)
+                    || idx > 243) {
                 fg = "b";
             }
             return fg;
@@ -1119,8 +1119,8 @@ public class Commands {
             AttributedStringBuilder asb = new AttributedStringBuilder();
             int width = terminal.getWidth();
             if (!name) {
-                out.println("256-color table, foreground color: 38;5;⟨n⟩");
-                out.println("                 background color: 48;5;⟨n⟩");
+                out.println("256-color table, fg:⟨name⟩ / 38;5;⟨n⟩");
+                out.println("                 bg:⟨name⟩ / 48;5;⟨n⟩");
                 out.println("");
                 boolean narrow = width <  180;
                 for (String c : colors) {
@@ -1147,19 +1147,24 @@ public class Commands {
                     String str = " ";
                     if (i < 100) {
                         str = "  ";
+                    } else if (i > 231) {
+                        str = i % 2 == 0 ? "    " : "   ";
                     }
                     asb.append(str).append(code).append(' ');
                     if (i == 51 || i == 87 || i == 123 || i == 159 || i == 195 || i == 231
                             || narrow
-                            && (i == 33 || i == 69 || i == 105 || i == 141 || i == 177 || i == 213 || i == 249)
+                            && (i == 33 || i == 69 || i == 105 || i == 141 || i == 177 || i == 213 || i == 243)
                     ) {
                         asb.style(AttributedStyle.DEFAULT);
                         asb.append('\n');
+                        if (i == 231) {
+                            asb.append('\n');
+                        }
                     }
                 }
             } else {
-                out.println("256-color table, fg:~⟨name⟩");
-                out.println("                 bg:~⟨name⟩");
+                out.println("256-color table, fg:~⟨name⟩ OR 38;5;⟨n⟩");
+                out.println("                 bg:~⟨name⟩ OR 48;5;⟨n⟩");
                 out.println();
                 InputStream inputStream = new Source.ResourceSource("/org/jline/utils/colors.txt", null).read();
                 BufferedReader reader = new BufferedReader(new java.io.InputStreamReader(inputStream));
