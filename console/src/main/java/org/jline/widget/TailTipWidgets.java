@@ -139,6 +139,8 @@ public class TailTipWidgets extends Widgets {
         addWidget("_tailtip-delete-char", this::tailtipDelete);
         addWidget("_tailtip-expand-or-complete", this::tailtipComplete);
         addWidget("_tailtip-redisplay", this::tailtipUpdateStatus);
+        addWidget("_tailtip-kill-line", this::tailtipKillLine);
+        addWidget("_tailtip-kill-whole-line", this::tailtipKillWholeLine);
         addWidget("tailtip-window", this::toggleWindow);
         addWidget(TAILTIP_TOGGLE, this::toggleKeyBindings);
     }
@@ -227,6 +229,16 @@ public class TailTipWidgets extends Widgets {
     public boolean tailtipDelete() {
         clearTailTip();
         return doTailTip(LineReader.DELETE_CHAR);
+    }
+
+    public boolean tailtipKillLine() {
+        clearTailTip();
+        return doTailTip(LineReader.KILL_LINE);
+    }
+
+    public boolean tailtipKillWholeLine() {
+        callWidget(LineReader.KILL_WHOLE_LINE);
+        return doTailTip(LineReader.REDISPLAY);
     }
 
     public boolean tailtipInsert() {
@@ -444,6 +456,8 @@ public class TailTipWidgets extends Widgets {
         aliasWidget("." + LineReader.EXPAND_OR_COMPLETE, LineReader.EXPAND_OR_COMPLETE);
         aliasWidget("." + LineReader.SELF_INSERT, LineReader.SELF_INSERT);
         aliasWidget("." + LineReader.REDISPLAY, LineReader.REDISPLAY);
+        aliasWidget("." + LineReader.KILL_LINE, LineReader.KILL_LINE);
+        aliasWidget("." + LineReader.KILL_WHOLE_LINE, LineReader.KILL_WHOLE_LINE);
         KeyMap<Binding> map = getKeyMap();
         map.bind(new Reference(LineReader.INSERT_CLOSE_PAREN), ")");
 
@@ -466,6 +480,8 @@ public class TailTipWidgets extends Widgets {
         aliasWidget("_tailtip-expand-or-complete", LineReader.EXPAND_OR_COMPLETE);
         aliasWidget("_tailtip-self-insert", LineReader.SELF_INSERT);
         aliasWidget("_tailtip-redisplay", LineReader.REDISPLAY);
+        aliasWidget("_tailtip-kill-line", LineReader.KILL_LINE);
+        aliasWidget("_tailtip-kill-whole-line", LineReader.KILL_WHOLE_LINE);
         KeyMap<Binding> map = getKeyMap();
         map.bind(new Reference("_tailtip-self-insert"), ")");
 
