@@ -95,7 +95,7 @@ public class LineReaderImpl implements LineReader, Flushable
     public static final String DEFAULT_COMPLETION_STYLE_BACKGROUND = "bg:default";
     public static final String DEFAULT_COMPLETION_STYLE_LIST_STARTING = DEFAULT_COMPLETION_STYLE_STARTING;
     public static final String DEFAULT_COMPLETION_STYLE_LIST_DESCRIPTION = DEFAULT_COMPLETION_STYLE_DESCRIPTION;
-    public static final String DEFAULT_COMPLETION_STYLE_LIST_GROUP = DEFAULT_COMPLETION_STYLE_GROUP;
+    public static final String DEFAULT_COMPLETION_STYLE_LIST_GROUP = "fg:black,bold";
     public static final String DEFAULT_COMPLETION_STYLE_LIST_SELECTION = DEFAULT_COMPLETION_STYLE_SELECTION;
     public static final String DEFAULT_COMPLETION_STYLE_LIST_BACKGROUND = "bg:bright-magenta";
     public static final int    DEFAULT_INDENTATION = 0;
@@ -5290,18 +5290,22 @@ public class LineReaderImpl implements LineReader, Flushable
                 maxWidth = Math.max(maxWidth, MENU_LIST_WIDTH);
                 sb.tabs(Math.max(Math.min(candidateStartPosition, width - maxWidth - 1), 1));
                 width = maxWidth + 2;
-                List<Candidate> list = new ArrayList<>();
-                for (Object o : items) {
-                    if (o instanceof Collection) {
-                        list.addAll((Collection<Candidate>) o);
-                    }
-                }
                 if (!isSet(Option.GROUP_PERSIST)) {
+                    List<Candidate> list = new ArrayList<>();
+                    for (Object o : items) {
+                        if (o instanceof Collection) {
+                            list.addAll((Collection<Candidate>) o);
+                        }
+                    }
                     list = list.stream()
                             .sorted(getCandidateComparator(isSet(Option.CASE_INSENSITIVE), ""))
                             .collect(Collectors.toList());
+                    toColumns(list, width, maxWidth, sb, selection, completed, rowsFirst, true, out);
+                } else {
+                    for (Object list : items) {
+                        toColumns(list, width, maxWidth, sb, selection, completed, rowsFirst, true, out);
+                    }
                 }
-                toColumns(list, width, maxWidth, sb, selection, completed, rowsFirst, true, out);
             } else {
                 for (Object list : items) {
                     toColumns(list, width, maxWidth, sb, selection, completed, rowsFirst, false, out);
@@ -5321,11 +5325,23 @@ public class LineReaderImpl implements LineReader, Flushable
             return;
         }
         // This is a group
-        if (items instanceof String && !doMenuList) {
-            sb.style(getCompletionStyleGroup(false))
+        if (items instanceof String) {
+            if (doMenuList) {
+                sb.style(AttributedStyle.DEFAULT);
+                sb.append('\t');
+            }
+            AttributedStringBuilder asb = new AttributedStringBuilder();
+            asb.style(getCompletionStyleGroup(doMenuList))
                     .append((String) items)
-                    .style(AttributedStyle.DEFAULT)
-                    .append("\n");
+                    .style(AttributedStyle.DEFAULT);
+            if (doMenuList) {
+                for (int k = ((String) items).length(); k < maxWidth + 1; k++) {
+                    asb.append(' ');
+                }
+            }
+            sb.style(getCompletionStyleBackground(doMenuList));
+            sb.append(asb);
+            sb.append("\n");
             out[0]++;
         }
         // This is a Candidate list
