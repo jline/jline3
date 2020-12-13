@@ -323,7 +323,7 @@ public interface LineReader {
     String COMPLETION_STYLE_LIST_STARTING = "COMPLETION_STYLE_LIST_STARTING";
     /** Completion style for displaying the list */
     String COMPLETION_STYLE_BACKGROUND = "COMPLETION_STYLE_BACKGROUND";
-    String COMPLETION_STYLE_LIST_BACKGROUND = "COMPLETION_STYLE_BACKGROUND";
+    String COMPLETION_STYLE_LIST_BACKGROUND = "COMPLETION_STYLE_LIST_BACKGROUND";
     /**
      * Set the template for prompts for secondary (continuation) lines.
      * This is a prompt template as described in the class header.
