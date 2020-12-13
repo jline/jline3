@@ -92,12 +92,12 @@ public class LineReaderImpl implements LineReader, Flushable
     public static final String DEFAULT_COMPLETION_STYLE_DESCRIPTION = "fg:bright-black";
     public static final String DEFAULT_COMPLETION_STYLE_GROUP = "fg:bright-magenta,bold";
     public static final String DEFAULT_COMPLETION_STYLE_SELECTION = "inverse";
-    public static final String DEFAULT_COMPLETION_STYLE_BACKGROUND = "fg:default,bg:default";
-    public static final String DEFAULT_COMPLETION_STYLE_LIST_STARTING = DEFAULT_COMPLETION_STYLE_STARTING + ",bg:bright-magenta";
-    public static final String DEFAULT_COMPLETION_STYLE_LIST_DESCRIPTION = DEFAULT_COMPLETION_STYLE_DESCRIPTION + ",bg:bright-magenta";
-    public static final String DEFAULT_COMPLETION_STYLE_LIST_GROUP = DEFAULT_COMPLETION_STYLE_GROUP + ",bg:bright-magenta";
-    public static final String DEFAULT_COMPLETION_STYLE_LIST_SELECTION = DEFAULT_COMPLETION_STYLE_SELECTION + ",bg:bright-magenta";
-    public static final String DEFAULT_COMPLETION_STYLE_LIST_BACKGROUND = "fg:default,bg:bright-magenta";
+    public static final String DEFAULT_COMPLETION_STYLE_BACKGROUND = "bg:default";
+    public static final String DEFAULT_COMPLETION_STYLE_LIST_STARTING = DEFAULT_COMPLETION_STYLE_STARTING;
+    public static final String DEFAULT_COMPLETION_STYLE_LIST_DESCRIPTION = DEFAULT_COMPLETION_STYLE_DESCRIPTION;
+    public static final String DEFAULT_COMPLETION_STYLE_LIST_GROUP = DEFAULT_COMPLETION_STYLE_GROUP;
+    public static final String DEFAULT_COMPLETION_STYLE_LIST_SELECTION = DEFAULT_COMPLETION_STYLE_SELECTION;
+    public static final String DEFAULT_COMPLETION_STYLE_LIST_BACKGROUND = "bg:bright-magenta";
     public static final int    DEFAULT_INDENTATION = 0;
     public static final int    DEFAULT_FEATURES_MAX_BUFFER_SIZE = 1000;
     public static final int    DEFAULT_SUGGESTIONS_MIN_BUFFER_SIZE = 1;
@@ -5351,6 +5351,7 @@ public class LineReaderImpl implements LineReader, Flushable
                     sb.style(AttributedStyle.DEFAULT);
                     sb.append('\t');
                 }
+                AttributedStringBuilder asb = new AttributedStringBuilder();
                 for (int j = 0; j < columns; j++) {
                     int idx = index.applyAsInt(i, j);
                     if (idx < candidates.size()) {
@@ -5375,58 +5376,58 @@ public class LineReaderImpl implements LineReader, Flushable
                         }
                         if (cand == selection) {
                             out[1] = i;
-                            sb.style(getCompletionStyleSelection(doMenuList));
+                            asb.style(getCompletionStyleSelection(doMenuList));
                             if (left.toString().regionMatches(
                                     isSet(Option.CASE_INSENSITIVE), 0, completed, 0, completed.length())) {
-                                sb.append(left.toString(), 0, completed.length());
-                                sb.append(left.toString(), completed.length(), left.length());
+                                asb.append(left.toString(), 0, completed.length());
+                                asb.append(left.toString(), completed.length(), left.length());
                             } else {
-                                sb.append(left.toString());
+                                asb.append(left.toString());
                             }
                             for (int k = 0; k < maxWidth - lw - rw; k++) {
-                                sb.append(' ');
+                                asb.append(' ');
                             }
                             if (right != null) {
-                                sb.append(right);
+                                asb.append(right);
                             }
+                            asb.style(AttributedStyle.DEFAULT);
                         } else {
                             if (left.toString().regionMatches(
                                     isSet(Option.CASE_INSENSITIVE), 0, completed, 0, completed.length())) {
-                                sb.style(getCompletionStyleStarting(doMenuList));
-                                sb.append(left, 0, completed.length());
-                                sb.style(getCompletionStyleBackground(doMenuList));
-                                sb.append(left, completed.length(), left.length());
+                                asb.style(getCompletionStyleStarting(doMenuList));
+                                asb.append(left, 0, completed.length());
+                                asb.style(AttributedStyle.DEFAULT);
+                                asb.append(left, completed.length(), left.length());
                             } else {
-                                sb.style(getCompletionStyleBackground(doMenuList));
-                                sb.append(left);
+                                asb.append(left);
                             }
                             if (right != null || hasRightItem) {
-                                sb.style(getCompletionStyleBackground(doMenuList));
                                 for (int k = 0; k < maxWidth - lw - rw; k++) {
-                                    sb.append(' ');
+                                    asb.append(' ');
                                 }
                             }
                             if (right != null) {
-                                sb.style(getCompletionStyleDescription(doMenuList));
-                                sb.append(right);
+                                asb.style(getCompletionStyleDescription(doMenuList));
+                                asb.append(right);
+                                asb.style(AttributedStyle.DEFAULT);
                             } else if (doMenuList) {
-                                sb.style(getCompletionStyleBackground(doMenuList));
                                 for (int k = lw; k < maxWidth; k++) {
-                                    sb.append(' ');
+                                    asb.append(' ');
                                 }
                             }
                         }
-                        sb.style(getCompletionStyleBackground(doMenuList));
                         if (hasRightItem) {
                             for (int k = 0; k < MARGIN_BETWEEN_COLUMNS; k++) {
-                                sb.append(' ');
+                                asb.append(' ');
                             }
                         }
                         if (doMenuList) {
-                            sb.append(' ');
+                            asb.append(' ');
                         }
                     }
                 }
+                sb.style(getCompletionStyleBackground(doMenuList));
+                sb.append(asb);
                 sb.append('\n');
             }
             out[0] += lines;
