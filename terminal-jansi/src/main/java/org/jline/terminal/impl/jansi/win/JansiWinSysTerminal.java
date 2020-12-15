@@ -43,13 +43,13 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
 
     public static JansiWinSysTerminal createTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler, boolean paused) throws IOException {
         Writer writer;
+        int[] mode = new int[1];
         if (ansiPassThrough) {
             if (type == null) {
                 type = OSUtils.IS_CONEMU ? TYPE_WINDOWS_CONEMU : TYPE_WINDOWS;
             }
             writer = new JansiWinConsoleWriter();
         } else {
-            int[] mode = new int[1];
             if (Kernel32.GetConsoleMode(consoleOut, mode) == 0 ) {
                 throw new IOException("Failed to get console mode: " + getLastErrorMessage());
             }
@@ -69,9 +69,9 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
                 }
                 writer = new WindowsAnsiWriter(new BufferedWriter(new JansiWinConsoleWriter()));
             }
-            if (Kernel32.GetConsoleMode(consoleIn, mode) == 0) {
-                throw new IOException("Failed to get console mode: " + getLastErrorMessage());
-            }
+        }
+        if (Kernel32.GetConsoleMode(consoleIn, mode) == 0) {
+            throw new IOException("Failed to get console mode: " + getLastErrorMessage());
         }
         JansiWinSysTerminal terminal = new JansiWinSysTerminal(writer, name, type, encoding, codepage, nativeSignals, signalHandler);
         // Start input pump thread
