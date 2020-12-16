@@ -505,6 +505,10 @@ public class SystemRegistryImpl implements SystemRegistry {
             reset();
         }
 
+        public void resetOutput() {
+            output = null;
+        }
+
         private void reset() {
             outputStream = null;
             System.setOut(origOut);
@@ -1237,6 +1241,7 @@ public class SystemRegistryImpl implements SystemRegistry {
 
     public void cleanUp() {
         outputStream.close();
+        outputStream.resetOutput();
         if (consoleEngine() != null) {
             consoleEngine().purge();
         }
