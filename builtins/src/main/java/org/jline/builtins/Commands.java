@@ -1039,18 +1039,19 @@ public class Commands {
                 "colors -  view 256-color table",
                 "Usage: colors [OPTIONS]",
                 "  -? --help                     Displays command help",
+                "  -c --columns=COLUMNS          Number of columns in name table",
                 "  -n --name                     Color name table (default number table)",
-                "  -c --columns=COLUMNS          Number of columns in name table"};
+                "  -s --small                    View 16-color table (default 256-color)"
+        };
         Options opt = Options.compile(usage).parse(argv);
         if (opt.isSet("help")) {
             throw new Options.HelpException(opt.usage());
         }
-        boolean name = opt.isSet("name");
         int columns = 256;
         if (opt.isSet("columns")) {
             columns = opt.getNumber("columns");
         }
-        new Colors(terminal, out).printColors(name, columns);
+        new Colors(terminal, out).printColors(opt.isSet("name"), opt.isSet("small"), columns);
     }
 
     private static class Colors {
@@ -1114,14 +1115,23 @@ public class Commands {
              return lp.toString() + field + rp.toString();
         }
 
-        public void printColors(boolean name, int columns) throws IOException {
+        public void printColors(boolean name, boolean small, int columns) throws IOException {
             this.name = name;
             AttributedStringBuilder asb = new AttributedStringBuilder();
             int width = terminal.getWidth();
+            String tableName = small ? " 16-color " : "256-color ";
             if (!name) {
-                out.println("256-color table, fg:⟨name⟩ / 38;5;⟨n⟩");
-                out.println("                 bg:⟨name⟩ / 48;5;⟨n⟩");
-                out.println("");
+                out.print(tableName);
+                out.print("table, fg:<name> ");
+                if (!small) {
+                    out.print("/ 38;5;<n>");
+                }
+                out.println();
+                out.print("                 bg:<name> ");
+                if (!small) {
+                    out.print("/ 48;5;<n>");
+                }
+                out.println("\n");
                 boolean narrow = width <  180;
                 for (String c : colors) {
                     AttributedStyle ss = new StyleResolver(this::getStyle).resolve('.' + c, null);
@@ -1129,7 +1139,7 @@ public class Commands {
                     asb.append(addPadding(11,c));
                     asb.style(AttributedStyle.DEFAULT);
                     if (c.equals("white")) {
-                        if (narrow) {
+                        if (narrow || small) {
                             asb.append('\n');
                         } else {
                             asb.append("    ");
@@ -1139,32 +1149,35 @@ public class Commands {
                     }
                 }
                 asb.append('\n');
-                for (int i = 16; i < 256; i++) {
-                    String fg = foreground(i);
-                    String code = Integer.toString(i);
-                    AttributedStyle ss = new StyleResolver(this::getStyle).resolve("." + fg + code, null);
-                    asb.style(ss);
-                    String str = " ";
-                    if (i < 100) {
-                        str = "  ";
-                    } else if (i > 231) {
-                        str = i % 2 == 0 ? "    " : "   ";
-                    }
-                    asb.append(str).append(code).append(' ');
-                    if (i == 51 || i == 87 || i == 123 || i == 159 || i == 195 || i == 231
-                            || narrow
-                            && (i == 33 || i == 69 || i == 105 || i == 141 || i == 177 || i == 213 || i == 243)
-                    ) {
-                        asb.style(AttributedStyle.DEFAULT);
-                        asb.append('\n');
-                        if (i == 231) {
+                if (!small) {
+                    for (int i = 16; i < 256; i++) {
+                        String fg = foreground(i);
+                        String code = Integer.toString(i);
+                        AttributedStyle ss = new StyleResolver(this::getStyle).resolve("." + fg + code, null);
+                        asb.style(ss);
+                        String str = " ";
+                        if (i < 100) {
+                            str = "  ";
+                        } else if (i > 231) {
+                            str = i % 2 == 0 ? "    " : "   ";
+                        }
+                        asb.append(str).append(code).append(' ');
+                        if (i == 51 || i == 87 || i == 123 || i == 159 || i == 195 || i == 231
+                                || narrow
+                                && (i == 33 || i == 69 || i == 105 || i == 141 || i == 177 || i == 213 || i == 243)
+                        ) {
+                            asb.style(AttributedStyle.DEFAULT);
                             asb.append('\n');
+                            if (i == 231) {
+                                asb.append('\n');
+                            }
                         }
                     }
                 }
             } else {
-                out.println("256-color table, fg:~⟨name⟩ OR 38;5;⟨n⟩");
-                out.println("                 bg:~⟨name⟩ OR 48;5;⟨n⟩");
+                out.print(tableName);
+                out.println("table, fg:~<name> OR 38;5;<n>");
+                out.println("                 bg:~<name> OR 48;5;<n>");
                 out.println();
                 InputStream inputStream = new Source.ResourceSource("/org/jline/utils/colors.txt", null).read();
                 BufferedReader reader = new BufferedReader(new java.io.InputStreamReader(inputStream));
@@ -1186,6 +1199,9 @@ public class Commands {
                             asb.style(AttributedStyle.DEFAULT);
                             asb.append('\n');
                         }
+                    }
+                    if (small && idx == 16) {
+                        break;
                     }
                     line = reader.readLine();
                 }
