@@ -20,7 +20,6 @@ import java.io.InterruptedIOException;
 import java.lang.reflect.Constructor;
 import java.time.Instant;
 import java.util.*;
-import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.*;
@@ -46,7 +45,6 @@ import org.jline.utils.AttributedStyle;
 import org.jline.utils.Curses;
 import org.jline.utils.Display;
 import org.jline.utils.InfoCmp.Capability;
-import org.jline.utils.Levenshtein;
 import org.jline.utils.Log;
 import org.jline.utils.Status;
 import org.jline.utils.StyleResolver;
@@ -171,6 +169,7 @@ public class LineReaderImpl implements LineReader, Flushable
     protected Highlighter highlighter = new DefaultHighlighter();
     protected Parser parser = new DefaultParser();
     protected Expander expander = new DefaultExpander();
+    protected CompletionMatcher completionMatcher = new CompletionMatcherImpl();
 
     //
     // State variables
@@ -428,6 +427,10 @@ public class LineReaderImpl implements LineReader, Flushable
 
     public void setExpander(Expander expander) {
         this.expander = expander;
+    }
+
+    public void setCompletionMatcher(CompletionMatcher completionMatcher) {
+        this.completionMatcher = completionMatcher;
     }
 
     //
@@ -1056,8 +1059,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
     @Override
     public boolean isSet(Option option) {
-        Boolean b = options.get(option);
-        return b != null ? b : option.isDef();
+        return option.isSet(options);
     }
 
     @Override
@@ -4439,77 +4441,17 @@ public class LineReaderImpl implements LineReader, Flushable
         boolean caseInsensitive = isSet(Option.CASE_INSENSITIVE);
         int errors = getInt(ERRORS, DEFAULT_ERRORS);
 
-        // Build a list of sorted candidates
-        Map<String, List<Candidate>> sortedCandidates = new HashMap<>();
-        for (Candidate cand : candidates) {
-            sortedCandidates
-                    .computeIfAbsent(AttributedString.fromAnsi(cand.value()).toString(), s -> new ArrayList<>())
-                    .add(cand);
-        }
-
-        // Find matchers
-        // TODO: glob completion
-        List<Function<Map<String, List<Candidate>>,
-                      Map<String, List<Candidate>>>> matchers;
-        Predicate<String> exact;
-        if (prefix) {
-            String wd = line.word();
-            String wdi = caseInsensitive ? wd.toLowerCase() : wd;
-            String wp = wdi.substring(0, line.wordCursor());
-            matchers = Arrays.asList(
-                    simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).startsWith(wp)),
-                    simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).contains(wp)),
-                    typoMatcher(wp, errors, caseInsensitive)
-            );
-            exact = s -> caseInsensitive ? s.equalsIgnoreCase(wp) : s.equals(wp);
-        } else if (isSet(Option.COMPLETE_IN_WORD)) {
-            String wd = line.word();
-            String wdi = caseInsensitive ? wd.toLowerCase() : wd;
-            String wp = wdi.substring(0, line.wordCursor());
-            String ws = wdi.substring(line.wordCursor());
-            Pattern p1 = Pattern.compile(Pattern.quote(wp) + ".*" + Pattern.quote(ws) + ".*");
-            Pattern p2 = Pattern.compile(".*" + Pattern.quote(wp) + ".*" + Pattern.quote(ws) + ".*");
-            matchers = Arrays.asList(
-                    simpleMatcher(s -> p1.matcher(caseInsensitive ? s.toLowerCase() : s).matches()),
-                    simpleMatcher(s -> p2.matcher(caseInsensitive ? s.toLowerCase() : s).matches()),
-                    typoMatcher(wdi, errors, caseInsensitive)
-            );
-            exact = s -> caseInsensitive ? s.equalsIgnoreCase(wd) : s.equals(wd);
-        } else {
-            String wd = line.word();
-            String wdi = caseInsensitive ? wd.toLowerCase() : wd;
-            if (isSet(Option.EMPTY_WORD_OPTIONS) || wd.length() > 0) {
-                matchers = Arrays.asList(
-                        simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).startsWith(wdi)),
-                        simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).contains(wdi)),
-                        typoMatcher(wdi, errors, caseInsensitive)
-                );
-            } else {
-                matchers = Collections.singletonList(simpleMatcher(s -> !s.startsWith("-")));
-            }
-            exact = s -> caseInsensitive ? s.equalsIgnoreCase(wd) : s.equals(wd);
-        }
+        completionMatcher.compile(options, prefix, line, caseInsensitive, errors, getOriginalGroupName());
         // Find matching candidates
-        Map<String, List<Candidate>> matching = Collections.emptyMap();
-        for (Function<Map<String, List<Candidate>>,
-                      Map<String, List<Candidate>>> matcher : matchers) {
-            matching = matcher.apply(sortedCandidates);
-            if (!matching.isEmpty()) {
-                break;
-            }
-        }
-
+        List<Candidate> possible = completionMatcher.matches(candidates);
         // If we have no matches, bail out
-        if (matching.isEmpty()) {
+        if (possible.isEmpty()) {
             return false;
         }
         size.copy(terminal.getSize());
         try {
             // If we only need to display the list, do it now
             if (lst == CompletionType.List) {
-                List<Candidate> possible = matching.entrySet().stream()
-                        .flatMap(e -> e.getValue().stream())
-                        .collect(Collectors.toList());
                 doList(possible, line.word(), false, line::escape, forSuggestion);
                 return !possible.isEmpty();
             }
@@ -4517,16 +4459,12 @@ public class LineReaderImpl implements LineReader, Flushable
             // Check if there's a single possible match
             Candidate completion = null;
             // If there's a single possible completion
-            if (matching.size() == 1) {
-                completion = matching.values().stream().flatMap(Collection::stream)
-                        .findFirst().orElse(null);
+            if (possible.size() == 1) {
+                completion = possible.get(0);
             }
             // Or if RECOGNIZE_EXACT is set, try to find an exact match
             else if (isSet(Option.RECOGNIZE_EXACT)) {
-                completion = matching.values().stream().flatMap(Collection::stream)
-                        .filter(Candidate::complete)
-                        .filter(c -> exact.test(c.value()))
-                        .findFirst().orElse(null);
+                completion = completionMatcher.exactMatch();
             }
             // Complete and exit
             if (completion != null && !completion.value().isEmpty()) {
@@ -4566,10 +4504,6 @@ public class LineReaderImpl implements LineReader, Flushable
                 return true;
             }
 
-            List<Candidate> possible = matching.entrySet().stream()
-                    .flatMap(e -> e.getValue().stream())
-                    .collect(Collectors.toList());
-
             if (useMenu) {
                 buf.move(line.word().length() - line.wordCursor());
                 buf.backspace(line.word().length());
@@ -4587,10 +4521,7 @@ public class LineReaderImpl implements LineReader, Flushable
             }
             // Now, we need to find the unambiguous completion
             // TODO: need to find common suffix
-            String commonPrefix = null;
-            for (String key : matching.keySet()) {
-                commonPrefix = commonPrefix == null ? key : getCommonStart(commonPrefix, key, caseInsensitive);
-            }
+            String commonPrefix = completionMatcher.getCommonPrefix();
             boolean hasUnambiguous = commonPrefix.startsWith(current) && !commonPrefix.equals(current);
 
             if (hasUnambiguous) {
@@ -4658,7 +4589,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
     protected Comparator<Candidate> getCandidateComparator(boolean caseInsensitive, String word) {
         String wdi = caseInsensitive ? word.toLowerCase() : word;
-        ToIntFunction<String> wordDistance = w -> distance(wdi, caseInsensitive ? w.toLowerCase() : w);
+        ToIntFunction<String> wordDistance = w -> ReaderUtils.distance(wdi, caseInsensitive ? w.toLowerCase() : w);
         return Comparator
                 .comparing(Candidate::value, Comparator.comparingInt(wordDistance))
                 .thenComparing(Comparator.naturalOrder());
@@ -4702,37 +4633,6 @@ public class LineReaderImpl implements LineReader, Flushable
                             first.descr(), first.suffix(), null, first.complete()));
                 }
             }
-        }
-    }
-
-    private Function<Map<String, List<Candidate>>,
-                     Map<String, List<Candidate>>> simpleMatcher(Predicate<String> pred) {
-        return m -> m.entrySet().stream()
-                .filter(e -> pred.test(e.getKey()))
-                .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
-    }
-
-    private Function<Map<String, List<Candidate>>,
-                     Map<String, List<Candidate>>> typoMatcher(String word, int errors, boolean caseInsensitive) {
-        return m -> {
-            Map<String, List<Candidate>> map = m.entrySet().stream()
-                    .filter(e -> distance(word, caseInsensitive ? e.getKey() : e.getKey().toLowerCase()) < errors)
-                    .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
-            if (map.size() > 1) {
-                map.computeIfAbsent(word, w -> new ArrayList<>())
-                        .add(new Candidate(word, word, getOriginalGroupName(), null, null, null, false));
-            }
-            return map;
-        };
-    }
-
-    private int distance(String word, String cand) {
-        if (word.length() < cand.length()) {
-            int d1 = Levenshtein.distance(word, cand.substring(0, Math.min(cand.length(), word.length())));
-            int d2 = Levenshtein.distance(word, cand);
-            return Math.min(d1, d2);
-        } else {
-            return Levenshtein.distance(word, cand);
         }
     }
 
@@ -5516,29 +5416,6 @@ public class LineReaderImpl implements LineReader, Flushable
 
     protected AttributedStyle buildStyle(String str) {
         return AttributedString.fromAnsi("\u001b[" + str + "m ").styleAt(0);
-    }
-
-    private String getCommonStart(String str1, String str2, boolean caseInsensitive) {
-        int[] s1 = str1.codePoints().toArray();
-        int[] s2 = str2.codePoints().toArray();
-        int len = 0;
-        while (len < Math.min(s1.length, s2.length)) {
-            int ch1 = s1[len];
-            int ch2 = s2[len];
-            if (ch1 != ch2 && caseInsensitive) {
-                ch1 = Character.toUpperCase(ch1);
-                ch2 = Character.toUpperCase(ch2);
-                if (ch1 != ch2) {
-                    ch1 = Character.toLowerCase(ch1);
-                    ch2 = Character.toLowerCase(ch2);
-                }
-            }
-            if (ch1 != ch2) {
-                break;
-            }
-            len++;
-        }
-        return new String(s1, 0, len);
     }
 
     /**
