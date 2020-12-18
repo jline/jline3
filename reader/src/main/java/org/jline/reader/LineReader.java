@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019, the original author or authors.
+ * Copyright (c) 2002-2020, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -388,6 +388,7 @@ public interface LineReader {
 
     enum Option {
         COMPLETE_IN_WORD,
+        COMPLETE_MATCHER_CAMELCASE,
         DISABLE_EVENT_EXPANSION,
         HISTORY_VERIFY,
         HISTORY_IGNORE_SPACE(true),
@@ -465,6 +466,11 @@ public interface LineReader {
 
         Option(boolean def) {
             this.def = def;
+        }
+
+        public final boolean isSet(Map<Option, Boolean> options) {
+            Boolean b = options.get(this);
+            return b != null ? b : this.isDef();
         }
 
         public boolean isDef() {
