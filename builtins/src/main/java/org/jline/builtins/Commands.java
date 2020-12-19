@@ -1039,7 +1039,7 @@ public class Commands {
                 "colors -  view 256-color table",
                 "Usage: colors [OPTIONS]",
                 "  -? --help                     Displays command help",
-                "  -c --columns=COLUMNS          Number of columns in name table",
+                "  -c --columns=COLUMNS          Number of columns in name table (default 6)",
                 "  -n --name                     Color name table (default number table)",
                 "  -s --small                    View 16-color table (default 256-color)"
         };
@@ -1047,7 +1047,7 @@ public class Commands {
         if (opt.isSet("help")) {
             throw new Options.HelpException(opt.usage());
         }
-        int columns = 256;
+        int columns = terminal.getWidth() > 131 ? 6 : 5;
         if (opt.isSet("columns")) {
             columns = opt.getNumber("columns");
         }
@@ -1185,23 +1185,39 @@ public class Commands {
                 int col = 0;
                 Integer idx = 0;
                 int colWidth = 22;
+                int lb = 1;
                 while (line != null) {
                     line = line.trim();
                     if (!line.isEmpty() && !line.startsWith("#")) {
                         String fg = foreground(idx);
                         AttributedStyle ss = new StyleResolver(this::getStyle).resolve("." + fg + line, null);
                         asb.style(ss);
+                        if (columns > 3) {
+                            colWidth = idx > 15 && idx < 232 ? 22 : (idx % 2 == 0 || columns != 6 ? 16 : 17);
+                            lb = idx > 15 && idx < 232 ? 1 : -1;
+                        }
                         asb.append(String.valueOf(idx)).append(addPadding(colWidth - idx.toString().length(), line));
                         col++;
                         idx++;
-                        if ((col + 1)*colWidth > width || col + 1 > columns) {
+                        if ((col + 1)*colWidth > width || col + lb > columns) {
                             col = 0;
                             asb.style(AttributedStyle.DEFAULT);
                             asb.append('\n');
                         }
                     }
-                    if (small && idx == 16) {
-                        break;
+                    if (idx == 16) {
+                        if (small) {
+                            break;
+                        } else if (col != 0) {
+                            col = 0;
+                            asb.style(AttributedStyle.DEFAULT);
+                            asb.append('\n');
+                        }
+                    }
+                    if (idx == 232 && col != 0) {
+                        col = 0;
+                        asb.style(AttributedStyle.DEFAULT);
+                        asb.append('\n');
                     }
                     line = reader.readLine();
                 }
