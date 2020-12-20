@@ -1047,7 +1047,10 @@ public class Commands {
         if (opt.isSet("help")) {
             throw new Options.HelpException(opt.usage());
         }
-        int columns = terminal.getWidth() > 131 ? 6 : 5;
+        int columns = terminal.getWidth() > 122 ? 6 : 5;
+        if (opt.isSet("small")) {
+            columns = columns + 2;
+        }
         if (opt.isSet("columns")) {
             columns = opt.getNumber("columns");
         }
@@ -1184,7 +1187,7 @@ public class Commands {
                 String line = reader.readLine();
                 int col = 0;
                 Integer idx = 0;
-                int colWidth = 22;
+                int colWidth = 21;
                 int lb = 1;
                 while (line != null) {
                     line = line.trim();
@@ -1192,9 +1195,17 @@ public class Commands {
                         String fg = foreground(idx);
                         AttributedStyle ss = new StyleResolver(this::getStyle).resolve("." + fg + line, null);
                         asb.style(ss);
-                        if (columns > 3) {
-                            colWidth = idx > 15 && idx < 232 ? 22 : (idx % 2 == 0 || columns != 6 ? 16 : 17);
-                            lb = idx > 15 && idx < 232 ? 1 : -1;
+                        if (small) {
+                            colWidth = 15;
+                            lb = 1;
+                        } else if (columns > 4) {
+                            if (idx > 15 && idx < 232) {
+                                colWidth = columns != 6 || col == 1 || col == 2 || col == 3 ? 21 : 20;
+                                lb = 1;
+                            } else {
+                                colWidth =  columns != 6 || idx % 2 == 0 || col == 7 ? 15 : 16;
+                                lb = -1;
+                            }
                         }
                         asb.append(String.valueOf(idx)).append(addPadding(colWidth - idx.toString().length(), line));
                         col++;
@@ -1204,20 +1215,19 @@ public class Commands {
                             asb.style(AttributedStyle.DEFAULT);
                             asb.append('\n');
                         }
-                    }
-                    if (idx == 16) {
-                        if (small) {
-                            break;
-                        } else if (col != 0) {
+                        if (idx == 16) {
+                            if (small) {
+                                break;
+                            } else if (col != 0) {
+                                col = 0;
+                                asb.style(AttributedStyle.DEFAULT);
+                                asb.append('\n');
+                            }
+                        } else if (idx == 232 && col != 0) {
                             col = 0;
                             asb.style(AttributedStyle.DEFAULT);
                             asb.append('\n');
                         }
-                    }
-                    if (idx == 232 && col != 0) {
-                        col = 0;
-                        asb.style(AttributedStyle.DEFAULT);
-                        asb.append('\n');
                     }
                     line = reader.readLine();
                 }
