@@ -124,7 +124,7 @@ public class CompletionMatcherImpl implements CompletionMatcher {
                         typoMatcher(wdi, errors, caseInsensitive, originalGroupName)
                 ));
             } else {
-                matchers = Collections.singletonList(simpleMatcher(s -> !s.startsWith("-")));
+                matchers = new ArrayList<>(Collections.singletonList(simpleMatcher(s -> !s.startsWith("-"))));
             }
             exact = s -> caseInsensitive ? s.equalsIgnoreCase(wd) : s.equals(wd);
         }
