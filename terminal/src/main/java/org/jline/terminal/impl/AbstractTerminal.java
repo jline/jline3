@@ -17,6 +17,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 
@@ -39,7 +40,7 @@ public abstract class AbstractTerminal implements Terminal {
     protected final String name;
     protected final String type;
     protected final Charset encoding;
-    protected final Map<Signal, SignalHandler> handlers = new HashMap<>();
+    protected final Map<Signal, SignalHandler> handlers = new ConcurrentHashMap<>();
     protected final Set<Capability> bools = new HashSet<>();
     protected final Map<Capability, Integer> ints = new HashMap<>();
     protected final Map<Capability, String> strings = new HashMap<>();
