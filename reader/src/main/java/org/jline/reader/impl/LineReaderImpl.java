@@ -4951,10 +4951,9 @@ public class LineReaderImpl implements LineReader, Flushable
             String current = completed + sb.toString();
             List<Candidate> cands;
             if (sb.length() > 0) {
-                cands = possible.stream()
-                        .filter(c -> caseInsensitive
-                                    ? c.value().toLowerCase().startsWith(current.toLowerCase())
-                                    : c.value().startsWith(current))
+                completionMatcher.compile(options, false, new CompletingWord(current), caseInsensitive
+                        , getInt(LineReader.ERRORS, DEFAULT_ERRORS), getOriginalGroupName());
+                cands = completionMatcher.matches(possible).stream()
                         .sorted(getCandidateComparator(caseInsensitive, current))
                         .collect(Collectors.toList());
             } else {
@@ -5028,6 +5027,59 @@ public class LineReaderImpl implements LineReader, Flushable
                 post = null;
                 return false;
             }
+        }
+    }
+
+    private static class CompletingWord implements CompletingParsedLine {
+        private final String word;
+
+        public CompletingWord(String word) {
+            this.word = word;
+        }
+
+        @Override
+        public CharSequence escape(CharSequence candidate, boolean complete) {
+            return null;
+        }
+
+        @Override
+        public int rawWordCursor() {
+            return word.length();
+        }
+
+        @Override
+        public int rawWordLength() {
+            return word.length();
+        }
+
+        @Override
+        public String word() {
+            return word;
+        }
+
+        @Override
+        public int wordCursor() {
+            return word.length();
+        }
+
+        @Override
+        public int wordIndex() {
+            return 0;
+        }
+
+        @Override
+        public List<String> words() {
+            return null;
+        }
+
+        @Override
+        public String line() {
+            return word;
+        }
+
+        @Override
+        public int cursor() {
+            return word.length();
         }
     }
 
