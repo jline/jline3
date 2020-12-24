@@ -9,7 +9,9 @@
     https://opensource.org/licenses/BSD-3-Clause
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
 
@@ -36,10 +38,11 @@
 
     <scm>
         <connection>scm:git:git://github.com/jline/jline3.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/jline/jline3.git</developerConnection>
+        <developerConnection>scm:git:ssh://git@github.com/jline/jline3.git
+        </developerConnection>
         <url>http://github.com/jline/jline3</url>
-    <tag>HEAD</tag>
-  </scm>
+        <tag>HEAD</tag>
+    </scm>
 
     <issueManagement>
         <system>github</system>
@@ -55,7 +58,8 @@
         <mailingList>
             <name>jline-users</name>
             <post>mailto:jline-users@googlegroups.com</post>
-            <unsubscribe>mailto:jline-users+unsubscribe@googlegroups.com</unsubscribe>
+            <unsubscribe>mailto:jline-users+unsubscribe@googlegroups.com
+            </unsubscribe>
             <subscribe>https://groups.google.com/group/jline-users</subscribe>
             <archive>https://groups.google.com/group/jline-users</archive>
         </mailingList>
@@ -79,7 +83,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
 
         <native.image.skip>true</native.image.skip>
-        <automatic.module.name />
+        <automatic.module.name/>
 
         <jna.version>5.3.1</jna.version>
         <jansi.version>2.1.0</jansi.version>
@@ -95,7 +99,7 @@
         <ivy.version>2.5.0</ivy.version>
         <graal.version>19.3.1</graal.version>
 
-        <surefire.argLine />
+        <surefire.argLine/>
     </properties>
 
     <prerequisites>
@@ -265,8 +269,8 @@
             <dependency>
                 <groupId>org.apache.ivy</groupId>
                 <artifactId>ivy</artifactId>
-                 <version>${ivy.version}</version>
-            </dependency>        
+                <version>${ivy.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>org.slf4j</groupId>
@@ -461,9 +465,12 @@
                 <version>3.2.0</version>
                 <configuration>
                     <archive>
-                        <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+                        <manifestFile>
+                            ${project.build.outputDirectory}/META-INF/MANIFEST.MF
+                        </manifestFile>
                         <manifestEntries>
-                            <Automatic-Module-Name>${automatic.module.name}</Automatic-Module-Name>
+                            <Automatic-Module-Name>${automatic.module.name}
+                            </Automatic-Module-Name>
                         </manifestEntries>
                     </archive>
                 </configuration>
@@ -488,9 +495,13 @@
                     <archive>
                         <manifestEntries>
                             <Bundle-Name>JLine Sources Bundle</Bundle-Name>
-                            <Bundle-SymbolicName>${project.groupId}.source</Bundle-SymbolicName>
-                            <Bundle-Version>${project.version}</Bundle-Version>
-                            <Eclipse-SourceBundle>${project.groupId};version="${project.version}"</Eclipse-SourceBundle>
+                            <Bundle-SymbolicName>${project.groupId}.source
+                            </Bundle-SymbolicName>
+                            <Bundle-Version>${project.version}
+                            </Bundle-Version>
+                            <Eclipse-SourceBundle>
+                                ${project.groupId};version="${project.version}"
+                            </Eclipse-SourceBundle>
                         </manifestEntries>
                     </archive>
                 </configuration>
@@ -549,7 +560,8 @@
                         <configuration>
                             <doclint>none</doclint>
                             <notimestamp>true</notimestamp>
-                            <additionalOptions>${javadocOptions}</additionalOptions>
+                            <additionalOptions>${javadocOptions}
+                            </additionalOptions>
                             <failOnError>false</failOnError>
                         </configuration>
                         <executions>
@@ -575,7 +587,8 @@
         <profile>
             <id>java9</id>
             <properties>
-                <surefire.argLine>--add-opens java.base/java.io=ALL-UNNAMED</surefire.argLine>
+                <surefire.argLine>--add-opens java.base/java.io=ALL-UNNAMED
+                </surefire.argLine>
             </properties>
             <activation>
                 <jdk>[9,)</jdk>
@@ -597,14 +610,16 @@
         <profile>
             <id>license-check</id>
             <build>
-                <defaultGoal>com.mycila:license-maven-plugin:check</defaultGoal>
+                <defaultGoal>com.mycila:license-maven-plugin:check
+                </defaultGoal>
             </build>
         </profile>
 
         <profile>
             <id>license-format</id>
             <build>
-                <defaultGoal>com.mycila:license-maven-plugin:format</defaultGoal>
+                <defaultGoal>com.mycila:license-maven-plugin:format
+                </defaultGoal>
             </build>
         </profile>
 
