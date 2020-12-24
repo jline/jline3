@@ -86,10 +86,10 @@ public class LineReaderTest {
         c.add(new Candidate("option3", "option3", "group2", null, null, null, false));
         c.add(new Candidate("option4", "option4", "group2", null, null, null, false));
 
-        assertEquals("group1\noption1   option2\ngroup2\noption3   option4",  computeGroupPost(c, true,   true));
-        assertEquals("group1\ngroup2\noption1   option2   option3   option4", computeGroupPost(c, true,   false));
-        assertEquals("option1   option2   option3   option4",                 computeGroupPost(c, false,  false));
-        assertEquals("option1   option2\noption3   option4",                  computeGroupPost(c, false,  true));
+        assertEquals("group1\noption1   option2\ngroup2\noption3   option4", computeGroupPost(c, true, true));
+        assertEquals("group1\ngroup2\noption1   option2   option3   option4", computeGroupPost(c, true, false));
+        assertEquals("option1   option2   option3   option4", computeGroupPost(c, false, false));
+        assertEquals("option1   option2\noption3   option4", computeGroupPost(c, false, true));
     }
 
     private String computeGroupPost(List<Candidate> c, boolean autoGroup, boolean groupName) throws IOException {
@@ -101,19 +101,22 @@ public class LineReaderTest {
     public void testConEmuLineReaderClearScreen() throws IOException {
         System.setProperty("org.jline.terminal.conemu.disable-activate", "false");
         StringWriter sw = new StringWriter();
-        AbstractWindowsTerminal terminal = new AbstractWindowsTerminal(new BufferedWriter(sw), "name", TYPE_WINDOWS_CONEMU, Charset.defaultCharset(),0,
+        AbstractWindowsTerminal terminal = new AbstractWindowsTerminal(new BufferedWriter(sw), "name", TYPE_WINDOWS_CONEMU, Charset.defaultCharset(), 0,
                 false, Terminal.SignalHandler.SIG_DFL) {
             @Override
             protected int getConsoleMode() {
                 return 0;
             }
+
             @Override
             protected void setConsoleMode(int mode) {
             }
+
             @Override
             protected boolean processConsoleInput() throws IOException {
                 return false;
             }
+
             @Override
             public Size getSize() {
                 return new Size(80, 25);
@@ -137,5 +140,28 @@ public class LineReaderTest {
         assertTrue(sw.toString().contains("\u001b[9999E"));
     }
 
+    @Test
+    public void testInheritAppNameFromTerminal() throws IOException {
+        final String expectedAppName = "BOB";
+        final Terminal terminal = TerminalBuilder.builder()
+                .name(expectedAppName)
+                .build();
+        final LineReader lineReader = new LineReaderImpl(terminal);
 
+        assertEquals("Did not inherit appName from terminal",
+                expectedAppName, lineReader.getAppName());
+    }
+
+    @Test
+    public void testPreferAppNameFromConstructor() throws IOException {
+        final String expectedAppName = "NANCY";
+        final Terminal terminal = TerminalBuilder.builder()
+                .name(expectedAppName + "X")
+                .build();
+        final LineReader lineReader =
+                new LineReaderImpl(terminal, expectedAppName);
+
+        assertEquals("Did not prefer appName from builder",
+                expectedAppName, lineReader.getAppName());
+    }
 }
