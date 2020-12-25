@@ -113,7 +113,7 @@ public class LineReaderTest {
             }
 
             @Override
-            protected boolean processConsoleInput() throws IOException {
+            protected boolean processConsoleInput() {
                 return false;
             }
 
@@ -135,7 +135,7 @@ public class LineReaderTest {
                 e.printStackTrace();
             }
         }).start();
-        String line = reader.readLine();
+        reader.readLine();
         assertTrue(sw.toString().contains("\u001b[H\u001b[J"));
         assertTrue(sw.toString().contains("\u001b[9999E"));
     }
