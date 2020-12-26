@@ -1039,7 +1039,8 @@ public class Commands {
                 "colors -  view 256-color table",
                 "Usage: colors [OPTIONS]",
                 "  -? --help                     Displays command help",
-                "  -c --columns=COLUMNS          Number of columns in name table (default 6)",
+                "  -c --columns=COLUMNS          Number of columns in name table",
+                "  -f --find=NAME                Find colors which contains NAME",
                 "  -n --name                     Color name table (default number table)",
                 "  -s --small                    View 16-color table (default 256-color)"
         };
@@ -1048,13 +1049,22 @@ public class Commands {
             throw new Options.HelpException(opt.usage());
         }
         int columns = terminal.getWidth() > 122 ? 6 : 5;
-        if (opt.isSet("small")) {
+        String findName = null;
+        boolean nameTable = opt.isSet("name");
+        boolean table16 = opt.isSet("small");
+        if (opt.isSet("find")) {
+            findName = opt.get("find").toLowerCase();
+            nameTable = true;
+            table16 = false;
+            columns = 4;
+        }
+        if (table16) {
             columns = columns + 2;
         }
         if (opt.isSet("columns")) {
             columns = opt.getNumber("columns");
         }
-        new Colors(terminal, out).printColors(opt.isSet("name"), opt.isSet("small"), columns);
+        new Colors(terminal, out).printColors(nameTable, table16, columns, findName);
     }
 
     private static class Colors {
@@ -1118,7 +1128,7 @@ public class Commands {
              return lp.toString() + field + rp.toString();
         }
 
-        public void printColors(boolean name, boolean small, int columns) throws IOException {
+        public void printColors(boolean name, boolean small, int columns, String findName) throws IOException {
             this.name = name;
             AttributedStringBuilder asb = new AttributedStringBuilder();
             int width = terminal.getWidth();
@@ -1184,18 +1194,20 @@ public class Commands {
                 out.println();
                 InputStream inputStream = new Source.ResourceSource("/org/jline/utils/colors.txt", null).read();
                 BufferedReader reader = new BufferedReader(new java.io.InputStreamReader(inputStream));
-                String line = reader.readLine();
+                String line;
                 int col = 0;
                 Integer idx = 0;
                 int colWidth = 21;
                 int lb = 1;
-                while (line != null) {
+                while ((line = reader.readLine()) != null) {
                     line = line.trim();
                     if (!line.isEmpty() && !line.startsWith("#")) {
-                        String fg = foreground(idx);
-                        AttributedStyle ss = new StyleResolver(this::getStyle).resolve("." + fg + line, null);
-                        asb.style(ss);
-                        if (small) {
+                        if (findName != null) {
+                            if (!line.toLowerCase().contains(findName)) {
+                                idx++;
+                                continue;
+                            }
+                        } else if (small) {
                             colWidth = 15;
                             lb = 1;
                         } else if (columns > 4) {
@@ -1207,6 +1219,9 @@ public class Commands {
                                 lb = -1;
                             }
                         }
+                        String fg = foreground(idx);
+                        AttributedStyle ss = new StyleResolver(this::getStyle).resolve("." + fg + line, null);
+                        asb.style(ss);
                         asb.append(String.valueOf(idx)).append(addPadding(colWidth - idx.toString().length(), line));
                         col++;
                         idx++;
@@ -1215,21 +1230,22 @@ public class Commands {
                             asb.style(AttributedStyle.DEFAULT);
                             asb.append('\n');
                         }
-                        if (idx == 16) {
-                            if (small) {
-                                break;
-                            } else if (col != 0) {
+                        if (findName == null) {
+                            if (idx == 16) {
+                                if (small) {
+                                    break;
+                                } else if (col != 0) {
+                                    col = 0;
+                                    asb.style(AttributedStyle.DEFAULT);
+                                    asb.append('\n');
+                                }
+                            } else if (idx == 232 && col != 0) {
                                 col = 0;
                                 asb.style(AttributedStyle.DEFAULT);
                                 asb.append('\n');
                             }
-                        } else if (idx == 232 && col != 0) {
-                            col = 0;
-                            asb.style(AttributedStyle.DEFAULT);
-                            asb.append('\n');
                         }
                     }
-                    line = reader.readLine();
                 }
                 reader.close();
             }
