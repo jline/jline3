@@ -1261,7 +1261,9 @@ public class SystemRegistryImpl implements SystemRegistry {
         outputStream.close();
         ConsoleEngine consoleEngine = consoleEngine();
         if (consoleEngine != null) {
-            consoleEngine.putVariable("exception", exception);
+            if (!(exception instanceof Options.HelpException)) {
+                consoleEngine.putVariable("exception", exception);
+            }
             consoleEngine.trace(exception);
         } else {
             trace(false, exception);
