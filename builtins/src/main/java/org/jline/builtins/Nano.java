@@ -1655,29 +1655,12 @@ public class Nano implements Editor {
 
     private static class NanorcParser {
         private static final String DEFAULT_SYNTAX = "default";
-        private static final List<String> JLINE_NAMED_STYLES = Arrays.asList("blink", "bold", "conceal", "crossed-out"
-                , "crossedout", "faint", "hidden", "inverse", "inverse-neg", "inverseneg", "italic", "underline");
-        private static final List<String> COLORS_8 = Arrays.asList("white", "black", "red", "blue", "green", "yellow", "magenta", "cyan");
-        // https://github.com/lhmouse/nano-win/commit/a7aab18dfeef8a0e8073d5fa420677dc8fe548da
-        private static final Map<String,Integer> COLORS_NANO = new HashMap<>();
-        static {
-            COLORS_NANO.put("pink", 204);
-            COLORS_NANO.put("purple", 163);
-            COLORS_NANO.put("mauve", 134);
-            COLORS_NANO.put("lagoon", 38);
-            COLORS_NANO.put("mint", 48);
-            COLORS_NANO.put("lime", 148);
-            COLORS_NANO.put("peach", 215);
-            COLORS_NANO.put("orange", 208);
-            COLORS_NANO.put("latte", 137);
-        }
         private final String name;
         private final String target;
         private final List<HighlightRule> highlightRules = new ArrayList<>();
         private final BufferedReader reader;
         private boolean matches = false;
         private String syntaxName = "unknown";
-        private final Map<String,String[]> styleSpecs = new HashMap<>();
 
         public NanorcParser(Path file, String name, String target) throws IOException {
             this(new Source.PathSource(file, null).read(), name, target);
@@ -1758,56 +1741,11 @@ public class Nano implements Editor {
             return syntaxName.equals(DEFAULT_SYNTAX);
         }
 
-        private String getStyle(String reference) {
-            StringBuilder out = new StringBuilder();
-            boolean first = true;
-            boolean fg = true;
-            for (String s : styleSpecs.get(reference)) {
-                if (s.trim().isEmpty()) {
-                    fg = false;
-                    continue;
-                }
-                if (!first) {
-                    out.append(",");
-                }
-                if (JLINE_NAMED_STYLES.contains(s)) {
-                    out.append(s);
-                } else if (COLORS_8.contains(s) || COLORS_NANO.containsKey(s) || s.startsWith("light")
-                        || s.startsWith("bright") || s.startsWith("~") || s.startsWith("!") || s.matches("\\d+")
-                        || s.equals("normal") || s.equals("default")) {
-                    if (s.matches("\\d+") || COLORS_NANO.containsKey(s)) {
-                        if (fg) {
-                            out.append("38;5;");
-                        } else {
-                            out.append("48;5;");
-                        }
-                        out.append(s.matches("\\d+") ? s : COLORS_NANO.get(s).toString());
-                    } else {
-                        if (fg) {
-                            out.append("fg:");
-                        } else {
-                            out.append("bg:");
-                        }
-                        if (COLORS_8.contains(s) || s.startsWith("~") || s.startsWith("!") || s.startsWith("bright-")) {
-                            out.append(s);
-                        } else if (s.startsWith("light")) {
-                            out.append("!").append(s.substring(5));
-                        } else if (s.startsWith("bright")) {
-                            out.append("!").append(s.substring(6));
-                        } else {
-                            out.append("default");
-                        }
-                    }
-                    fg = false;
-                }
-                first = false;
-            }
-            return out.toString();
-        }
-
         private void addHighlightRule(String reference, List<String> parts, boolean caseInsensitive) {
-            styleSpecs.put(reference, parts.get(1).split(","));
-            AttributedStyle style = new StyleResolver(this::getStyle).resolve("." + reference);
+            Map<String,String> spec = new HashMap<>();
+            spec.put(reference, parts.get(1));
+            Styles.StyleCompiler sh = new Styles.StyleCompiler(spec, true);
+            AttributedStyle style = new StyleResolver(sh::getStyle).resolve("." + reference);
 
             if (HighlightRule.evalRuleType(parts) == HighlightRule.RuleType.PATTERN) {
                 for (int i = 2; i < parts.size(); i++) {
