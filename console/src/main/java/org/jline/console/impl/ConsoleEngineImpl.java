@@ -1063,11 +1063,21 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             if (!Desktop.isDesktopSupported()) {
                 throw new IllegalStateException("Desktop is not supported!");
             }
-            Map<String,Object> docs = consoleOption("docs", null);
+            Map<String,Object> docs;
+            try {
+                docs = consoleOption("docs", null);
+            } catch (Exception e) {
+                Exception exception = new IllegalStateException("Bad documents configuration!");
+                exception.addSuppressed(e);
+                throw exception;
+            }
+            if (docs == null) {
+                throw new IllegalStateException("No documents configuration!");
+            }
             boolean done = false;
             Object arg = input.xargs()[0];
             if (arg instanceof String) {
-                String address = docs != null ? (String)docs.get(input.args()[0]) : null;
+                String address = (String)docs.get(input.args()[0]);
                 if (address != null) {
                     done = true;
                     if (urlExists(address)) {
@@ -1086,33 +1096,33 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 }
                 name = name.replaceAll("\\.", "/") + ".html";
                 Object doc = null;
-                assert docs != null;
                 for (Map.Entry<String,Object> entry : docs.entrySet()) {
                     if (name.matches(entry.getKey())) {
                         doc = entry.getValue();
                         break;
                     }
                 }
-                boolean docFound = false;
-                if (doc != null) {
-                    if (doc instanceof Collection) {
-                        for (Object o : (Collection<?>) doc) {
-                            String url = o + name;
-                            if (urlExists(url)) {
-                                Desktop.getDesktop().browse(new URI(url));
-                                docFound = true;
-                            }
-                        }
-                    } else {
-                        String url = doc + name;
+                if (doc == null) {
+                    throw new IllegalArgumentException("No document configuration for " + name);
+                }
+                String url = name;
+                if (doc instanceof Collection) {
+                    for (Object o : (Collection<?>) doc) {
+                        url = o + name;
                         if (urlExists(url)) {
                             Desktop.getDesktop().browse(new URI(url));
-                            docFound = true;
+                            done = true;
                         }
                     }
+                } else {
+                    url = doc + name;
+                    if (urlExists(url)) {
+                        Desktop.getDesktop().browse(new URI(url));
+                        done = true;
+                    }
                 }
-                if (!docFound) {
-                    throw new IllegalArgumentException("Document not found: " + name);
+                if (!done) {
+                    throw new IllegalArgumentException("Document not found: " + url);
                 }
             }
         } catch (Exception e) {
@@ -1227,10 +1237,13 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
 
     private List<String> docs() {
         List<String> out = new ArrayList<>();
+        Map<String,String> docs = consoleOption("docs", null);
+        if (docs == null) {
+            return out;
+        }
         for (String v : engine.find().keySet()) {
             out.add("$" + v);
         }
-        Map<String,String> docs = consoleOption("docs", null);
         if (!docs.isEmpty()) {
             for (String d :  docs.keySet()) {
                 if (d.matches("\\w+")) {
