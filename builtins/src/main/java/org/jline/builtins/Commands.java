@@ -1040,7 +1040,8 @@ public class Commands {
                 "Usage: colors [OPTIONS]",
                 "  -? --help                     Displays command help",
                 "  -c --columns=COLUMNS          Number of columns in name table",
-                "  -f --find=NAME                Find colors which contains NAME",
+                "  -f --find=NAME                Find color names which contains NAME ",
+                "  -l --lock=STYLE               Lock fore- or background color",
                 "  -n --name                     Color name table (default number table)",
                 "  -s --small                    View 16-color table (default 256-color)"
         };
@@ -1050,6 +1051,7 @@ public class Commands {
         }
         int columns = terminal.getWidth() > 122 ? 6 : 5;
         String findName = null;
+        String style = null;
         boolean nameTable = opt.isSet("name");
         boolean table16 = opt.isSet("small");
         if (opt.isSet("find")) {
@@ -1064,7 +1066,13 @@ public class Commands {
         if (opt.isSet("columns")) {
             columns = opt.getNumber("columns");
         }
-        new Colors(terminal, out).printColors(nameTable, table16, columns, findName);
+        if (opt.isSet("lock")) {
+            style = opt.get("lock");
+            if (style.length() - style.replace(":", "").length() > 1) {
+                style = null;
+            }
+        }
+        new Colors(terminal, out).printColors(nameTable, table16, columns, findName, style);
     }
 
     private static class Colors {
@@ -1073,6 +1081,8 @@ public class Commands {
         private final PrintStream out;
         private final List<String> colors = Arrays.asList("black","red","green","yellow","blue","magenta","cyan","white"
                 , "!black","!red","!green","!yellow","!blue","!magenta","!cyan","!white");
+        private boolean fixedBg;
+        private String fixedStyle;
 
         public Colors(Terminal terminal, PrintStream out) {
             this.terminal = terminal;
@@ -1083,18 +1093,22 @@ public class Commands {
             String out;
             char fg = ' ';
             if (name) {
-                out = "bg:~" + color.substring(1);
+                out = (fixedBg ? "fg:" : "bg:") + "~" + color.substring(1);
                 fg = color.charAt(0);
             } else if (color.substring(1).matches("\\d+")) {
-                out = "48;5;" + color.substring(1);
+                out = (fixedBg ? "38;5;" : "48;5;") + color.substring(1);
                 fg = color.charAt(0);
             } else {
-                out = "bg:" + color;
+                out = (fixedBg ? "fg:" : "bg:") + color;
             }
-            if (color.startsWith("!") || color.equals("white") || fg == 'b') {
-                out += ",fg:black";
+            if (fixedStyle == null) {
+                if (color.startsWith("!") || color.equals("white") || fg == 'b') {
+                    out += ",fg:black";
+                } else {
+                    out += ",fg:!white";
+                }
             } else {
-                out += ",fg:!white";
+                out += "," + fixedStyle;
             }
             return out;
         }
@@ -1128,8 +1142,13 @@ public class Commands {
              return lp.toString() + field + rp.toString();
         }
 
-        public void printColors(boolean name, boolean small, int columns, String findName) throws IOException {
+        public void printColors(boolean name, boolean small, int columns, String findName, String style) throws IOException {
             this.name = name;
+            this.fixedStyle = style;
+            if (style != null && (style.contains("b:") || style.contains("b-")
+                    || style.contains("bg:") || style.contains("bg-") || style.contains("background"))) {
+                fixedBg = true;
+            }
             AttributedStringBuilder asb = new AttributedStringBuilder();
             int width = terminal.getWidth();
             String tableName = small ? " 16-color " : "256-color ";
