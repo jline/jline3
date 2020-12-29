@@ -114,7 +114,7 @@ public class Styles {
 
         public String getStyle(String reference) {
             if (!colors.containsKey(reference)) {
-                throw new IllegalStateException();
+                return null;
             }
             String rawStyle = colors.get(reference);
             if (!nanoStyle && rawStyle.matches(ANSI_VALUE)) {
