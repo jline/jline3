@@ -4951,8 +4951,8 @@ public class LineReaderImpl implements LineReader, Flushable
             String current = completed + sb.toString();
             List<Candidate> cands;
             if (sb.length() > 0) {
-                completionMatcher.compile(options, false, new CompletingWord(current), caseInsensitive
-                        , getInt(LineReader.ERRORS, DEFAULT_ERRORS), getOriginalGroupName());
+                completionMatcher.compile(options, false, new CompletingWord(current), caseInsensitive, 0
+                        , null);
                 cands = completionMatcher.matches(possible).stream()
                         .sorted(getCandidateComparator(caseInsensitive, current))
                         .collect(Collectors.toList());
