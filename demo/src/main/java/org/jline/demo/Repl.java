@@ -70,7 +70,6 @@ public class Repl {
             commandExecute.put("testkey", new CommandMethods(this::testkey, this::defaultCompleter));
             commandExecute.put("clear", new CommandMethods(this::clear, this::defaultCompleter));
             commandExecute.put("!", new CommandMethods(this::shell, this::defaultCompleter));
-            commandExecute.put("objarg", new CommandMethods(this::objarg, this::defaultCompleter));
             registerCommands(commandExecute);
         }
 
@@ -82,24 +81,6 @@ public class Repl {
             return reader.getTerminal();
         }
 
-        private Object objarg(CommandInput input) {
-            final String[] usage = {
-                    "objarg -  manage correctly object parameters",
-                    "         parse input.xargs, return opt.argObjects[0]",
-                    "Usage: objarg [OBJECT]",
-                    "  -? --help                       Displays command help"
-            };
-            Object out = null;
-            try {
-                Options opt = parseOptions(usage, input.xargs());
-                List<Object> xargs = opt.argObjects();
-                out = xargs.size() > 0 ? xargs.get(0) : null;
-            } catch (Exception e) {
-                saveException(e);
-            }
-            return out;
-        }
-
         private void tput(CommandInput input) {
             final String[] usage = {
                     "tput -  put terminal capability",
@@ -107,12 +88,12 @@ public class Repl {
                     "  -? --help                       Displays command help"
             };
             try {
-                Options opt = parseOptions(usage, input.args());
+                Options opt = parseOptions(usage, input.xargs());
                 List<String> argv = opt.args();
-                if (argv.size() == 1) {
+                if (argv.size() > 0) {
                     Capability vcap = Capability.byName(argv.get(0));
                     if (vcap != null) {
-                        terminal().puts(vcap);
+                        terminal().puts(vcap, opt.argObjects().subList(1, argv.size()).toArray(new Object[0]));
                     } else {
                         terminal().writer().println("Unknown capability");
                     }
@@ -177,8 +158,10 @@ public class Repl {
             builder.directory(workDir.get().toFile());
             Process process = builder.start();
             StreamGobbler streamGobbler = new StreamGobbler(process.getInputStream(), System.out::println);
-            new Thread(streamGobbler).start();
+            Thread th = new Thread(streamGobbler);
+            th.start();
             int exitCode = process.waitFor();
+            th.join();
             if (exitCode != 0) {
                 throw new Exception("Failed to execute: " + String.join(" ", args.subList(2, args.size())));
             }
