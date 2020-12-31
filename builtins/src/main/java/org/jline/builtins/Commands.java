@@ -1039,10 +1039,12 @@ public class Commands {
                 "colors -  view 256-color table",
                 "Usage: colors [OPTIONS]",
                 "  -? --help                     Displays command help",
-                "  -c --columns=COLUMNS          Number of columns in name table",
+                "  -c --columns=COLUMNS          Number of columns in name/rgb table",
+                "                                COLUMNS = 1, display columns: color, style and ansi",
                 "  -f --find=NAME                Find color names which contains NAME ",
                 "  -l --lock=STYLE               Lock fore- or background color",
                 "  -n --name                     Color name table (default number table)",
+                "  -r --rgb                      Use and display rgb value",
                 "  -s --small                    View 16-color table (default 256-color)"
         };
         Options opt = Options.compile(usage).parse(argv);
@@ -1054,6 +1056,7 @@ public class Commands {
         String style = null;
         boolean nameTable = opt.isSet("name");
         boolean table16 = opt.isSet("small");
+        boolean rgb = opt.isSet("rgb");
         if (opt.isSet("find")) {
             findName = opt.get("find").toLowerCase();
             nameTable = true;
@@ -1072,11 +1075,12 @@ public class Commands {
                 style = null;
             }
         }
-        new Colors(terminal, out).printColors(nameTable, table16, columns, findName, style);
+        new Colors(terminal, out).printColors(nameTable, rgb, table16, columns, findName, style);
     }
 
     private static class Colors {
         boolean name;
+        boolean rgb;
         private final Terminal terminal;
         private final PrintStream out;
         private final List<String> colors = Arrays.asList("black","red","green","yellow","blue","magenta","cyan","white"
@@ -1094,6 +1098,9 @@ public class Commands {
             char fg = ' ';
             if (name) {
                 out = (fixedBg ? "fg:" : "bg:") + "~" + color.substring(1);
+                fg = color.charAt(0);
+            } else if (rgb) {
+                out = (fixedBg ? "fg-rgb:" : "bg-rgb:") + "#" + color.substring(1);
                 fg = color.charAt(0);
             } else if (color.substring(1).matches("\\d+")) {
                 out = (fixedBg ? "38;5;" : "48;5;") + color.substring(1);
@@ -1142,17 +1149,19 @@ public class Commands {
              return lp.toString() + field + rp.toString();
         }
 
-        public void printColors(boolean name, boolean small, int columns, String findName, String style) throws IOException {
-            this.name = name;
+        public void printColors(boolean name, boolean rgb, boolean small, int columns, String findName, String style) throws IOException {
+            this.name = !rgb && name;
+            this.rgb = rgb;
             this.fixedStyle = style;
             if (style != null && (style.contains("b:") || style.contains("b-")
                     || style.contains("bg:") || style.contains("bg-") || style.contains("background"))) {
                 fixedBg = true;
             }
             AttributedStringBuilder asb = new AttributedStringBuilder();
+            asb.tabs(Arrays.asList(14,30));
             int width = terminal.getWidth();
             String tableName = small ? " 16-color " : "256-color ";
-            if (!name) {
+            if (!name && !rgb) {
                 out.print(tableName);
                 out.print("table, fg:<name> ");
                 if (!small) {
@@ -1208,20 +1217,28 @@ public class Commands {
                 }
             } else {
                 out.print(tableName);
-                out.println("table, fg:~<name> OR 38;5;<n>");
-                out.println("                 bg:~<name> OR 48;5;<n>");
-                out.println();
+                if (name) {
+                    out.println("table, fg:~<name> OR 38;5;<n>");
+                    out.println("                 bg:~<name> OR 48;5;<n>");
+                    out.println();
+                } else {
+                    out.println("table, fg-rgb:<color24bit> OR 38;5;<n>");
+                    out.println("                 bg-rgb:<color24bit> OR 48;5;<n>");
+                    out.println();
+                }
                 InputStream inputStream = new Source.ResourceSource("/org/jline/utils/colors.txt", null).read();
                 BufferedReader reader = new BufferedReader(new java.io.InputStreamReader(inputStream));
                 String line;
                 int col = 0;
-                Integer idx = 0;
-                int colWidth = 21;
+                int idx = 0;
+                int colWidth = rgb ? 12 : 21;
                 int lb = 1;
                 while ((line = reader.readLine()) != null) {
                     line = line.trim();
                     if (!line.isEmpty() && !line.startsWith("#")) {
-                        if (findName != null) {
+                        if (rgb) {
+                            // do nothing
+                        } else if (findName != null) {
                             if (!line.toLowerCase().contains(findName)) {
                                 idx++;
                                 continue;
@@ -1239,9 +1256,31 @@ public class Commands {
                             }
                         }
                         String fg = foreground(idx);
+                        if (rgb) {
+                            line = Integer.toHexString(org.jline.utils.Colors.DEFAULT_COLORS_256[idx]);
+                            for (int p = line.length(); p < 6; p++) {
+                                line = "0" + line;
+                            }
+                        }
                         AttributedStyle ss = new StyleResolver(this::getStyle).resolve("." + fg + line, null);
+                        if (rgb) {
+                            line = "#" + line;
+                        }
                         asb.style(ss);
-                        asb.append(String.valueOf(idx)).append(addPadding(colWidth - idx.toString().length(), line));
+                        String idxstr = Integer.toString(idx);
+                        if (rgb) {
+                            if (idx < 10) {
+                                idxstr = "  " + idxstr;
+                            } else if (idx < 100) {
+                                idxstr =  " " + idxstr;
+                            }
+                        }
+                        asb.append(idxstr).append(addPadding(colWidth - idxstr.length(), line));
+                        if (columns == 1) {
+                            asb.style(AttributedStyle.DEFAULT);
+                            asb.append("\t").append(getStyle(fg + line.substring(rgb ? 1 : 0)));
+                            asb.append("\t").append(ss.toAnsi());
+                        }
                         col++;
                         idx++;
                         if ((col + 1)*colWidth > width || col + lb > columns) {
