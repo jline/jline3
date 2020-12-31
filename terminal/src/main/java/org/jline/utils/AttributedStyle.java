@@ -8,8 +8,6 @@
  */
 package org.jline.utils;
 
-import java.util.Objects;
-
 /**
  * Text styling.
  *
@@ -206,7 +204,7 @@ public class AttributedStyle {
     }
 
     public AttributedStyle backgroundRgb(int color) {
-        return new AttributedStyle(style & ~FG_COLOR | F_BACKGROUND_RGB | ((((long) color & 0xFFFFFF) << FG_COLOR_EXP) & FG_COLOR), mask | F_BACKGROUND_RGB);
+        return new AttributedStyle(style & ~BG_COLOR | F_BACKGROUND_RGB | ((((long) color & 0xFFFFFF) << BG_COLOR_EXP) & BG_COLOR), mask | F_BACKGROUND_RGB);
     }
 
     public AttributedStyle backgroundOff() {
