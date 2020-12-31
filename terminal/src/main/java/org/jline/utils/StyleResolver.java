@@ -57,7 +57,7 @@ public class StyleResolver {
         } else {
            // load indexed color
            Integer color = color(name);
-           if (color != null) {
+           if (color != null && color != -1) {
                color = Colors.DEFAULT_COLORS_256[color];
            }
            return color;
