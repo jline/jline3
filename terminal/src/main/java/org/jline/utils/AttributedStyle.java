@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2020, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -263,7 +263,7 @@ public class AttributedStyle {
         AttributedStringBuilder sb = new AttributedStringBuilder();
         sb.styled(this, " ");
         String s = sb.toAnsi(AttributedCharSequence.TRUE_COLORS, AttributedCharSequence.ForceMode.None);
-        return s.substring(2, s.indexOf('m'));
+        return s.length() > 1 ? s.substring(2, s.indexOf('m')) : s;
     }
 
     @Override
