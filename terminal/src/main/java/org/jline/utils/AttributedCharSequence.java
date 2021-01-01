@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -40,6 +40,7 @@ import static org.jline.terminal.TerminalBuilder.PROP_DISABLE_ALTERNATE_CHARSET;
 public abstract class AttributedCharSequence implements CharSequence {
 
     public static final int TRUE_COLORS = 0x1000000;
+    private static final int HIGH_COLORS = 0x7FFF;
 
     public enum ForceMode {
         None,
@@ -174,7 +175,7 @@ public abstract class AttributedCharSequence implements CharSequence {
                                 int r = (int)(fg >> (FG_COLOR_EXP + 16)) & 0xFF;
                                 int g = (int)(fg >> (FG_COLOR_EXP + 8)) & 0xFF;
                                 int b = (int)(fg >> FG_COLOR_EXP) & 0xFF;
-                                if (colors == TRUE_COLORS) {
+                                if (colors >= HIGH_COLORS) {
                                     first = attr(sb, "38;2;" + r + ";" + g + ";" + b, first);
                                 } else {
                                     rounded = palette.round(r, g, b);
@@ -183,7 +184,7 @@ public abstract class AttributedCharSequence implements CharSequence {
                                 rounded = palette.round((int)(fg >> FG_COLOR_EXP) & 0xFF);
                             }
                             if (rounded >= 0) {
-                                if (colors == TRUE_COLORS && force == ForceMode.ForceTrueColors) {
+                                if (colors >= HIGH_COLORS && force == ForceMode.ForceTrueColors) {
                                     int col = palette.getColor(rounded);
                                     int r = (col >> 16) & 0xFF;
                                     int g = (col >> 8) & 0xFF;
@@ -213,7 +214,7 @@ public abstract class AttributedCharSequence implements CharSequence {
                                 int r = (int)(bg >> (BG_COLOR_EXP + 16)) & 0xFF;
                                 int g = (int)(bg >> (BG_COLOR_EXP + 8)) & 0xFF;
                                 int b = (int)(bg >> BG_COLOR_EXP) & 0xFF;
-                                if (colors == TRUE_COLORS) {
+                                if (colors >= HIGH_COLORS) {
                                     first = attr(sb, "48;2;" + r + ";" + g + ";" + b, first);
                                 } else {
                                     rounded = palette.round(r, g, b);
@@ -222,7 +223,7 @@ public abstract class AttributedCharSequence implements CharSequence {
                                 rounded = palette.round((int)(bg >> BG_COLOR_EXP) & 0xFF);
                             }
                             if (rounded >= 0) {
-                                if (colors == TRUE_COLORS && force == ForceMode.ForceTrueColors) {
+                                if (colors >= HIGH_COLORS && force == ForceMode.ForceTrueColors) {
                                     int col = palette.getColor(rounded);
                                     int r = (col >> 16) & 0xFF;
                                     int g = (col >> 8) & 0xFF;
