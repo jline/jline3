@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -25,7 +25,7 @@ public class Styles {
     private static final String PRNT_COLORS = "PRNT_COLORS";
 
     private static final String KEY = "([a-z]{2}|\\*\\.[a-zA-Z0-9]+)";
-    private static final String VALUE = "[!~]?[a-zA-Z0-9]+[a-z0-9-;]*";
+    private static final String VALUE = "[!~#]?[a-zA-Z0-9]+[a-z0-9-;]*";
     private static final String VALUES = VALUE + "(," + VALUE + ")*";
     private static final String STYLE_PATTERN = KEY + "=" + VALUES + "(:" + KEY + "=" + VALUES + ")*(:|)";
 
@@ -85,6 +85,7 @@ public class Styles {
 
     protected static class StyleCompiler {
         private static final String ANSI_VALUE = "[0-9]*(;[0-9]+){0,2}";
+        private static final String COLORS_24BIT = "[#x][0-9a-fA-F]{6}";
         private static final List<String> JLINE_NAMED_STYLES = Arrays.asList("blink", "bold", "conceal", "crossed-out"
                 , "crossedout", "faint", "hidden", "inverse", "inverse-neg", "inverseneg", "italic", "underline");
         private static final List<String> COLORS_8 = Arrays.asList("white", "black", "red", "blue", "green", "yellow", "magenta", "cyan");
@@ -135,8 +136,15 @@ public class Styles {
                     out.append(s);
                 } else if (COLORS_8.contains(s) || COLORS_NANO.containsKey(s) || s.startsWith("light")
                         || s.startsWith("bright") || s.startsWith("~") || s.startsWith("!") || s.matches("\\d+")
-                        || s.equals("normal") || s.equals("default")) {
-                    if (s.matches("\\d+") || COLORS_NANO.containsKey(s)) {
+                        || s.matches(COLORS_24BIT) || s.equals("normal") || s.equals("default")) {
+                    if (s.matches(COLORS_24BIT)) {
+                        if (fg) {
+                            out.append("fg-rgb:");
+                        } else {
+                            out.append("bg-rgb:");
+                        }
+                        out.append(s);
+                    } else if (s.matches("\\d+") || COLORS_NANO.containsKey(s)) {
                         if (fg) {
                             out.append("38;5;");
                         } else {
