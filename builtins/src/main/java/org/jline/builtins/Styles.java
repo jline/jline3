@@ -25,7 +25,7 @@ public class Styles {
     private static final String PRNT_COLORS = "PRNT_COLORS";
 
     private static final String KEY = "([a-z]{2}|\\*\\.[a-zA-Z0-9]+)";
-    private static final String VALUE = "[!~#]?[a-zA-Z0-9]+[a-z0-9-;]*";
+    private static final String VALUE = "([!~#]?[a-zA-Z0-9]+[a-z0-9-;]*)?";
     private static final String VALUES = VALUE + "(," + VALUE + ")*";
     private static final String STYLE_PATTERN = KEY + "=" + VALUES + "(:" + KEY + "=" + VALUES + ")*(:|)";
 
