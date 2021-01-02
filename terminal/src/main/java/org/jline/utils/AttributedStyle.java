@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -44,8 +44,8 @@ public class AttributedStyle {
 
     static final long MASK           = 0x00001FFF;
 
-    static final int FG_COLOR_EXP    = 16;
-    static final int BG_COLOR_EXP    = 40;
+    static final int FG_COLOR_EXP    = 15;
+    static final int BG_COLOR_EXP    = 39;
     static final long FG_COLOR        = 0xFFFFFFL << FG_COLOR_EXP;
     static final long BG_COLOR        = 0xFFFFFFL << BG_COLOR_EXP;
 
