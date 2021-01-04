@@ -93,6 +93,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                 "  -d --maxDepth=DEPTH             Maximum depth objects are resolved",
                 "     --maxrows=ROWS               Maximum number of lines to display",
                 "     --oneRowTable                Display one row data on table",
+                "  -h --rowHighlight=ROW           Highlight table rows. ROW = EVEN, ODD, ALL",
                 "  -r --rownum                     Display table row numbers",
                 "     --shortNames                 Truncate table column names (property.field -> field)",
                 "     --skipDefaultOptions         Ignore all options defined in PRNT_OPTIONS",
@@ -169,6 +170,14 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         }
         if (opt.isSet(Printer.DELIMITER)) {
             options.put(Printer.DELIMITER, opt.get(Printer.DELIMITER));
+        }
+        if (opt.isSet(Printer.ROW_HIGHLIGHT)) {
+            try {
+                TableRows tr = TableRows.valueOf(opt.get(Printer.ROW_HIGHLIGHT).toUpperCase());
+                options.put(Printer.ROW_HIGHLIGHT, tr);
+            } catch (Exception e) {
+                // ignore
+            }
         }
         options.put("exception", "stack");
         return options;
@@ -756,6 +765,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                                 }
                             }
                             String columnSep = (String)options.getOrDefault(Printer.DELIMITER, "");
+                            TableRows tableRows = (TableRows)options.getOrDefault(Printer.ROW_HIGHLIGHT, null);
                             toTabStops(columns, collection.size(), rownum, columnSep);
                             AttributedStringBuilder asb = new AttributedStringBuilder().tabs(columns);
                             asb.style(prntStyle.resolve(".th"));
@@ -777,12 +787,15 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                             int row = 0;
                             for (Object o : collection) {
                                 AttributedStringBuilder asb2 = new AttributedStringBuilder().tabs(columns);
+                                if (doRowHighlight(row, tableRows)) {
+                                    asb2.style(prntStyle.resolve(".rs"));
+                                }
                                 if (rownum) {
                                     asb2.styled(prntStyle.resolve(".rn")
                                             , addPadding(Integer.toString(row), columns.get(0) - 1));
                                     asb2.append("\t");
-                                    row++;
                                 }
+                                row++;
                                 Map<String, Object> m = convert ? objectToMap(options, o)
                                                                 : keysToString((Map<Object, Object>) o);
                                 for (int i = 0; i < header.size(); i++) {
@@ -812,17 +825,21 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                                 }
                             }
                             String columnSep = (String)options.getOrDefault(Printer.DELIMITER, "");
+                            TableRows tableRows = (TableRows)options.getOrDefault(Printer.ROW_HIGHLIGHT, null);
                             toTabStops(columns, collection.size(), rownum, columnSep);
                             int row = 0;
                             int firstColumn = rownum ? 1 : 0;
                             for (Object o : collection) {
                                 AttributedStringBuilder asb = new AttributedStringBuilder().tabs(columns);
+                                if (doRowHighlight(row, tableRows)) {
+                                    asb.style(prntStyle.resolve(".rs"));
+                                }
                                 if (rownum) {
                                     asb.styled(prntStyle.resolve(".rn")
                                             , addPadding(Integer.toString(row), columns.get(0) - 1));
                                     asb.append("\t");
-                                    row++;
                                 }
+                                row++;
                                 List<Object> inner = objectToList(o);
                                 for (int i = 0; i < inner.size(); i++) {
                                     if (i > 0) {
@@ -858,6 +875,21 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
             asb.styled(prntStyle.resolve(".em"), message);
             asb.println(terminal());
         }
+    }
+
+    private boolean doRowHighlight(int row, TableRows tableRows) {
+        if (tableRows == null) {
+            return false;
+        }
+        switch (tableRows) {
+            case EVEN:
+                return row % 2 == 0;
+            case ODD:
+                return row % 2 == 1;
+            case ALL:
+                return true;
+        }
+        return false;
     }
 
     private void highlightList(Map<String, Object> options

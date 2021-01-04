@@ -19,6 +19,7 @@ import java.util.Map;
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public interface Printer {
+    enum TableRows {EVEN, ODD, ALL}
     //
     // option names
     //
@@ -126,6 +127,18 @@ public interface Printer {
      * Display width (default terminal width).
      */
     String WIDTH = "width";
+    /**
+     * Value: String<br>
+     * Applies: TABLE<br>
+     * Table column delimiter.
+     */
+    String DELIMITER = "delimiter";
+    /**
+     * Value: TableRows<br>
+     * Applies: TABLE<br>
+     * Highlight table rows.
+     */
+    String ROW_HIGHLIGHT = "rowHighlight";
     //
     //  2) additional PRNT_OPTIONS
     //
@@ -168,12 +181,6 @@ public interface Printer {
      * Overrides the ScriptEngine toString() method.
      */
     String OBJECT_TO_STRING = "objectToString";
-    /**
-     * Value: String<br>
-     * Applies: TABLE<br>
-     * Table column delimiter.
-     */
-    String DELIMITER = "delimiter";
 
     List<String> BOOLEAN_KEYS = Arrays.asList(ALL, ONE_ROW_TABLE, ROWNUM, SHORT_NAMES, SKIP_DEFAULT_OPTIONS
             , STRUCT_ON_TABLE, TO_STRING);

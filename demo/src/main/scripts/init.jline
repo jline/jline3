@@ -19,7 +19,7 @@ CONSOLE_OPTIONS['docs'].put('java.*',['https://docs.oracle.com/javase/8/docs/api
 CONSOLE_OPTIONS['docs'].put('.*/java.*','https://docs.oracle.com/javase/8/docs/api/')
 CONSOLE_OPTIONS['docs'].put('org/jline/.*','https://www.javadoc.io/doc/org.jline/jline/latest/')
 
-CONSOLE_OPTIONS.PRNT_COLORS = 'th=bold,!blue,~grey7,underline:rn=bold,!blue,~grey7:mk=1;34:em=31:vs=32'
+CONSOLE_OPTIONS.PRNT_COLORS = 'th=bold,!blue,~grey7,underline:rn=bold,!blue,~grey7:rs=,~grey15:mk=1;34:em=31:vs=32'
 #
 # customize prnt command
 #
