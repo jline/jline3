@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -85,9 +85,10 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                 "  -? --help                       Displays command help",
                 "  -a --all                        Ignore columnsOut configuration",
                 "  -c --columns=COLUMNS,...        Display given columns on table",
+                "     --delimiter=CHAR             Table column delimiter",
                 "  -e --exclude=COLUMNS,...        Exclude given columns on table",
                 "  -i --include=COLUMNS,...        Include given columns on table",
-                "     --indention=IDENTION         Indention size",
+                "     --indention=INDENTION        Indention size",
                 "     --maxColumnWidth=WIDTH       Maximum column width",
                 "  -d --maxDepth=DEPTH             Maximum depth objects are resolved",
                 "     --maxrows=ROWS               Maximum number of lines to display",
@@ -96,10 +97,11 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                 "     --shortNames                 Truncate table column names (property.field -> field)",
                 "     --skipDefaultOptions         Ignore all options defined in PRNT_OPTIONS",
                 "     --structsOnTable             Display structs and lists on table",
-                "  -s --style=STYLE                Use nanorc STYLE",
-                "     --toString                   use object's toString() method to get print value",
+                "  -s --style=STYLE                Use nanorc STYLE to highlight Object.",
+                "                                  STYLE = JSON serialize object to JSON string before printing",
+                "     --toString                   Use object's toString() method to get print value",
                 "                                  DEFAULT: object's fields are put to property map before printing",
-                "     --valueStyle=STYLE           Use nanorc style to highlight column/map values",
+                "     --valueStyle=STYLE           Use nanorc style to highlight string and column/map values",
                 "  -w --width=WIDTH                Display width (default terminal width)"
         };
         String[] out;
@@ -164,6 +166,9 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         }
         if (opt.isSet(Printer.VALUE_STYLE)) {
             options.put(Printer.VALUE_STYLE, opt.get(Printer.VALUE_STYLE));
+        }
+        if (opt.isSet(Printer.DELIMITER)) {
+            options.put(Printer.DELIMITER, opt.get(Printer.DELIMITER));
         }
         options.put("exception", "stack");
         return options;
@@ -471,6 +476,15 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         return sb.toAttributedString();
     }
 
+    private String addPadding(String str, int width) {
+        AttributedStringBuilder sb = new AttributedStringBuilder();
+        for (int i = str.length(); i < width; i++) {
+            sb.append(" ");
+        }
+        sb.append(str);
+        return sb.toString();
+    }
+
     private String columnValue(String value) {
         return value.replaceAll("\r","CR").replaceAll("\n", "LF");
     }
@@ -741,35 +755,43 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                                     }
                                 }
                             }
-                            columns.add(0, 0);
-                            toTabStops(columns, collection.size(), rownum);
+                            String columnSep = (String)options.getOrDefault(Printer.DELIMITER, "");
+                            toTabStops(columns, collection.size(), rownum, columnSep);
                             AttributedStringBuilder asb = new AttributedStringBuilder().tabs(columns);
+                            asb.style(prntStyle.resolve(".th"));
                             int firstColumn = 0;
                             if (rownum) {
                                 asb.append("\t");
                                 firstColumn = 1;
                             }
+                            boolean first = true;
                             for (String s : header) {
-                                asb.styled(prntStyle.resolve(".th")
-                                        , columnName(s, options.containsKey(Printer.SHORT_NAMES)));
+                                if (!first) {
+                                    asb.append(columnSep);
+                                }
+                                asb.append(columnName(s, options.containsKey(Printer.SHORT_NAMES)));
                                 asb.append("\t");
+                                first = false;
                             }
                             truncate(asb, width).println(terminal());
                             int row = 0;
                             for (Object o : collection) {
                                 AttributedStringBuilder asb2 = new AttributedStringBuilder().tabs(columns);
                                 if (rownum) {
-                                    asb2.styled(prntStyle.resolve(".rn"), Integer.toString(row)).append(":");
+                                    asb2.styled(prntStyle.resolve(".rn")
+                                            , addPadding(Integer.toString(row), columns.get(0) - 1));
                                     asb2.append("\t");
                                     row++;
                                 }
                                 Map<String, Object> m = convert ? objectToMap(options, o)
                                                                 : keysToString((Map<Object, Object>) o);
                                 for (int i = 0; i < header.size(); i++) {
+                                    if (i > 0) {
+                                        asb2.append(columnSep);
+                                    }
                                     AttributedString v = highlightMapValue(options, header.get(i), m);
                                     if (isNumber(v.toString())) {
-                                        v = addPadding(v,
-                                                columns.get(firstColumn + i + 1) - columns.get(firstColumn + i) - 1);
+                                        v = addPadding(v, cellWidth(firstColumn + i, columns, rownum, columnSep) - 1);
                                     }
                                     asb2.append(v);
                                     asb2.append("\t");
@@ -789,22 +811,26 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                                     }
                                 }
                             }
-                            toTabStops(columns, collection.size(), rownum);
+                            String columnSep = (String)options.getOrDefault(Printer.DELIMITER, "");
+                            toTabStops(columns, collection.size(), rownum, columnSep);
                             int row = 0;
                             int firstColumn = rownum ? 1 : 0;
                             for (Object o : collection) {
                                 AttributedStringBuilder asb = new AttributedStringBuilder().tabs(columns);
                                 if (rownum) {
-                                    asb.styled(prntStyle.resolve(".rn"), Integer.toString(row)).append(":");
+                                    asb.styled(prntStyle.resolve(".rn")
+                                            , addPadding(Integer.toString(row), columns.get(0) - 1));
                                     asb.append("\t");
                                     row++;
                                 }
                                 List<Object> inner = objectToList(o);
                                 for (int i = 0; i < inner.size(); i++) {
+                                    if (i > 0) {
+                                        asb.append(columnSep);
+                                    }
                                     AttributedString v = highlightValue(options, null, inner.get(i));
                                     if (isNumber(v.toString())) {
-                                        v = addPadding(v,
-                                                columns.get(firstColumn + i + 1) - columns.get(firstColumn + i) - 1);
+                                        v = addPadding(v, cellWidth(firstColumn + i, columns, rownum, columnSep) - 1);
                                     }
                                     asb.append(v);
                                     asb.append("\t");
@@ -893,17 +919,21 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         }
     }
 
-    private void toTabStops(List<Integer> columns, int rows, boolean rownum) {
-        int delta = 5;
+    private int cellWidth(int pos, List<Integer> columns, boolean rownum, String columnSep) {
+        if (pos == 0) {
+            return columns.get(0);
+        }
+        return columns.get(pos) - columns.get(pos - 1)
+                   - (rownum && pos == 1 ? 0 : columnSep.length());
+    }
+
+    private void toTabStops(List<Integer> columns, int rows, boolean rownum, String columnSep) {
         if (rownum) {
-            delta = digits(rows) + 2;
-            columns.add(0, delta);
+            columns.add(0, digits(rows) + 2);
         }
         for (int i = 1; i < columns.size(); i++) {
-            delta =  columns.get(i);
-            columns.set(i, columns.get(i - 1) + columns.get(i));
+            columns.set(i, columns.get(i - 1) + columns.get(i) + (i > 1 || !rownum ? columnSep.length() : 0));
         }
-        columns.add(columns.get(columns.size() - 1) + delta);
     }
 
     private void highlightMap(Map<String, Object> options, Map<String, Object> map, int width) {

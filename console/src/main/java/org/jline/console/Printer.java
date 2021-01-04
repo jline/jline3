@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -168,6 +168,12 @@ public interface Printer {
      * Overrides the ScriptEngine toString() method.
      */
     String OBJECT_TO_STRING = "objectToString";
+    /**
+     * Value: String<br>
+     * Applies: TABLE<br>
+     * Table column delimiter.
+     */
+    String DELIMITER = "delimiter";
 
     List<String> BOOLEAN_KEYS = Arrays.asList(ALL, ONE_ROW_TABLE, ROWNUM, SHORT_NAMES, SKIP_DEFAULT_OPTIONS
             , STRUCT_ON_TABLE, TO_STRING);
