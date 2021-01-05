@@ -130,9 +130,9 @@ public interface Printer {
     /**
      * Value: String<br>
      * Applies: TABLE<br>
-     * Table column delimiter.
+     * Table cell vertical border character.
      */
-    String DELIMITER = "delimiter";
+    String BORDER = "border";
     /**
      * Value: TableRows<br>
      * Applies: TABLE<br>

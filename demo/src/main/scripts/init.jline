@@ -75,7 +75,7 @@ PRNT_OPTIONS['objectToString'].put(org.jline.reader.impl.LineReaderImpl, _reader
 PRNT_OPTIONS['highlightValue'].put('time.*', _number2date)
 PRNT_OPTIONS['highlightValue'].put('*', _orgJline)
 PRNT_OPTIONS.valueStyle = 'GRON'
-PRNT_OPTIONS.delimiter = '│'
+PRNT_OPTIONS.border = '│'
 
 GROOVY_OPTIONS = [:]
 GROOVY_OPTIONS.identifiersCompletion = true

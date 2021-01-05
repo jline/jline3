@@ -9,6 +9,7 @@
 package org.jline.console.impl;
 
 import java.io.File;
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -84,8 +85,8 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                 "Usage: prnt [OPTIONS] object",
                 "  -? --help                       Displays command help",
                 "  -a --all                        Ignore columnsOut configuration",
+                "  -b --border=CHAR                Table cell vertical border character",
                 "  -c --columns=COLUMNS,...        Display given columns on table",
-                "     --delimiter=CHAR             Table column delimiter",
                 "  -e --exclude=COLUMNS,...        Exclude given columns on table",
                 "  -i --include=COLUMNS,...        Include given columns on table",
                 "     --indention=INDENTION        Indention size",
@@ -168,15 +169,15 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         if (opt.isSet(Printer.VALUE_STYLE)) {
             options.put(Printer.VALUE_STYLE, opt.get(Printer.VALUE_STYLE));
         }
-        if (opt.isSet(Printer.DELIMITER)) {
-            options.put(Printer.DELIMITER, opt.get(Printer.DELIMITER));
+        if (opt.isSet(Printer.BORDER)) {
+            options.put(Printer.BORDER, opt.get(Printer.BORDER));
         }
         if (opt.isSet(Printer.ROW_HIGHLIGHT)) {
             try {
                 TableRows tr = TableRows.valueOf(opt.get(Printer.ROW_HIGHLIGHT).toUpperCase());
                 options.put(Printer.ROW_HIGHLIGHT, tr);
             } catch (Exception e) {
-                // ignore
+                throw new IllegalArgumentException(Printer.ROW_HIGHLIGHT + " bad value: " + opt.get(Printer.ROW_HIGHLIGHT));
             }
         }
         options.put("exception", "stack");
@@ -749,7 +750,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                             }
                             double mapSimilarity = 0.8;
                             if (options.containsKey(Printer.MAP_SIMILARITY)) {
-                                mapSimilarity = ((java.math.BigDecimal)options.get(Printer.MAP_SIMILARITY)).doubleValue();
+                                mapSimilarity = ((BigDecimal)options.get(Printer.MAP_SIMILARITY)).doubleValue();
                             }
                             for (Object o : collection) {
                                 Map<String, Object> m = convert ? objectToMap(options, o)
@@ -764,13 +765,15 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                                     }
                                 }
                             }
-                            String columnSep = (String)options.getOrDefault(Printer.DELIMITER, "");
+                            String columnSep = (String)options.getOrDefault(Printer.BORDER, "");
                             TableRows tableRows = (TableRows)options.getOrDefault(Printer.ROW_HIGHLIGHT, null);
                             toTabStops(columns, collection.size(), rownum, columnSep);
                             AttributedStringBuilder asb = new AttributedStringBuilder().tabs(columns);
                             asb.style(prntStyle.resolve(".th"));
                             int firstColumn = 0;
                             if (rownum) {
+                                asb.append(addPadding("", columns.get(0) - columnSep.length() - 1));
+                                asb.append(columnSep);
                                 asb.append("\t");
                                 firstColumn = 1;
                             }
@@ -792,7 +795,8 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                                 }
                                 if (rownum) {
                                     asb2.styled(prntStyle.resolve(".rn")
-                                            , addPadding(Integer.toString(row), columns.get(0) - 1));
+                                            , addPadding(Integer.toString(row), columns.get(0) - columnSep.length() - 1));
+                                    asb2.append(columnSep);
                                     asb2.append("\t");
                                 }
                                 row++;
@@ -824,7 +828,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                                     }
                                 }
                             }
-                            String columnSep = (String)options.getOrDefault(Printer.DELIMITER, "");
+                            String columnSep = (String)options.getOrDefault(Printer.BORDER, "");
                             TableRows tableRows = (TableRows)options.getOrDefault(Printer.ROW_HIGHLIGHT, null);
                             toTabStops(columns, collection.size(), rownum, columnSep);
                             int row = 0;
@@ -836,7 +840,8 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                                 }
                                 if (rownum) {
                                     asb.styled(prntStyle.resolve(".rn")
-                                            , addPadding(Integer.toString(row), columns.get(0) - 1));
+                                            , addPadding(Integer.toString(row), columns.get(0) - columnSep.length() - 1));
+                                    asb.append(columnSep);
                                     asb.append("\t");
                                 }
                                 row++;
@@ -961,7 +966,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
 
     private void toTabStops(List<Integer> columns, int rows, boolean rownum, String columnSep) {
         if (rownum) {
-            columns.add(0, digits(rows) + 2);
+            columns.add(0, digits(rows) + 2 + columnSep.length());
         }
         for (int i = 1; i < columns.size(); i++) {
             columns.set(i, columns.get(i - 1) + columns.get(i) + (i > 1 || !rownum ? columnSep.length() : 0));
