@@ -1047,6 +1047,7 @@ public class Commands {
                 "  -r --rgb                      Use and display rgb value",
                 "  -s --small                    View 16-color table (default 256-color)",
                 "  -v --view=COLOR               View 24bit color table of COLOR ",
+                "                                COLOR = <colorName>, <color24bit> or hue<angle>"
         };
         Options opt = Options.compile(usage).parse(argv);
         if (opt.isSet("help")) {
@@ -1344,6 +1345,60 @@ public class Commands {
             return rgb;
         }
 
+        private int[] hue2rgb(int degree) {
+            int[] rgb = {0,0,0};
+            double hue = degree / 60.0;
+            double a = Math.tan((degree / 360.0) * 2 * Math.PI) / Math.sqrt(3);
+            if (hue >= 0 && hue <= 1) {
+                rgb[0] = 0xff;
+                rgb[1] = (int) (2 * a * 0xff / (1 + a));
+            } else if (hue >= 1 && hue <= 2) {
+                rgb[0] = (int) (0xff * (1 + a) / (2 * a));
+                rgb[1] = 0xff;
+            } else if (hue >= 2 && hue <= 3) {
+                rgb[1] = 0xff;
+                rgb[2] = (int) (0xff * (1 + a) / (1 - a));
+            } else if (hue >= 3 && hue <= 4) {
+                rgb[1] = (int) (0xff * (1 - a) / (1 + a));
+                rgb[2] = 0xff;
+            } else if (hue >= 4 && hue <= 5) {
+                rgb[0] = (int) (0xff * (a - 1) / (2 * a));
+                rgb[2] = 0xff;
+            } else if (hue >= 5 && hue <= 6) {
+                rgb[0] = 0xff;
+                rgb[2] = (int) (0xff * 2 * a / (a - 1));
+            }
+            return rgb;
+        }
+
+        private int[] rgb2hsl() {
+            int[] hsl = {0, 0, 0};
+            if (r == g && g == b) {
+                return hsl;
+            }
+            double angle;
+            if ( r >= g && g >= b) {
+                angle = 60.0*(g - b)/(r - b);
+            } else if (g > r && r >= b) {
+                angle = 60 * (2 - 1.0*(r - b)/(g - b));
+            } else if (g >= b) {
+                angle = 60 * (2 + 1.0*(b - r)/(g - r));
+            } else if (g > r) {
+                angle = 60 * (4 - 1.0*(g - r)/(b - r));
+            } else if (b > r) {
+                angle = 60 * (4 + 1.0*(r - g)/(b - g));
+            } else {
+                angle = 60 * (6 - 1.0*(b - g)/(r - g));
+            }
+            hsl[0] = (int)angle;
+            double mx = Math.max(Math.max(r,g),b)/255.0;
+            double mn = Math.min(Math.min(r,g),b)/255.0;
+            double l = (mx + mn)/2;
+            hsl[1] = l == 0 || l == 1 ? 0 : (int)(100.0*(mx - mn)/(1 - Math.abs(2*l - 1)));
+            hsl[2] = (int)(100*l);
+            return hsl;
+        }
+
         String getStyleRGB(String s) {
             if (fixedStyle == null) {
                 double ry = Math.pow(r / 255.0, 2.2);
@@ -1362,18 +1417,26 @@ public class Commands {
 
         public void printColor(String name, String style) throws IOException {
             setFixedStyle(style);
-            int[] rgb = {0,0,0};
+            int hueAngle = -1;
+            int[] rgb = {0, 0, 0};
             if (name.matches(COLORS_24BIT)) {
-                rgb = rgb(Long.parseLong(name,16));
+                rgb = rgb(Long.parseLong(name, 16));
             } else if ((name.startsWith("#") || name.startsWith("x")) && name.substring(1).matches(COLORS_24BIT)) {
                 rgb = rgb(Long.parseLong(name.substring(1), 16));
-            } else if (COLORS_16.contains(name)){
+            } else if (COLORS_16.contains(name)) {
                 for (int i = 0; i < 16; i++) {
                     if (COLORS_16.get(i).equals(name)) {
                         rgb = rgb(org.jline.utils.Colors.DEFAULT_COLORS_256[i]);
                         break;
                     }
                 }
+            } else if (name.matches("hue[1-3]?[0-9]{1,2}")) {
+                hueAngle = Integer.parseInt(name.substring(3));
+                if (hueAngle > 360) {
+                    throw new IllegalArgumentException("Color not found: " + name);
+                }
+                out.println("HSL: " + hueAngle + "deg, 100%, 50%");
+                rgb = hue2rgb(hueAngle);
             } else if (name.matches("[a-z0-9]+")) {
                 List<String> colors = retrieveColorNames();
                 if (colors.contains(name)) {
@@ -1386,10 +1449,19 @@ public class Commands {
                 } else {
                     boolean found = false;
                     for (int i = 0; i < 256; i++) {
-                        if (colors.get(i).contains(name)) {
+                        if (colors.get(i).startsWith(name)) {
                             rgb = rgb(org.jline.utils.Colors.DEFAULT_COLORS_256[i]);
                             found = true;
                             break;
+                        }
+                    }
+                    if (!found) {
+                        for (int i = 0; i < 256; i++) {
+                            if (colors.get(i).contains(name)) {
+                                rgb = rgb(org.jline.utils.Colors.DEFAULT_COLORS_256[i]);
+                                found = true;
+                                break;
+                            }
                         }
                     }
                     if (!found) {
@@ -1410,8 +1482,16 @@ public class Commands {
             }
             double div = 256.0/step;
             int ndiv = (int)div;
-
-            r = rgb[0]; g = rgb[1]; b = rgb[2];
+            r = rgb[0];
+            g = rgb[1];
+            b = rgb[2];
+            if (hueAngle == -1) {
+                int[] hsl = rgb2hsl();
+                hueAngle = hsl[0];
+                if (hsl[0] != 0 || hsl[1] != 0 || hsl[2] != 0) {
+                    out.println("HSL: " + hsl[0] + "deg, " + hsl[1] + "%, " + hsl[2] + "%");
+                }
+            }
             double xrs = (0xFF - r)/div;
             double xgs = (0xFF - g)/div;
             double xbs = (0xFF - b)/div;
@@ -1443,6 +1523,36 @@ public class Commands {
                 asb.style(AttributedStyle.DEFAULT).append("\n");
             }
             asb.toAttributedString().println(terminal);
+            if (hueAngle != -1) {
+                int barSize = 14;
+                if (step == 8) {
+                    barSize = 58;
+                } else if (step == 16) {
+                    barSize = 29;
+                } else if (step == 24) {
+                    barSize = 18;
+                }
+                int dAngle = 5;
+                int zero = (int)(hueAngle - (dAngle/2.0)*(barSize - 1));
+                zero = zero - zero % 5;
+                AttributedStringBuilder asb2 = new AttributedStringBuilder();
+                for (int i = 0; i < barSize; i++) {
+                    int angle = zero + dAngle*i;
+                    while (angle < 0) {
+                        angle = angle + 360;
+                    }
+                    while (angle > 360) {
+                        angle = angle - 360;
+                    }
+                    rgb = hue2rgb(angle);
+                    r = rgb[0]; g = rgb[1]; b = rgb[2];
+                    AttributedStyle s = new StyleResolver(this::getStyleRGB).resolve(".hue" + angle);
+                    asb2.style(s);
+                    asb2.append(" ").append(addPadding(3, "" + angle)).append(" ");
+                }
+                asb2.style(AttributedStyle.DEFAULT).append("\n");
+                asb2.toAttributedString().println(terminal);
+            }
         }
     }
 
