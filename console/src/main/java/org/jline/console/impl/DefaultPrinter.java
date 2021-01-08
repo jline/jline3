@@ -597,7 +597,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     private AttributedString truncateValue(Map<String, Object> options, AttributedString value) {
         if (value.columnLength() > (int)options.getOrDefault(Printer.MAX_COLUMN_WIDTH, Integer.MAX_VALUE)) {
             AttributedStringBuilder asb = new AttributedStringBuilder();
-            asb.append(value.subSequence(0, (int)options.get(Printer.MAX_COLUMN_WIDTH) - 3));
+            asb.append(value.columnSubSequence(0, (int)options.get(Printer.MAX_COLUMN_WIDTH) - 3));
             asb.append("...");
             return asb.toAttributedString();
         }
@@ -786,7 +786,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                                 asb.append("\t");
                                 first = false;
                             }
-                            truncate(asb, width).println(terminal());
+                            asb.columnSubSequence(0, width).println(terminal());
                             int row = 0;
                             for (Object o : collection) {
                                 AttributedStringBuilder asb2 = new AttributedStringBuilder().tabs(columns);
@@ -813,7 +813,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                                     asb2.append(v);
                                     asb2.append("\t");
                                 }
-                                asb2.subSequence(0, width).println(terminal());
+                                asb2.columnSubSequence(0, width).println(terminal());
                             }
                         } else if (collectionObject(elem) && !options.containsKey(Printer.TO_STRING)) {
                             List<Integer> columns = new ArrayList<>();
@@ -857,12 +857,13 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                                     asb.append(v);
                                     asb.append("\t");
                                 }
-                                truncate(asb, width).println(terminal());
+                                asb.columnSubSequence(0, width).println(terminal());
                             }
                         } else {
                             highlightList(options, collection, width);
                         }
                     } catch (Exception e) {
+                        message = e.getMessage();
                         Log.debug("Stack: ", e);
                         highlightList(options, collection, width);
                     }
@@ -924,7 +925,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                 row++;
             }
             asb.append(highlightValue(options, null, o));
-            println(truncate(asb, width), maxrows);
+            println(asb.columnSubSequence(0, width), maxrows);
         }
     }
 
@@ -940,10 +941,6 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     private boolean canConvert(Object obj) {
         return engine != null && obj != null && !(obj instanceof Class) && !(obj instanceof Map) && !simpleObject(obj)
                 && !collectionObject(obj);
-    }
-
-    private AttributedString truncate(AttributedStringBuilder asb, int width) {
-        return asb.columnLength() > width ? asb.subSequence(0, width) : asb.toAttributedString();
     }
 
     private int digits(int number) {
@@ -1007,14 +1004,14 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                     Map<String, Object> childMap = convert ? objectToMap(options, elem)
                                                            : keysToString((Map<Object, Object>) elem);
                     if (!childMap.isEmpty()) {
-                        println(truncate(asb, width), maxrows);
+                        println(asb.columnSubSequence(0, width), maxrows);
                         highlightMap(options, childMap, width, depth + 1);
                         highlightValue = false;
                     }
                 } else if (collectionObject(elem)) {
                     List<Object> collection = objectToList(elem);
                     if (!collection.isEmpty()) {
-                        println(truncate(asb, width), maxrows);
+                        println(asb.columnSubSequence(0, width), maxrows);
                         Map<String, Object> listOptions = new HashMap<>(options);
                         listOptions.put(Printer.TO_STRING, true);
                         highlightList(listOptions, collection, width, depth + 1);
@@ -1029,12 +1026,12 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                     if (val.contains('\n')) {
                         for (String v : val.toString().split("\\r?\\n")) {
                             asb.append(highlightValue(options, entry.getKey(), v));
-                            println(truncate(asb, width), maxrows);
+                            println(asb.columnSubSequence(0, width), maxrows);
                             asb = new AttributedStringBuilder().tabs(Arrays.asList(0, max + 1));
                         }
                     } else {
                         asb.append(val);
-                        println(truncate(asb, width), maxrows);
+                        println(asb.columnSubSequence(0, width), maxrows);
                     }
                 } else {
                     if (val.contains('\n')) {
@@ -1043,7 +1040,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                     } else {
                         asb.append(val);
                     }
-                    println(truncate(asb, width), maxrows);
+                    println(asb.columnSubSequence(0, width), maxrows);
                 }
             }
         }
