@@ -174,14 +174,30 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         }
         if (opt.isSet(Printer.ROW_HIGHLIGHT)) {
             try {
-                TableRows tr = TableRows.valueOf(opt.get(Printer.ROW_HIGHLIGHT).toUpperCase());
-                options.put(Printer.ROW_HIGHLIGHT, tr);
+                options.put(Printer.ROW_HIGHLIGHT, optionRowHighlight(opt.get(Printer.ROW_HIGHLIGHT)));
             } catch (Exception e) {
-                throw new IllegalArgumentException(Printer.ROW_HIGHLIGHT + " bad value: " + opt.get(Printer.ROW_HIGHLIGHT));
+                RuntimeException exception = new BadOptionValueException(Printer.ROW_HIGHLIGHT + " has a bad value: "
+                        + opt.get(Printer.ROW_HIGHLIGHT));
+                exception.addSuppressed(e);
+                throw exception;
             }
         }
         options.put("exception", "stack");
         return options;
+    }
+
+    private TableRows optionRowHighlight(Object value) {
+        if (value instanceof TableRows || value == null) {
+            return (TableRows)value;
+        } else if (value instanceof String) {
+            String val = ((String)value).trim().toUpperCase();
+            if (!val.isEmpty() && !val.equals("NULL")) {
+                return TableRows.valueOf(val);
+            } else {
+                return null;
+            }
+        }
+        throw new IllegalArgumentException("rowHighlight has a bad option value type: " + value.getClass());
     }
 
     @Override
@@ -646,6 +662,13 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     }
 
     @SuppressWarnings("serial")
+    private static class BadOptionValueException extends RuntimeException {
+        public BadOptionValueException(String message) {
+            super(message);
+        }
+    }
+
+    @SuppressWarnings("serial")
     private static class TruncatedOutputException extends RuntimeException {
         public TruncatedOutputException(String message) {
             super(message);
@@ -677,9 +700,9 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     @SuppressWarnings("unchecked")
     private void highlightAndPrint(Map<String, Object> options, Object obj) {
         int width = (int)options.get(Printer.WIDTH);
-        boolean rownum = options.containsKey(Printer.ROWNUM);
         totLines = 0;
         String message = null;
+        RuntimeException runtimeException = null;
         if (obj == null) {
             // do nothing
         } else if (obj instanceof Map) {
@@ -701,6 +724,17 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                         highlightValue(options, null, objectToString(options, obj)).println(terminal());
                     }
                 } else {
+                    String columnSep = "";
+                    TableRows tableRows = null;
+                    boolean rownum = options.containsKey(Printer.ROWNUM);
+                    try {
+                        columnSep = (String) options.getOrDefault(Printer.BORDER, "");
+                        tableRows = optionRowHighlight(options.getOrDefault(Printer.ROW_HIGHLIGHT, null));
+                    } catch (Exception e) {
+                        runtimeException = new BadOptionValueException("Option " + Printer.BORDER + " or "
+                                + Printer.ROW_HIGHLIGHT + " has a bad value!");
+                        runtimeException.addSuppressed(e);
+                    }
                     try {
                         Object elem = collection.iterator().next();
                         boolean convert = canConvert(elem);
@@ -765,8 +799,6 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                                     }
                                 }
                             }
-                            String columnSep = (String)options.getOrDefault(Printer.BORDER, "");
-                            TableRows tableRows = (TableRows)options.getOrDefault(Printer.ROW_HIGHLIGHT, null);
                             toTabStops(columns, collection.size(), rownum, columnSep);
                             AttributedStringBuilder asb = new AttributedStringBuilder().tabs(columns);
                             asb.style(prntStyle.resolve(".th"));
@@ -828,8 +860,6 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                                     }
                                 }
                             }
-                            String columnSep = (String)options.getOrDefault(Printer.BORDER, "");
-                            TableRows tableRows = (TableRows)options.getOrDefault(Printer.ROW_HIGHLIGHT, null);
                             toTabStops(columns, collection.size(), rownum, columnSep);
                             int row = 0;
                             int firstColumn = rownum ? 1 : 0;
@@ -863,7 +893,6 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                             highlightList(options, collection, width);
                         }
                     } catch (Exception e) {
-                        message = e.getMessage();
                         Log.debug("Stack: ", e);
                         highlightList(options, collection, width);
                     }
@@ -880,6 +909,9 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
             AttributedStringBuilder asb = new AttributedStringBuilder();
             asb.styled(prntStyle.resolve(".em"), message);
             asb.println(terminal());
+        }
+        if (runtimeException != null) {
+            throw runtimeException;
         }
     }
 
