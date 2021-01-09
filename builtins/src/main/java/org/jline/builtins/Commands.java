@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -1040,7 +1040,7 @@ public class Commands {
                 "Usage: colors [OPTIONS]",
                 "  -? --help                     Displays command help",
                 "  -c --columns=COLUMNS          Number of columns in name/rgb table",
-                "                                COLUMNS = 1, display columns: color, style and ansi",
+                "                                COLUMNS = 1, display columns: color, style, ansi and HSL",
                 "  -f --find=NAME                Find color names which contains NAME ",
                 "  -l --lock=STYLE               Lock fore- or background color",
                 "  -n --name                     Color name table (default number table)",
@@ -1158,6 +1158,15 @@ public class Commands {
              return lp.toString() + field + rp.toString();
         }
 
+        private String addLeftPadding(int width, String field) {
+            int s = width - field.length();
+            StringBuilder lp = new StringBuilder();
+            for (int i = 0; i < s; i++) {
+                lp.append(" ");
+            }
+            return lp.toString() + field;
+        }
+
         private void setFixedStyle(String style) {
             this.fixedStyle = style;
             if (style != null && (style.contains("b:") || style.contains("b-")
@@ -1183,7 +1192,6 @@ public class Commands {
             this.rgb = rgb;
             setFixedStyle(style);
             AttributedStringBuilder asb = new AttributedStringBuilder();
-            asb.tabs(Arrays.asList(14,30));
             int width = terminal.getWidth();
             String tableName = small ? " 16-color " : "256-color ";
             if (!name && !rgb) {
@@ -1243,10 +1251,12 @@ public class Commands {
             } else {
                 out.print(tableName);
                 if (name) {
+                    asb.tabs(Arrays.asList(25,60,75));
                     out.println("table, fg:~<name> OR 38;5;<n>");
                     out.println("                 bg:~<name> OR 48;5;<n>");
                     out.println();
                 } else {
+                    asb.tabs(Arrays.asList(15,45,70));
                     out.println("table, fg-rgb:<color24bit> OR 38;5;<n>");
                     out.println("                 bg-rgb:<color24bit> OR 48;5;<n>");
                     out.println();
@@ -1309,6 +1319,11 @@ public class Commands {
                         asb.style(AttributedStyle.DEFAULT);
                         asb.append("\t").append(getStyle(fg + line.substring(rgb ? 1 : 0)));
                         asb.append("\t").append(ss.toAnsi());
+                        int[] rgb1 = rgb(org.jline.utils.Colors.DEFAULT_COLORS_256[idx]);
+                        int[] hsl = rgb2hsl(rgb1[0], rgb1[1], rgb1[2]);
+                        asb.append("\t").append(addLeftPadding(6, hsl[0] + ", "))
+                                .append(addLeftPadding(4,hsl[1] + "%"))
+                                .append(", ").append(addLeftPadding(4,hsl[2] + "%"));
                     }
                     col++;
                     idx++;
@@ -1371,31 +1386,19 @@ public class Commands {
             return rgb;
         }
 
-        private int[] rgb2hsl() {
+        private int[] rgb2hsl(int r, int g, int b) {
             int[] hsl = {0, 0, 0};
-            if (r == g && g == b) {
-                return hsl;
+            if (r != 0 || g != 0 || b != 0) {
+                hsl[0] = (int)Math.round((180/Math.PI)*Math.atan2(Math.sqrt(3)*(g-b),2*r - g - b));
+                while (hsl[0] < 0) {
+                    hsl[0] += 360;
+                }
             }
-            double angle;
-            if ( r >= g && g >= b) {
-                angle = 60.0*(g - b)/(r - b);
-            } else if (g > r && r >= b) {
-                angle = 60 * (2 - 1.0*(r - b)/(g - b));
-            } else if (g >= b) {
-                angle = 60 * (2 + 1.0*(b - r)/(g - r));
-            } else if (g > r) {
-                angle = 60 * (4 - 1.0*(g - r)/(b - r));
-            } else if (b > r) {
-                angle = 60 * (4 + 1.0*(r - g)/(b - g));
-            } else {
-                angle = 60 * (6 - 1.0*(b - g)/(r - g));
-            }
-            hsl[0] = (int)angle;
             double mx = Math.max(Math.max(r,g),b)/255.0;
             double mn = Math.min(Math.min(r,g),b)/255.0;
             double l = (mx + mn)/2;
-            hsl[1] = l == 0 || l == 1 ? 0 : (int)(100.0*(mx - mn)/(1 - Math.abs(2*l - 1)));
-            hsl[2] = (int)(100*l);
+            hsl[1] = l == 0 || l == 1 ? 0 : (int)Math.round(100.0*(mx - mn)/(1 - Math.abs(2*l - 1)));
+            hsl[2] = (int)Math.round(100*l);
             return hsl;
         }
 
@@ -1472,13 +1475,17 @@ public class Commands {
                 throw new IllegalArgumentException("Color not found: " + name);
             }
             double step = 32;
+            int barSize = 14;
             int width = terminal.getWidth();
             if (width > 287) {
                 step = 8;
+                barSize = 58;
             } else if (width > 143) {
                 step = 16;
+                barSize = 29;
             } else if (width > 98) {
                 step = 24;
+                barSize = 18;
             }
             double div = 256.0/step;
             int ndiv = (int)div;
@@ -1486,11 +1493,9 @@ public class Commands {
             g = rgb[1];
             b = rgb[2];
             if (hueAngle == -1) {
-                int[] hsl = rgb2hsl();
+                int[] hsl = rgb2hsl(r, g, b);
                 hueAngle = hsl[0];
-                if (hsl[0] != 0 || hsl[1] != 0 || hsl[2] != 0) {
-                    out.println("HSL: " + hsl[0] + "deg, " + hsl[1] + "%, " + hsl[2] + "%");
-                }
+                out.println("HSL: " + hsl[0] + "deg, " + hsl[1] + "%, " + hsl[2] + "%");
             }
             double xrs = (0xFF - r)/div;
             double xgs = (0xFF - g)/div;
@@ -1524,14 +1529,6 @@ public class Commands {
             }
             asb.toAttributedString().println(terminal);
             if (hueAngle != -1) {
-                int barSize = 14;
-                if (step == 8) {
-                    barSize = 58;
-                } else if (step == 16) {
-                    barSize = 29;
-                } else if (step == 24) {
-                    barSize = 18;
-                }
                 int dAngle = 5;
                 int zero = (int)(hueAngle - (dAngle/2.0)*(barSize - 1));
                 zero = zero - zero % 5;
@@ -1539,10 +1536,10 @@ public class Commands {
                 for (int i = 0; i < barSize; i++) {
                     int angle = zero + dAngle*i;
                     while (angle < 0) {
-                        angle = angle + 360;
+                        angle += 360;
                     }
                     while (angle > 360) {
-                        angle = angle - 360;
+                        angle -= 360;
                     }
                     rgb = hue2rgb(angle);
                     r = rgb[0]; g = rgb[1]; b = rgb[2];
