@@ -1254,13 +1254,12 @@ public class Commands {
                     asb.tabs(Arrays.asList(25,60,75));
                     out.println("table, fg:~<name> OR 38;5;<n>");
                     out.println("                 bg:~<name> OR 48;5;<n>");
-                    out.println();
                 } else {
                     asb.tabs(Arrays.asList(15,45,70));
                     out.println("table, fg-rgb:<color24bit> OR 38;5;<n>");
                     out.println("                 bg-rgb:<color24bit> OR 48;5;<n>");
-                    out.println();
                 }
+                out.println();
                 int col = 0;
                 int idx = 0;
                 int colWidth = rgb ? 12 : 21;
@@ -1420,12 +1419,15 @@ public class Commands {
 
         public void printColor(String name, String style) throws IOException {
             setFixedStyle(style);
-            int hueAngle = -1;
+            int hueAngle;
+            double zoom = 1;
             int[] rgb = {0, 0, 0};
             if (name.matches(COLORS_24BIT)) {
                 rgb = rgb(Long.parseLong(name, 16));
+                zoom = 2;
             } else if ((name.startsWith("#") || name.startsWith("x")) && name.substring(1).matches(COLORS_24BIT)) {
                 rgb = rgb(Long.parseLong(name.substring(1), 16));
+                zoom = 2;
             } else if (COLORS_16.contains(name)) {
                 for (int i = 0; i < 16; i++) {
                     if (COLORS_16.get(i).equals(name)) {
@@ -1438,7 +1440,6 @@ public class Commands {
                 if (hueAngle > 360) {
                     throw new IllegalArgumentException("Color not found: " + name);
                 }
-                out.println("HSL: " + hueAngle + "deg, 100%, 50%");
                 rgb = hue2rgb(hueAngle);
             } else if (name.matches("[a-z0-9]+")) {
                 List<String> colors = retrieveColorNames();
@@ -1487,16 +1488,17 @@ public class Commands {
                 step = 24;
                 barSize = 18;
             }
-            double div = 256.0/step;
-            int ndiv = (int)div;
             r = rgb[0];
             g = rgb[1];
             b = rgb[2];
-            if (hueAngle == -1) {
-                int[] hsl = rgb2hsl(r, g, b);
-                hueAngle = hsl[0];
-                out.println("HSL: " + hsl[0] + "deg, " + hsl[1] + "%, " + hsl[2] + "%");
+            int[] hsl = rgb2hsl(r, g, b);
+            hueAngle = hsl[0];
+            out.println("HSL: " + hsl[0] + "deg, " + hsl[1] + "%, " + hsl[2] + "%");
+            if (hsl[2] > 85 || hsl[2] < 15 || hsl[1] < 15) {
+                zoom = 1;
             }
+            double div = zoom*256.0/step;
+            int ndiv = (int)(div/zoom);
             double xrs = (0xFF - r)/div;
             double xgs = (0xFF - g)/div;
             double xbs = (0xFF - b)/div;
