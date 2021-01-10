@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -42,7 +42,7 @@ public class CompletionMatcherImpl implements CompletionMatcher {
         reset(caseInsensitive);
         defaultMatchers(options, prefix, line, caseInsensitive, errors, originalGroupName);
         if (LineReader.Option.COMPLETE_MATCHER_CAMELCASE.isSet(options)) {
-            matchers.add(simpleMatcher(candidate -> camelMatch(line.word(), 0, candidate, 0)));
+            matchers.add(simpleMatcher(candidate -> camelMatch(line.word(), line.word().indexOf('=') + 1, candidate, 0)));
         }
     }
 
@@ -154,11 +154,10 @@ public class CompletionMatcherImpl implements CompletionMatcher {
     protected boolean camelMatch(String word, int i, String candidate, int j) {
         if (word.length() <= i) {
             return true;
+        } else if (candidate.length() <= j) {
+            return false;
         } else {
             char c = word.charAt(i);
-            if (candidate.length() <= j) {
-                return false;
-            }
             if (c == candidate.charAt(j)) {
                 if (camelMatch(word, i + 1, candidate, j + 1)) {
                     return true;
