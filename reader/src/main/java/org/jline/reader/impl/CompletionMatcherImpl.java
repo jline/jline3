@@ -42,8 +42,13 @@ public class CompletionMatcherImpl implements CompletionMatcher {
         reset(caseInsensitive);
         defaultMatchers(options, prefix, line, caseInsensitive, errors, originalGroupName);
         if (LineReader.Option.COMPLETE_MATCHER_CAMELCASE.isSet(options)) {
-            matchers.add(simpleMatcher(candidate -> camelMatch(line.word(), line.word().indexOf('=') + 1, candidate, 0)));
+            matchers.add(simpleMatcher(candidate -> camelMatch(line.word(), line.word().indexOf('=') + 1
+                    , candidate, countUpperCase(line.word()) < 15 ? 0 : candidate.length())));
         }
+    }
+
+    private long countUpperCase(String word) {
+        return word.substring(word.indexOf('=') + 1).chars().filter(Character::isUpperCase).count();
     }
 
     @Override
