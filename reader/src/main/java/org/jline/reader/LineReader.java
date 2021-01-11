@@ -638,6 +638,16 @@ public interface LineReader {
     void printAbove(AttributedString str);
 
     /**
+     * Writes characters above the prompt and redraw everything.
+     * If the LineReader is not actually reading a line, the characters will simply be printed to the terminal.
+     *
+     * @param cbuf Array of characters
+     * @param off Offset from which to start writing characters
+     * @param len Number of characters to write
+     */
+    void writeAbove(char[] cbuf, int off, int len);
+
+    /**
      * Check if a thread is currently in a <code>readLine()</code> call.
      *
      * @return <code>true</code> if there is an ongoing <code>readLine()</code> call.

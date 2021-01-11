@@ -789,6 +789,25 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     @Override
+    public void writeAbove(char[] cbuf, int off, int len) {
+        try {
+            lock.lock();
+
+            boolean reading = this.reading;
+            if (reading) {
+                display.update(Collections.emptyList(), 0);
+            }
+            terminal.writer().write(cbuf, off, len);
+            if (reading) {
+                redisplay(false);
+            }
+            terminal.flush();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    @Override
     public boolean isReading() {
         try {
             lock.lock();
