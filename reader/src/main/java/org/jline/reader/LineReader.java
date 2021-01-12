@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -294,7 +294,12 @@ public interface LineReader {
     String COMMENT_BEGIN = "comment-begin";
     String BELL_STYLE = "bell-style";
     String PREFER_VISIBLE_BELL = "prefer-visible-bell";
+    /** tab completion: if candidates are more than list-max a question will be asked before displaying them */
     String LIST_MAX = "list-max";
+    /**
+     * tab completion: if candidates are less than menu-list-max
+     * they are displayed in a list below the field to be completed
+     */
     String MENU_LIST_MAX = "menu-list-max";
     String DISABLE_HISTORY = "disable-history";
     String DISABLE_COMPLETION = "disable-completion";
@@ -304,6 +309,7 @@ public interface LineReader {
     String WORDCHARS = "WORDCHARS";
     String REMOVE_SUFFIX_CHARS = "REMOVE_SUFFIX_CHARS";
     String SEARCH_TERMINATORS = "search-terminators";
+    /** Number of matching errors that are accepted by the completion matcher */
     String ERRORS = "errors";
     /** Property for the "others" group name */
     String OTHERS_GROUP_NAME = "OTHERS_GROUP_NAME";
@@ -388,6 +394,7 @@ public interface LineReader {
 
     enum Option {
         COMPLETE_IN_WORD,
+        /** use camel case completion matcher */
         COMPLETE_MATCHER_CAMELCASE,
         DISABLE_EVENT_EXPANSION,
         HISTORY_VERIFY,
@@ -401,12 +408,13 @@ public interface LineReader {
         AUTO_GROUP(true),
         AUTO_MENU(true),
         AUTO_LIST(true),
-        AUTO_MENU_LIST(false),
+        /** list candidates below the field to be completed */
+        AUTO_MENU_LIST,
         RECOGNIZE_EXACT,
         /** display group name before each group (else display all group names first) */
         GROUP(true),
         /** when double tab to select candidate keep candidates grouped (else loose grouping) */
-        GROUP_PERSIST(false),
+        GROUP_PERSIST,
         /** if completion is case insensitive or not */
         CASE_INSENSITIVE,
         LIST_AMBIGUOUS,
@@ -432,7 +440,8 @@ public interface LineReader {
         DELAY_LINE_WRAP,
         AUTO_PARAM_SLASH(true),
         AUTO_REMOVE_SLASH(true),
-        USE_FORWARD_SLASH(false),
+        /** FileNameCompleter: Use '/' character as a file directory separator */
+        USE_FORWARD_SLASH,
         /** When hitting the <code>&lt;tab&gt;</code> key at the beginning of the line, insert a tabulation
          *  instead of completing.  This is mainly useful when {@link #BRACKETED_PASTE} is
          *  disabled, so that copy/paste of indented text does not trigger completion.
