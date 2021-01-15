@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -25,6 +25,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 /**
@@ -176,4 +177,15 @@ public class HistoryTest extends ReaderTestSupport
             assertTrue(e.getMessage().startsWith("Bad history file syntax!"));
         }
     }
+
+    @Test
+    public void testMatchPatterns() {
+        DefaultHistory defaultHistory = new DefaultHistory();
+        assertFalse(defaultHistory.matchPatterns("foo", "bar"));
+        assertTrue(defaultHistory.matchPatterns("foo", "foo"));
+        assertTrue(defaultHistory.matchPatterns("foo*", "foobar"));
+        assertTrue(defaultHistory.matchPatterns("foo:bar", "bar"));
+        assertFalse(defaultHistory.matchPatterns("foo*", "bar"));
+    }
+
 }
