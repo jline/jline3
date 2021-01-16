@@ -220,42 +220,22 @@ public class Completers {
     public static class DirectoriesCompleter extends FileNameCompleter {
 
         private final Supplier<Path> currentDir;
-        private final boolean forceSlash;
 
         public DirectoriesCompleter(File currentDir) {
-            this(currentDir.toPath(), false);
-        }
-
-        public DirectoriesCompleter(File currentDir, boolean forceSlash) {
-            this(currentDir.toPath(), forceSlash);
+            this(currentDir.toPath());
         }
 
         public DirectoriesCompleter(Path currentDir) {
-            this(currentDir, false);
-        }
-
-        public DirectoriesCompleter(Path currentDir, boolean forceSlash) {
             this.currentDir = () -> currentDir;
-            this.forceSlash = forceSlash;
         }
 
         public DirectoriesCompleter(Supplier<Path> currentDir) {
-            this(currentDir, false);
-        }
-
-        public DirectoriesCompleter(Supplier<Path> currentDir, boolean forceSlash) {
             this.currentDir = currentDir;
-            this.forceSlash = forceSlash;
         }
 
         @Override
         protected Path getUserDir() {
             return currentDir.get();
-        }
-
-        @Override
-        protected String getSeparator(boolean useForwardSlash) {
-            return forceSlash || useForwardSlash ? "/" : getUserDir().getFileSystem().getSeparator();
         }
 
         @Override
@@ -267,32 +247,17 @@ public class Completers {
     public static class FilesCompleter extends FileNameCompleter {
 
         private final Supplier<Path> currentDir;
-        private final boolean forceSlash;
 
         public FilesCompleter(File currentDir) {
-            this(currentDir.toPath(), false);
-        }
-
-        public FilesCompleter(File currentDir, boolean forceSlash) {
-            this(currentDir.toPath(), forceSlash);
+            this(currentDir.toPath());
         }
 
         public FilesCompleter(Path currentDir) {
-            this(currentDir, false);
-        }
-
-        public FilesCompleter(Path currentDir, boolean forceSlash) {
             this.currentDir = () -> currentDir;
-            this.forceSlash = forceSlash;
         }
 
         public FilesCompleter(Supplier<Path> currentDir) {
-            this(currentDir, false);
-        }
-
-        public FilesCompleter(Supplier<Path> currentDir, boolean forceSlash) {
             this.currentDir = currentDir;
-            this.forceSlash = forceSlash;
         }
 
         @Override
@@ -300,10 +265,6 @@ public class Completers {
             return currentDir.get();
         }
 
-        @Override
-        protected String getSeparator(boolean useForwardSlash) {
-            return forceSlash || useForwardSlash ? "/" : getUserDir().getFileSystem().getSeparator();
-        }
     }
 
     /**
