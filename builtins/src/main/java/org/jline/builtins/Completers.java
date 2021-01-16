@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -247,17 +247,53 @@ public class Completers {
     public static class FilesCompleter extends FileNameCompleter {
 
         private final Supplier<Path> currentDir;
+        private final String namePattern;
 
         public FilesCompleter(File currentDir) {
-            this(currentDir.toPath());
+            this(currentDir.toPath(), null);
+        }
+
+        public FilesCompleter(File currentDir, String namePattern) {
+            this(currentDir.toPath(), namePattern);
         }
 
         public FilesCompleter(Path currentDir) {
+            this(currentDir, null);
+        }
+
+        public FilesCompleter(Path currentDir, String namePattern) {
             this.currentDir = () -> currentDir;
+            this.namePattern = compilePattern(namePattern);
         }
 
         public FilesCompleter(Supplier<Path> currentDir) {
+            this(currentDir, null);
+        }
+
+        public FilesCompleter(Supplier<Path> currentDir, String namePattern) {
             this.currentDir = currentDir;
+            this.namePattern = compilePattern(namePattern);
+        }
+
+        private String compilePattern(String pattern) {
+            if (pattern == null) {
+                return null;
+            }
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < pattern.length(); i++) {
+                char ch = pattern.charAt(i);
+                if (ch == '\\') {
+                    ch = pattern.charAt(++i);
+                    sb.append(ch);
+                } else if (ch == '.') {
+                    sb.append('\\').append('.');
+                } else if (ch == '*') {
+                    sb.append('.').append('*');
+                } else {
+                    sb.append(ch);
+                }
+            }
+            return sb.toString();
         }
 
         @Override
@@ -265,6 +301,13 @@ public class Completers {
             return currentDir.get();
         }
 
+        @Override
+        protected boolean accept(Path path) {
+            if (namePattern == null || Files.isDirectory(path)) {
+                return super.accept(path);
+            }
+            return path.getFileName().toString().matches(namePattern) && super.accept(path);
+        }
     }
 
     /**
