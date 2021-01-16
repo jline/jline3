@@ -1363,22 +1363,22 @@ public class Commands {
             int[] rgb = {0,0,0};
             double hue = degree / 60.0;
             double a = Math.tan((degree / 360.0) * 2 * Math.PI) / Math.sqrt(3);
-            if (hue >= 0 && hue <= 1) {
+            if (hue >= 0 && hue < 1) {
                 rgb[0] = 0xff;
                 rgb[1] = (int) (2 * a * 0xff / (1 + a));
-            } else if (hue >= 1 && hue <= 2) {
+            } else if (hue >= 1 && hue < 2) {
                 rgb[0] = (int) (0xff * (1 + a) / (2 * a));
                 rgb[1] = 0xff;
-            } else if (hue >= 2 && hue <= 3) {
+            } else if (hue >= 2 && hue < 3) {
                 rgb[1] = 0xff;
                 rgb[2] = (int) (0xff * (1 + a) / (1 - a));
-            } else if (hue >= 3 && hue <= 4) {
+            } else if (hue >= 3 && hue < 4) {
                 rgb[1] = (int) (0xff * (1 - a) / (1 + a));
                 rgb[2] = 0xff;
             } else if (hue >= 4 && hue <= 5) {
                 rgb[0] = (int) (0xff * (a - 1) / (2 * a));
                 rgb[2] = 0xff;
-            } else if (hue >= 5 && hue <= 6) {
+            } else if (hue > 5 && hue <= 6) {
                 rgb[0] = 0xff;
                 rgb[2] = (int) (0xff * 2 * a / (a - 1));
             }
