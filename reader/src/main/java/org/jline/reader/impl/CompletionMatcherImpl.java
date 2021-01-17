@@ -21,10 +21,12 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class CompletionMatcherImpl implements CompletionMatcher {
+    private static final int MAX_SEARCH_TIME = 1000;
     protected Predicate<String> exact;
     protected List<Function<Map<String, List<Candidate>>, Map<String, List<Candidate>>>> matchers;
     private Map<String, List<Candidate>> matching;
     private boolean caseInsensitive;
+    private long searchMaxTime;
 
     public CompletionMatcherImpl() {
     }
@@ -43,16 +45,13 @@ public class CompletionMatcherImpl implements CompletionMatcher {
         defaultMatchers(options, prefix, line, caseInsensitive, errors, originalGroupName);
         if (LineReader.Option.COMPLETE_MATCHER_CAMELCASE.isSet(options)) {
             matchers.add(simpleMatcher(candidate -> camelMatch(line.word(), line.word().indexOf('=') + 1
-                    , candidate, countUpperCase(line.word()) < 15 ? 0 : candidate.length())));
+                    , candidate, 0)));
         }
-    }
-
-    private long countUpperCase(String word) {
-        return word.substring(word.indexOf('=') + 1).chars().filter(Character::isUpperCase).count();
     }
 
     @Override
     public List<Candidate> matches(List<Candidate> candidates) {
+        searchMaxTime = new Date().getTime() + MAX_SEARCH_TIME;
         matching = Collections.emptyMap();
         Map<String, List<Candidate>> sortedCandidates = sort(candidates);
         for (Function<Map<String, List<Candidate>>,
@@ -157,7 +156,9 @@ public class CompletionMatcherImpl implements CompletionMatcher {
     }
 
     protected boolean camelMatch(String word, int i, String candidate, int j) {
-        if (word.length() <= i) {
+        if (new Date().getTime() > searchMaxTime) {
+            return false;
+        } else if (word.length() <= i) {
             return true;
         } else if (candidate.length() <= j) {
             return false;
