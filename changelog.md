@@ -1,6 +1,62 @@
 # [JLine3](https://github.com/jline/jline3)
 <!-- git log --pretty=format:'* [`%h`](https://github.com/jline/jline3/commit/%H) %s' -->
 
+## [JLine 3.19.0][3_19_0]
+[3_19_0]: https://repo1.maven.org/maven2/org/jline/jline/3.19.0/
+
+* [`4ba4649e`](https://github.com/jline/jline3/commit/4ba4649ebd48ee9014b142659efeac367431ddba) CompletionMatcherImpl: add max search time for camelMatch()
+* [`ac4cdc18`](https://github.com/jline/jline3/commit/ac4cdc18ff50d61579a4c53afdff41cf34bd7126) Fix non-synchronized access to handlers map
+* [`cc094c7b`](https://github.com/jline/jline3/commit/cc094c7be3e574337dd79b18580f9ab6cba3aaee) Command colors: fix rounding errors in hue to r,g,b conversion
+* [`c159895f`](https://github.com/jline/jline3/commit/c159895f977335faf029a676734d389613101c92) FilesCompleter: add constructor parameter namePattern
+* [`a2e21b65`](https://github.com/jline/jline3/commit/a2e21b6577f3d89162081c8da52bcfdeebf0266d) FilesCompleter & DirectoriesCompleter: removed boolean constructor parameter forceSlash, see #476
+* [`9a497186`](https://github.com/jline/jline3/commit/9a4971868e4bdd29a36e454de01f54d3cd6071e0) DefaultHistory.matchPatterns is broken, fixes #635
+* [`5d4add13`](https://github.com/jline/jline3/commit/5d4add136ff28f7e206aef80328e2c535478adbb) Add Javadoc for a few LineReader's completion options and variables
+* [`9e0916fc`](https://github.com/jline/jline3/commit/9e0916fc333577654cb1431ffb040c6ce194b939) CompletionMatcherImpl: skip camelMatch if word contains too many uppercase letters
+* [`2c536817`](https://github.com/jline/jline3/commit/2c5368170259483214c1c0a2e7f9e05746ef513e) CompletionMatcherImpl: if completing word contains '=' start camel matching after it
+* [`67667099`](https://github.com/jline/jline3/commit/6766709986b4f5a9184c6899b74c5f7949392782) Command colors -view: option values <color24bit> create a zoomed table
+* [`d235e11c`](https://github.com/jline/jline3/commit/d235e11c9f87e9c5b082188d4d17f3c91388bde3) Command colors: improve HSL calculation
+* [`2a95d381`](https://github.com/jline/jline3/commit/2a95d3811da04860857cced5fedef8c881be5523) DefaultPrinter: improve reporting of bad option values
+* [`977550be`](https://github.com/jline/jline3/commit/977550be8e3bc9edea87e54ee738b6347beb87e6) DefaultPrinter: use method columnSubSequence() to truncate long lines and values
+* [`59d7e699`](https://github.com/jline/jline3/commit/59d7e699598eb45f8edea6e7996853f0571da93e) Command colors: hue angle can be used as option --view value
+* [`644ffbe5`](https://github.com/jline/jline3/commit/644ffbe5b43a5c1219c9178800df151378800eeb) Command colors: add option --view
+* [`014296de`](https://github.com/jline/jline3/commit/014296dede6cd09fc9547976beb6160dc5cc1293) Command prnt: renamed option --delimiter to --border
+* [`2d42d398`](https://github.com/jline/jline3/commit/2d42d3989f7edab4f76d90f2aeb04b0508008810) Command prnt: add option --rowHighlight
+* [`0c231732`](https://github.com/jline/jline3/commit/0c231732bbb52836e116d1e368d6f37181e8dd1b) Command prnt: add option --delimiter and improve table header highlight
+* [`b9dbc010`](https://github.com/jline/jline3/commit/b9dbc01036285c8287c6a1d194b806777d0ef78f) Allow to set only bg color name in *_COLORS variable
+* [`5489815b`](https://github.com/jline/jline3/commit/5489815bbda4fcc84a5ae7739870ae35fdfe593e) Colors <color24bit> values can be used in nanorc and *_COLORS variables
+* [`1162c8a0`](https://github.com/jline/jline3/commit/1162c8a032e8868de7be6c149eb92fe9bc8c7fb8) Fix AttributedStyle calculations for true colors, fixes #305
+* [`0944af4e`](https://github.com/jline/jline3/commit/0944af4eb29c80d6563873850fee9d9709061c8f) Repl demo: add script to test true colors
+* [`43662052`](https://github.com/jline/jline3/commit/43662052f4db067a4eeb4467d9d559c607cc9311) Ubuntu xterm supports the 24bit color sequences but JLine uses only 256 color palette, fixes #633
+* [`ae2ff29d`](https://github.com/jline/jline3/commit/ae2ff29d134b2584548184593139a510b9044563) AttributedStyle: fixed method backgroundRgb()
+* [`cadefd5e`](https://github.com/jline/jline3/commit/cadefd5ea68fbe06fe1c50f0306264bb4c3531f2) AttributedStyle.toAnsi(): fixed StringIndexOutOfBoundsException
+* [`55589241`](https://github.com/jline/jline3/commit/555892419d87f235c92ac7e852a76bfb05f60d2b) StyleResolver: fixed default rgb style 'bg-rgb:default'
+* [`c029c9e6`](https://github.com/jline/jline3/commit/c029c9e63d461aef2c94d9d2ef04e1a8d0fc42e2) Command colors: add option --rgb
+* [`d3dc71f3`](https://github.com/jline/jline3/commit/d3dc71f3128cba6d93a4ae2851f5455400228f57) Repl demo: cleanup custom commands
+* [`d68a3d83`](https://github.com/jline/jline3/commit/d68a3d835de68d449de3bdf8a0ad8ad42bb9d6b9) CompletionMatcher: do not allow errors when used in completion menu
+* [`14fd4f9f`](https://github.com/jline/jline3/commit/14fd4f9f0ca885c71b40d81b959f4bd88d34e52d) StyleCompiler.getStyle(): do not throw exception if style reference not found
+* [`f36c685b`](https://github.com/jline/jline3/commit/f36c685b5e8da770eb0ef191d4deae049a6abd9b) Command doc: improved exceptions
+* [`79b9febf`](https://github.com/jline/jline3/commit/79b9febf51486f62c27c0d3c0518f0eb9fbc004b) Command colors: add option --lock to lock fore/background color
+* [`a27bcd1b`](https://github.com/jline/jline3/commit/a27bcd1b4832ff82af41e870ee3e90fe51910e30) Named styles and colors can be used in variables LS_COLORS, HELP_COLORS and PRNT_COLORS
+* [`e1c75ce3`](https://github.com/jline/jline3/commit/e1c75ce38dc841b52b350459f39b84ac21868a4b) NanorcParser: add nano color name extensions and use StyleResolver
+* [`785c06ae`](https://github.com/jline/jline3/commit/785c06ae2f8346fdfd7a20608375c0163868f743) Groovy REPL: do not save HelpException to console variable
+* [`82b7c38c`](https://github.com/jline/jline3/commit/82b7c38c26928234ea4d5a53d818567d15d98b56) Command colors: add option --find
+* [`2ec403f7`](https://github.com/jline/jline3/commit/2ec403f745d31810e5036f4b9e9aa038bc5b5606) JLine3 should not allow building a system terminal if input *or* output is not a tty
+* [`a6e31a18`](https://github.com/jline/jline3/commit/a6e31a18d8a443ee67f108d5ca7fff7dad1f6a41) Use CompletionMatcher also in menu
+* [`89d4ec49`](https://github.com/jline/jline3/commit/89d4ec4999d19d17762a34dfe715e3c7281dff1e) Command colors: reformatting name table, step II
+* [`12dc013e`](https://github.com/jline/jline3/commit/12dc013e4dc61e796916f142d34ff6bfc54a96a1) Groovy-REPL: support for camel-cased, acronym-style completion
+* [`8422cfeb`](https://github.com/jline/jline3/commit/8422cfeb2bf1b98ab76db1715681846627af9658) Command colors: reformatting name table
+* [`f163d405`](https://github.com/jline/jline3/commit/f163d405f4d401ffad020dc0f43baefb1b715cbb) Add CompletionMatcher in order to allow customize completion matchers
+* [`28868afe`](https://github.com/jline/jline3/commit/28868afea4981b25815eab912254d6cbea686930) SystemRegistryImpl: reset captured command output in REPL-loop
+* [`9e1a5305`](https://github.com/jline/jline3/commit/9e1a530566bc321699daf3fcdc1832aff666d625) Command colors: change angle brackets and add option -s to view 16-color table
+* [`b53835aa`](https://github.com/jline/jline3/commit/b53835aa7ebcc082253c992f64cf9836fc288268) Redirecting input from file to app fails when using CONEMU with Jansi, fixes #298
+* [`f0a4adf9`](https://github.com/jline/jline3/commit/f0a4adf94b001e630cc1ddab065cccc40a34ca8d) Option group-persist: keep also group names on menu-list
+* [`58c0b38c`](https://github.com/jline/jline3/commit/58c0b38c9d556ac64cd2a144626dcf2764ed1890) Apply completion background styles to the entire completion table/list cell
+* [`eb86dc76`](https://github.com/jline/jline3/commit/eb86dc76353c1c149369c78c0875f3b4c408ee0b) fix JLine variable name value of COMPLETION_STYLE_LIST_BACKGROUND
+* [`6d87f7b4`](https://github.com/jline/jline3/commit/6d87f7b4fd16ba3f608f9a8faff93399524c666f) colors command: reformatting color table
+* [`b602f924`](https://github.com/jline/jline3/commit/b602f9248465cce491a94fd788fa9f6b7b0e69e5) SystemRegistryImpl: fixed NPE
+* [`b470ba1b`](https://github.com/jline/jline3/commit/b470ba1b81a473ab994c294a75ca8a39c9c862b3) ctrl-k, ctrl-u clean line however does nothing with tips from tailtipwidget, fixes #623
+* [`34efd44f`](https://github.com/jline/jline3/commit/34efd44fdef7647fa4b237eae90633e864be1139) Builtins: add command colors to view 256-color table
+
 ## [JLine 3.18.0][3_18_0]
 [3_18_0]: https://repo1.maven.org/maven2/org/jline/jline/3.18.0/
 
