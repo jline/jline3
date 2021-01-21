@@ -74,6 +74,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
 
     public static final String DEFAULT_WORDCHARS = "*?_-.[]~=/&;!#$%^(){}<>";
+    public static final String EMACS_DEFAULT_WORDCHARS = "*?_.[]~=-&;!#$%^(){}<>";
     public static final String DEFAULT_REMOVE_SUFFIX_CHARS = " \t\n;&|";
     public static final String DEFAULT_COMMENT_BEGIN = "#";
     public static final String DEFAULT_SEARCH_TERMINATORS = "\033\012";
@@ -147,6 +148,11 @@ public class LineReaderImpl implements LineReader, Flushable
         NONE,
         AUDIBLE,
         VISIBLE
+    }
+
+    protected enum WordCharsType {
+        DEFAULT,
+        EMACS
     }
 
     //
@@ -1411,13 +1417,13 @@ public class LineReaderImpl implements LineReader, Flushable
             return callNeg(this::emacsBackwardWord);
         }
         while (count-- > 0) {
-            while (buf.cursor() < buf.length() && !isWord(buf.currChar())) {
+            while (buf.cursor() < buf.length() && !isWord(buf.currChar(), WordCharsType.EMACS)) {
                 buf.move(1);
             }
             if (isInViChangeOperation() && count == 0) {
                 return true;
             }
-            while (buf.cursor() < buf.length() && isWord(buf.currChar())) {
+            while (buf.cursor() < buf.length() && isWord(buf.currChar(), WordCharsType.EMACS)) {
                 buf.move(1);
             }
         }
@@ -1602,13 +1608,14 @@ public class LineReaderImpl implements LineReader, Flushable
         while (count-- > 0) {
             while (buf.cursor() > 0) {
                 buf.move(-1);
-                if (isWord(buf.currChar())) {
+                if (isWord(buf.currChar(), WordCharsType.EMACS)) {
                     break;
                 }
             }
             while (buf.cursor() > 0) {
                 buf.move(-1);
-                if (!isWord(buf.currChar())) {
+                if (!isWord(buf.currChar(), WordCharsType.EMACS)) {
+                    buf.move(1);
                     break;
                 }
             }
@@ -5887,10 +5894,23 @@ public class LineReaderImpl implements LineReader, Flushable
         return Character.isLetter(c);
     }
 
-    protected boolean isWord(int c) {
-        String wordchars = getString(WORDCHARS, DEFAULT_WORDCHARS);
+    protected boolean isWord(int c, WordCharsType wcType) {
+        String defaultWordChars = null;
+        if (wcType == WordCharsType.DEFAULT) {
+            defaultWordChars = DEFAULT_WORDCHARS;
+
+        } else if (wcType == WordCharsType.EMACS) {
+            defaultWordChars = EMACS_DEFAULT_WORDCHARS;
+        }
+
+        String wordchars = getString(WORDCHARS, defaultWordChars);
+
         return Character.isLetterOrDigit(c)
                 || (c < 128 && wordchars.indexOf((char) c) >= 0);
+    }
+
+    protected boolean isWord(int c) {
+        return isWord(c, WordCharsType.DEFAULT);
     }
 
     String getString(String name, String def) {
