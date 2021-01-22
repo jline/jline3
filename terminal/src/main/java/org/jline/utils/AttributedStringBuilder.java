@@ -292,12 +292,10 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                                             int r = Integer.parseInt(params[++j]);
                                             int g = Integer.parseInt(params[++j]);
                                             int b = Integer.parseInt(params[++j]);
-                                            // convert to 256 colors
-                                            int col = 16 + (r >> 3) * 36 + (g >> 3) * 6 + (b >> 3);
                                             if (ansiParam == 38) {
-                                                current = current.foreground(col);
+                                                current = current.foreground(r, g, b);
                                             } else {
-                                                current = current.background(col);
+                                                current = current.background(r, g, b);
                                             }
                                         }
                                     } else if (ansiParam2 == 5) {
