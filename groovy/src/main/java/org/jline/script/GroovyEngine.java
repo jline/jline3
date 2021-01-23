@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -428,7 +428,7 @@ public class GroovyEngine implements ScriptEngine {
         return new AggregateCompleter(completers);
     }
 
-    private enum CandidateType {CONSTRUCTOR, STATIC_METHOD, PACKAGE, METHOD, FIELD, IDENTIFIER, META_METHOD, OTHER}
+    private enum CandidateType {CONSTRUCTOR, STATIC_METHOD, PACKAGE, METHOD, FIELD, IDENTIFIER, META_METHOD, STRING, OTHER}
 
     private static Class<?> classResolver(String classDotName) {
         Class<?> out = null;
@@ -623,6 +623,7 @@ public class GroovyEngine implements ScriptEngine {
                     continue;
                 }
                 String postFix = "";
+                String preFix = "";
                 if (type == CandidateType.CONSTRUCTOR) {
                     if (s.matches("[a-z]+.*")) {
                         postFix = ".";
@@ -647,9 +648,13 @@ public class GroovyEngine implements ScriptEngine {
                 } else if (type == CandidateType.META_METHOD) {
                     postFix = "(";
                     group = "MetaMethods";
+                } else if (type == CandidateType.STRING) {
+                    String quote = s.contains("'") ? "\"" : "'";
+                    postFix = quote;
+                    preFix = quote;
                 }
-                candidates.add(new Candidate(AttributedString.stripAnsi(curBuf + s + postFix), s, group, desc, null
-                             ,null, false));
+                candidates.add(new Candidate(AttributedString.stripAnsi(curBuf + preFix + s + postFix), s, group
+                        , desc, null,null, false));
             }
         }
 
@@ -765,6 +770,12 @@ public class GroovyEngine implements ScriptEngine {
             } catch (Exception e) {
                 return;
             }
+            inspector = new Inspector(groovyEngine);
+            inspector.loadStatementVars(buffer);
+            if (commandLine.words().size() == 1 && wordbuffer.contains("=")) {
+                int idx = wordbuffer.indexOf("=");
+                doValueCandidate(candidates, inspector.execute(wordbuffer.substring(0, idx)), wordbuffer.substring(0, idx + 1));
+            }
             if (brackets.openQuote()) {
                 return;
             }
@@ -772,8 +783,6 @@ public class GroovyEngine implements ScriptEngine {
             metaMethodCompletion = groovyEngine.groovyOption(META_METHODS_COMPLETION, false);
             identifierCompletion = groovyEngine.groovyOption(IDENTIFIERS_COMPLETION, false);
             access = new AccessRules(groovyEngine.groovyOptions());
-            inspector = new Inspector(groovyEngine);
-            inspector.loadStatementVars(buffer);
             int eqsep = Helpers.statementBegin(buffer);
             if (brackets.numberOfRounds() > 0 && brackets.lastCloseRound() > eqsep) {
                 int varsep = buffer.lastIndexOf('.');
@@ -879,6 +888,12 @@ public class GroovyEngine implements ScriptEngine {
                 return;
             }
             Helpers.doCandidates(candidates, (Set<String>)map.keySet(), curBuf, CandidateType.IDENTIFIER);
+        }
+
+        private void doValueCandidate(List<Candidate> candidates, Object object, String curBuf) {
+            if (object instanceof String) {
+                Helpers.doCandidates(candidates, Collections.singletonList((String)object), curBuf, CandidateType.STRING);
+            }
         }
 
         private Set<String> doMetaMethodCandidates(List<Candidate> candidates, Object object, String curBuf) {
@@ -1009,7 +1024,7 @@ public class GroovyEngine implements ScriptEngine {
         private final Map<String,String> imports;
         private final Map<String,Class<?>> nameClass;
         private PrintStream nullstream;
-        private boolean canonicalNames = false;
+        private final boolean canonicalNames;
         private final boolean noSyntaxCheck;
         private final boolean restrictedCompletion;
         private final boolean metaMethodsCompletion;
@@ -1023,7 +1038,7 @@ public class GroovyEngine implements ScriptEngine {
         public Inspector(GroovyEngine groovyEngine) {
             this.imports = groovyEngine.imports;
             this.nameClass = groovyEngine.nameClass;
-            this.canonicalNames = groovyEngine.groovyOption(CANONICAL_NAMES, canonicalNames);
+            this.canonicalNames = groovyEngine.groovyOption(CANONICAL_NAMES, false);
             this.nanorcSyntax = groovyEngine.groovyOption(NANORC_SYNTAX, DEFAULT_NANORC_SYNTAX);
             this.noSyntaxCheck = groovyEngine.groovyOption(NO_SYNTAX_CHECK, false);
             this.restrictedCompletion = groovyEngine.groovyOption(RESTRICTED_COMPLETION, false);
@@ -1080,7 +1095,7 @@ public class GroovyEngine implements ScriptEngine {
             return out;
         }
 
-        private Object execute(String statement) {
+        public Object execute(String statement) {
             PrintStream origOut = System.out;
             PrintStream origErr = System.err;
             if (nullstream != null) {
