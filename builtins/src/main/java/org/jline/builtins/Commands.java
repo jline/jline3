@@ -1036,9 +1036,10 @@ public class Commands {
 
     public static void colors(Terminal terminal, PrintStream out, String[] argv) throws HelpException, IOException {
         String[] usage = {
-                "colors -  view 256-color table",
+                "colors -  view 256-color table and ANSI-styles",
                 "Usage: colors [OPTIONS]",
                 "  -? --help                     Displays command help",
+                "  -a --ansistyles               List ANSI-styles",
                 "  -c --columns=COLUMNS          Number of columns in name/rgb table",
                 "                                COLUMNS = 1, display columns: color, style, ansi and HSL",
                 "  -f --find=NAME                Find color names which contains NAME ",
@@ -1053,42 +1054,46 @@ public class Commands {
         if (opt.isSet("help")) {
             throw new Options.HelpException(opt.usage());
         }
-        String style = null;
-        if (opt.isSet("lock")) {
-            style = opt.get("lock");
-            if (style.length() - style.replace(":", "").length() > 1) {
-                style = null;
-            }
-        }
         Colors colors = new Colors(terminal, out);
-        if (!opt.isSet("view")) {
-            boolean rgb = opt.isSet("rgb");
-            int columns = terminal.getWidth() > (rgb ? 71 : 122) ? 6 : 5;
-            String findName = null;
-            boolean nameTable = opt.isSet("name");
-            boolean table16 = opt.isSet("small");
-            if (opt.isSet("find")) {
-                findName = opt.get("find").toLowerCase();
-                nameTable = true;
-                table16 = false;
-                columns = 4;
-            }
-            if (table16) {
-                columns = columns + 2;
-            }
-            if (opt.isSet("columns")) {
-                columns = opt.getNumber("columns");
-            }
-            colors.printColors(nameTable, rgb, table16, columns, findName, style);
+        if (opt.isSet("ansistyles")) {
+            colors.printStyles();
         } else {
-            colors.printColor(opt.get("view").toLowerCase(), style);
+            String style = null;
+            if (opt.isSet("lock")) {
+                style = opt.get("lock");
+                if (style.length() - style.replace(":", "").length() > 1) {
+                    style = null;
+                }
+            }
+            if (!opt.isSet("view")) {
+                boolean rgb = opt.isSet("rgb");
+                int columns = terminal.getWidth() > (rgb ? 71 : 122) ? 6 : 5;
+                String findName = null;
+                boolean nameTable = opt.isSet("name");
+                boolean table16 = opt.isSet("small");
+                if (opt.isSet("find")) {
+                    findName = opt.get("find").toLowerCase();
+                    nameTable = true;
+                    table16 = false;
+                    columns = 4;
+                }
+                if (table16) {
+                    columns = columns + 2;
+                }
+                if (opt.isSet("columns")) {
+                    columns = opt.getNumber("columns");
+                }
+                colors.printColors(nameTable, rgb, table16, columns, findName, style);
+            } else {
+                colors.printColor(opt.get("view").toLowerCase(), style);
+            }
         }
     }
 
     private static class Colors {
         private static final String COLORS_24BIT = "[0-9a-fA-F]{6}";
-        private static final List<String> COLORS_16 = Arrays.asList("black","red","green","yellow","blue","magenta","cyan","white"
-                , "!black","!red","!green","!yellow","!blue","!magenta","!cyan","!white");
+        private static final List<String> COLORS_16 = Arrays.asList("black","red","green","yellow","blue","magenta"
+                ,"cyan","white", "!black","!red","!green","!yellow","!blue","!magenta","!cyan","!white");
         boolean name;
         boolean rgb;
         private final Terminal terminal;
@@ -1100,6 +1105,27 @@ public class Commands {
         public Colors(Terminal terminal, PrintStream out) {
             this.terminal = terminal;
             this.out = out;
+        }
+
+        private String getAnsiStyle(String style) {
+            return style;
+        }
+
+        public void printStyles() {
+            AttributedStringBuilder asb = new AttributedStringBuilder();
+            asb.tabs(13);
+            for (String s : Styles.ANSI_STYLES) {
+                AttributedStyle as = new StyleResolver(this::getAnsiStyle).resolve("." + s);
+                asb.style(as);
+                asb.append(s);
+                asb.style(AttributedStyle.DEFAULT);
+                asb.append("\t");
+                asb.append(getAnsiStyle(s));
+                asb.append("\t");
+                asb.append(as.toAnsi());
+                asb.append("\n");
+            }
+            asb.toAttributedString().println(terminal);
         }
 
         private String getStyle(String color) {
