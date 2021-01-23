@@ -17,6 +17,8 @@ import java.util.stream.Collectors;
 import org.jline.utils.StyleResolver;
 
 public class Styles {
+    protected static final List<String> ANSI_STYLES = Arrays.asList("blink", "bold", "conceal", "crossed-out"
+            , "crossedout", "faint", "hidden", "inverse", "inverse-neg", "inverseneg", "italic", "underline");
     private static final String DEFAULT_LS_COLORS = "di=1;91:ex=1;92:ln=1;96:fi=";
     private static final String DEFAULT_HELP_COLORS = "ti=1;34:co=1:ar=3:op=33";
     private static final String DEFAULT_PRNT_COLORS = "th=1;34:rn=1;34:rs=,~grey15:mk=1;34:em=31:vs=32";
@@ -41,7 +43,7 @@ public class Styles {
         return style(PRNT_COLORS, DEFAULT_PRNT_COLORS);
     }
 
-    public static boolean isAnsiStylePattern(String style) {
+    public static boolean isStylePattern(String style) {
         return style.matches(STYLE_PATTERN);
     }
 
@@ -76,7 +78,7 @@ public class Styles {
         return out;
     }
 
-    private static StyleResolver style(String style) {
+    public static StyleResolver style(String style) {
         Map<String, String> colors = Arrays.stream(style.split(":"))
                 .collect(Collectors.toMap(s -> s.substring(0, s.indexOf('=')),
                         s -> s.substring(s.indexOf('=') + 1)));
@@ -86,8 +88,6 @@ public class Styles {
     protected static class StyleCompiler {
         private static final String ANSI_VALUE = "[0-9]*(;[0-9]+){0,2}";
         private static final String COLORS_24BIT = "[#x][0-9a-fA-F]{6}";
-        private static final List<String> JLINE_NAMED_STYLES = Arrays.asList("blink", "bold", "conceal", "crossed-out"
-                , "crossedout", "faint", "hidden", "inverse", "inverse-neg", "inverseneg", "italic", "underline");
         private static final List<String> COLORS_8 = Arrays.asList("white", "black", "red", "blue", "green", "yellow", "magenta", "cyan");
         // https://github.com/lhmouse/nano-win/commit/a7aab18dfeef8a0e8073d5fa420677dc8fe548da
         private static final Map<String,Integer> COLORS_NANO = new HashMap<>();
@@ -132,7 +132,7 @@ public class Styles {
                 if (!first) {
                     out.append(",");
                 }
-                if (JLINE_NAMED_STYLES.contains(s)) {
+                if (ANSI_STYLES.contains(s)) {
                     out.append(s);
                 } else if (COLORS_8.contains(s) || COLORS_NANO.containsKey(s) || s.startsWith("light")
                         || s.startsWith("bright") || s.startsWith("~") || s.startsWith("!") || s.matches("\\d+")

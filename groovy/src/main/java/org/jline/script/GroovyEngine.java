@@ -1045,7 +1045,7 @@ public class GroovyEngine implements ScriptEngine {
             this.metaMethodsCompletion = groovyEngine.groovyOption(META_METHODS_COMPLETION, false);
             this.access = new AccessRules(groovyEngine.groovyOptions());
             String gc = groovyEngine.groovyOption(GROOVY_COLORS, null);
-            groovyColors = gc != null && Styles.isAnsiStylePattern(gc) ? gc : DEFAULT_GROOVY_COLORS;
+            groovyColors = gc != null && Styles.isStylePattern(gc) ? gc : DEFAULT_GROOVY_COLORS;
             groovyEngine.getObjectCloner().markCache();
             for (Map.Entry<String, Object> entry : groovyEngine.find().entrySet()) {
                 Object obj = groovyEngine.getObjectCloner().clone(entry.getValue());
@@ -1520,7 +1520,7 @@ public class GroovyEngine implements ScriptEngine {
         private List<AttributedString> doExceptionMessage(Exception exception) {
             List<AttributedString> out = new ArrayList<>();
             SyntaxHighlighter java = SyntaxHighlighter.build(nanorcSyntax);
-            StyleResolver resolver = style(groovyColors);
+            StyleResolver resolver = Styles.style(groovyColors);
             Pattern header = Pattern.compile("^[a-zA-Z() ]{3,}:(\\s+|$)");
             out.add(java.highlight(exception.getClass().getCanonicalName()));
             if (exception.getMessage() != null) {
@@ -1581,13 +1581,6 @@ public class GroovyEngine implements ScriptEngine {
             }
             out = cuttedSize + tot + se.getStartColumn() - 1;
             return out;
-        }
-
-        private static StyleResolver style(String style) {
-            Map<String, String> colors = Arrays.stream(style.split(":"))
-                    .collect(Collectors.toMap(s -> s.substring(0, s.indexOf('=')),
-                            s -> s.substring(s.indexOf('=') + 1)));
-            return new StyleResolver(colors::get);
         }
 
     }
