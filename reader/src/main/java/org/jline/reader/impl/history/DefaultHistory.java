@@ -257,11 +257,11 @@ public class DefaultHistory implements History {
             });
         }
         // Remove duplicates
-        doTrimHistory(allItems, max);
+        List<Entry> trimmedItems = doTrimHistory(allItems, max);
         // Write history
         Path temp = Files.createTempFile(path.toAbsolutePath().getParent(), path.getFileName().toString(), ".tmp");
         try (BufferedWriter writer = Files.newBufferedWriter(temp, StandardOpenOption.WRITE)) {
-            for (Entry entry : allItems) {
+            for (Entry entry : trimmedItems) {
                 writer.append(format(entry));
             }
         }
@@ -269,8 +269,8 @@ public class DefaultHistory implements History {
         // Keep items in memory
         if (isLineReaderHistory(path)) {
             internalClear();
-            offset = allItems.get(0).index();
-            items.addAll(allItems);
+            offset = trimmedItems.get(0).index();
+            items.addAll(trimmedItems);
             setHistoryFileData(path, new HistoryFileData(items.size(), items.size()));
         } else {
             setEntriesInFile(path, allItems.size());
@@ -296,7 +296,7 @@ public class DefaultHistory implements History {
         items.clear();
     }
 
-    static void doTrimHistory(List<Entry> allItems, int max) {
+    static List<Entry> doTrimHistory(List<Entry> allItems, int max) {
         int idx = 0;
         while (idx < allItems.size()) {
             int ridx = allItems.size() - idx - 1;
@@ -313,6 +313,12 @@ public class DefaultHistory implements History {
         while (allItems.size() > max) {
             allItems.remove(0);
         }
+        int index = allItems.get(allItems.size() - 1).index() - allItems.size() + 1;
+        List<Entry> out = new ArrayList<>();
+        for (Entry e : allItems) {
+            out.add(new EntryImpl(index++, e.time(), e.line()));
+        }
+        return out;
     }
 
     public int size() {

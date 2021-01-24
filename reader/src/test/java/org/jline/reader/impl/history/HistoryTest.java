@@ -141,10 +141,10 @@ public class HistoryTest extends ReaderTestSupport
         entries.add(new DefaultHistory.EntryImpl(8, Instant.now(), "a"));
 
         List<History.Entry> trimmed = new ArrayList<>(entries);
-        DefaultHistory.doTrimHistory(trimmed, 6);
+        trimmed = DefaultHistory.doTrimHistory(trimmed, 6);
         assertEquals(5, trimmed.size());
 
-        DefaultHistory.doTrimHistory(trimmed, 3);
+        trimmed = DefaultHistory.doTrimHistory(trimmed, 3);
         assertEquals(3, trimmed.size());
         assertEquals("c", trimmed.get(0).line());
         assertEquals("b", trimmed.get(1).line());
