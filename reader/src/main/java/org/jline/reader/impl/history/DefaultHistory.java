@@ -84,7 +84,7 @@ public class DefaultHistory implements History {
                     try (BufferedReader reader = Files.newBufferedReader(path)) {
                         internalClear();
                         reader.lines().forEach(line -> addHistoryLine(path, line));
-                        setHistoryFileData(path, new HistoryFileData(items.size(), items.size()));
+                        setHistoryFileData(path, new HistoryFileData(items.size(), offset + items.size()));
                         maybeResize();
                     }
                 }
@@ -105,7 +105,7 @@ public class DefaultHistory implements History {
                     Log.trace("Reading history from: ", path);
                     try (BufferedReader reader = Files.newBufferedReader(path)) {
                         reader.lines().forEach(line -> addHistoryLine(path, line, incremental));
-                        setHistoryFileData(path, new HistoryFileData(items.size(), items.size()));
+                        setHistoryFileData(path, new HistoryFileData(items.size(), offset + items.size()));
                         maybeResize();
                     }
                 }
