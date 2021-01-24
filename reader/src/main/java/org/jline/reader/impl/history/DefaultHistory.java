@@ -136,11 +136,7 @@ public class DefaultHistory implements History {
     private boolean isLineReaderHistory (Path path) throws IOException {
         Path lrp = getPath();
         if (lrp == null) {
-            if (path != null) {
-                return false;
-            } else {
-                return true;
-            }
+            return path == null;
         }
         return Files.isSameFile(lrp, path);    
     }
@@ -341,7 +337,7 @@ public class DefaultHistory implements History {
 
     private String format(Entry entry) {
         if (reader.isSet(LineReader.Option.HISTORY_TIMESTAMPED)) {
-            return Long.toString(entry.time().toEpochMilli()) + ":" + escape(entry.line()) + "\n";
+            return entry.time().toEpochMilli() + ":" + escape(entry.line()) + "\n";
         }
         return escape(entry.line()) + "\n";
     }
@@ -446,7 +442,7 @@ public class DefaultHistory implements History {
     }
     
     public void resetIndex() {
-        index = index > items.size() ? items.size() : index;
+        index = Math.min(index, items.size());
     }
 
     protected static class EntryImpl implements Entry {
@@ -627,7 +623,7 @@ public class DefaultHistory implements History {
         return sb.toString();
     }
 
-    private class HistoryFileData {
+    private static class HistoryFileData {
         private int lastLoaded = 0;
         private int entriesInFile = 0;
         
