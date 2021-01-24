@@ -764,17 +764,17 @@ public class GroovyEngine implements ScriptEngine {
             }
             String wordbuffer = commandLine.word();
             String buffer = commandLine.line().substring(0, commandLine.cursor());
+            inspector = new Inspector(groovyEngine);
+            inspector.loadStatementVars(buffer);
+            if (commandLine.words().size() == 1 && wordbuffer.contains("=")) {
+                int idx = wordbuffer.indexOf("=");
+                doValueCandidate(candidates, wordbuffer.substring(0, idx), wordbuffer.substring(0, idx + 1));
+            }
             Brackets brackets;
             try {
                 brackets = new Brackets(buffer);
             } catch (Exception e) {
                 return;
-            }
-            inspector = new Inspector(groovyEngine);
-            inspector.loadStatementVars(buffer);
-            if (commandLine.words().size() == 1 && wordbuffer.contains("=")) {
-                int idx = wordbuffer.indexOf("=");
-                doValueCandidate(candidates, inspector.execute(wordbuffer.substring(0, idx)), wordbuffer.substring(0, idx + 1));
             }
             if (brackets.openQuote()) {
                 return;
@@ -890,9 +890,14 @@ public class GroovyEngine implements ScriptEngine {
             Helpers.doCandidates(candidates, (Set<String>)map.keySet(), curBuf, CandidateType.IDENTIFIER);
         }
 
-        private void doValueCandidate(List<Candidate> candidates, Object object, String curBuf) {
-            if (object instanceof String) {
-                Helpers.doCandidates(candidates, Collections.singletonList((String)object), curBuf, CandidateType.STRING);
+        private void doValueCandidate(List<Candidate> candidates, String objectStatement, String curBuf) {
+            try {
+                Object object = inspector.execute(objectStatement);
+                if (object instanceof String) {
+                    Helpers.doCandidates(candidates, Collections.singletonList((String) object), curBuf, CandidateType.STRING);
+                }
+            } catch (Exception e) {
+                // ignore
             }
         }
 
