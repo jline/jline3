@@ -8,9 +8,11 @@
  */
 package org.jline.reader.impl;
 
-import org.jline.reader.LineReader;
-import org.jline.reader.Reference;
+import org.jline.keymap.*;
+import org.jline.reader.*;
 import org.junit.Test;
+
+import java.util.Map;
 
 import static org.jline.keymap.KeyMap.ctrl;
 import static org.jline.reader.LineReader.BACKWARD_KILL_LINE;
@@ -121,6 +123,30 @@ public class EditLineTest
                 .op(BACKWARD_WORD)
                 .op(BACKWARD_WORD)
                 .append('X'));
+    }
+
+    @Test
+    public void testEmacsBackwardWord() throws Exception {
+        reader.getKeys().bind(new Reference(LineReader.EMACS_BACKWARD_WORD),
+                KeyMap.alt('b'));
+
+        assertBuffer("This is a Xtest",
+                new TestBuffer("This is a test").op(BACKWARD_WORD)
+                        .append('X'));
+    }
+
+    @Test
+    public void testEmacsBackwardWordWithSeparator() throws Exception {
+        reader.getKeys().bind(new Reference(LineReader.EMACS_BACKWARD_WORD),
+                KeyMap.alt('b'));
+
+        // Use an empty string for WORDCHARS so that / is not treated as part of
+        // the word
+        reader.setVariable(LineReader.WORDCHARS, "");
+
+        assertBuffer("/tmp/foo/Xmoo",
+                new TestBuffer("/tmp/foo/moo").op(BACKWARD_WORD)
+                        .append('X'));
     }
 
     @Test

@@ -1609,6 +1609,7 @@ public class LineReaderImpl implements LineReader, Flushable
             while (buf.cursor() > 0) {
                 buf.move(-1);
                 if (!isWord(buf.currChar())) {
+                    buf.move(1);
                     break;
                 }
             }
