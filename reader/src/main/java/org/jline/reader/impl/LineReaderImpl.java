@@ -1356,7 +1356,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
     protected boolean viForwardWord() {
         if (count < 0) {
-            return callNeg(this::backwardWord);
+            return callNeg(this::viBackwardWord);
         }
         while (count-- > 0) {
             if (isViAlphaNum(buf.currChar())) {
@@ -1479,7 +1479,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
     protected boolean viBackwardWord() {
         if (count < 0) {
-            return callNeg(this::backwardWord);
+            return callNeg(this::viForwardWord);
         }
         while (count-- > 0) {
             int nl = 0;
