@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -498,6 +498,9 @@ public class TailTipWidgets extends Widgets {
     }
 
     private List<AttributedString> compileMainDescription(CmdDesc cmdDesc, int descriptionSize, String lastArg) {
+        if (descriptionSize == 0 || !descriptionEnabled) {
+            return new ArrayList<>();
+        }
         List<AttributedString> out = new ArrayList<>();
         List<AttributedString> mainDesc = cmdDesc.getMainDesc();
         if (mainDesc == null) {
@@ -549,6 +552,9 @@ public class TailTipWidgets extends Widgets {
     }
 
     private List<AttributedString> compileOptionDescription(CmdDesc cmdDesc, String opt, int descriptionSize) {
+        if (descriptionSize == 0 || !descriptionEnabled) {
+            return new ArrayList<>();
+        }
         List<AttributedString> out = new ArrayList<>();
         Map<String, List<AttributedString>> optsDesc = cmdDesc.getOptsDesc();
         StyleResolver resolver = HelpException.defaultStyle();
