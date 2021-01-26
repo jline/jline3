@@ -1407,21 +1407,7 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     protected boolean emacsForwardWord() {
-        if (count < 0) {
-            return callNeg(this::emacsBackwardWord);
-        }
-        while (count-- > 0) {
-            while (buf.cursor() < buf.length() && !isWord(buf.currChar())) {
-                buf.move(1);
-            }
-            if (isInViChangeOperation() && count == 0) {
-                return true;
-            }
-            while (buf.cursor() < buf.length() && isWord(buf.currChar())) {
-                buf.move(1);
-            }
-        }
-        return true;
+        return forwardWord();
     }
 
     protected boolean viForwardBlankWordEnd() {
@@ -1596,24 +1582,7 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     protected boolean emacsBackwardWord() {
-        if (count < 0) {
-            return callNeg(this::emacsForwardWord);
-        }
-        while (count-- > 0) {
-            while (buf.cursor() > 0) {
-                buf.move(-1);
-                if (isWord(buf.currChar())) {
-                    break;
-                }
-            }
-            while (buf.cursor() > 0) {
-                buf.move(-1);
-                if (!isWord(buf.currChar())) {
-                    break;
-                }
-            }
-        }
-        return true;
+        return backwardWord();
     }
 
     protected boolean backwardDeleteWord() {

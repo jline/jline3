@@ -8,6 +8,7 @@
  */
 package org.jline.reader.impl;
 
+import org.jline.keymap.KeyMap;
 import org.jline.reader.LineReader;
 import org.jline.reader.Reference;
 import org.junit.Test;
@@ -16,6 +17,8 @@ import static org.jline.keymap.KeyMap.ctrl;
 import static org.jline.reader.LineReader.BACKWARD_KILL_LINE;
 import static org.jline.reader.LineReader.BACKWARD_KILL_WORD;
 import static org.jline.reader.LineReader.BACKWARD_WORD;
+import static org.jline.reader.LineReader.EMACS_BACKWARD_WORD;
+import static org.jline.reader.LineReader.EMACS_FORWARD_WORD;
 import static org.jline.reader.LineReader.END_OF_LINE;
 import static org.jline.reader.LineReader.FORWARD_WORD;
 import static org.jline.reader.LineReader.KILL_WORD;
@@ -121,6 +124,114 @@ public class EditLineTest
                 .op(BACKWARD_WORD)
                 .op(BACKWARD_WORD)
                 .append('X'));
+    }
+
+    @Test
+    public void testBackwardWord() throws Exception {
+        assertBuffer("This is a Xtest",
+                new TestBuffer("This is a test").op(BACKWARD_WORD)
+                        .append('X'));
+
+        assertBuffer("This is Xa test",
+                new TestBuffer("This is a test").op(BACKWARD_WORD).op(BACKWARD_WORD)
+                        .append('X'));
+    }
+
+    @Test
+    public void testForwardWord() throws Exception {
+        assertBuffer("This Xis a test",
+                new TestBuffer("This is a test").ctrlA().op(FORWARD_WORD)
+                        .append('X'));
+
+        assertBuffer("This is Xa test",
+                new TestBuffer("This is a test").ctrlA().op(FORWARD_WORD).op(FORWARD_WORD)
+                        .append('X'));
+    }
+
+    @Test
+    public void testBackwardWordWithSeparator() throws Exception {
+        // Use an empty string for WORDCHARS so that / is not treated as part of the word
+        reader.setVariable(LineReader.WORDCHARS, "");
+
+        assertBuffer("/tmp/foo/Xmoo",
+                new TestBuffer("/tmp/foo/moo").op(BACKWARD_WORD)
+                        .append('X'));
+
+        assertBuffer("/tmp/Xfoo/moo",
+                new TestBuffer("/tmp/foo/moo").op(BACKWARD_WORD).op(BACKWARD_WORD)
+                        .append('X'));
+    }
+
+    @Test
+    public void testForwardWordWithSeparator() throws Exception {
+        // Use an empty string for WORDCHARS so that / is not treated as part of the word
+        reader.setVariable(LineReader.WORDCHARS, "");
+
+        assertBuffer("/Xtmp/foo/moo",
+                new TestBuffer("/tmp/foo/moo").ctrlA().op(FORWARD_WORD)
+                        .append('X'));
+
+        assertBuffer("/tmp/Xfoo/moo",
+                new TestBuffer("/tmp/foo/moo").ctrlA().op(FORWARD_WORD).op(FORWARD_WORD)
+                        .append('X'));
+    }
+
+    @Test
+    public void testEmacsBackwardWord() throws Exception {
+        reader.getKeys().bind(new Reference(LineReader.EMACS_BACKWARD_WORD), KeyMap.alt('b'));
+
+        assertBuffer("This is a Xtest",
+                new TestBuffer("This is a test").op(BACKWARD_WORD)
+                        .append('X'));
+
+        assertBuffer("This is Xa test",
+                new TestBuffer("This is a test").op(BACKWARD_WORD).op(BACKWARD_WORD)
+                        .append('X'));
+    }
+
+    @Test
+    public void testEmacsForwardWord() throws Exception {
+        reader.getKeys().bind(new Reference(LineReader.EMACS_FORWARD_WORD), KeyMap.alt('f'));
+
+        assertBuffer("This Xis a test",
+                new TestBuffer("This is a test").ctrlA().op(FORWARD_WORD)
+                        .append('X'));
+
+        assertBuffer("This is Xa test",
+                new TestBuffer("This is a test").ctrlA().op(FORWARD_WORD).op(FORWARD_WORD)
+                        .append('X'));
+    }
+
+    @Test
+    public void testEmacsBackwardWordWithSeparator() throws Exception {
+        reader.getKeys().bind(new Reference(LineReader.EMACS_BACKWARD_WORD), KeyMap.alt('b'));
+
+        // Use an empty string for WORDCHARS so that / is not treated as part of the word
+        reader.setVariable(LineReader.WORDCHARS, "");
+
+        assertBuffer("/tmp/foo/Xmoo",
+                new TestBuffer("/tmp/foo/moo").op(BACKWARD_WORD)
+                        .append('X'));
+
+        assertBuffer("/tmp/Xfoo/moo",
+                new TestBuffer("/tmp/foo/moo").op(BACKWARD_WORD).op(BACKWARD_WORD)
+                        .append('X'));
+    }
+
+    @Test
+    public void testEmacsForwardWordWithSeparator() throws Exception {
+        reader.getKeys().bind(new Reference(LineReader.EMACS_FORWARD_WORD), KeyMap.alt('f'));
+
+        // Use an empty string for WORDCHARS so that / is not treated as part of the word
+        reader.setVariable(LineReader.WORDCHARS, "");
+
+        assertBuffer("/Xtmp/foo/moo",
+                new TestBuffer("/tmp/foo/moo").ctrlA().op(FORWARD_WORD)
+                        .append('X'));
+
+        assertBuffer("/tmp/Xfoo/moo",
+                new TestBuffer("/tmp/foo/moo").ctrlA().op(FORWARD_WORD).op(FORWARD_WORD)
+                        .append('X'));
     }
 
     @Test
