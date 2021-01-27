@@ -108,7 +108,20 @@ public class CompletionTest extends ReaderTestSupport {
         assertBuffer("foo", new TestBuffer("fo\t\t\t"));
         assertTrue(reader.list);
         assertTrue(reader.menu);
+    }
 
+    @Test
+    public void testTypoMatcher() throws Exception {
+        reader.setCompleter(new StringsCompleter("foo", "foobar"));
+
+        reader.unsetOpt(Option.MENU_COMPLETE);
+        reader.unsetOpt(Option.AUTO_LIST);
+        reader.unsetOpt(Option.AUTO_MENU);
+        reader.unsetOpt(Option.LIST_AMBIGUOUS);
+
+        assertBuffer("foobar ", new TestBuffer("foobaZ\t"));
+        reader.unsetOpt(Option.COMPLETE_MATCHER_TYPO);
+        assertBuffer("foobaZ", new TestBuffer("foobaZ\t"));
     }
 
     @Test

@@ -396,6 +396,8 @@ public interface LineReader {
         COMPLETE_IN_WORD,
         /** use camel case completion matcher */
         COMPLETE_MATCHER_CAMELCASE,
+        /** use type completion matcher */
+        COMPLETE_MATCHER_TYPO(true),
         DISABLE_EVENT_EXPANSION,
         HISTORY_VERIFY,
         HISTORY_IGNORE_SPACE(true),
