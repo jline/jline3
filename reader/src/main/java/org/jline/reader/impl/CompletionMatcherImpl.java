@@ -101,9 +101,11 @@ public class CompletionMatcherImpl implements CompletionMatcher {
             String wp = wdi.substring(0, line.wordCursor());
             matchers = new ArrayList<>(Arrays.asList(
                     simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).startsWith(wp)),
-                    simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).contains(wp)),
-                    typoMatcher(wp, errors, caseInsensitive, originalGroupName)
+                    simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).contains(wp))
             ));
+            if (LineReader.Option.COMPLETE_MATCHER_TYPO.isSet(options)) {
+                matchers.add(typoMatcher(wp, errors, caseInsensitive, originalGroupName));
+            }
             exact = s -> caseInsensitive ? s.equalsIgnoreCase(wp) : s.equals(wp);
         } else if (LineReader.Option.COMPLETE_IN_WORD.isSet(options)) {
             String wd = line.word();
@@ -114,9 +116,12 @@ public class CompletionMatcherImpl implements CompletionMatcher {
             Pattern p2 = Pattern.compile(".*" + Pattern.quote(wp) + ".*" + Pattern.quote(ws) + ".*");
             matchers = new ArrayList<>(Arrays.asList(
                     simpleMatcher(s -> p1.matcher(caseInsensitive ? s.toLowerCase() : s).matches()),
-                    simpleMatcher(s -> p2.matcher(caseInsensitive ? s.toLowerCase() : s).matches()),
-                    typoMatcher(wdi, errors, caseInsensitive, originalGroupName)
+                    simpleMatcher(s -> p2.matcher(caseInsensitive ? s.toLowerCase() : s).matches())
             ));
+            if (LineReader.Option.COMPLETE_MATCHER_TYPO.isSet(options)) {
+                matchers.add(typoMatcher(wdi, errors, caseInsensitive, originalGroupName));
+            }
+
             exact = s -> caseInsensitive ? s.equalsIgnoreCase(wd) : s.equals(wd);
         } else {
             String wd = line.word();
@@ -124,9 +129,11 @@ public class CompletionMatcherImpl implements CompletionMatcher {
             if (LineReader.Option.EMPTY_WORD_OPTIONS.isSet(options) || wd.length() > 0) {
                 matchers = new ArrayList<>(Arrays.asList(
                         simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).startsWith(wdi)),
-                        simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).contains(wdi)),
-                        typoMatcher(wdi, errors, caseInsensitive, originalGroupName)
+                        simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).contains(wdi))
                 ));
+                if (LineReader.Option.COMPLETE_MATCHER_TYPO.isSet(options)) {
+                    matchers.add(typoMatcher(wdi, errors, caseInsensitive, originalGroupName));
+                }
             } else {
                 matchers = new ArrayList<>(Collections.singletonList(simpleMatcher(s -> !s.startsWith("-"))));
             }
