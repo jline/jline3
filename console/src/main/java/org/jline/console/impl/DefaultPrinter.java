@@ -38,11 +38,11 @@ import org.jline.utils.StyleResolver;
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public class DefaultPrinter extends JlineCommandRegistry implements Printer {
-    private static final String VAR_PRNT_OPTIONS = "PRNT_OPTIONS";
-    private static final String VAR_NANORC = "NANORC";
-    private static final int PRNT_MAX_ROWS = 100000;
-    private static final int PRNT_MAX_DEPTH = 1;
-    private static final int PRNT_INDENTION = 4;
+    protected static final String VAR_PRNT_OPTIONS = "PRNT_OPTIONS";
+    protected static final String VAR_NANORC = "NANORC";
+    protected static final int PRNT_MAX_ROWS = 100000;
+    protected static final int PRNT_MAX_DEPTH = 1;
+    protected static final int PRNT_INDENTION = 4;
     private static final int NANORC_MAX_STRING_LENGTH = 400;
 
     private Map<Class<?>, Function<Object, Map<String,Object>>> objectToMap = new HashMap<>();
@@ -241,11 +241,20 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         this.highlightValue = highlightValue;
     }
 
-    private Terminal terminal() {
+    /**
+     *
+     * @return terminal to which will be printed
+     */
+    protected Terminal terminal() {
         return SystemRegistry.get().terminal();
     }
 
-    private void manageBooleanOptions(Map<String, Object> options) {
+    /**
+     * Boolean printing options Printer checks only if key is present.
+     * Boolean options that have false value are removed from the options Map.
+     * @param options printing options
+     */
+    protected void manageBooleanOptions(Map<String, Object> options) {
         for (String key : Printer.BOOLEAN_KEYS) {
             if (options.containsKey(key)) {
                 boolean value = options.get(key) instanceof Boolean && (boolean) options.get(key);
@@ -256,8 +265,14 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         }
     }
 
+    /**
+     * Set default and mandatory printing options.
+     * Also unsupported options will be removed when Printer is used without scriptEngine
+     * @param skipDefault when true does not set default options
+     * @return default, mandatory and supported options
+     */
     @SuppressWarnings("unchecked")
-    private Map<String,Object> defaultPrntOptions(boolean skipDefault) {
+    protected Map<String,Object> defaultPrntOptions(boolean skipDefault) {
         Map<String, Object> out = new HashMap<>();
         if (engine != null && !skipDefault && engine.hasVariable(VAR_PRNT_OPTIONS)) {
             out.putAll((Map<String,Object>)engine.get(VAR_PRNT_OPTIONS));
@@ -314,7 +329,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         } else if (options.containsKey(Printer.SKIP_DEFAULT_OPTIONS)) {
             highlightAndPrint(options, object);
         } else if (object instanceof Exception) {
-            SystemRegistry.get().trace(options.getOrDefault("exception", "stack").equals("stack"), (Exception)object);
+            highlightAndPrint(options, (Exception)object);
         } else if (object instanceof CmdDesc) {
             highlight((CmdDesc)object).println(terminal());
         } else if (object instanceof String || object instanceof Number) {
@@ -324,6 +339,15 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         }
         terminal().flush();
         Log.debug("println: ", new Date().getTime() - start, " msec");
+    }
+
+    /**
+     * Highlight and print an exception
+     * @param options Printing options
+     * @param exception Exception to be printed
+     */
+    protected void highlightAndPrint(Map<String, Object> options, Exception exception) {
+        SystemRegistry.get().trace(options.getOrDefault("exception", "stack").equals("stack"), exception);
     }
 
     private AttributedString highlight(CmdDesc cmdDesc) {

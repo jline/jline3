@@ -13,12 +13,15 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.Supplier;
 
+import org.jline.builtins.ConfigurationPath;
+import org.jline.builtins.Styles;
 import org.jline.console.ArgDesc;
 import org.jline.console.CmdDesc;
 import org.jline.console.CommandInput;
 import org.jline.console.CommandMethods;
 import org.jline.console.CommandRegistry;
 import org.jline.console.Printer;
+import org.jline.utils.AttributedStringBuilder;
 import org.jline.widget.AutopairWidgets;
 import org.jline.widget.AutosuggestionWidgets;
 import org.jline.widget.TailTipWidgets;
@@ -93,15 +96,18 @@ public class Console
         private final Map<String,String> aliasCommand = new HashMap<>();
         private Exception exception;
         private final Printer printer;
+        private final Printer myPrinter;
 
-        public ExampleCommands(Printer printer) {
+        public ExampleCommands(Printer printer, Printer myPrinter) {
             this.printer = printer;
+            this.myPrinter = myPrinter;
             commandExecute.put("testprint", new CommandMethods(this::testprint, this::defaultCompleter));
             commandExecute.put("testkey", new CommandMethods(this::testkey, this::defaultCompleter));
             commandExecute.put("clear", new CommandMethods(this::clear, this::defaultCompleter));
             commandExecute.put("autopair", new CommandMethods(this::autopair, this::defaultCompleter));
             commandExecute.put("autosuggestion", new CommandMethods(this::autosuggestion, this::autosuggestionCompleter));
 
+            commandInfo.put("testprint", Arrays.asList("print table using DefaultPrinter (args.length=0) or MyPrinter (args.length>0)"));
             commandInfo.put("testkey", Arrays.asList("display key events"));
             commandInfo.put("clear", Arrays.asList("clear screen"));
             commandInfo.put("autopair", Arrays.asList("toggle brackets/quotes autopair key bindings"));
@@ -188,20 +194,21 @@ public class Console
         }
 
         private void testprint(CommandInput input) {
+            Printer p = input.args().length > 0 ? myPrinter : printer;
             List<Map<String,Object>> data = new ArrayList<>();
             data.add(fillMap("heikki", 10, "finland", "helsinki"));
             data.add(fillMap("pietro", 11, "italy", "milano"));
             data.add(fillMap("john", 12, "england", "london"));
-            printer.println(data);
+            p.println("Printing tables using: " + p.getClass().getName());
+            p.println(data);
             Map<String,Object> options = new HashMap<>();
             options.put(Printer.STRUCT_ON_TABLE, true);
             options.put(Printer.VALUE_STYLE, "classpath:/org/jline/example/gron.nanorc");
-            printer.println(options,data);
+            p.println(options,data);
             options.clear();
             options.put(Printer.COLUMNS, Arrays.asList("name", "age", "address.country", "address.town"));
             options.put(Printer.SHORT_NAMES, true);
-            options.put(Printer.VALUE_STYLE, "classpath:/org/jline/example/gron.nanorc");
-            printer.println(options,data);
+            p.println(options,data);
         }
 
         private void testkey(CommandInput input) {
@@ -308,6 +315,38 @@ public class Console
         }
     }
 
+    /**
+     * If you are not using SystemRegistry in your REPL app and want to use DefaultPrinter
+     * then you must override:
+     * 1) method terminal()
+     * 2) method highlightAndPrint(options, exception) if you are going to print exceptions
+     * 3) method defaultPrntOptions(skipDefault) if you want to manage configurable printing options
+     */
+    private static class MyPrinter extends DefaultPrinter {
+        private final Terminal terminal;
+
+        public MyPrinter(ConfigurationPath configPath, Terminal terminal) {
+            super(configPath);
+            this.terminal = terminal;
+        }
+
+        @Override
+        protected Terminal terminal() {
+            return terminal;
+        }
+
+        @Override
+        protected void highlightAndPrint(Map<String, Object> options, Exception exception) {
+            if (options.getOrDefault("exception", "stack").equals("stack")) {
+                exception.printStackTrace();
+            } else {
+                AttributedStringBuilder asb = new AttributedStringBuilder();
+                asb.append(exception.getMessage(), Styles.prntStyle().resolve(".em"));
+                asb.toAttributedString().println(terminal());
+            }
+        }
+    }
+
     public static void main(String[] args) {
         try {
             Completer completer = new ArgumentCompleter(new Completer() {
@@ -336,8 +375,9 @@ public class Console
             builtins.rename(Builtins.Command.TTOP, "top");
             builtins.alias("zle", "widget");
             builtins.alias("bindkey", "keymap");
-            DefaultPrinter printer = new DefaultPrinter(null);
-            ExampleCommands exampleCommands = new ExampleCommands(printer);
+            Printer printer = new DefaultPrinter(null);
+            Printer myPrinter = new MyPrinter(null, terminal);
+            ExampleCommands exampleCommands = new ExampleCommands(printer, myPrinter);
             SystemRegistryImpl masterRegistry = new SystemRegistryImpl(parser, terminal, workDir, null);
             masterRegistry.setCommandRegistries(exampleCommands, builtins);
             masterRegistry.addCompleter(completer);
