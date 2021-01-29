@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -1276,19 +1276,19 @@ public class SystemRegistryImpl implements SystemRegistry {
             Options.HelpException.highlight((exception).getMessage(), Styles.helpStyle()).print(terminal());
         } else if (exception instanceof UnknownCommandException) {
             AttributedStringBuilder asb = new AttributedStringBuilder();
-            asb.append(exception.getMessage(), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+            asb.append(exception.getMessage(), Styles.prntStyle().resolve(".em"));
             asb.toAttributedString().println(terminal());
         } else if (stack) {
             exception.printStackTrace();
         } else {
             String message = exception.getMessage();
             AttributedStringBuilder asb = new AttributedStringBuilder();
+            asb.style(Styles.prntStyle().resolve(".em"));
             if (message != null) {
-                String m = exception.getClass().getSimpleName() + ": " + message;
-                asb.append(m, AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+                asb.append(exception.getClass().getSimpleName()).append(": ").append(message);
             } else {
-                asb.append("Caught exception: ", AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
-                asb.append(exception.getClass().getCanonicalName(), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+                asb.append("Caught exception: ");
+                asb.append(exception.getClass().getCanonicalName());
             }
             asb.toAttributedString().println(terminal());
             Log.debug("Stack: ", exception);
