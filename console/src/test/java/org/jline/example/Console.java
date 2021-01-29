@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,10 +8,10 @@
  */
 package org.jline.example;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.function.Supplier;
 
 import org.jline.console.ArgDesc;
 import org.jline.console.CmdDesc;
@@ -90,9 +90,9 @@ public class Console
         private AutopairWidgets autopairWidgets;
         private final Map<String,CommandMethods> commandExecute = new HashMap<>();
         private final Map<String,List<String>> commandInfo = new HashMap<>();
-        private Map<String,String> aliasCommand = new HashMap<>();
+        private final Map<String,String> aliasCommand = new HashMap<>();
         private Exception exception;
-        private Printer printer;
+        private final Printer printer;
 
         public ExampleCommands(Printer printer) {
             this.printer = printer;
@@ -141,10 +141,7 @@ public class Console
         }
 
         public boolean hasCommand(String command) {
-            if (commandExecute.containsKey(command) || aliasCommand.containsKey(command)) {
-                return true;
-            }
-            return false;
+            return commandExecute.containsKey(command) || aliasCommand.containsKey(command);
         }
 
         private String command(String name) {
@@ -311,16 +308,8 @@ public class Console
         }
     }
 
-    private static Path workDir() {
-        return Paths.get(System.getProperty("user.dir"));
-    }
-
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         try {
-            String prompt = "prompt> ";
-            String rightPrompt = null;
-
-            boolean argument = true;
             Completer completer = new ArgumentCompleter(new Completer() {
                 @Override
                 public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
@@ -340,15 +329,16 @@ public class Console
             Terminal terminal = TerminalBuilder.builder().build();
             Parser parser = new DefaultParser();
             //
-            // Command registeries
+            // Command registers
             //
-            Builtins builtins = new Builtins(Console::workDir, null, null);
+            Supplier<Path> workDir = () -> Paths.get(System.getProperty("user.dir"));
+            Builtins builtins = new Builtins(workDir, null, null);
             builtins.rename(Builtins.Command.TTOP, "top");
             builtins.alias("zle", "widget");
             builtins.alias("bindkey", "keymap");
             DefaultPrinter printer = new DefaultPrinter(null);
             ExampleCommands exampleCommands = new ExampleCommands(printer);
-            SystemRegistryImpl masterRegistry = new SystemRegistryImpl(parser, terminal, Console::workDir, null);
+            SystemRegistryImpl masterRegistry = new SystemRegistryImpl(parser, terminal, workDir, null);
             masterRegistry.setCommandRegistries(exampleCommands, builtins);
             masterRegistry.addCompleter(completer);
             //
@@ -369,14 +359,15 @@ public class Console
             //
             AutopairWidgets autopairWidgets = new AutopairWidgets(reader);
             AutosuggestionWidgets autosuggestionWidgets = new AutosuggestionWidgets(reader);
-            TailTipWidgets tailtipWidgets = null;
+            TailTipWidgets tailtipWidgets;
+            boolean argument = true;
             if (argument) {
                 tailtipWidgets = new TailTipWidgets(reader, compileTailTips(), 5, TipType.COMPLETER);
             } else {
                 tailtipWidgets = new TailTipWidgets(reader, masterRegistry::commandDescription, 5, TipType.COMPLETER);
             }
             //
-            // complete command registeries
+            // complete command registers
             //
             builtins.setLineReader(reader);
             exampleCommands.setLineReader(reader);
@@ -389,7 +380,7 @@ public class Console
             while (true) {
                 try {
                     masterRegistry.cleanUp();
-                    String line = reader.readLine(prompt, rightPrompt, (MaskingCallback) null, null);
+                    String line = reader.readLine("prompt> ", null, (MaskingCallback) null, null);
                     masterRegistry.execute(line);
                 }
                 catch (UserInterruptException e) {
