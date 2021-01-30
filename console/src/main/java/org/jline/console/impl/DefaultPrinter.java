@@ -320,12 +320,13 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         String style = (String) options.getOrDefault(Printer.STYLE, "");
         int width = (int) options.get(Printer.WIDTH);
         if (!style.isEmpty() && object instanceof String) {
-            highlightAndPrint(width, style, (String) object);
+            highlightAndPrint(width, style, (String) object, doValueHighlight(options, (String) object));
         } else if (style.equalsIgnoreCase("JSON")) {
             if (engine == null) {
                 throw new IllegalArgumentException("JSON style not supported!");
             }
-            highlightAndPrint(width, style, engine.toJson(object));
+            String json = engine.toJson(object);
+            highlightAndPrint(width, style, json, doValueHighlight(options, json));
         } else if (options.containsKey(Printer.SKIP_DEFAULT_OPTIONS)) {
             highlightAndPrint(options, object);
         } else if (object instanceof Exception) {
@@ -333,7 +334,8 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         } else if (object instanceof CmdDesc) {
             highlight((CmdDesc)object).println(terminal());
         } else if (object instanceof String || object instanceof Number) {
-            highlightAndPrint(width, valueStyle, object.toString());
+            String str = object.toString();
+            highlightAndPrint(width, valueStyle, str, doValueHighlight(options, str));
         } else {
             highlightAndPrint(options, object);
         }
@@ -405,10 +407,6 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         return val;
     }
 
-    private AttributedString highlight(Integer width, SyntaxHighlighter highlighter, String object) {
-        return highlight(width, highlighter, object, isValue(object));
-    }
-
     private AttributedString highlight(Integer width, SyntaxHighlighter highlighter, String object, boolean doValueHighlight) {
         AttributedString out;
         AttributedStringBuilder asb = new AttributedStringBuilder();
@@ -428,8 +426,9 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         return out;
     }
 
-    private boolean isValue(String value) {
-        if(value.matches("\"(\\.|[^\"])*\"|'(\\.|[^'])*'")
+    private boolean doValueHighlight(Map<String,Object> options, String value) {
+        if (options.containsKey(Printer.VALUE_STYLE_ALL)
+                || value.matches("\"(\\.|[^\"])*\"|'(\\.|[^'])*'")
                 || (value.startsWith("[") && value.endsWith("]"))
                 || (value.startsWith("(") && value.endsWith(")"))
                 || (value.startsWith("{") && value.endsWith("}"))
@@ -441,9 +440,8 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         }
     }
 
-    private void highlightAndPrint(int width, String style, String object) {
+    private void highlightAndPrint(int width, String style, String object, boolean doValueHighlight) {
         SyntaxHighlighter highlighter = valueHighlighter(style);
-        boolean doValueHighlight = isValue(object);
         for (String s: object.split("\\r?\\n")) {
             AttributedStringBuilder asb = new AttributedStringBuilder();
             List<AttributedString> sas = asb.append(s).columnSplitLength(width);
@@ -629,7 +627,8 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
             }
         }
         if (options.containsKey(Printer.VALUE_STYLE) && !isHighlighted(out)) {
-            out = highlight(null, (SyntaxHighlighter)options.get(Printer.VALUE_STYLE), out.toString());
+            out = highlight(null, (SyntaxHighlighter)options.get(Printer.VALUE_STYLE), out.toString()
+                    , doValueHighlight(options, out.toString()));
         }
         return truncateValue(options, out);
     }

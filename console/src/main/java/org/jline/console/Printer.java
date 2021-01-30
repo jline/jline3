@@ -181,9 +181,16 @@ public interface Printer {
      * Overrides the ScriptEngine toString() method.
      */
     String OBJECT_TO_STRING = "objectToString";
+    /**
+     * Value: Boolean<br>
+     * Applies: MAP and TABLE<br>
+     * Highlight everything also strings with spaces
+     * DEFAULT: highlight only strings without spaces or enclosed by quotes or brackets
+     */
+    String VALUE_STYLE_ALL = "valueStyleAll";
 
     List<String> BOOLEAN_KEYS = Arrays.asList(ALL, ONE_ROW_TABLE, ROWNUM, SHORT_NAMES, SKIP_DEFAULT_OPTIONS
-            , STRUCT_ON_TABLE, TO_STRING);
+            , STRUCT_ON_TABLE, TO_STRING, VALUE_STYLE_ALL);
 
     default void println(Object object) {
         println(new HashMap<>(), object);
