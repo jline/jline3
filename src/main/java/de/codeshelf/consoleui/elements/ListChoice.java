@@ -31,8 +31,8 @@ public class ListChoice extends AbstractPromptableElement {
     return message;
   }
 
-  public ArrayList<ConsoleUIItemIF> getListItemList() {
-    return new ArrayList<ConsoleUIItemIF>(listItemList);
+  public List<ListItemIF> getListItemList() {
+    return listItemList;
   }
 
   public int getPageSize() {

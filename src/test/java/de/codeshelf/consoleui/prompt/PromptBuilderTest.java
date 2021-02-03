@@ -3,10 +3,10 @@ package de.codeshelf.consoleui.prompt;
 import de.codeshelf.consoleui.elements.ConfirmChoice;
 import de.codeshelf.consoleui.elements.PromptableElementIF;
 import de.codeshelf.consoleui.prompt.builder.PromptBuilder;
-import jline.console.completer.StringsCompleter;
+import org.jline.terminal.TerminalBuilder;
 import org.junit.Test;
 
-import java.util.HashMap;
+import java.io.IOException;
 import java.util.List;
 
 import static org.junit.Assert.assertNotNull;
@@ -18,8 +18,8 @@ import static org.junit.Assert.assertNotNull;
 public class PromptBuilderTest {
 
   @Test
-  public void testBuilder() throws Exception {
-    ConsolePrompt prompt = new ConsolePrompt();
+  public void testBuilder() throws IOException {
+    ConsolePrompt prompt = new ConsolePrompt(TerminalBuilder.builder().build());
     PromptBuilder promptBuilder = prompt.getPromptBuilder();
 
     promptBuilder.createConfirmPromp()
@@ -32,7 +32,6 @@ public class PromptBuilderTest {
             .name("name")
             .message("Please enter your name")
             .defaultValue("John Doe")
-            .addCompleter(new StringsCompleter("Jim", "Jack", "John"))
             .addPrompt();
 
     promptBuilder.createListPrompt()

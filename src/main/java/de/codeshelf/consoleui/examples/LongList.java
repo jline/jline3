@@ -1,17 +1,20 @@
 package de.codeshelf.consoleui.examples;
 
 import de.codeshelf.consoleui.prompt.ConsolePrompt;
-import de.codeshelf.consoleui.prompt.PromtResultItemIF;
+import de.codeshelf.consoleui.prompt.ConsolePrompt.UiConfig;
+import de.codeshelf.consoleui.prompt.PromptResultItemIF;
 import de.codeshelf.consoleui.prompt.builder.CheckboxPromptBuilder;
 import de.codeshelf.consoleui.prompt.builder.ListPromptBuilder;
 import de.codeshelf.consoleui.prompt.builder.PromptBuilder;
-import jline.TerminalFactory;
-import org.fusesource.jansi.AnsiConsole;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStringBuilder;
 
 import java.io.IOException;
-import java.util.HashMap;
-
-import static org.fusesource.jansi.Ansi.ansi;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * User: Andreas Wegmann
@@ -19,16 +22,18 @@ import static org.fusesource.jansi.Ansi.ansi;
  */
 public class LongList {
 
-  public static void main(String[] args) throws InterruptedException {
-    AnsiConsole.systemInstall();
-    System.out.println(ansi().eraseScreen().render("@|red,italic Hello|@ @|green World|@\n@|reset " +
-            "This is a demonstration of ConsoleUI java library. It provides a simple console interface\n" +
-            "for querying information from the user. ConsoleUI is inspired by Inquirer.js which is written\n" +
-            "in JavaScript.|@"));
+  public static void main(String[] args) {
+    List<AttributedString> header = new ArrayList<>();
+    header.add(new AttributedStringBuilder()
+            .append("This is a demonstration of ConsoleUI java library. It provides a simple console interface").toAttributedString());
+    header.add(new AttributedStringBuilder()
+            .append("for querying information from the user. ConsoleUI is inspired by Inquirer.js which is written").toAttributedString());
+    header.add(new AttributedStringBuilder()
+            .append("in JavaScript.").toAttributedString());
 
-
-    try {
-      ConsolePrompt prompt = new ConsolePrompt();
+    try (Terminal terminal = TerminalBuilder.builder().build()) {
+      UiConfig config = new UiConfig(">", "( )", "(x)", "( )");
+      ConsolePrompt prompt = new ConsolePrompt(terminal, config);
       PromptBuilder promptBuilder = prompt.getPromptBuilder();
 
       ListPromptBuilder listPrompt = promptBuilder.createListPrompt();
@@ -47,17 +52,10 @@ public class LongList {
           checkboxPrompt.newItem().text("" + letter + letter2).add();
       checkboxPrompt.addPrompt();
 
-      HashMap<String, ? extends PromtResultItemIF> result = prompt.prompt(promptBuilder.build());
+      Map<String, PromptResultItemIF> result = prompt.prompt(header, promptBuilder.build());
       System.out.println("result = " + result);
     } catch (IOException e) {
       e.printStackTrace();
-    } finally {
-      try {
-        TerminalFactory.get().restore();
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
     }
-
   }
 }

@@ -29,8 +29,8 @@ public class Checkbox extends AbstractPromptableElement {
     return message;
   }
 
-  public ArrayList<CheckboxItemIF> getCheckboxItemList() {
-    return new ArrayList<CheckboxItemIF>(checkboxItemList);
+  public List<CheckboxItemIF> getCheckboxItemList() {
+    return checkboxItemList;
   }
 
   public int getPageSize() {

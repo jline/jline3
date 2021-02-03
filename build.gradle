@@ -25,8 +25,7 @@ compileJava {
 
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.11'
-    compile 'org.fusesource.jansi:jansi:1.11'
-    compile 'jline:jline:2.14.6'
+    compile 'org.jline:jline:3.19.0'
 }
 
 javadoc {

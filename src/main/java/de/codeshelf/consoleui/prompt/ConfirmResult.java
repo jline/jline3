@@ -9,7 +9,7 @@ import de.codeshelf.consoleui.elements.ConfirmChoice;
  * User: Andreas Wegmann
  * Date: 03.02.16
  */
-public class ConfirmResult implements PromtResultItemIF {
+public class ConfirmResult implements PromptResultItemIF {
   ConfirmChoice.ConfirmationValue confirmed;
 
   /**
@@ -27,6 +27,10 @@ public class ConfirmResult implements PromtResultItemIF {
    */
   public ConfirmChoice.ConfirmationValue getConfirmed() {
     return confirmed;
+  }
+
+  public String getResult() {
+    return confirmed.toString();
   }
 
   @Override

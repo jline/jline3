@@ -1,15 +1,17 @@
 package de.codeshelf.consoleui.examples;
 
 import de.codeshelf.consoleui.prompt.ConsolePrompt;
-import de.codeshelf.consoleui.prompt.PromtResultItemIF;
+import de.codeshelf.consoleui.prompt.PromptResultItemIF;
 import de.codeshelf.consoleui.prompt.builder.PromptBuilder;
-import jline.TerminalFactory;
-import org.fusesource.jansi.AnsiConsole;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStringBuilder;
 
 import java.io.IOException;
-import java.util.HashMap;
-
-import static org.fusesource.jansi.Ansi.ansi;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * User: Andreas Wegmann
@@ -17,12 +19,12 @@ import static org.fusesource.jansi.Ansi.ansi;
  */
 public class SimpleExample {
 
-  public static void main(String[] args) throws InterruptedException {
-    AnsiConsole.systemInstall();
-    System.out.println(ansi().eraseScreen().render("Simple list example:"));
+  public static void main(String[] args) {
+    List<AttributedString> header = new ArrayList<>();
+    header.add(new AttributedStringBuilder().append("Simple list example:").toAttributedString());
 
-    try {
-      ConsolePrompt prompt = new ConsolePrompt();
+    try (Terminal terminal = TerminalBuilder.builder().build()) {
+      ConsolePrompt prompt = new ConsolePrompt(terminal);
       PromptBuilder promptBuilder = prompt.getPromptBuilder();
 
       promptBuilder.createListPrompt()
@@ -33,16 +35,11 @@ public class SimpleExample {
               .newItem("hawai").text("Hawai").add()
               .newItem("quattro").text("Quattro Stagioni").add()
               .addPrompt();
-      
-      HashMap<String, ? extends PromtResultItemIF> result = prompt.prompt(promptBuilder.build());
+
+      Map<String, PromptResultItemIF> result = prompt.prompt(header, promptBuilder.build());
       System.out.println("result = " + result);
     } catch (IOException e) {
       e.printStackTrace();
-    } finally {
-      try {
-        TerminalFactory.get().restore();
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
     }
-  }}
+  }
+}

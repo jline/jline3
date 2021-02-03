@@ -31,6 +31,10 @@ public class ChoiceItem implements ChoiceItemIF {
     return message;
   }
 
+  public String getText() {
+    return message;
+  }
+
   public boolean isSelectable() {
     return true;
   }

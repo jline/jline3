@@ -3,16 +3,19 @@ package de.codeshelf.consoleui;
 import de.codeshelf.consoleui.elements.ConfirmChoice;
 import de.codeshelf.consoleui.prompt.ConfirmResult;
 import de.codeshelf.consoleui.prompt.ConsolePrompt;
-import de.codeshelf.consoleui.prompt.PromtResultItemIF;
+import de.codeshelf.consoleui.prompt.ConsolePrompt.UiConfig;
+import de.codeshelf.consoleui.prompt.PromptResultItemIF;
 import de.codeshelf.consoleui.prompt.builder.PromptBuilder;
-import jline.TerminalFactory;
-import jline.console.completer.StringsCompleter;
-import org.fusesource.jansi.AnsiConsole;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.AttributedStyle;
+import org.jline.utils.OSUtils;
 
-import java.io.IOException;
-import java.util.HashMap;
-
-import static org.fusesource.jansi.Ansi.ansi;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * User: Andreas Wegmann
@@ -20,16 +23,35 @@ import static org.fusesource.jansi.Ansi.ansi;
  */
 public class Basic {
 
-  public static void main(String[] args) throws InterruptedException {
-    AnsiConsole.systemInstall();
-    System.out.println(ansi().eraseScreen().render("@|red,italic Hello|@ @|green World|@\n@|reset " +
-            "This is a demonstration of ConsoleUI java library. It provides a simple console interface\n" +
-            "for querying information from the user. ConsoleUI is inspired by Inquirer.js which is written\n" +
-            "in JavaScript.|@"));
+  private static void addInHeader(List<AttributedString> header, String text) {
+    addInHeader(header, AttributedStyle.DEFAULT, text);
+  }
 
+  private static void addInHeader(List<AttributedString> header, AttributedStyle style, String text) {
+    AttributedStringBuilder asb = new AttributedStringBuilder();
+    asb.style(style).append(text);
+    header.add(asb.toAttributedString());
+  }
 
-    try {
-      ConsolePrompt prompt = new ConsolePrompt();
+  public static void main(String[] args) {
+    List<AttributedString> header = new ArrayList<>();
+    AttributedStyle style = new AttributedStyle();
+    addInHeader(header, style.italic().foreground(2), "Hello World!");
+    addInHeader(header, "This is a demonstration of ConsoleUI java library. It provides a simple console interface");
+    addInHeader(header, "for querying information from the user. ConsoleUI is inspired by Inquirer.js which is written");
+    addInHeader(header, "in JavaScript.");
+    try (Terminal terminal = TerminalBuilder.builder().build()) {
+      UiConfig config;
+      if (terminal.getType().equals(Terminal.TYPE_DUMB) || terminal.getType().equals(Terminal.TYPE_DUMB_COLOR)) {
+        System.out.println(terminal.getName() + ": " + terminal.getType());
+        throw new IllegalStateException("Dumb terminal detected.\nConsoleUi requires real terminal to work!\n"
+                                      + "Note: On Windows Jansi or JNA library must be included in classpath.");
+      } else if (OSUtils.IS_WINDOWS) {
+        config = new UiConfig(">", "( )", "(x)", "( )");
+      } else {
+        config = new UiConfig("\u276F", "\u25EF ", "\u25C9 ", "\u25EF ");
+      }
+      ConsolePrompt prompt = new ConsolePrompt(terminal, config);
       PromptBuilder promptBuilder = prompt.getPromptBuilder();
 
 
@@ -37,8 +59,7 @@ public class Basic {
               .name("name")
               .message("Please enter your name")
               .defaultValue("John Doe")
-              //.mask('*')
-              .addCompleter(new StringsCompleter("Jim", "Jack", "John"))
+              // .mask('*')
               .addPrompt();
 
       promptBuilder.createListPrompt()
@@ -88,21 +109,16 @@ public class Basic {
               .defaultValue(ConfirmChoice.ConfirmationValue.YES)
               .addPrompt();
 
-      HashMap<String, ? extends PromtResultItemIF> result = prompt.prompt(promptBuilder.build());
+      Map<String, ? extends PromptResultItemIF> result = prompt.prompt(header, promptBuilder.build());
       System.out.println("result = " + result);
 
       ConfirmResult delivery = (ConfirmResult) result.get("delivery");
-      if (delivery.getConfirmed()== ConfirmChoice.ConfirmationValue.YES) {
+      if (delivery.getConfirmed() == ConfirmChoice.ConfirmationValue.YES) {
         System.out.println("We will deliver the pizza in 5 minutes");
       }
-    } catch (IOException e) {
+
+    } catch (Exception e) {
       e.printStackTrace();
-    } finally {
-      try {
-        TerminalFactory.get().restore();
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
     }
 
   }}

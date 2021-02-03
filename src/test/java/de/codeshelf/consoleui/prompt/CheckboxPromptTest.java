@@ -1,18 +1,13 @@
 package de.codeshelf.consoleui.prompt;
 
-import de.codeshelf.consoleui.elements.Checkbox;
-import de.codeshelf.consoleui.elements.PageSizeType;
 import de.codeshelf.consoleui.elements.items.CheckboxItemIF;
 import de.codeshelf.consoleui.elements.items.impl.CheckboxItem;
 import de.codeshelf.consoleui.elements.items.impl.Separator;
-import de.codeshelf.consoleui.prompt.reader.ReaderIF;
-import jline.console.completer.Completer;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 /**
  * User: Andreas Wegmann
@@ -21,7 +16,6 @@ import java.util.Set;
 public class CheckboxPromptTest {
   @Test
   public void renderSimpleList() throws IOException {
-    CheckboxPrompt checkboxPrompt = new CheckboxPrompt();
     List<CheckboxItemIF> list= new ArrayList<>();
 
     list.add(new CheckboxItem("One"));
@@ -33,33 +27,6 @@ public class CheckboxPromptTest {
     list.add(new CheckboxItem("Four"));
     list.add(new CheckboxItem(true,"Five"));
 
-    checkboxPrompt.setReader(new ReaderIF() {
-      public void setAllowedSpecialKeys(Set<SpecialKey> allowedSpecialKeys) {
-
-      }
-
-      public void setAllowedPrintableKeys(Set<Character> allowedPrintableKeys) {
-
-      }
-
-      public void addAllowedPrintableKey(Character character) {
-
-      }
-
-      public void addAllowedSpecialKey(SpecialKey specialKey) {
-
-      }
-
-      public ReaderInput read() {
-        return new ReaderInput(SpecialKey.ENTER);
-      }
-
-      public ReaderInput readLine(List<Completer> completer, String promt, String value, Character mask) {
-        return null;
-      }
-    });
-
-    checkboxPrompt.prompt(new Checkbox("no message", null, 10, PageSizeType.ABSOLUTE, list));
   }
 
 }

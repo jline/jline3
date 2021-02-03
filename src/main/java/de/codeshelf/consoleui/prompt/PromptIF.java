@@ -10,7 +10,7 @@ import java.io.IOException;
  * User: Andreas Wegmann
  * Date: 01.01.16
  */
-public interface PromptIF<T extends PromptableElementIF, R extends PromtResultItemIF> {
+public interface PromptIF<T extends PromptableElementIF, R extends PromptResultItemIF> {
   /**
    * Prompt the user for an imput.
    *

@@ -1,10 +1,5 @@
 package de.codeshelf.consoleui.elements;
 
-import jline.console.completer.Completer;
-
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * User: Andreas Wegmann
  * Date: 06.01.16
@@ -12,7 +7,6 @@ import java.util.List;
 public class InputValue extends AbstractPromptableElement {
   private String value;
   private String defaultValue;
-  private List<Completer> completer;
   private Character mask;
 
   public InputValue(String name, String message) {
@@ -35,21 +29,6 @@ public class InputValue extends AbstractPromptableElement {
 
   public String getDefaultValue() {
     return defaultValue;
-  }
-
-  public List<Completer> getCompleter() {
-    return completer;
-  }
-
-  public void setCompleter(List<Completer> completer) {
-    this.completer = completer;
-  }
-
-  public void addCompleter(Completer completer) {
-    if (this.completer==null) {
-      this.completer=new ArrayList<Completer>();
-    }
-    this.completer.add(completer);
   }
 
   public void setMask(Character mask) {

@@ -3,7 +3,8 @@ package de.codeshelf.consoleui.prompt.builder;
 import de.codeshelf.consoleui.elements.ExpandableChoice;
 import de.codeshelf.consoleui.elements.items.ChoiceItemIF;
 
-import java.util.LinkedHashSet;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by andy on 22.01.16.
@@ -12,11 +13,11 @@ public class ExpandableChoicePromptBuilder {
   private final PromptBuilder promptBuilder;
   private String name;
   private String message;
-  private LinkedHashSet<ChoiceItemIF> itemList;
+  private List<ChoiceItemIF> itemList;
 
   public ExpandableChoicePromptBuilder(PromptBuilder promptBuilder) {
     this.promptBuilder = promptBuilder;
-    this.itemList = new LinkedHashSet<ChoiceItemIF>();
+    this.itemList = new ArrayList<>();
   }
 
   void addItem(ChoiceItemIF choiceItem) {

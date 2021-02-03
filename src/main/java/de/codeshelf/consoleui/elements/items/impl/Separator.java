@@ -22,6 +22,10 @@ public class Separator implements CheckboxItemIF, ListItemIF, ChoiceItemIF {
     return message;
   }
 
+  public String getText() {
+    return message;
+  }
+
   public boolean isSelectable() {
     return false;
   }

@@ -1,12 +1,13 @@
 package de.codeshelf.consoleui.elements.items.impl;
 
 import de.codeshelf.consoleui.elements.items.CheckboxItemIF;
+import de.codeshelf.consoleui.elements.items.ConsoleUIItemIF;
 
 /**
  * User: Andreas Wegmann
  * Date: 07.12.15
  */
-public class CheckboxItem implements CheckboxItemIF {
+public class CheckboxItem implements CheckboxItemIF, ConsoleUIItemIF {
   boolean checked;
   String text;
   String disabledText;

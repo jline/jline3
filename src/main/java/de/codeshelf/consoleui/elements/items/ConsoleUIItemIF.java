@@ -8,4 +8,14 @@ public interface ConsoleUIItemIF {
   boolean isSelectable();
 
   String getName();
+
+  default boolean isDisabled() {
+    return false;
+  }
+
+  String getText();
+
+  default String getDisabledText() {
+    return "";
+  }
 }

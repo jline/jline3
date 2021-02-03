@@ -1,6 +1,6 @@
 package de.codeshelf.consoleui.prompt;
 
-import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Result of a checkbox choice. CheckboxResult contains a {@link java.util.Set} with the
@@ -9,14 +9,14 @@ import java.util.HashSet;
  * User: Andreas Wegmann
  * Date: 03.02.16
  */
-public class CheckboxResult implements PromtResultItemIF {
-  HashSet<String> selectedIds;
+public class CheckboxResult implements PromptResultItemIF {
+  Set<String> selectedIds;
 
   /**
    * Default Constructor.
    * @param selectedIds Selected IDs.
    */
-  public CheckboxResult(HashSet<String> selectedIds) {
+  public CheckboxResult(Set<String> selectedIds) {
     this.selectedIds = selectedIds;
   }
 
@@ -25,8 +25,12 @@ public class CheckboxResult implements PromtResultItemIF {
    *
    * @return set with IDs
    */
-  public HashSet<String> getSelectedIds() {
+  public Set<String> getSelectedIds() {
     return selectedIds;
+  }
+
+  public String getResult() {
+    return selectedIds.toString();
   }
 
   @Override

@@ -5,7 +5,7 @@ package de.codeshelf.consoleui.prompt;
  * User: Andreas Wegmann
  * Date: 03.02.16
  */
-public class InputResult implements PromtResultItemIF {
+public class InputResult implements PromptResultItemIF {
   private String input;
 
   public InputResult(String input) {
@@ -13,6 +13,10 @@ public class InputResult implements PromtResultItemIF {
   }
 
   public String getInput() {
+    return input;
+  }
+
+  public String getResult() {
     return input;
   }
 

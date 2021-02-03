@@ -7,4 +7,5 @@ package de.codeshelf.consoleui.elements;
 public interface PromptableElementIF {
 
   String getName();
+  String getMessage();
 }
