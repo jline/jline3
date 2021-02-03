@@ -152,7 +152,7 @@ public class CompletionMatcherImpl implements CompletionMatcher {
             Map<String, List<Candidate>>> typoMatcher(String word, int errors, boolean caseInsensitive, String originalGroupName) {
         return m -> {
             Map<String, List<Candidate>> map = m.entrySet().stream()
-                    .filter(e -> ReaderUtils.distance(word, caseInsensitive ? e.getKey() : e.getKey().toLowerCase()) < errors)
+                    .filter(e -> ReaderUtils.distance(word, caseInsensitive ? e.getKey().toLowerCase() : e.getKey()) < errors)
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
             if (map.size() > 1) {
                 map.computeIfAbsent(word, w -> new ArrayList<>())
