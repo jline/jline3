@@ -6,6 +6,7 @@ import de.codeshelf.consoleui.prompt.AbstractPrompt.*;
 import de.codeshelf.consoleui.prompt.builder.PromptBuilder;
 import org.jline.builtins.Styles;
 import de.codeshelf.consoleui.elements.items.ConsoleUIItemIF;
+import org.jline.reader.LineReader;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Terminal;
 import org.jline.utils.*;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public class ConsolePrompt {
+  private final LineReader reader;
   private final Terminal terminal;
   private final UiConfig config;
 
@@ -28,16 +30,20 @@ public class ConsolePrompt {
    * @param terminal the terminal.
    */
   public ConsolePrompt(Terminal terminal) {
-    this(terminal, new UiConfig());
+    this(null, terminal, new UiConfig());
+  }
+  public ConsolePrompt(Terminal terminal, UiConfig config) {
+    this(null, terminal, config);
   }
   /**
    *
    * @param terminal the terminal.
    * @param config ConsolePrompt cursor pointer and checkbox configuration
    */
-  public ConsolePrompt(Terminal terminal, UiConfig config) {
+  public ConsolePrompt(LineReader reader, Terminal terminal, UiConfig config) {
     this.terminal = terminal;
     this.config = config;
+    this.reader = reader;
   }
 
   /**
@@ -91,7 +97,7 @@ public class ConsolePrompt {
           if (ip.getDefaultValue() != null) {
             asb.append("(").append(ip.getDefaultValue()).append(") ");
           }
-          result = InputValuePrompt.getPrompt(terminal, header, asb.toAttributedString(), ip, config).execute();
+          result = InputValuePrompt.getPrompt(reader, terminal, header, asb.toAttributedString(), ip, config).execute();
         } else if (pe instanceof ExpandableChoice) {
           ExpandableChoice ec = (ExpandableChoice) pe;
           asb.append("(");
@@ -168,7 +174,7 @@ public class ConsolePrompt {
    * ConsoleUI colors are configurable using UI_COLORS environment variable
    */
   public static class UiConfig {
-    static final String DEFAULT_UI_COLORS = "cu=36:be=32:bd=37:pr=32:me=1:an=36:se=36";
+    static final String DEFAULT_UI_COLORS = "cu=36:be=32:bd=37:pr=32:me=1:an=36:se=36:cb=100";
     static final String UI_COLORS = "UI_COLORS";
     private final AttributedString indicator;
     private final AttributedString uncheckedBox;
@@ -176,6 +182,7 @@ public class ConsolePrompt {
     private final AttributedString unavailable;
     private final StyleResolver resolver;
     private final ResourceBundle resourceBundle;
+    private Map<LineReader.Option, Boolean> completionOptions = new HashMap<>();
 
     public UiConfig() {
       this(null, null, null, null);
@@ -221,6 +228,14 @@ public class ConsolePrompt {
 
     public ResourceBundle resourceBundle() {
       return resourceBundle;
+    }
+
+    public void setCompletionOptions(Map<LineReader.Option, Boolean> completionOptions) {
+      this.completionOptions = completionOptions;
+    }
+
+    public Map<LineReader.Option, Boolean> completionOptions() {
+      return completionOptions;
     }
 
     private static StyleResolver resolver(String style) {

@@ -1,5 +1,7 @@
 package de.codeshelf.consoleui.elements;
 
+import org.jline.reader.Completer;
+
 /**
  * User: Andreas Wegmann
  * Date: 06.01.16
@@ -8,6 +10,7 @@ public class InputValue extends AbstractPromptableElement {
   private String value;
   private String defaultValue;
   private Character mask;
+  private Completer completer;
 
   public InputValue(String name, String message) {
     super(message, name);
@@ -38,4 +41,13 @@ public class InputValue extends AbstractPromptableElement {
   public Character getMask() {
     return mask;
   }
+
+  public void setCompleter(Completer completer) {
+    this.completer = completer;
+  }
+
+  public Completer getCompleter() {
+    return completer;
+  }
+
 }

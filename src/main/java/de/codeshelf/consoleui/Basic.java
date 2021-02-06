@@ -6,6 +6,10 @@ import de.codeshelf.consoleui.prompt.ConsolePrompt;
 import de.codeshelf.consoleui.prompt.ConsolePrompt.UiConfig;
 import de.codeshelf.consoleui.prompt.PromptResultItemIF;
 import de.codeshelf.consoleui.prompt.builder.PromptBuilder;
+import org.jline.builtins.Completers;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.AttributedString;
@@ -13,6 +17,7 @@ import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 import org.jline.utils.OSUtils;
 
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -51,7 +56,12 @@ public class Basic {
       } else {
         config = new UiConfig("\u276F", "\u25EF ", "\u25C9 ", "\u25EF ");
       }
-      ConsolePrompt prompt = new ConsolePrompt(terminal, config);
+      //
+      // LineReader is needed only if you are adding JLine Completers in your prompts.
+      // If you are not using Completers you do not need to create LineReader.
+      //
+      LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
+      ConsolePrompt prompt = new ConsolePrompt(reader, terminal, config);
       PromptBuilder promptBuilder = prompt.getPromptBuilder();
 
 
@@ -59,7 +69,9 @@ public class Basic {
               .name("name")
               .message("Please enter your name")
               .defaultValue("John Doe")
-              // .mask('*')
+              //.mask('*')
+              .addCompleter(new Completers.FilesCompleter(() -> Paths.get(System.getProperty("user.dir"))))
+//              .addCompleter(new StringsCompleter("Jim", "Jack", "John"))
               .addPrompt();
 
       promptBuilder.createListPrompt()

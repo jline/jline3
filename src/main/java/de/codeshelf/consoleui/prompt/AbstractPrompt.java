@@ -14,13 +14,13 @@ import de.codeshelf.consoleui.elements.items.impl.Separator;
 import de.codeshelf.consoleui.prompt.ConsolePrompt.UiConfig;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
+import org.jline.reader.*;
+import org.jline.reader.impl.CompletionMatcherImpl;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.utils.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -39,7 +39,7 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
   protected final List<T> items;
   protected final int firstItemRow;
   private final Size size = new Size();
-  private final ConsolePrompt.UiConfig config;
+  protected final ConsolePrompt.UiConfig config;
   private Display display;
   private ListRange range = null;
 
@@ -66,7 +66,7 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
   }
 
   protected void refreshDisplay(int row) {
-    refreshDisplay(row, 0, null);
+    refreshDisplay(row, 0, null, false);
   }
 
   protected void refreshDisplay(int row, Set<String> selected) {
@@ -89,8 +89,74 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
     display.update(displayLines(row, asb.toAttributedString(), newline), size.cursorPos(crow, column));
   }
 
-  protected void refreshDisplay(int row, int column, String buffer) {
-    refreshDisplay(row, column, buffer, false);
+  protected void refreshDisplay(int buffRow, int buffCol, String buffer, int candRow, int candCol, List<Candidate> candidates) {
+    display.resize(size.getRows(), size.getColumns());
+    AttributedStringBuilder asb = new AttributedStringBuilder();
+    if (buffer != null) {
+      asb.style(AttributedStyle.DEFAULT).append(buffer);
+    }
+    display.update(displayLines(candRow, candCol, asb.toAttributedString(), candidates), size.cursorPos(buffRow, buffCol));
+  }
+
+  private int candidateStartPosition(int candidatesColumn, String buffer, List<Candidate> cands) {
+    List<String> values = cands.stream().map(c -> AttributedString.stripAnsi(c.displ()))
+            .filter(c -> !c.matches("\\w+") && c.length() > 1).collect(Collectors.toList());
+    Set<String> notDelimiters = new HashSet<>();
+    values.forEach(v -> v.substring(0, v.length() - 1).chars()
+            .filter(c -> !Character.isDigit(c) && !Character.isAlphabetic(c))
+            .forEach(c -> notDelimiters.add(Character.toString((char)c))));
+    int out = candidatesColumn;
+    for (int i = buffer.length(); i > 0; i--) {
+      if (buffer.substring(0, i).matches(".*\\W")
+              && !notDelimiters.contains(buffer.substring(i - 1, i))) {
+        out += i;
+        break;
+      }
+    }
+    return out;
+  }
+
+  private List<AttributedString> displayLines(int cursorRow, int candidatesColumn, AttributedString buffer
+          , List<Candidate> candidates) {
+    List<AttributedString> out = new ArrayList<>(header);
+    AttributedStringBuilder asb = new AttributedStringBuilder();
+    asb.append(message);
+    asb.append(buffer);
+    out.add(asb.toAttributedString());
+    if (candidates.size() < size.getRows() - header.size()) {
+      int listStart;
+      if (cursorRow - firstItemRow >= 0) {
+        String dc = candidates.get(cursorRow - firstItemRow).displ();
+        listStart = candidatesColumn + buffer.columnLength() - display.wcwidth(dc)
+                + (AttributedString.stripAnsi(dc).endsWith("*") ? 1 : 0);
+      } else {
+        listStart = candidateStartPosition(candidatesColumn, buffer.toString(), candidates);
+      }
+      int width = Math.max(candidates.stream().map(Candidate::displ).mapToInt(display::wcwidth).max().orElse(20), 20);
+      int i = firstItemRow;
+      for (Candidate c : candidates) {
+        asb = new AttributedStringBuilder();
+        AttributedStringBuilder tmp = new AttributedStringBuilder();
+        tmp.ansiAppend(c.displ());
+        asb.style(tmp.styleAt(0));
+        if (i == cursorRow) {
+          asb.style(new AttributedStyle().inverse());
+        }
+        asb.append(AttributedString.stripAnsi(c.displ()));
+        int cl = asb.columnLength();
+        for (int k = cl; k < width; k++) {
+          asb.append(" ");
+        }
+        AttributedStringBuilder asb2 = new AttributedStringBuilder();
+        asb2.tabs(listStart);
+        asb2.append("\t");
+        asb2.style(config.style(".cb"));
+        asb2.append(asb).append(" ");
+        out.add(asb2.toAttributedString());
+        i++;
+      }
+    }
+    return out;
   }
 
   private List<AttributedString> displayLines(int cursorRow, Set<String> selected) {
@@ -334,7 +400,7 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
       StringBuilder buffer = new StringBuilder();
       ConfirmChoice.ConfirmationValue confirm = defaultValue;
       while (true) {
-        refreshDisplay(row, column, buffer.toString());
+        refreshDisplay(row, column, buffer.toString(), false);
         Operation op = bindingReader.readBinding(keyMap);
         buffer = new StringBuilder();
         switch (op) {
@@ -360,22 +426,27 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
   }
 
   protected static class InputValuePrompt extends AbstractPrompt<ListItemIF> {
-    private enum Operation {INSERT, BACKSPACE, DELETE, RIGHT, LEFT, BEGINNING_OF_LINE, END_OF_LINE, EXIT}
+    private enum Operation {INSERT, BACKSPACE, DELETE, RIGHT, LEFT, BEGINNING_OF_LINE, END_OF_LINE, SELECT_CANDIDATE, EXIT}
+    private enum SelectOp {FORWARD_ONE_LINE, BACKWARD_ONE_LINE, EXIT}
     private final int startColumn;
     private final String defaultValue;
     private final Character mask;
+    private final LineReader reader;
+    private final Completer completer;
 
-    private InputValuePrompt(Terminal terminal, List<AttributedString> header, AttributedString message
+    private InputValuePrompt(LineReader reader, Terminal terminal, List<AttributedString> header, AttributedString message
         , InputValue inputValue, UiConfig cfg) {
       super(terminal, header, message, cfg);
+      this.reader = reader;
       defaultValue = inputValue.getDefaultValue();
       startColumn = message.columnLength();
       mask = inputValue.getMask();
+      this.completer = inputValue.getCompleter();
     }
 
-    public static InputValuePrompt getPrompt(Terminal terminal, List<AttributedString> header, AttributedString message
+    public static InputValuePrompt getPrompt(LineReader reader, Terminal terminal, List<AttributedString> header, AttributedString message
         , InputValue inputValue, UiConfig cfg) {
-      return new InputValuePrompt(terminal, header, message, inputValue, cfg);
+      return new InputValuePrompt(reader, terminal, header, message, inputValue, cfg);
     }
 
     private void bindKeys(KeyMap<Operation> map) {
@@ -393,17 +464,35 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
       map.bind(Operation.END_OF_LINE, ctrl('E'), key(terminal, InfoCmp.Capability.key_end));
       map.bind(Operation.RIGHT, ctrl('F'));
       map.bind(Operation.LEFT, ctrl('B'));
+      map.bind(Operation.SELECT_CANDIDATE, "\t");
+    }
+
+    private void bindSelectKeys(KeyMap<SelectOp> map) {
+      map.bind(SelectOp.FORWARD_ONE_LINE, "\t", "e", ctrl('E'), key(terminal, InfoCmp.Capability.key_down));
+      map.bind(SelectOp.BACKWARD_ONE_LINE, "y", ctrl('Y'), key(terminal, InfoCmp.Capability.key_up));
+      map.bind(SelectOp.EXIT,"\r");
     }
 
     public InputResult execute() {
       resetDisplay();
       int row = firstItemRow - 1;
       int column = startColumn;
+      List<Candidate> matches = new ArrayList<>();
       KeyMap<Operation> keyMap = new KeyMap<>();
       bindKeys(keyMap);
       StringBuilder buffer = new StringBuilder();
+      CompletionMatcher completionMatcher = new CompletionMatcherImpl();
       while (true) {
-        refreshDisplay(row, column, buffer.toString());
+        if (completer != null && reader != null) {
+          List<Candidate> possible = new ArrayList<>();
+          CompletingWord completingWord = new CompletingWord(buffer.toString());
+          completer.complete(reader, completingWord, possible);
+          completionMatcher.compile(config.completionOptions(), false, completingWord, false, 0
+                  , null);
+          matches = completionMatcher.matches(possible).stream().sorted(Comparator.naturalOrder())
+                  .collect(Collectors.toList());
+        }
+        refreshDisplay(firstItemRow - 1, column, buffer.toString(), row, startColumn, matches);
         Operation op = bindingReader.readBinding(keyMap);
         switch (op) {
           case LEFT:
@@ -423,8 +512,8 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
           case BACKSPACE:
             if (column > startColumn) {
               buffer.deleteCharAt(column - startColumn - 1);
+              column--;
             }
-            column--;
             break;
           case DELETE:
             if (column < startColumn + buffer.length() && column >= startColumn) {
@@ -437,6 +526,12 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
           case END_OF_LINE:
             column = startColumn + buffer.length();
             break;
+          case SELECT_CANDIDATE:
+            String selected = selectCandidate(firstItemRow - 1, buffer.toString(),row + 1, startColumn, matches);
+            buffer.delete(0, buffer.length());
+            buffer.append(selected);
+            column = startColumn + buffer.length();
+            break;
           case EXIT:
             if (buffer.toString().isEmpty()) {
               buffer.append(defaultValue);
@@ -446,6 +541,91 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
       }
     }
 
+    String selectCandidate(int buffRow, String buffer, int row, int column, List<Candidate> candidates) {
+      if (candidates.isEmpty()) {
+        return buffer;
+      } else if (candidates.size() == 1) {
+        return candidates.get(0).value();
+      }
+      KeyMap<SelectOp> keyMap = new KeyMap<>();
+      bindSelectKeys(keyMap);
+      while (true) {
+        String selected = candidates.get(row - buffRow - 1).value();
+        refreshDisplay(buffRow, column + selected.length(), selected, row, column, candidates);
+        SelectOp op = bindingReader.readBinding(keyMap);
+        switch (op) {
+          case FORWARD_ONE_LINE:
+            if (row < buffRow + candidates.size()) {
+              row++;
+            } else {
+              row = buffRow + 1;
+            }
+            break;
+          case BACKWARD_ONE_LINE:
+            if (row > buffRow + 1) {
+              row--;
+            } else {
+              row = buffRow + candidates.size() - 1;
+            }
+            break;
+          case EXIT:
+            return selected;
+        }
+      }
+    }
+  }
+
+  private static class CompletingWord implements CompletingParsedLine {
+    private final String word;
+
+    public CompletingWord(String word) {
+      this.word = word;
+    }
+
+    @Override
+    public CharSequence escape(CharSequence candidate, boolean complete) {
+      return null;
+    }
+
+    @Override
+    public int rawWordCursor() {
+      return word.length();
+    }
+
+    @Override
+    public int rawWordLength() {
+      return word.length();
+    }
+
+    @Override
+    public String word() {
+      return word;
+    }
+
+    @Override
+    public int wordCursor() {
+      return word.length();
+    }
+
+    @Override
+    public int wordIndex() {
+      return 0;
+    }
+
+    @Override
+    public List<String> words() {
+      return new ArrayList<>(Collections.singletonList(word));
+    }
+
+    @Override
+    public String line() {
+      return word;
+    }
+
+    @Override
+    public int cursor() {
+      return word.length();
+    }
   }
 
   private static <T extends ConsoleUIItemIF> int nextRow(int row, int firstItemRow, List<T> items) {
