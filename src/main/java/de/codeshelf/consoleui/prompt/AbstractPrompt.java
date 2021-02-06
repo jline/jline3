@@ -41,6 +41,7 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
   private final Size size = new Size();
   private final ConsolePrompt.UiConfig config;
   private Display display;
+  private ListRange range = null;
 
   public AbstractPrompt(Terminal terminal, List<AttributedString> header, AttributedString message, ConsolePrompt.UiConfig cfg) {
     this(terminal, header, message, new ArrayList<>(), cfg);
@@ -71,13 +72,14 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
   protected void refreshDisplay(int row, Set<String> selected) {
     display.resize(size.getRows(), size.getColumns());
     display.reset();
-    display.update(displayLines(row, selected), size.cursorPos(firstItemRow + items.size(), 0));
+    display.update(displayLines(row, selected), size.cursorPos(Math.min(size.getRows() - 1, firstItemRow + items.size())
+            , 0));
   }
 
   protected void refreshDisplay(int row, int column, String buffer, boolean newline) {
     display.resize(size.getRows(), size.getColumns());
     AttributedStringBuilder asb = new AttributedStringBuilder();
-    int crow = column == 0 ? firstItemRow + items.size() : row;
+    int crow = column == 0 ? Math.min(size.getRows() - 1, firstItemRow + items.size()) : row;
     if (buffer != null) {
       if (newline && !buffer.isEmpty()) {
         asb.style(config.style(".pr")).append(">> ");
@@ -92,15 +94,19 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
   }
 
   private List<AttributedString> displayLines(int cursorRow, Set<String> selected) {
-    List<AttributedString> out = new ArrayList<>(header);
-    int i = firstItemRow;
+    computeListRange(cursorRow);
+    List<AttributedString> out = new ArrayList<>();
+    for (int i = range.headerStart; i < header.size(); i++) {
+      out.add(header.get(i));
+    }
     AttributedStringBuilder asb = new AttributedStringBuilder();
     asb.append(message);
     out.add(asb.toAttributedString());
-    for (ConsoleUIItemIF s : items) {
+    for (int i = range.first; i < range.last - 1; i++) {
+      ConsoleUIItemIF s = items.get(i);
       asb = new AttributedStringBuilder();
       if (s.isSelectable()) {
-        asb = i == cursorRow ? asb.append(config.indicator()).style(AttributedStyle.DEFAULT).append(" ")
+        asb = i + firstItemRow == cursorRow ? asb.append(config.indicator()).style(AttributedStyle.DEFAULT).append(" ")
             : fillIndicatorSpace(asb).append(" ");
         asb = selected.contains(s.getName()) ? asb.append(config.checkedBox())
             : asb.append(config.uncheckedBox());
@@ -118,8 +124,8 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
         asb.append(" (").append(s.getDisabledText()).append(")");
       }
       out.add(asb.toAttributedString());
-      i++;
     }
+    addFooter(out); // footer is necessary for making the long item list scroll correctly
     return out;
   }
 
@@ -136,9 +142,48 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
     }
   }
 
+  private static class ListRange {
+    final int first;
+    final int last;
+    final int headerStart;
+
+    public ListRange(int headerStart, int first, int last) {
+      this.headerStart = headerStart;
+      this.first = first;
+      this.last = last;
+    }
+  }
+
+  private void computeListRange(int cursorRow) {
+    if (range != null && range.first <= cursorRow - firstItemRow && range.last - 1 > cursorRow - firstItemRow) {
+      return;
+    }
+    range = new ListRange(0, 0, items.size() + 1);
+    if (size.getRows() < header.size() + items.size()) {
+      int itemId = cursorRow - firstItemRow;
+      int headerStart = header.size() + 1 > 10 ? header.size() - 9 : 0;
+      int forList = size.getRows() - header.size() + headerStart - 1;
+      if (itemId < forList - 1) {
+        range = new ListRange(headerStart, 0, forList);
+      } else {
+        range = new ListRange(headerStart, itemId - forList + 2, itemId + 2);
+      }
+    }
+  }
+
+  private void addFooter(List<AttributedString> lines) {
+    if (size.getRows() < header.size() + items.size()) {
+      AttributedStringBuilder asb = new AttributedStringBuilder();
+      lines.add(asb.append(".").toAttributedString());
+    }
+  }
+
   private List<AttributedString> displayLines(int cursorRow, AttributedString buffer, boolean newline) {
-    List<AttributedString> out = new ArrayList<>(header);
-    int i = firstItemRow;
+    computeListRange(cursorRow);
+    List<AttributedString> out = new ArrayList<>();
+    for (int i = range.headerStart; i < header.size(); i++) {
+      out.add(header.get(i));
+    }
     AttributedStringBuilder asb = new AttributedStringBuilder();
     asb.append(message);
     if (buffer != null && !newline) {
@@ -150,10 +195,11 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
       asb.append(buffer);
       out.add(asb.toAttributedString());
     }
-    for (ConsoleUIItemIF s : items) {
+    for (int i = range.first; i < range.last - 1; i++) {
+      ConsoleUIItemIF s = items.get(i);
       asb = new AttributedStringBuilder();
       String key = s instanceof ChoiceItem ? ((ChoiceItem)s).getKey() + " - " : "";
-      if (i == cursorRow) {
+      if (i + firstItemRow == cursorRow) {
         out.add(asb.append(config.indicator()).style(config.style(".se")).append(" ").append(key)
             .append(s.getText()).toAttributedString());
       } else if (!(s instanceof Separator)) {
@@ -162,8 +208,8 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
       } else {
         out.add(asb.append(s.getText()).toAttributedString());
       }
-      i++;
     }
+    addFooter(out);
     return out;
   }
 
