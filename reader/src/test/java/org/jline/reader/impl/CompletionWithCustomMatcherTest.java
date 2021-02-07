@@ -26,7 +26,11 @@ public class CompletionWithCustomMatcherTest extends ReaderTestSupport {
                     , boolean caseInsensitive, int errors, String originalGroupName) {
                 reset(caseInsensitive);
                 defaultMatchers(options, prefix, line, caseInsensitive, errors, originalGroupName);
-                matchers.add(simpleMatcher(candidate -> camelMatch(line.word(), 0, candidate, 0)));
+                if (line.word().length() > 0 && !prefix) {
+                    // add custom matcher before typo matcher
+                    int pos = matchers.size() + (LineReader.Option.COMPLETE_MATCHER_TYPO.isSet(options) ? -1 : 0);
+                    matchers.add(pos, simpleMatcher(candidate -> camelMatch(line.word(), 0, candidate, 0)));
+                }
             }
         });
 
@@ -37,7 +41,6 @@ public class CompletionWithCustomMatcherTest extends ReaderTestSupport {
             candidates.add(newCandidate("getDeclaredMethods"));
         });
 
-//        reader.setOpt(LineReader.Option.COMPLETE_MATCHER_CAMELCASE);
         reader.unsetOpt(LineReader.Option.AUTO_LIST);
         reader.setOpt(LineReader.Option.AUTO_MENU);
         assertBuffer("getDeclaredMethod", new TestBuffer("gdm").left().tab());
