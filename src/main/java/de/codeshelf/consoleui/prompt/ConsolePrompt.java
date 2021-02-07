@@ -32,11 +32,17 @@ public class ConsolePrompt {
   public ConsolePrompt(Terminal terminal) {
     this(null, terminal, new UiConfig());
   }
+  /**
+   *
+   * @param terminal the terminal.
+   * @param config ConsolePrompt cursor pointer and checkbox configuration
+   */
   public ConsolePrompt(Terminal terminal, UiConfig config) {
     this(null, terminal, config);
   }
   /**
    *
+   * @param reader the lineReader.
    * @param terminal the terminal.
    * @param config ConsolePrompt cursor pointer and checkbox configuration
    */
@@ -44,6 +50,13 @@ public class ConsolePrompt {
     this.terminal = terminal;
     this.config = config;
     this.reader = reader;
+    if (reader != null) {
+      Map<LineReader.Option,Boolean> options = new HashMap<>();
+      for (LineReader.Option option : LineReader.Option.values()) {
+        options.put(option, reader.isSet(option));
+      }
+      config.setReaderOptions(options);
+    }
   }
 
   /**
@@ -182,7 +195,7 @@ public class ConsolePrompt {
     private final AttributedString unavailable;
     private final StyleResolver resolver;
     private final ResourceBundle resourceBundle;
-    private Map<LineReader.Option, Boolean> completionOptions = new HashMap<>();
+    private Map<LineReader.Option, Boolean> readerOptions = new HashMap<>();
 
     public UiConfig() {
       this(null, null, null, null);
@@ -230,12 +243,12 @@ public class ConsolePrompt {
       return resourceBundle;
     }
 
-    public void setCompletionOptions(Map<LineReader.Option, Boolean> completionOptions) {
-      this.completionOptions = completionOptions;
+    protected void setReaderOptions(Map<LineReader.Option, Boolean> readerOptions) {
+      this.readerOptions = readerOptions;
     }
 
-    public Map<LineReader.Option, Boolean> completionOptions() {
-      return completionOptions;
+    public Map<LineReader.Option, Boolean> readerOptions() {
+      return readerOptions;
     }
 
     private static StyleResolver resolver(String style) {

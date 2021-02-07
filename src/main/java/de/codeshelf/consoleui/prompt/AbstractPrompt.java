@@ -16,6 +16,7 @@ import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.impl.CompletionMatcherImpl;
+import org.jline.reader.impl.ReaderUtils;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.utils.*;
@@ -37,7 +38,7 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
   private final List<AttributedString> header;
   private final AttributedString message;
   protected final List<T> items;
-  protected final int firstItemRow;
+  protected int firstItemRow;
   private final Size size = new Size();
   protected final ConsolePrompt.UiConfig config;
   private Display display;
@@ -47,7 +48,7 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
     this(terminal, header, message, new ArrayList<>(), cfg);
   }
 
-  public  AbstractPrompt(Terminal terminal, List<AttributedString> header, AttributedString message, List<T> items
+  public AbstractPrompt(Terminal terminal, List<AttributedString> header, AttributedString message, List<T> items
       , ConsolePrompt.UiConfig cfg) {
     this.terminal = terminal;
     this.bindingReader = new BindingReader(terminal.reader());
@@ -56,6 +57,10 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
     this.items = items;
     this.firstItemRow = header.size() + 1;
     this.config = cfg;
+  }
+
+  protected void resetHeader() {
+    this.firstItemRow = header.size() + 1;
   }
 
   protected void resetDisplay() {
@@ -118,49 +123,51 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
 
   private List<AttributedString> displayLines(int cursorRow, int candidatesColumn, AttributedString buffer
           , List<Candidate> candidates) {
-    List<AttributedString> out = new ArrayList<>(header);
+    computeListRange(cursorRow, candidates.size());
+    List<AttributedString> out = new ArrayList<>();
+    for (int i = range.headerStart; i < header.size(); i++) {
+      out.add(header.get(i));
+    }
     AttributedStringBuilder asb = new AttributedStringBuilder();
     asb.append(message);
     asb.append(buffer);
     out.add(asb.toAttributedString());
-    if (candidates.size() < size.getRows() - header.size()) {
-      int listStart;
-      if (cursorRow - firstItemRow >= 0) {
-        String dc = candidates.get(cursorRow - firstItemRow).displ();
-        listStart = candidatesColumn + buffer.columnLength() - display.wcwidth(dc)
+    int listStart;
+    if (cursorRow - firstItemRow >= 0) {
+      String dc = candidates.get(cursorRow - firstItemRow).displ();
+      listStart = candidatesColumn + buffer.columnLength() - display.wcwidth(dc)
                 + (AttributedString.stripAnsi(dc).endsWith("*") ? 1 : 0);
-      } else {
-        listStart = candidateStartPosition(candidatesColumn, buffer.toString(), candidates);
-      }
-      int width = Math.max(candidates.stream().map(Candidate::displ).mapToInt(display::wcwidth).max().orElse(20), 20);
-      int i = firstItemRow;
-      for (Candidate c : candidates) {
-        asb = new AttributedStringBuilder();
-        AttributedStringBuilder tmp = new AttributedStringBuilder();
-        tmp.ansiAppend(c.displ());
-        asb.style(tmp.styleAt(0));
-        if (i == cursorRow) {
-          asb.style(new AttributedStyle().inverse());
-        }
-        asb.append(AttributedString.stripAnsi(c.displ()));
-        int cl = asb.columnLength();
-        for (int k = cl; k < width; k++) {
-          asb.append(" ");
-        }
-        AttributedStringBuilder asb2 = new AttributedStringBuilder();
-        asb2.tabs(listStart);
-        asb2.append("\t");
-        asb2.style(config.style(".cb"));
-        asb2.append(asb).append(" ");
-        out.add(asb2.toAttributedString());
-        i++;
-      }
+    } else {
+      listStart = candidateStartPosition(candidatesColumn, buffer.toString(), candidates);
     }
+    int width = Math.max(candidates.stream().map(Candidate::displ).mapToInt(display::wcwidth).max().orElse(20), 20);
+    for (int i = range.first; i < range.last - 1; i++) {
+      Candidate c = candidates.get(i);
+      asb = new AttributedStringBuilder();
+      AttributedStringBuilder tmp = new AttributedStringBuilder();
+      tmp.ansiAppend(c.displ());
+      asb.style(tmp.styleAt(0));
+      if (i + firstItemRow == cursorRow) {
+        asb.style(new AttributedStyle().inverse());
+      }
+      asb.append(AttributedString.stripAnsi(c.displ()));
+      int cl = asb.columnLength();
+      for (int k = cl; k < width; k++) {
+        asb.append(" ");
+      }
+      AttributedStringBuilder asb2 = new AttributedStringBuilder();
+      asb2.tabs(listStart);
+      asb2.append("\t");
+      asb2.style(config.style(".cb"));
+      asb2.append(asb).append(" ");
+      out.add(asb2.toAttributedString());
+    }
+    addFooter(out, candidates.size());
     return out;
   }
 
   private List<AttributedString> displayLines(int cursorRow, Set<String> selected) {
-    computeListRange(cursorRow);
+    computeListRange(cursorRow, items.size());
     List<AttributedString> out = new ArrayList<>();
     for (int i = range.headerStart; i < header.size(); i++) {
       out.add(header.get(i));
@@ -191,7 +198,7 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
       }
       out.add(asb.toAttributedString());
     }
-    addFooter(out); // footer is necessary for making the long item list scroll correctly
+    addFooter(out, items.size()); // footer is necessary for making the long item list scroll correctly
     return out;
   }
 
@@ -220,14 +227,15 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
     }
   }
 
-  private void computeListRange(int cursorRow) {
+  private void computeListRange(int cursorRow, int itemsSize) {
     if (range != null && range.first <= cursorRow - firstItemRow && range.last - 1 > cursorRow - firstItemRow) {
       return;
     }
-    range = new ListRange(0, 0, items.size() + 1);
-    if (size.getRows() < header.size() + items.size()) {
+    range = new ListRange(0, 0, itemsSize + 1);
+    if (size.getRows() < header.size() + itemsSize + 1) {
       int itemId = cursorRow - firstItemRow;
       int headerStart = header.size() + 1 > 10 ? header.size() - 9 : 0;
+      firstItemRow = firstItemRow - headerStart;
       int forList = size.getRows() - header.size() + headerStart - 1;
       if (itemId < forList - 1) {
         range = new ListRange(headerStart, 0, forList);
@@ -237,15 +245,15 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
     }
   }
 
-  private void addFooter(List<AttributedString> lines) {
-    if (size.getRows() < header.size() + items.size()) {
+  private void addFooter(List<AttributedString> lines, int itemsSize) {
+    if (size.getRows() < header.size() + itemsSize + 1) {
       AttributedStringBuilder asb = new AttributedStringBuilder();
       lines.add(asb.append(".").toAttributedString());
     }
   }
 
   private List<AttributedString> displayLines(int cursorRow, AttributedString buffer, boolean newline) {
-    computeListRange(cursorRow);
+    computeListRange(cursorRow, items.size());
     List<AttributedString> out = new ArrayList<>();
     for (int i = range.headerStart; i < header.size(); i++) {
       out.add(header.get(i));
@@ -275,7 +283,7 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
         out.add(asb.append(s.getText()).toAttributedString());
       }
     }
-    addFooter(out);
+    addFooter(out, items.size());
     return out;
   }
 
@@ -482,17 +490,23 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
       bindKeys(keyMap);
       StringBuilder buffer = new StringBuilder();
       CompletionMatcher completionMatcher = new CompletionMatcherImpl();
+      boolean tabCompletion = completer != null && reader != null;
       while (true) {
-        if (completer != null && reader != null) {
+        boolean displayCandidates = true;
+        if (tabCompletion) {
           List<Candidate> possible = new ArrayList<>();
           CompletingWord completingWord = new CompletingWord(buffer.toString());
           completer.complete(reader, completingWord, possible);
-          completionMatcher.compile(config.completionOptions(), false, completingWord, false, 0
+          completionMatcher.compile(config.readerOptions(), false, completingWord, false, 0
                   , null);
           matches = completionMatcher.matches(possible).stream().sorted(Comparator.naturalOrder())
                   .collect(Collectors.toList());
+          if (matches.size() > ReaderUtils.getInt(reader, LineReader.MENU_LIST_MAX, 10)) {
+            displayCandidates = false;
+          }
         }
-        refreshDisplay(firstItemRow - 1, column, buffer.toString(), row, startColumn, matches);
+        refreshDisplay(firstItemRow - 1, column, buffer.toString(), row, startColumn
+                , displayCandidates ? matches : new ArrayList<>());
         Operation op = bindingReader.readBinding(keyMap);
         switch (op) {
           case LEFT:
@@ -527,10 +541,13 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
             column = startColumn + buffer.length();
             break;
           case SELECT_CANDIDATE:
-            String selected = selectCandidate(firstItemRow - 1, buffer.toString(),row + 1, startColumn, matches);
-            buffer.delete(0, buffer.length());
-            buffer.append(selected);
-            column = startColumn + buffer.length();
+            if (tabCompletion && matches.size() < ReaderUtils.getInt(reader, LineReader.LIST_MAX, 50)) {
+              String selected = selectCandidate(firstItemRow - 1, buffer.toString(), row + 1, startColumn, matches);
+              resetHeader();
+              buffer.delete(0, buffer.length());
+              buffer.append(selected);
+              column = startColumn + buffer.length();
+            }
             break;
           case EXIT:
             if (buffer.toString().isEmpty()) {
@@ -565,7 +582,7 @@ public abstract class AbstractPrompt <T extends ConsoleUIItemIF> {
             if (row > buffRow + 1) {
               row--;
             } else {
-              row = buffRow + candidates.size() - 1;
+              row = buffRow + candidates.size();
             }
             break;
           case EXIT:
