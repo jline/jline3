@@ -21,12 +21,10 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class CompletionMatcherImpl implements CompletionMatcher {
-    private static final int MAX_SEARCH_TIME = 1000;
     protected Predicate<String> exact;
     protected List<Function<Map<String, List<Candidate>>, Map<String, List<Candidate>>>> matchers;
     private Map<String, List<Candidate>> matching;
     private boolean caseInsensitive;
-    private long searchMaxTime;
 
     public CompletionMatcherImpl() {
     }
@@ -47,7 +45,6 @@ public class CompletionMatcherImpl implements CompletionMatcher {
 
     @Override
     public List<Candidate> matches(List<Candidate> candidates) {
-        searchMaxTime = new Date().getTime() + MAX_SEARCH_TIME;
         matching = Collections.emptyMap();
         Map<String, List<Candidate>> sortedCandidates = sort(candidates);
         for (Function<Map<String, List<Candidate>>,
@@ -122,7 +119,7 @@ public class CompletionMatcherImpl implements CompletionMatcher {
                 ));
             }
             if (LineReader.Option.COMPLETE_MATCHER_CAMELCASE.isSet(options)) {
-                matchers.add(simpleMatcher(s -> camelMatch(wd, wd.indexOf('=') + 1, s, 0)));
+                matchers.add(simpleMatcher(s -> camelMatch(wd, 0, s, 0)));
             }
             if (LineReader.Option.COMPLETE_MATCHER_TYPO.isSet(options)) {
                 matchers.add(typoMatcher(wdi, errors, caseInsensitive, originalGroupName));
@@ -153,29 +150,26 @@ public class CompletionMatcherImpl implements CompletionMatcher {
     }
 
     protected boolean camelMatch(String word, int i, String candidate, int j) {
-        if (new Date().getTime() > searchMaxTime) {
-            return false;
-        } else if (word.length() <= i) {
+        if (word.length() <= i) {
             return true;
         } else if (candidate.length() <= j) {
             return false;
         } else {
             char c = word.charAt(i);
             if (c == candidate.charAt(j)) {
-                if (camelMatch(word, i + 1, candidate, j + 1)) {
-                    return true;
-                }
-            }
-            for (int j1 = j; j1 < candidate.length(); j1++) {
-                if (Character.isUpperCase(candidate.charAt(j1))) {
-                    if (Character.toUpperCase(c) == candidate.charAt(j1)) {
-                        if (camelMatch(word, i + 1, candidate, j1 + 1)) {
-                            return true;
+                return camelMatch(word, i + 1, candidate, j + 1);
+            } else {
+                for (int j1 = j; j1 < candidate.length(); j1++) {
+                    if (Character.isUpperCase(candidate.charAt(j1))) {
+                        if (Character.toUpperCase(c) == candidate.charAt(j1)) {
+                            if (camelMatch(word, i + 1, candidate, j1 + 1)) {
+                                return true;
+                            }
                         }
                     }
                 }
+                return false;
             }
-            return false;
         }
     }
 
