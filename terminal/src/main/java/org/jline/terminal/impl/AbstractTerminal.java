@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -54,7 +54,7 @@ public abstract class AbstractTerminal implements Terminal {
 
     public AbstractTerminal(String name, String type, Charset encoding, SignalHandler signalHandler) throws IOException {
         this.name = name;
-        this.type = type;
+        this.type = type != null ? type : "ansi";
         this.encoding = encoding != null ? encoding : Charset.defaultCharset();
         for (Signal signal : Signal.values()) {
             handlers.put(signal, signalHandler);
@@ -200,12 +200,10 @@ public abstract class AbstractTerminal implements Terminal {
 
     protected void parseInfoCmp() {
         String capabilities = null;
-        if (type != null) {
-            try {
-                capabilities = InfoCmp.getInfoCmp(type);
-            } catch (Exception e) {
-                Log.warn("Unable to retrieve infocmp for type " + type, e);
-            }
+        try {
+            capabilities = InfoCmp.getInfoCmp(type);
+        } catch (Exception e) {
+            Log.warn("Unable to retrieve infocmp for type " + type, e);
         }
         if (capabilities == null) {
             capabilities = InfoCmp.getLoadedInfoCmp("ansi");
@@ -244,7 +242,7 @@ public abstract class AbstractTerminal implements Terminal {
 
     @Override
     public boolean hasFocusSupport() {
-        return type != null && type.startsWith("xterm");
+        return type.startsWith("xterm");
     }
 
     @Override
