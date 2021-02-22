@@ -1102,7 +1102,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     @SuppressWarnings("serial")
-    private static class UnknownCommandException extends Exception {
+    public static class UnknownCommandException extends Exception {
         public UnknownCommandException(String message) {
             super(message);
         }
