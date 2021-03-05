@@ -92,7 +92,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                 "     --indention=INDENTION        Indention size",
                 "     --maxColumnWidth=WIDTH       Maximum column width",
                 "  -d --maxDepth=DEPTH             Maximum depth objects are resolved",
-                "     --maxrows=ROWS               Maximum number of lines to display",
+                "  -n --maxrows=ROWS               Maximum number of lines to display",
                 "     --oneRowTable                Display one row data on table",
                 "  -h --rowHighlight=ROW           Highlight table rows. ROW = EVEN, ODD, ALL",
                 "  -r --rownum                     Display table row numbers",
@@ -311,22 +311,20 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
             colIn.addAll((List<String>)options.get(Printer.COLUMNS_IN));
             options.put(Printer.COLUMNS_IN, colIn);
         }
-        String valueStyle = (String)options.get(Printer.VALUE_STYLE);
-        if (options.containsKey(Printer.VALUE_STYLE)) {
-            options.put(Printer.VALUE_STYLE, valueHighlighter(valueStyle));
-        }
+        options.put(Printer.VALUE_STYLE, valueHighlighter((String)options.getOrDefault(Printer.VALUE_STYLE, null)));
         prntStyle = Styles.prntStyle();
         options.putIfAbsent(Printer.WIDTH, terminal().getSize().getColumns());
         String style = (String) options.getOrDefault(Printer.STYLE, "");
+        options.put(Printer.STYLE, valueHighlighter(style));
         int width = (int) options.get(Printer.WIDTH);
         if (!style.isEmpty() && object instanceof String) {
-            highlightAndPrint(width, style, (String) object, doValueHighlight(options, (String) object));
+            highlightAndPrint(width, (SyntaxHighlighter)options.get(Printer.STYLE), (String) object, true);
         } else if (style.equalsIgnoreCase("JSON")) {
             if (engine == null) {
                 throw new IllegalArgumentException("JSON style not supported!");
             }
             String json = engine.toJson(object);
-            highlightAndPrint(width, style, json, doValueHighlight(options, json));
+            highlightAndPrint(width, (SyntaxHighlighter)options.get(Printer.STYLE), json, true);
         } else if (options.containsKey(Printer.SKIP_DEFAULT_OPTIONS)) {
             highlightAndPrint(options, object);
         } else if (object instanceof Exception) {
@@ -335,7 +333,8 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
             highlight((CmdDesc)object).println(terminal());
         } else if (object instanceof String || object instanceof Number) {
             String str = object.toString();
-            highlightAndPrint(width, valueStyle, str, doValueHighlight(options, str));
+            SyntaxHighlighter highlighter = (SyntaxHighlighter)options.getOrDefault(Printer.VALUE_STYLE, null);
+            highlightAndPrint(width, highlighter, str, doValueHighlight(options, str));
         } else {
             highlightAndPrint(options, object);
         }
@@ -382,7 +381,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
 
     private SyntaxHighlighter valueHighlighter(String style) {
         SyntaxHighlighter out;
-        if (style == null) {
+        if (style == null || style.isEmpty()) {
             out = null;
         } else if (style.matches("[a-z]+:.*")) {
             out = SyntaxHighlighter.build(style);
@@ -441,7 +440,10 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     }
 
     private void highlightAndPrint(int width, String style, String object, boolean doValueHighlight) {
-        SyntaxHighlighter highlighter = valueHighlighter(style);
+        highlightAndPrint(width, valueHighlighter(style), object, doValueHighlight);
+    }
+
+    private void highlightAndPrint(int width, SyntaxHighlighter highlighter, String object, boolean doValueHighlight) {
         for (String s: object.split("\\r?\\n")) {
             AttributedStringBuilder asb = new AttributedStringBuilder();
             List<AttributedString> sas = asb.append(s).columnSplitLength(width);
@@ -741,8 +743,10 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                     Object elem = collection.iterator().next();
                     if (elem instanceof Map) {
                         highlightMap(options, keysToString((Map<Object, Object>)elem), width);
-                    } else if (canConvert(elem) && !options.containsKey(Printer.TO_STRING)){
+                    } else if (canConvert(elem) && !options.containsKey(Printer.TO_STRING)) {
                         highlightMap(options, objectToMap(options, elem), width);
+                    } else if (elem instanceof String && options.get(Printer.STYLE) != null) {
+                        highlightAndPrint(width, (SyntaxHighlighter)options.get(Printer.STYLE), (String)elem, true);
                     } else {
                         highlightValue(options, null, objectToString(options, obj)).println(terminal());
                     }
@@ -969,6 +973,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
             tabs.add(indent*depth + digits(collection.size()) + 2);
         }
         options.remove(Printer.MAX_COLUMN_WIDTH);
+        SyntaxHighlighter highlighter = depth == 0 ? (SyntaxHighlighter)options.get(Printer.STYLE) : null;
         for (Object o : collection) {
             AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
             if (depth > 0) {
@@ -979,7 +984,11 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                 asb.append("\t");
                 row++;
             }
-            asb.append(highlightValue(options, null, o));
+            if (highlighter != null && o instanceof String) {
+                asb.append(highlighter.highlight((String)o));
+            } else {
+                asb.append(highlightValue(options, null, o));
+            }
             println(asb.columnSubSequence(0, width), maxrows);
         }
     }
