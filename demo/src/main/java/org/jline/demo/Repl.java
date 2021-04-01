@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -221,12 +221,9 @@ public class Repl {
         }
     }
 
-    private static Path workDir() {
-        return Paths.get(System.getProperty("user.dir"));
-    }
-
     public static void main(String[] args) {
         try {
+            Supplier<Path> workDir = () -> Paths.get(System.getProperty("user.dir"));
             //
             // Parser & Terminal
             //
@@ -261,10 +258,10 @@ public class Repl {
             Printer printer = new DefaultPrinter(scriptEngine, configPath);
             ConsoleEngineImpl consoleEngine = new ConsoleEngineImpl(scriptEngine
                                                                   , printer
-                                                                  , Repl::workDir, configPath);
-            Builtins builtins = new Builtins(Repl::workDir, configPath,  (String fun)-> new ConsoleEngine.WidgetCreator(consoleEngine, fun));
-            MyCommands myCommands = new MyCommands(Repl::workDir);
-            SystemRegistryImpl systemRegistry = new SystemRegistryImpl(parser, terminal, Repl::workDir, configPath);
+                                                                  , workDir, configPath);
+            Builtins builtins = new Builtins(workDir, configPath,  (String fun)-> new ConsoleEngine.WidgetCreator(consoleEngine, fun));
+            MyCommands myCommands = new MyCommands(workDir);
+            SystemRegistryImpl systemRegistry = new SystemRegistryImpl(parser, terminal, workDir, configPath);
             systemRegistry.register("groovy", new GroovyCommand(scriptEngine, printer));
             systemRegistry.setCommandRegistries(consoleEngine, builtins, myCommands);
             systemRegistry.addCompleter(scriptEngine.getScriptCompleter());
@@ -276,11 +273,13 @@ public class Repl {
             SyntaxHighlighter commandHighlighter = SyntaxHighlighter.build(jnanorc,"COMMAND");
             SyntaxHighlighter argsHighlighter = SyntaxHighlighter.build(jnanorc,"ARGS");
             SyntaxHighlighter groovyHighlighter = SyntaxHighlighter.build(jnanorc,"Groovy");
+            SystemHighlighter highlighter = new SystemHighlighter(commandHighlighter, argsHighlighter, groovyHighlighter);
+            highlighter.addFileHighlight("nano", "less", "slurp");
             LineReader reader = LineReaderBuilder.builder()
                     .terminal(terminal)
                     .completer(systemRegistry.completer())
                     .parser(parser)
-                    .highlighter(new SystemHighlighter(commandHighlighter, argsHighlighter, groovyHighlighter))
+                    .highlighter(highlighter)
                     .variable(LineReader.SECONDARY_PROMPT_PATTERN, "%M%P > ")
                     .variable(LineReader.INDENTATION, 2)
                     .variable(LineReader.LIST_MAX, 100)
