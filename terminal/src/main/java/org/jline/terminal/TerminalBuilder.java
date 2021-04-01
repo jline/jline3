@@ -100,6 +100,7 @@ public final class TerminalBuilder {
     private Boolean jansi;
     private Boolean exec;
     private Boolean dumb;
+    private Boolean color;
     private Attributes attributes;
     private Size size;
     private boolean nativeSignals = false;
@@ -147,6 +148,11 @@ public final class TerminalBuilder {
 
     public TerminalBuilder type(String type) {
         this.type = type;
+        return this;
+    }
+
+    public TerminalBuilder color(boolean color) {
+        this.color = color;
         return this;
     }
 
@@ -413,26 +419,29 @@ public final class TerminalBuilder {
             }
             if (terminal == null && (dumb == null || dumb)) {
                 // forced colored dumb terminal
-                boolean color = getBoolean(PROP_DUMB_COLOR, false);
-                // detect emacs using the env variable
-                if (!color) {
-                    color = System.getenv("INSIDE_EMACS") != null;
-                }
-                // detect Intellij Idea
-                if (!color) {
-                    String command = getParentProcessCommand();
-                    color = command != null && command.contains("idea");
-                }
-                if (!color) {
-                    color = tbs.isConsoleOutput() && System.getenv("TERM") != null;
-                }
-                if (!color && dumb == null) {
-                    if (Log.isDebugEnabled()) {
-                        Log.warn("input is tty: {}", tbs.isConsoleInput());
-                        Log.warn("output is tty: {}", tbs.isConsoleOutput());
-                        Log.warn("Creating a dumb terminal", exception);
-                    } else {
-                        Log.warn("Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)");
+                Boolean color = this.color;
+                if (color == null) {
+                    color = getBoolean(PROP_DUMB_COLOR, false);
+                    // detect emacs using the env variable
+                    if (!color) {
+                        color = System.getenv("INSIDE_EMACS") != null;
+                    }
+                    // detect Intellij Idea
+                    if (!color) {
+                        String command = getParentProcessCommand();
+                        color = command != null && command.contains("idea");
+                    }
+                    if (!color) {
+                        color = tbs.isConsoleOutput() && System.getenv("TERM") != null;
+                    }
+                    if (!color && dumb == null) {
+                        if (Log.isDebugEnabled()) {
+                            Log.warn("input is tty: {}", tbs.isConsoleInput());
+                            Log.warn("output is tty: {}", tbs.isConsoleOutput());
+                            Log.warn("Creating a dumb terminal", exception);
+                        } else {
+                            Log.warn("Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)");
+                        }
                     }
                 }
                 terminal = new DumbTerminal(name, color ? Terminal.TYPE_DUMB_COLOR : Terminal.TYPE_DUMB,
