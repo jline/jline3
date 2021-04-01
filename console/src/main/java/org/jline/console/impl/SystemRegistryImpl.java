@@ -62,8 +62,9 @@ public class SystemRegistryImpl implements SystemRegistry {
     private static final Class<?>[] BUILTIN_REGISTRIES = { Builtins.class, ConsoleEngineImpl.class };
     private CommandRegistry[] commandRegistries;
     private Integer consoleId;
-    private final Parser parser;
-    private final ConfigurationPath configPath;
+    protected final Parser parser;
+    protected final ConfigurationPath configPath;
+    protected final Supplier<Path> workDir;
     private final Map<String,CommandRegistry> subcommands = new HashMap<>();
     private final Map<Pipe, String> pipeName = new HashMap<>();
     private final Map<String, CommandMethods> commandExecute = new HashMap<>();
@@ -72,7 +73,6 @@ public class SystemRegistryImpl implements SystemRegistry {
     private final CommandOutputStream outputStream;
     private ScriptStore scriptStore = new ScriptStore();
     private NamesAndValues names = new NamesAndValues();
-    private final Supplier<Path> workDir;
     private final SystemCompleter customSystemCompleter = new SystemCompleter();
     private final AggregateCompleter customAggregateCompleter = new AggregateCompleter(new ArrayList<>());
     private boolean commandGroups = true;
