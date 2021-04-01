@@ -34,13 +34,11 @@ import java.util.regex.Pattern;
  */
 public class SystemHighlighter extends DefaultHighlighter {
     private final static StyleResolver resolver = Styles.lsStyle();
-    private final SyntaxHighlighter commandHighlighter;
-    private final SyntaxHighlighter argsHighlighter;
-    private final SyntaxHighlighter langHighlighter;
-    private final SystemRegistry systemRegistry;
-    private final Set<String> fileHighlight = new HashSet<>();
-    private Pattern errorPattern;
-    private int errorIndex = -1;
+    protected final SyntaxHighlighter commandHighlighter;
+    protected final SyntaxHighlighter argsHighlighter;
+    protected final SyntaxHighlighter langHighlighter;
+    protected final SystemRegistry systemRegistry;
+    protected final Set<String> fileHighlight = new HashSet<>();
 
     public SystemHighlighter(SyntaxHighlighter commandHighlighter, SyntaxHighlighter argsHighlighter
             , SyntaxHighlighter langHighlighter) {
@@ -48,18 +46,6 @@ public class SystemHighlighter extends DefaultHighlighter {
         this.argsHighlighter = argsHighlighter;
         this.langHighlighter = langHighlighter;
         this.systemRegistry = SystemRegistry.get();
-    }
-
-    @Override
-    public void setErrorPattern(Pattern errorPattern) {
-        this.errorPattern = errorPattern;
-        super.setErrorPattern(errorPattern);
-    }
-
-    @Override
-    public void setErrorIndex(int errorIndex) {
-        this.errorIndex = errorIndex;
-        super.setErrorIndex(errorIndex);
     }
 
     @Override
