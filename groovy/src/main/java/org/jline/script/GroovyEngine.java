@@ -686,7 +686,7 @@ public class GroovyEngine implements ScriptEngine {
         }
 
         public static void doCandidates(List<Candidate> candidates, Map<String,String> fields, String curBuf, CandidateType type) {
-            if (fields == null) {
+            if (fields == null || fields.isEmpty()) {
                 return;
             }
             for (Map.Entry<String,String> entry : fields.entrySet()) {
@@ -817,6 +817,7 @@ public class GroovyEngine implements ScriptEngine {
 
     private static class MethodCompleter implements Completer {
         private static final List<String> VALUES = Arrays.asList("true", "false");
+        private static final String REGEX_GET_METHOD = "get[A-Z].*";
         private final GroovyEngine groovyEngine;
         private final SystemRegistry systemRegistry = SystemRegistry.get();
         private Inspector inspector;
@@ -982,9 +983,16 @@ public class GroovyEngine implements ScriptEngine {
             ObjectInspector inspector = new ObjectInspector(object);
             List<Map<String,String>> mms = inspector.metaMethods(false);
             Set<String> metaMethods = new HashSet<>();
+            Set<String> identifiers = new HashSet<>();
             for (Map<String,String> mm : mms) {
-                metaMethods.add(mm.get(ObjectInspector.FIELD_NAME));
+                String name = mm.get(ObjectInspector.FIELD_NAME);
+                metaMethods.add(name);
+                if (identifierCompletion && name.matches(REGEX_GET_METHOD)
+                        && mm.get(ObjectInspector.FIELD_PARAMETERS).isEmpty()) {
+                    identifiers.add(convertGetMethod2identifier(name));
+                }
             }
+            Helpers.doCandidates(candidates, identifiers, curBuf, CandidateType.IDENTIFIER);
             Helpers.doCandidates(candidates, metaMethods, curBuf, CandidateType.META_METHOD);
             return metaMethods;
         }
@@ -1013,7 +1021,7 @@ public class GroovyEngine implements ScriptEngine {
             if (addIdentifiers) {
                 Set<String> identifiers = new HashSet<>();
                 for (String m : methods) {
-                    if (m.matches("get[A-Z].*")) {
+                    if (m.matches(REGEX_GET_METHOD)) {
                         Class<?> cc = clazz;
                         while (cc != null) {
                             try {
@@ -1022,9 +1030,7 @@ public class GroovyEngine implements ScriptEngine {
                                 } catch (NoSuchMethodException exp) {
                                     cc.getDeclaredMethod(m);
                                 }
-                                char[] c = m.substring(3).toCharArray();
-                                c[0] = Character.toLowerCase(c[0]);
-                                identifiers.add(new String(c));
+                                identifiers.add(convertGetMethod2identifier(m));
                                 break;
                             } catch (NoSuchMethodException e) {
                                 cc = cc.getSuperclass();
@@ -1041,6 +1047,12 @@ public class GroovyEngine implements ScriptEngine {
             }
             Helpers.doCandidates(candidates, methods, curBuf, CandidateType.METHOD);
             Helpers.doCandidates(candidates, Helpers.getFields(clazz, access.allFields), curBuf, CandidateType.FIELD);
+        }
+
+        private String convertGetMethod2identifier(String name) {
+            char[] c = name.substring(3).toCharArray();
+            c[0] = Character.toLowerCase(c[0]);
+            return new String(c);
         }
 
         private void doStaticMethodCandidates(List<Candidate> candidates, Class<?> clazz, String curBuf) {
