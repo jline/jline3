@@ -163,7 +163,10 @@ public class Repl {
             int exitCode = process.waitFor();
             th.join();
             if (exitCode != 0) {
-                throw new Exception("Failed to execute: " + String.join(" ", args.subList(2, args.size())));
+                streamGobbler = new StreamGobbler(process.getErrorStream(), System.out::println);
+                th = new Thread(streamGobbler);
+                th.start();
+                th.join();
             }
         }
 
