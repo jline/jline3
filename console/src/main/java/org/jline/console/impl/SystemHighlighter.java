@@ -25,7 +25,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.regex.Pattern;
 
 /**
  * Highlight command and language syntax using nanorc highlighter.
@@ -71,7 +70,8 @@ public class SystemHighlighter extends DefaultHighlighter {
             out = new AttributedStringBuilder().append(buffer).toAttributedString();
         } else if (fileHighlight.contains(command)) {
             out = doFileHighlight(reader, buffer);
-        } else if (systemRegistry.isCommandOrScript(command) || systemRegistry.isCommandAlias(command)) {
+        } else if (systemRegistry.isCommandOrScript(command) || systemRegistry.isCommandAlias(command)
+                || command.startsWith("!")) {
             out = doCommandHighlight(buffer);
         } else if (langHighlighter != null) {
             out = langHighlighter.highlight(buffer);
