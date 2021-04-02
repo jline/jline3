@@ -224,6 +224,17 @@ public class Repl {
         }
     }
 
+    private static class ReplSystemRegistry extends SystemRegistryImpl {
+        public ReplSystemRegistry(Parser parser, Terminal terminal, Supplier<Path> workDir, ConfigurationPath configPath) {
+            super(parser, terminal, workDir, configPath);
+        }
+
+        @Override
+        public boolean isCommandOrScript(String command) {
+            return command.startsWith("!") || super.isCommandOrScript(command);
+        }
+    }
+
     public static void main(String[] args) {
         try {
             Supplier<Path> workDir = () -> Paths.get(System.getProperty("user.dir"));
@@ -264,7 +275,7 @@ public class Repl {
                                                                   , workDir, configPath);
             Builtins builtins = new Builtins(workDir, configPath,  (String fun)-> new ConsoleEngine.WidgetCreator(consoleEngine, fun));
             MyCommands myCommands = new MyCommands(workDir);
-            SystemRegistryImpl systemRegistry = new SystemRegistryImpl(parser, terminal, workDir, configPath);
+            ReplSystemRegistry systemRegistry = new ReplSystemRegistry(parser, terminal, workDir, configPath);
             systemRegistry.register("groovy", new GroovyCommand(scriptEngine, printer));
             systemRegistry.setCommandRegistries(consoleEngine, builtins, myCommands);
             systemRegistry.addCompleter(scriptEngine.getScriptCompleter());

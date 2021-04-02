@@ -70,8 +70,7 @@ public class SystemHighlighter extends DefaultHighlighter {
             out = new AttributedStringBuilder().append(buffer).toAttributedString();
         } else if (fileHighlight.contains(command)) {
             out = doFileHighlight(reader, buffer);
-        } else if (systemRegistry.isCommandOrScript(command) || systemRegistry.isCommandAlias(command)
-                || command.startsWith("!")) {
+        } else if (systemRegistry.isCommandOrScript(command) || systemRegistry.isCommandAlias(command)) {
             out = doCommandHighlight(buffer);
         } else if (langHighlighter != null) {
             out = langHighlighter.highlight(buffer);
