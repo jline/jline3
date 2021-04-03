@@ -77,7 +77,7 @@ public class GroovyEngine implements ScriptEngine {
     private static final Pattern PATTERN_CLASS_DEF = Pattern.compile("^class\\s+(" + REGEX_VAR + ") .*?\\{.*?}(|\n)$"
                                                                   , Pattern.DOTALL);
     private static final Pattern PATTERN_CLASS_NAME = Pattern.compile("(.*?)\\.([A-Z].*)");
-    private static final Pattern PATTERN_LOAD_CLASS = Pattern.compile("(new\\s+)*\\s*(([a-z]+\\.)*)([A-Z]+[a-zA-Z]*)+(\\..*|\\(.*|)");
+    private static final Pattern PATTERN_LOAD_CLASS = Pattern.compile("(import\\s+|new\\s+)*\\s*(([a-z]+\\.)*)([A-Z]+[a-zA-Z]*)+(\\..*|\\(.*|)");
     private static final List<String> DEFAULT_IMPORTS = Arrays.asList("java.lang.*", "java.util.*", "java.io.*"
                                                      , "java.net.*", "groovy.lang.*", "groovy.util.*"
                                                      , "java.math.BigInteger", "java.math.BigDecimal");
@@ -99,7 +99,7 @@ public class GroovyEngine implements ScriptEngine {
         this.sharedData = new Binding();
         shell = new GroovyShell(sharedData);
         for (String s : DEFAULT_IMPORTS) {
-            addToNameClass(s, defaultNameClass);
+            addToNameClass(s, defaultNameClass, shell);
         }
         nameClass = new HashMap<>(defaultNameClass);
     }
@@ -212,6 +212,10 @@ public class GroovyEngine implements ScriptEngine {
     }
 
     private static Set<Class<?>> classesForPackage(String pckgname) throws ClassNotFoundException {
+        return classesForPackage(pckgname, null);
+    }
+
+    private static Set<Class<?>> classesForPackage(String pckgname, GroovyShell shell) throws ClassNotFoundException {
         String name = pckgname;
         Matcher matcher = PATTERN_CLASS_NAME.matcher(name);
         if (matcher.matches()) {
@@ -221,21 +225,34 @@ public class GroovyEngine implements ScriptEngine {
         if (out.isEmpty()) {
             out.addAll(JrtJavaBasePackages.getClassesForPackage(name));
         }
+        if (out.isEmpty() && shell != null && name.endsWith(".*")) {
+            name = name.substring(0, name.length() - 1);
+            Set<String> classNames = Helpers.nextFileDomain(name);
+            for (String c : classNames) {
+                if (Character.isUpperCase(c.charAt(0))) {
+                    try {
+                        out.add((Class<?>)executeStatement(shell, new HashMap<>(), name + c + ".class"));
+                    } catch (Exception ignore) {
+
+                    }
+                }
+            }
+        }
         return out;
     }
 
     private void addToNameClass(String name) {
-        addToNameClass(name, nameClass);
+        addToNameClass(name, nameClass, shell);
     }
 
-    private void addToNameClass(String name, Map<String,Class<?>> nameClass) {
+    private static void addToNameClass(String name, Map<String,Class<?>> nameClass, GroovyShell shell) {
         try {
             if (name.endsWith(".*")) {
-                for (Class<?> c : classesForPackage(name)) {
+                for (Class<?> c : classesForPackage(name, shell)) {
                     nameClass.put(c.getSimpleName(), c);
                 }
             } else {
-                Class<?> clazz = classResolver(name);
+                Class<?> clazz = classResolver(name, shell);
                 if (clazz != null) {
                     nameClass.put(clazz.getSimpleName(), clazz);
                 }
@@ -249,9 +266,9 @@ public class GroovyEngine implements ScriptEngine {
     public Object execute(String statement) throws Exception {
         Object out = null;
         if (statement.startsWith("import ")) {
-            shell.evaluate(statement);
             String[] p = statement.split("\\s+", 2);
             String classname = p[1].replaceAll(";", "");
+            executeStatement(shell, imports, statement);
             imports.put(classname, statement);
             addToNameClass(classname);
         } else if (statement.equals("import")) {
@@ -272,11 +289,12 @@ public class GroovyEngine implements ScriptEngine {
     }
 
     private static Object executeStatement(GroovyShell shell, Map<String, String> imports, String statement) throws IOException {
-        boolean classLoaded = false;
         int idx = statement.indexOf("=") + 1;
         Matcher matcher = PATTERN_LOAD_CLASS.matcher(statement.substring(idx));
         if (matcher.matches()) {
+            boolean importStatement = convertNull(matcher.group(1)).contains("import");
             String fileName = convertNull(matcher.group(2)) + matcher.group(4);
+            String importClass = "import " + fileName + "; ";
             fileName = fileName.replace(".", "/");
             for (String type : Arrays.asList(".groovy", ".java")) {
                 File file = new File(fileName + type);
@@ -286,18 +304,19 @@ public class GroovyEngine implements ScriptEngine {
                     } catch (MissingMethodExceptionNoStack ignore) {
 
                     }
-                    classLoaded = true;
-                    statement = statement.substring(0, idx) + convertNull(matcher.group(1)) + matcher.group(4)
-                            + convertNull(matcher.group(5));
+                    if (importStatement) {
+                        statement = importClass + matcher.group(4) + ".class";
+                    } else {
+                        statement = importClass + statement.substring(0, idx) + convertNull(matcher.group(1)) + matcher.group(4)
+                                + convertNull(matcher.group(5));
+                    }
                     break;
                 }
             }
         }
         StringBuilder e = new StringBuilder();
-        if (!classLoaded) {
-            for (Map.Entry<String, String> entry : imports.entrySet()) {
-                e.append(entry.getValue()).append("\n");
-            }
+        for (Map.Entry<String, String> entry : imports.entrySet()) {
+            e.append(entry.getValue()).append("\n");
         }
         e.append(statement);
         if (classDef(statement)) {
@@ -460,7 +479,7 @@ public class GroovyEngine implements ScriptEngine {
 
     private enum CandidateType {CONSTRUCTOR, STATIC_METHOD, PACKAGE, METHOD, FIELD, IDENTIFIER, META_METHOD, STRING, OTHER}
 
-    private static Class<?> classResolver(String classDotName) {
+    private static Class<?> classResolver(String classDotName, GroovyShell shell) {
         Class<?> out = null;
         Matcher matcher = PATTERN_CLASS_NAME.matcher(classDotName);
         if (matcher.matches()) {
@@ -468,8 +487,12 @@ public class GroovyEngine implements ScriptEngine {
             try {
                 out = Class.forName(matcher.group(1) + "." + classname);
             } catch (ClassNotFoundException ex) {
-                if (Log.isDebugEnabled()) {
-                    ex.printStackTrace();
+                try {
+                    out = (Class<?>)executeStatement(shell, new HashMap<>(), classDotName + ".class");
+                } catch (Exception e) {
+                    if (Log.isDebugEnabled()) {
+                        ex.printStackTrace();
+                    }
                 }
             }
         }
@@ -582,11 +605,8 @@ public class GroovyEngine implements ScriptEngine {
             return out;
         }
 
-        private static Set<String> fileDomain() {
-            return nextFileDomain(null, 0);
-        }
-
-        private static Set<String> nextFileDomain(String domain, int position) {
+        private static Set<String> nextFileDomain(String domain) {
+            int position = domain != null ? domain.split("\\.").length : 0;
             String separator = FileSystems.getDefault().getSeparator();
             if (separator.equals("\\")) {
                 separator += separator;
@@ -603,7 +623,7 @@ public class GroovyEngine implements ScriptEngine {
             try {
                 List<Path> paths = Files.walk(Paths.get(".")).filter(matcher::matches).collect(Collectors.toList());
                 for (Path p : paths) {
-                    if(!p.getFileName().toString().matches("[A-Z]+[a-zA-Z]*\\.(groovy|java)")){
+                    if (!p.getFileName().toString().matches("[A-Z]+[a-zA-Z]*\\.(groovy|java)")) {
                         continue;
                     }
                     String[] s = p.toString().split(separator);
@@ -627,14 +647,10 @@ public class GroovyEngine implements ScriptEngine {
                 for (String p : loadedPackages()) {
                     out.add(p.split("\\.")[0]);
                 }
-                if (type != CandidateType.PACKAGE) {
-                    out.addAll(nextFileDomain("", 0));
-                }
+                out.addAll(nextFileDomain(null));
             } else if ((domain.split("\\.")).length < 2) {
                 out = names(domain);
-                if (type != CandidateType.PACKAGE) {
-                    out.addAll(nextFileDomain(domain, 1));
-                }
+                out.addAll(nextFileDomain(domain));
             } else {
                 try {
                     for (Class<?> c : classesForPackage(domain)) {
@@ -664,7 +680,7 @@ public class GroovyEngine implements ScriptEngine {
                         }
                     }
                     if (out.isEmpty() && type != CandidateType.PACKAGE) {
-                        out.addAll(nextFileDomain(domain, domain.split("\\.").length));
+                        out.addAll(nextFileDomain(domain));
                     }
                 } catch (ClassNotFoundException e) {
                     if (Log.isDebugEnabled()) {
@@ -927,7 +943,7 @@ public class GroovyEngine implements ScriptEngine {
                     } else {
                         try {
                             param = wordbuffer.substring(eqsep + 1, varsep);
-                            Class<?> clazz = classResolver(param);
+                            Class<?> clazz = classResolver(param, inspector.shell);
                             if (clazz == null) {
                                 clazz = (Class<?>)inspector.execute(param + ".class");
                             }
@@ -1080,7 +1096,7 @@ public class GroovyEngine implements ScriptEngine {
                     it.remove();
                 }
             }
-            out.addAll(Helpers.fileDomain());
+            out.addAll(Helpers.nextFileDomain(null));
             return out;
         }
 
@@ -1098,7 +1114,7 @@ public class GroovyEngine implements ScriptEngine {
                     it.remove();
                 }
             }
-            out.addAll(Helpers.fileDomain());
+            out.addAll(Helpers.nextFileDomain(null));
             return out;
         }
     }
@@ -1133,7 +1149,7 @@ public class GroovyEngine implements ScriptEngine {
 
         public Inspector(GroovyEngine groovyEngine) {
             this.imports = groovyEngine.imports;
-            this.nameClass = groovyEngine.nameClass;
+            this.nameClass = new HashMap<>(groovyEngine.nameClass);
             this.canonicalNames = groovyEngine.groovyOption(CANONICAL_NAMES, false);
             this.nanorcSyntax = groovyEngine.groovyOption(NANORC_SYNTAX, DEFAULT_NANORC_SYNTAX);
             this.noSyntaxCheck = groovyEngine.groovyOption(NO_SYNTAX_CHECK, false);
@@ -1161,6 +1177,13 @@ public class GroovyEngine implements ScriptEngine {
                 if (m.matches() && sharedData.hasVariable(entry.getKey())
                         && sharedData.getVariable(entry.getKey()) instanceof Closure) {
                     sharedData.setVariable(entry.getKey(), execute("{" + m.group(1) + "->" + m.group(2) + "}"));
+                }
+            }
+            for (String c : imports.keySet()) {
+                try {
+                    addToNameClass(c, nameClass, shell);
+                } catch (Exception ignore) {
+
                 }
             }
         }
@@ -1205,7 +1228,7 @@ public class GroovyEngine implements ScriptEngine {
             Object out = null;
             try {
                 out = executeStatement(shell, imports, statement);
-            } catch (IOException ignore) {
+            } catch (Exception ignore) {
             } finally {
                 System.setOut(origOut);
                 System.setErr(origErr);
