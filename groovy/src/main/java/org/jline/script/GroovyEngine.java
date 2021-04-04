@@ -76,8 +76,11 @@ public class GroovyEngine implements ScriptEngine {
                                            , Pattern.DOTALL);
     private static final Pattern PATTERN_CLASS_DEF = Pattern.compile("^class\\s+(" + REGEX_VAR + ") .*?\\{.*?}(|\n)$"
                                                                   , Pattern.DOTALL);
-    private static final Pattern PATTERN_CLASS_NAME = Pattern.compile("(.*?)\\.([A-Z].*)");
-    private static final Pattern PATTERN_LOAD_CLASS = Pattern.compile("(import\\s+|new\\s+)*\\s*(([a-z]+\\.)*)([A-Z]+[a-zA-Z]*)+(\\..*|\\(.*|)");
+    private static final Pattern PATTERN_CLASS = Pattern.compile("(.*?)\\.([A-Z_].*)");
+    private static final String REGEX_PACKAGE = "([a-z][a-z_0-9]*\\.)*";
+    private static final String REGEX_CLASS_NAME = "[A-Z_](\\w)*";
+    private static final Pattern PATTERN_LOAD_CLASS = Pattern.compile("(import\\s+|new\\s+|\\s*)?("
+            + REGEX_PACKAGE + ")(" + REGEX_CLASS_NAME + ")(\\..*|\\(.*)?");
     private static final List<String> DEFAULT_IMPORTS = Arrays.asList("java.lang.*", "java.util.*", "java.io.*"
                                                      , "java.net.*", "groovy.lang.*", "groovy.util.*"
                                                      , "java.math.BigInteger", "java.math.BigDecimal");
@@ -217,7 +220,7 @@ public class GroovyEngine implements ScriptEngine {
 
     private static Set<Class<?>> classesForPackage(String pckgname, GroovyShell shell) throws ClassNotFoundException {
         String name = pckgname;
-        Matcher matcher = PATTERN_CLASS_NAME.matcher(name);
+        Matcher matcher = PATTERN_CLASS.matcher(name);
         if (matcher.matches()) {
             name = matcher.group(1) + ".**";
         }
@@ -265,8 +268,8 @@ public class GroovyEngine implements ScriptEngine {
     @Override
     public Object execute(String statement) throws Exception {
         Object out = null;
-        if (statement.startsWith("import ")) {
-            String[] p = statement.split("\\s+", 2);
+        if (statement.matches("import\\s+(([^;\\s])+)\\s*(;)?")) {
+            String[] p = statement.split("\\s+");
             String classname = p[1].replaceAll(";", "");
             executeStatement(shell, imports, statement);
             imports.put(classname, statement);
@@ -308,7 +311,7 @@ public class GroovyEngine implements ScriptEngine {
                         statement = importClass + matcher.group(4) + ".class";
                     } else {
                         statement = importClass + statement.substring(0, idx) + convertNull(matcher.group(1)) + matcher.group(4)
-                                + convertNull(matcher.group(5));
+                                + convertNull(matcher.group(6));
                     }
                     break;
                 }
@@ -481,7 +484,7 @@ public class GroovyEngine implements ScriptEngine {
 
     private static Class<?> classResolver(String classDotName, GroovyShell shell) {
         Class<?> out = null;
-        Matcher matcher = PATTERN_CLASS_NAME.matcher(classDotName);
+        Matcher matcher = PATTERN_CLASS.matcher(classDotName);
         if (matcher.matches()) {
             String classname = matcher.group(2).replaceAll("\\.", "\\$");
             try {
