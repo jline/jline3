@@ -76,6 +76,8 @@ public class GroovyEngine implements ScriptEngine {
                                            , Pattern.DOTALL);
     private static final Pattern PATTERN_CLASS_DEF = Pattern.compile("^class\\s+(" + REGEX_VAR + ") .*?\\{.*?}(|\n)$"
                                                                   , Pattern.DOTALL);
+    private static final Pattern PATTERN_TRAIT_DEF = Pattern.compile("^trait\\s+" + REGEX_VAR + "\\s*\\{.*?}(|\n)$"
+                                                                    , Pattern.DOTALL);
     private static final Pattern PATTERN_CLASS = Pattern.compile("(.*?)\\.([A-Z_].*)");
     private static final String REGEX_PACKAGE = "([a-z][a-z_0-9]*\\.)*";
     private static final String REGEX_CLASS_NAME = "[A-Z_](\\w)*";
@@ -304,8 +306,11 @@ public class GroovyEngine implements ScriptEngine {
                 if (file.exists()) {
                     try {
                         shell.evaluate(file);
-                    } catch (MissingMethodExceptionNoStack ignore) {
-
+                    } catch (GroovyRuntimeException e) {
+                        if (!(e instanceof MissingMethodExceptionNoStack)              // thrown when class without main()
+                                && !(e.getCause() instanceof NoSuchMethodException)) { // thrown traits... no constructor
+                            throw e;
+                        }
                     }
                     if (importStatement) {
                         statement = importClass + matcher.group(4) + ".class";
@@ -322,7 +327,7 @@ public class GroovyEngine implements ScriptEngine {
             e.append(entry.getValue()).append("\n");
         }
         e.append(statement);
-        if (classDef(statement)) {
+        if (classOrTraitDef(statement)) {
             e.append("; null");
         }
         return shell.evaluate(e.toString());
@@ -375,8 +380,8 @@ public class GroovyEngine implements ScriptEngine {
         return out;
     }
 
-    private static boolean classDef(String statement) {
-        return PATTERN_CLASS_DEF.matcher(statement).matches();
+    private static boolean classOrTraitDef(String statement) {
+        return PATTERN_CLASS_DEF.matcher(statement).matches() || PATTERN_TRAIT_DEF.matcher(statement).matches();
     }
 
     private void refreshNameClass() {
@@ -471,7 +476,7 @@ public class GroovyEngine implements ScriptEngine {
 
     private Completer compileCompleter() {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(new StringsCompleter("class", "print", "println"), NullCompleter.INSTANCE));
+        completers.add(new ArgumentCompleter(new StringsCompleter("class", "print", "println", "trait"), NullCompleter.INSTANCE));
         completers.add(new ArgumentCompleter(new StringsCompleter("def"), new StringsCompleter(methods::keySet)
                                            , NullCompleter.INSTANCE));
         completers.add(new ArgumentCompleter(new StringsCompleter("import")
@@ -1182,11 +1187,14 @@ public class GroovyEngine implements ScriptEngine {
                     sharedData.setVariable(entry.getKey(), execute("{" + m.group(1) + "->" + m.group(2) + "}"));
                 }
             }
-            for (String c : imports.keySet()) {
+            for (Map.Entry<String,String> entry : imports.entrySet()) {
                 try {
-                    addToNameClass(c, nameClass, shell);
-                } catch (Exception ignore) {
-
+                    executeStatement(shell, new HashMap<>(), entry.getValue());
+                    addToNameClass(entry.getKey(), nameClass, shell);
+                } catch (Exception e) {
+                    if (Log.isDebugEnabled()) {
+                        e.printStackTrace();
+                    }
                 }
             }
         }
@@ -1201,7 +1209,10 @@ public class GroovyEngine implements ScriptEngine {
                 involvedObject = execute(objectStatement);
                 out = involvedObject.getClass();
             } catch (Exception e) {
-                // ignore
+                Log.debug("objectStatement: ", objectStatement);
+                if (Log.isDebugEnabled()) {
+                    e.printStackTrace();
+                }
             }
             try {
                 if (out == null || out == Class.class) {
@@ -1231,7 +1242,10 @@ public class GroovyEngine implements ScriptEngine {
             Object out = null;
             try {
                 out = executeStatement(shell, imports, statement);
-            } catch (Exception ignore) {
+            } catch (Exception e) {
+                if (Log.isDebugEnabled()) {
+                    e.printStackTrace();
+                }
             } finally {
                 System.setOut(origOut);
                 System.setErr(origErr);
