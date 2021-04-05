@@ -74,9 +74,9 @@ public class GroovyEngine implements ScriptEngine {
     private static final Pattern PATTERN_FUNCTION_DEF = Pattern.compile(
                                       "^def\\s+(" + REGEX_VAR + ")\\s*\\(([a-zA-Z0-9_ ,]*)\\)\\s*\\{(.*)?}(|\n)$"
                                            , Pattern.DOTALL);
-    private static final Pattern PATTERN_CLASS_DEF = Pattern.compile("^class\\s+(" + REGEX_VAR + ") .*?\\{.*?}(|\n)$"
+    private static final Pattern PATTERN_CLASS_DEF = Pattern.compile("^class\\s+(" + REGEX_VAR + ")\\s*(.*?\\{.*?})(|\n)$"
                                                                   , Pattern.DOTALL);
-    private static final Pattern PATTERN_TRAIT_DEF = Pattern.compile("^trait\\s+" + REGEX_VAR + "\\s*\\{.*?}(|\n)$"
+    private static final Pattern PATTERN_TRAIT_DEF = Pattern.compile("^trait\\s+(" + REGEX_VAR + ")\\s*(\\{.*?})(|\n)$"
                                                                     , Pattern.DOTALL);
     private static final Pattern PATTERN_CLASS = Pattern.compile("(.*?)\\.([A-Z_].*)");
     private static final String REGEX_PACKAGE = "([a-z][a-z_0-9]*\\.)*";
@@ -91,6 +91,8 @@ public class GroovyEngine implements ScriptEngine {
     protected Binding sharedData;
     private final Map<String,String> imports = new HashMap<>();
     private final Map<String,String> methods = new HashMap<>();
+    private final Map<String,String> classes = new HashMap<>();
+    private final Map<String,String> traits = new HashMap<>();
     private final Map<String,Class<?>> nameClass;
     private Cloner objectCloner = new ObjectCloner();
 
@@ -282,13 +284,30 @@ public class GroovyEngine implements ScriptEngine {
             // do nothing
         } else if (statement.equals("def")) {
             out = methods;
-        } else if (statement.matches("def\\s+" + REGEX_VAR)) {
+        } else if (statement.equals("class")) {
+            out = classes;
+        } else if (statement.equals("traits")) {
+            out = traits;
+        } else if (statement.matches("(def|class|trait)\\s+" + REGEX_VAR)) {
             String name = statement.split("\\s+")[1];
-            if (methods.containsKey(name)) {
+            if (statement.startsWith("def") && methods.containsKey(name)) {
                 out = "def " + name + methods.get(name);
+            } else if (statement.startsWith("class") && classes.containsKey(name)) {
+                out = "class " + name + " " + classes.get(name);
+            } else if (statement.startsWith("trait") && traits.containsKey(name)) {
+                out = "trait " + name + " " + traits.get(name);
             }
         } else {
             out = executeStatement(shell, imports, statement);
+            if (PATTERN_CLASS_DEF.matcher(statement).matches()) {
+                Matcher matcher = PATTERN_CLASS_DEF.matcher(statement);
+                matcher.matches();
+                classes.put(matcher.group(1), matcher.group(2));
+            } else if (PATTERN_TRAIT_DEF.matcher(statement).matches()) {
+                Matcher matcher = PATTERN_TRAIT_DEF.matcher(statement);
+                matcher.matches();
+                traits.put(matcher.group(1), matcher.group(2));
+            }
         }
         return out;
     }
@@ -476,8 +495,12 @@ public class GroovyEngine implements ScriptEngine {
 
     private Completer compileCompleter() {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(new StringsCompleter("class", "print", "println", "trait"), NullCompleter.INSTANCE));
+        completers.add(new ArgumentCompleter(new StringsCompleter("print", "println"), NullCompleter.INSTANCE));
         completers.add(new ArgumentCompleter(new StringsCompleter("def"), new StringsCompleter(methods::keySet)
+                                           , NullCompleter.INSTANCE));
+        completers.add(new ArgumentCompleter(new StringsCompleter("class"), new StringsCompleter(classes::keySet)
+                                           , NullCompleter.INSTANCE));
+        completers.add(new ArgumentCompleter(new StringsCompleter("trait"), new StringsCompleter(traits::keySet)
                                            , NullCompleter.INSTANCE));
         completers.add(new ArgumentCompleter(new StringsCompleter("import")
                                            , new PackageCompleter(CandidateType.PACKAGE, this), NullCompleter.INSTANCE));
@@ -502,6 +525,12 @@ public class GroovyEngine implements ScriptEngine {
                         ex.printStackTrace();
                     }
                 }
+            }
+        } else if (classDotName.matches(REGEX_CLASS_NAME)) {
+            try {
+                out = (Class<?>) executeStatement(shell, new HashMap<>(), classDotName + ".class");
+            } catch (Exception ignore) {
+
             }
         }
         return out;
@@ -1195,6 +1224,19 @@ public class GroovyEngine implements ScriptEngine {
                     if (Log.isDebugEnabled()) {
                         e.printStackTrace();
                     }
+                }
+            }
+            for (Map.Entry<String,String> entry : groovyEngine.traits.entrySet()) {
+                try {
+                    executeStatement(shell, imports, "trait " + entry.getKey() + " " + entry.getValue());
+                } catch (Exception ignore) {
+                }
+            }
+            for (Map.Entry<String,String> entry : groovyEngine.classes.entrySet()) {
+                try {
+                    executeStatement(shell, imports, "class " + entry.getKey() + " " + entry.getValue());
+                    addToNameClass(entry.getKey(), nameClass, shell);
+                } catch (Exception ignore) {
                 }
             }
         }
