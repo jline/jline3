@@ -439,10 +439,6 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         }
     }
 
-    private void highlightAndPrint(int width, String style, String object, boolean doValueHighlight) {
-        highlightAndPrint(width, valueHighlighter(style), object, doValueHighlight);
-    }
-
     private void highlightAndPrint(int width, SyntaxHighlighter highlighter, String object, boolean doValueHighlight) {
         for (String s: object.split("\\r?\\n")) {
             AttributedStringBuilder asb = new AttributedStringBuilder();
@@ -671,17 +667,17 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         return out;
     }
 
-    private boolean similarSets(Set<String> ref, Set<String> c2, double threshold) {
-        boolean out = c2.containsAll(ref);
-        if (!out) {
-            int matches = 0;
-            for (String s : ref) {
-                if (c2.contains(s)) {
-                    matches += 1;
+    private boolean similarSets(final Set<String> ref, final Set<String> c2, final int matchLimit) {
+        boolean out = false;
+        int limit = matchLimit;
+        for (String s : ref) {
+            if (c2.contains(s)) {
+                limit--;
+                if (limit == 0) {
+                    out = true;
+                    break;
                 }
             }
-            double r = (1.0*matches)/ref.size();
-            out = r > threshold;
         }
         return out;
     }
@@ -766,8 +762,14 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                         Object elem = collection.iterator().next();
                         boolean convert = canConvert(elem);
                         if ((elem instanceof Map || convert) && !options.containsKey(Printer.TO_STRING)) {
-                            Map<String, Object> map = convert ? objectToMap(options, elem)
-                                                              : keysToString((Map<Object, Object>) elem);
+                            List<Map<String,Object>> convertedCollection = new ArrayList<>();
+                            Set<String> keys = new HashSet<>();
+                            for (Object o : collection) {
+                                Map<String, Object> m = convert ? objectToMap(options, o)
+                                        : keysToString((Map<Object, Object>) o);
+                                convertedCollection.add(m);
+                                keys.addAll(m.keySet());
+                            }
                             List<String> _header;
                             List<String> columnsIn = optionList(Printer.COLUMNS_IN, options);
                             List<String> columnsOut = !options.containsKey("all") ? optionList(Printer.COLUMNS_OUT, options)
@@ -776,7 +778,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                                 _header = (List<String>) options.get(Printer.COLUMNS);
                             } else {
                                 _header = columnsIn;
-                                _header.addAll(map.keySet().stream()
+                                _header.addAll(keys.stream()
                                         .filter(k -> !columnsIn.contains(k) && !hasMatch(columnsOut, k))
                                         .collect(Collectors.toList()));
                             }
@@ -784,22 +786,30 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                             List<Integer> columns = new ArrayList<>();
                             int headerWidth = 0;
                             Set<String> refKeys = new HashSet<>();
-                            for (String value : _header) {
-                                if (!map.containsKey(value.split("\\.")[0]) && !map.containsKey(value)) {
+                            for (String v : _header) {
+                                String value = v.split("\\.")[0];
+                                if (!keys.contains(value)) {
                                     continue;
                                 }
-                                if (options.containsKey(Printer.COLUMNS)) {
-                                    // do nothing
-                                } else if (!options.containsKey(Printer.STRUCT_ON_TABLE)) {
-                                    Object val = mapValue(options, value, map);
-                                    if (!simpleObject(val)) {
+                                if (!options.containsKey(Printer.COLUMNS) &&
+                                        !options.containsKey(Printer.STRUCT_ON_TABLE)) {
+                                    boolean simple = true;
+                                    for (Map<String,Object> m : convertedCollection) {
+                                        if (m.containsKey(value)) {
+                                            Object val = mapValue(options, v, m);
+                                            if (!simpleObject(val)) {
+                                                simple = false;
+                                            }
+                                            break;
+                                        }
+                                    }
+                                    if (!simple) {
                                         continue;
                                     }
                                 }
-                                String rk = map.containsKey(value) ? value : value.split("\\.")[0];
-                                refKeys.add(rk);
-                                header.add(value);
-                                String cn = columnName(value, options.containsKey(Printer.SHORT_NAMES));
+                                refKeys.add(value);
+                                header.add(v);
+                                String cn = columnName(v, options.containsKey(Printer.SHORT_NAMES));
                                 columns.add(cn.length() + 1);
                                 headerWidth += cn.length() + 1;
                                 if (headerWidth > width) {
@@ -809,14 +819,11 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                             if (header.size() == 0) {
                                 throw new Exception("No columns for table!");
                             }
-                            double mapSimilarity = 0.8;
-                            if (options.containsKey(Printer.MAP_SIMILARITY)) {
-                                mapSimilarity = ((BigDecimal)options.get(Printer.MAP_SIMILARITY)).doubleValue();
-                            }
-                            for (Object o : collection) {
-                                Map<String, Object> m = convert ? objectToMap(options, o)
-                                                                : keysToString((Map<Object, Object>) o);
-                                if (o instanceof Map && !similarSets(refKeys, m.keySet(), mapSimilarity)) {
+                            double mapSimilarity = ((BigDecimal)options.getOrDefault(Printer.MAP_SIMILARITY
+                                    , new BigDecimal("0.8"))).doubleValue();
+                            int matchLimit = (int)Math.ceil(header.size() * mapSimilarity);
+                            for (Map<String, Object> m : convertedCollection) {
+                                if (!similarSets(refKeys, m.keySet(), matchLimit)) {
                                     throw new Exception("Not homogenous list!");
                                 }
                                 for (int i = 0; i < header.size(); i++) {
@@ -847,7 +854,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                             }
                             asb.columnSubSequence(0, width).println(terminal());
                             int row = 0;
-                            for (Object o : collection) {
+                            for (Map<String, Object> m : convertedCollection) {
                                 AttributedStringBuilder asb2 = new AttributedStringBuilder().tabs(columns);
                                 if (doRowHighlight(row, tableRows)) {
                                     asb2.style(prntStyle.resolve(".rs"));
@@ -859,8 +866,6 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                                     asb2.append("\t");
                                 }
                                 row++;
-                                Map<String, Object> m = convert ? objectToMap(options, o)
-                                                                : keysToString((Map<Object, Object>) o);
                                 for (int i = 0; i < header.size(); i++) {
                                     if (i > 0) {
                                         asb2.append(columnSep);
