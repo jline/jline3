@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -9,6 +9,7 @@
 package org.jline.groovy
 
 import org.codehaus.groovy.runtime.HandleMetaClass
+import org.codehaus.groovy.runtime.typehandling.GroovyCastException
 
 import java.nio.file.Path
 import org.jline.script.GroovyEngine.Format
@@ -37,13 +38,18 @@ class Utils {
     }
 
     static Map<String,Object> toMap(Object object) {
-        def out = [:]
-        if (object instanceof Closure) {
-            out['closure'] = object.getClass().getName()
-        } else if (object instanceof HandleMetaClass) {
-            out['object'] = object.toString()
-        } else {
-            out = object != null ? object.properties : null
+        Map<String,Object> out = [:]
+        try {
+            if (object instanceof Closure) {
+                out['closure'] = object.getClass().getName()
+            } else if (object instanceof HandleMetaClass) {
+                out['HandleMetaClass'] = object.toString()
+            } else {
+                out = object != null ? object.properties : null
+            }
+            return out
+        } catch (GroovyCastException e) {
+            out[object.getClass().getSimpleName()] = object.toString()
         }
         out
     }
