@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -18,6 +18,7 @@ import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.function.Function;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 /**
@@ -26,7 +27,7 @@ import java.util.jar.JarFile;
  *
  */
 public class PackageHelper {
-    private enum ClassesToScann {ALL, PACKAGE_ALL, PACKAGE_CLASS};
+    private enum ClassesToScann {ALL, PACKAGE_ALL, PACKAGE_CLASS}
     /**
      * Private helper method
      *
@@ -40,8 +41,7 @@ public class PackageHelper {
      * @param scann
      *            determinate which classes will be added
      */
-    private static void checkDirectory(File directory, String pckgname,
-            List<Class<?>> classes, ClassesToScann scann) {
+    private static void checkDirectory(File directory, String pckgname, List<Class<?>> classes, ClassesToScann scann) {
         File tmpDirectory;
 
         if (directory.exists() && directory.isDirectory()) {
@@ -61,8 +61,8 @@ public class PackageHelper {
     /**
      * Private helper method.
      *
-     * @param connection
-     *            the connection to the jar
+     * @param jarFile
+     *            the jar file
      * @param pckgname
      *            the package name to search for
      * @param classes
@@ -73,10 +73,9 @@ public class PackageHelper {
      * @throws IOException
      *             if it can't correctly read from the jar file.
      */
-    private static void checkJarFile(JarURLConnection connection,
-            String pckgname, List<Class<?>> classes, ClassesToScann scann)
+    private static void checkJarFile(final JarFile jarFile, String pckgname, List<Class<?>> classes, List<String> names
+            , ClassesToScann scann, Function<String,Class<?>> classResolver)
             throws IOException {
-        final JarFile jarFile = connection.getJarFile();
         final Enumeration<JarEntry> entries = jarFile.entries();
         String name;
 
@@ -88,21 +87,77 @@ public class PackageHelper {
                     String namepckg = name.substring(0, name.lastIndexOf("."));
                     if (pckgname.equals(namepckg) && ((scann == ClassesToScann.PACKAGE_CLASS && !name.contains("$"))
                                                     || scann == ClassesToScann.PACKAGE_ALL)) {
-                        addClass(name, classes);
+                        if (names == null) {
+                            addClass(name, classes, classResolver);
+                        } else {
+                            names.add(name);
+                        }
                     }
                 } else if (name.contains(pckgname)) {
-                    addClass(name, classes);
+                    if (names == null) {
+                        addClass(name, classes, classResolver);
+                    } else {
+                        names.add(name);
+                    }
                 }
             }
         }
     }
 
     private static void addClass(String className, List<Class<?>> classes) {
-        try {
-            classes.add(Class.forName(className));
-        } catch (Exception|Error e) {
-            // ignore
+        addClass(className, classes, PackageHelper::classResolver);
+    }
+
+    private static void addClass(String className, List<Class<?>> classes, Function<String,Class<?>> classResolver) {
+        Class<?> clazz = classResolver.apply(className);
+        if (clazz != null) {
+            classes.add(clazz);
         }
+    }
+
+    private static Class<?> classResolver(String name) {
+        Class<?> out = null;
+        try {
+            out = Class.forName(name);
+        } catch (Exception|Error ignore) {
+
+        }
+        return out;
+    }
+
+    /**
+     * Attempts to list all the class names in the specified package as determined
+     * by the Groovy class loader classpath
+     *
+     * @param pckgname
+     *            the package name to search
+     * @param classLoader Groovy class loader
+     * @return a list of class names that exist within that package
+     */
+    public static List<String> getClassNamesForPackage(String pckgname, ClassLoader classLoader) {
+        List<String> out = new ArrayList<>();
+        try {
+            getClassesForPackage(pckgname, classLoader, out, null);
+        } catch (Exception ignore) {
+        }
+        return out;
+    }
+
+    /**
+     * Attempts to list all the classes in the specified package as determined
+     * by the Groovy class loader classpath
+     *
+     * @param pckgname
+     *            the package name to search
+     * @param classLoader Groovy class loader
+     * @param classResolver resolve class from class name
+     * @return a list of classes that exist within that package
+     * @throws ClassNotFoundException
+     *             if something went wrong
+     */
+    public static List<Class<?>> getClassesForPackage(String pckgname, ClassLoader classLoader
+            , Function<String,Class<?>> classResolver) throws ClassNotFoundException {
+        return getClassesForPackage(pckgname, classLoader, null, classResolver);
     }
 
     /**
@@ -116,6 +171,15 @@ public class PackageHelper {
      *             if something went wrong
      */
     public static List<Class<?>> getClassesForPackage(String pckgname) throws ClassNotFoundException {
+        final ClassLoader cld = Thread.currentThread().getContextClassLoader();
+        if (cld == null) {
+            throw new ClassNotFoundException("Can't get class loader.");
+        }
+        return getClassesForPackage(pckgname, cld, null, PackageHelper::classResolver);
+    }
+
+    private static List<Class<?>> getClassesForPackage(String pckgname, final ClassLoader classLoader, List<String> names
+            , Function<String, Class<?>> classResolver) throws ClassNotFoundException {
         List<Class<?>> classes = new ArrayList<>();
         ClassesToScann scann = ClassesToScann.ALL;
         if (pckgname.endsWith(".*")) {
@@ -127,24 +191,26 @@ public class PackageHelper {
         }
 
         try {
-            final ClassLoader cld = Thread.currentThread().getContextClassLoader();
-            if (cld == null) {
-                throw new ClassNotFoundException("Can't get class loader.");
-            }
-            final Enumeration<URL> resources = cld.getResources(pckgname.replace('.', '/'));
+            final Enumeration<URL> resources = classLoader.getResources(pckgname.replace('.', '/'));
             URLConnection connection;
 
             for (URL url; resources.hasMoreElements()
-                    && ((url = resources.nextElement()) != null);) {
+                    && ((url = resources.nextElement()) != null); ) {
                 try {
                     connection = url.openConnection();
 
                     if (connection instanceof JarURLConnection) {
-                        checkJarFile((JarURLConnection) connection, pckgname, classes, scann);
+                        checkJarFile(((JarURLConnection) connection).getJarFile(), pckgname, classes, names, scann, classResolver);
                     } else if (connection.getClass().getCanonicalName().equals("sun.net.www.protocol.file.FileURLConnection")) {
                         try {
-                            checkDirectory(
-                                    new File(URLDecoder.decode(url.getPath(), "UTF-8")), pckgname, classes, scann);
+                            File file = new File(URLDecoder.decode(url.getPath(), "UTF-8"));
+                            if (file.exists()) {
+                                if (file.isDirectory()) {
+                                    checkDirectory(file, pckgname, classes, scann);
+                                } else if (file.getName().endsWith(".jar")) {
+                                    checkJarFile(new JarFile(file), pckgname, classes, names, scann, classResolver);
+                                }
+                            }
                         } catch (final UnsupportedEncodingException ex) {
                             throw new ClassNotFoundException(
                                     pckgname

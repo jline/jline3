@@ -78,7 +78,8 @@ public class GroovyEngine implements ScriptEngine {
                                                                   , Pattern.DOTALL);
     private static final Pattern PATTERN_TRAIT_DEF = Pattern.compile("^trait\\s+(" + REGEX_VAR + ")\\s*(\\{.*?})(|\n)$"
                                                                     , Pattern.DOTALL);
-    private static final Pattern PATTERN_CLASS = Pattern.compile("(.*?)\\.([A-Z_].*)");
+    private static final String REGEX_CLASS = "(.*?)\\.([A-Z_].*)";
+    private static final Pattern PATTERN_CLASS = Pattern.compile(REGEX_CLASS);
     private static final String REGEX_PACKAGE = "([a-z][a-z_0-9]*\\.)*";
     private static final String REGEX_CLASS_NAME = "[A-Z_](\\w)*";
     private static final Pattern PATTERN_LOAD_CLASS = Pattern.compile("(import\\s+|new\\s+|\\s*)?("
@@ -106,7 +107,7 @@ public class GroovyEngine implements ScriptEngine {
         this.sharedData = new Binding();
         shell = new GroovyShell(sharedData);
         for (String s : DEFAULT_IMPORTS) {
-            addToNameClass(s, defaultNameClass, shell);
+            addToNameClass(s, defaultNameClass);
         }
         nameClass = new HashMap<>(defaultNameClass);
     }
@@ -218,10 +219,6 @@ public class GroovyEngine implements ScriptEngine {
         return s.run();
     }
 
-    private static Set<Class<?>> classesForPackage(String pckgname) throws ClassNotFoundException {
-        return classesForPackage(pckgname, null);
-    }
-
     private static Set<Class<?>> classesForPackage(String pckgname, GroovyShell shell) throws ClassNotFoundException {
         String name = pckgname;
         Matcher matcher = PATTERN_CLASS.matcher(name);
@@ -232,27 +229,43 @@ public class GroovyEngine implements ScriptEngine {
         if (out.isEmpty()) {
             out.addAll(JrtJavaBasePackages.getClassesForPackage(name));
         }
-        if (out.isEmpty() && shell != null && name.endsWith(".*")) {
-            name = name.substring(0, name.length() - 1);
-            Set<String> classNames = Helpers.nextFileDomain(name);
-            for (String c : classNames) {
-                if (Character.isUpperCase(c.charAt(0))) {
-                    try {
-                        out.add((Class<?>)executeStatement(shell, new HashMap<>(), name + c + ".class"));
-                    } catch (Exception ignore) {
+        if (out.isEmpty() && shell != null) {
+            if (name.endsWith(".*")) {
+                name = name.substring(0, name.length() - 1);
+                Set<String> classNames = Helpers.nextFileDomain(name);
+                for (String c : classNames) {
+                    if (Character.isUpperCase(c.charAt(0))) {
+                        try {
+                            out.add((Class<?>) executeStatement(shell, new HashMap<>(), name + c + ".class"));
+                        } catch (Exception ignore) {
 
+                        }
                     }
                 }
+            } else if (name.endsWith(".**")) {
+                out.addAll(new HashSet<>(PackageHelper.getClassesForPackage(name, shell.getClassLoader()
+                        , n ->
+                        {
+                            if (n.contains("-")) {
+                                return null;
+                            }
+                            Class<?> o = null;
+                            try {
+                                o = (Class<?>) shell.evaluate(n + ".class");
+                            } catch (Exception | Error ignore) {
+                            }
+                            return o;
+                        })));
             }
         }
         return out;
     }
 
     private void addToNameClass(String name) {
-        addToNameClass(name, nameClass, shell);
+        addToNameClass(name, nameClass);
     }
 
-    private static void addToNameClass(String name, Map<String,Class<?>> nameClass, GroovyShell shell) {
+    private void addToNameClass(String name, Map<String,Class<?>> nameClass) {
         try {
             if (name.endsWith(".*")) {
                 for (Class<?> c : classesForPackage(name, shell)) {
@@ -303,6 +316,7 @@ public class GroovyEngine implements ScriptEngine {
                 Matcher matcher = PATTERN_CLASS_DEF.matcher(statement);
                 matcher.matches();
                 classes.put(matcher.group(1), matcher.group(2));
+                addToNameClass(matcher.group(1));
             } else if (PATTERN_TRAIT_DEF.matcher(statement).matches()) {
                 Matcher matcher = PATTERN_TRAIT_DEF.matcher(statement);
                 matcher.matches();
@@ -407,6 +421,9 @@ public class GroovyEngine implements ScriptEngine {
         nameClass.clear();
         nameClass.putAll(defaultNameClass);
         for (String name : imports.keySet()) {
+            addToNameClass(name);
+        }
+        for (String name : classes.keySet()) {
             addToNameClass(name);
         }
     }
@@ -564,9 +581,9 @@ public class GroovyEngine implements ScriptEngine {
             return out;
         }
 
-        private static Set<String> names(String domain) {
+        private static Set<String> names(String domain, Collection<String> packages) {
             Set<String> out = new HashSet<>();
-            for (String p : loadedPackages()) {
+            for (String p : packages) {
                 if (p.startsWith(domain)) {
                     int idx = p.indexOf('.', domain.length());
                     if (idx < 0) {
@@ -674,11 +691,11 @@ public class GroovyEngine implements ScriptEngine {
             return out;
         }
 
-        public static Set<String> nextDomain(String domain, CandidateType type) {
-            return nextDomain(domain, new AccessRules(), type);
+        public static Set<String> nextDomain(String domain, CandidateType type, GroovyShell shell) {
+            return nextDomain(domain, new AccessRules(), type, shell);
         }
 
-        public static Set<String> nextDomain(String domain, AccessRules access, CandidateType type) {
+        public static Set<String> nextDomain(String domain, AccessRules access, CandidateType type, GroovyShell shell) {
             Set<String> out = new HashSet<>();
             if (domain.isEmpty()) {
                 for (String p : loadedPackages()) {
@@ -686,11 +703,15 @@ public class GroovyEngine implements ScriptEngine {
                 }
                 out.addAll(nextFileDomain(null));
             } else if ((domain.split("\\.")).length < 2) {
-                out = names(domain);
+                out = names(domain, loadedPackages());
+                out.addAll(names(domain, PackageHelper.getClassNamesForPackage(domain, shell.getClassLoader())));
                 out.addAll(nextFileDomain(domain));
             } else {
                 try {
-                    for (Class<?> c : classesForPackage(domain)) {
+                    if (!domain.matches(REGEX_CLASS)) {
+                        out = names(domain, PackageHelper.getClassNamesForPackage(domain, shell.getClassLoader()));
+                    }
+                    for (Class<?> c : classesForPackage(domain, shell)) {
                         try {
                             if ((!Modifier.isPublic(c.getModifiers()) && !access.allClasses) || c.getCanonicalName() == null) {
                                 continue;
@@ -723,7 +744,8 @@ public class GroovyEngine implements ScriptEngine {
                     if (Log.isDebugEnabled()) {
                         e.printStackTrace();
                     }
-                    out = names(domain);
+                    out.addAll(names(domain, loadedPackages()));
+                    out.addAll(names(domain, PackageHelper.getClassNamesForPackage(domain, shell.getClassLoader())));
                 }
             }
             return out;
@@ -862,7 +884,7 @@ public class GroovyEngine implements ScriptEngine {
                 curBuf = buffer.substring(0, lastDelim + 1);
             }
             Helpers.doCandidates(candidates
-                               , Helpers.nextDomain(curBuf, new AccessRules(groovyEngine.groovyOptions()), type)
+                               , Helpers.nextDomain(curBuf, new AccessRules(groovyEngine.groovyOptions()), type, groovyEngine.shell)
                                , curBuf, type);
         }
 
@@ -931,7 +953,7 @@ public class GroovyEngine implements ScriptEngine {
                         } catch (Exception e) {
                             String param = wordbuffer.substring(0, idx + 1);
                             Helpers.doCandidates(candidates
-                                               , Helpers.nextDomain(param, CandidateType.CONSTRUCTOR)
+                                               , Helpers.nextDomain(param, CandidateType.CONSTRUCTOR, inspector.shell)
                                                , param, CandidateType.CONSTRUCTOR);
                         }
                     } else {
@@ -992,7 +1014,7 @@ public class GroovyEngine implements ScriptEngine {
                         } finally {
                             param = wordbuffer.substring(eqsep + 1, varsep + 1);
                             Helpers.doCandidates(candidates
-                                    , Helpers.nextDomain(param, CandidateType.STATIC_METHOD)
+                                    , Helpers.nextDomain(param, CandidateType.STATIC_METHOD, inspector.shell)
                                     , curBuf, CandidateType.PACKAGE);
                         }
                     }
@@ -1186,7 +1208,7 @@ public class GroovyEngine implements ScriptEngine {
 
         public Inspector(GroovyEngine groovyEngine) {
             this.imports = groovyEngine.imports;
-            this.nameClass = new HashMap<>(groovyEngine.nameClass);
+            this.nameClass = groovyEngine.nameClass;
             this.canonicalNames = groovyEngine.groovyOption(CANONICAL_NAMES, false);
             this.nanorcSyntax = groovyEngine.groovyOption(NANORC_SYNTAX, DEFAULT_NANORC_SYNTAX);
             this.noSyntaxCheck = groovyEngine.groovyOption(NO_SYNTAX_CHECK, false);
@@ -1201,7 +1223,7 @@ public class GroovyEngine implements ScriptEngine {
                 sharedData.setVariable(entry.getKey(), obj);
             }
             groovyEngine.getObjectCloner().purgeCache();
-            shell = new GroovyShell(sharedData);
+            shell = new GroovyShell(groovyEngine.shell.getClassLoader(), sharedData);
             try {
                 File file = OSUtils.IS_WINDOWS ? new File("NUL") : new File("/dev/null");
                 OutputStream outputStream = new FileOutputStream(file);
@@ -1214,29 +1236,6 @@ public class GroovyEngine implements ScriptEngine {
                 if (m.matches() && sharedData.hasVariable(entry.getKey())
                         && sharedData.getVariable(entry.getKey()) instanceof Closure) {
                     sharedData.setVariable(entry.getKey(), execute("{" + m.group(1) + "->" + m.group(2) + "}"));
-                }
-            }
-            for (Map.Entry<String,String> entry : imports.entrySet()) {
-                try {
-                    executeStatement(shell, new HashMap<>(), entry.getValue());
-                    addToNameClass(entry.getKey(), nameClass, shell);
-                } catch (Exception e) {
-                    if (Log.isDebugEnabled()) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-            for (Map.Entry<String,String> entry : groovyEngine.traits.entrySet()) {
-                try {
-                    executeStatement(shell, imports, "trait " + entry.getKey() + " " + entry.getValue());
-                } catch (Exception ignore) {
-                }
-            }
-            for (Map.Entry<String,String> entry : groovyEngine.classes.entrySet()) {
-                try {
-                    executeStatement(shell, imports, "class " + entry.getKey() + " " + entry.getValue());
-                    addToNameClass(entry.getKey(), nameClass, shell);
-                } catch (Exception ignore) {
                 }
             }
         }
