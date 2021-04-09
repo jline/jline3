@@ -96,6 +96,7 @@ public class GroovyEngine implements ScriptEngine {
     private final Map<String,String> traits = new HashMap<>();
     private final Map<String,Class<?>> nameClass;
     private Cloner objectCloner = new ObjectCloner();
+    protected final EngineClassLoader classLoader;
 
     public interface Cloner {
         Object clone(Object obj);
@@ -105,7 +106,8 @@ public class GroovyEngine implements ScriptEngine {
 
     public GroovyEngine() {
         this.sharedData = new Binding();
-        shell = new GroovyShell(sharedData);
+        this.classLoader = new EngineClassLoader();
+        shell = new GroovyShell(classLoader, sharedData);
         for (String s : DEFAULT_IMPORTS) {
             addToNameClass(s, defaultNameClass);
         }
@@ -312,6 +314,7 @@ public class GroovyEngine implements ScriptEngine {
             }
         } else {
             out = executeStatement(shell, imports, statement);
+            classLoader.purgeClassCache();
             if (PATTERN_CLASS_DEF.matcher(statement).matches()) {
                 Matcher matcher = PATTERN_CLASS_DEF.matcher(statement);
                 matcher.matches();
@@ -437,11 +440,18 @@ public class GroovyEngine implements ScriptEngine {
             if (var.endsWith(".*")) {
                 refreshNameClass();
             } else {
+                classLoader.purgeClassCache(var + "(\\$.*)?");
                 nameClass.remove(var.substring(var.lastIndexOf('.') + 1));
             }
         } else if (sharedData.hasVariable(var)) {
             sharedData.getVariables().remove(var);
             methods.remove(var);
+        } else if (classes.containsKey(var)) {
+            classes.remove(var);
+            classLoader.purgeClassCache(var + "(\\$.*)?");
+        } else if (traits.containsKey(var)) {
+            traits.remove(var);
+            classLoader.purgeClassCache(var + "(\\$.*)?");
         } else if (!var.contains(".") && var.contains("*")) {
             for (String v : internalFind(var)){
                 if (sharedData.hasVariable(v) && !v.equals("_") && !v.matches(REGEX_SYSTEM_VAR)) {
@@ -551,6 +561,50 @@ public class GroovyEngine implements ScriptEngine {
             }
         }
         return out;
+    }
+
+    public void purgeClassCache(String regex) {
+        if (regex == null) {
+            classLoader.clearCache();
+        } else {
+            classLoader.purgeClassCache(regex);
+        }
+        //
+        // groovy source imports require classes to be loaded
+        //
+        Iterator<Map.Entry<String,String>> iter = imports.entrySet().iterator();
+        while (iter.hasNext()) {
+            Map.Entry<String,String> entry = iter.next();
+            try {
+                executeStatement(shell, new HashMap<>(), entry.getValue());
+            } catch (Exception e) {
+                iter.remove();
+            }
+        }
+        classLoader.purgeClassCache();
+    }
+
+    public static class EngineClassLoader extends GroovyClassLoader {
+
+        public EngineClassLoader(){
+            super();
+        }
+
+        public void purgeClassCache(String regex) {
+            for (String s : classCache.keys()) {
+                if (s.matches(regex)) {
+                    removeClassCacheEntry(s);
+                }
+            }
+        }
+
+        public void purgeClassCache() {
+            for (String s : classCache.keys()) {
+                if (s.matches("Script\\d+(\\$.*)?")) {
+                    removeClassCacheEntry(s);
+                }
+            }
+        }
     }
 
     protected static class AccessRules {

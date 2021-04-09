@@ -36,7 +36,7 @@ import groovy.console.ui.Console;
 import groovy.console.ui.ObjectBrowser;
 
 public class GroovyCommand extends AbstractCommandRegistry implements CommandRegistry {
-    public enum Command {INSPECT, CONSOLE, GRAB}
+    public enum Command {INSPECT, CONSOLE, GRAB, CLASSLOADER}
     private static final String DEFAULT_NANORC_VALUE = "classpath:/org/jline/groovy/gron.nanorc";
     private final GroovyEngine engine;
     private final Printer printer;
@@ -85,10 +85,12 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         commandExecute.put(Command.INSPECT, new CommandMethods(this::inspect, this::inspectCompleter));
         commandExecute.put(Command.CONSOLE, new CommandMethods(this::console, this::defaultCompleter));
         commandExecute.put(Command.GRAB, new CommandMethods(this::grab, this::defaultCompleter));
+        commandExecute.put(Command.CLASSLOADER, new CommandMethods(this::classLoader, this::defaultCompleter));
         registerCommands(commandName, commandExecute);
         commandDescs.put(Command.INSPECT, inspectCmdDesc());
         commandDescs.put(Command.CONSOLE, consoleCmdDesc());
         commandDescs.put(Command.GRAB, grabCmdDesc());
+        commandDescs.put(Command.CLASSLOADER, classLoaderCmdDesc());
     }
 
     @Override
@@ -227,6 +229,36 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         return null;
     }
 
+    private Object classLoader(CommandInput input) {
+        if (input.args().length > 2) {
+            throw new IllegalArgumentException("Wrong number of command parameters: " + input.args().length);
+        }
+        String option = "--view";
+        String arg = null;
+        if (input.args().length > 0) {
+            String[] args = input.args();
+            int idx = optionIdx(args);
+            option = idx > -1 ? args[idx] : "--view";
+            if (input.args().length == 2 && idx > -1) {
+                arg = idx == 0 ? args[1] : args[0];
+            }
+        }
+        if (option.equals("-?") || option.equals("--help")) {
+            printer.println(helpDesc(Command.CLASSLOADER));
+        } else if (option.equals("-v") || option.equals("--view")) {
+            Map<String, Object> options = new HashMap<>();
+            options.put(Printer.SKIP_DEFAULT_OPTIONS, true);
+            options.put(Printer.VALUE_STYLE, engine.groovyOption(GroovyEngine.NANORC_VALUE, DEFAULT_NANORC_VALUE));
+            options.put(Printer.MAX_DEPTH, 1);
+            options.put(Printer.INDENTION, 4);
+            options.put(Printer.COLUMNS, Arrays.asList("loadedClasses", "definedPackages", "classPath"));
+            printer.println(options, engine.classLoader);
+        } else if (option.equals("-d") || option.equals("--delete")) {
+            engine.purgeClassCache(arg != null ? arg.replace("*", ".*") : null);
+        }
+        return null;
+    }
+
     private CmdDesc helpDesc(Command command) {
         return doHelpDesc(command.toString().toLowerCase(), commandInfos.get(command), commandDescs.get(command));
     }
@@ -277,6 +309,22 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         info.add("Display object info on terminal");
         commandInfos.put(Command.INSPECT, info);
         mainDesc.add(new AttributedString("inspect [OPTION] OBJECT"));
+        out.setMainDesc(mainDesc);
+        out.setHighlighted(false);
+        return out;
+    }
+
+    private CmdDesc classLoaderCmdDesc() {
+        Map<String,List<AttributedString>> optDescs = new HashMap<>();
+        optDescs.put("-? --help", doDescription ("Displays command help"));
+        optDescs.put("-v --view", doDescription ("View class loader info"));
+        optDescs.put("-d --delete [REGEX]", doDescription ("Delete loaded classes"));
+        CmdDesc out = new CmdDesc(new ArrayList<>(), optDescs);
+        List<AttributedString> mainDesc = new ArrayList<>();
+        List<String> info = new ArrayList<>();
+        info.add("Display and manage Groovy classLoader data");
+        commandInfos.put(Command.CLASSLOADER, info);
+        mainDesc.add(new AttributedString("classloader"));
         out.setMainDesc(mainDesc);
         out.setHighlighted(false);
         return out;
