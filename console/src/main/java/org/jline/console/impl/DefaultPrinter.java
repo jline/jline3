@@ -86,7 +86,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                 "  -? --help                       Displays command help",
                 "  -a --all                        Ignore columnsOut configuration",
                 "  -b --border=CHAR                Table cell vertical border character",
-                "  -c --columns=COLUMNS,...        Display given columns on table",
+                "  -c --columns=COLUMNS,...        Display given columns on map/table",
                 "  -e --exclude=COLUMNS,...        Exclude given columns on table",
                 "  -i --include=COLUMNS,...        Include given columns on table",
                 "     --indention=INDENTION        Indention size",
@@ -1060,6 +1060,10 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         int indent = (int)options.get(Printer.INDENTION);
         int maxDepth = (int)options.get(Printer.MAX_DEPTH);
         for (Map.Entry<String, Object> entry : map.entrySet()) {
+            if (depth == 0 && options.containsKey(Printer.COLUMNS)
+                    && !((List<String>)options.get(Printer.COLUMNS)).contains(entry.getKey())) {
+                continue;
+            }
             AttributedStringBuilder asb = new AttributedStringBuilder().tabs(Arrays.asList(0, depth*indent, depth*indent + max + 1));
             if (depth != 0) {
                 asb.append("\t");

@@ -33,8 +33,8 @@ public interface Printer {
     String ALL = "all";
     /**
      * Value: {@code List<String>}<br>
-     * Applies: TABLE<br>
-     * Display given columns on table.
+     * Applies: MAP and TABLE<br>
+     * Display given keys/columns on map/table.
      */
     String COLUMNS = "columns";
     /**
