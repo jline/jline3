@@ -650,10 +650,14 @@ public class GroovyEngine implements ScriptEngine {
         }
 
         public static Set<Method> getClassMethods(Class<?> clazz, boolean all) {
-            Set<Method> out = new HashSet<>(Arrays.asList(clazz.getMethods()));
-            if (all) {
-                out.addAll(Arrays.asList(clazz.getDeclaredMethods()));
-            }
+            Set<Method> out = new HashSet<>();
+            do {
+                out.addAll(Arrays.asList(clazz.getMethods()));
+                if (all) {
+                    out.addAll(Arrays.asList(clazz.getDeclaredMethods()));
+                }
+                clazz = clazz.getSuperclass();
+            } while (clazz != null);
             return out;
         }
 
@@ -1603,49 +1607,46 @@ public class GroovyEngine implements ScriptEngine {
                             }
                         }
                     }
-                    do {
-                        for (Method m : Helpers.getClassMethods(clazz, access.allMethods)) {
-                            if (!m.getName().equals(methodName)) {
-                                continue;
-                            }
-                            StringBuilder sb = new StringBuilder();
-                            sb.append(accessModifier(m.getModifiers(), access.allMethods));
-                            if (Modifier.isFinal(m.getModifiers())) {
-                                sb.append("final ");
-                            }
-                            if (Modifier.isStatic(m.getModifiers())) {
-                                sb.append("static ");
-                            }
-                            sb.append(canonicalNames ? m.getReturnType().getCanonicalName() : m.getReturnType().getSimpleName());
-                            sb.append(" ");
-                            sb.append(methodName);
-                            sb.append("(");
-                            boolean first = true;
-                            for (Class<?> p : m.getParameterTypes()) {
-                                if (!first) {
-                                    sb.append(", ");
-                                }
-                                sb.append(canonicalNames ? p.getTypeName() : p.getSimpleName());
-                                first = false;
-                            }
-                            sb.append(")");
-                            first = true;
-                            for (Class<?> e : m.getExceptionTypes()) {
-                                if (first) {
-                                    sb.append(" throws ");
-                                } else {
-                                    sb.append(", ");
-                                }
-                                sb.append(canonicalNames ? e.getCanonicalName() : e.getSimpleName());
-                                first = false;
-                            }
-                            if (!addedMethods.contains(sb.toString())) {
-                                addedMethods.add(sb.toString());
-                                mainDesc.add(java.highlight(trimMethodDescription(sb)));
-                            }
+                    for (Method m : Helpers.getClassMethods(clazz, access.allMethods)) {
+                        if (!m.getName().equals(methodName)) {
+                            continue;
                         }
-                        clazz = clazz.getSuperclass();
-                    } while (clazz != null);
+                        StringBuilder sb = new StringBuilder();
+                        sb.append(accessModifier(m.getModifiers(), access.allMethods));
+                        if (Modifier.isFinal(m.getModifiers())) {
+                            sb.append("final ");
+                        }
+                        if (Modifier.isStatic(m.getModifiers())) {
+                            sb.append("static ");
+                        }
+                        sb.append(canonicalNames ? m.getReturnType().getCanonicalName() : m.getReturnType().getSimpleName());
+                        sb.append(" ");
+                        sb.append(methodName);
+                        sb.append("(");
+                        boolean first = true;
+                        for (Class<?> p : m.getParameterTypes()) {
+                            if (!first) {
+                                sb.append(", ");
+                            }
+                            sb.append(canonicalNames ? p.getTypeName() : p.getSimpleName());
+                            first = false;
+                        }
+                        sb.append(")");
+                        first = true;
+                        for (Class<?> e : m.getExceptionTypes()) {
+                            if (first) {
+                                sb.append(" throws ");
+                            } else {
+                                sb.append(", ");
+                            }
+                            sb.append(canonicalNames ? e.getCanonicalName() : e.getSimpleName());
+                            first = false;
+                        }
+                        if (!addedMethods.contains(sb.toString())) {
+                            addedMethods.add(sb.toString());
+                            mainDesc.add(java.highlight(trimMethodDescription(sb)));
+                        }
+                    }
                 }
                 out.setMainDesc(mainDesc);
             }
