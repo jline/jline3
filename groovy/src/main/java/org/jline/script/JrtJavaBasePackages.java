@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -26,7 +26,7 @@ import static java.nio.file.FileVisitResult.CONTINUE;
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public class JrtJavaBasePackages {
-    public static List<Class<?>> getClassesForPackage(String pckgname) {
+    public static List<Object> getClassesForPackage(String pckgname) {
         FileSystem fs = FileSystems.getFileSystem(URI.create("jrt:/"));
         List<String> dirs = new ArrayList<>();
         dirs.add("java.base");
@@ -42,7 +42,7 @@ public class JrtJavaBasePackages {
         }
         dirs.addAll(Arrays.asList(pckgname.split("\\.")));
         Path path = fs.getPath("modules", dirs.toArray(new String[0]));
-        FileVisitor fv = new FileVisitor(nestedClasses);
+        FileVisitor fv = new FileVisitor(pckgname, nestedClasses);
         try {
             if (onlyCurrent) {
                 Files.walkFileTree(path, new HashSet<>(),1, fv);
@@ -58,11 +58,13 @@ public class JrtJavaBasePackages {
     }
 
     private static class FileVisitor extends SimpleFileVisitor<Path> {
-        private final List<Class<?>> classes = new ArrayList<>();
+        private final List<Object> classes = new ArrayList<>();
         private final boolean nestedClasses;
+        private final String pckgname;
 
-        public FileVisitor(boolean nestedClasses) {
+        public FileVisitor(String pckgname, boolean nestedClasses) {
             super();
+            this.pckgname = pckgname;
             this.nestedClasses = nestedClasses;
         }
 
@@ -71,7 +73,12 @@ public class JrtJavaBasePackages {
             try {
                 String name = file.toString().substring(18);
                 if (name.endsWith(".class") && (nestedClasses || !name.contains("$"))) {
-                    classes.add(Class.forName(name.substring(0, name.length() - 6).replaceAll("/", ".")));
+                    String className = name.substring(0, name.length() - 6).replaceAll("/", ".");
+                    if (Character.isUpperCase(className.charAt(pckgname.length() + 1))) {
+                        classes.add(Class.forName(className));
+                    } else {
+                        classes.add(className);
+                    }
                 }
             } catch (Exception|Error e) {
                 if (Log.isDebugEnabled()) {
@@ -81,7 +88,7 @@ public class JrtJavaBasePackages {
             return CONTINUE;
         }
 
-        private List<Class<?>> getClasses() {
+        private List<Object> getClasses() {
             return classes;
         }
     }

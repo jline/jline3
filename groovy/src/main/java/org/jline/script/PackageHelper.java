@@ -28,6 +28,7 @@ import java.util.jar.JarFile;
  */
 public class PackageHelper {
     private enum ClassesToScann {ALL, PACKAGE_ALL, PACKAGE_CLASS}
+    private enum ClassOutput {NAME, CLASS, MIXED}
     /**
      * Private helper method
      *
@@ -41,7 +42,8 @@ public class PackageHelper {
      * @param scann
      *            determinate which classes will be added
      */
-    private static void checkDirectory(File directory, String pckgname, List<Class<?>> classes, ClassesToScann scann) {
+    private static void checkDirectory(File directory, String pckgname, List<Object> classes, ClassesToScann scann
+            , ClassOutput outType) {
         File tmpDirectory;
 
         if (directory.exists() && directory.isDirectory()) {
@@ -49,10 +51,14 @@ public class PackageHelper {
 
             for (final String file : files != null ? files : new String[0]) {
                 if (file.endsWith(".class")) {
-                    addClass(pckgname + '.'
-                                + file.substring(0, file.length() - 6), classes);
+                    String className = pckgname + '.' + file.substring(0, file.length() - 6);
+                    if (outType != ClassOutput.CLASS) {
+                        classes.add(className);
+                    } else {
+                        addClass(className, classes);
+                    }
                 } else if (scann == ClassesToScann.ALL && (tmpDirectory = new File(directory, file)).isDirectory()) {
-                    checkDirectory(tmpDirectory, pckgname + "." + file, classes, ClassesToScann.ALL);
+                    checkDirectory(tmpDirectory, pckgname + "." + file, classes, ClassesToScann.ALL, ClassOutput.NAME);
                 }
             }
         }
@@ -73,8 +79,8 @@ public class PackageHelper {
      * @throws IOException
      *             if it can't correctly read from the jar file.
      */
-    private static void checkJarFile(final JarFile jarFile, String pckgname, List<Class<?>> classes, List<String> names
-            , ClassesToScann scann, Function<String,Class<?>> classResolver)
+    private static void checkJarFile(final JarFile jarFile, String pckgname, List<Object> classes, ClassesToScann scann
+            , ClassOutput outType, Function<String,Class<?>> classResolver)
             throws IOException {
         final Enumeration<JarEntry> entries = jarFile.entries();
         String name;
@@ -87,28 +93,29 @@ public class PackageHelper {
                     String namepckg = name.substring(0, name.lastIndexOf("."));
                     if (pckgname.equals(namepckg) && ((scann == ClassesToScann.PACKAGE_CLASS && !name.contains("$"))
                                                     || scann == ClassesToScann.PACKAGE_ALL)) {
-                        if (names == null) {
+                        if (outType == ClassOutput.CLASS) {
                             addClass(name, classes, classResolver);
                         } else {
-                            names.add(name);
+                            classes.add(name);
                         }
                     }
                 } else if (name.contains(pckgname)) {
-                    if (names == null) {
+                    if (outType == ClassOutput.CLASS || (outType == ClassOutput.MIXED
+                            && Character.isUpperCase(name.charAt(pckgname.length() + 1)))) {
                         addClass(name, classes, classResolver);
                     } else {
-                        names.add(name);
+                        classes.add(name);
                     }
                 }
             }
         }
     }
 
-    private static void addClass(String className, List<Class<?>> classes) {
+    private static void addClass(String className, List<Object> classes) {
         addClass(className, classes, PackageHelper::classResolver);
     }
 
-    private static void addClass(String className, List<Class<?>> classes, Function<String,Class<?>> classResolver) {
+    private static void addClass(String className, List<Object> classes, Function<String,Class<?>> classResolver) {
         Class<?> clazz = classResolver.apply(className);
         if (clazz != null) {
             classes.add(clazz);
@@ -134,13 +141,13 @@ public class PackageHelper {
      * @param classLoader Groovy class loader
      * @return a list of class names that exist within that package
      */
+    @SuppressWarnings("unchecked")
     public static List<String> getClassNamesForPackage(String pckgname, ClassLoader classLoader) {
-        List<String> out = new ArrayList<>();
         try {
-            getClassesForPackage(pckgname, classLoader, out, null);
+            return (List<String>)(Object)getClassesForPackage(pckgname, classLoader, ClassOutput.NAME, null);
         } catch (Exception ignore) {
         }
-        return out;
+        return new ArrayList<>();
     }
 
     /**
@@ -155,9 +162,10 @@ public class PackageHelper {
      * @throws ClassNotFoundException
      *             if something went wrong
      */
-    public static List<Class<?>> getClassesForPackage(String pckgname, ClassLoader classLoader
+    public static List<Object> getClassesForPackage(String pckgname, ClassLoader classLoader
             , Function<String,Class<?>> classResolver) throws ClassNotFoundException {
-        return getClassesForPackage(pckgname, classLoader, null, classResolver);
+        return getClassesForPackage(pckgname, classLoader, (pckgname.endsWith("*") ? ClassOutput.CLASS : ClassOutput.MIXED)
+                , classResolver);
     }
 
     /**
@@ -170,17 +178,18 @@ public class PackageHelper {
      * @throws ClassNotFoundException
      *             if something went wrong
      */
-    public static List<Class<?>> getClassesForPackage(String pckgname) throws ClassNotFoundException {
+    public static List<Object> getClassesForPackage(String pckgname) throws ClassNotFoundException {
         final ClassLoader cld = Thread.currentThread().getContextClassLoader();
         if (cld == null) {
             throw new ClassNotFoundException("Can't get class loader.");
         }
-        return getClassesForPackage(pckgname, cld, null, PackageHelper::classResolver);
+        return getClassesForPackage(pckgname, cld, (pckgname.endsWith("*") ? ClassOutput.CLASS : ClassOutput.MIXED)
+                , PackageHelper::classResolver);
     }
 
-    private static List<Class<?>> getClassesForPackage(String pckgname, final ClassLoader classLoader, List<String> names
+    private static List<Object> getClassesForPackage(String pckgname, final ClassLoader classLoader, ClassOutput outType
             , Function<String, Class<?>> classResolver) throws ClassNotFoundException {
-        List<Class<?>> classes = new ArrayList<>();
+        List<Object> classes = new ArrayList<>();
         ClassesToScann scann = ClassesToScann.ALL;
         if (pckgname.endsWith(".*")) {
             scann = ClassesToScann.PACKAGE_CLASS;
@@ -200,15 +209,15 @@ public class PackageHelper {
                     connection = url.openConnection();
 
                     if (connection instanceof JarURLConnection) {
-                        checkJarFile(((JarURLConnection) connection).getJarFile(), pckgname, classes, names, scann, classResolver);
+                        checkJarFile(((JarURLConnection) connection).getJarFile(), pckgname, classes, scann, outType, classResolver);
                     } else if (connection.getClass().getCanonicalName().equals("sun.net.www.protocol.file.FileURLConnection")) {
                         try {
                             File file = new File(URLDecoder.decode(url.getPath(), "UTF-8"));
                             if (file.exists()) {
                                 if (file.isDirectory()) {
-                                    checkDirectory(file, pckgname, classes, scann);
+                                    checkDirectory(file, pckgname, classes, scann, outType);
                                 } else if (file.getName().endsWith(".jar")) {
-                                    checkJarFile(new JarFile(file), pckgname, classes, names, scann, classResolver);
+                                    checkJarFile(new JarFile(file), pckgname, classes, scann, outType, classResolver);
                                 }
                             }
                         } catch (final UnsupportedEncodingException ex) {

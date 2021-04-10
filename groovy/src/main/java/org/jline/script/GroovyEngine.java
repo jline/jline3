@@ -221,44 +221,57 @@ public class GroovyEngine implements ScriptEngine {
         return s.run();
     }
 
-    private static Set<Class<?>> classesForPackage(String pckgname, GroovyShell shell) throws ClassNotFoundException {
+    private static Set<Object> classesForPackage(String pckgname, GroovyShell shell) throws ClassNotFoundException {
         String name = pckgname;
         Matcher matcher = PATTERN_CLASS.matcher(name);
         if (matcher.matches()) {
             name = matcher.group(1) + ".**";
         }
-        Set<Class<?>> out = new HashSet<>(PackageHelper.getClassesForPackage(name));
+        Set<Object> out = new HashSet<>(PackageHelper.getClassesForPackage(name));
         if (out.isEmpty()) {
             out.addAll(JrtJavaBasePackages.getClassesForPackage(name));
         }
         if (out.isEmpty() && shell != null) {
-            if (name.endsWith(".*")) {
-                name = name.substring(0, name.length() - 1);
-                Set<String> classNames = Helpers.nextFileDomain(name);
+            EngineClassLoader classLoader = (EngineClassLoader)shell.getClassLoader();
+            if (pckgname.endsWith(".*")) {
+                pckgname = pckgname.substring(0, pckgname.length() - 1);
+            } else if (!pckgname.endsWith(".")) {
+                pckgname = pckgname + ".";
+            }
+            for (Class<?> c : classLoader.getLoadedClasses()) {
+                String cname = c.getCanonicalName();
+                if (cname != null && cname.startsWith(pckgname)) {
+                    out.add(c);
+                }
+            }
+            Set<String> classNames = Helpers.sourcesForPackage(name);
+            if (name.endsWith("*")) {
                 for (String c : classNames) {
                     if (Character.isUpperCase(c.charAt(0))) {
                         try {
-                            out.add((Class<?>) executeStatement(shell, new HashMap<>(), name + c + ".class"));
+                            out.add(executeStatement(shell, new HashMap<>(), pckgname + c + ".class"));
                         } catch (Exception ignore) {
 
                         }
                     }
                 }
-            } else if (name.endsWith(".**")) {
-                out.addAll(new HashSet<>(PackageHelper.getClassesForPackage(name, shell.getClassLoader()
-                        , n ->
-                        {
-                            if (n.contains("-")) {
-                                return null;
-                            }
-                            Class<?> o = null;
-                            try {
-                                o = (Class<?>) shell.evaluate(n + ".class");
-                            } catch (Exception | Error ignore) {
-                            }
-                            return o;
-                        })));
+            } else {
+                out.addAll(classNames);
             }
+            out.addAll(new HashSet<>(PackageHelper.getClassesForPackage(name, shell.getClassLoader()
+                    , n ->
+                    {
+                        if (n.contains("-")) {
+                            return null;
+                        }
+                        Class<?> o = null;
+                        try {
+                            o = (Class<?>) shell.evaluate(n + ".class");
+                        } catch (Exception | Error ignore) {
+                        }
+                        return o;
+                    })));
+            classLoader.purgeClassCache();
         }
         return out;
     }
@@ -267,10 +280,11 @@ public class GroovyEngine implements ScriptEngine {
         addToNameClass(name, nameClass);
     }
 
+    @SuppressWarnings("unchecked")
     private void addToNameClass(String name, Map<String,Class<?>> nameClass) {
         try {
             if (name.endsWith(".*")) {
-                for (Class<?> c : classesForPackage(name, shell)) {
+                for (Class<?> c : (Collection<Class<?>>)(Object)classesForPackage(name, shell)) {
                     nameClass.put(c.getSimpleName(), c);
                 }
             } else {
@@ -590,6 +604,11 @@ public class GroovyEngine implements ScriptEngine {
             super();
         }
 
+        @Override
+        public Package[] getPackages() {
+            return super.getPackages();
+        }
+
         public void purgeClassCache(String regex) {
             for (String s : classCache.keys()) {
                 if (s.matches(regex)) {
@@ -627,9 +646,9 @@ public class GroovyEngine implements ScriptEngine {
 
     private static class Helpers {
 
-        private static Set<String> loadedPackages() {
+        private static Set<String> loadedPackages(EngineClassLoader classLoader) {
             Set<String> out = new HashSet<>();
-            for (Package p : Package.getPackages()) {
+            for (Package p : classLoader.getPackages()) {
                 out.add(p.getName());
             }
             return out;
@@ -643,7 +662,12 @@ public class GroovyEngine implements ScriptEngine {
                     if (idx < 0) {
                         idx = p.length();
                     }
-                    out.add(p.substring(domain.length(), idx));
+                    if (idx > domain.length()) {
+                        String name = p.substring(domain.length(), idx);
+                        if (validPackageOrClassName(name)) {
+                            out.add(name);
+                        }
+                    }
                 }
             }
             return out;
@@ -717,30 +741,36 @@ public class GroovyEngine implements ScriptEngine {
             return out;
         }
 
-        private static Set<String> nextFileDomain(String domain) {
-            int position = domain != null ? domain.split("\\.").length : 0;
+        private static Set<String> sourcesForPackage(String domain) {
             String separator = FileSystems.getDefault().getSeparator();
             if (separator.equals("\\")) {
                 separator += separator;
             }
             String dom;
+            boolean onlyPackage = domain != null && domain.endsWith("*");
+            if (onlyPackage) {
+                domain = domain.substring(0, domain.lastIndexOf("."));
+            }
             if (domain != null) {
-                dom = domain.isEmpty() ? ".*" + separator : separator + domain.replace(".", separator);
+                dom = domain.isEmpty() ? ".*" + separator : separator + domain.replace(".", separator) + "(|.*)";
             } else {
-                dom = separator;
+                dom = separator + "(|.*)";
             }
             PathMatcher matcher = FileSystems.getDefault().getPathMatcher("regex:\\." + dom
-                    + "[A-Z]+[a-zA-Z]*\\.(groovy|java)");
+                    + "[A-Z]+[a-zA-Z]*\\.groovy");
             Set<String> out = new HashSet<>();
             try {
                 List<Path> paths = Files.walk(Paths.get(".")).filter(matcher::matches).collect(Collectors.toList());
                 for (Path p : paths) {
-                    if (!p.getFileName().toString().matches("[A-Z]+[a-zA-Z]*\\.(groovy|java)")) {
+                    if (!p.getFileName().toString().matches("[A-Z]+[a-zA-Z]*\\.groovy")) {
                         continue;
                     }
-                    String[] s = p.toString().split(separator);
-                    if (s.length > position + 1) {
-                        out.add(s[position + 1].split(".(groovy|java)")[0]);
+                    String source = p.toString();
+                    String className = source.substring(2, source.lastIndexOf(".")).replace(separator, ".");
+                    if (onlyPackage && Character.isUpperCase(className.charAt(domain.length() + 1))) {
+                        out.add(className);
+                    } else {
+                        out.add(className);
                     }
                 }
             } catch(Exception ignore) {
@@ -755,58 +785,67 @@ public class GroovyEngine implements ScriptEngine {
 
         public static Set<String> nextDomain(String domain, AccessRules access, CandidateType type, GroovyShell shell) {
             Set<String> out = new HashSet<>();
+            EngineClassLoader classLoader = (EngineClassLoader)shell.getClassLoader();
             if (domain.isEmpty()) {
-                for (String p : loadedPackages()) {
+                for (String p : loadedPackages(classLoader)) {
                     out.add(p.split("\\.")[0]);
                 }
-                out.addAll(nextFileDomain(null));
-            } else if ((domain.split("\\.")).length < 2) {
-                out = names(domain, loadedPackages());
-                out.addAll(names(domain, PackageHelper.getClassNamesForPackage(domain, shell.getClassLoader())));
-                out.addAll(nextFileDomain(domain));
+                out.addAll(names(domain, sourcesForPackage(null)));
             } else {
                 try {
-                    if (!domain.matches(REGEX_CLASS)) {
-                        out = names(domain, PackageHelper.getClassNamesForPackage(domain, shell.getClassLoader()));
-                    }
-                    for (Class<?> c : classesForPackage(domain, shell)) {
-                        try {
-                            if ((!Modifier.isPublic(c.getModifiers()) && !access.allClasses) || c.getCanonicalName() == null) {
-                                continue;
+                    for (Object o : classesForPackage(domain, shell)) {
+                        String name = null;
+                        if (o instanceof Class<?>) {
+                            Class<?> c = (Class<?>) o;
+                            try {
+                                if ((!Modifier.isPublic(c.getModifiers()) && !access.allClasses) || c.getCanonicalName() == null) {
+                                    continue;
+                                }
+                                if ((type == CandidateType.CONSTRUCTOR && (c.getConstructors().length == 0
+                                        || Modifier.isAbstract(c.getModifiers())))
+                                        || (type == CandidateType.STATIC_METHOD && noStaticMethods(c, access.allMethods)
+                                        && noStaticFields(c, access.allFields))) {
+                                    continue;
+                                }
+                                name = c.getCanonicalName();
+                            } catch (NoClassDefFoundError e) {
+                                if (Log.isDebugEnabled()) {
+                                    e.printStackTrace();
+                                }
                             }
-                            if ((type == CandidateType.CONSTRUCTOR && (c.getConstructors().length == 0
-                                    || Modifier.isAbstract(c.getModifiers())))
-                                    || (type == CandidateType.STATIC_METHOD && noStaticMethods(c, access.allMethods)
-                                         && noStaticFields(c, access.allFields))) {
-                                continue;
-                            }
-                            String name = c.getCanonicalName();
+                        } else if (o instanceof String) {
+                            name = ((String)o).replace("$", ".");
+                        }
+                        if (name != null) {
                             Log.debug(name);
                             if (name.startsWith(domain)) {
                                 int idx = name.indexOf('.', domain.length());
                                 if (idx < 0) {
                                     idx = name.length();
                                 }
-                                out.add(name.substring(domain.length(), idx));
-                            }
-                        } catch (NoClassDefFoundError e) {
-                            if (Log.isDebugEnabled()) {
-                                e.printStackTrace();
+                                if (idx > domain.length()) {
+                                    name = name.substring(domain.length(), idx);
+                                    if (validPackageOrClassName(name)) {
+                                        out.add(name);
+                                    }
+                                }
                             }
                         }
-                    }
-                    if (out.isEmpty() && type != CandidateType.PACKAGE) {
-                        out.addAll(nextFileDomain(domain));
                     }
                 } catch (ClassNotFoundException e) {
                     if (Log.isDebugEnabled()) {
                         e.printStackTrace();
                     }
-                    out.addAll(names(domain, loadedPackages()));
-                    out.addAll(names(domain, PackageHelper.getClassNamesForPackage(domain, shell.getClassLoader())));
+                    out.addAll(names(domain, loadedPackages(classLoader)));
+                    out.addAll(names(domain, PackageHelper.getClassNamesForPackage(domain, classLoader)));
                 }
             }
+            Log.debug("nextDomain: ", out);
             return out;
+        }
+
+        private static boolean validPackageOrClassName(String name) {
+            return !(name.contains("-") || name.matches("\\d+.*"));
         }
 
         private static Map<String, String> listToMap(Collection<String> list) {
@@ -1213,7 +1252,6 @@ public class GroovyEngine implements ScriptEngine {
                     it.remove();
                 }
             }
-            out.addAll(Helpers.nextFileDomain(null));
             return out;
         }
 
@@ -1231,7 +1269,6 @@ public class GroovyEngine implements ScriptEngine {
                     it.remove();
                 }
             }
-            out.addAll(Helpers.nextFileDomain(null));
             return out;
         }
     }
