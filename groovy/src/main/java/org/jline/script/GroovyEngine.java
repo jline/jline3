@@ -229,28 +229,21 @@ public class GroovyEngine implements ScriptEngine {
             name = matcher.group(1) + ".**";
         }
         Set<Object> out = new HashSet<>(PackageHelper.getClassesForPackage(name));
-        if (out.isEmpty()) {
-            out.addAll(JrtJavaBasePackages.getClassesForPackage(name));
-        }
-        if (out.isEmpty() && shell != null) {
+        out.addAll(JrtJavaBasePackages.getClassesForPackage(name));
+        if (shell != null) {
             EngineClassLoader classLoader = (EngineClassLoader)shell.getClassLoader();
+            String packageName = pckgname;
             if (pckgname.endsWith(".*")) {
-                pckgname = pckgname.substring(0, pckgname.length() - 1);
+                packageName = pckgname.substring(0, pckgname.length() - 1);
             } else if (!pckgname.endsWith(".")) {
-                pckgname = pckgname + ".";
-            }
-            for (Class<?> c : classLoader.getLoadedClasses()) {
-                String cname = c.getCanonicalName();
-                if (cname != null && cname.startsWith(pckgname)) {
-                    out.add(c);
-                }
+                packageName = pckgname + ".";
             }
             Set<String> classNames = Helpers.sourcesForPackage(name);
             if (name.endsWith("*")) {
                 for (String c : classNames) {
                     if (Character.isUpperCase(c.charAt(0))) {
                         try {
-                            out.add(executeStatement(shell, new HashMap<>(), pckgname + c + ".class"));
+                            out.add(executeStatement(shell, new HashMap<>(), packageName + c + ".class"));
                         } catch (Exception ignore) {
 
                         }
