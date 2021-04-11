@@ -767,8 +767,10 @@ public class GroovyEngine implements ScriptEngine {
                     }
                     String source = p.toString();
                     String className = source.substring(2, source.lastIndexOf(".")).replace(separator, ".");
-                    if (onlyPackage && Character.isUpperCase(className.charAt(domain.length() + 1))) {
-                        out.add(className);
+                    if (onlyPackage) {
+                        if (Character.isUpperCase(className.charAt(domain.length() + 1))) {
+                            out.add(className);
+                        }
                     } else {
                         out.add(className);
                     }
@@ -1038,7 +1040,7 @@ public class GroovyEngine implements ScriptEngine {
                     Object involvedObject = inspector.getInvolvedObject();
                     int vs = wordbuffer.lastIndexOf('.');
                     String curBuf = wordbuffer.substring(0, vs + 1);
-                    doMethodCandidates(candidates, involvedObject == null ? clazz : involvedObject, curBuf);
+                    doMethodCandidates(candidates, involvedObject, clazz, curBuf);
                 }
             } else if (completingConstructor(commandLine)) {
                 if (wordbuffer.matches("[a-z]+.*")) {
@@ -1081,20 +1083,23 @@ public class GroovyEngine implements ScriptEngine {
                     String var = param.substring(0, param.indexOf('.'));
                     String curBuf = wordbuffer.substring(0, varsep + 1);
                     if (inspector.nameClass().containsKey(var)) {
+                        Class<?> clazz = null;
+                        Object involvedObject = null;
                         if (firstMethod) {
-                            doStaticMethodCandidates(candidates, inspector.nameClass().get(var), curBuf);
+                            clazz = inspector.nameClass().get(var);
                         } else if (!restrictedCompletion) {
-                            Class<?> clazz = inspector.evaluateClass(wordbuffer.substring(eqsep + 1, varsep));
-                            Object involvedObject = inspector.getInvolvedObject();
-                            doMethodCandidates(candidates, involvedObject == null ? clazz : involvedObject, curBuf);
+                            clazz = inspector.evaluateClass(wordbuffer.substring(eqsep + 1, varsep));
+                            involvedObject = inspector.getInvolvedObject();
                         }
+                        Helpers.doCandidates(candidates, retrieveDecleredClasses(clazz), curBuf, CandidateType.PACKAGE);
+                        doMethodCandidates(candidates, involvedObject, clazz, curBuf);
                     } else if (inspector.hasVariable(var)) {
                         if (firstMethod) {
                             doMethodCandidates(candidates, inspector.getVariable(var), curBuf);
                         } else if (!restrictedCompletion) {
                             Class<?> clazz = inspector.evaluateClass(wordbuffer.substring(eqsep + 1, varsep));
                             Object involvedObject = inspector.getInvolvedObject();
-                            doMethodCandidates(candidates, involvedObject == null ? clazz : involvedObject, curBuf);
+                            doMethodCandidates(candidates, involvedObject, clazz, curBuf);
                         }
                     } else {
                         try {
@@ -1167,6 +1172,14 @@ public class GroovyEngine implements ScriptEngine {
             Helpers.doCandidates(candidates, identifiers, curBuf, CandidateType.IDENTIFIER);
             Helpers.doCandidates(candidates, metaMethods, curBuf, CandidateType.META_METHOD);
             return metaMethods;
+        }
+
+        private void doMethodCandidates(List<Candidate> candidates, Object object, Class<?> clazz, String curBuf) {
+            if (object != null) {
+                doMethodCandidates(candidates, object, curBuf);
+            } else if (clazz != null) {
+                doStaticMethodCandidates(candidates, clazz, curBuf);
+            }
         }
 
         private void doMethodCandidates(List<Candidate> candidates, Object object, String curBuf) {
@@ -1250,6 +1263,17 @@ public class GroovyEngine implements ScriptEngine {
                     out.add(entry.getKey());
                 } catch (NoClassDefFoundError e) {
                     it.remove();
+                }
+            }
+            return out;
+        }
+
+        private Set<String> retrieveDecleredClasses(Class<?> clazz) {
+            Set<String> out = new HashSet<>();
+            if (clazz != null) {
+                int nameLength = clazz.getCanonicalName().length();
+                for (Class<?> c : access.allClasses ? clazz.getDeclaredClasses() : clazz.getClasses()) {
+                    out.add(c.getCanonicalName().substring(nameLength + 1));
                 }
             }
             return out;
@@ -1343,7 +1367,14 @@ public class GroovyEngine implements ScriptEngine {
             Class<?> out = null;
             try {
                 involvedObject = execute(objectStatement);
-                out = involvedObject.getClass();
+                if (involvedObject instanceof Class) {
+                    out = (Class<?>)involvedObject;
+                    if (!objectStatement.endsWith(".class")) {
+                        involvedObject = null;
+                    }
+                } else {
+                    out = involvedObject.getClass();
+                }
             } catch (Exception e) {
                 Log.debug("objectStatement: ", objectStatement);
                 if (Log.isDebugEnabled()) {
@@ -1351,7 +1382,7 @@ public class GroovyEngine implements ScriptEngine {
                 }
             }
             try {
-                if (out == null || out == Class.class) {
+                if (out == null) {
                     if (!objectStatement.contains(".") ) {
                         out = (Class<?>)execute(objectStatement + ".class");
                     } else {
