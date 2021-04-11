@@ -67,6 +67,7 @@ public class GroovyEngine implements ScriptEngine {
     public static final String ALL_CLASSES_COMPLETION = "allClassesCompletion";
     public static final String IDENTIFIERS_COMPLETION = "identifiersCompletion";
     public static final String META_METHODS_COMPLETION = "metaMethodsCompletion";
+    public static final String SYNTHETIC_METHODS_COMPLETION = "syntheticMethodsCompletion";
 
     private static final String VAR_GROOVY_OPTIONS = "GROOVY_OPTIONS";
     private static final String REGEX_SYSTEM_VAR = "[A-Z]+[A-Z_]*";
@@ -673,34 +674,42 @@ public class GroovyEngine implements ScriptEngine {
             return out;
         }
 
-        public static Set<Method> getClassMethods(Class<?> clazz, boolean all) {
+        public static Set<Method> getClassMethods(Class<?> clazz, boolean all, boolean synthetic) {
             Set<Method> out = new HashSet<>();
             do {
-                out.addAll(Arrays.asList(clazz.getMethods()));
-                if (all) {
-                    out.addAll(Arrays.asList(clazz.getDeclaredMethods()));
+                if (synthetic) {
+                    out.addAll(Arrays.asList(clazz.getMethods()));
+                    if (all) {
+                        out.addAll(Arrays.asList(clazz.getDeclaredMethods()));
+                    }
+                } else {
+                    for (Method m : all ? clazz.getDeclaredMethods() : clazz.getMethods()) {
+                        if (!m.isSynthetic()) {
+                            out.add(m);
+                        }
+                    }
                 }
                 clazz = clazz.getSuperclass();
             } while (clazz != null);
             return out;
         }
 
-        public static Set<String> getMethods(Class<?> clazz, boolean all) {
-            return getMethods(clazz, all, false, false);
+        public static Set<String> getMethods(Class<?> clazz, boolean all, boolean synthetic) {
+            return getMethods(clazz, all, synthetic, false, false);
         }
 
-        public static Set<String> getStaticMethods(Class<?> clazz, boolean all) {
-            return getMethods(clazz, all, true, false);
+        public static Set<String> getStaticMethods(Class<?> clazz, boolean all, boolean synthetic) {
+            return getMethods(clazz, all, synthetic, true, false);
         }
 
-        public static boolean noStaticMethods(Class<?> clazz, boolean all) {
-            return getMethods(clazz, all, true, true).isEmpty();
+        public static boolean noStaticMethods(Class<?> clazz, boolean all, boolean synthetic) {
+            return getMethods(clazz, all, synthetic, true, true).isEmpty();
         }
 
-        private static Set<String> getMethods(Class<?> clazz, boolean all, boolean statc, boolean firstOnly) {
+        private static Set<String> getMethods(Class<?> clazz, boolean all, boolean synthetic, boolean statc, boolean firstOnly) {
             Set<String> out = new HashSet<>();
             try {
-                for (Method method : getClassMethods(clazz, all)) {
+                for (Method method : getClassMethods(clazz, all, synthetic)) {
                     if ((statc && Modifier.isStatic(method.getModifiers()))
                             || (!statc && !Modifier.isStatic(method.getModifiers()))) {
                         out.add(method.getName());
@@ -715,23 +724,24 @@ public class GroovyEngine implements ScriptEngine {
             return out;
         }
 
-        public static Map<String,String> getFields(Class<?> clazz, boolean all) {
-            return getFields(clazz, all, false, false);
+        public static Map<String,String> getFields(Class<?> clazz, boolean all, boolean synthetic) {
+            return getFields(clazz, all, synthetic, false, false);
         }
 
-        public static Map<String,String> getStaticFields(Class<?> clazz, boolean all) {
-            return getFields(clazz, all, true, false);
+        public static Map<String,String> getStaticFields(Class<?> clazz, boolean all, boolean synthetic) {
+            return getFields(clazz, all, synthetic, true, false);
         }
 
-        public static boolean noStaticFields(Class<?> clazz, boolean all) {
-            return getFields(clazz, all, true, true).isEmpty();
+        public static boolean noStaticFields(Class<?> clazz, boolean all, boolean synthetic) {
+            return getFields(clazz, all, synthetic, true, true).isEmpty();
         }
 
-        private static Map<String,String> getFields(Class<?> clazz, boolean all, boolean statc, boolean firstOnly) {
+        private static Map<String,String> getFields(Class<?> clazz, boolean all, boolean synthetic, boolean statc, boolean firstOnly) {
             Map<String,String> out = new HashMap<>();
             for (Field field : all ? clazz.getDeclaredFields() : clazz.getFields()) {
-                if ((statc && Modifier.isStatic(field.getModifiers()))
-                        || (!statc && !Modifier.isStatic(field.getModifiers()))) {
+                if (((statc && Modifier.isStatic(field.getModifiers()))
+                        || (!statc && !Modifier.isStatic(field.getModifiers())))
+                        && (synthetic || !field.isSynthetic())) {
                     out.put(field.getName(), field.getType().getSimpleName());
                     if (firstOnly) {
                         break;
@@ -805,8 +815,8 @@ public class GroovyEngine implements ScriptEngine {
                                 }
                                 if ((type == CandidateType.CONSTRUCTOR && (c.getConstructors().length == 0
                                         || Modifier.isAbstract(c.getModifiers())))
-                                        || (type == CandidateType.STATIC_METHOD && noStaticMethods(c, access.allMethods)
-                                        && noStaticFields(c, access.allFields))) {
+                                        || (type == CandidateType.STATIC_METHOD && noStaticMethods(c, access.allMethods, true)
+                                        && noStaticFields(c, access.allFields, true))) {
                                     continue;
                                 }
                                 name = c.getCanonicalName();
@@ -998,6 +1008,7 @@ public class GroovyEngine implements ScriptEngine {
         private AccessRules access;
         private boolean metaMethodCompletion;
         private boolean identifierCompletion;
+        private boolean syntheticCompletion;
 
         public MethodCompleter(GroovyEngine engine){
             this.groovyEngine = engine;
@@ -1031,6 +1042,7 @@ public class GroovyEngine implements ScriptEngine {
             boolean restrictedCompletion = groovyEngine.groovyOption(RESTRICTED_COMPLETION, false);
             metaMethodCompletion = groovyEngine.groovyOption(META_METHODS_COMPLETION, false);
             identifierCompletion = groovyEngine.groovyOption(IDENTIFIERS_COMPLETION, false);
+            syntheticCompletion = groovyEngine.groovyOption(SYNTHETIC_METHODS_COMPLETION, false);
             access = new AccessRules(groovyEngine.groovyOptions());
             int eqsep = Helpers.statementBegin(buffer);
             if (brackets.numberOfRounds() > 0 && brackets.lastCloseRound() > eqsep) {
@@ -1202,7 +1214,7 @@ public class GroovyEngine implements ScriptEngine {
             if (clazz == null) {
                 return;
             }
-            Set<String> methods = Helpers.getMethods(clazz, access.allMethods);
+            Set<String> methods = Helpers.getMethods(clazz, access.allMethods, syntheticCompletion);
             if (addIdentifiers) {
                 Set<String> identifiers = new HashSet<>();
                 for (String m : methods) {
@@ -1231,7 +1243,8 @@ public class GroovyEngine implements ScriptEngine {
                 }
             }
             Helpers.doCandidates(candidates, methods, curBuf, CandidateType.METHOD);
-            Helpers.doCandidates(candidates, Helpers.getFields(clazz, access.allFields), curBuf, CandidateType.FIELD);
+            Helpers.doCandidates(candidates, Helpers.getFields(clazz, access.allFields, syntheticCompletion), curBuf
+                    , CandidateType.FIELD);
         }
 
         private String convertGetMethod2identifier(String name) {
@@ -1244,9 +1257,9 @@ public class GroovyEngine implements ScriptEngine {
             if (clazz == null) {
                 return;
             }
-            Helpers.doCandidates(candidates, Helpers.getStaticMethods(clazz, access.allMethods), curBuf
+            Helpers.doCandidates(candidates, Helpers.getStaticMethods(clazz, access.allMethods, syntheticCompletion), curBuf
                                , CandidateType.METHOD);
-            Helpers.doCandidates(candidates, Helpers.getStaticFields(clazz, access.allFields), curBuf
+            Helpers.doCandidates(candidates, Helpers.getStaticFields(clazz, access.allFields, syntheticCompletion), curBuf
                                , CandidateType.FIELD);
         }
 
@@ -1285,7 +1298,8 @@ public class GroovyEngine implements ScriptEngine {
                 Map.Entry<String, Class<?>> entry = it.next();
                 Class<?> c = entry.getValue();
                 try {
-                    if (Helpers.noStaticMethods(c, access.allMethods) && Helpers.noStaticFields(c, access.allFields)) {
+                    if (Helpers.noStaticMethods(c, access.allMethods, syntheticCompletion)
+                            && Helpers.noStaticFields(c, access.allFields, syntheticCompletion)) {
                         continue;
                     }
                     out.add(entry.getKey());
@@ -1318,6 +1332,7 @@ public class GroovyEngine implements ScriptEngine {
         private final boolean noSyntaxCheck;
         private final boolean restrictedCompletion;
         private final boolean metaMethodsCompletion;
+        private final boolean syntheticCompletion;
         private final AccessRules access;
         private String[] equationLines;
         private int cuttedSize;
@@ -1333,6 +1348,7 @@ public class GroovyEngine implements ScriptEngine {
             this.noSyntaxCheck = groovyEngine.groovyOption(NO_SYNTAX_CHECK, false);
             this.restrictedCompletion = groovyEngine.groovyOption(RESTRICTED_COMPLETION, false);
             this.metaMethodsCompletion = groovyEngine.groovyOption(META_METHODS_COMPLETION, false);
+            this.syntheticCompletion = groovyEngine.groovyOption(SYNTHETIC_METHODS_COMPLETION, false);
             this.access = new AccessRules(groovyEngine.groovyOptions());
             String gc = groovyEngine.groovyOption(GROOVY_COLORS, null);
             groovyColors = gc != null && Styles.isStylePattern(gc) ? gc : DEFAULT_GROOVY_COLORS;
@@ -1675,7 +1691,7 @@ public class GroovyEngine implements ScriptEngine {
                             }
                         }
                     }
-                    for (Method m : Helpers.getClassMethods(clazz, access.allMethods)) {
+                    for (Method m : Helpers.getClassMethods(clazz, access.allMethods, syntheticCompletion)) {
                         if (!m.getName().equals(methodName)) {
                             continue;
                         }

@@ -84,6 +84,7 @@ GROOVY_OPTIONS.allMethodsCompletion = false
 GROOVY_OPTIONS.metaMethodsCompletion = false
 GROOVY_OPTIONS.allClassesCompletion = false
 GROOVY_OPTIONS.allConstructorsCompletion = false
+GROOVY_OPTIONS.syntheticMethodsCompletion = false
 
 #
 # custom Groovy pipes
