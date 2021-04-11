@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -208,8 +208,10 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
             Map<String,Object> options = new HashMap<>();
             if (option.equals("-m") || option.equals("--methods")) {
                 out = inspector.methods();
+                options.put(Printer.COLUMNS, ObjectInspector.METHOD_COLUMNS);
             } else if (option.equals("-n") || option.equals("--metaMethods")) {
                 out = inspector.metaMethods();
+                options.put(Printer.COLUMNS, ObjectInspector.METHOD_COLUMNS);
             } else if (option.equals("-i") || option.equals("--info")) {
                 out = inspector.properties();
                 options.put(Printer.VALUE_STYLE, engine.groovyOption(GroovyEngine.NANORC_VALUE, DEFAULT_NANORC_VALUE));
@@ -219,7 +221,6 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
                 throw new IllegalArgumentException("Unknown option: " + option);
             }
             options.put(Printer.SKIP_DEFAULT_OPTIONS, true);
-            options.put(Printer.COLUMNS, ObjectInspector.METHOD_COLUMNS);
             options.put(Printer.MAX_DEPTH, 1);
             options.put(Printer.INDENTION, 4);
             printer.println(options, out);
