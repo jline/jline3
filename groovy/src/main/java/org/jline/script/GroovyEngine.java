@@ -550,7 +550,7 @@ public class GroovyEngine implements ScriptEngine {
         return new AggregateCompleter(completers);
     }
 
-    private enum CandidateType {CONSTRUCTOR, STATIC_METHOD, PACKAGE, METHOD, FIELD, IDENTIFIER, META_METHOD, STRING, OTHER}
+    private enum CandidateType {CONSTRUCTOR, STATIC_METHOD, PACKAGE, METHOD, FIELD, IDENTIFIER, META_METHOD, STRING, CLASSES, OTHER}
 
     private static Class<?> classResolver(String classDotName, GroovyShell shell) {
         Class<?> out = null;
@@ -891,10 +891,14 @@ public class GroovyEngine implements ScriptEngine {
                 } else if (type == CandidateType.PACKAGE) {
                     if (s.matches("[a-z]+.*")) {
                         postFix = ".";
+                    } else if (s.matches("[A-Z]+.*")) {
+                        group = "Classes";
                     }
                 } else if (type == CandidateType.METHOD) {
                     postFix = "(";
                     group = "Methods";
+                } else if (type == CandidateType.CLASSES) {
+                    group = "Classes";
                 } else if (type == CandidateType.FIELD) {
                     group = "Fields";
                 } else if (type == CandidateType.IDENTIFIER) {
@@ -1103,7 +1107,7 @@ public class GroovyEngine implements ScriptEngine {
                             clazz = inspector.evaluateClass(wordbuffer.substring(eqsep + 1, varsep));
                             involvedObject = inspector.getInvolvedObject();
                         }
-                        Helpers.doCandidates(candidates, retrieveDecleredClasses(clazz), curBuf, CandidateType.PACKAGE);
+                        Helpers.doCandidates(candidates, retrieveDecleredClasses(clazz), curBuf, CandidateType.CLASSES);
                         doMethodCandidates(candidates, involvedObject, clazz, curBuf);
                     } else if (inspector.hasVariable(var)) {
                         if (firstMethod) {
