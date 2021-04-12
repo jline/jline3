@@ -347,7 +347,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
      * @param options Printing options
      * @param exception Exception to be printed
      */
-    protected void highlightAndPrint(Map<String, Object> options, Exception exception) {
+    protected void highlightAndPrint(Map<String, Object> options, Throwable exception) {
         SystemRegistry.get().trace(options.getOrDefault("exception", "stack").equals("stack"), exception);
     }
 

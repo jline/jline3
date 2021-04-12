@@ -336,7 +336,7 @@ public class Console
         }
 
         @Override
-        protected void highlightAndPrint(Map<String, Object> options, Exception exception) {
+        protected void highlightAndPrint(Map<String, Object> options, Throwable exception) {
             if (options.getOrDefault("exception", "stack").equals("stack")) {
                 exception.printStackTrace();
             } else {
@@ -429,7 +429,7 @@ public class Console
                 catch (EndOfFileException e) {
                     break;
                 }
-                catch (Exception e) {
+                catch (Exception|Error e) {
                     masterRegistry.trace(true, e);
                 }
             }

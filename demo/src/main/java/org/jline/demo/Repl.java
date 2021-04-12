@@ -167,6 +167,7 @@ public class Repl {
                 th = new Thread(streamGobbler);
                 th.start();
                 th.join();
+                throw new Exception("Error occurred in shell!");
             }
         }
 
@@ -345,7 +346,7 @@ public class Repl {
                     }
                     break;
                 }
-                catch (Exception e) {
+                catch (Exception|Error e) {
                     systemRegistry.trace(e);          // print exception and save it to console variable
                 }
             }

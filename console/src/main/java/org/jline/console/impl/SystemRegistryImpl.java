@@ -1257,7 +1257,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     @Override
-    public void trace(Exception exception) {
+    public void trace(Throwable exception) {
         outputStream.close();
         ConsoleEngine consoleEngine = consoleEngine();
         if (consoleEngine != null) {
@@ -1271,7 +1271,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     @Override
-    public void trace(boolean stack, Exception exception) {
+    public void trace(boolean stack, Throwable exception) {
         if (exception instanceof Options.HelpException) {
             Options.HelpException.highlight((exception).getMessage(), Styles.helpStyle()).print(terminal());
         } else if (exception instanceof UnknownCommandException) {

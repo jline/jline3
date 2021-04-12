@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -81,14 +81,14 @@ public interface SystemRegistry extends CommandRegistry, ConsoleOptionGetter {
      * Print exception on terminal
      * @param exception exception to print on terminal
      */
-    void trace(Exception exception);
+    void trace(Throwable exception);
 
     /**
      * Print exception on terminal
      * @param stack print stack trace if stack true otherwise message
      * @param exception exception to be printed
      */
-    void trace(boolean stack, Exception exception);
+    void trace(boolean stack, Throwable exception);
 
     /**
      * Return console option value
