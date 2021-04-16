@@ -8,15 +8,10 @@
  */
 package org.jline.script;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.io.File;
+import java.util.*;
 
+import org.jline.builtins.Completers;
 import org.jline.console.CommandInput;
 import org.jline.console.CommandMethods;
 import org.jline.console.impl.AbstractCommandRegistry;
@@ -85,7 +80,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         commandExecute.put(Command.INSPECT, new CommandMethods(this::inspect, this::inspectCompleter));
         commandExecute.put(Command.CONSOLE, new CommandMethods(this::console, this::defaultCompleter));
         commandExecute.put(Command.GRAB, new CommandMethods(this::grab, this::defaultCompleter));
-        commandExecute.put(Command.CLASSLOADER, new CommandMethods(this::classLoader, this::defaultCompleter));
+        commandExecute.put(Command.CLASSLOADER, new CommandMethods(this::classLoader, this::classloaderCompleter));
         registerCommands(commandName, commandExecute);
         commandDescs.put(Command.INSPECT, inspectCmdDesc());
         commandDescs.put(Command.CONSOLE, consoleCmdDesc());
@@ -244,18 +239,32 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
                 arg = idx == 0 ? args[1] : args[0];
             }
         }
-        if (option.equals("-?") || option.equals("--help")) {
-            printer.println(helpDesc(Command.CLASSLOADER));
-        } else if (option.equals("-v") || option.equals("--view")) {
-            Map<String, Object> options = new HashMap<>();
-            options.put(Printer.SKIP_DEFAULT_OPTIONS, true);
-            options.put(Printer.VALUE_STYLE, engine.groovyOption(GroovyEngine.NANORC_VALUE, DEFAULT_NANORC_VALUE));
-            options.put(Printer.MAX_DEPTH, 1);
-            options.put(Printer.INDENTION, 4);
-            options.put(Printer.COLUMNS, Arrays.asList("loadedClasses", "definedPackages", "classPath"));
-            printer.println(options, engine.classLoader);
-        } else if (option.equals("-d") || option.equals("--delete")) {
-            engine.purgeClassCache(arg != null ? arg.replace("*", ".*") : null);
+        switch (option) {
+            case "-?":
+            case "--help":
+                printer.println(helpDesc(Command.CLASSLOADER));
+                break;
+            case "-v":
+            case "--view":
+                Map<String, Object> options = new HashMap<>();
+                options.put(Printer.SKIP_DEFAULT_OPTIONS, true);
+                options.put(Printer.VALUE_STYLE, engine.groovyOption(GroovyEngine.NANORC_VALUE, DEFAULT_NANORC_VALUE));
+                options.put(Printer.MAX_DEPTH, 1);
+                options.put(Printer.INDENTION, 4);
+                options.put(Printer.COLUMNS, Arrays.asList("loadedClasses", "definedPackages", "classPath"));
+                printer.println(options, engine.classLoader);
+                break;
+            case "-d":
+            case "--delete":
+                engine.purgeClassCache(arg != null ? arg.replace("*", ".*") : null);
+                break;
+            case "-a":
+            case "--add":
+                if (arg == null || !(new File(arg).exists())) {
+                    throw new IllegalArgumentException("Bad or missing argument!");
+                }
+                engine.classLoader.addClasspath(arg);
+                break;
         }
         return null;
     }
@@ -320,6 +329,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         optDescs.put("-? --help", doDescription ("Displays command help"));
         optDescs.put("-v --view", doDescription ("View class loader info"));
         optDescs.put("-d --delete [REGEX]", doDescription ("Delete loaded classes"));
+        optDescs.put("-a --add PATH", doDescription ("Add classpath PATH - a jar file or a directory"));
         CmdDesc out = new CmdDesc(new ArrayList<>(), optDescs);
         List<AttributedString> mainDesc = new ArrayList<>();
         List<String> info = new ArrayList<>();
@@ -370,6 +380,21 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
                 out.add(new OptDesc(option[0], null, desc));
             }
         }
+        return out;
+    }
+
+    private List<Completer> classloaderCompleter(String command) {
+        List<Completer> out = new ArrayList<>();
+        List<Completer> argsCompleters = Collections.singletonList(NullCompleter.INSTANCE);
+        List<OptDesc> options = new ArrayList<>();
+        options.add(new OptDesc("-?", "--help", NullCompleter.INSTANCE));
+        options.add(new OptDesc("-a", "--add", new Completers.FilesCompleter(new File("."), "*.jar")));
+        options.add(new OptDesc("-d", "--delete", NullCompleter.INSTANCE));
+        options.add(new OptDesc("-v", "--view", NullCompleter.INSTANCE));
+        ArgumentCompleter ac = new ArgumentCompleter(NullCompleter.INSTANCE
+                                    , new OptionCompleter(argsCompleters, options, 1)
+                                    );
+        out.add(ac);
         return out;
     }
 
