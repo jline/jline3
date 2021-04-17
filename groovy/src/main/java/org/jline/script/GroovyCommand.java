@@ -9,6 +9,7 @@
 package org.jline.script;
 
 import java.io.File;
+import java.nio.file.*;
 import java.util.*;
 
 import org.jline.builtins.Completers;
@@ -239,32 +240,52 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
                 arg = idx == 0 ? args[1] : args[0];
             }
         }
-        switch (option) {
-            case "-?":
-            case "--help":
-                printer.println(helpDesc(Command.CLASSLOADER));
-                break;
-            case "-v":
-            case "--view":
-                Map<String, Object> options = new HashMap<>();
-                options.put(Printer.SKIP_DEFAULT_OPTIONS, true);
-                options.put(Printer.VALUE_STYLE, engine.groovyOption(GroovyEngine.NANORC_VALUE, DEFAULT_NANORC_VALUE));
-                options.put(Printer.MAX_DEPTH, 1);
-                options.put(Printer.INDENTION, 4);
-                options.put(Printer.COLUMNS, Arrays.asList("loadedClasses", "definedPackages", "classPath"));
-                printer.println(options, engine.classLoader);
-                break;
-            case "-d":
-            case "--delete":
-                engine.purgeClassCache(arg != null ? arg.replace("*", ".*") : null);
-                break;
-            case "-a":
-            case "--add":
-                if (arg == null || !(new File(arg).exists())) {
-                    throw new IllegalArgumentException("Bad or missing argument!");
-                }
-                engine.classLoader.addClasspath(arg);
-                break;
+        try {
+            switch (option) {
+                case "-?":
+                case "--help":
+                    printer.println(helpDesc(Command.CLASSLOADER));
+                    break;
+                case "-v":
+                case "--view":
+                    Map<String, Object> options = new HashMap<>();
+                    options.put(Printer.SKIP_DEFAULT_OPTIONS, true);
+                    options.put(Printer.VALUE_STYLE, engine.groovyOption(GroovyEngine.NANORC_VALUE, DEFAULT_NANORC_VALUE));
+                    options.put(Printer.MAX_DEPTH, 1);
+                    options.put(Printer.INDENTION, 4);
+                    options.put(Printer.COLUMNS, Arrays.asList("loadedClasses", "definedPackages", "classPath"));
+                    printer.println(options, engine.classLoader);
+                    break;
+                case "-d":
+                case "--delete":
+                    engine.purgeClassCache(arg != null ? arg.replace("*", ".*") : null);
+                    break;
+                case "-a":
+                case "--add":
+                    File file = arg != null ? new File(arg) : null;
+                    if (file == null || !file.exists()) {
+                        throw new IllegalArgumentException("Bad or missing argument!");
+                    }
+                    if (file.isDirectory()) {
+                        String separator = FileSystems.getDefault().getSeparator();
+                        if (separator.equals("\\") && !arg.contains("\\") && arg.contains("/")) {
+                            arg = arg.replace("/", "\\");
+                        }
+                        if (arg.endsWith(separator)) {
+                            separator = "";
+                        }
+                        PathMatcher matcher = FileSystems.getDefault().getPathMatcher("regex:"
+                                + arg.replace("\\", "\\\\").replace(".", "\\.")
+                                + separator.replace("\\", "\\\\") + ".*\\.jar");
+                        Files.walk(Paths.get(arg)).filter(matcher::matches).map(Path::toString)
+                                .forEach(engine.classLoader::addClasspath);
+                    } else {
+                        engine.classLoader.addClasspath(arg);
+                    }
+                    break;
+            }
+        } catch (Exception exp) {
+            saveException(exp);
         }
         return null;
     }
