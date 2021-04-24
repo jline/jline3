@@ -27,7 +27,9 @@ import static java.nio.file.FileVisitResult.CONTINUE;
  */
 public class JrtJavaBasePackages {
     public static List<Object> getClassesForPackage(String pckgname) {
-        List<Object> out = new ArrayList<>();
+        FileSystem fs = FileSystems.getFileSystem(URI.create("jrt:/"));
+        List<String> dirs = new ArrayList<>();
+        dirs.add("java.base");
         boolean nestedClasses = true;
         boolean onlyCurrent = false;
         if (pckgname.endsWith(".*")) {
@@ -38,28 +40,21 @@ public class JrtJavaBasePackages {
             onlyCurrent = true;
             pckgname = pckgname.substring(0, pckgname.length() - 3);
         }
-        final String packageName = pckgname;
-        if (Arrays.stream(Package.getPackages()).anyMatch(p->p.getName().startsWith(packageName))) {
-            FileSystem fs = FileSystems.getFileSystem(URI.create("jrt:/"));
-            List<String> dirs = new ArrayList<>();
-            dirs.add("java.base");
-            dirs.addAll(Arrays.asList(pckgname.split("\\.")));
-            Path path = fs.getPath("modules", dirs.toArray(new String[0]));
-            FileVisitor fv = new FileVisitor(packageName, nestedClasses);
-            try {
-                if (onlyCurrent) {
-                    Files.walkFileTree(path, new HashSet<>(), 1, fv);
-                } else {
-                    Files.walkFileTree(path, fv);
-                }
-            } catch (IOException e) {
-                if (Log.isDebugEnabled()) {
-                    e.printStackTrace();
-                }
+        dirs.addAll(Arrays.asList(pckgname.split("\\.")));
+        Path path = fs.getPath("modules", dirs.toArray(new String[0]));
+        FileVisitor fv = new FileVisitor(pckgname, nestedClasses);
+        try {
+            if (onlyCurrent) {
+                Files.walkFileTree(path, new HashSet<>(),1, fv);
+            } else {
+                Files.walkFileTree(path, fv);
             }
-            out = fv.getClasses();
+        } catch (IOException e) {
+            if (Log.isDebugEnabled()) {
+                e.printStackTrace();
+            }
         }
-        return out;
+        return fv.getClasses();
     }
 
     private static class FileVisitor extends SimpleFileVisitor<Path> {
