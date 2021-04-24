@@ -34,7 +34,7 @@ public class PrintAboveWriter extends StringWriter {
     public void flush() {
         StringBuffer buffer = getBuffer();
         int lastNewline = buffer.lastIndexOf("\n");
-        if (lastNewline > 0) {
+        if (lastNewline >= 0) {
             reader.printAbove(buffer.substring(0, lastNewline + 1));
             buffer.delete(0, lastNewline + 1);
         }
