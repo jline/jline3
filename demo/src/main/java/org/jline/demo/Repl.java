@@ -290,6 +290,7 @@ public class Repl {
             SyntaxHighlighter groovyHighlighter = SyntaxHighlighter.build(jnanorc,"Groovy");
             SystemHighlighter highlighter = new SystemHighlighter(commandHighlighter, argsHighlighter, groovyHighlighter);
             highlighter.addFileHighlight("nano", "less", "slurp");
+            highlighter.addFileHighlight("groovy", "classloader", Arrays.asList("-a", "--add"));
             LineReader reader = LineReaderBuilder.builder()
                     .terminal(terminal)
                     .completer(systemRegistry.completer())
