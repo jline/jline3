@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (c) 2002-2020, the original author or authors.
+    Copyright (c) 2002-2021, the original author or authors.
 
     This software is distributable under the BSD license. See the terms of the
     BSD license in the documentation provided with this software.
@@ -83,7 +83,7 @@
         <automatic.module.name />
 
         <jna.version>5.3.1</jna.version>
-        <jansi.version>2.1.0</jansi.version>
+        <jansi.version>2.3.2</jansi.version>
         <juniversalchardet.version>1.0.3</juniversalchardet.version>
         <sshd.version>2.1.0</sshd.version>
         <easymock.version>3.3.1</easymock.version>
@@ -267,7 +267,7 @@
                 <groupId>org.apache.ivy</groupId>
                 <artifactId>ivy</artifactId>
                  <version>${ivy.version}</version>
-            </dependency>        
+            </dependency>
 
             <dependency>
                 <groupId>org.slf4j</groupId>
