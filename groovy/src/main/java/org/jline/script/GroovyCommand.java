@@ -236,7 +236,10 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
             String[] args = input.args();
             int idx = optionIdx(args);
             option = idx > -1 ? args[idx] : "--view";
-            if (input.args().length == 2 && idx > -1) {
+            if (option.contains("=")) {
+                arg = option.substring(option.indexOf("=") + 1);
+                option = option.substring(0, option.indexOf("="));
+            } else if (input.args().length == 2 && idx > -1) {
                 arg = idx == 0 ? args[1] : args[0];
             }
         }
