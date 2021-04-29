@@ -769,7 +769,8 @@ public class GroovyEngine implements ScriptEngine {
                         continue;
                     }
                     String source = p.toString();
-                    String className = source.substring(2, source.lastIndexOf(".")).replace(separator, ".");
+                    String className = source.substring(2, source.lastIndexOf("."))
+                            .replace(FileSystems.getDefault().getSeparator(), ".");
                     if (onlyPackage) {
                         if (Character.isUpperCase(className.charAt(domain.length() + 1))) {
                             out.add(className);
