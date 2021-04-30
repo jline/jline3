@@ -62,6 +62,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     private static final String VAR_PATH = "PATH";
     private static final String[] OPTION_HELP = {"-?", "--help"};
     private static final String OPTION_VERBOSE = "-v";
+    private static final String SLURP_FORMAT_TEXT = "TEXT";
     private static final String END_HELP = "END_HELP";
     private static final int HELP_MAX_SIZE = 30;
     private final ScriptEngine engine;
@@ -930,9 +931,17 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 try {
                     Path path = Paths.get(arg);
                     if (path.toFile().exists()) {
-                        out = slurp(path, encoding, format);
+                        if (!format.equals(SLURP_FORMAT_TEXT)) {
+                            out = slurp(path, encoding, format);
+                        } else {
+                            out = Files.readAllLines(Paths.get(arg), encoding);
+                        }
                     } else {
-                        out = engine.deserialize(arg, format);
+                        if (!format.equals(SLURP_FORMAT_TEXT)) {
+                            out = engine.deserialize(arg, format);
+                        } else {
+                            out = arg.split("\n");
+                        }
                     }
                 } catch (Exception e) {
                     out = engine.deserialize(arg, format);
@@ -1147,7 +1156,9 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         List<OptDesc> optDescs = commandOptions("slurp");
         for (OptDesc o : optDescs) {
             if (o.shortOption() != null && o.shortOption().equals("-f")) {
-                o.setValueCompleter(new StringsCompleter(engine.getDeserializationFormats()));
+                List<String> formats = new ArrayList<>(engine.getDeserializationFormats());
+                formats.add(SLURP_FORMAT_TEXT);
+                o.setValueCompleter(new StringsCompleter(formats));
                 break;
             }
         }
