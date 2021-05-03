@@ -1,6 +1,78 @@
 # [JLine3](https://github.com/jline/jline3)
 <!-- git log --pretty=format:'* [`%h`](https://github.com/jline/jline3/commit/%H) %s' -->
 
+## [JLine 3.20.0][3_20_0]
+[3_20_0]: https://repo1.maven.org/maven2/org/jline/jline/3.20.0/
+
+* [`8ed2b9a6`](https://github.com/jline/jline3/commit/8ed2b9a667b6058ebb0e6970032496025f5a663e) Command 'slurp --format=TEXT <file>' reads file lines to ArrayList
+* [`8041ffcd`](https://github.com/jline/jline3/commit/8041ffcd7e4cb7158329876fdc2ad8b7dc92c790) Groovy REPL: fix source file package tab completion in Windows
+* [`049d24a3`](https://github.com/jline/jline3/commit/049d24a314ab0f832868389b58f9023d9e7fe4aa) ArgDesc: add validity check for argument name, #665
+* [`5f2497dd`](https://github.com/jline/jline3/commit/5f2497dd059c19fa928e9cd728f72ab870e8e2ce) SystemHighlighter: highlight command options file values
+* [`53cd0c03`](https://github.com/jline/jline3/commit/53cd0c031fa6d3f047795a3b7e5540abf4f47052) Fix option value parsing in Groovy classloader command
+* [`278fac94`](https://github.com/jline/jline3/commit/278fac94e66e74bef2d34e73e0b5ebd5598eeca6) Upgrade Groovy to 3.0.8
+* [`8e9fc369`](https://github.com/jline/jline3/commit/8e9fc3697ae2a7695d867eb3c47199779285b087) Upgrade JNA to 5.8.0
+* [`fac777f5`](https://github.com/jline/jline3/commit/fac777f5645f860b3379eda6d41b6e4736779b6b) Upgrade Jansi to 2.3.2
+* [`39ac1bbe`](https://github.com/jline/jline3/commit/39ac1bbe041500ff9f16e2a05b1090228df414b1) Revert "JrtJavaBasePackages: before class search check that package exists"
+* [`e9563d97`](https://github.com/jline/jline3/commit/e9563d97eb26bb91f09e892f17b82bd438b26181) PrintAboveWriter fix the last new line test
+* [`7c697ebf`](https://github.com/jline/jline3/commit/7c697ebf1f5f8b79ad81dd4d7b0b6ffbc37908e1) add a `PrintAboveWriter` which buffers input until a newline is reached, and then forwards to LineReader's `printAbove()` method
+* [`943abe0f`](https://github.com/jline/jline3/commit/943abe0f16114085dc6ceb139ca2969564fcd5dc) Fix PumpReader.read(CharBuffer) not being synchronized
+* [`6d696428`](https://github.com/jline/jline3/commit/6d696428782d32f17bd8c3d4a12c42b1a28d1ca5) Add a color field on the TerminalBuilder to control the dumb terminal
+* [`a3bf295e`](https://github.com/jline/jline3/commit/a3bf295e4f75c4121756c935309dda0165e732e4) Groovy REPL: option '--add JAR' to classloader command, step II
+* [`adbf0242`](https://github.com/jline/jline3/commit/adbf02429a8a060cb820a11423fe924ba1299ca4) REPL demo: remove multiline comment syntax from groovy.nanorc. Start comment char sequence breaks commandline highlight.
+* [`ead6de89`](https://github.com/jline/jline3/commit/ead6de895ae308023b74a045da830ddf833262dc) Groovy REPL: option '--add JAR' to classloader command
+* [`5be0e7c3`](https://github.com/jline/jline3/commit/5be0e7c3012f209ecff6229ddecb865cdb6fc7f6) SystemRegistry: change trace(Exception) to trace(Throwable)
+* [`1d9bb288`](https://github.com/jline/jline3/commit/1d9bb2884450aa25f204480689e75a5f480837e1) Groovy REPL: improve package completion performance, step II
+* [`d22e9b36`](https://github.com/jline/jline3/commit/d22e9b36563b908b204a0dad3cdabcda2d4eba5c) Groovy REPL: fixed command 'inspect --info [object]'
+* [`273ac1e9`](https://github.com/jline/jline3/commit/273ac1e910bdb76c65cea608adcb97ed3412e914) JrtJavaBasePackages: before class search check that package exists
+* [`4da3433f`](https://github.com/jline/jline3/commit/4da3433f234fc62e748452ba72143606baa24629) Groovy REPL: add completion group Classes
+* [`427fbadf`](https://github.com/jline/jline3/commit/427fbadf6a017a38ff2bd203d7d7f455478d0304) Groovy REPL: add option syntheticMethodsCompletion
+* [`7df36e38`](https://github.com/jline/jline3/commit/7df36e38c5a61cb4738c3bc730d0a2c43f5736fc) Groovy REPL: add inner class completion
+* [`8daf2917`](https://github.com/jline/jline3/commit/8daf29171bd4df32fb8adf261d79f6ee58f5d2ea) Groovy REPL: improve package completion performance
+* [`8dc496fb`](https://github.com/jline/jline3/commit/8dc496fbb844856104029c3c6735343408387a6a) Groovy REPL: method tab completion fails complete obj. super class methods
+* [`8f092569`](https://github.com/jline/jline3/commit/8f0925699f964cb23ef9ea68482b74f6b5d16a23) Groovy REPL: purge dynamically created Script classes from classloader cache & add groovy command classloader
+* [`169f9cff`](https://github.com/jline/jline3/commit/169f9cff098e70fcd984fd29cec544b8d1cbfd07) DefaultPrinter: map print enable option for keys selection
+* [`92a63e14`](https://github.com/jline/jline3/commit/92a63e1494d7e24a9f36cf639257b181080a535f) Groovy REPL: manage tab completions of dynamically loaded jars
+* [`54c7862d`](https://github.com/jline/jline3/commit/54c7862d1ba2a060a26fdfd3b24d317ac0b680f3) groovy Utils.toMap() manage GroovyCastException
+* [`58d233a9`](https://github.com/jline/jline3/commit/58d233a9ef960687866d7bcb69e167156386c931) DefaultPrinter: improve table columns selection
+* [`513e6fd4`](https://github.com/jline/jline3/commit/513e6fd4ca3bb6821cb2fa24d56ca5092a56c3ec) Groovy REPL: add tab completions to classes that are created in REPL
+* [`9d05f0ae`](https://github.com/jline/jline3/commit/9d05f0aec2b024f83063e5209b2830c0c1a93d03) Groovy REPL: add support for Groovy traits
+* [`70e8dee8`](https://github.com/jline/jline3/commit/70e8dee805541c3136f4bff5a27ca15dca34b6b4) Groovy REPL: added regex test for import command & reviewed class load pattern
+* [`706e0268`](https://github.com/jline/jline3/commit/706e026834d402999a517f39290c63de83136e57) Groovy REPL handle imports when load classes from sources, #664
+* [`6567d4bf`](https://github.com/jline/jline3/commit/6567d4bf7876fdecea85af8a970e42749711f1ff) Groovy REPL: complete get meta methods also as identifiers
+* [`6ffcadf4`](https://github.com/jline/jline3/commit/6ffcadf48a4e93a11891e2887cb19dc173f17853) Groovy REPL does not load classes from groovy sources, fixes #664
+* [`eb1199ec`](https://github.com/jline/jline3/commit/eb1199ec577452047219b387cdb5ffacd6de2d72) Groovy REPL demo erroneously can complete groovy statements in shell command, fixes #663
+* [`6b511041`](https://github.com/jline/jline3/commit/6b511041f456a27bb2cfc2708686e991566f70d4) Repl demo: fix shell command error message
+* [`95784185`](https://github.com/jline/jline3/commit/95784185877ab8739ca1e0fce56bb1453a6faa4e) SystemHighlighter: fix Repl demo shell command highlight
+* [`4e18cc6c`](https://github.com/jline/jline3/commit/4e18cc6c1365512fa6855eed0ed0ab17df353f43) SystemRegistryImpl: change some fields visibilities to simplify class extensions
+* [`8e66a60f`](https://github.com/jline/jline3/commit/8e66a60f25d7ab0e61c9815e415f6b307c7fca31) Highlighter impl.: change some fields visibilities to simplify classes extensions
+* [`3320df5f`](https://github.com/jline/jline3/commit/3320df5f74e2907cbd3b3ef8c4d347c9f24af235) SystemHighlighter: use LS_COLORS rules to highlight command file args
+* [`91c205bf`](https://github.com/jline/jline3/commit/91c205bf93b2b1ee40ac20280df2775ec91faacb) Command prnt style option does not work, fixes #661
+* [`d22d576c`](https://github.com/jline/jline3/commit/d22d576c428e74b65767c16d483b9002238c0d2b) Add ColonCommandCompletionTest, #654
+* [`620b187d`](https://github.com/jline/jline3/commit/620b187d22ae8ba6bd783f39a841da9b05257f06) Unable to directly handle unknown commands in console, fixes #653
+* [`289d339b`](https://github.com/jline/jline3/commit/289d339bb5821cb094fe2086bdc6f794084806b6) AbstractTerminal: if type null assign fallback terminal type value (ansi), #651
+* [`774e890d`](https://github.com/jline/jline3/commit/774e890d589acd16aba51489359d7231415d434a) CamelCase matcher: improve completion performance, fixes #650
+* [`18b350eb`](https://github.com/jline/jline3/commit/18b350ebe0a2ffee968cbf323c867092e06cb7db) CompletionMatcherImpl: adjust matcher functions execution order
+* [`1edf3111`](https://github.com/jline/jline3/commit/1edf31114233002423b34f61c9577c406b6de6a3) Fix case insensitive typo matching
+* [`e103debb`](https://github.com/jline/jline3/commit/e103debb0a486603d44780cf553ab8ff905027ce) PRNT_OPTIONS: add option valueStyleAll
+* [`6ed371c9`](https://github.com/jline/jline3/commit/6ed371c912ca6203f6c7eb558fd215e56d1ba25b) SystemRegistryImpl: highlight customization improvement
+* [`0d63afbe`](https://github.com/jline/jline3/commit/0d63afbe3086a9e03e2fabeb876d5f60ea1077c3) Make DefaultPrinter extendable so that it can be used without SystemRegistry, #638
+* [`2aeff8eb`](https://github.com/jline/jline3/commit/2aeff8eba95f5dd0b7324625f44d7bfe744938e1) A few fixes in org.jline.example.Console
+* [`18b4b4b0`](https://github.com/jline/jline3/commit/18b4b4b01324559d8f02ac4aabe96ccd71d784cb) Merge pull request #646 from retronym/topic/typo-matcher-disable
+* [`b1e83bb5`](https://github.com/jline/jline3/commit/b1e83bb5d039cf0968bcb2542a3bee768b1f5337) Add option to disable typo completion matcher
+* [`c232acdd`](https://github.com/jline/jline3/commit/c232acdde443a661dbd2a21fd1d638fe2d8053eb) TailTipWidgets throws IndexOutOfBoundsException when descriptionSize=0, fixes #645
+* [`31da519a`](https://github.com/jline/jline3/commit/31da519a120eb5c5ccc242b6664a3823c3dfe97d) Fix wrong call with negative argument
+* [`bcdd8ef9`](https://github.com/jline/jline3/commit/bcdd8ef9e70e2a290edd80850bdf7fcdbf8d5246) Make emacs(Backward|Forward)Word aliases to forwardWord/forwardWord, add tests, fixes #644
+* [`859bc82a`](https://github.com/jline/jline3/commit/859bc82a0a48eae88a22c09db063533fa992afb6) Groovy REPL: string variable assignment tab complete with current value, step II
+* [`913862f9`](https://github.com/jline/jline3/commit/913862f97766675f5a02cc00c90afb7d873ef2a4) After JLine has trimmed history history-search-backward widget does not work well, fixes #643
+* [`91d2e331`](https://github.com/jline/jline3/commit/91d2e331e0f4164c800839f02758be1b41513670) JLine history file seems to grow without limit, fixes #642
+* [`b0923666`](https://github.com/jline/jline3/commit/b0923666fa42b53d020c21019e899860e5b123f2) DefaultHistory: a few small improvements
+* [`6c3cfb7f`](https://github.com/jline/jline3/commit/6c3cfb7f2ccc0b53dc5bd360fd0ca177253d8d4c) Command colors: add option --ansistyles
+* [`cc874f78`](https://github.com/jline/jline3/commit/cc874f7805d881037516489752b2367b8dbd0284) Builtin Styles: make style(string) public & refactoring
+* [`9a73dac9`](https://github.com/jline/jline3/commit/9a73dac91706a03a27f1f6f2f8b876aa1597b4ed) Groovy REPL: string variable assignment tab complete with current value
+* [`74a41fbd`](https://github.com/jline/jline3/commit/74a41fbd406dbfa0c82b646a998edff637e31ebc) Use new 24bit support when parsing ANSI sequences
+* [`68b68cfd`](https://github.com/jline/jline3/commit/68b68cfd587800cd73bf5074027ddcdc8a31c7e6) Merge branch 'hboutemy-reproducible'
+* [`043a4329`](https://github.com/jline/jline3/commit/043a432981435474d3b5396c31a3be377ac4c8c0) Merge branch 'reproducible' of https://github.com/hboutemy/jline3 into hboutemy-reproducible
+
 ## [JLine 3.19.0][3_19_0]
 [3_19_0]: https://repo1.maven.org/maven2/org/jline/jline/3.19.0/
 
