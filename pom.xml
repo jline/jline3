@@ -23,7 +23,7 @@
     <artifactId>jline-parent</artifactId>
     <name>JLine Parent</name>
     <description>JLine</description>
-    <version>3.19.1-SNAPSHOT</version>
+    <version>3.20.0</version>
     <packaging>pom</packaging>
 
     <licenses>
@@ -38,7 +38,7 @@
         <connection>scm:git:git://github.com/jline/jline3.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/jline/jline3.git</developerConnection>
         <url>http://github.com/jline/jline3</url>
-    <tag>HEAD</tag>
+    <tag>jline-parent-3.20.0</tag>
   </scm>
 
     <issueManagement>
@@ -74,7 +74,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.build.outputTimestamp>2020-12-19T18:04:00Z</project.build.outputTimestamp>
+        <project.build.outputTimestamp>2021-05-03T14:54:07Z</project.build.outputTimestamp>
 
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
