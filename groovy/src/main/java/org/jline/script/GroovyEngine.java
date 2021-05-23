@@ -1281,7 +1281,7 @@ public class GroovyEngine implements ScriptEngine {
 
         private Set<String> retrieveDecleredClasses(Class<?> clazz) {
             Set<String> out = new HashSet<>();
-            if (clazz != null) {
+            if (clazz != null && !clazz.isEnum()) {
                 int nameLength = clazz.getCanonicalName().length();
                 for (Class<?> c : access.allClasses ? clazz.getDeclaredClasses() : clazz.getClasses()) {
                     out.add(c.getCanonicalName().substring(nameLength + 1));
