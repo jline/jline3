@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -123,6 +123,7 @@ public class Nano implements Editor {
     private boolean searchToReplace = false;
     protected boolean readNewBuffer = true;
     private boolean nanorcIgnoreErrors;
+    private final boolean windowsTerminal;
 
     protected enum WriteMode {
         WRITE,
@@ -1940,6 +1941,7 @@ public class Nano implements Editor {
 
     public Nano(Terminal terminal, Path root, Options opts, ConfigurationPath configPath) {
         this.terminal = terminal;
+        this.windowsTerminal = terminal.getClass().getSimpleName().endsWith("WinSysTerminal");
         this.root = root;
         this.display = new Display(terminal, true);
         this.bindingReader = new BindingReader(terminal.reader());
@@ -3484,6 +3486,9 @@ public class Nano implements Editor {
                                     buffer.getDisplayedCursor());
         }
         display.update(newLines, cursor);
+        if (windowsTerminal) {
+            resetDisplay();
+        }
     }
 
     protected List<AttributedString> computeFooter() {
