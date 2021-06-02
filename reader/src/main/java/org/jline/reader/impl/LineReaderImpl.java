@@ -3947,7 +3947,8 @@ public class LineReaderImpl implements LineReader, Flushable
         StringBuilder sb = new StringBuilder();
         for (char c: buffer.replace("\\", "\\\\").toCharArray()) {
             if (c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}' || c == '^' || c == '*'
-                     || c == '$' || c == '.' || c == '?' || c == '+') {
+                     || c == '$' || c == '.' || c == '?' || c == '+' || c == '|' || c == '<' || c == '>' || c == '!'
+                     || c == '-') {
                 sb.append('\\');
             }
             sb.append(c);
