@@ -667,7 +667,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         return out;
     }
 
-    private boolean similarSets(final Set<String> ref, final Set<String> c2, final int matchLimit) {
+    private boolean similarSets(final List<String> ref, final Set<String> c2, final int matchLimit) {
         boolean out = false;
         int limit = matchLimit;
         for (String s : ref) {
@@ -785,27 +785,23 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                             List<String> header = new ArrayList<>();
                             List<Integer> columns = new ArrayList<>();
                             int headerWidth = 0;
-                            Set<String> refKeys = new HashSet<>();
+                            List<String> refKeys = new ArrayList<>();
                             for (String v : _header) {
                                 String value = v.split("\\.")[0];
                                 if (!keys.contains(value)) {
                                     continue;
                                 }
-                                if (!options.containsKey(Printer.COLUMNS) &&
-                                        !options.containsKey(Printer.STRUCT_ON_TABLE)) {
-                                    boolean simple = true;
-                                    for (Map<String,Object> m : convertedCollection) {
-                                        if (m.containsKey(value)) {
-                                            Object val = mapValue(options, v, m);
-                                            if (!simpleObject(val)) {
-                                                simple = false;
-                                            }
-                                            break;
-                                        }
+                                boolean addKey = false;
+                                for (Map<String, Object> m : convertedCollection) {
+                                    Object val = mapValue(options, v, m);
+                                    if (val != null) {
+                                        addKey = simpleObject(val) || options.containsKey(Printer.COLUMNS)
+                                                || options.containsKey(Printer.STRUCT_ON_TABLE);
+                                        break;
                                     }
-                                    if (!simple) {
-                                        continue;
-                                    }
+                                }
+                                if (!addKey) {
+                                    continue;
                                 }
                                 refKeys.add(value);
                                 header.add(v);
