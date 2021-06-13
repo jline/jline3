@@ -349,8 +349,8 @@
                         <Import-Package>
                             com.sun.jna*,
                             org.apache.sshd*,
-                            org.fusesource.jansi;version="[1.12,2)",
-                            org.fusesource.jansi.internal;version="[1.6,2)",
+                            org.fusesource.jansi;version="[1.12,3)",
+                            org.fusesource.jansi.internal;version="[1.6,3)",
                             *
                         </Import-Package>
                     </instructions>
