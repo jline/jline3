@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -47,7 +47,7 @@ public class JnaSupportImpl implements JnaSupport {
 
     @Override
     public boolean isConsoleOutput() {
-        if (OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM) {
+        if (OSUtils.IS_MSYSTEM) {
             throw new UnsupportedOperationException();
         } else if (OSUtils.IS_WINDOWS) {
             return JnaWinSysTerminal.isConsoleOutput();
@@ -57,7 +57,7 @@ public class JnaSupportImpl implements JnaSupport {
 
     @Override
     public boolean isConsoleInput() {
-        if (OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM) {
+        if (OSUtils.IS_MSYSTEM) {
             throw new UnsupportedOperationException();
         } else if (OSUtils.IS_WINDOWS) {
             return JnaWinSysTerminal.isConsoleInput();
