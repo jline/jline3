@@ -57,6 +57,10 @@ public final class WCWidth {
         if (bisearch(ucs, combining, combining.length - 1))
             return 0;
 
+        if (ucs >= 0x1f000 && ucs <= 0x1feee) { // emoji
+            return 2;
+        }
+        
         /* if we arrive here, ucs is not a combining or C0/C1 control character */
         return 1 +
                 ((ucs >= 0x1100 &&
