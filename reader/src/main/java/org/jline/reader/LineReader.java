@@ -424,6 +424,8 @@ public interface LineReader {
         LIST_ROWS_FIRST,
         GLOB_COMPLETE,
         MENU_COMPLETE,
+        /** do not add an extra space in case of exact completion */
+        NO_EXTRA_SPACE, 
         /** if set and not at start of line before prompt, move to new line */
         AUTO_FRESH_LINE,
 
