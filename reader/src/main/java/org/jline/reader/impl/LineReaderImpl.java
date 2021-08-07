@@ -4447,7 +4447,8 @@ public class LineReaderImpl implements LineReader, Flushable
                 buf.write(line.escape(completion.value(), completion.complete()));
                 if (completion.complete()) {
                     if (buf.currChar() != ' ') {
-                        if (!isSet(Option.NO_EXTRA_SPACE)) {
+                        // This is a hack. Don't add a space if the key is set to "no-space", see https://github.com/jline/jline3/issues/690
+                        if (!"no-space".equals(completion.key())) {
                             buf.write(" ");
                         }
                     } else {

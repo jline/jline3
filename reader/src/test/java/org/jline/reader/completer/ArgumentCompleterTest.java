@@ -8,11 +8,16 @@
  */
 package org.jline.reader.completer;
 
+import org.jline.reader.Candidate;
+import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
+import org.jline.reader.ParsedLine;
 import org.jline.reader.impl.ReaderTestSupport;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
 import org.junit.Test;
+
+import java.util.List;
 
 /**
  * Tests for {@link ArgumentCompleter}.
@@ -66,11 +71,26 @@ public class ArgumentCompleterTest
 
         assertBuffer("some foo ", new TestBuffer("some fo").tab());
     }
-    
+
+    private static class NoSpaceCompleter implements Completer {
+        String[] commands;
+
+        public NoSpaceCompleter(String... commands) {
+            this.commands = commands;
+        }
+
+        @Override
+        public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
+            for (String command : commands) {
+                candidates.add(new Candidate(command, command, null, null, null,
+                        "no-space", true));
+            }
+        }
+    }
+
     @Test
     public void testOptionNoExtraSpace() throws Exception {
-        reader.setCompleter(new ArgumentCompleter(new StringsCompleter("foo", "bar", "baz")));
-        reader.setOpt(LineReader.Option.NO_EXTRA_SPACE);
+        reader.setCompleter(new ArgumentCompleter(new NoSpaceCompleter("foo", "bar", "baz")));
 
         assertBuffer("foo foo", new TestBuffer("foo f").tab());
     }
