@@ -23,7 +23,6 @@ import org.jline.reader.ParsedLine;
  * @since 2.3
  * @deprecated use <code>org.jline.builtins.Completers$NullCompleter</code> instead
  */
-@Deprecated
 public final class NullCompleter
     implements Completer
 {
