@@ -21,7 +21,9 @@ import org.jline.reader.ParsedLine;
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  * @since 2.3
+ * @deprecated use <code>org.jline.builtins.Completers$NullCompleter</code> instead
  */
+@Deprecated
 public final class NullCompleter
     implements Completer
 {

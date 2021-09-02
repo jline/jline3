@@ -30,7 +30,6 @@ import java.util.function.Supplier;
 import org.jline.reader.Candidate;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReader.Option;
-import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.reader.ParsedLine;
 import org.jline.terminal.Terminal;
@@ -945,6 +944,14 @@ public class Completers {
             String buffer = commandLine.word().substring(0, commandLine.wordCursor());
             candidates.add(new Candidate(AttributedString.stripAnsi(buffer)
                            , buffer, null, null, null, null, true));
+        }
+    }
+
+    public static class NullCompleter implements org.jline.reader.Completer {
+        public static final NullCompleter INSTANCE = new NullCompleter();
+
+        @Override
+        public void complete(LineReader reader, final ParsedLine line, final List<Candidate> candidates) {
         }
     }
 
