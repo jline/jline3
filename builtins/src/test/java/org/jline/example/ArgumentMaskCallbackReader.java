@@ -35,7 +35,7 @@ public class ArgumentMaskCallbackReader
             .terminal(terminal).build();
 
         String command = args[0];
-        int pos = Integer.valueOf(args[1]);
+        int pos = Integer.parseInt(args[1]);
 
         MaskingCallback maskingCallback = new CommandArgumentMask(command, pos);
 

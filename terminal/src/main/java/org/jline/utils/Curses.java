@@ -197,7 +197,7 @@ public final class Curses {
                             int start = index;
                             while (str.charAt(index++) != '}') ;
                             if (exec) {
-                                int v = Integer.valueOf(str.substring(start, index - 1));
+                                int v = Integer.parseInt(str.substring(start, index - 1));
                                 stack.push(v);
                             }
                             break;
@@ -470,7 +470,7 @@ public final class Curses {
         } else if (pop instanceof Boolean) {
             return (Boolean) pop ? 1 : 0;
         } else {
-            return Integer.valueOf(pop.toString());
+            return Integer.parseInt(pop.toString());
         }
     }
 
