@@ -1463,29 +1463,29 @@ public class Nano implements Editor {
             SyntaxHighlighter out = new SyntaxHighlighter();
             List<Path> syntaxFiles = new ArrayList<>();
             try {
-                BufferedReader reader = new BufferedReader(new FileReader(nanorc.toFile()));
-                String line = reader.readLine();
-                while (line != null) {
-                    line = line.trim();
-                    if (line.length() > 0 && !line.startsWith("#")) {
-                        List<String> parts = Parser.split(line);
-                        if (parts.get(0).equals("include")) {
-                            if (parts.get(1).contains("*") || parts.get(1).contains("?")) {
-                                PathMatcher pathMatcher = FileSystems
-                                        .getDefault().getPathMatcher("glob:" + parts.get(1));
-                                Files.find(
-                                        Paths.get(new File(parts.get(1)).getParent()),
-                                        Integer.MAX_VALUE,
-                                        (path, f) -> pathMatcher.matches(path))
-                                        .forEach(syntaxFiles::add);
-                            } else {
-                                syntaxFiles.add(Paths.get(parts.get(1)));
+                try (BufferedReader reader = new BufferedReader(new FileReader(nanorc.toFile()))) {
+                    String line = reader.readLine();
+                    while (line != null) {
+                        line = line.trim();
+                        if (line.length() > 0 && !line.startsWith("#")) {
+                            List<String> parts = Parser.split(line);
+                            if (parts.get(0).equals("include")) {
+                                if (parts.get(1).contains("*") || parts.get(1).contains("?")) {
+                                    PathMatcher pathMatcher = FileSystems
+                                            .getDefault().getPathMatcher("glob:" + parts.get(1));
+                                    Files.find(
+                                                    Paths.get(new File(parts.get(1)).getParent()),
+                                                    Integer.MAX_VALUE,
+                                                    (path, f) -> pathMatcher.matches(path))
+                                            .forEach(syntaxFiles::add);
+                                } else {
+                                    syntaxFiles.add(Paths.get(parts.get(1)));
+                                }
                             }
                         }
+                        line = reader.readLine();
                     }
-                    line = reader.readLine();
                 }
-                reader.close();
                 out = build(syntaxFiles, null, syntaxName);
             } catch (Exception e) {
                 // ignore
@@ -2043,84 +2043,84 @@ public class Nano implements Editor {
     }
 
     private void parseConfig(Path file) throws IOException {
-        BufferedReader reader = new BufferedReader(new FileReader(file.toFile()));
-        String line = reader.readLine();
-        while (line!= null) {
-            line = line.trim();
-            if (line.length() > 0 && !line.startsWith("#")) {
-                List<String> parts = Parser.split(line);
-                if (parts.get(0).equals("include")) {
-                    if (parts.get(1).contains("*") || parts.get(1).contains("?")) {
-                         PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parts.get(1));
-                         Files.find(Paths.get(new File(parts.get(1)).getParent()), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
-                                 .forEach(syntaxFiles::add);
+        try (BufferedReader reader = new BufferedReader(new FileReader(file.toFile()))) {
+            String line = reader.readLine();
+            while (line != null) {
+                line = line.trim();
+                if (line.length() > 0 && !line.startsWith("#")) {
+                    List<String> parts = Parser.split(line);
+                    if (parts.get(0).equals("include")) {
+                        if (parts.get(1).contains("*") || parts.get(1).contains("?")) {
+                            PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parts.get(1));
+                            Files.find(Paths.get(new File(parts.get(1)).getParent()), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
+                                    .forEach(syntaxFiles::add);
+                        } else {
+                            syntaxFiles.add(Paths.get(parts.get(1)));
+                        }
+                    } else if (parts.size() == 2
+                            && (parts.get(0).equals("set") || parts.get(0).equals("unset"))) {
+                        String option = parts.get(1);
+                        boolean val = parts.get(0).equals("set");
+                        if (option.equals("linenumbers")) {
+                            printLineNumbers = val;
+                        } else if (option.equals("jumpyscrolling")) {
+                            smoothScrolling = !val;
+                        } else if (option.equals("smooth")) {
+                            smoothScrolling = val;
+                        } else if (option.equals("softwrap")) {
+                            wrapping = val;
+                        } else if (option.equals("mouse")) {
+                            mouseSupport = val;
+                        } else if (option.equals("emptyline")) {
+                            oneMoreLine = val;
+                        } else if (option.equals("morespace")) {
+                            oneMoreLine = !val;
+                        } else if (option.equals("constantshow")) {
+                            constantCursor = val;
+                        } else if (option.equals("quickblank")) {
+                            quickBlank = val;
+                        } else if (option.equals("atblanks")) {
+                            atBlanks = val;
+                        } else if (option.equals("suspend")) {
+                            enableSuspension();
+                        } else if (option.equals("view")) {
+                            view = val;
+                        } else if (option.equals("cutfromcursor")) {
+                            cut2end = val;
+                        } else if (option.equals("tempfile")) {
+                            tempFile = val;
+                        } else if (option.equals("tabstospaces")) {
+                            tabsToSpaces = val;
+                        } else if (option.equals("autoindent")) {
+                            autoIndent = val;
+                        } else {
+                            errorMessage = "Nano config: Unknown or unsupported configuration option " + option;
+                        }
+                    } else if (parts.size() == 3 && parts.get(0).equals("set")) {
+                        String option = parts.get(1);
+                        String val = parts.get(2);
+                        if (option.equals("quotestr")) {
+                            quoteStr = val;
+                        } else if (option.equals("punct")) {
+                            punct = val;
+                        } else if (option.equals("matchbrackets")) {
+                            matchBrackets = val;
+                        } else if (option.equals("brackets")) {
+                            brackets = val;
+                        } else if (option.equals("historylog")) {
+                            historyLog = val;
+                        } else {
+                            errorMessage = "Nano config: Unknown or unsupported configuration option " + option;
+                        }
+                    } else if (parts.get(0).equals("bind") || parts.get(0).equals("unbind")) {
+                        errorMessage = "Nano config: Key bindings can not be changed!";
                     } else {
-                        syntaxFiles.add(Paths.get(parts.get(1)));
+                        errorMessage = "Nano config: Bad configuration '" + line + "'";
                     }
-                } else if (parts.size() == 2
-                        && (parts.get(0).equals("set") || parts.get(0).equals("unset"))) {
-                    String option = parts.get(1);
-                    boolean val = parts.get(0).equals("set");
-                    if (option.equals("linenumbers")) {
-                        printLineNumbers = val;
-                    } else if (option.equals("jumpyscrolling")) {
-                        smoothScrolling = !val;
-                    } else if (option.equals("smooth")) {
-                        smoothScrolling = val;
-                    } else if (option.equals("softwrap")) {
-                        wrapping = val;
-                    } else if (option.equals("mouse")) {
-                        mouseSupport = val;
-                    } else if (option.equals("emptyline")) {
-                        oneMoreLine = val;
-                    } else if (option.equals("morespace")) {
-                        oneMoreLine = !val;
-                    } else if (option.equals("constantshow")) {
-                        constantCursor = val;
-                    } else if (option.equals("quickblank")) {
-                        quickBlank = val;
-                    } else if (option.equals("atblanks")) {
-                        atBlanks = val;
-                    } else if (option.equals("suspend")) {
-                        enableSuspension();
-                    } else if (option.equals("view")) {
-                        view = val;
-                    } else if (option.equals("cutfromcursor")) {
-                        cut2end = val;
-                    } else if (option.equals("tempfile")) {
-                        tempFile = val;
-                    } else if (option.equals("tabstospaces")) {
-                        tabsToSpaces = val;
-                    } else if (option.equals("autoindent")) {
-                        autoIndent = val;
-                    } else {
-                        errorMessage = "Nano config: Unknown or unsupported configuration option " + option;
-                    }
-                } else if (parts.size() == 3 && parts.get(0).equals("set")) {
-                    String option = parts.get(1);
-                    String val = parts.get(2);
-                    if (option.equals("quotestr")) {
-                        quoteStr = val;
-                    } else if (option.equals("punct")) {
-                        punct = val;
-                    } else if (option.equals("matchbrackets")) {
-                        matchBrackets = val;
-                    } else if (option.equals("brackets")) {
-                        brackets = val;
-                    } else if (option.equals("historylog")) {
-                        historyLog = val;
-                    } else {
-                        errorMessage = "Nano config: Unknown or unsupported configuration option " + option;
-                    }
-                } else if (parts.get(0).equals("bind") || parts.get(0).equals("unbind")) {
-                    errorMessage = "Nano config: Key bindings can not be changed!";
-                } else {
-                    errorMessage = "Nano config: Bad configuration '" + line + "'";
                 }
+                line = reader.readLine();
             }
-            line = reader.readLine();
         }
-        reader.close();
     }
 
     public void setRestricted(boolean restricted) {

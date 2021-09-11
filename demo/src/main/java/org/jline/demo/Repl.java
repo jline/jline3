@@ -260,9 +260,9 @@ public class Repl {
             String root = file.getCanonicalPath().replace("classes", "").replaceAll("\\\\", "/"); // forward slashes works better also in windows!
             File jnanorcFile = Paths.get(root, "jnanorc").toFile();
             if (!jnanorcFile.exists()) {
-                FileWriter fw = new FileWriter(jnanorcFile);
-                fw.write("include " + root + "nanorc/*.nanorc\n");
-                fw.close();
+                try (FileWriter fw = new FileWriter(jnanorcFile)) {
+                    fw.write("include " + root + "nanorc/*.nanorc\n");
+                }
             }
             //
             // ScriptEngine and command registries

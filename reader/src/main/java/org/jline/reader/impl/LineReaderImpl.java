@@ -1087,13 +1087,13 @@ public class LineReaderImpl implements LineReader, Flushable
         editor.setRestricted(true);
         editor.open(Collections.singletonList(file.getName()));
         editor.run();
-        BufferedReader br = new BufferedReader(new FileReader(file));
-        String line;
-        commandsBuffer.clear();
-        while ((line = br.readLine()) != null) {
-            commandsBuffer.add(line);
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String line;
+            commandsBuffer.clear();
+            while ((line = br.readLine()) != null) {
+                commandsBuffer.add(line);
+            }
         }
-        br.close();
     }
 
     //
@@ -3595,9 +3595,9 @@ public class LineReaderImpl implements LineReader, Flushable
         File file = null;
         try {
             file = File.createTempFile("jline-execute-", null);
-            FileWriter writer = new FileWriter(file);
-            writer.write(buf.toString());
-            writer.close();
+            try (FileWriter writer = new FileWriter(file)) {
+                writer.write(buf.toString());
+            }
             editAndAddInBuffer(file);
         } catch (Exception e) {
             e.printStackTrace(terminal.writer());
