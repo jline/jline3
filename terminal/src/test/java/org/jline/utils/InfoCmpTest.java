@@ -12,7 +12,6 @@ import org.jline.utils.InfoCmp.Capability;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.FileSystems;
@@ -29,8 +28,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -50,6 +49,12 @@ public class InfoCmpTest {
         InfoCmp.parseInfoCmp(infocmp, bools, ints, strings);
         assertEquals(4, bools.size());
         assertTrue(strings.containsKey(Capability.byName("acsc")));
+    }
+
+    @Test
+    public void testGetNames() {
+        String[] result = Capability.bit_image_entwining.getNames();
+        assertArrayEquals(new String[]{"bit_image_entwining", "bitwin"}, result);
     }
 
     @Test
