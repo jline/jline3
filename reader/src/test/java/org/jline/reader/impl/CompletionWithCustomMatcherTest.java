@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -12,11 +12,7 @@ import org.jline.reader.*;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Map;
-
-import static org.junit.Assert.assertEquals;
-
 
 public class CompletionWithCustomMatcherTest extends ReaderTestSupport {
 
@@ -33,8 +29,6 @@ public class CompletionWithCustomMatcherTest extends ReaderTestSupport {
                     // add custom matcher before typo matcher
                     int pos = matchers.size() + (LineReader.Option.COMPLETE_MATCHER_TYPO.isSet(options) ? -1 : 0);
                     matchers.add(pos, simpleMatcher(candidate -> camelMatch(line.word(), 0, candidate, 0)));
-                    Candidate c = new Candidate(line.word());
-                    assertEquals("Expected only one element", 1, matches(Arrays.asList(c, c)).size());
                 }
             }
         });
