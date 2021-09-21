@@ -103,7 +103,6 @@ public class Completers {
                     try {
                         res = environment.evaluate(reader, line, completion.condition);
                     } catch (Throwable t) {
-                        t.getCause();
                         // Ignore
                     }
                     conditionValue = isTrue(res);
