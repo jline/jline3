@@ -788,7 +788,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                             List<String> refKeys = new ArrayList<>();
                             for (String v : _header) {
                                 String value = v.split("\\.")[0];
-                                if (!keys.contains(value)) {
+                                if (!keys.contains(value) && !keys.contains(v)) {
                                     continue;
                                 }
                                 boolean addKey = false;
