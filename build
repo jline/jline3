@@ -33,12 +33,13 @@ function mvn {
     ./mvnw $*
 }
 
-command="$1"; shift
-
+command="$1"
 # complain if no command is given
 if [ -z "$command" ]; then
     usage
 fi
+
+shift
 
 case "$command" in
     # change the version of the project
