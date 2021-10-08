@@ -1500,14 +1500,13 @@ public class SystemRegistryImpl implements SystemRegistry {
                                , "Usage: exit [OBJECT]"
                                , "  -? --help                       Displays command help"
                           };
-
         try {
-            Options opt = parseOptions(usage, input.args());
+            Options opt = parseOptions(usage, input.xargs());
             ConsoleEngine consoleEngine = consoleEngine();
-            if (!opt.args().isEmpty() && consoleEngine != null) {
+            if (!opt.argObjects().isEmpty() && consoleEngine != null) {
                 try {
-                    Object[] ret = consoleEngine.expandParameters(opt.args().toArray(new String[0]));
-                    consoleEngine.putVariable("_return", ret.length == 1 ? ret[0] : ret);
+                    consoleEngine.putVariable("_return", opt.argObjects().size() == 1 ? opt.argObjects().get(0)
+                            : opt.argObjects());
                 } catch (Exception e) {
                     trace(e);
                 }
