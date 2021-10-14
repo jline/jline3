@@ -1,3 +1,11 @@
+/*
+ * Copyright (c) 20021, the original author or authors.
+ *
+ * This software is distributable under the BSD license. See the terms of the
+ * BSD license in the documentation provided with this software.
+ *
+ * https://opensource.org/licenses/BSD-3-Clause
+ */
 package org.jline.reader;
 
 import org.jline.terminal.Terminal;
@@ -9,6 +17,7 @@ import java.io.IOException;
 import static org.junit.Assert.assertEquals;
 
 public class LineReaderBuilderTest {
+
     @Test
     public void testInheritAppNameFromTerminal() throws IOException {
         final String expectedAppName = "BOB";
