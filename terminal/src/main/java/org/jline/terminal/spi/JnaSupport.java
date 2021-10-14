@@ -15,19 +15,10 @@ import org.jline.terminal.Terminal;
 import java.io.IOException;
 import java.nio.charset.Charset;
 
-public interface JnaSupport {
+public interface JnaSupport extends NativeSupport {
 
-    Pty current() throws IOException;
+    default String name() {
+        return "jna";
+    }
 
-    Pty open(Attributes attributes, Size size) throws IOException;
-
-    Terminal winSysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, Terminal.SignalHandler signalHandler) throws IOException;
-
-    Terminal winSysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, Terminal.SignalHandler signalHandler, boolean paused) throws IOException;
-
-    boolean isWindowsConsole();
-
-    boolean isConsoleOutput();
-
-    boolean isConsoleInput();
 }

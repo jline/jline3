@@ -28,6 +28,12 @@ public class OSUtils {
             && (System.getenv("MSYSTEM").startsWith("MINGW")
                 || System.getenv("MSYSTEM").equals("MSYS"));
 
+    public static final boolean IS_WSL = System.getenv("WSL_DISTRO_NAME") != null;
+
+    public static final boolean IS_WSL1 = IS_WSL && System.getenv("WSL_INTEROP") == null;
+
+    public static final boolean IS_WSL2 = IS_WSL && !IS_WSL1;
+
     public static final boolean IS_CONEMU = IS_WINDOWS
             && System.getenv("ConEmuPID") != null;
 
@@ -37,12 +43,14 @@ public class OSUtils {
     public static String STTY_COMMAND;
     public static String STTY_F_OPTION;
     public static String INFOCMP_COMMAND;
+    public static String TEST_COMMAND;
 
     static {
         String tty;
         String stty;
         String sttyfopt;
         String infocmp;
+        String test = null;
         if (OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM) {
             tty = "tty.exe";
             stty = "stty.exe";
@@ -72,11 +80,13 @@ public class OSUtils {
                 stty = "/bin/stty";
                 sttyfopt = "-f";
             }
+            test = "/bin/test";
         }
         TTY_COMMAND = tty;
         STTY_COMMAND = stty;
         STTY_F_OPTION = sttyfopt;
         INFOCMP_COMMAND = infocmp;
+        TEST_COMMAND = test;
     }
 
 }

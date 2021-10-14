@@ -17,6 +17,7 @@ import com.sun.jna.Platform;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.jna.JnaNativePty;
+import org.jline.terminal.spi.NativeSupport;
 
 import static org.jline.terminal.impl.jna.osx.CLibrary.TCSANOW;
 import static org.jline.terminal.impl.jna.osx.CLibrary.TIOCGWINSZ;
@@ -28,16 +29,15 @@ public class OsXNativePty extends JnaNativePty {
 
     private static final CLibrary C_LIBRARY = Native.load(Platform.C_LIBRARY_NAME, CLibrary.class);
 
-    public static OsXNativePty current() throws IOException {
-        int slave = 0;
-        byte[] buf = new byte[64];
-        C_LIBRARY.ttyname_r(slave, buf, buf.length);
-        int len = 0;
-        while (buf[len] != 0) {
-            len++;
+    public static OsXNativePty current(NativeSupport.Stream consoleStream) throws IOException {
+        switch (consoleStream) {
+            case Output:
+                return new OsXNativePty(-1, null, 0, FileDescriptor.in, 1, FileDescriptor.out, ttyname(0));
+            case Error:
+                return new OsXNativePty(-1, null, 0, FileDescriptor.in, 2, FileDescriptor.err, ttyname(0));
+            default:
+                throw new IllegalArgumentException("Unsupport stream for console: " + consoleStream);
         }
-        String name = new String(buf, 0, len);
-        return new OsXNativePty(-1, null, slave, FileDescriptor.in, 1, FileDescriptor.out, name);
     }
 
     public static OsXNativePty open(Attributes attr, Size size) throws IOException {
@@ -93,4 +93,13 @@ public class OsXNativePty extends JnaNativePty {
         return C_LIBRARY.isatty(fd);
     }
 
+    public static String ttyname(int fd) {
+        byte[] buf = new byte[64];
+        C_LIBRARY.ttyname_r(fd, buf, buf.length);
+        int len = 0;
+        while (buf[len] != 0) {
+            len++;
+        }
+        return new String(buf, 0, len);
+    }
 }

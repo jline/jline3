@@ -13,16 +13,17 @@ import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.jna.win.JnaWinSysTerminal;
 import org.jline.terminal.spi.JnaSupport;
+import org.jline.terminal.spi.NativeSupport;
 import org.jline.terminal.spi.Pty;
-import org.jline.utils.OSUtils;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
 
-public class JnaSupportImpl implements JnaSupport {
+public class JnaSupportImpl implements JnaSupport
+{
     @Override
-    public Pty current() throws IOException {
-        return JnaNativePty.current();
+    public Pty current(NativeSupport.Stream console) throws IOException {
+        return JnaNativePty.current(console);
     }
 
     @Override
@@ -31,37 +32,25 @@ public class JnaSupportImpl implements JnaSupport {
     }
 
     @Override
-    public Terminal winSysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, Terminal.SignalHandler signalHandler) throws IOException {
-        return winSysTerminal(name, type, ansiPassThrough, encoding, codepage, nativeSignals, signalHandler, false);
+    public Terminal winSysTerminal(String name, String type, boolean ansiPassThrough,
+                                   Charset encoding, int codepage, boolean nativeSignals,
+                                   Terminal.SignalHandler signalHandler, boolean paused,
+                                   NativeSupport.Stream console) throws IOException {
+        return JnaWinSysTerminal.createTerminal(name, type, ansiPassThrough, encoding, codepage, nativeSignals, signalHandler, paused, console);
     }
 
     @Override
-    public Terminal winSysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, Terminal.SignalHandler signalHandler, boolean paused) throws IOException {
-        return JnaWinSysTerminal.createTerminal(name, type, ansiPassThrough, encoding, codepage, nativeSignals, signalHandler, paused);
+    public boolean isWindowsSystemStream(Stream stream) {
+        return JnaWinSysTerminal.isWindowsSystemStream(stream);
     }
 
     @Override
-    public boolean isWindowsConsole() {
-        return JnaWinSysTerminal.isWindowsConsole();
+    public boolean isPosixSystemStream(Stream stream) {
+        return JnaNativePty.isPosixSystemStream(stream);
     }
 
     @Override
-    public boolean isConsoleOutput() {
-        if (OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM) {
-            throw new UnsupportedOperationException();
-        } else if (OSUtils.IS_WINDOWS) {
-            return JnaWinSysTerminal.isConsoleOutput();
-        }
-        return JnaNativePty.isConsoleOutput();
-    }
-
-    @Override
-    public boolean isConsoleInput() {
-        if (OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM) {
-            throw new UnsupportedOperationException();
-        } else if (OSUtils.IS_WINDOWS) {
-            return JnaWinSysTerminal.isConsoleInput();
-        }
-        return JnaNativePty.isConsoleInput();
+    public String posixSystemStreamName(Stream stream) {
+        return JnaNativePty.posixSystemStreamName(stream);
     }
 }

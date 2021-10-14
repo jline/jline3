@@ -28,8 +28,10 @@ import org.jline.terminal.impl.ExecPty;
 import org.jline.terminal.impl.ExternalTerminal;
 import org.jline.terminal.impl.PosixPtyTerminal;
 import org.jline.terminal.impl.PosixSysTerminal;
+import org.jline.terminal.impl.exec.ExecSupport;
 import org.jline.terminal.spi.JansiSupport;
 import org.jline.terminal.spi.JnaSupport;
+import org.jline.terminal.spi.NativeSupport;
 import org.jline.terminal.spi.Pty;
 import org.jline.utils.Log;
 import org.jline.utils.OSUtils;
@@ -59,6 +61,16 @@ public final class TerminalBuilder {
     public static final String PROP_NON_BLOCKING_READS = "org.jline.terminal.pty.nonBlockingReads";
     public static final String PROP_COLOR_DISTANCE = "org.jline.utils.colorDistance";
     public static final String PROP_DISABLE_ALTERNATE_CHARSET = "org.jline.utils.disableAlternateCharset";
+
+    //
+    // Terminal output control
+    //
+    public enum SystemOutput {
+        SysOut,
+        SysErr,
+        SysOutOrSysErr,
+        SysErrOrSysOut
+    }
 
     /**
      * Returns the default system terminal.
@@ -96,6 +108,7 @@ public final class TerminalBuilder {
     private Charset encoding;
     private int codepage;
     private Boolean system;
+    private SystemOutput systemOutput;
     private Boolean jna;
     private Boolean jansi;
     private Boolean exec;
@@ -123,6 +136,20 @@ public final class TerminalBuilder {
 
     public TerminalBuilder system(boolean system) {
         this.system = system;
+        return this;
+    }
+
+    /**
+     * Indicates which standard stream should be used when displaying to the terminal.
+     * The default is to use the system output stream.
+     * Building a system terminal will fail if one of the stream specified is not linked
+     * to the controlling terminal.
+     *
+     * @param systemOutput The mode to choose the output stream.
+     * @return The builder.
+     */
+    public TerminalBuilder systemOutput(SystemOutput systemOutput) {
+        this.systemOutput = systemOutput;
         return this;
     }
 
@@ -321,14 +348,54 @@ public final class TerminalBuilder {
         if (dumb == null) {
             dumb = getBoolean(PROP_DUMB, null);
         }
+        TerminalBuilderSupport tbs = new TerminalBuilderSupport(jna, jansi, exec);
         if ((system != null && system) || (system == null && in == null && out == null)) {
-            if (system != null && ((in != null && !in.equals(System.in)) ||  (out != null && !out.equals(System.out)))) {
+            if (system != null && ((in != null && !in.equals(System.in)) ||
+                    (out != null && !out.equals(System.out) && !out.equals(System.err)))) {
                 throw new IllegalArgumentException("Cannot create a system terminal using non System streams");
             }
-            Terminal terminal = null;
+            if (attributes != null || size != null) {
+                Log.warn("Attributes and size fields are ignored when creating a system terminal");
+            }
+            NativeSupport.Stream console = null;
+            if (out != null) {
+                if (out.equals(System.out)) {
+                    systemOutput = SystemOutput.SysOut;
+                } else if (out.equals(System.err)) {
+                    systemOutput = SystemOutput.SysErr;
+                }
+            }
+            if (systemOutput == null) {
+                systemOutput = SystemOutput.SysOutOrSysErr;
+            }
+            switch (systemOutput) {
+                case SysOut:
+                    console = NativeSupport.Stream.Output;
+                    break;
+                case SysErr:
+                    console = NativeSupport.Stream.Error;
+                    break;
+                case SysOutOrSysErr:
+                    if (tbs.isConsoleOutput()) {
+                        console = NativeSupport.Stream.Output;
+                    } else if (tbs.isConsoleError()) {
+                        console = NativeSupport.Stream.Error;
+                    }
+                    break;
+                case SysErrOrSysOut:
+                    if (tbs.isConsoleError()) {
+                        console = NativeSupport.Stream.Error;
+                    } else if (tbs.isConsoleOutput()) {
+                        console = NativeSupport.Stream.Output;
+                    }
+                    break;
+            }
+
             IllegalStateException exception = new IllegalStateException("Unable to create a system terminal");
-            TerminalBuilderSupport tbs = new TerminalBuilderSupport(jna, jansi);
-            if (tbs.isConsoleInput() && tbs.isConsoleOutput()) {
+
+            Terminal terminal = null;
+
+            if (tbs.isConsoleInput() && console != null) {
                 if (attributes != null || size != null) {
                     Log.warn("Attributes and size fields are ignored when creating a system terminal");
                 }
@@ -337,7 +404,7 @@ public final class TerminalBuilder {
                     if (tbs.hasJnaSupport()) {
                         try {
                             terminal = tbs.getJnaSupport().winSysTerminal(name, type, ansiPassThrough, encoding,
-                                    codepage, nativeSignals, signalHandler, paused);
+                                    codepage, nativeSignals, signalHandler, paused, console);
                         } catch (Throwable t) {
                             Log.debug("Error creating JNA based terminal: ", t.getMessage(), t);
                             exception.addSuppressed(t);
@@ -346,7 +413,7 @@ public final class TerminalBuilder {
                     if (terminal == null && tbs.hasJansiSupport()) {
                         try {
                             terminal = tbs.getJansiSupport().winSysTerminal(name, type, ansiPassThrough, encoding,
-                                    codepage, nativeSignals, signalHandler, paused);
+                                    codepage, nativeSignals, signalHandler, paused, console);
                         } catch (Throwable t) {
                             Log.debug("Error creating JANSI based terminal: ", t.getMessage(), t);
                             exception.addSuppressed(t);
@@ -362,7 +429,8 @@ public final class TerminalBuilder {
                             if ("xterm".equals(type) && this.type == null && System.getProperty(PROP_TYPE) == null) {
                                 type = "xterm-256color";
                             }
-                            terminal = new PosixSysTerminal(name, type, tbs.getExecPty(), encoding, nativeSignals, signalHandler);
+                            Pty pty = tbs.getExecSupport().current(console);
+                            terminal = new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
                         } catch (IOException e) {
                             // Ignore if not a tty
                             Log.debug("Error creating EXEC based terminal: ", e.getMessage(), e);
@@ -376,7 +444,7 @@ public final class TerminalBuilder {
                 } else {
                     if (tbs.hasJnaSupport()) {
                         try {
-                            Pty pty = tbs.getJnaSupport().current();
+                            Pty pty = tbs.getJnaSupport().current(console);
                             terminal = new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
                         } catch (Throwable t) {
                             // ignore
@@ -386,16 +454,17 @@ public final class TerminalBuilder {
                     }
                     if (terminal == null && tbs.hasJansiSupport()) {
                         try {
-                            Pty pty = tbs.getJansiSupport().current();
+                            Pty pty = tbs.getJansiSupport().current(console);
                             terminal = new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
                         } catch (Throwable t) {
                             Log.debug("Error creating JANSI based terminal: ", t.getMessage(), t);
                             exception.addSuppressed(t);
                         }
                     }
-                    if (terminal == null && exec) {
+                    if (terminal == null && tbs.hasExecSupport()) {
                         try {
-                            terminal = new PosixSysTerminal(name, type, tbs.getExecPty(), encoding, nativeSignals, signalHandler);
+                            Pty pty = tbs.getExecSupport().current( console );
+                            terminal = new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
                         } catch (Throwable t) {
                             // Ignore if not a tty
                             Log.debug("Error creating EXEC based terminal: ", t.getMessage(), t);
@@ -403,17 +472,17 @@ public final class TerminalBuilder {
                         }
                     }
                 }
-                if (terminal instanceof AbstractTerminal) {
-                    AbstractTerminal t = (AbstractTerminal) terminal;
-                    if (SYSTEM_TERMINAL.compareAndSet(null, t)) {
-                        t.setOnClose(() -> SYSTEM_TERMINAL.compareAndSet(t, null));
-                    } else {
-                        exception.addSuppressed(new IllegalStateException("A system terminal is already running. " +
-                                "Make sure to use the created system Terminal on the LineReaderBuilder if you're using one " +
-                                "or that previously created system Terminals have been correctly closed."));
-                        terminal.close();
-                        terminal = null;
-                    }
+            }
+            if (terminal instanceof AbstractTerminal) {
+                AbstractTerminal t = (AbstractTerminal) terminal;
+                if (SYSTEM_TERMINAL.compareAndSet(null, t)) {
+                    t.setOnClose(() -> SYSTEM_TERMINAL.compareAndSet(t, null));
+                } else {
+                    exception.addSuppressed(new IllegalStateException("A system terminal is already running. " +
+                            "Make sure to use the created system Terminal on the LineReaderBuilder if you're using one " +
+                            "or that previously created system Terminals have been correctly closed."));
+                    terminal.close();
+                    terminal = null;
                 }
             }
             if (terminal == null && (dumb == null || dumb)) {
@@ -423,7 +492,8 @@ public final class TerminalBuilder {
                     color = getBoolean(PROP_DUMB_COLOR, false);
                     // detect emacs using the env variable
                     if (!color) {
-                        color = System.getenv("INSIDE_EMACS") != null;
+                        String emacs = System.getenv("INSIDE_EMACS");
+                        color = emacs != null && emacs.contains("comint");
                     }
                     // detect Intellij Idea
                     if (!color) {
@@ -435,8 +505,9 @@ public final class TerminalBuilder {
                     }
                     if (!color && dumb == null) {
                         if (Log.isDebugEnabled()) {
-                            Log.warn("input is tty: ", tbs.isConsoleInput());
-                            Log.warn("output is tty: ", tbs.isConsoleOutput());
+                            Log.warn("input is tty: {}", tbs.isConsoleInput());
+                            Log.warn("output is tty: {}", tbs.isConsoleOutput());
+                            Log.warn("error is tty: {}", tbs.isConsoleOutput());
                             Log.warn("Creating a dumb terminal", exception);
                         } else {
                             Log.warn("Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)");
@@ -445,7 +516,7 @@ public final class TerminalBuilder {
                 }
                 terminal = new DumbTerminal(name, color ? Terminal.TYPE_DUMB_COLOR : Terminal.TYPE_DUMB,
                         new FileInputStream(FileDescriptor.in),
-                        new FileOutputStream(FileDescriptor.out),
+                        new FileOutputStream(console == NativeSupport.Stream.Output ? FileDescriptor.out : FileDescriptor.err),
                         encoding, signalHandler);
             }
             if (terminal == null) {
@@ -453,17 +524,17 @@ public final class TerminalBuilder {
             }
             return terminal;
         } else {
-            if (jna) {
+            if (tbs.hasJnaSupport()) {
                 try {
-                    Pty pty = load(JnaSupport.class).open(attributes, size);
+                    Pty pty = tbs.getJnaSupport().open(attributes, size);
                     return new PosixPtyTerminal(name, type, pty, in, out, encoding, signalHandler, paused);
                 } catch (Throwable t) {
                     Log.debug("Error creating JNA based terminal: ", t.getMessage(), t);
                 }
             }
-            if (jansi) {
+            if (tbs.hasJansiSupport()) {
                 try {
-                    Pty pty = load(JansiSupport.class).open(attributes, size);
+                    Pty pty = tbs.getJansiSupport().open(attributes, size);
                     return new PosixPtyTerminal(name, type, pty, in, out, encoding, signalHandler, paused);
                 } catch (Throwable t) {
                     Log.debug("Error creating JANSI based terminal: ", t.getMessage(), t);
@@ -538,54 +609,67 @@ public final class TerminalBuilder {
     private static class TerminalBuilderSupport {
         private JansiSupport jansiSupport = null;
         private JnaSupport jnaSupport = null;
-        private boolean jnaFullSupport;
-        private boolean jansiFullSupport;
+        private ExecSupport execSupport;
         private Pty pty = null;
+        private boolean consoleInput;
         private boolean consoleOutput;
+        private boolean consoleError;
 
-        TerminalBuilderSupport(boolean jna, boolean jansi) {
+        TerminalBuilderSupport(boolean jna, boolean jansi, boolean exec) {
             if (jna) {
                 try {
                     jnaSupport = load(JnaSupport.class);
-                    consoleOutput = jnaSupport.isConsoleOutput();
-                    jnaFullSupport = true;
+                    consoleInput = jnaSupport.isWindowsSystemStream(JnaSupport.Stream.Input)
+                                    || jnaSupport.isPosixSystemStream(JnaSupport.Stream.Input);
+                    consoleOutput = jnaSupport.isWindowsSystemStream(JnaSupport.Stream.Output)
+                                    || jnaSupport.isPosixSystemStream(JnaSupport.Stream.Output);
+                    consoleError = jnaSupport.isWindowsSystemStream(JnaSupport.Stream.Error)
+                                    || jnaSupport.isPosixSystemStream(JnaSupport.Stream.Error);
                 } catch (Throwable e) {
-                    Log.debug("jnaSupport.isConsoleOutput(): ", e);
+                    jnaSupport = null;
+                    Log.debug("Error checking JNA support: ", e);
                 }
             }
             if (jansi) {
                 try {
                     jansiSupport = load(JansiSupport.class);
-                    consoleOutput = jansiSupport.isConsoleOutput();
-                    jansiFullSupport = true;
+                    consoleInput = jansiSupport.isWindowsSystemStream(JansiSupport.Stream.Input)
+                                    || jansiSupport.isPosixSystemStream(JansiSupport.Stream.Input);
+                    consoleOutput = jansiSupport.isWindowsSystemStream(JansiSupport.Stream.Output)
+                                    || jansiSupport.isPosixSystemStream(JansiSupport.Stream.Output);
+                    consoleError = jansiSupport.isWindowsSystemStream(JansiSupport.Stream.Error)
+                                    || jansiSupport.isPosixSystemStream(JansiSupport.Stream.Error);
                 } catch (Throwable e) {
-                    Log.debug("jansiSupport.isConsoleOutput(): ", e);
+                    jansiSupport = null;
+                    Log.debug("Error checking JANSI support: ", e);
                 }
             }
-            if (!jnaFullSupport && !jansiFullSupport) {
+            if (exec) {
                 try {
-                    pty = ExecPty.current();
-                    consoleOutput = true;
+                    execSupport = new ExecSupport();
+                    consoleInput = execSupport.isWindowsSystemStream(JansiSupport.Stream.Input)
+                                    || execSupport.isPosixSystemStream(JansiSupport.Stream.Input);
+                    consoleOutput = execSupport.isWindowsSystemStream(JansiSupport.Stream.Output)
+                                    || execSupport.isPosixSystemStream(JansiSupport.Stream.Output);
+                    consoleError = execSupport.isWindowsSystemStream(JansiSupport.Stream.Error)
+                                    || execSupport.isPosixSystemStream(JansiSupport.Stream.Error);
                 } catch (Exception e) {
-                    Log.debug("ExecPty.current(): ", e);
+                    execSupport = null;
+                    Log.debug("Error checking EXEC support: ", e);
                 }
             }
+        }
+
+        public boolean isConsoleInput() {
+            return consoleInput;
         }
 
         public boolean isConsoleOutput() {
             return consoleOutput;
         }
 
-        public boolean isConsoleInput() {
-            if (jnaFullSupport) {
-                return jnaSupport.isConsoleInput();
-            } else if (jansiFullSupport) {
-                return jansiSupport.isConsoleInput();
-            } else if (pty != null) {
-                return true;
-            } else {
-                return false;
-            }
+        public boolean isConsoleError() {
+            return consoleError;
         }
 
         public boolean hasJnaSupport() {
@@ -596,6 +680,10 @@ public final class TerminalBuilder {
             return jansiSupport != null;
         }
 
+        public boolean hasExecSupport() {
+            return execSupport != null;
+        }
+
         public JnaSupport getJnaSupport() {
             return jnaSupport;
         }
@@ -604,9 +692,13 @@ public final class TerminalBuilder {
             return jansiSupport;
         }
 
-        public Pty getExecPty() throws IOException {
+        public ExecSupport getExecSupport() {
+            return execSupport;
+        }
+
+        public Pty getExecPty( NativeSupport.Stream console) throws IOException {
             if (pty == null) {
-                pty = ExecPty.current();
+                pty = ExecPty.current(console);
             }
             return pty;
         }

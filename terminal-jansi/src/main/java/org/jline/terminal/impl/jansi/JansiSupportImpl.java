@@ -74,13 +74,13 @@ public class JansiSupportImpl implements JansiSupport {
     }
 
     @Override
-    public Pty current() throws IOException {
+    public Pty current(Stream consoleStream) throws IOException {
         String osName = System.getProperty("os.name");
         if (osName.startsWith("Linux")) {
-            return LinuxNativePty.current();
+            return LinuxNativePty.current(consoleStream);
         }
         else if (osName.startsWith("Mac") || osName.startsWith("Darwin")) {
-            return OsXNativePty.current();
+            return OsXNativePty.current(consoleStream);
         }
         else if (osName.startsWith("Solaris") || osName.startsWith("SunOS")) {
             // Solaris is not supported by jansi
@@ -88,7 +88,7 @@ public class JansiSupportImpl implements JansiSupport {
         }
         else if (osName.startsWith("FreeBSD")) {
             if (isAtLeast(1, 16)) {
-                return FreeBsdNativePty.current();
+                return FreeBsdNativePty.current(consoleStream);
             }
         }
         throw new UnsupportedOperationException();
@@ -116,14 +116,12 @@ public class JansiSupportImpl implements JansiSupport {
     }
 
     @Override
-    public Terminal winSysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, Terminal.SignalHandler signalHandler) throws IOException {
-        return winSysTerminal(name, type, ansiPassThrough, encoding, codepage, nativeSignals, signalHandler, false);
-    }
-
-    @Override
-    public Terminal winSysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, Terminal.SignalHandler signalHandler, boolean paused) throws IOException {
+    public Terminal winSysTerminal(String name, String type, boolean ansiPassThrough,
+                                   Charset encoding, int codepage, boolean nativeSignals,
+                                   Terminal.SignalHandler signalHandler, boolean paused,
+                                   Stream consoleStream) throws IOException {
         if (isAtLeast(1, 12)) {
-            JansiWinSysTerminal terminal = JansiWinSysTerminal.createTerminal(name, type, ansiPassThrough, encoding, codepage, nativeSignals, signalHandler, paused);
+            JansiWinSysTerminal terminal = JansiWinSysTerminal.createTerminal(name, type, ansiPassThrough, encoding, codepage, nativeSignals, signalHandler, paused, consoleStream);
             if (!isAtLeast(1, 16)) {
                 terminal.disableScrolling();
             }
@@ -133,36 +131,18 @@ public class JansiSupportImpl implements JansiSupport {
     }
 
     @Override
-    public boolean isWindowsConsole() {
-        return JansiWinSysTerminal.isWindowsConsole();
+    public boolean isWindowsSystemStream(Stream stream) {
+        return JansiWinSysTerminal.isWindowsSystemStream(stream);
     }
 
     @Override
-    public boolean isConsoleOutput() {
-        if (OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM) {
-            if (isAtLeast(2,1)) {
-                return JansiNativePty.isConsoleOutput();
-            } else {
-                throw new UnsupportedOperationException();
-            }
-        } else if (OSUtils.IS_WINDOWS) {
-            return JansiWinSysTerminal.isConsoleOutput();
-        }
-        return JansiNativePty.isConsoleOutput();
+    public boolean isPosixSystemStream(Stream stream) {
+        return JansiNativePty.isPosixSystemStream(stream);
     }
 
     @Override
-    public boolean isConsoleInput() {
-        if (OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM) {
-            if (isAtLeast(2,1)) {
-                return JansiNativePty.isConsoleInput();
-            } else {
-                throw new UnsupportedOperationException();
-            }
-        } else if (OSUtils.IS_WINDOWS) {
-            return JansiWinSysTerminal.isConsoleInput();
-        }
-        return JansiNativePty.isConsoleInput();
+    public String posixSystemStreamName(Stream stream) {
+        return JansiNativePty.posixSystemStreamName(stream);
     }
 
 }

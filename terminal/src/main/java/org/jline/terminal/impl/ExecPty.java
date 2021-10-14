@@ -26,6 +26,7 @@ import org.jline.terminal.Attributes.InputFlag;
 import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Attributes.OutputFlag;
 import org.jline.terminal.Size;
+import org.jline.terminal.spi.NativeSupport;
 import org.jline.terminal.spi.Pty;
 import org.jline.utils.OSUtils;
 
@@ -34,20 +35,23 @@ import static org.jline.utils.ExecHelper.exec;
 public class ExecPty extends AbstractPty implements Pty {
 
     private final String name;
-    private final boolean system;
+    private final NativeSupport.Stream console;
 
-    public static Pty current() throws IOException {
+    public static Pty current(NativeSupport.Stream console) throws IOException {
         try {
             String result = exec(true, OSUtils.TTY_COMMAND);
-            return new ExecPty(result.trim(), true);
+            if (console != NativeSupport.Stream.Output && console != NativeSupport.Stream.Error) {
+                throw new IllegalArgumentException("console should be Output or Error: " + console);
+            }
+            return new ExecPty(result.trim(), console);
         } catch (IOException e) {
             throw new IOException("Not a tty", e);
         }
     }
 
-    protected ExecPty(String name, boolean system) {
+    protected ExecPty(String name, NativeSupport.Stream console) {
         this.name = name;
-        this.system = system;
+        this.console = console;
     }
 
     @Override
@@ -70,16 +74,18 @@ public class ExecPty extends AbstractPty implements Pty {
 
     @Override
     protected InputStream doGetSlaveInput() throws IOException {
-        return system
+        return console != null
                 ? new FileInputStream(FileDescriptor.in)
                 : new FileInputStream(getName());
     }
 
     @Override
     public OutputStream getSlaveOutput() throws IOException {
-        return system
+        return console == NativeSupport.Stream.Output
                 ? new FileOutputStream(FileDescriptor.out)
-                : new FileOutputStream(getName());
+                : console == NativeSupport.Stream.Error
+                    ? new FileOutputStream(FileDescriptor.err)
+                    : new FileOutputStream(getName());
     }
 
     @Override
@@ -93,11 +99,11 @@ public class ExecPty extends AbstractPty implements Pty {
         List<String> commands = getFlagsToSet(attr, getAttr());
         if (!commands.isEmpty()) {
             commands.add(0, OSUtils.STTY_COMMAND);
-            if (!system) {
+            if (console == null) {
                 commands.add(1, OSUtils.STTY_F_OPTION);
                 commands.add(2, getName());
             }
-            exec(system, commands.toArray(new String[commands.size()]));
+            exec(console != null, commands.toArray(new String[0]));
         }
     }
 
@@ -159,7 +165,7 @@ public class ExecPty extends AbstractPty implements Pty {
     }
 
     protected String doGetConfig() throws IOException {
-        return system
+        return console != null
                 ? exec(true,  OSUtils.STTY_COMMAND, "-a")
                 : exec(false, OSUtils.STTY_COMMAND, OSUtils.STTY_F_OPTION, getName(), "-a");
     }
@@ -268,7 +274,7 @@ public class ExecPty extends AbstractPty implements Pty {
 
     @Override
     public void setSize(Size size) throws IOException {
-        if (system) {
+        if (console != null) {
             exec(true,
                  OSUtils.STTY_COMMAND,
                  "columns", Integer.toString(size.getColumns()),
@@ -284,7 +290,7 @@ public class ExecPty extends AbstractPty implements Pty {
 
     @Override
     public String toString() {
-        return "ExecPty[" + getName() + (system ? ", system]" : "]");
+        return "ExecPty[" + getName() + (console != null ? ", system]" : "]");
     }
 
 }
