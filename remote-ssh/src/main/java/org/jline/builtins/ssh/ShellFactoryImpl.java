@@ -15,14 +15,13 @@ import java.io.OutputStream;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import org.apache.sshd.common.Factory;
 import org.apache.sshd.common.channel.PtyMode;
 import org.apache.sshd.server.Environment;
 import org.apache.sshd.server.ExitCallback;
-import org.apache.sshd.server.SessionAware;
 import org.apache.sshd.server.Signal;
+import org.apache.sshd.server.channel.ChannelSession;
 import org.apache.sshd.server.command.Command;
-import org.apache.sshd.server.session.ServerSession;
+import org.apache.sshd.server.shell.ShellFactory;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Attributes.ControlChar;
 import org.jline.terminal.Attributes.InputFlag;
@@ -36,7 +35,7 @@ import org.jline.terminal.TerminalBuilder;
  * SSHD {@link org.apache.sshd.server.command.Command} factory which provides access to
  * Shell.
  */
-public class ShellFactoryImpl implements Factory<Command> {
+public class ShellFactoryImpl implements ShellFactory {
     private final Consumer<Ssh.ShellParams> shell;
 
     public ShellFactoryImpl(Consumer<Ssh.ShellParams> shell) {
@@ -63,11 +62,11 @@ public class ShellFactoryImpl implements Factory<Command> {
         }
     }
 
-    public Command create() {
+    public Command createShell(ChannelSession session) {
         return new ShellImpl();
     }
 
-    public class ShellImpl implements Command, SessionAware {
+    public class ShellImpl implements Command {
         private InputStream in;
 
         private OutputStream out;
@@ -75,8 +74,6 @@ public class ShellFactoryImpl implements Factory<Command> {
         private OutputStream err;
 
         private ExitCallback callback;
-
-        private ServerSession session;
 
         private boolean closed;
 
@@ -96,15 +93,11 @@ public class ShellFactoryImpl implements Factory<Command> {
             this.callback = callback;
         }
 
-        public void setSession(ServerSession session) {
-            this.session = session;
-        }
-
-        public void start(final Environment env) throws IOException {
+        public void start(final ChannelSession session, final Environment env) throws IOException {
             try {
                 new Thread(() -> {
                     try {
-                        ShellImpl.this.run(env);
+                        ShellImpl.this.run(session, env);
                     } catch (Throwable t) {
                         t.printStackTrace();
                     }
@@ -114,7 +107,7 @@ public class ShellFactoryImpl implements Factory<Command> {
             }
         }
 
-        public void run(Environment env) throws Exception {
+        public void run(ChannelSession session, Environment env) throws Exception {
             try {
                 Terminal terminal = TerminalBuilder.builder()
                         .name("JLine SSH")
@@ -216,19 +209,19 @@ public class ShellFactoryImpl implements Factory<Command> {
                     }
                 }
                 terminal.setAttributes(attr);
-                env.addSignalListener(signals -> {
+                env.addSignalListener((channel, signals) -> {
                     terminal.setSize(new Size(Integer.parseInt(env.getEnv().get("COLUMNS")),
                             Integer.parseInt(env.getEnv().get("LINES"))));
                     terminal.raise(Terminal.Signal.WINCH);
                 }, Signal.WINCH);
 
-                shell.accept(new Ssh.ShellParams(env.getEnv(), session, terminal, this::destroy));
+                shell.accept(new Ssh.ShellParams(env.getEnv(), session.getSession(), terminal, () -> destroy(session)));
             } catch (Throwable t) {
                 t.printStackTrace();
             }
         }
 
-        public void destroy() {
+        public void destroy(ChannelSession session) {
             if (!closed) {
                 closed = true;
                 flush(out, err);

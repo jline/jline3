@@ -17,11 +17,11 @@ import java.util.logging.Logger;
 
 import org.apache.sshd.server.Environment;
 import org.apache.sshd.server.ExitCallback;
-import org.apache.sshd.server.SessionAware;
+import org.apache.sshd.server.channel.ChannelSession;
 import org.apache.sshd.server.command.Command;
 import org.apache.sshd.server.session.ServerSession;
 
-public class ShellCommand implements Command, SessionAware {
+public class ShellCommand implements Command {
 
     private static final Logger LOGGER = Logger.getLogger(ShellCommand.class.getName());
 
@@ -55,11 +55,9 @@ public class ShellCommand implements Command, SessionAware {
         this.callback = callback;
     }
 
-    public void setSession(ServerSession session) {
-        this.session = session;
-    }
-
-    public void start(final Environment env) throws IOException {
+    @Override
+    public void start(ChannelSession channel, Environment env) throws IOException {
+        this.session = channel.getSession();
         this.env = env;
         new Thread(this::run).start();
     }
@@ -84,7 +82,7 @@ public class ShellCommand implements Command, SessionAware {
         }
     }
 
-    public void destroy() {
+    public void destroy(ChannelSession channel) {
     }
 
 }
