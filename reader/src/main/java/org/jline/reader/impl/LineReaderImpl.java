@@ -281,7 +281,7 @@ public class LineReaderImpl implements LineReader, Flushable
     int candidateStartPosition = 0;
 
     public LineReaderImpl(Terminal terminal) throws IOException {
-        this(terminal, null, null);
+        this(terminal, terminal.getName(), null);
     }
 
     public LineReaderImpl(Terminal terminal, String appName) throws IOException {
