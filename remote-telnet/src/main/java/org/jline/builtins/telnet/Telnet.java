@@ -41,6 +41,7 @@ public class Telnet {
     private final Terminal terminal;
     private final ShellProvider provider;
     private PortListener portListener;
+    private ConnectionManager connectionManager;
     private int port;
     private String ip;
 
@@ -94,7 +95,7 @@ public class Telnet {
     }
 
     private void start() throws IOException {
-        ConnectionManager connectionManager = new ConnectionManager(1000, 5 * 60 * 1000, 5 * 60 * 1000, 60 * 1000, null, null, false) {
+        connectionManager = new ConnectionManager(1000, 5 * 60 * 1000, 5 * 60 * 1000, 60 * 1000, null, null, false) {
             @Override
             protected Connection createConnection(ThreadGroup threadGroup, ConnectionData newCD) {
                 return new Connection(threadGroup, newCD) {
@@ -162,6 +163,7 @@ public class Telnet {
                 };
             }
         };
+        connectionManager.start();
         portListener = new PortListener("gogo", port, 10);
         portListener.setConnectionManager(connectionManager);
         portListener.start();
@@ -170,6 +172,8 @@ public class Telnet {
     private void stop() throws IOException {
         portListener.stop();
         portListener = null;
+        connectionManager.stop();
+        connectionManager = null;
     }
 
 }

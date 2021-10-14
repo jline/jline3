@@ -240,8 +240,6 @@ public abstract class ConnectionManager implements Runnable {
         //housekeep connections
         try {
             do {
-                //clean up and close all broken connections
-                //cleanupBroken();
                 //clean up closed connections
                 cleanupClosed();
                 //check all active connections
@@ -256,19 +254,6 @@ public abstract class ConnectionManager implements Runnable {
         LOG.log(Level.FINE, "run():: Ran out " + this.toString());
     }//run
 
-    /*
-    private void cleanupBroken() {
-      //cleanup loop
-      while (!m_BrokenConnections.isEmpty()) {
-        Connection nextOne = (Connection) m_BrokenConnections.pop();
-        log.info("cleanupBroken():: Closing broken connection " + nextOne.toString());
-        //fire logoff event for shell site cleanup , beware could hog the daemon thread
-        nextOne.processConnectionEvent(new ConnectionEvent(nextOne, ConnectionEvent.CONNECTION_BROKEN));
-        //close the connection, will be automatically registered as closed
-        nextOne.close();
-      }
-    }//cleanupBroken
-    */
     private void cleanupClosed() {
         if (stopping) {
             return;
