@@ -140,9 +140,19 @@ public class AttributedStringTest {
     public void testColumns() {
         AttributedString message = new AttributedString("👍");
         int messageLength = message.columnLength();
-        assertEquals(1, messageLength);
+        assertEquals(2, messageLength);
         AttributedString messageAgain = message.columnSubSequence(0, messageLength);
         assertEquals("👍", messageAgain.toString());
+
+        message = new AttributedString(
+                "\uD83D\uDC46" +
+                "\uD83D\uDC46\uD83C\uDFFB" +
+                "\uD83D\uDC46\uD83C\uDFFC" +
+                "\uD83D\uDC46\uD83C\uDFFD" +
+                "\uD83D\uDC46\uD83C\uDFFE" +
+                "\uD83D\uDC46\uD83C\uDFFF");
+        messageLength = message.columnLength();
+        assertEquals(12, messageLength);
     }
 
 }
