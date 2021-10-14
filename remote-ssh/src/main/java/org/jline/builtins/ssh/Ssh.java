@@ -20,15 +20,17 @@ import org.apache.sshd.client.channel.ClientChannel;
 import org.apache.sshd.client.channel.ClientChannelEvent;
 import org.apache.sshd.client.future.ConnectFuture;
 import org.apache.sshd.client.session.ClientSession;
+import org.apache.sshd.common.NamedResource;
 import org.apache.sshd.common.channel.PtyMode;
 import org.apache.sshd.common.config.keys.FilePasswordProvider;
+import org.apache.sshd.common.session.SessionContext;
 import org.apache.sshd.common.util.io.NoCloseInputStream;
 import org.apache.sshd.common.util.io.NoCloseOutputStream;
+import org.apache.sshd.scp.server.ScpCommandFactory;
 import org.apache.sshd.server.SshServer;
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
-import org.apache.sshd.server.scp.ScpCommandFactory;
 import org.apache.sshd.server.session.ServerSession;
-import org.apache.sshd.server.subsystem.sftp.SftpSubsystemFactory;
+import org.apache.sshd.sftp.server.SftpSubsystemFactory;
 import org.jline.builtins.Options;
 import org.jline.builtins.Options.HelpException;
 import org.jline.reader.LineReader;
@@ -362,7 +364,7 @@ public class Ssh {
         server.setHost(ip);
         server.setShellFactory(new ShellFactoryImpl(shell));
         server.setCommandFactory(new ScpCommandFactory.Builder()
-                .withDelegate(command -> new ShellCommand(execute, command)).build());
+                .withDelegate((channel, command) -> new ShellCommand(execute, command)).build());
         server.setSubsystemFactories(Collections.singletonList(
                 new SftpSubsystemFactory.Builder().build()
         ));
@@ -390,7 +392,7 @@ public class Ssh {
         }
 
         @Override
-        public String getPassword(String resourceKey) throws IOException {
+        public String getPassword(SessionContext session, NamedResource resourceKey, int retryIndex) throws IOException {
             return readLine("Enter password for " + resourceKey + ":", false);
         }
 
