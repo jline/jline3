@@ -334,7 +334,7 @@ public class PumpReader extends Reader {
             this.encoder = charset.newEncoder()
                     .onUnmappableCharacter(CodingErrorAction.REPLACE)
                     .onMalformedInput(CodingErrorAction.REPLACE);
-            this.buffer = ByteBuffer.allocate((int) Math.ceil(encoder.maxBytesPerChar()));
+            this.buffer = ByteBuffer.allocate((int) Math.ceil(encoder.maxBytesPerChar() * 2));
 
             // No input available after initialization
             buffer.limit(0);

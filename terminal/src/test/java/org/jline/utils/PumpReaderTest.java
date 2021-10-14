@@ -25,7 +25,7 @@ public class PumpReaderTest {
 
         // Write some input
         writer.println("Hello world!");
-        writer.println("㐀");
+        writer.println("\uD83D\uDE0A㐀");
 
         return pump;
     }
@@ -37,7 +37,7 @@ public class PumpReaderTest {
         // Read it again
         BufferedReader reader = new BufferedReader(pump);
         assertEquals("Hello world!", reader.readLine());
-        assertEquals("㐀", reader.readLine());
+        assertEquals("\uD83D\uDE0A㐀", reader.readLine());
     }
 
     @Test
@@ -47,7 +47,7 @@ public class PumpReaderTest {
         // Read it using an input stream
         BufferedReader reader = new BufferedReader(new InputStreamReader(pump.createInputStream(StandardCharsets.UTF_8), StandardCharsets.UTF_8));
         assertEquals("Hello world!", reader.readLine());
-        assertEquals("㐀", reader.readLine());
+        assertEquals("\uD83D\uDE0A㐀", reader.readLine());
     }
 
 }
