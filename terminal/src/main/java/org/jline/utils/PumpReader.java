@@ -36,7 +36,7 @@ public class PumpReader extends Reader {
     }
 
     public PumpReader(int bufferSize) {
-        char[] buf = new char[bufferSize];
+        char[] buf = new char[Math.max(bufferSize, 2)];
         this.readBuffer = CharBuffer.wrap(buf);
         this.writeBuffer = CharBuffer.wrap(buf);
         this.writer = new Writer(this);
@@ -122,7 +122,9 @@ public class PumpReader extends Reader {
      * @return If more input is available
      */
     private boolean rewindReadBuffer() {
-        return rewind(readBuffer, writeBuffer) && readBuffer.hasRemaining();
+        boolean rw = rewind(readBuffer, writeBuffer) && readBuffer.hasRemaining();
+        notifyAll();
+        return rw;
     }
 
     /**
@@ -131,6 +133,7 @@ public class PumpReader extends Reader {
      */
     private void rewindWriteBuffer() {
         rewind(writeBuffer, readBuffer);
+        notifyAll();
     }
 
     @Override

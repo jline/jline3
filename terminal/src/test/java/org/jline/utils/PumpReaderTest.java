@@ -14,6 +14,7 @@ import org.junit.Test;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 
@@ -43,6 +44,23 @@ public class PumpReaderTest {
     @Test
     public void testInputStream() throws IOException {
         PumpReader pump = writeInput();
+
+        // Read it using an input stream
+        BufferedReader reader = new BufferedReader(new InputStreamReader(pump.createInputStream(StandardCharsets.UTF_8), StandardCharsets.UTF_8));
+        assertEquals("Hello world!", reader.readLine());
+        assertEquals("\uD83D\uDE0A㐀", reader.readLine());
+    }
+
+    @Test
+    public void testSmallBuffer() throws IOException {
+        PumpReader pump = new PumpReader(12);
+        PrintWriter writer = new PrintWriter(pump.getWriter());
+
+        // Write some input
+        new Thread(() -> {
+            writer.println("Hello world!");
+            writer.println("\uD83D\uDE0A㐀");
+        }).start();
 
         // Read it using an input stream
         BufferedReader reader = new BufferedReader(new InputStreamReader(pump.createInputStream(StandardCharsets.UTF_8), StandardCharsets.UTF_8));
