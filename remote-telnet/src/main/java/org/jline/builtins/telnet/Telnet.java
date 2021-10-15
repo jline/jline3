@@ -164,7 +164,7 @@ public class Telnet {
             }
         };
         connectionManager.start();
-        portListener = new PortListener("gogo", port, 10);
+        portListener = new PortListener("gogo", ip, port, 10);
         portListener.setConnectionManager(connectionManager);
         portListener.start();
     }
