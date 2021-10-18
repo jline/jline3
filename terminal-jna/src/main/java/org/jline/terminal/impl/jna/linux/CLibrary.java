@@ -14,6 +14,7 @@ import java.util.EnumSet;
 import java.util.List;
 
 import com.sun.jna.LastErrorException;
+import com.sun.jna.Platform;
 import com.sun.jna.Structure;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Attributes.ControlChar;
@@ -263,8 +264,8 @@ public interface CLibrary extends com.sun.jna.Library {
 
     // CONSTANTS
 
-    int TIOCGWINSZ = 0x00005413;
-    int TIOCSWINSZ = 0x00005414;
+    int TIOCGWINSZ = Platform.isMIPS() || Platform.isPPC() || Platform.isSPARC() ? 0x40087468 : 0x00005413;
+    int TIOCSWINSZ = Platform.isMIPS() || Platform.isPPC() || Platform.isSPARC() ? 0x80087467 : 0x00005414;
 
     int VINTR       = 0;
     int VQUIT       = 1;
