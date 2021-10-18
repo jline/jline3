@@ -8,8 +8,13 @@
  */
 package org.jline.terminal.impl.jna;
 
+import java.io.IOException;
+
+import com.sun.jna.Platform;
+import org.jline.terminal.Size;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assume.assumeTrue;
 
@@ -19,5 +24,20 @@ public class JnaNativePtyTest {
     public void testDescriptor() {
         assumeTrue(!System.getProperty( "os.name" ).startsWith( "Windows"));
         assertNotNull(JnaNativePty.newDescriptor(4));
+    }
+
+
+    @Test
+    public void testOpen() throws IOException {
+        assumeTrue(Platform.isMac() || Platform.isLinux() || Platform.isSolaris() || Platform.isFreeBSD());
+        JnaNativePty pty = JnaNativePty.open(null, null);
+        assertNotNull(pty);
+        Size sz = pty.getSize();
+        assertNotNull(sz);
+        Size nsz = new Size(sz.getColumns() + 1, sz.getRows() + 1);
+        pty.setSize(nsz);
+        sz = pty.getSize();
+        assertNotNull(sz);
+        assertEquals(nsz, sz);
     }
 }
