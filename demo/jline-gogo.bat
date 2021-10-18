@@ -12,7 +12,7 @@ if not exist %TARGETDIR%\lib (
 
 goto :SETUP_CLASSPATH
 
-: APPEND_TO_CLASSPATH
+:APPEND_TO_CLASSPATH
 set filename=%~1
 set cp=%cp%;%TARGETDIR%\lib\%filename%
 goto :EOF
