@@ -16,6 +16,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 public class JnaNativePtyTest {
@@ -29,7 +30,9 @@ public class JnaNativePtyTest {
 
     @Test
     public void testOpen() throws IOException {
-        assumeTrue(Platform.isMac() || Platform.isLinux() || Platform.isSolaris() || Platform.isFreeBSD());
+        // https://github.com/jline/jline3/issues/688
+        // currently disabled on Mac M1 silicon
+        assumeFalse(Platform.isMac() && Platform.is64Bit() && Platform.isARM());
         JnaNativePty pty = JnaNativePty.open(null, null);
         assertNotNull(pty);
         Size sz = pty.getSize();
