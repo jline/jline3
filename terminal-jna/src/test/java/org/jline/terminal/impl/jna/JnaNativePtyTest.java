@@ -33,6 +33,7 @@ public class JnaNativePtyTest {
         // https://github.com/jline/jline3/issues/688
         // currently disabled on Mac M1 silicon
         assumeFalse(Platform.isMac() && Platform.is64Bit() && Platform.isARM());
+        assumeFalse(Platform.isWindows());
         JnaNativePty pty = JnaNativePty.open(null, null);
         assertNotNull(pty);
         Size sz = pty.getSize();
