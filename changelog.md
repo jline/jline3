@@ -1,6 +1,50 @@
 # [JLine3](https://github.com/jline/jline3)
 <!-- git log --pretty=format:'* [`%h`](https://github.com/jline/jline3/commit/%H) %s' -->
 
+## [JLine 3.20.1][3_21_0]
+[3_21_0]: https://repo1.maven.org/maven2/org/jline/jline/3.21.0/
+
+* [`3654a2a0`](https://github.com/jline/jline3/commit/3654a2a0ca276edbfb675e427d43c8782e9e7a6d) Fix JNA CLibrary constants on non x86 platforms, fixes #687 (#727)
+* [`057d00e7`](https://github.com/jline/jline3/commit/057d00e70e9e49dcf08f371a6ba74d6fe321d5ec) Upgrade gogo libraries (#725)
+* [`738635f7`](https://github.com/jline/jline3/commit/738635f71e3836f7bcf8f7a0670cfef31814a276) Fix line endings in jline-gogo.bat (#726)
+* [`fd2589f7`](https://github.com/jline/jline3/commit/fd2589f7818d2b0ba1d88fc9011c657f92824ff8) Disable JNA for Mac/M1 platform (#721)
+* [`427d05e1`](https://github.com/jline/jline3/commit/427d05e1ec91e1833133c6d7ca6677bd7dfef9d8) Upgrade to JNA 5.9.0 (#722)
+* [`d774f6f5`](https://github.com/jline/jline3/commit/d774f6f522851fc5aab2dc02f5c87208ed533bcf) Fix telnet bind address, fixes #611 (#723)
+* [`eac455ea`](https://github.com/jline/jline3/commit/eac455eab03f662b8e7adbb15a1594b0063e01bc) Improve PumpReader surrogate char handling (#720)
+* [`e2313dfe`](https://github.com/jline/jline3/commit/e2313dfe614c5f69bfc436ba568debec2b6cde98) Fix problem with PumpReader waiting forever, fixes #659 (#719)
+* [`c6ae2c12`](https://github.com/jline/jline3/commit/c6ae2c1295c81893456a38ae69509693a690b50d) Rename History.read parameter to be more clear (#718)
+* [`c12a7bde`](https://github.com/jline/jline3/commit/c12a7bde7a082433c9390f4d525642314557f8f2) Upgrade to jansi 2.4.0 (#717)
+* [`9908d12e`](https://github.com/jline/jline3/commit/9908d12e278b38e5d2ea9002386254a210ec8922) Upgrade sshd to 2.7.0 (#715)
+* [`deb7469d`](https://github.com/jline/jline3/commit/deb7469dc8d0028afcd647169963db31b8ca3927) Fix PumpReader support for supplementary code points, fixes #658 (#716)
+* [`0a35dc7f`](https://github.com/jline/jline3/commit/0a35dc7f2326346ad19a5d3c5eb377fae3552e41) Inherit appName from the terminal, fixes #631 (#714)
+* [`8843bbe9`](https://github.com/jline/jline3/commit/8843bbe9014ed605ceecaf3ef6c6030078bbf3c3) Allow easy custom candidate sorting (#678)
+* [`b9ca72d3`](https://github.com/jline/jline3/commit/b9ca72d338ea92f9062a252a154a181c16acbc37) Fix emoji character width, fixes #683 (#713)
+* [`bef9396d`](https://github.com/jline/jline3/commit/bef9396dd2190242b1ed321ac885cdaa2c0192cf) Telnet ConnectionManager should clean closed connections, fixes #709 (#712)
+* [`5eaf5194`](https://github.com/jline/jline3/commit/5eaf51941b652f8d61dc45d33c6658a3a5c20da4) Force to use FreeBSD stty on Mac (#706)
+* [`397e7288`](https://github.com/jline/jline3/commit/397e72880bbbb82e08f5660e509633e69f5a7bd6) Stack is a thread-safe synchronized collection. (#696)
+* [`f8c6bb78`](https://github.com/jline/jline3/commit/f8c6bb785e50589e799ce72b99fcba3518ae419b) Change nested classes to static nested classes where possible
+* [`a3a56888`](https://github.com/jline/jline3/commit/a3a568882f48ce6fc94c92c82f8f551e2c93329f) Typo in CompletionMatcher's javadoc, fixes #711
+* [`e2795498`](https://github.com/jline/jline3/commit/e27954987c0317a5d08b8b4210194186827a4929) fix build script missing complain if no command is given
+* [`a3e97824`](https://github.com/jline/jline3/commit/a3e978247c4ee2eab349651bc39b80e49e1b553d) Enable jdk17 for testing
+* [`d3de534c`](https://github.com/jline/jline3/commit/d3de534c645a20aa85aa32e8b0608abe17fe6875) REPL-console: fix the parameter expansion of exit command
+* [`f3c967f4`](https://github.com/jline/jline3/commit/f3c967f463c28c318e912b5dd5ede3b1b7260938) Remove unnecessary t.getCause() call
+* [`ba065314`](https://github.com/jline/jline3/commit/ba06531420fb41713b41df912f168da186da3b65) Use try-with-resources where possible
+* [`56c2a07e`](https://github.com/jline/jline3/commit/56c2a07e1906111eb358ac3386198b7af941ad38) Remove superfluous use of boxing
+* [`3ae43a15`](https://github.com/jline/jline3/commit/3ae43a15c36cbd807124fb76611acd6590b5eb15) [#681] Extend jansi 2.x import package range
+* [`a01fe264`](https://github.com/jline/jline3/commit/a01fe264d43ecdf7ab969d4a431cec3f8f840986) 3.19.0 Regression - Escape sequences are printed when using Git Bash in Windows Terminal, fixes #693
+* [`0670361a`](https://github.com/jline/jline3/commit/0670361acdf36dd36ea86188d7553605757c63e3) DefaultPrinter: fix table column selection when column name contains '.'-char(s)
+* [`31229b05`](https://github.com/jline/jline3/commit/31229b058a1aab6c2260da8fe92a477a92826c96) Added a few tests for CompletionMatcher
+* [`74c97a23`](https://github.com/jline/jline3/commit/74c97a23a3baceaf9efff598516d3936470009cb) [JLINE-699] Make candidates for completion unique
+* [`9ca636f3`](https://github.com/jline/jline3/commit/9ca636f3b5b8b4aaebdc9c675049336f2fc74ff4) Fix possible ArrayStoreException in stream (#701)
+* [`b14c437c`](https://github.com/jline/jline3/commit/b14c437c307fad38bd0040ad8e2ebfe6579b7115) Purge depshield badge
+* [`a1fcd9f5`](https://github.com/jline/jline3/commit/a1fcd9f5d08f359a3f2e152d4dca4edf02e1724d) prnt command: improve management of option --columns=<fields>
+* [`97391909`](https://github.com/jline/jline3/commit/9739190986d6ea38ed1c12f2af09c564049e9306) Auto suggestion error when command contains '|' character(s), fixes #679
+* [`9abe8b7e`](https://github.com/jline/jline3/commit/9abe8b7ef0eb77c77d26e5accd68993e967d0815) Nano editor does not work well on Windows terminals, fixes #676
+* [`574dd56e`](https://github.com/jline/jline3/commit/574dd56e906d25b06992c19773539ea916e11fc5) JLine bundle jline-3.20.0.jar has a wrong Automatic-Module-Name, fixes #675
+* [`f55f2e29`](https://github.com/jline/jline3/commit/f55f2e293a2810e178c647e89c0f962f0f4f239e) Groovy REPL: enum tab completion fails for imported class, fixes #674
+* [`03b6a55f`](https://github.com/jline/jline3/commit/03b6a55f7205e2eb02a0da0e3ab8cf0d583b2482) Windows CMD: adding terminal status overwrites previous command lines, fixes #673
+* [`db29d290`](https://github.com/jline/jline3/commit/db29d290867c4baee98d5e5f9ce11762852a34a1) ttop command display is messed on Windows, fixes #672
+
 ## [JLine 3.20.0][3_20_0]
 [3_20_0]: https://repo1.maven.org/maven2/org/jline/jline/3.20.0/
 
