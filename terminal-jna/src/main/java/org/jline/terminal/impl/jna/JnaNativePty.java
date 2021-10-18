@@ -38,6 +38,9 @@ public abstract class JnaNativePty extends AbstractPty implements Pty {
 
     public static JnaNativePty current() throws IOException {
         if (Platform.isMac()) {
+            if (Platform.is64Bit() && Platform.isARM()) {
+                throw new UnsupportedOperationException();
+            }
             return OsXNativePty.current();
         } else if (Platform.isLinux()) {
             return LinuxNativePty.current();
