@@ -41,6 +41,7 @@
 package org.jline.builtins.telnet;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
@@ -64,24 +65,27 @@ public class PortListener
     private static final String logmsg =
             "Listening to Port {0,number,integer} with a connectivity queue size of {1,number,integer}.";
     private String name;
-    private int port;                                        //port number running on
-    private int floodProtection;                        //flooding protection
-    private ServerSocket serverSocket = null; //server socket
+    private String ip;                                  // ip address
+    private int port;                                   // port number running on
+    private int floodProtection;                        // flooding protection
+    private ServerSocket serverSocket = null;           // server socket
     private Thread thread;
-    private ConnectionManager connectionManager;    //connection management thread
+    private ConnectionManager connectionManager;        // connection management thread
     private boolean stopping = false;
-    private boolean available;                    //Flag for availability
+    private boolean available;                          // Flag for availability
 
     /**
      * Constructs a PortListener instance.<br>
      *
      * @param name      the name
+     * @param ip        the ip address to bind to
      * @param port      int that specifies the port number of the server socket.
      * @param floodprot that specifies the server socket queue size.
      */
-    public PortListener(String name, int port, int floodprot) {
+    public PortListener(String name, String ip, int port, int floodprot) {
         this.name = name;
         available = false;
+        this.ip = ip;
         this.port = port;
         floodProtection = floodprot;
     }//constructor
@@ -166,7 +170,7 @@ public class PortListener
                 should be handled properly, but denial of service attacks via massive parallel
                 program logins should be prevented with this.
             */
-            serverSocket = new ServerSocket(port, floodProtection);
+            serverSocket = new ServerSocket(port, floodProtection, ip != null ? InetAddress.getByName(ip) : null);
 
             //log entry
             LOG.info(MessageFormat.format(logmsg, port, floodProtection));
