@@ -1,7 +1,7 @@
 # [JLine3](https://github.com/jline/jline3)
 <!-- git log --pretty=format:'* [`%h`](https://github.com/jline/jline3/commit/%H) %s' -->
 
-## [JLine 3.20.1][3_21_0]
+## [JLine 3.21.0][3_21_0]
 [3_21_0]: https://repo1.maven.org/maven2/org/jline/jline/3.21.0/
 
 * [`3654a2a0`](https://github.com/jline/jline3/commit/3654a2a0ca276edbfb675e427d43c8782e9e7a6d) Fix JNA CLibrary constants on non x86 platforms, fixes #687 (#727)
