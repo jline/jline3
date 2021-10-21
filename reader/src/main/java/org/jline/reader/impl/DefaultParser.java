@@ -293,7 +293,7 @@ public class DefaultParser implements Parser {
             rawWordLength = rawWordCursor;
         }
 
-        if (context != ParseContext.COMPLETE && context != ParseContext.SPLIT_LINE) {
+        if (context != ParseContext.COMPLETE) {
             if (eofOnEscapedNewLine && isEscapeChar(line, line.length() - 1)) {
                 throw new EOFError(-1, -1, "Escaped new line", "newline");
             }

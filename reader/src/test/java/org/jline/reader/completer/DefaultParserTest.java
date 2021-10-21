@@ -10,7 +10,10 @@ package org.jline.reader.completer;
 
 import java.util.Arrays;
 
+import org.jline.reader.EOFError;
+import org.jline.reader.EndOfFileException;
 import org.jline.reader.ParsedLine;
+import org.jline.reader.Parser;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.ReaderTestSupport;
 import org.junit.Before;
@@ -41,6 +44,12 @@ public class DefaultParserTest extends ReaderTestSupport {
 
         delimited = parser.parse("1  2  3", 0);
         assertEquals(Arrays.asList("1", "2", "3"), delimited.words());
+    }
+
+    @Test(expected = EOFError.class)
+    public void testThatExceptionThrows() {
+        parser.setEofOnUnclosedQuote(true);
+        delimited = parser.parse("'1 2 3", 0, Parser.ParseContext.SPLIT_LINE);
     }
 
     @Test
