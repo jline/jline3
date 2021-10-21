@@ -9,6 +9,7 @@
 package org.jline.reader.completer;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 import org.jline.reader.ParsedLine;
 import org.jline.reader.impl.DefaultParser;
@@ -87,4 +88,148 @@ public class DefaultParserTest extends ReaderTestSupport {
         delimited = parser.parse("'1 '2\\' 3", 0);
         assertEquals(Arrays.asList("1 2'", "3"), delimited.words());
     }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testNullBlockCommentDelim() {
+        parser.setBlockCommentDelims(new DefaultParser.BlockCommentDelims(null, "*/"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testNullBlockCommentsDelim() {
+        parser.setBlockCommentDelims(new DefaultParser.BlockCommentDelims("/*", null));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testEqualBlockCommentsDelims() {
+        parser.setBlockCommentDelims(new DefaultParser.BlockCommentDelims("/*", null));
+    }
+
+    @Test
+    public void testBashComments() {
+        parser.setLineCommentDelims(new String[] {"#"});
+        delimited = parser.parse("1 2 # 3", 0);
+        assertEquals(Arrays.asList("1", "2"), delimited.words());
+
+        delimited = parser.parse("#\\'1 '2' 3", 0);
+        assertEquals(Collections.emptyList(), delimited.words());
+
+        delimited = parser.parse("'#'\\'1 '2' 3", 0);
+        assertEquals(Arrays.asList("#'1", "2", "3"), delimited.words());
+
+        delimited = parser.parse("#1 " + System.lineSeparator() + " '2' 3", 0);
+        assertEquals(Arrays.asList("2", "3"), delimited.words());
+    }
+
+    @Test
+    public void testJavaComments() {
+        parser.setLineCommentDelims(new String[] {"//"});
+        parser.setBlockCommentDelims(new DefaultParser.BlockCommentDelims("/*", "*/"));
+
+        delimited = parser.parse("1 2 # 3", 0);
+        assertEquals(Arrays.asList("1", "2", "#", "3"), delimited.words());
+
+        delimited = parser.parse("1 2 // 3", 0);
+        assertEquals(Arrays.asList("1", "2"), delimited.words());
+
+        delimited = parser.parse("/*\\'1 \n '2' \n3*/", 0);
+        assertEquals(Collections.emptyList(), delimited.words());
+
+        delimited = parser.parse("'//'\\'1 /*'2'\n */3", 0);
+        assertEquals(Arrays.asList("//'1", "3"), delimited.words());
+
+
+        delimited = parser.parse("hello/*comment*/world", 0);
+        assertEquals(Arrays.asList("hello", "world"), delimited.words());
+    }
+
+    @Test
+    public void testSqlComments() {
+        // The test check sql line comment --
+        // and sql block comments /* */
+        parser.setLineCommentDelims(new String[]{"--"});
+        parser.setBlockCommentDelims(new DefaultParser.BlockCommentDelims("/*", "*/"));
+
+        delimited = parser.parse("/*/g */", 0);
+        assertEquals(Collections.emptyList(), delimited.words());
+
+        delimited = parser.parse("/**/g", 0);
+        assertEquals(Arrays.asList("g"), delimited.words());
+
+        delimited = parser.parse("select '--';", 0);
+        assertEquals(Arrays.asList("select", "--;"), delimited.words());
+        delimited = parser.parse("select --; '--';", 0);
+        assertEquals(Arrays.asList("select"), delimited.words());
+
+        delimited = parser.parse("select 1/* 789*/ ; '--';", 0);
+        assertEquals(Arrays.asList("select", "1", ";", "--;"), delimited.words());
+        delimited = parser.parse("select 1/* 789 \n */ ; '--';", 0);
+        assertEquals(Arrays.asList("select", "1", ";", "--;"), delimited.words());
+
+        delimited = parser.parse("select 1/* 789 \n * / ; '--';*/", 0);
+        assertEquals(Arrays.asList("select", "1"), delimited.words());
+        delimited = parser.parse("select '1';--comment", 0);
+        assertEquals(Arrays.asList("select", "1;"), delimited.words());
+
+        delimited = parser.parse("select '1';-----comment", 0);
+        assertEquals(Arrays.asList("select", "1;"), delimited.words());
+
+        delimited = parser.parse("select '1';--comment\n", 0);
+        assertEquals(Arrays.asList("select", "1;"), delimited.words());
+
+        delimited = parser.parse("select '1';--comment\n\n", 0);
+        assertEquals(Arrays.asList("select", "1;"), delimited.words());
+
+        delimited = parser.parse("select '1'; --comment", 0);
+        assertEquals(Arrays.asList("select", "1;"), delimited.words());
+
+        delimited = parser.parse("select '1';\n--comment", 0);
+        assertEquals(Arrays.asList("select", "1;"), delimited.words());
+
+        delimited = parser.parse("select '1';\n\n--comment", 0);
+        assertEquals(Arrays.asList("select", "1;"), delimited.words());
+
+        delimited = parser.parse("select '1';\n \n--comment", 0);
+        assertEquals(Arrays.asList("select", "1;"), delimited.words());
+
+        delimited = parser.parse("select '1'\n;\n--comment", 0);
+        assertEquals(Arrays.asList("select", "1", ";"), delimited.words());
+
+        delimited = parser.parse("select '1'\n\n;--comment", 0);
+        assertEquals(Arrays.asList("select", "1", ";"), delimited.words());
+
+        delimited = parser.parse("select '1'\n\n;---comment", 0);
+        assertEquals(Arrays.asList("select", "1", ";"), delimited.words());
+
+        delimited = parser.parse("select '1'\n\n;-- --comment", 0);
+        assertEquals(Arrays.asList("select", "1", ";"), delimited.words());
+
+        delimited = parser.parse("select '1'\n\n;\n--comment", 0);
+        assertEquals(Arrays.asList("select", "1", ";"), delimited.words());
+
+        delimited = parser.parse("select '1'/*comment*/", 0);
+        assertEquals(Arrays.asList("select", "1"), delimited.words());
+
+        delimited = parser.parse("select '1';/*---comment */", 0);
+        assertEquals(Arrays.asList("select", "1;"), delimited.words());
+
+        delimited = parser.parse("select '1';/*comment\n*/\n", 0);
+        assertEquals(Arrays.asList("select", "1;"), delimited.words());
+
+        delimited = parser.parse("select '1';/*comment*/\n\n", 0);
+        assertEquals(Arrays.asList("select", "1;"), delimited.words());
+
+        delimited = parser.parse("select '1'; /*--comment*/", 0);
+        assertEquals(Arrays.asList("select", "1;"), delimited.words());
+
+        delimited = parser.parse("select '1/*' as \"asd\";", 0);
+        assertEquals(Arrays.asList("select", "1/*", "as", "asd;"), delimited.words());
+
+        delimited = parser.parse("select '/*' as \"asd*/\";", 0);
+        assertEquals(Arrays.asList("select", "/*", "as", "asd*/;"), delimited.words());
+
+        delimited = parser.parse("select '1' as \"'a'\\\ns'd\\\n\n\" from t;", 0);
+        assertEquals(Arrays.asList("select", "1", "as", "'a'\ns'd\n\n", "from", "t;"), delimited.words());
+    }
+
+
 }
