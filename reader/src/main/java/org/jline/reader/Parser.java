@@ -68,7 +68,7 @@ public interface Parser {
 
         /** Parsed words will have all characters present in input line
          * including quotes and escape chars.
-         * May throw EOFError in which case we have incomplete input.
+         * We should tolerate and ignore errors.
          */
         SPLIT_LINE,
 
