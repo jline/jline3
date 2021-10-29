@@ -31,7 +31,8 @@ public class DefaultParser implements Parser {
         private final String start;
         private final String end;
         public BlockCommentDelims(String start, String end) {
-            if (start == null || end == null || start.equals(end)) {
+            if (start == null || end == null
+              || start.isEmpty() || end.isEmpty() || start.equals(end)) {
                 throw new IllegalArgumentException("Bad block comment delimiter!");
             }
             this.start = start;

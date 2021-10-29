@@ -90,18 +90,28 @@ public class DefaultParserTest extends ReaderTestSupport {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testNullBlockCommentDelim() {
+    public void testNullStartBlockCommentDelim() {
         parser.setBlockCommentDelims(new DefaultParser.BlockCommentDelims(null, "*/"));
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testNullBlockCommentsDelim() {
+    public void testNullEndBlockCommentsDelim() {
         parser.setBlockCommentDelims(new DefaultParser.BlockCommentDelims("/*", null));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testEqualBlockCommentsDelims() {
-        parser.setBlockCommentDelims(new DefaultParser.BlockCommentDelims("/*", null));
+        parser.setBlockCommentDelims(new DefaultParser.BlockCommentDelims("/*", "/*"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testEmptyStartBlockCommentsDelims() {
+        parser.setBlockCommentDelims(new DefaultParser.BlockCommentDelims("", "*/"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testEmptyEndBlockCommentsDelims() {
+        parser.setBlockCommentDelims(new DefaultParser.BlockCommentDelims("/*", ""));
     }
 
     @Test
