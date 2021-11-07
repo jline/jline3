@@ -278,6 +278,7 @@ public class DefaultParser implements Parser {
         boolean quotedWord = false;
         boolean lineCommented = false;
         boolean blockCommented = false;
+        boolean blockCommentInRightOrder = true;
         final String blockCommentEnd = blockCommentDelims == null ? null : blockCommentDelims.end;
         final String blockCommentStart = blockCommentDelims == null ? null : blockCommentDelims.start;
 
@@ -342,6 +343,10 @@ public class DefaultParser implements Parser {
                         i += blockCommentStart == null ? 0 : blockCommentStart.length() - 1;
                         rawWordStart = i + 1;
                     }
+                } else if (quoteStart < 0 && !lineCommented
+                        && isCommentDelim(line, i, blockCommentEnd)) {
+                    current.append(line.charAt(i));
+                    blockCommentInRightOrder = false;
                 } else if (!isEscapeChar(line, i)) {
                     current.append(line.charAt(i));
                     if (quoteStart < 0) {
@@ -377,7 +382,11 @@ public class DefaultParser implements Parser {
             }
             if (blockCommented) {
                 throw new EOFError(-1, -1, "Missing closing block comment delimiter",
-                        blockCommentEnd);
+                        "add: " + blockCommentEnd);
+            }
+            if (!blockCommentInRightOrder) {
+                throw new EOFError(-1, -1, "Missing opening block comment delimiter",
+                        "missing: " + blockCommentStart);
             }
             if (bracketChecker.isClosingBracketMissing() || bracketChecker.isOpeningBracketMissing()) {
                 String message = null;

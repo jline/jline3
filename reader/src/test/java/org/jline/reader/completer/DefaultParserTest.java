@@ -11,6 +11,7 @@ package org.jline.reader.completer;
 import java.util.Arrays;
 import java.util.Collections;
 
+import org.jline.reader.EOFError;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.ReaderTestSupport;
@@ -241,5 +242,9 @@ public class DefaultParserTest extends ReaderTestSupport {
         assertEquals(Arrays.asList("select", "1", "as", "'a'\ns'd\n\n", "from", "t;"), delimited.words());
     }
 
-
+    @Test(expected = EOFError.class)
+    public void testMissingOpeningBlockComment() {
+        parser.setBlockCommentDelims(new DefaultParser.BlockCommentDelims("/*", "*/"));
+        delimited = parser.parse("1, 2, 3 */", 0);
+    }
 }
