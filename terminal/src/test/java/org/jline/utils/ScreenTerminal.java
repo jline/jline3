@@ -33,7 +33,7 @@
  * See http://www.ecma-international.org/publications/standards/Ecma-048.htm
  *       and http://vt100.net/docs/vt510-rm/
  */
-package org.jline.builtins;
+package org.jline.utils;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -43,9 +43,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.jline.utils.Colors;
-import org.jline.utils.WCWidth;
 
 /**
  * Screen terminal implementation.
