@@ -1574,10 +1574,10 @@ public class Nano implements Editor {
                         AttributedStringBuilder a = new AttributedStringBuilder();
                         if (startEndHighlight && ruleStartId == i) {
                             if (end.find()) {
-                                a.append(asb.columnSubSequence(0, end.end()), rule.getStyle());
-                                a.append(asb.columnSubSequence(end.end(), asb.length()));
                                 ruleStartId = 0;
                                 startEndHighlight = false;
+                                a.append(asb.columnSubSequence(0, end.end()), rule.getStyle());
+                                a.append(_highlight(asb.columnSubSequence(end.end(), asb.length()).toAttributedString()));
                             } else {
                                 a.append(asb, rule.getStyle());
                                 done = true;
